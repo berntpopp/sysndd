@@ -1,0 +1,38 @@
+# Dependencies (rebuilt in container)
+node_modules/
+
+# Build output (rebuilt in container)
+dist/
+
+# Git
+.git
+.gitignore
+
+# Tests
+tests/
+*.spec.js
+*.test.js
+__tests__/
+coverage/
+
+# Development files
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+*.md
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db

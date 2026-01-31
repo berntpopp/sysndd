@@ -1,11 +1,8 @@
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
-          col
-          md="12"
-        >
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
           <!-- Include TablesLogs Component Here -->
           <TablesLogs
             :sort-input="sort"
@@ -15,16 +12,21 @@
             :page-size-input="pageSize"
             :fspec-input="fspec"
           />
-        </b-col>
-      </b-row>
-    </b-container>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
+import TablesLogs from '@/components/tables/TablesLogs.vue';
 
 export default {
   name: 'ViewLogs',
+  components: {
+    TablesLogs,
+  },
   props: {
     sort: { type: String, default: '-id' },
     filter: { type: String, default: null },
@@ -37,31 +39,26 @@ export default {
         'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
   },
-  metaInfo: {
-    // if no subcomponents specify a metaInfo.title, this title will be used
-    title: 'Logging',
-    // all titles will be injected into this template
-    titleTemplate:
-      '%s | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders',
-    htmlAttrs: {
-      lang: 'en',
-    },
-    meta: [
-      {
-        vmid: 'description',
-        name: 'description',
-        content: 'An expert curated resource of neurodevelopmental disorders.',
-      },
-    ],
+  setup() {
+    useHead({
+      title: 'Logging',
+      meta: [
+        {
+          name: 'description',
+          content: 'An expert curated resource of neurodevelopmental disorders.',
+        },
+      ],
+    });
   },
 };
 </script>
 
 <style scoped>
-  .btn-group-xs > .btn, .btn-xs {
-    padding: .25rem .4rem;
-    font-size: .875rem;
-    line-height: .5;
-    border-radius: .2rem;
-  }
+.btn-group-xs > .btn,
+.btn-xs {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.875rem;
+  line-height: 0.5;
+  border-radius: 0.2rem;
+}
 </style>

@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Tests (not needed in production image)
+tests/
+testthat/
+
+# Development files
+*.Rproj
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# renv cache (lockfile IS needed, but not the library)
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+
+# Documentation
+*.md
+docs/
+
+# Scripts (linting tools not needed in prod)
+scripts/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+logs/

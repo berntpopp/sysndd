@@ -1,0 +1,263 @@
+# SysNDD CI/CD Pipeline
+# https://docs.github.com/en/actions/automating-builds-and-tests
+#
+# Optimizations applied:
+# - Path filters to skip unchanged code (api/** vs app/**)
+# - Combined frontend checks to reduce npm install overhead
+# - Dependency caching (renv for R, npm for Node)
+# - Parallel jobs for speed
+# - Cancel in-progress runs on new pushes
+#
+# References:
+# - https://rstudio.github.io/renv/articles/ci.html
+# - https://github.com/r-lib/actions
+# - https://github.com/actions/setup-node
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '.planning/**'
+      - '.plan/**'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '.planning/**'
+      - '.plan/**'
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Detect Changes - determines which jobs to run
+  # ============================================================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - '.github/workflows/ci.yml'
+            app:
+              - 'app/**'
+              - '.github/workflows/ci.yml'
+
+  # ============================================================================
+  # R API Jobs
+  # ============================================================================
+  lint-api:
+    name: Lint R API
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2
+        with:
+          working-directory: ./api
+          cache-version: 1
+
+      - name: Run lintr
+        run: Rscript scripts/lint-check.R
+
+  test-api:
+    name: Test R API
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    defaults:
+      run:
+        working-directory: ./api
+    services:
+      mysql:
+        image: mysql:8.0.40
+        env:
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2
+        with:
+          working-directory: ./api
+          cache-version: 1
+
+      - name: Run testthat tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript -e "testthat::test_dir('tests/testthat')"
+
+  # ============================================================================
+  # Frontend Jobs - Combined for efficiency
+  # ============================================================================
+  check-app:
+    name: Check Frontend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.app == 'true' }}
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --prefer-offline
+
+      # Run all checks in parallel where possible
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript check
+        run: npm run type-check
+
+      - name: Run Vitest tests
+        run: npm run test:unit
+
+  build-app:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: check-app
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --prefer-offline
+
+      - name: Build production bundle
+        run: npm run build:docker
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: app/dist
+          retention-days: 7
+
+  # ============================================================================
+  # Docker Build (only on push to master)
+  # ============================================================================
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint-api, test-api, build-app]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/master' &&
+      (needs.lint-api.result == 'success' || needs.lint-api.result == 'skipped') &&
+      (needs.test-api.result == 'success' || needs.test-api.result == 'skipped') &&
+      (needs.build-app.result == 'success' || needs.build-app.result == 'skipped')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          push: false
+          tags: sysndd-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build App image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: false
+          tags: sysndd-app:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # Summary Job (ensures required checks pass)
+  # ============================================================================
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [changes, lint-api, test-api, check-app, build-app]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          # API jobs: pass if successful or skipped (no changes)
+          api_ok="${{ needs.lint-api.result == 'success' || needs.lint-api.result == 'skipped' }}"
+          test_ok="${{ needs.test-api.result == 'success' || needs.test-api.result == 'skipped' }}"
+          # App jobs: pass if successful or skipped (no changes)
+          app_ok="${{ needs.check-app.result == 'success' || needs.check-app.result == 'skipped' }}"
+          build_ok="${{ needs.build-app.result == 'success' || needs.build-app.result == 'skipped' }}"
+
+          if [[ "$api_ok" != "true" ]] || [[ "$test_ok" != "true" ]] || \
+             [[ "$app_ok" != "true" ]] || [[ "$build_ok" != "true" ]]; then
+            echo "One or more jobs failed"
+            echo "lint-api: ${{ needs.lint-api.result }}"
+            echo "test-api: ${{ needs.test-api.result }}"
+            echo "check-app: ${{ needs.check-app.result }}"
+            echo "build-app: ${{ needs.build-app.result }}"
+            exit 1
+          fi
+          echo "All CI checks passed!"

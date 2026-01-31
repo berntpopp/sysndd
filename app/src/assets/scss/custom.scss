@@ -1,61 +1,30 @@
-$text-main: #2c3e50;
-$enable-gradients: true;
+// Custom SCSS for SysNDD
+// Adds design tokens as CSS custom properties
+//
+// IMPORTANT: Bootstrap CSS is already imported in main.ts via 'bootstrap/dist/css/bootstrap.css'
+// This file adds custom design tokens that extend Bootstrap's CSS custom properties
 
-$primary: #0d47a1;
+// Forward variables from _variables.scss so they can be accessed via @use "custom" as custom
+@forward './variables';
 
-// Base colors definitions
-$blue: #007bff !default;
-$indigo: #6610f2 !default;
-$purple: #6f42c1 !default;
-$pink: #e83e8c !default;
-$red: #dc3545 !default;
-$orange: #fd7e14 !default;
-$yellow: #ffc107 !default;
-$green: #28a745 !default;
-$teal: #20c997 !default;
-$cyan: #17a2b8 !default;
-$darkgoldenrod: #B8860B !default;
-$darkgreen: #006400 !default;
-$darkmagenta: #8B008B !default;
-$indianred: #CD5C5C !default;
-$hotpink: #FF69B4 !default;
-$lightskyblue: #87CEFA !default;
+// Import design token partials (CSS custom properties - runtime)
+@use './partials/colors';
+@use './partials/shadows';
+@use './partials/spacing';
+@use './partials/radius';
+@use './partials/typography';
+@use './partials/animations';
 
-$theme-colors: (
-  "primary": #1565c0,
-);
+// Import component styles
+@use './components/cards';
+@use './components/forms';
+@use './components/tables';
+@use './components/search';
+@use './components/loading';
+@use './components/responsive';
 
-//based on https://stackoverflow.com/questions/58581748/what-are-the-steps-to-using-custom-bootstrap-sass-in-a-vue-cli-3-project
-// Required
-@import "node_modules/bootstrap/scss/functions";
-@import "node_modules/bootstrap/scss/variables";
-@import "node_modules/bootstrap/scss/mixins";
+// Import utility classes
+@use './utilities/spacing' as spacing-utilities;
+@use './utilities/accessibility';
 
-@import "node_modules/bootstrap/scss/root";
-@import "node_modules/bootstrap/scss/reboot";
-@import "node_modules/bootstrap/scss/type";
-@import "node_modules/bootstrap/scss/images";
-@import "node_modules/bootstrap/scss/code";
-@import "node_modules/bootstrap/scss/grid";
-@import "node_modules/bootstrap/scss/tables";
-@import "node_modules/bootstrap/scss/forms";
-@import "node_modules/bootstrap/scss/buttons";
-@import "node_modules/bootstrap/scss/transitions";
-@import "node_modules/bootstrap/scss/dropdown";
-@import "node_modules/bootstrap/scss/button-group";
-@import "node_modules/bootstrap/scss/input-group";
-@import "node_modules/bootstrap/scss/custom-forms";
-@import "node_modules/bootstrap/scss/nav";
-@import "node_modules/bootstrap/scss/navbar";
-@import "node_modules/bootstrap/scss/card";
-@import "node_modules/bootstrap/scss/pagination";
-@import "node_modules/bootstrap/scss/badge";
-@import "node_modules/bootstrap/scss/alert";
-@import "node_modules/bootstrap/scss/list-group";
-@import "node_modules/bootstrap/scss/close";
-@import "node_modules/bootstrap/scss/toasts";
-@import "node_modules/bootstrap/scss/modal";
-@import "node_modules/bootstrap/scss/tooltip";
-@import "node_modules/bootstrap/scss/popover";
-@import "node_modules/bootstrap/scss/spinners";
-@import "node_modules/bootstrap/scss/utilities";
+// Additional global styles can be added below

@@ -25,15 +25,67 @@ This repository is for development of our SysNDD web application (app), applicat
 
 ## Quick start
 
-The SysNDD installation depends on docker and docker-compose.
-If these are installed the project can be installed locally using the provided shell script:
+### Prerequisites
 
-```
+- Docker and Docker Compose
+- Node.js 24 LTS (for local development)
+
+### Docker Deployment
+
+```bash
 bash deployment.sh "<config.tar.gz>"
 ```
 
-- A dummy config file for local deployment will be provided in this repository.
-- Data and a script to populate the MySQL database will be provided in this repository.
+### Local Development
+
+1. Clone the repository
+2. Set up environment:
+```bash
+cp app/.env.example app/.env
+# Edit .env with your API URL
+```
+
+3. Install dependencies:
+```bash
+cd app && npm install
+```
+
+4. Start development server:
+```bash
+npm run dev
+```
+
+The app runs at http://localhost:5173
+
+### Build for Production
+
+```bash
+cd app && npm run build:production
+```
+
+### Run Tests
+
+```bash
+cd app && npm run test:unit
+```
+
+## Tech Stack
+
+**Frontend:**
+- Vue 3.5 with Composition API
+- TypeScript (relaxed strict mode)
+- Bootstrap-Vue-Next 0.42
+- Vite 7 build tooling
+- Vitest for testing
+- Pinia for state management
+
+**Backend:**
+- R/Plumber API
+- MySQL 8.0
+
+**Infrastructure:**
+- Docker with Traefik reverse proxy
+- Multi-stage builds with BuildKit
 
 ## Documentation
 

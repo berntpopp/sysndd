@@ -1,41 +1,23 @@
 <!-- src/components/tables/TablesLogs.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <b-container
-      v-else
-      fluid
-    >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
-          col
-          md="12"
-        >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <b-card
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Log entries: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
-                  >
+                </BCol>
+                <BCol>
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -45,59 +27,136 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
-                class="my-1"
-                sm="8"
-              >
+            <BRow>
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
                   :debounce-time="500"
-                  @input="filtered"
+                  @update:model-value="filtered"
                 />
-              </b-col>
+              </BCol>
 
-              <b-col
-                class="my-1"
-                sm="4"
-              >
-                <b-container v-if="totalRows > perPage || showPaginationControls">
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
+
+            <BRow class="px-2 pb-2 align-items-center">
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="filter.request_method.content"
+                  :options="method_options"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">All Methods</BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="filter.status.content"
+                  :options="status_options"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="null">All Status</BFormSelectOption>
+                  </template>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="3">
+                <BFormSelect
+                  v-model="filter.path.content"
+                  size="sm"
+                  @update:model-value="filtered()"
+                >
+                  <BFormSelectOption :value="null">All Paths</BFormSelectOption>
+                  <BFormSelectOption value="/api/">API Calls</BFormSelectOption>
+                  <BFormSelectOption value="/signin">/signin</BFormSelectOption>
+                  <BFormSelectOption value="/api/entity">/api/entity</BFormSelectOption>
+                  <BFormSelectOption value="/api/logs">/api/logs</BFormSelectOption>
+                </BFormSelect>
+              </BCol>
+              <BCol sm="3" class="text-end">
+                <span class="text-muted small me-2">
+                  {{ items.length }} of {{ totalRows.toLocaleString() }}
+                </span>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-danger"
+                  title="Delete all logs (requires confirmation)"
+                  @click="showDeleteModal = true"
+                >
+                  <i class="bi bi-trash" />
+                </BButton>
+              </BCol>
+            </BRow>
+
+            <!-- Active filter pills -->
+            <BRow v-if="hasActiveFilters" class="px-2 pb-2">
+              <BCol>
+                <BBadge
+                  v-for="(activeFilter, index) in activeFilters"
+                  :key="index"
+                  variant="secondary"
+                  class="me-2 mb-1"
+                >
+                  {{ activeFilter.label }}: {{ activeFilter.value }}
+                  <BButton
+                    size="sm"
+                    variant="link"
+                    class="p-0 ms-1 text-light"
+                    @click="clearFilter(activeFilter.key)"
+                  >
+                    <i class="bi bi-x" />
+                  </BButton>
+                </BBadge>
+                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
+                  Clear all
+                </BButton>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
+
+            <!-- Empty state when no logs match filters -->
+            <div v-if="!isBusy && items.length === 0" class="text-center py-4">
+              <i class="bi bi-journal-x fs-1 text-muted" />
+              <p class="text-muted mt-2">No logs match your filters</p>
+              <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
+                Clear filters
+              </BButton>
+            </div>
 
             <!-- Main table element -->
             <GenericTable
+              v-else
               :items="items"
               :fields="fields"
               :field-details="fields_details"
               :sort-by="sortBy"
-              :sort-desc="sortDesc"
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                v-slot:filter-controls
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
-                  <b-form-input
+              <template v-if="showFilterControls" #filter-controls>
+                <td v-for="field in fields" :key="field.key">
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -108,157 +167,249 @@
                     @update="filtered()"
                   />
 
-                  <b-form-select
+                  <BFormSelect
                     v-if="field.selectable"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
-                    type="search"
+                    size="sm"
                     @input="removeSearch()"
                     @change="filtered()"
                   >
-                    <template v-slot:first>
-                      <b-form-select-option value="null">
+                    <template #first>
+                      <BFormSelectOption value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
 
+                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                   <label
-                    v-if="field.multi_selectable"
+                    v-if="
+                      field.multi_selectable &&
+                      field.selectOptions &&
+                      field.selectOptions.length > 0
+                    "
                     :for="'select_' + field.key"
                     :aria-label="field.label"
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
+                    <BFormSelect
                       :id="'select_' + field.key"
                       v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
+                      :options="normalizeSelectOptions(field.selectOptions)"
+                      size="sm"
+                      @change="
+                        removeSearch();
+                        filtered();
+                      "
+                    >
+                      <template #first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
                   </label>
                 </td>
               </template>
               <!-- Custom filter fields slot -->
 
-              <template v-slot:cell-id="{ row }">
-                <div>
-                  <b-badge
-                    variant="primary"
-                    style="cursor: pointer"
-                  >
+              <template #cell-id="{ row }">
+                <div style="cursor: pointer" @click="handleRowClick(row)">
+                  <BBadge variant="primary">
                     {{ row.id }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
-              <template v-slot:cell-agent="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.agent"
-                >
-                  <b-badge
-                    pill
-                    variant="info"
-                  >
+              <template #cell-agent="{ row }">
+                <div v-b-tooltip.hover.top class="overflow-hidden text-truncate" :title="row.agent">
+                  <BBadge pill variant="info">
                     {{ truncate(row.agent, 50) }}
-                  </b-badge>
+                  </BBadge>
                 </div>
               </template>
 
-              <template v-slot:cell-status="{ row }">
-                <b-badge :variant="row.status === 200 ? 'success' : 'danger'">
+              <template #cell-status="{ row }">
+                <BBadge :variant="getStatusVariant(row.status)">
                   {{ row.status }}
-                </b-badge>
+                </BBadge>
               </template>
 
-              <template v-slot:cell-request_method="{ row }">
-                <b-badge :variant="getMethodVariant(row.request_method)">
+              <template #cell-request_method="{ row }">
+                <BBadge :variant="getMethodVariant(row.request_method)">
                   {{ row.request_method }}
-                </b-badge>
+                </BBadge>
               </template>
 
-              <template v-slot:cell-query="{ row }">
+              <template #cell-path="{ row }">
                 <div
                   v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.query"
+                  class="overflow-hidden text-truncate font-monospace small"
+                  style="max-width: 200px"
+                  :title="row.path + (row.query ? row.query : '')"
                 >
-                  {{ row.query }}
+                  {{ row.path }}
                 </div>
               </template>
 
-              <template v-slot:cell-timestamp="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.timestamp"
+              <template #cell-duration="{ row }">
+                <span
+                  v-b-tooltip.hover
+                  :class="getDurationClass(row.duration)"
+                  :title="`${row.duration}ms response time`"
                 >
-                  {{ formatDate(row.timestamp) }}
+                  {{ formatDuration(row.duration) }}
+                </span>
+              </template>
+
+              <template #cell-address="{ row }">
+                <span class="font-monospace small">{{ row.address }}</span>
+              </template>
+
+              <template #cell-timestamp="{ row }">
+                <div v-b-tooltip.hover.top :title="formatAbsoluteTime(row.timestamp)">
+                  {{ formatRelativeTime(row.timestamp) }}
                 </div>
               </template>
 
-              <template v-slot:cell-modified="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  class="overflow-hidden text-truncate"
-                  :title="row.modified"
-                >
-                  {{ formatDate(row.modified) }}
+              <template #cell-modified="{ row }">
+                <div v-b-tooltip.hover.top :title="formatAbsoluteTime(row.modified)">
+                  {{ formatRelativeTime(row.modified) }}
                 </div>
+              </template>
+
+              <template #cell-actions="{ row }">
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-primary"
+                  title="View details"
+                  @click="handleRowClick(row)"
+                >
+                  <i class="bi bi-eye" />
+                </BButton>
               </template>
             </GenericTable>
             <!-- Main table element -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Log Detail Drawer -->
+      <LogDetailDrawer
+        v-model="showLogDetail"
+        :log="selectedLog"
+        :can-navigate-prev="canNavigatePrev"
+        :can-navigate-next="canNavigateNext"
+        @navigate-prev="navigateToPreviousLog"
+        @navigate-next="navigateToNextLog"
+      />
+
+      <!-- Delete Logs Confirmation Modal -->
+      <BModal
+        v-model="showDeleteModal"
+        title="Delete Logs"
+        header-bg-variant="danger"
+        header-text-variant="light"
+        centered
+        @hidden="resetDeleteModal"
+      >
+        <div class="text-center mb-3">
+          <i class="bi bi-exclamation-triangle-fill text-danger fs-1" />
+        </div>
+
+        <!-- Delete mode selection -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">What to delete:</label>
+          <BFormSelect v-model="deleteMode" class="mb-2">
+            <option value="all">All logs ({{ totalRows.toLocaleString() }} entries)</option>
+            <option value="3">Logs older than 3 days</option>
+            <option value="7">Logs older than 7 days</option>
+            <option value="14">Logs older than 14 days</option>
+            <option value="30">Logs older than 30 days</option>
+          </BFormSelect>
+        </div>
+
+        <p class="text-center">
+          <strong>Warning:</strong>
+          <span v-if="deleteMode === 'all'">
+            This will permanently delete all {{ totalRows.toLocaleString() }} log entries.
+          </span>
+          <span v-else> This will permanently delete logs older than {{ deleteMode }} days. </span>
+        </p>
+        <p class="text-center text-muted small">
+          This action cannot be undone. Type <code>DELETE</code> to confirm.
+        </p>
+        <BFormInput
+          v-model="deleteConfirmText"
+          placeholder="Type DELETE to confirm"
+          class="text-center"
+          :state="deleteConfirmText === 'DELETE' ? true : deleteConfirmText ? false : null"
+        />
+        <template #footer>
+          <BButton variant="secondary" @click="showDeleteModal = false"> Cancel </BButton>
+          <BButton
+            variant="danger"
+            :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
+            @click="deleteLogs"
+          >
+            <BSpinner v-if="isDeleting" small class="me-1" />
+            {{
+              isDeleting
+                ? 'Deleting...'
+                : deleteMode === 'all'
+                  ? 'Delete All Logs'
+                  : `Delete Old Logs`
+            }}
+          </BButton>
+        </template>
+      </BModal>
+    </BContainer>
   </div>
 </template>
 
 <script>
-import Treeselect from '@riophae/vue-treeselect';
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+// Import Vue utilities
+import { ref, inject } from 'vue';
+import { useRoute } from 'vue-router';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
-
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
 
 import Utils from '@/assets/js/utils';
-import EventBus from '@/assets/js/eventBus';
+import { useUiStore } from '@/stores/ui';
+
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null;
 
 export default {
   name: 'TablesLogs',
   components: {
-    Treeselect,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
     TableHeaderLabel,
     TableSearchInput,
     GenericTable,
+    LogDetailDrawer,
   },
-  mixins: [
-    toastMixin,
-    urlParsingMixin,
-    colorAndSymbolsMixin,
-    textMixin,
-    tableMethodsMixin,
-    tableDataMixin,
-  ],
   props: {
     apiEndpoint: {
       type: String,
@@ -274,101 +425,345 @@ export default {
     pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
-      default: 'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
+      default:
+        'id,timestamp,address,agent,host,request_method,path,query,post,status,duration,file,modified',
     },
+  },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      id: { content: null, join_char: null, operator: 'contains' },
+      timestamp: { content: null, join_char: null, operator: 'contains' },
+      address: { content: null, join_char: null, operator: 'contains' },
+      agent: { content: null, join_char: null, operator: 'contains' },
+      host: { content: null, join_char: null, operator: 'contains' },
+      user: { content: null, join_char: null, operator: 'contains' },
+      request_method: { content: null, join_char: ',', operator: 'contains' },
+      path: { content: null, join_char: ',', operator: 'contains' },
+      query: { content: null, join_char: null, operator: 'contains' },
+      post: { content: null, join_char: ',', operator: 'contains' },
+      status: { content: null, join_char: ',', operator: 'contains' },
+      duration: { content: null, join_char: ',', operator: 'contains' },
+      file: { content: null, join_char: ',', operator: 'contains' },
+      modified: { content: null, join_char: ',', operator: 'contains' },
+    });
+
+    // Inject axios and route
+    const axios = inject('axios');
+    const route = useRoute();
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: props.apiEndpoint,
+      axios,
+      route,
+    });
+
+    // Destructure to exclude methods that are overridden in the component's methods section
+    // This matches the pattern used in TablesEntities for proper method overriding
+    const {
+      filtered: _filtered,
+      handlePageChange: _handlePageChange,
+      handlePerPageChange: _handlePerPageChange,
+      handleSortByOrDescChange: _handleSortByOrDescChange,
+      removeFilters: _removeFilters,
+      removeSearch: _removeSearch,
+      ...restTableMethods
+    } = tableMethods;
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...restTableMethods,
+      filter,
+      axios,
+    };
   },
   data() {
     return {
-      items: [],
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
+      // Pagination state
+      totalPages: 0,
+      // User filter options (loaded from API)
+      user_options: [],
+      // HTTP method filter options
+      method_options: [
+        { value: 'GET', text: 'GET' },
+        { value: 'POST', text: 'POST' },
+        { value: 'PUT', text: 'PUT' },
+        { value: 'DELETE', text: 'DELETE' },
+      ],
+      // Log detail drawer state
+      showLogDetail: false,
+      selectedLog: null,
+      selectedLogIndex: -1,
+      // Field definitions - NOT overwritten by API
       fields: [
-        { key: 'id', label: 'ID', sortable: true },
-        { key: 'timestamp', label: 'Timestamp', sortable: true },
-        { key: 'address', label: 'Address', sortable: true },
-        { key: 'agent', label: 'Agent', sortable: true },
-        { key: 'host', label: 'Host', sortable: true },
-        { key: 'request_method', label: 'Request Method', sortable: true },
+        {
+          key: 'id',
+          label: 'ID',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '80px' },
+        },
+        { key: 'timestamp', label: 'Time', sortable: true, thStyle: { width: '120px' } },
+        {
+          key: 'request_method',
+          label: 'Method',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '90px' },
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          sortable: true,
+          class: 'text-center',
+          thStyle: { width: '80px' },
+        },
         { key: 'path', label: 'Path', sortable: true },
-        { key: 'query', label: 'Query', sortable: true },
-        { key: 'post', label: 'Post', sortable: true },
-        { key: 'status', label: 'Status', sortable: true },
-        { key: 'duration', label: 'Duration', sortable: true },
-        { key: 'file', label: 'File', sortable: true },
-        { key: 'modified', label: 'Modified', sortable: true },
+        {
+          key: 'duration',
+          label: 'Duration',
+          sortable: true,
+          class: 'text-end',
+          thStyle: { width: '90px' },
+        },
+        { key: 'address', label: 'IP', sortable: true, thStyle: { width: '120px' } },
+        {
+          key: 'actions',
+          label: '',
+          sortable: false,
+          class: 'text-center',
+          thStyle: { width: '60px' },
+        },
       ],
       fields_details: [],
-      totalRows: 0,
-      currentPage: 1,
-      currentItemID: this.pageAfterInput,
-      prevItemID: null,
-      nextItemID: null,
-      lastItemID: null,
-      executionTime: 0,
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: 'id',
-      sortDesc: true,
-      sort: this.sortInput,
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        id: { content: null, join_char: null, operator: 'contains' },
-        timestamp: { content: null, join_char: null, operator: 'contains' },
-        address: { content: null, join_char: null, operator: 'contains' },
-        agent: { content: null, join_char: null, operator: 'contains' },
-        host: { content: null, join_char: null, operator: 'contains' },
-        request_method: { content: null, join_char: ',', operator: 'contains' },
-        path: { content: null, join_char: ',', operator: 'contains' },
-        query: { content: null, join_char: null, operator: 'contains' },
-        post: { content: null, join_char: ',', operator: 'contains' },
-        status: { content: null, join_char: ',', operator: 'contains' },
-        duration: { content: null, join_char: ',', operator: 'contains' },
-        file: { content: null, join_char: ',', operator: 'contains' },
-        modified: { content: null, join_char: ',', operator: 'contains' },
-      },
-      filter_string: null,
-      downloading: false,
-      loading: false,
-      isBusy: true,
+      // Status filter options
+      status_options: [
+        { value: '200', text: '200 OK' },
+        { value: '201', text: '201 Created' },
+        { value: '307', text: '307 Redirect' },
+        { value: '400', text: '400 Bad Request' },
+        { value: '401', text: '401 Unauthorized' },
+        { value: '403', text: '403 Forbidden' },
+        { value: '404', text: '404 Not Found' },
+        { value: '500', text: '500 Server Error' },
+      ],
+      // Delete confirmation modal state
+      showDeleteModal: false,
+      deleteConfirmText: '',
+      deleteMode: 'all', // 'all', '3', '7', '14', '30' (days)
+      isDeleting: false,
     };
   },
+  computed: {
+    canNavigatePrev() {
+      return this.selectedLogIndex > 0;
+    },
+    canNavigateNext() {
+      return this.selectedLogIndex < this.items.length - 1;
+    },
+    hasActiveFilters() {
+      return Object.values(this.filter).some((f) => f.content !== null && f.content !== '');
+    },
+    activeFilters() {
+      const filters = [];
+      if (this.filter.any.content) {
+        filters.push({ key: 'any', label: 'Search', value: this.filter.any.content });
+      }
+      if (this.filter.user.content) {
+        filters.push({ key: 'user', label: 'User', value: this.filter.user.content });
+      }
+      if (this.filter.request_method.content) {
+        filters.push({
+          key: 'request_method',
+          label: 'Method',
+          value: this.filter.request_method.content,
+        });
+      }
+      if (this.filter.status.content) {
+        filters.push({ key: 'status', label: 'Status', value: this.filter.status.content });
+      }
+      if (this.filter.path.content) {
+        filters.push({ key: 'path', label: 'Path', value: this.filter.path.content });
+      }
+      return filters;
+    },
+    removeFiltersButtonVariant() {
+      return this.hasActiveFilters ? 'outline-danger' : 'outline-secondary';
+    },
+    removeFiltersButtonTitle() {
+      return this.hasActiveFilters ? 'Clear all filters' : 'No active filters';
+    },
+  },
   watch: {
-    filter(value) {
-      this.filtered();
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
+    filter: {
+      handler() {
+        if (this.isInitializing) return;
+        this.filtered();
+      },
+      deep: true,
     },
-    sortBy(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
-    },
-    sortDesc(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
+    // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
+    // Only trigger if sort actually changed to prevent resetting currentItemID during pagination
+    sortBy: {
+      handler(newVal) {
+        if (this.isInitializing) return;
+        const newSortColumn = newVal && newVal.length > 0 ? newVal[0].key : 'id';
+        const newSortOrder = newVal && newVal.length > 0 ? newVal[0].order : 'desc';
+        const newSortString = (newSortOrder === 'desc' ? '-' : '+') + newSortColumn;
+        // Only trigger if sort actually changed - prevents resetting currentItemID during pagination
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
+      },
+      deep: true,
     },
   },
   created() {
     // Lifecycle hooks
   },
   mounted() {
-    // Lifecycle hooks
-    const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
-    this.sortDesc = sort_object.sortDesc;
-
-    if (this.filterInput !== null && this.filterInput !== 'null' && this.filterInput !== '') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      this.loadData();
+    // Transform input sort string to Bootstrap-Vue-Next array format
+    // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
+    if (this.sortInput) {
+      const sort_object = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sort_object.sortBy;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
+
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+    }
+
+    // Load user list for filter dropdown
+    this.loadUserList();
+
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
 
     setTimeout(() => {
       this.loading = false;
     }, 500);
   },
   methods: {
-    async loadData() {
+    // Handle row click to open detail drawer
+    handleRowClick(row) {
+      this.selectedLog = row;
+      this.selectedLogIndex = this.items.findIndex((item) => item.id === row.id);
+      this.showLogDetail = true;
+    },
+    // Navigate to previous log in drawer
+    navigateToPreviousLog() {
+      if (this.selectedLogIndex > 0) {
+        this.selectedLogIndex -= 1;
+        this.selectedLog = this.items[this.selectedLogIndex];
+      }
+    },
+    // Navigate to next log in drawer
+    navigateToNextLog() {
+      if (this.selectedLogIndex < this.items.length - 1) {
+        this.selectedLogIndex += 1;
+        this.selectedLog = this.items[this.selectedLogIndex];
+      }
+    },
+    // Load user list for filter dropdown
+    async loadUserList() {
+      try {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/user/list`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        this.user_options = response.data.map((item) => ({
+          value: item.user_name,
+          text: `${item.user_name} (${item.user_role})`,
+        }));
+      } catch (_e) {
+        this.makeToast('Failed to load user list', 'Error', 'danger');
+      }
+    },
+    // Debounced loadData to prevent duplicate calls from multiple triggers
+    loadData() {
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
+    // Actual data loading with module-level caching
+    async doLoadData() {
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false;
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
       this.isBusy = true;
 
       try {
-        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             sort: this.sort,
             filter: this.filter_string,
@@ -380,51 +775,104 @@ export default {
           },
         });
 
-        this.items = response.data.data;
-        this.totalRows = response.data.meta[0].totalItems;
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        EventBus.$emit('update-scrollbar');
+        this.isBusy = false;
       } catch (error) {
+        moduleApiCallInProgress = false;
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
-      } finally {
         this.isBusy = false;
       }
     },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = Number(data.meta[0].prevItemID) || 0;
+      this.currentItemID = Number(data.meta[0].currentItemID) || 0;
+      this.nextItemID = Number(data.meta[0].nextItemID) || 0;
+      this.lastItemID = Number(data.meta[0].lastItemID) || 0;
+      this.executionTime = data.meta[0].executionTime;
+      // Apply fspec from API for column filters (like TablesEntities)
+      // The fspec contains filterable, selectable, selectOptions for each field
+      if (data.meta[0].fspec && data.meta[0].fspec.fspec) {
+        this.fields = data.meta[0].fspec.fspec;
+      }
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
+    },
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      searchParams.set('page_size', String(this.perPage));
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
     copyLinkToClipboard() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-      navigator.clipboard.writeText(`${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`);
+      navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+      // Extract sort column and order from array-based sortBy
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'id';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'desc';
+      this.sort = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
       this.filtered();
     },
+    // Override handlePageChange to properly update currentItemID and call loadData
     handlePageChange(value) {
       if (value === 1) {
         this.currentItemID = 0;
-        this.filtered();
       } else if (value === this.totalPages) {
-        this.currentItemID = this.lastItemID;
-        this.filtered();
+        this.currentItemID = Number(this.lastItemID) || 0;
       } else if (value > this.currentPage) {
-        this.currentItemID = this.nextItemID;
-        this.filtered();
+        this.currentItemID = Number(this.nextItemID) || 0;
       } else if (value < this.currentPage) {
-        this.currentItemID = this.prevItemID;
-        this.filtered();
+        this.currentItemID = Number(this.prevItemID) || 0;
       }
+      this.filtered();
+    },
+    // Override handlePerPageChange to reset pagination and reload
+    handlePerPageChange(newPerPage) {
+      this.perPage = parseInt(newPerPage, 10);
+      this.currentItemID = 0;
+      this.filtered();
     },
     filtered() {
       const filter_string_loc = this.filterObjToStr(this.filter);
@@ -443,6 +891,7 @@ export default {
         address: { content: null, join_char: null, operator: 'contains' },
         agent: { content: null, join_char: null, operator: 'contains' },
         host: { content: null, join_char: null, operator: 'contains' },
+        user: { content: null, join_char: null, operator: 'contains' },
         request_method: { content: null, join_char: ',', operator: 'contains' },
         path: { content: null, join_char: ',', operator: 'contains' },
         query: { content: null, join_char: null, operator: 'contains' },
@@ -456,31 +905,61 @@ export default {
     removeSearch() {
       this.filter.any.content = null;
     },
+    clearFilter(key) {
+      if (this.filter[key]) {
+        this.filter[key].content = null;
+      }
+      this.filtered();
+    },
     async requestExcel() {
       this.downloading = true;
 
+      // Warn if large export
+      if (this.totalRows > 30000) {
+        const proceed = confirm(
+          `This export contains ${this.totalRows.toLocaleString()} rows and may take a while. Continue?`
+        );
+        if (!proceed) {
+          this.downloading = false;
+          return;
+        }
+      }
+
       try {
-        const response = await this.axios.get(`${process.env.VUE_APP_API_URL}/api/logs`, {
+        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             page_after: 0,
             page_size: 'all',
             format: 'xlsx',
+            filter: this.filter_string, // Apply current filters
+            sort: this.sort,
           },
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
+          responseType: 'blob', // Important for binary download
         });
+
+        // Generate filename with date
+        const date = new Date().toISOString().split('T')[0];
+        const filename = `sysndd_audit_logs_${date}.xlsx`;
 
         const fileURL = window.URL.createObjectURL(new Blob([response.data]));
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
-        fileLink.setAttribute('download', 'logs_table.xlsx');
+        fileLink.setAttribute('download', filename);
         document.body.appendChild(fileLink);
 
         fileLink.click();
+
+        // Cleanup
+        document.body.removeChild(fileLink);
+        window.URL.revokeObjectURL(fileURL);
+
+        this.makeToast(`Exported ${this.totalRows} log entries`, 'Export Complete', 'success');
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        this.makeToast(e, 'Export failed', 'danger');
       }
 
       this.downloading = false;
@@ -490,9 +969,48 @@ export default {
     },
     formatDate(dateStr) {
       const options = {
-        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       };
       return new Date(dateStr).toLocaleDateString(undefined, options);
+    },
+    // Format relative time using Intl.RelativeTimeFormat (e.g., "2 hours ago")
+    formatRelativeTime(dateStr) {
+      if (!dateStr) return '';
+      const now = new Date();
+      const date = new Date(dateStr);
+      const diffMs = now - date;
+      const diffMins = Math.round(diffMs / 60000);
+      const diffHours = Math.round(diffMs / 3600000);
+      const diffDays = Math.round(diffMs / 86400000);
+
+      const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+      if (Math.abs(diffMins) < 60) return rtf.format(-diffMins, 'minute');
+      if (Math.abs(diffHours) < 24) return rtf.format(-diffHours, 'hour');
+      return rtf.format(-diffDays, 'day');
+    },
+    // Format absolute time for tooltip display
+    formatAbsoluteTime(dateStr) {
+      if (!dateStr) return '';
+      return new Date(dateStr).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short',
+      });
+    },
+    // Get Bootstrap variant for HTTP status code badges
+    getStatusVariant(status) {
+      if (status >= 200 && status < 300) return 'success'; // 2xx OK
+      if (status >= 400 && status < 500) return 'warning'; // 4xx client error
+      if (status >= 500) return 'danger'; // 5xx server error
+      return 'secondary';
     },
     getMethodVariant(method) {
       const methodVariants = {
@@ -504,11 +1022,76 @@ export default {
       };
       return methodVariants[method] || 'secondary';
     },
+    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => {
+        if (typeof opt === 'object' && opt !== null) {
+          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
+        }
+        return { value: opt, text: opt };
+      });
+    },
+    // Format duration with appropriate unit
+    formatDuration(duration) {
+      if (duration === null || duration === undefined) return '-';
+      const ms = parseFloat(duration);
+      if (ms < 1) return '<1ms';
+      if (ms < 1000) return `${Math.round(ms)}ms`;
+      return `${(ms / 1000).toFixed(2)}s`;
+    },
+    // Get CSS class for duration based on performance
+    getDurationClass(duration) {
+      const ms = parseFloat(duration);
+      if (ms < 100) return 'text-success'; // Fast
+      if (ms < 500) return 'text-warning'; // Medium
+      return 'text-danger fw-bold'; // Slow
+    },
+    // Delete all logs with confirmation
+    // Reset delete modal state
+    resetDeleteModal() {
+      this.deleteConfirmText = '';
+      this.deleteMode = 'all';
+    },
+    // Delete logs with optional age filter
+    async deleteLogs() {
+      this.isDeleting = true;
+      try {
+        const olderThanDays = this.deleteMode === 'all' ? 0 : parseInt(this.deleteMode, 10);
+        const response = await this.axios.delete(`${import.meta.env.VITE_API_URL}/api/logs/`, {
+          params: {
+            older_than_days: olderThanDays,
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        const deletedCount = response.data.deleted_count || 0;
+        const message =
+          this.deleteMode === 'all'
+            ? `Successfully deleted ${deletedCount.toLocaleString()} log entries`
+            : `Successfully deleted ${deletedCount.toLocaleString()} log entries older than ${this.deleteMode} days`;
+
+        this.makeToast(message, 'Logs Deleted', 'success');
+        this.showDeleteModal = false;
+        this.resetDeleteModal();
+        // Reset and reload
+        this.currentItemID = 0;
+        this.loadData();
+      } catch (error) {
+        const errorMsg = error.response?.data?.error || error.message;
+        this.makeToast(`Failed to delete logs: ${errorMsg}`, 'Error', 'danger');
+      } finally {
+        this.isDeleting = false;
+      }
+    },
   },
 };
 </script>
 
 <style scoped>
+/* Button styles */
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
@@ -516,51 +1099,38 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
-.input-group > .input-group-prepend {
-  flex: 0 0 35%;
-}
-.input-group .input-group-text {
-  width: 100%;
-}
-.badge-container .badge {
-  width: 170px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-:deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
-}
-:deep(.vue-treeselect__control) {
-  color: #6C757D !important;
-}
-</style>
 
-<style scoped>
-/* Styles specific to the TablesLogs component */
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
+/* Input group styles */
 .input-group > .input-group-prepend {
   flex: 0 0 35%;
 }
 .input-group .input-group-text {
   width: 100%;
 }
+
+/* Badge container styles */
 .badge-container .badge {
   width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Treeselect placeholder styles (legacy) */
 :deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 :deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+  color: #6c757d !important;
+}
+
+/* Row hover effect for clickable rows */
+:deep(.table tbody tr) {
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+:deep(.table tbody tr:hover) {
+  background-color: rgba(var(--bs-primary-rgb), 0.075);
 }
 </style>

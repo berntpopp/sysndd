@@ -1,7 +1,7 @@
 <!-- views/components/small/DownloadImageButtons.vue -->
 <template>
   <div class="download-buttons">
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -9,18 +9,11 @@
       :disabled="downloadingPNG"
       @click="downloadPNG"
     >
-      <b-icon
-        v-if="!downloadingPNG"
-        icon="image"
-        class="mx-1"
-      />
-      <b-spinner
-        v-if="downloadingPNG"
-        small
-      />
+      <i v-if="!downloadingPNG" class="bi bi-image" />
+      <BSpinner v-if="downloadingPNG" small />
       PNG
-    </b-button>
-    <b-button
+    </BButton>
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -28,22 +21,14 @@
       :disabled="downloadingSVG"
       @click="downloadSVG"
     >
-      <b-icon
-        v-if="!downloadingSVG"
-        icon="file-earmark"
-        class="mx-1"
-      />
-      <b-spinner
-        v-if="downloadingSVG"
-        small
-      />
+      <i v-if="!downloadingSVG" class="bi bi-file-earmark" />
+      <BSpinner v-if="downloadingSVG" small />
       SVG
-    </b-button>
+    </BButton>
   </div>
 </template>
 
 <script>
-import html2canvas from 'html2canvas';
 import { saveAs } from 'file-saver';
 
 export default {
@@ -123,5 +108,4 @@ export default {
 .download-button {
   margin: 0.1rem 0.1rem; /* Vertical margin for small screens */
 }
-
 </style>

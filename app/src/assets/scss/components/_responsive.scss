@@ -1,0 +1,592 @@
+// Mobile responsive refinements
+// Includes table-to-card transformation and mobile navigation improvements
+// Per FR-07.9: Improve mobile responsive behavior
+
+// ============================================================================
+// TABLE-TO-CARD TRANSFORMATION
+// ============================================================================
+// Bootstrap-Vue-Next BTable with stacked="md" handles the basic stacking.
+// This adds card-like visual styling for better mobile UX.
+
+@media (max-width: 767px) {
+  // Enhanced stacked table rows - make them look like cards
+  .table.b-table-stacked-md {
+    border: 0;
+
+    > tbody > tr {
+      display: block;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background: var(--bs-body-bg);
+      border: 1px solid var(--table-border-color);
+      border-radius: var(--border-radius-base);
+      box-shadow: var(--shadow-xs);
+      transition: box-shadow var(--transition-fast);
+
+      &:hover {
+        box-shadow: var(--shadow-sm);
+      }
+
+      // Each cell becomes a row in the card
+      // BVN stacked mode sets display: block — we must override with !important
+      > td {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.25rem;
+        border-bottom: 1px solid var(--table-border-color);
+        text-align: right; // Value on the right
+        font-size: 0.8125rem; // 13px for compact stacked cells
+
+        &:first-child {
+          padding-top: 0;
+        }
+
+        &:last-child {
+          border-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        // Data label (comes from Bootstrap-Vue-Next stacked header)
+        &::before {
+          content: attr(data-label);
+          display: block !important; // Override BVN flow-root / line-clamp box
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-align: left; // Label on the left
+          flex-shrink: 0;
+          max-width: 40%;
+          font-size: 0.8125rem; // 13px - matches cell content size
+          line-height: 1.3;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          float: none !important; // Neutralize BVN float on stacked pseudo-labels
+          width: auto !important;
+        }
+
+        // The actual cell content — natural width, shrinkable, right-aligned by td
+        > * {
+          flex: 0 1 auto; // Natural width, allow shrink, no stretch
+          min-width: 0; // Allow text truncation
+          max-width: 60%; // Prevent overflow past label area
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        // Collapse BVN tooltip/popover container spans (hidden siblings
+        // that steal flex space from the actual content)
+        > span:has(> .tooltip),
+        > span:has(> .b-tooltip),
+        > span:has(> .popover) {
+          flex: 0 0 0 !important;
+          max-width: 0 !important;
+          overflow: hidden !important;
+          padding: 0 !important;
+        }
+
+        // Buttons should not stretch — keep intrinsic size, align right
+        > .btn,
+        > button {
+          flex: 0 0 auto;
+        }
+
+        // Badges container should not stretch (disease may shrink)
+        > .badge,
+        > span:has(.badge):not(.disease-badge-link),
+        > div:has(.badge):not(.disease-badge-link) {
+          flex: 0 0 auto;
+          width: auto !important;
+        }
+
+        // Disease badge links need to shrink for long names
+        > .disease-badge-link {
+          flex: 0 1 auto;
+          max-width: 60%;
+          overflow: hidden;
+        }
+      }
+    }
+
+    // Details button in stacked cards — modest touch-target bump
+    .btn-xs {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8125rem;
+      line-height: 1.2;
+    }
+
+    // Hide table headers on mobile (Bootstrap handles this)
+    > thead {
+      display: none;
+    }
+
+    // Alternating card tints + left accent border for row differentiation
+    &.table-striped > tbody > tr {
+      border-left: 3px solid var(--medical-blue-200, #90caf9);
+
+      &:nth-of-type(odd) {
+        background: var(--bs-body-bg);
+      }
+
+      &:nth-of-type(even) {
+        background: var(--neutral-50, #fafafa);
+      }
+
+      > td {
+        background: transparent;
+      }
+    }
+  }
+
+  // Priority columns: Hide less important columns on mobile
+  // Use Bootstrap display utilities: .d-none.d-md-table-cell on <th> and <td>
+  .table {
+    .d-none.d-md-table-cell {
+      display: none !important;
+    }
+  }
+}
+
+// ============================================================================
+// CONTAINER ADJUSTMENTS FOR MOBILE
+// ============================================================================
+
+@media (max-width: 575px) {
+  // Reduce container padding on small screens for more content area
+  .container-fluid {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  // Tighter card body padding on mobile
+  .card-body {
+    padding: 0.75rem;
+  }
+
+  // Extra tight variant for data-heavy views
+  .card-body-compact {
+    padding: 0.5rem;
+  }
+
+  // Container with tight mobile padding
+  .container-compact {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
+// ============================================================================
+// MOBILE NAVIGATION IMPROVEMENTS
+// ============================================================================
+
+@media (max-width: 767px) {
+  // Ensure navbar toggle button has adequate touch target (WCAG 2.2: 44x44px)
+  .navbar-toggler {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.5rem;
+  }
+
+  // Mobile navigation menu items - adequate spacing for touch
+  .navbar-nav {
+    .nav-link {
+      padding: 0.75rem 1rem;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+    }
+
+    // Spacing between nav items in mobile collapsed view
+    .nav-item {
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  // Dropdown menus on mobile - full width for easier interaction
+  .dropdown-menu {
+    width: 100%;
+    border-radius: var(--border-radius-base);
+  }
+
+  .dropdown-item {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+}
+
+// ============================================================================
+// BADGE AND ICON PROTECTION
+// ============================================================================
+// Prevent badges, icons, and small UI elements from stretching on mobile
+
+@media (max-width: 767px) {
+  // Specific badge components that should never stretch
+  .category-icon,
+  .inheritance-badge,
+  .gene-badge,
+  .entity-badge,
+  .ndd-icon,
+  .badge {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: max-content !important;
+  }
+
+  // Disease badge can truncate for long names
+  .disease-badge {
+    flex: 0 1 auto !important;
+    width: auto !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Badge links should also not stretch (but disease can shrink to fit)
+  .gene-badge-link,
+  .entity-badge-link {
+    flex: 0 0 auto !important;
+    width: auto !important;
+  }
+
+  .disease-badge-link {
+    flex: 0 1 auto !important; // Allow shrink for long disease names
+    width: auto !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  // Badge containers in flex layouts
+  .d-flex .badge,
+  .d-flex .category-icon,
+  .d-flex .inheritance-badge,
+  .d-flex .gene-badge,
+  .d-flex .entity-badge,
+  .d-flex .disease-badge {
+    flex-shrink: 0;
+    width: auto !important;
+  }
+}
+
+// ============================================================================
+// SEARCH AND FILTER CONTROLS
+// ============================================================================
+
+@media (max-width: 767px) {
+  // Full-width search on mobile
+  .search-container {
+    width: 100%;
+
+    .form-control {
+      width: 100%;
+    }
+  }
+
+  // Stack filter controls vertically on mobile
+  .filter-controls,
+  .filters-row {
+    flex-direction: column !important;
+    width: 100%;
+
+    > * {
+      width: 100% !important;
+      margin-bottom: 0.5rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      // Badges should keep their natural width
+      &.badge,
+      &[class*='badge-'] {
+        width: auto !important;
+      }
+    }
+  }
+
+  // Only apply flex-column to specific gap containers, not all
+  // This prevents badges from stretching in home page statistics
+  .d-flex.gap-2:not(.badge-container):not(:has(.badge)) {
+    flex-direction: column !important;
+    width: 100%;
+
+    > * {
+      width: 100% !important;
+      margin-bottom: 0.5rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  // Full-width form inputs on mobile
+  .form-control,
+  .form-select {
+    width: 100%;
+  }
+
+  // Pagination controls - responsive layout
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+
+    .page-item {
+      margin-bottom: 0.25rem;
+
+      .page-link {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+
+  // Per-page selector on mobile
+  .per-page-selector,
+  .items-per-page {
+    width: 100%;
+    margin-bottom: 0.5rem;
+
+    select {
+      width: 100%;
+    }
+  }
+}
+
+// ============================================================================
+// BUTTON AND CARD SIZING
+// ============================================================================
+
+@media (max-width: 767px) {
+  // Full-width buttons on mobile where appropriate
+  .btn-block,
+  .d-grid .btn {
+    width: 100%;
+    min-height: 44px; // Touch-friendly target
+  }
+
+  // Button groups - stack vertically on mobile
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+
+    .btn {
+      width: 100%;
+      border-radius: var(--border-radius-base) !important;
+      margin-bottom: 0.25rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  // Card adjustments for mobile
+  .card {
+    margin-bottom: 1rem;
+  }
+
+  // Modal dialogs - take more screen space on mobile
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+}
+
+// ============================================================================
+// TYPOGRAPHY ADJUSTMENTS FOR MOBILE
+// ============================================================================
+
+@media (max-width: 575px) {
+  // Slightly smaller headings on very small screens
+  h1,
+  .h1 {
+    font-size: 1.75rem; // Down from 2rem
+  }
+
+  h2,
+  .h2 {
+    font-size: 1.5rem; // Down from 1.75rem
+  }
+
+  h3,
+  .h3 {
+    font-size: 1.25rem; // Down from 1.5rem
+  }
+
+  // Maintain readable line length
+  p {
+    max-width: 100%;
+  }
+}
+
+// ============================================================================
+// TOUCH-FRIENDLY INTERACTIONS
+// ============================================================================
+
+@media (max-width: 767px) {
+  // Larger tap targets for interactive elements (WCAG 2.2 Target Size)
+  // Exclude compact badge elements (.resource-badge, .identifier-badge,
+  // .identifier-badge__action) so they render at the same size as desktop.
+  a:not(.btn):not(.resource-badge):not(.identifier-badge__action),
+  button:not(.btn) {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  // Adequate spacing between clickable items
+  .list-group-item {
+    padding: 0.75rem 1rem;
+    min-height: 44px;
+  }
+
+  // Interactive cards - ensure adequate tap target
+  .card-interactive {
+    cursor: pointer;
+
+    .card-body {
+      min-height: 44px;
+    }
+  }
+
+  // Form controls - touch-friendly sizing
+  .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+  }
+
+  .form-check {
+    padding-left: 2rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+
+    .form-check-input {
+      margin-left: -2rem;
+    }
+  }
+
+  // Radio and checkbox labels - adequate touch target
+  .form-check-label {
+    padding: 0.5rem 0;
+  }
+
+  // Switch toggle - larger for touch
+  .form-switch .form-check-input {
+    width: 2.5rem;
+    height: 1.5rem;
+  }
+}
+
+// ============================================================================
+// SPECIFIC BREAKPOINT OPTIMIZATIONS
+// ============================================================================
+
+// 320px - Small phones (iPhone SE)
+@media (max-width: 374px) {
+  // Extra tight spacing for very small screens
+  .container-fluid {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  // Smaller typography scale
+  body {
+    font-size: 0.875rem;
+  }
+
+  // Compact table on very small screens
+  .table {
+    font-size: 0.8125rem;
+  }
+}
+
+// 375px - Standard phone (iPhone 12/13, most Android phones)
+@media (min-width: 375px) and (max-width: 767px) {
+  // This is the "standard" mobile size - optimizations above apply
+}
+
+// 768px - Tablet (iPad, Android tablets)
+@media (min-width: 768px) and (max-width: 1023px) {
+  // Tables unstacked, but still responsive
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  // Slightly reduced padding for tablets
+  .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  // Navigation can show more items
+  .navbar-nav .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+// 1024px+ - Desktop (covered by default styles, no overrides needed)
+// Default desktop styles apply
+
+// ============================================================================
+// ACCESSIBILITY: REDUCED MOTION
+// ============================================================================
+// All transitions use CSS custom properties that respect prefers-reduced-motion
+// No additional overrides needed - handled by var(--transition-fast) etc.
+
+// ============================================================================
+// DEBUG HELPERS (only in development)
+// ============================================================================
+// Uncomment to see breakpoint indicators during development
+
+/*
+body::before {
+  content: "XS (< 576px)";
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  font-size: 0.75rem;
+  z-index: 9999;
+  border-radius: var(--border-radius-sm) 0 0 0;
+}
+
+@media (min-width: 576px) {
+  body::before {
+    content: "SM (≥ 576px)";
+    background: rgba(255, 165, 0, 0.8);
+  }
+}
+
+@media (min-width: 768px) {
+  body::before {
+    content: "MD (≥ 768px)";
+    background: rgba(0, 128, 0, 0.8);
+  }
+}
+
+@media (min-width: 992px) {
+  body::before {
+    content: "LG (≥ 992px)";
+    background: rgba(0, 0, 255, 0.8);
+  }
+}
+
+@media (min-width: 1200px) {
+  body::before {
+    content: "XL (≥ 1200px)";
+    background: rgba(128, 0, 128, 0.8);
+  }
+}
+*/

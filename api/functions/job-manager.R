@@ -1,0 +1,500 @@
+#' Job Manager Module
+#'
+#' Provides job state management functions for async API operations.
+#' Uses mirai daemon pool for background execution and in-memory
+#' environment storage for job state tracking.
+#'
+#' @name job-manager
+#' @author SysNDD Team
+
+# Load required packages for this module
+# Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
+
+## -------------------------------------------------------------------##
+# Global State
+## -------------------------------------------------------------------##
+
+#' Environment for storing job state
+#'
+#' Each job is stored as a list with keys:
+#' - job_id: UUID string
+#' - operation: String identifying the operation type
+#' - status: "pending", "running", "completed", "failed"
+#' - mirai_obj: The mirai object for status checking
+#' - submitted_at: POSIXct timestamp
+#' - params_hash: digest hash of parameters for deduplication
+#' - result: Job result (NULL until completed)
+#' - error: Error details (NULL unless failed)
+#' - completed_at: POSIXct timestamp (NULL until done)
+jobs_env <- new.env(parent = emptyenv())
+
+#' Maximum number of concurrent jobs
+#'
+#' Matches the mirai daemon pool size (8 workers).
+#' When reached, new job submissions return CAPACITY_EXCEEDED error.
+MAX_CONCURRENT_JOBS <- 8
+
+## -------------------------------------------------------------------##
+# Core Functions
+## -------------------------------------------------------------------##
+
+#' Create a new async job
+#'
+#' Validates capacity, generates job ID, creates mirai task,
+#' stores job state, and attaches completion callback.
+#'
+#' @param operation Character string identifying the operation type
+#'   (e.g., "clustering", "phenotype_clustering", "ontology_update")
+#' @param params List of parameters for the executor function
+#' @param executor_fn Function to execute in background daemon
+#' @param timeout_ms Timeout in milliseconds for the mirai task. Default 1800000 (30 min).
+#'   Long-running jobs like HGNC update with gnomAD enrichment should set a higher value.
+#'
+#' @return List with either:
+#'   - On success: job_id, status="accepted", estimated_seconds=30
+#'   - On capacity exceeded: error="CAPACITY_EXCEEDED", message, retry_after=60
+#'
+#' @examples
+#' \dontrun{
+#' result <- create_job(
+#'   operation = "clustering",
+#'   params = list(genes = c("BRCA1", "TP53")),
+#'   executor_fn = function(params) gen_string_clust_obj(params$genes)
+#' )
+#' }
+create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
+  # Check capacity - count running/pending jobs
+  running_count <- sum(vapply(ls(jobs_env), function(id) {
+    job <- jobs_env[[id]]
+    job$status %in% c("pending", "running")
+  }, logical(1)))
+
+  if (running_count >= MAX_CONCURRENT_JOBS) {
+    return(list(
+      error = "CAPACITY_EXCEEDED",
+      message = sprintf(
+        "Maximum %d concurrent jobs reached. Try again later.",
+        MAX_CONCURRENT_JOBS
+      ),
+      retry_after = 60
+    ))
+  }
+
+  # Generate unique job ID
+
+  job_id <- uuid::UUIDgenerate()
+
+  # Compute params hash BEFORE injecting job_id (for duplicate detection)
+  params_hash <- digest::digest(params)
+
+  # Inject job_id so executor can create a progress reporter
+  params$.__job_id__ <- job_id
+
+  # Create mirai task with configurable timeout
+  m <- mirai::mirai(
+    {
+      executor_fn(params)
+    },
+    params = params,
+    executor_fn = executor_fn,
+    .timeout = timeout_ms
+  )
+
+  # Store job state
+  jobs_env[[job_id]] <- list(
+    job_id = job_id,
+    operation = operation,
+    status = "pending",
+    mirai_obj = m,
+    submitted_at = Sys.time(),
+    params_hash = params_hash,
+    result = NULL,
+    error = NULL,
+    completed_at = NULL
+  )
+
+  # Attach completion callback via promise pipe
+  # This updates job state when mirai completes
+  # Use %...>% for successful resolution and %...!% for rejection handling
+  m %...>% (function(result) {
+    if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
+      jobs_env[[job_id]]$status <- "failed"
+      jobs_env[[job_id]]$error <- list(
+        code = "EXECUTION_ERROR",
+        message = if (!is.null(result$message)) result$message else "Job execution failed"
+      )
+    } else {
+      jobs_env[[job_id]]$status <- "completed"
+      jobs_env[[job_id]]$result <- result
+    }
+    jobs_env[[job_id]]$completed_at <- Sys.time()
+    cleanup_job_progress(job_id)
+  }) %...!% (function(error) {
+    # Handle promise rejections (uncaught R errors in executor)
+    jobs_env[[job_id]]$status <- "failed"
+    jobs_env[[job_id]]$error <- list(
+      code = "EXECUTION_ERROR",
+      message = if (inherits(error, "error")) conditionMessage(error) else as.character(error)
+    )
+    jobs_env[[job_id]]$completed_at <- Sys.time()
+    cleanup_job_progress(job_id)
+  })
+
+  return(list(
+    job_id = job_id,
+    status = "accepted",
+    estimated_seconds = 30
+  ))
+}
+
+#' Get the status of a job
+#'
+#' Checks if job exists, determines current status by checking
+#' mirai resolution state, and returns appropriate response.
+#'
+#' @param job_id Character string - the UUID of the job
+#'
+#' @return List with either:
+#'   - Not found: error="JOB_NOT_FOUND"
+#'   - Running: status, step, estimated_seconds, retry_after=5
+#'   - Completed: status, completed_at, result or error
+#'
+#' @examples
+#' \dontrun{
+#' status <- get_job_status("550e8400-e29b-41d4-a716-446655440000")
+#' }
+get_job_status <- function(job_id) {
+  # Check if job exists
+  if (!exists(job_id, envir = jobs_env)) {
+    return(list(
+      error = "JOB_NOT_FOUND",
+      message = "Job ID not found"
+    ))
+  }
+
+  job <- jobs_env[[job_id]]
+  m <- job$mirai_obj
+
+  # Pre-completed jobs (e.g., cache hits) have no mirai object
+  if (is.null(m)) {
+    return(list(
+      job_id = job_id,
+      status = job$status,
+      completed_at = job$completed_at,
+      result = job$result,
+      error = job$error
+    ))
+  }
+
+  # Check if still running via mirai's unresolved()
+  if (mirai::unresolved(m)) {
+    # Job still running - calculate estimated remaining time
+    elapsed <- as.numeric(difftime(Sys.time(), job$submitted_at, units = "secs"))
+    remaining <- max(0, 1800 - elapsed) # 30 min = 1800 sec
+
+    # Read file-based progress from daemon (if available)
+    file_progress <- read_job_progress(job_id)
+
+    if (!is.null(file_progress)) {
+      step_msg <- file_progress$message %||% get_progress_message(job$operation)
+      progress_data <- list(
+        current = file_progress$current %||% 0,
+        total = file_progress$total %||% 0
+      )
+    } else {
+      step_msg <- get_progress_message(job$operation)
+      progress_data <- NULL
+    }
+
+    return(list(
+      job_id = job_id,
+      status = "running",
+      step = step_msg,
+      progress = progress_data,
+      estimated_seconds = round(remaining),
+      retry_after = 5
+    ))
+  } else {
+    # Mirai resolved - but promise callback may not have fired yet.
+    # If job$status is still "pending" or "running", read m$data directly
+    # to avoid returning stale state (race condition).
+    if (job$status %in% c("pending", "running")) {
+      result <- m$data
+      if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
+        jobs_env[[job_id]]$status <- "failed"
+        jobs_env[[job_id]]$error <- list(
+          code = "EXECUTION_ERROR",
+          message = if (!is.null(result$message)) result$message else "Job execution failed"
+        )
+      } else {
+        jobs_env[[job_id]]$status <- "completed"
+        jobs_env[[job_id]]$result <- result
+      }
+      jobs_env[[job_id]]$completed_at <- Sys.time()
+      cleanup_job_progress(job_id)
+      job <- jobs_env[[job_id]]
+    }
+
+    return(list(
+      job_id = job_id,
+      status = job$status,
+      completed_at = job$completed_at,
+      result = job$result,
+      error = job$error
+    ))
+  }
+}
+
+#' Get operation-specific progress message
+#'
+#' Returns a user-friendly message describing what the job is doing.
+#'
+#' @param operation Character string identifying the operation type
+#'
+#' @return Character string with progress message
+#'
+#' @examples
+#' \dontrun{
+#' msg <- get_progress_message("clustering")
+#' # Returns: "Fetching interaction data from STRING-db..."
+#' }
+get_progress_message <- function(operation) {
+  messages <- list(
+    clustering = "Fetching interaction data from STRING-db...",
+    phenotype_clustering = "Running Multiple Correspondence Analysis...",
+    ontology_update = "Downloading and processing ontology data from MONDO/OMIM...",
+    omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API...",
+    hgnc_update = "Downloading HGNC data and enriching with gnomAD constraints...",
+    backup_create = "Creating database backup...",
+    backup_restore = "Restoring database from backup..."
+  )
+
+  messages[[operation]] %||% "Processing request..."
+}
+
+#' Check for duplicate running jobs
+#'
+#' Scans active jobs for one with matching operation and parameters.
+#' Prevents duplicate expensive computations.
+#'
+#' @param operation Character string identifying the operation type
+#' @param params List of parameters to check against
+#'
+#' @return List with:
+#'   - duplicate=TRUE, existing_job_id: if duplicate found
+#'   - duplicate=FALSE: if no duplicate
+#'
+#' @examples
+#' \dontrun{
+#' dup <- check_duplicate_job("clustering", list(genes = c("BRCA1")))
+#' if (dup$duplicate) {
+#'   return_existing_job(dup$existing_job_id)
+#' }
+#' }
+check_duplicate_job <- function(operation, params) {
+  params_hash <- digest::digest(params)
+
+  for (job_id in ls(jobs_env)) {
+    job <- jobs_env[[job_id]]
+
+    if (job$operation == operation &&
+          job$params_hash == params_hash &&
+          job$status %in% c("pending", "running")) {
+      return(list(
+        duplicate = TRUE,
+        existing_job_id = job_id
+      ))
+    }
+  }
+
+  return(list(duplicate = FALSE))
+}
+
+#' Clean up old completed/failed jobs
+#'
+#' Removes jobs that completed more than 24 hours ago to prevent
+#' memory leaks. Called periodically by schedule_cleanup().
+#'
+#' @return Integer count of removed jobs (invisible).
+#'
+#' @examples
+#' \dontrun{
+#' cleanup_old_jobs()
+#' }
+#' @export
+cleanup_old_jobs <- function() {
+  cutoff_time <- Sys.time() - (24 * 3600) # 24 hours ago
+  removed <- 0
+
+  job_ids <- ls(jobs_env)
+
+  if (length(job_ids) == 0) {
+    return(invisible(0))
+  }
+
+  for (job_id in job_ids) {
+    tryCatch(
+      {
+        job <- jobs_env[[job_id]]
+
+        if (is.null(job)) {
+          # Orphaned entry, remove it
+          rm(list = job_id, envir = jobs_env)
+          removed <- removed + 1
+          next
+        }
+
+        if (job$status %in% c("completed", "failed")) {
+          end_time <- job$completed_at %||% job$submitted_at
+
+          if (!is.null(end_time) && end_time < cutoff_time) {
+            rm(list = job_id, envir = jobs_env)
+            removed <- removed + 1
+          }
+        }
+      },
+      error = function(e) {
+        message(sprintf("[%s] Error cleaning job %s: %s", Sys.time(), job_id, e$message))
+      }
+    )
+  }
+
+  if (removed > 0) {
+    message(sprintf("[%s] Cleaned up %d old jobs", Sys.time(), removed))
+  }
+
+  invisible(removed)
+}
+
+#' Schedule Recurring Job Cleanup
+#'
+#' Schedules the cleanup_old_jobs function to run periodically.
+#' Uses `later` package for non-blocking scheduling.
+#' Default interval is 1 hour (3600 seconds).
+#'
+#' @param interval_seconds Interval between cleanup runs in seconds
+#' @export
+schedule_cleanup <- function(interval_seconds = 3600) {
+  cleanup_and_reschedule <- function() {
+    cleanup_old_jobs()
+    # Reschedule
+    later::later(cleanup_and_reschedule, interval_seconds)
+  }
+
+  # Start the first cleanup cycle
+  later::later(cleanup_and_reschedule, interval_seconds)
+  message(sprintf("[%s] Scheduled job cleanup every %d seconds", Sys.time(), interval_seconds))
+}
+
+#' Get Job History
+#'
+#' Returns a list of recent jobs from the jobs environment.
+#' Includes both running and completed jobs, sorted by submission time (newest first).
+#'
+#' @param limit Integer maximum number of jobs to return (default 20)
+#' @return Data frame of job records with: job_id, operation, status,
+#'   submitted_at, completed_at, duration_seconds, error_message
+#'
+#' @examples
+#' \dontrun{
+#' history <- get_job_history(20)
+#' }
+#' @export
+get_job_history <- function(limit = 20) {
+  job_ids <- ls(jobs_env)
+
+  # Handle empty jobs_env
+
+  if (length(job_ids) == 0) {
+    return(data.frame(
+      job_id = character(0),
+      operation = character(0),
+      status = character(0),
+      submitted_at = character(0),
+      completed_at = character(0),
+      duration_seconds = integer(0),
+      error_message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  # Extract job data
+  jobs_list <- lapply(job_ids, function(id) {
+    job <- jobs_env[[id]]
+
+    # Skip if job is NULL or malformed
+    if (is.null(job) || is.null(job$submitted_at)) {
+      return(NULL)
+    }
+
+    # Calculate duration_seconds
+    end_time <- job$completed_at
+    if (is.null(end_time)) {
+      # For running jobs, use current time
+      end_time <- Sys.time()
+    }
+    duration <- as.numeric(difftime(end_time, job$submitted_at, units = "secs"))
+    duration_seconds <- as.integer(round(duration))
+
+    # Extract error message (handle complex error objects)
+    error_message <- NA_character_
+    if (!is.null(job$error)) {
+      if (is.list(job$error) && !is.null(job$error$message)) {
+        error_message <- as.character(job$error$message)
+      } else if (is.character(job$error)) {
+        error_message <- job$error
+      }
+    }
+
+    # Format timestamps as ISO 8601
+    submitted_at <- format(job$submitted_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    completed_at <- if (!is.null(job$completed_at)) {
+      format(job$completed_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    } else {
+      NA_character_
+    }
+
+    data.frame(
+      job_id = job$job_id,
+      operation = job$operation,
+      status = job$status,
+      submitted_at = submitted_at,
+      completed_at = completed_at,
+      duration_seconds = duration_seconds,
+      error_message = error_message,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  # Remove NULL entries and combine
+  jobs_list <- Filter(Negate(is.null), jobs_list)
+
+  if (length(jobs_list) == 0) {
+    return(data.frame(
+      job_id = character(0),
+      operation = character(0),
+      status = character(0),
+      submitted_at = character(0),
+      completed_at = character(0),
+      duration_seconds = integer(0),
+      error_message = character(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  result <- do.call(rbind, jobs_list)
+
+  # Sort by submitted_at descending (newest first)
+  result <- result[order(result$submitted_at, decreasing = TRUE), ]
+
+  # Apply limit
+  if (nrow(result) > limit) {
+    result <- result[seq_len(limit), ]
+  }
+
+  # Reset row names
+
+  rownames(result) <- NULL
+
+  return(result)
+}

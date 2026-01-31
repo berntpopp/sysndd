@@ -1,305 +1,438 @@
 <!-- src/components/analyses/AnalyseGeneClusters.vue -->
 <template>
-  <b-container fluid>
-    <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+  <BContainer fluid>
+    <!-- Main card -->
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Functionally enriched
             <mark
               v-b-tooltip.hover.leftbottom
               title="This section displays gene clusters that are enriched based on functional annotations. It allows users to explore and analyze the clusters."
             >
-              gene clusters
-            </mark>.
-            <b-badge
-              id="popover-badge-help-geneclusters"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
-              target="popover-badge-help-geneclusters"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Gene Clusters Information
-              </template>
-              This section provides insights into gene clusters that are enriched based on their functional annotations. Users can explore various clusters and subclusters, and analyze the associated genes and their properties.
-            </b-popover>
+              gene clusters </mark
+            >.
+            <BBadge id="popover-badge-help-geneclusters" pill href="#" variant="info">
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover target="popover-badge-help-geneclusters" variant="info" triggers="focus">
+              <template #title> Gene Clusters Information </template>
+              This section provides insights into gene clusters that are enriched based on their
+              functional annotations. Users can explore various clusters/subclusters, and analyze
+              the associated genes and their properties.
+            </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'gene_cluster_dataviz-svg'"
-            :file-name="'gene_cluster_plot'"
-          />
+          <!-- Network export buttons now in NetworkVisualization component -->
         </div>
       </template>
 
-      <!-- Content -->
-      <b-row>
-        <b-col md="4">
-          <b-card
-            header-tag="header"
-            class="my-3 mx-2 text-left"
-            body-class="p-0"
-            header-class="p-1"
-            footer-class="p-1"
-            border-variant="dark"
-          >
-            <template #header>
-              <b-row>
-                <b-col>
-                  <h6 class="mb-0 font-weight-bold">
-                    Selected {{ selectType === 'clusters' ? 'cluster' : 'subcluster' }} {{ selectType === 'clusters' ? selectedCluster.cluster : selectedCluster.parent_cluster + '.' + selectedCluster.cluster }} with
-                    <b-badge variant="success">
-                      {{ selectedCluster.cluster_size }} genes
-                    </b-badge>
-                  </h6>
-                </b-col>
-                <b-col>
-                  <b-input-group
-                    prepend="Select"
-                    class="mb-1 text-right"
-                    size="sm"
-                  >
-                    <b-form-select
-                      v-model="selectType"
-                      :options="selectOptions"
-                      type="search"
-                      size="sm"
-                    />
-                  </b-input-group>
-                </b-col>
-              </b-row>
-            </template>
-
-            <div
-              id="gene_cluster_dataviz"
-              class="svg-container"
-            >
-              <b-spinner
-                v-if="loading"
-                label="Loading..."
-                class="spinner"
+      <!-- Resizable split panes: LEFT = Graph, RIGHT = Table -->
+      <Splitpanes class="default-theme" @resized="handlePaneResized">
+        <!-- LEFT PANE (Network Visualization) -->
+        <Pane :size="leftPaneSize" :min-size="25" :max-size="75">
+          <!-- NetworkVisualization component replaces D3.js bubble chart -->
+          <div class="pane-content">
+            <!-- Gene search input for network highlighting with autocomplete -->
+            <div class="mb-2">
+              <TermSearch
+                v-model="geneSearchPattern"
+                :match-count="searchMatchCount"
+                :suggestions="allGeneSymbols"
+                placeholder="Search genes (e.g., PKD*, BRCA?)"
               />
-              <div v-else>
-                <!-- Cluster graph will be rendered here -->
-              </div>
             </div>
+            <NetworkVisualization
+              ref="networkVisualization"
+              :cluster-type="selectType"
+              @cluster-selected="handleClusterSelected"
+              @clusters-changed="handleClustersChanged"
+              @node-hover="handleNetworkNodeHover"
+              @search-match-count="handleSearchMatchCount"
+            />
+          </div>
+        </Pane>
 
-            <template #footer>
-              <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
-                Genes for cluster {{ selectedCluster.cluster }}
-              </b-link>
-            </template>
-          </b-card>
-        </b-col>
-        <b-col md="8">
-          <b-card
-            header-tag="header"
-            class="my-3 mx-2 text-left"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
-            <template #header>
-              <h6 class="mb-0 font-weight-bold">
-                <b-input-group
-                  prepend="Table type"
-                  class="mb-1"
-                  size="sm"
-                >
-                  <b-form-select
-                    v-model="tableType"
-                    :options="tableOptions"
-                    type="search"
-                    size="sm"
-                  />
-                </b-input-group>
-              </h6>
-            </template>
-            <b-card-text class="text-left">
-              <b-table
-                id="my-table"
-                :items="selectedCluster[tableType]"
-                :fields="selectedClusterFields"
-                stacked="lg"
-                head-variant="light"
-                show-empty
-                small
-                fixed
-                striped
-                hover
-                sort-icon-left
-                style="width: 100%; white-space: nowrap"
-                :per-page="perPage"
-                :current-page="currentPage"
-              >
-                <!-- templates for term_enrichment table -->
-                <template #cell(category)="data">
-                  <div class="overflow-hidden text-truncate">
-                    <b-badge
-                      v-b-tooltip.hover.rightbottom
-                      variant="light"
-                      :style="'border-color: ' + category_style[data.item.category] + '!important; border-width: medium;'"
-                      :title="data.item.category"
-                    >
-                      {{ valueCategories.filter((item) => item.value === data.item.category)[0].text }}
-                    </b-badge>
-                  </div>
-                </template>
+        <!-- RIGHT PANE (Table) -->
+        <Pane :size="100 - leftPaneSize" :min-size="25">
+          <div class="pane-content">
+            <BCard
+              header-tag="header"
+              class="text-start"
+              body-class="p-0"
+              header-class="p-1"
+              border-variant="dark"
+            >
+              <!-- TABLE HEADER (Table type, Search input, etc.) -->
+              <template #header>
+                <div class="mb-0 font-weight-bold">
+                  <BRow>
+                    <BCol sm="4" class="mb-1">
+                      <!-- Table type selector (term_enrichment vs. identifiers) -->
+                      <BInputGroup prepend="Table type" size="sm">
+                        <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
+                      </BInputGroup>
+                    </BCol>
 
-                <template #cell(fdr)="data">
-                  <div
-                    v-b-tooltip.hover.leftbottom
-                    class="overflow-hidden text-truncate"
-                    :title="Number(data.item.fdr).toFixed(10)"
-                  >
-                    {{ data.item.fdr }}
-                  </div>
-                </template>
-
-                <template #cell(description)="data">
-                  <div class="overflow-hidden text-truncate">
-                    <b-button
-                      v-b-tooltip.hover.leftbottom
-                      class="btn-xs mx-2"
-                      variant="outline-primary"
-                      :src="data.item.term"
-                      :href="valueCategories.filter((item) => item.value === data.item.category)[0].link + data.item.term"
-                      :title="data.item.term"
-                      target="_blank"
-                    >
-                      <b-icon
-                        icon="box-arrow-up-right"
-                        font-scale="0.8"
-                      />
-                      {{ data.item.description }}
-                    </b-button>
-                  </div>
-                </template>
-                <!-- templates for term_enrichment table -->
-
-                <!-- templates for identifiers table -->
-                <template #cell(symbol)="data">
-                  <div class="font-italic">
-                    <b-link :href="'/Genes/' + data.item.hgnc_id">
-                      <b-badge
-                        v-b-tooltip.hover.leftbottom
-                        pill
-                        variant="success"
-                        :title="data.item.hgnc_id"
+                    <BCol sm="4" class="mb-1 text-center">
+                      <!-- Cluster indicator showing which data is displayed -->
+                      <BBadge
+                        v-b-tooltip.hover
+                        :variant="showAllClustersInTable ? 'secondary' : 'primary'"
+                        class="py-1 px-2"
+                        title="Select clusters in the network to filter table data"
                       >
-                        {{ data.item.symbol }}
-                      </b-badge>
-                    </b-link>
-                  </div>
-                </template>
+                        <i class="bi bi-diagram-3 me-1" />
+                        {{ clusterDisplayLabel }}
+                      </BBadge>
+                    </BCol>
 
-                <template #cell(STRING_id)="data">
-                  <div class="overflow-hidden text-truncate">
-                    <b-button
-                      class="btn-xs mx-2"
-                      variant="outline-primary"
-                      :src="data.item.STRING_id"
-                      :href="'https://string-db.org/network/' + data.item.STRING_id"
-                      target="_blank"
-                    >
-                      <b-icon
-                        icon="box-arrow-up-right"
-                        font-scale="0.8"
-                      />
-                      {{ data.item.STRING_id }}
-                    </b-button>
-                  </div>
-                </template>
-                <!-- templates for identifiers table -->
-              </b-table>
+                    <BCol sm="4" class="mb-1 text-end">
+                      <div class="d-flex align-items-center justify-content-end gap-2">
+                        <!-- Gene search synced with network (uses same geneSearchPattern) -->
+                        <TermSearch
+                          v-model="geneSearchPattern"
+                          :match-count="tableType === 'identifiers' ? searchMatchCount : null"
+                          :suggestions="allGeneSymbols"
+                          placeholder="Search genes..."
+                        />
+                        <!-- Excel download button -->
+                        <BButton
+                          v-b-tooltip.hover.bottom
+                          size="sm"
+                          variant="outline-secondary"
+                          title="Download table data as Excel file"
+                          :disabled="isExporting"
+                          @click="downloadExcel"
+                        >
+                          <i class="bi bi-table me-1" />
+                          <i v-if="!isExporting" class="bi bi-download" />
+                          <BSpinner v-else small />
+                          .xlsx
+                        </BButton>
+                      </div>
+                    </BCol>
+                  </BRow>
+                </div>
+              </template>
 
-              <b-row class="justify-content-md-center">
-                <b-col />
-                <b-col
-                  cols="12"
-                  md="auto"
+              <BCardText class="text-start">
+                <!-- GenericTable for main table content -->
+                <GenericTable
+                  :items="displayedItems"
+                  :fields="fieldsComputed"
+                  :sort-by="sortBy"
+                  :sort-desc="sortDesc"
+                  @update-sort="handleSortUpdate"
                 >
-                  <b-pagination
-                    v-model="currentPage"
-                    :total-rows="totalRows"
-                    :per-page="perPage"
-                    aria-controls="my-table"
-                  />
-                </b-col>
-                <b-col />
-              </b-row>
-            </b-card-text>
-          </b-card>
-        </b-col>
-      </b-row>
-      <!-- Content -->
-    </b-card>
-    <!-- User Interface controls -->
-  </b-container>
+                  <!-- Optional column-level filters -->
+                  <template #filter-controls>
+                    <td v-for="field in fieldsComputed" :key="field.key">
+                      <!-- Cluster number: keep text filter -->
+                      <BFormInput
+                        v-if="field.key === 'cluster_num'"
+                        v-model="filter[field.key].content"
+                        :placeholder="'Filter ' + field.label"
+                        debounce="500"
+                        @input="onFilterChange"
+                      />
+
+                      <!-- Category: use CategoryFilter dropdown -->
+                      <CategoryFilter
+                        v-else-if="field.key === 'category'"
+                        v-model="categoryFilter"
+                        :options="categoryOptions"
+                        placeholder="All categories"
+                        @update:model-value="onFilterChange"
+                      />
+
+                      <!-- FDR: use ScoreSlider with presets -->
+                      <ScoreSlider
+                        v-else-if="field.key === 'fdr'"
+                        v-model="fdrThreshold"
+                        @update:model-value="onFilterChange"
+                      />
+
+                      <!-- Other columns: text filter (symbol, STRING_id, description, etc.) -->
+                      <BFormInput
+                        v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
+                        v-model="filter[field.key].content"
+                        :placeholder="'Filter ' + field.label"
+                        debounce="500"
+                        @input="onFilterChange"
+                      />
+                    </td>
+                  </template>
+
+                  <!-- cluster_num cell - colored badge matching network legend -->
+                  <template #cell-cluster_num="{ row }">
+                    <span
+                      v-if="row.cluster_num"
+                      class="cluster-badge"
+                      :style="{ backgroundColor: getClusterColor(row.cluster_num) }"
+                    >
+                      {{ row.cluster_num }}
+                    </span>
+                  </template>
+
+                  <!-- category cell -->
+                  <template #cell-category="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div v-if="tableType === 'term_enrichment'">
+                      <BBadge
+                        v-b-tooltip.hover.rightbottom
+                        variant="light"
+                        :style="
+                          'border-color: ' +
+                          (clusterCategoryStyle[row.category] || clusterCategoryStyle.default) +
+                          '; border-width: medium;'
+                        "
+                        :title="row.category"
+                      >
+                        {{ findCategoryText(row.category) }}
+                      </BBadge>
+                    </div>
+                  </template>
+
+                  <template #cell-number_of_genes="{ row }">
+                    <BBadge variant="info">
+                      {{ row['number_of_genes'] }}
+                    </BBadge>
+                  </template>
+
+                  <!-- fdr cell -->
+                  <template #cell-fdr="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div
+                      v-if="tableType === 'term_enrichment'"
+                      v-b-tooltip.hover.leftbottom
+                      class="overflow-hidden text-truncate"
+                      :title="row.fdr != null ? Number(row.fdr).toFixed(10) : ''"
+                    >
+                      <BBadge variant="warning">
+                        {{ row.fdr }}
+                      </BBadge>
+                    </div>
+                  </template>
+
+                  <!-- description cell -->
+                  <template #cell-description="{ row }">
+                    <!-- Render only if tableType === 'term_enrichment' -->
+                    <div v-if="tableType === 'term_enrichment'" class="d-flex align-items-center">
+                      <BButton
+                        class="btn-xs me-1 flex-shrink-0"
+                        variant="outline-primary"
+                        :href="findCategoryLink(row.category, row.term)"
+                        target="_blank"
+                        title="Open in external database"
+                      >
+                        <i class="bi bi-box-arrow-up-right" />
+                      </BButton>
+                      <span
+                        v-b-tooltip.hover.top
+                        class="description-text text-truncate"
+                        :title="row.description"
+                      >
+                        {{ row.description }}
+                      </span>
+                    </div>
+                  </template>
+
+                  <!-- symbol cell with bidirectional hover highlighting -->
+                  <template #cell-symbol="{ row }">
+                    <!-- Render only if tableType === 'identifiers' -->
+                    <div
+                      v-if="tableType === 'identifiers'"
+                      class="font-italic symbol-cell"
+                      :class="{ 'row-highlighted': isRowHighlighted(row.hgnc_id) }"
+                      @mouseenter="handleTableRowHover(row.hgnc_id)"
+                      @mouseleave="handleTableRowHover(null)"
+                    >
+                      <BLink :href="'/Genes/' + row.hgnc_id">
+                        <BBadge
+                          v-b-tooltip.hover.leftbottom
+                          pill
+                          variant="success"
+                          :title="row.hgnc_id"
+                        >
+                          {{ row.symbol }}
+                        </BBadge>
+                      </BLink>
+                    </div>
+                  </template>
+
+                  <!-- STRING_id cell -->
+                  <template #cell-STRING_id="{ row }">
+                    <!-- Render only if tableType === 'identifiers' -->
+                    <div
+                      v-if="tableType === 'identifiers'"
+                      v-b-tooltip.hover
+                      class="overflow-hidden text-truncate"
+                      :title="row.STRING_id"
+                    >
+                      <BButton
+                        class="btn-xs mx-2"
+                        variant="outline-primary"
+                        :href="'https://string-db.org/network/' + row.STRING_id"
+                        target="_blank"
+                        :title="'View ' + row.STRING_id + ' in STRING database'"
+                      >
+                        <i class="bi bi-box-arrow-up-right" />
+                        {{ row.STRING_id }}
+                      </BButton>
+                    </div>
+                  </template>
+                </GenericTable>
+
+                <!-- OPTIONAL bottom pagination controls -->
+                <BRow class="justify-content-end">
+                  <BCol cols="12" md="auto" class="my-1">
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="[5, 10, 20]"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
+                    />
+                  </BCol>
+                </BRow>
+              </BCardText>
+            </BCard>
+          </div>
+        </Pane>
+      </Splitpanes>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-import * as d3 from 'd3';
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import {
+  useToast,
+  useColorAndSymbols,
+  useFilterSync,
+  useWildcardSearch,
+  useExcelExport,
+} from '@/composables';
+
+// Import small table components
+import GenericTable from '@/components/small/GenericTable.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+
+// Import filter components
+import TermSearch from '@/components/filters/TermSearch.vue';
+import CategoryFilter from '@/components/filters/CategoryFilter.vue';
+import ScoreSlider from '@/components/filters/ScoreSlider.vue';
+
+// Import NetworkVisualization component (replaces D3.js bubble chart)
+import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
+
+// Import Splitpanes for resizable layout
+import { Splitpanes, Pane } from 'splitpanes';
+import 'splitpanes/dist/splitpanes.css';
+
+// Import shared cluster color utility for consistent colors
+import { getClusterColor } from '@/utils/clusterColors';
 
 export default {
   name: 'AnalyseGeneClusters',
   components: {
-    DownloadImageButtons,
+    GenericTable,
+    TablePaginationControls,
+    TermSearch,
+    CategoryFilter,
+    ScoreSlider,
+    NetworkVisualization,
+    Splitpanes,
+    Pane,
   },
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  props: {
+    /**
+     * Optional filter state from parent AnalysisView
+     * Enables shared filter state across analysis views in 27-04
+     */
+    filterState: {
+      type: Object,
+      default: null,
+    },
+  },
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const { filterState: filterSyncState, setSearch } = useFilterSync();
+
+    // Wildcard search for filtering table
+    const wildcardSearch = useWildcardSearch();
+
+    // Excel export functionality
+    const { isExporting, exportToExcel } = useExcelExport();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      filterSyncState,
+      setSearch,
+      wildcardSearch,
+      isExporting,
+      exportToExcel,
+    };
+  },
   data() {
     return {
+      /* --------------------------------------
+       * Data from the API
+       * ------------------------------------ */
       itemsCluster: [],
-      valueCategories: [],
+      valueCategories: [], // for showing text, link, etc. by category
       selectedCluster: {
         term_enrichment: [],
       },
-      selectedClusterFields: [
-        {
-          key: 'category',
-          label: 'Category',
-          class: 'text-left',
-          sortable: true,
-        },
-        {
-          key: 'number_of_genes',
-          label: '#Genes',
-          class: 'text-left',
-          sortable: true,
-        },
-        {
-          key: 'fdr',
-          label: 'FDR',
-          class: 'text-left',
-          sortable: true,
-        },
-        {
-          key: 'description',
-          label: 'Description',
-          class: 'text-left',
-          sortable: true,
-        },
-      ],
+
+      /*
+       * If you color badges by category, define clusterCategoryStyle object here
+       * with fallback "default" color (renamed to avoid conflict with mixin's category_style)
+       */
+      clusterCategoryStyle: {
+        GO: '#AA00AA',
+        KEGG: '#AA5500',
+        MONDO: '#0088AA',
+        default: '#666666', // fallback if row.category not in object
+      },
+
+      /* --------------------------------------
+       * Table logic
+       * ------------------------------------ */
+      tableType: 'term_enrichment',
       tableOptions: [
         { value: 'term_enrichment', text: 'Term enrichment' },
         { value: 'identifiers', text: 'Identifiers' },
       ],
-      tableType: 'term_enrichment',
+
+      // You can define classes for columns in fields using thClass/tdClass if desired
+      // (in computed fieldsComputed below)
+      filter: {
+        any: { content: null, operator: 'contains' },
+        cluster_num: { content: null, operator: 'contains' },
+        category: { content: null, operator: 'contains' },
+        number_of_genes: { content: null, operator: 'contains' },
+        fdr: { content: null, operator: 'contains' },
+        description: { content: null, operator: 'contains' },
+        symbol: { content: null, operator: 'contains' },
+        STRING_id: { content: null, operator: 'contains' },
+      },
+      // Specialized filter values (separate from text filter object)
+      categoryFilter: null, // Selected category (GO, KEGG, MONDO, or null for all)
+      fdrThreshold: null, // FDR threshold (0.01, 0.05, 0.1, or custom value)
+      sortBy: 'fdr',
+      sortDesc: false,
+
+      // Pagination
+      perPage: 10,
+      totalRows: 1,
+      currentPage: 1,
+
+      /* --------------------------------------
+       * Clustering logic
+       * ------------------------------------ */
       selectOptions: [
         { value: 'clusters', text: 'Clusters' },
         { value: 'subclusters', text: 'Subclusters' },
@@ -307,324 +440,767 @@ export default {
       selectType: 'clusters',
       activeParentCluster: 1,
       activeSubCluster: 1,
-      perPage: 10,
-      totalRows: 1,
-      currentPage: 1,
-      loading: true, // Add a loading state
+
+      loading: true,
+      loadingStage: 'initializing', // 'initializing' | 'submitting' | 'processing' | 'loading_data'
+      loadingProgress: 0,
+      estimatedSeconds: 15,
+      jobId: null,
+      algorithm: 'leiden', // 'leiden' (fast) or 'walktrap' (legacy)
+      algorithmOptions: [
+        { value: 'leiden', text: 'Leiden (Fast)' },
+        { value: 'walktrap', text: 'Walktrap (Legacy)' },
+      ],
+
+      // Resizable pane size (percentage)
+      leftPaneSize: 42,
+
+      // Track which clusters are displayed in table (synced from network filter)
+      displayedClusters: [],
+      showAllClustersInTable: true,
+
+      // Search highlighting state
+      searchMatchCount: 0,
+
+      // Bidirectional hover highlighting
+      hoveredRowId: null,
     };
   },
+  computed: {
+    /**
+     * Computed property for gene search pattern (v-model binding)
+     * Gets/sets filterState.search via the composable
+     */
+    geneSearchPattern: {
+      get() {
+        return this.filterSyncState?.search || '';
+      },
+      set(val) {
+        this.setSearch(val);
+      },
+    },
+
+    /**
+     * Whether we're showing combined data from multiple clusters
+     */
+    isShowingCombinedData() {
+      return this.showAllClustersInTable || this.displayedClusters.length > 1;
+    },
+
+    /**
+     * All gene symbols for autocomplete suggestions
+     */
+    allGeneSymbols() {
+      const identifiers = this.selectedCluster?.identifiers || [];
+      return [...new Set(identifiers.map((row) => row.symbol))].sort();
+    },
+
+    /**
+     * Category options for CategoryFilter dropdown
+     * Derived from valueCategories loaded from API
+     */
+    categoryOptions() {
+      if (!this.valueCategories || this.valueCategories.length === 0) {
+        return [
+          { value: 'GO', text: 'GO (Gene Ontology)' },
+          { value: 'KEGG', text: 'KEGG (Pathways)' },
+          { value: 'MONDO', text: 'MONDO (Disease)' },
+        ];
+      }
+      return this.valueCategories.map((cat) => ({
+        value: cat.value,
+        text: cat.text,
+      }));
+    },
+
+    /**
+     * fieldsComputed: Return fields array based on tableType
+     * with thClass/tdClass for styling
+     * Adds cluster column when showing combined data from multiple clusters
+     */
+    fieldsComputed() {
+      const clusterColumn = {
+        key: 'cluster_num',
+        label: 'Cluster',
+        sortable: true,
+        thClass: 'text-start bg-light',
+        tdClass: 'text-start',
+      };
+
+      if (this.tableType === 'term_enrichment') {
+        const fields = [
+          {
+            key: 'category',
+            label: 'Category',
+            sortable: true,
+            thClass: 'text-start bg-light', // header cell class
+            tdClass: 'text-start', // data cell class
+          },
+          {
+            key: 'number_of_genes',
+            label: '#Genes',
+            sortable: true,
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
+          },
+          {
+            key: 'fdr',
+            label: 'FDR',
+            sortable: true,
+            // Sort by numeric value (scientific notation strings like "1.23e-20")
+            sortByFormatted: false,
+            sortCompare: (aRow, bRow, key) => {
+              const a = parseFloat(aRow[key]) || 0;
+              const b = parseFloat(bRow[key]) || 0;
+              return a - b;
+            },
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
+          },
+          {
+            key: 'description',
+            label: 'Description',
+            sortable: true,
+            thClass: 'text-start bg-light',
+            tdClass: 'text-start',
+          },
+        ];
+        // Always show cluster column for consistency between table and network
+        fields.unshift(clusterColumn);
+        return fields;
+      }
+      // 'identifiers' case
+      const fields = [
+        {
+          key: 'symbol',
+          label: 'Symbol',
+          sortable: true,
+          thClass: 'text-start bg-light',
+          tdClass: 'text-start',
+        },
+        {
+          key: 'STRING_id',
+          label: 'STRING ID',
+          sortable: true,
+          thClass: 'text-start bg-light',
+          tdClass: 'text-start',
+        },
+      ];
+      // Always show cluster column for consistency between table and network
+      fields.unshift(clusterColumn);
+      return fields;
+    },
+
+    /**
+     * Label showing which cluster(s) data is displayed in the table
+     */
+    clusterDisplayLabel() {
+      if (this.showAllClustersInTable || this.displayedClusters.length === 0) {
+        return 'All Clusters';
+      }
+      if (this.displayedClusters.length === 1) {
+        return `Cluster ${this.displayedClusters[0]}`;
+      }
+      return `Clusters ${[...this.displayedClusters].sort((a, b) => a - b).join(', ')}`;
+    },
+
+    /**
+     * displayedItems: Filtered + sorted + paginated items for the current tableType
+     */
+    displayedItems() {
+      let dataArray = this.selectedCluster[this.tableType] || [];
+      dataArray = this.applyFilters(dataArray);
+
+      // Apply sorting
+      if (this.sortBy) {
+        dataArray = [...dataArray].sort((a, b) => {
+          let aVal = a[this.sortBy];
+          let bVal = b[this.sortBy];
+
+          // Handle null/undefined - push to end
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+
+          // Handle numeric comparison (including scientific notation like FDR values)
+          // Convert to number - handles "0", "1e-94", 0, 1e-94, etc.
+          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
+          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
+
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            // Both are valid numbers - compare numerically
+            // This correctly handles 0 vs 1e-94 (0 < 1e-94)
+            const diff = aNum - bNum;
+            return this.sortDesc ? -diff : diff;
+          }
+
+          // String comparison for non-numeric values
+          const aStr = String(aVal).toLowerCase();
+          const bStr = String(bVal).toLowerCase();
+          if (aStr < bStr) return this.sortDesc ? 1 : -1;
+          if (aStr > bStr) return this.sortDesc ? -1 : 1;
+          return 0;
+        });
+      }
+
+      // Pagination
+      const start = (this.currentPage - 1) * this.perPage;
+      const end = start + this.perPage;
+      return dataArray.slice(start, end);
+    },
+  },
   watch: {
-    activeParentCluster(value) {
+    activeParentCluster() {
       if (this.selectType === 'clusters') {
         this.setActiveCluster();
-        this.generateClusterGraph();
       }
     },
-    activeSubCluster(value) {
+    activeSubCluster() {
       if (this.selectType === 'subclusters') {
         this.setActiveCluster();
-        this.generateClusterGraph();
       }
     },
-    tableType(value) {
-      this.totalRows = this.selectedCluster[this.tableType].length;
-      this.setTableType();
+    tableType() {
+      // When user changes tableType, re-check totalRows with filters applied
+      this.updateFilteredTotalRows();
+      this.currentPage = 1;
     },
-    selectType(value) {
+    selectType() {
       this.resetCluster();
+    },
+    // Watch for search pattern changes to update table filtering
+    'filterSyncState.search': {
+      handler() {
+        this.updateFilteredTotalRows();
+        this.currentPage = 1;
+      },
+      immediate: false,
+    },
+    categoryFilter() {
+      this.updateFilteredTotalRows();
+      this.currentPage = 1;
+    },
+    fdrThreshold() {
+      this.updateFilteredTotalRows();
+      this.currentPage = 1;
     },
   },
   mounted() {
     this.loadClusterData();
   },
   methods: {
+    /**
+     * Helper method: find category text from valueCategories
+     */
+    findCategoryText(categoryVal) {
+      const found = this.valueCategories.find((cat) => cat.value === categoryVal);
+      return found ? found.text : categoryVal; // fallback to raw category if not found
+    },
+    /**
+     * Helper method: build link from valueCategories
+     */
+    findCategoryLink(categoryVal, termVal) {
+      const found = this.valueCategories.find((cat) => cat.value === categoryVal);
+      return found ? found.link + termVal : '#';
+    },
+
+    /**
+     * Get cluster color by cluster number
+     * Uses shared utility for consistent colors across table and network
+     */
+    getClusterColor(clusterNum) {
+      return getClusterColor(clusterNum);
+    },
+
+    /* --------------------------------------
+     * Load cluster data from API using async job system
+     * ------------------------------------ */
     async loadClusterData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/functional_clustering`;
+      this.loading = true;
+      this.loadingStage = 'submitting';
+      this.loadingProgress = 5;
+
+      const baseUrl = import.meta.env.VITE_API_URL;
 
       try {
-        const response = await this.axios.get(apiUrl);
+        // Step 1: Submit async job
+        const submitResponse = await this.axios.post(`${baseUrl}/api/jobs/clustering/submit`, {
+          algorithm: this.algorithm,
+        });
 
+        // Extract job info (R returns arrays for scalars)
+        const jobId = Array.isArray(submitResponse.data.job_id)
+          ? submitResponse.data.job_id[0]
+          : submitResponse.data.job_id;
+        const estSeconds = Array.isArray(submitResponse.data.estimated_seconds)
+          ? submitResponse.data.estimated_seconds[0]
+          : submitResponse.data.estimated_seconds;
+
+        this.jobId = jobId;
+        this.estimatedSeconds = estSeconds || 30;
+
+        this.loadingStage = 'processing';
+        this.loadingProgress = 15;
+
+        // Step 2: Poll for results
+        await this.pollJobStatus();
+      } catch (e) {
+        // Handle 409 Conflict (duplicate job) - silently use existing job
+        if (e.response && e.response.status === 409) {
+          const existingJobId = Array.isArray(e.response.data.existing_job_id)
+            ? e.response.data.existing_job_id[0]
+            : e.response.data.existing_job_id;
+          this.jobId = existingJobId;
+          this.loadingStage = 'processing';
+          this.loadingProgress = 15;
+          await this.pollJobStatus();
+          return;
+        }
+
+        // Other errors: show toast and fall back to sync endpoint
+        this.makeToast('Using synchronous loading (async unavailable)', 'Info', 'info');
+        await this.loadClusterDataSync();
+      }
+    },
+
+    /**
+     * Poll job status until complete
+     */
+    async pollJobStatus() {
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
+      let attempts = 0;
+      const startTime = Date.now();
+
+      const poll = async () => {
+        attempts += 1;
+
+        try {
+          const statusResponse = await this.axios.get(`${baseUrl}/api/jobs/${this.jobId}/status`);
+
+          const responseData = statusResponse.data;
+
+          // R/plumber may return scalars as single-element arrays
+          const status = Array.isArray(responseData.status)
+            ? responseData.status[0]
+            : responseData.status;
+          const result = responseData.result;
+          const progress = responseData.progress;
+
+          // Update progress based on elapsed time vs estimate
+          const elapsed = (Date.now() - startTime) / 1000;
+          const estimatedProgress = Math.min(90, 15 + (elapsed / this.estimatedSeconds) * 75);
+          this.loadingProgress = progress || estimatedProgress;
+
+          if (status === 'completed') {
+            this.loadingStage = 'loading_data';
+            this.loadingProgress = 95;
+
+            // Process result - handle both {clusters, categories} and flat array formats
+            if (result && result.clusters) {
+              this.itemsCluster = result.clusters;
+              this.valueCategories = result.categories || [];
+            } else if (Array.isArray(result)) {
+              this.itemsCluster = result;
+              this.valueCategories = [];
+            } else {
+              this.itemsCluster = result;
+              this.valueCategories = [];
+            }
+
+            // Update loading state
+            this.loadingProgress = 100;
+            this.loading = false;
+
+            // Set table display - show combined data for all clusters by default
+            this.$nextTick(() => {
+              if (this.showAllClustersInTable) {
+                // Show combined data from all clusters
+                this.selectedCluster = this.combineClusterData(this.itemsCluster);
+                const arr = this.selectedCluster[this.tableType] || [];
+                this.totalRows = arr.length;
+              } else {
+                this.setActiveCluster();
+              }
+            });
+            return;
+          }
+
+          if (status === 'failed') {
+            throw new Error(responseData.error || 'Clustering job failed');
+          }
+
+          // Still running, poll again
+          if (attempts < maxAttempts) {
+            const retryAfter = parseInt(statusResponse.headers['retry-after'] || '5', 10) * 1000;
+            setTimeout(poll, retryAfter);
+          } else {
+            throw new Error('Job timed out after 5 minutes');
+          }
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+          this.loading = false;
+        }
+      };
+
+      await poll();
+    },
+
+    /**
+     * Fallback: Synchronous data loading (for when async fails)
+     */
+    async loadClusterDataSync() {
+      this.loadingStage = 'loading_data';
+      this.loadingProgress = 50;
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/functional_clustering?algorithm=${this.algorithm}`;
+      try {
+        const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data.clusters;
         this.valueCategories = response.data.categories;
-        this.setActiveCluster();
-
-        this.generateClusterGraph();
+        // Show combined data from all clusters by default
+        if (this.showAllClustersInTable) {
+          this.selectedCluster = this.combineClusterData(this.itemsCluster);
+          const arr = this.selectedCluster[this.tableType] || [];
+          this.totalRows = arr.length;
+        } else {
+          this.setActiveCluster();
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {
-        this.loading = false; // Set loading to false after data is loaded
+        this.loading = false;
       }
     },
+
+    /**
+     * Reload with different algorithm
+     * Note: v-model already updates this.algorithm before @change fires,
+     * so we just trigger a reload with the current (already updated) algorithm
+     */
+    async reloadWithAlgorithm() {
+      // Set loading first - Vue will hide D3 container and show loading spinner
+      this.loading = true;
+      this.loadingProgress = 0;
+      this.loadingStage = 'submitting';
+
+      // Wait for Vue to swap from D3 container to loading spinner
+      await this.$nextTick();
+
+      // v-model already updated this.algorithm, and :key="'graph-' + algorithm"
+      // will force container recreation when loading finishes
+
+      // Load new data with updated algorithm
+      await this.loadClusterData();
+    },
+
     setActiveCluster() {
-      let rest;
+      let match;
       let subClusters;
+      let clusterNum;
+
       if (this.selectType === 'clusters') {
-        [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeParentCluster);
-      } else if (this.selectType === 'subclusters') {
-        [subClusters, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeParentCluster);
-        [this.selectedCluster, ...rest] = subClusters.subclusters.filter((item) => item.cluster === this.activeSubCluster);
+        match = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
+        clusterNum = this.activeParentCluster;
+      } else {
+        // subclusters
+        subClusters = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
+        if (subClusters) {
+          match = subClusters.subclusters.find((sub) => sub.cluster === this.activeSubCluster);
+        }
+        clusterNum = this.activeSubCluster;
       }
-      this.totalRows = this.selectedCluster[this.tableType].length;
-    },
-    setTableType() {
-      if (this.tableType === 'term_enrichment') {
-        this.selectedClusterFields = [
-          {
-            key: 'category',
-            label: 'Category',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'number_of_genes',
-            label: '#Genes',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'fdr',
-            label: 'FDR',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'description',
-            label: 'Description',
-            class: 'text-left',
-            sortable: true,
-          },
-        ];
-      } else if (this.tableType === 'identifiers') {
-        this.selectedClusterFields = [
-          {
-            key: 'symbol',
-            label: 'Symbol',
-            class: 'text-left',
-            sortable: true,
-          },
-          {
-            key: 'STRING_id',
-            label: 'STRING ID',
-            class: 'text-left',
-            sortable: true,
-          },
-        ];
+
+      // Add cluster_num to each row for consistent display
+      if (match) {
+        this.selectedCluster = {
+          term_enrichment: (match.term_enrichment || []).map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          })),
+          identifiers: (match.identifiers || []).map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          })),
+        };
+      } else {
+        this.selectedCluster = { term_enrichment: [], identifiers: [] };
       }
+
+      const arr = this.selectedCluster[this.tableType] || [];
+      this.totalRows = arr.length;
     },
+
     resetCluster() {
       this.activeParentCluster = 1;
       this.activeSubCluster = 1;
+      this.setActiveCluster();
     },
-    generateClusterGraph() {
-      // Graph dimension
-      const margin = {
-        top: 10, right: 10, bottom: 10, left: 10,
-      };
-      const width = 400 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
 
-      // first remove svg
-      d3.select('#gene_cluster_dataviz').select('svg').remove();
-      d3.select('#gene_cluster_dataviz').select('div').remove();
+    /* --------------------------------------
+     * Filtering logic
+     * ------------------------------------ */
+    applyFilters(items) {
+      const anyVal = (this.filter.any.content || '').toLowerCase();
 
-      // Create the svg area
-      const svg = d3
-        .select('#gene_cluster_dataviz')
-        .append('svg')
-        .attr('id', 'gene_cluster_dataviz-svg') // Add ID here
-        .attr('width', width)
-        .attr('height', height);
-
-      // define data from API call object
-      const data = this.itemsCluster
-        .map(({ subclusters }) => subclusters)
-        .flat();
-
-      // Color palette for clusters
-      const color = d3
-        .scaleOrdinal()
-        .domain([1, 2, 3, 4, 5, 6, 7])
-        .range(d3.schemeSet1);
-
-      // Size scale for clusters
-      const size = d3
-        .scaleLinear()
-        .domain([0, 1000])
-        .range([7, 55]); // circle will be between 7 and 55 px wide
-
-      // get unique parent cluster ids as array
-      const unique = (value, index, self) => self.indexOf(value) === index;
-
-      const unique_parent_cluster = data
-        .map(({ parent_cluster }) => parent_cluster)
-        .filter(unique);
-
-      // A scale that gives a X target position for each parent_cluster
-      const x = d3
-        .scaleOrdinal()
-        .domain(unique_parent_cluster)
-        .range(
-          unique_parent_cluster.map((x) => x * 30),
-        );
-
-      // create a tooltip
-      const Tooltip = d3
-        .select('#gene_cluster_dataviz')
-        .append('div')
-        .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px');
-
-      const mouseover = function mouseover(event, d) {
-        Tooltip.style('opacity', 1);
-        d3.select(this).style('stroke-width', 3);
-      };
-
-      const mousemove = function mousemove(event, d) {
-        Tooltip.html(
-          `<u>Cluster: ${
-            d.parent_cluster
-          }.${
-            d.cluster
-          }</u>`
-          + `<br>${
-            d.cluster_size
-          } genes`,
-        )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
-      };
-
-      const mouseleave = function mouseleave(event, d) {
-        Tooltip.style('opacity', 0);
-        d3.select(this).style('stroke-width', 1);
-      };
-
-      // Features of the forces applied to the nodes:
-      const simulation = d3
-        .forceSimulation()
-        .force(
-          'center',
-          d3
-            .forceCenter()
-            .x(width / 2)
-            .y(height / 2),
-        ) // Attraction to the center of the svg area
-        .force('charge', d3.forceManyBody().strength(0.1)) // Nodes are attracted one each other of value is > 0
-        .force(
-          'collide',
-          d3
-            .forceCollide()
-            .strength(0.2)
-            .radius((d) => size(d.cluster_size) + 3)
-            .iterations(1),
-        ) // Force that avoids circle overlapping
-        .force(
-          'forceX',
-          d3
-            .forceX()
-            .strength(0.5)
-            .x((d) => x(d.parent_cluster)),
-        )
-        .force(
-          'forceY',
-          d3
-            .forceY()
-            .strength(0.1)
-            .y(height * 0.5),
-        );
-
-      // What happens when a circle is dragged?
-      function dragstarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.03).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      }
-      function dragged(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
-      }
-      function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0.03);
-        d.fx = null;
-        d.fy = null;
+      // Sync wildcard pattern from filterState
+      const searchPattern = this.filterSyncState?.search || '';
+      if (searchPattern !== this.wildcardSearch.pattern.value) {
+        this.wildcardSearch.pattern.value = searchPattern;
       }
 
-      // Initialize the circle: all located at the center of the svg area
-      const node = svg
-        .append('g')
-        .selectAll('circle')
-        .data(data)
-        .enter()
-        .append('a')
-      // .attr('xlink:href', (d) => `/Entities/?filter=${d.hash_filter}`) // <- add links to the filtered gene table to the circles
-      // .attr('aria-label', (d) => `Link to entity table for cluster, ${d.cluster}`)
-        .append('circle')
-        .attr('class', 'node')
-        .attr('r', (d) => size(d.cluster_size))
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
-        .style('fill', (d) => color(d.parent_cluster))
-        .style('fill-opacity', 0.8)
-        .attr('stroke', '#696969')
-        .style('stroke-width', (d) => {
-          if (this.selectType === 'clusters' && d.parent_cluster === this.activeParentCluster) {
-            return 4;
+      return items.filter((row) => {
+        // 0) Wildcard gene search filter (for identifiers table)
+        if (searchPattern && this.tableType === 'identifiers' && row.symbol) {
+          if (!this.wildcardSearch.matches(row.symbol)) {
+            return false;
           }
-          if (this.selectType === 'subclusters' && d.parent_cluster === this.activeParentCluster && d.cluster === this.activeSubCluster) {
-            return 4;
-          }
-          return 1;
-        })
-        .on('mouseover', mouseover) // What to do when hovered
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave)
-        .on('click', (e, d) => {
-          this.activeParentCluster = d.parent_cluster;
-          this.activeSubCluster = d.cluster;
-          Tooltip.style('opacity', 0); // Hide tooltip on click
-        })
-        .call(
-          d3
-            .drag() // call specific function when circle is dragged
-            .on('start', dragstarted)
-            .on('drag', dragged)
-            .on('end', dragended),
-        );
+        }
 
-      // Apply these forces to the nodes and update their positions.
-      // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-      simulation
-        .nodes(data)
-        .on('tick', (d) => {
-          node
-            .attr('cx', (d) => d.x)
-            .attr('cy', (d) => d.y);
+        // 1) Category dropdown filter (for term_enrichment table)
+        if (this.categoryFilter && this.tableType === 'term_enrichment') {
+          if (row.category !== this.categoryFilter) {
+            return false;
+          }
+        }
+
+        // 2) FDR threshold filter (for term_enrichment table)
+        if (this.fdrThreshold !== null && this.tableType === 'term_enrichment') {
+          const fdrValue = parseFloat(row.fdr);
+          if (isNaN(fdrValue) || fdrValue >= this.fdrThreshold) {
+            return false;
+          }
+        }
+
+        // 3) "any" filter
+        if (anyVal) {
+          const rowString = Object.values(row).join(' ').toLowerCase();
+          if (!rowString.includes(anyVal)) {
+            return false;
+          }
+        }
+
+        // 4) column-specific text filters
+        const filterKeys = Object.keys(this.filter).filter((k) => k !== 'any');
+        let keep = true;
+        filterKeys.forEach((fieldKey) => {
+          const colVal = (this.filter[fieldKey].content || '').toLowerCase();
+          if (colVal) {
+            const rowVal = String(row[fieldKey] || '').toLowerCase();
+            if (!rowVal.includes(colVal)) {
+              keep = false;
+            }
+          }
         });
+        return keep;
+      });
+    },
+    onFilterChange() {
+      this.currentPage = 1;
+    },
+
+    /**
+     * Update totalRows based on filtered data
+     * Called when search pattern or tableType changes
+     */
+    updateFilteredTotalRows() {
+      const arr = this.selectedCluster[this.tableType] || [];
+      const filtered = this.applyFilters(arr);
+      this.totalRows = filtered.length;
+
+      // Update search match count for identifiers table
+      if (this.tableType === 'identifiers' && this.filterSyncState?.search) {
+        this.searchMatchCount = filtered.length;
+      }
+    },
+
+    /* --------------------------------------
+     * Pagination
+     * ------------------------------------ */
+    handlePageChange(newPage) {
+      this.currentPage = newPage;
+    },
+    handlePerPageChange(newPerPage) {
+      this.perPage = newPerPage;
+      this.currentPage = 1;
+    },
+
+    /* --------------------------------------
+     * Sorting
+     * ------------------------------------ */
+    handleSortUpdate({ sortBy, sortDesc }) {
+      this.sortBy = sortBy;
+      this.sortDesc = sortDesc;
+    },
+
+    /* --------------------------------------
+     * Network visualization event handlers
+     * ------------------------------------ */
+    handleClusterSelected(hgncId) {
+      // Handle node click from NetworkVisualization
+      // This can be used for table synchronization or other interactions
+      console.log('Gene selected from network:', hgncId);
+    },
+
+    /**
+     * Handle network node hover - highlight corresponding table row
+     * Part of bidirectional hover highlighting (NAVL-05)
+     */
+    handleNetworkNodeHover(nodeId) {
+      this.hoveredRowId = nodeId;
+    },
+
+    /**
+     * Handle search match count updates from network
+     * Updates the TermSearch component feedback
+     */
+    handleSearchMatchCount(count) {
+      this.searchMatchCount = count;
+    },
+
+    /**
+     * Handle table row hover - highlight corresponding network node
+     * Part of bidirectional hover highlighting (NAVL-05)
+     */
+    handleTableRowHover(hgncId) {
+      this.hoveredRowId = hgncId;
+      // Call network highlight method via ref
+      if (this.$refs.networkVisualization) {
+        this.$refs.networkVisualization.highlightNodeFromTable(hgncId);
+      }
+    },
+
+    /**
+     * Check if a table row should be highlighted (from network hover)
+     */
+    isRowHighlighted(hgncId) {
+      return this.hoveredRowId === hgncId;
+    },
+
+    /**
+     * Handle cluster filter changes from NetworkVisualization
+     * Updates the table to show data for selected cluster(s)
+     */
+    handleClustersChanged(clusters, showAll) {
+      console.log('Clusters changed:', clusters, 'showAll:', showAll);
+
+      // Track which clusters are displayed for the label
+      this.displayedClusters = [...clusters];
+      this.showAllClustersInTable = showAll || clusters.length === 0;
+
+      if (showAll || clusters.length === 0) {
+        // Show combined data from all clusters
+        this.selectedCluster = this.combineClusterData(this.itemsCluster);
+      } else if (clusters.length === 1) {
+        // Single cluster selected - show that cluster's data
+        this.activeParentCluster = clusters[0];
+        this.setActiveCluster();
+      } else {
+        // Multiple clusters selected - combine their data
+        const selectedClusterData = this.itemsCluster.filter((item) =>
+          clusters.includes(item.cluster)
+        );
+        this.selectedCluster = this.combineClusterData(selectedClusterData);
+      }
+
+      // Update pagination
+      const arr = this.selectedCluster[this.tableType] || [];
+      this.totalRows = arr.length;
+      this.currentPage = 1;
+    },
+
+    /**
+     * Combine data from multiple clusters into a single object
+     * Adds cluster number to each row so users can see which cluster it belongs to
+     */
+    combineClusterData(clusterArray) {
+      const combined = {
+        term_enrichment: [],
+        identifiers: [],
+      };
+
+      clusterArray.forEach((cluster) => {
+        const clusterNum = cluster.cluster;
+        if (cluster.term_enrichment) {
+          // Add cluster number to each enrichment row
+          const enrichmentWithCluster = cluster.term_enrichment.map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          }));
+          combined.term_enrichment = combined.term_enrichment.concat(enrichmentWithCluster);
+        }
+        if (cluster.identifiers) {
+          // Add cluster number to each identifier row
+          const identifiersWithCluster = cluster.identifiers.map((row) => ({
+            ...row,
+            cluster_num: clusterNum,
+          }));
+          combined.identifiers = combined.identifiers.concat(identifiersWithCluster);
+        }
+      });
+
+      return combined;
+    },
+
+    /**
+     * Handle pane resize events from Splitpanes
+     * Updates leftPaneSize and triggers network refit
+     */
+    handlePaneResized(panes) {
+      if (panes && panes.length > 0) {
+        this.leftPaneSize = panes[0].size;
+      }
+    },
+
+    /**
+     * Download the current table data as Excel file
+     * Exports all filtered data (not just the current page)
+     */
+    downloadExcel() {
+      // Get all filtered data (not just paginated subset)
+      let dataArray = this.selectedCluster[this.tableType] || [];
+      dataArray = this.applyFilters(dataArray);
+
+      if (dataArray.length === 0) {
+        this.makeToast('No data to export', 'Warning', 'warning');
+        return;
+      }
+
+      // Define column headers based on table type
+      const headers =
+        this.tableType === 'term_enrichment'
+          ? {
+              cluster_num: 'Cluster',
+              category: 'Category',
+              number_of_genes: '# Genes',
+              fdr: 'FDR',
+              description: 'Description',
+              term: 'Term ID',
+            }
+          : {
+              cluster_num: 'Cluster',
+              symbol: 'Gene Symbol',
+              hgnc_id: 'HGNC ID',
+              STRING_id: 'STRING ID',
+            };
+
+      // Generate filename with context
+      const clusterLabel = this.showAllClustersInTable
+        ? 'all_clusters'
+        : `clusters_${this.displayedClusters.join('_')}`;
+      const filename = `sysndd_gene_${this.tableType}_${clusterLabel}`;
+
+      this.exportToExcel(dataArray, {
+        filename,
+        sheetName: this.tableType === 'term_enrichment' ? 'Enrichment' : 'Identifiers',
+        headers,
+      });
     },
   },
 };
 </script>
 
 <style scoped>
-.svg-container {
-  display: inline-block;
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  vertical-align: top;
-  overflow: hidden;
-}
-.svg-content {
-  display: inline-block;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
@@ -632,17 +1208,82 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
-.spinner {
-  width: 2rem;
-  height: 2rem;
-  margin: 5rem auto;
-  display: block;
+
+/* Truncate description text with ellipsis, show full text on hover */
+.description-text {
+  max-width: 200px;
+  display: inline-block;
+  cursor: help;
 }
+
 mark {
   display: inline-block;
   line-height: 0em;
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+
+/* Splitpanes layout */
+.splitpanes {
+  min-height: 650px;
+}
+
+.pane-content {
+  padding: 12px;
+  height: 100%;
+  overflow: auto;
+}
+
+/* Override splitpanes default theme for better visibility */
+/* Use :deep() for Vue 3 scoped styles to affect child components */
+:deep(.splitpanes.default-theme .splitpanes__splitter) {
+  background-color: #dee2e6;
+  min-width: 8px;
+  border-left: 1px solid #adb5bd;
+  border-right: 1px solid #adb5bd;
+  cursor: col-resize;
+  position: relative;
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter:hover) {
+  background-color: #adb5bd;
+}
+
+:deep(.splitpanes.default-theme .splitpanes__splitter::before) {
+  content: '⋮';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: #6c757d;
+  font-weight: bold;
+}
+
+/* Cluster badge - matches network legend styling */
+.cluster-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Bidirectional hover highlighting (NAVL-05) */
+.symbol-cell {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.row-highlighted {
+  background-color: rgba(var(--bs-warning-rgb), 0.25);
 }
 </style>

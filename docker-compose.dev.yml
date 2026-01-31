@@ -1,0 +1,119 @@
+# =============================================================================
+# Hybrid Development Database Containers
+# =============================================================================
+# Usage: docker compose -f docker-compose.dev.yml up -d
+#
+# Purpose: Run databases in Docker while developing API locally (not in container).
+# This is for LOCAL R/Plumber development with IDE debugger access.
+#
+# Ports:
+#   - mysql-dev: localhost:7654 (development database)
+#   - mysql-test: localhost:7655 (test database for R testthat)
+#
+# Alternative workflows:
+#   - Full-stack Docker: docker compose up --watch (uses docker-compose.override.yml)
+#   - Production: docker compose -f docker-compose.yml up
+#
+# Note: This file requires explicit -f flag (not auto-loaded like override.yml)
+# =============================================================================
+
+services:
+  mysql-dev:
+    image: mysql:8.0.40
+    container_name: sysndd_mysql_dev
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command:
+      - --authentication-policy=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sysndd_db}
+      MYSQL_USER: ${MYSQL_USER:-bernt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "7654:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-bernt}", "-p${MYSQL_PASSWORD:-changeme}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mysql-test:
+    image: mysql:8.0.40
+    container_name: sysndd_mysql_test
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command:
+      - --authentication-policy=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: sysndd_db_test
+      MYSQL_USER: ${MYSQL_USER:-bernt}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "7655:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-bernt}", "-p${MYSQL_PASSWORD:-changeme}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.28.4
+    container_name: sysndd_mailpit
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "127.0.0.1:8025:8025"  # Web UI
+      - "127.0.0.1:1025:1025"  # SMTP (for local R development)
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_MAX_MESSAGES: 500
+    networks:
+      - default
+      - sysndd_proxy  # Connect to main stack network for API communication
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8025/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mysql_dev_data:
+    name: sysndd_mysql_dev_data
+  mysql_test_data:
+    name: sysndd_mysql_test_data
+
+networks:
+  sysndd_proxy:
+    external: true  # Use existing network from main docker-compose.yml

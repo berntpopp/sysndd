@@ -1,0 +1,91 @@
+#!/usr/bin/env Rscript
+# scripts/coverage.R
+# Generate test coverage report using covr
+#
+# For non-package projects, we use a simplified approach:
+# 1. Trace specific source files
+# 2. Run tests via testthat
+# 3. Report coverage
+
+# Load covr and dependencies quietly
+suppressPackageStartupMessages(library(covr))
+
+# Pre-load packages that sourced functions depend on
+# These are needed because covr runs in a clean environment
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(stringr)
+  library(tidyr)
+  library(openssl)  # Required for sha256() in helper-functions.R
+  library(jsonlite)
+  library(purrr)
+  library(xml2)     # Required for publication-functions.R
+  library(readr)    # Required for logging-functions.R
+  library(fs)       # Required for logging-functions.R
+  library(rvest)    # Required for genereviews-functions.R
+})
+
+# Change to api directory
+if (basename(getwd()) != "api") {
+  setwd("api")
+}
+
+# Get source files to measure
+source_files <- list.files("functions", pattern = "\\.R$", full.names = TRUE)
+
+cat("Measuring coverage for", length(source_files), "source files...\n")
+
+# Use file_coverage with explicit source and test paths
+# Include multiple test file types:
+# - test-unit-* : Pure function tests (no external dependencies)
+# - test-database-* : Database validation tests (no live DB required)
+#
+# Note: test-external-* files are excluded from coverage because:
+# - They require httptest2 fixtures and helper functions
+# - They have network dependencies for initial fixture recording
+# - covr doesn't load testthat helper files automatically
+test_files <- list.files(
+  "tests/testthat",
+  pattern = "^test-(unit|database)-.*\\.R$",
+  full.names = TRUE
+)
+
+cat("Using", length(test_files), "test files\n\n")
+
+# Calculate coverage
+cov <- file_coverage(
+  source_files = source_files,
+  test_files = test_files,
+  parent_env = globalenv()
+)
+
+# Calculate percentage
+pct <- percent_coverage(cov)
+
+# Print summary
+cat("\n========================================\n")
+cat("Overall coverage: ", round(pct, 1), "%\n")
+cat("========================================\n\n")
+
+# Print file-by-file coverage
+cat("Coverage by file:\n")
+cov_summary <- tally_coverage(cov)
+if (nrow(cov_summary) > 0) {
+  # Round percent column if it exists and is numeric
+  if ("percent" %in% names(cov_summary) && is.numeric(cov_summary$percent)) {
+    cov_summary$percent <- round(cov_summary$percent, 1)
+  }
+  print(cov_summary, row.names = FALSE)
+}
+
+# Warning if below threshold
+if (pct < 70) {
+  cat("\nWARNING: Coverage ", round(pct, 1), "% below 70% threshold\n")
+}
+
+# Generate HTML report
+cat("\nGenerating HTML report...\n")
+dir.create("../coverage", showWarnings = FALSE)
+report(cov, file = "../coverage/coverage-report.html", browse = FALSE)
+cat("HTML report: coverage/coverage-report.html\n")

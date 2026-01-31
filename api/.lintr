@@ -1,0 +1,20 @@
+linters: linters_with_defaults(
+    # Disable pipe consistency - codebase mixes %>% and |>
+    pipe_consistency_linter = NULL,
+    # Increase line length to 120 (modern standard)
+    line_length_linter = line_length_linter(120L),
+    # Allow explicit returns (Google style, clearer for complex functions)
+    return_linter = NULL,
+    # Allow SCREAMING_SNAKE_CASE for constants
+    object_name_linter = NULL,
+    # NSE variables handled via globalVariables()
+    object_usage_linter = NULL,
+    # Allow longer object names
+    object_length_linter = NULL,
+    # Too many false positives with roxygen/plumber examples
+    commented_code_linter = NULL,
+    # Disable indentation linter - styler handles formatting
+    indentation_linter = NULL
+  )
+exclusions: list("_old", "data/", "logs/", "results/", "renv/", "tests/")
+encoding: "UTF-8"

@@ -1,100 +1,68 @@
 <!-- src/components/analyses/AnalysesTimePlot.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             NDD entities and genes
             <mark
               v-b-tooltip.hover.leftbottom
               title="This plot shows the number of NDD entities and genes over time, categorized by different criteria. It provides an interactive way to explore trends and patterns in the data."
-            >over time</mark>.
-            <b-badge
-              id="popover-badge-help-timeplot"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
-              target="popover-badge-help-timeplot"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Time Plot Details
-              </template>
-              This section provides a dynamic visualization of the number of neurodevelopmental disorder (NDD) entities and genes over time. The plot can be customized by aggregation type and grouping criteria. Hover over the points to see detailed information, and use the legend to filter the categories displayed.
-            </b-popover>
+              >over time</mark
+            >.
+            <BBadge id="popover-badge-help-timeplot" pill href="#" variant="info">
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
+              <template #title> Time Plot Details </template>
+              This section provides a dynamic visualization of the number of neurodevelopmental
+              disorder (NDD) entities and genes over time. The plot can be customized by aggregation
+              type and grouping criteria. Hover over the points to see detailed information, and use
+              the legend to filter the categories displayed.
+            </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'timeplot-svg'"
-            :file-name="'entities_over_time'"
-          />
+          <DownloadImageButtons :svg-id="'timeplot-svg'" :file-name="'entities_over_time'" />
         </div>
       </template>
-      <b-row>
+      <BRow>
         <!-- column 1 -->
-        <b-col class="my-1">
-          <b-input-group
-            prepend="Aggregation"
-            class="mb-1"
-            size="sm"
-          >
-            <b-form-select
+        <BCol class="my-1">
+          <BInputGroup prepend="Aggregation" class="mb-1" size="sm">
+            <BFormSelect
               v-model="selected_aggregate"
               input-id="aggregate-select"
               :options="aggregate_list"
               text-field="text"
               size="sm"
             />
-          </b-input-group>
+          </BInputGroup>
 
-          <b-input-group
-            prepend="Grouping"
-            class="mb-1"
-            size="sm"
-          >
-            <b-form-select
+          <BInputGroup prepend="Grouping" class="mb-1" size="sm">
+            <BFormSelect
               v-model="selected_group"
               input-id="group-select"
               :options="filteredGroupList"
               text-field="text"
               size="sm"
             />
-          </b-input-group>
-        </b-col>
-      </b-row>
+          </BInputGroup>
+        </BCol>
+      </BRow>
       <!-- User Interface controls -->
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
-          v-if="loadingData"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-show="!loadingData"
-          id="my_dataviz"
-          class="svg-container"
-        />
+        <BSpinner v-if="loadingData" label="Loading..." class="spinner" />
+        <div v-show="!loadingData" id="my_dataviz" class="svg-container" />
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+import { useToast, useText } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
@@ -103,7 +71,15 @@ export default {
   components: {
     DownloadImageButtons,
   },
-  mixins: [toastMixin, textMixin],
+  setup() {
+    const { makeToast } = useToast();
+    const text = useText();
+
+    return {
+      makeToast,
+      ...text,
+    };
+  },
   data() {
     return {
       aggregate_list: [
@@ -117,7 +93,8 @@ export default {
         { value: 'inheritance_multiple', text: 'Inheritance Multiple' },
       ],
       selected_group: 'category',
-      filter_string: 'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
+      filter_string:
+        'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
       items: [],
       itemsMeta: [],
       loadingData: true, // Added loading state
@@ -148,13 +125,9 @@ export default {
   methods: {
     async loadData() {
       this.loadingData = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/statistics/entities_over_time?aggregate=${
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/entities_over_time?aggregate=${
         this.selected_aggregate
-      }&group=${
-        this.selected_group
-      }&filter=${
-        this.filter_string}`;
+      }&group=${this.selected_group}&filter=${this.filter_string}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -180,9 +153,18 @@ export default {
 
       if (this.selected_group === 'category') {
         groupFilter = `any(category,${d.group})`;
-      } else if (this.selected_group === 'inheritance_filter' || this.selected_group === 'inheritance_multiple') {
-        const groupText = d.group.split(' | ').map((term) => `${term} inheritance`).join(',');
-        groupFilter = this.selected_group === 'inheritance_multiple' ? `all(hpo_mode_of_inheritance_term_name,${groupText})` : `any(hpo_mode_of_inheritance_term_name,${groupText})`;
+      } else if (
+        this.selected_group === 'inheritance_filter' ||
+        this.selected_group === 'inheritance_multiple'
+      ) {
+        const groupText = d.group
+          .split(' | ')
+          .map((term) => `${term} inheritance`)
+          .join(',');
+        groupFilter =
+          this.selected_group === 'inheritance_multiple'
+            ? `all(hpo_mode_of_inheritance_term_name,${groupText})`
+            : `any(hpo_mode_of_inheritance_term_name,${groupText})`;
       }
 
       return `${baseUrl}${groupFilter},${dateFilter}`;
@@ -193,7 +175,10 @@ export default {
 
       // set the dimensions and margins of the graph
       const margin = {
-        top: 50, right: 50, bottom: 50, left: 50,
+        top: 50,
+        right: 50,
+        bottom: 50,
+        left: 50,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -228,10 +213,7 @@ export default {
       const maxCount = this.itemsMeta[0].max_cumulative_count;
 
       // A color scale: one color for each group
-      const myColor = d3
-        .scaleOrdinal()
-        .domain(allCategories)
-        .range(d3.schemeSet2);
+      const myColor = d3.scaleOrdinal().domain(allCategories).range(d3.schemeSet2);
 
       // Add X axis --> it is a date format
       const x = d3
@@ -239,20 +221,12 @@ export default {
         .domain(d3.extent(data[0].values, (d) => d.entry_date))
         .range([0, width]);
 
-      svg
-        .append('g')
-        .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x));
+      svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x));
 
       // Add Y axis
-      const y = d3
-        .scaleLinear()
-        .domain([0, maxCount])
-        .range([height, 0]);
+      const y = d3.scaleLinear().domain([0, maxCount]).range([height, 0]);
 
-      svg
-        .append('g')
-        .call(d3.axisLeft(y));
+      svg.append('g').call(d3.axisLeft(y));
 
       // Add the lines
       const line = d3
@@ -283,40 +257,42 @@ export default {
         .style('padding', '2px');
 
       // Three functions that change the tooltip when user hover / move / leave a cell
-      const mouseover = function mouseover(event, d) {
+      const mouseover = function mouseover(_event, _d) {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black');
       };
 
       const mousemove = function mousemove(event, d) {
         tooltip
-          .html(
-            `Count: ${d.cumulative_count}<br>Date: ${d.entry_date_text}`,
-          )
+          .html(`Count: ${d.cumulative_count}<br>Date: ${d.entry_date_text}`)
           .style('left', `${event.clientX + 20}px`)
           .style('top', `${event.clientY + 20}px`);
       };
 
-      const mouseleave = function mouseleave(event, d) {
+      const mouseleave = function mouseleave(_event, _d) {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'white');
       };
 
       // Add the points
       svg
-      // First we need to enter in a group
+        // First we need to enter in a group
         .selectAll('myDots')
         .data(data)
-        .enter().append('g')
+        .enter()
+        .append('g')
         .style('fill', (d) => myColor(d.group))
         .attr('class', (d) => d.class)
-      // Second we need to enter in the 'values' part of this group
+        // Second we need to enter in the 'values' part of this group
         .selectAll('myPoints')
         .data((d) => d.values)
         .enter()
         .append('a')
         .attr('xlink:href', (d) => this.generateLink(d)) // <- Use generateLink method here
-        .attr('aria-label', (d) => `Link to entities filtered before entry date ${d.entry_date_text}`)
+        .attr(
+          'aria-label',
+          (d) => `Link to entities filtered before entry date ${d.entry_date_text}`
+        )
         .style('text-decoration', 'none') // <- Ensure no text decoration on links
         .append('circle')
         .attr('cx', (d) => x(d.entry_date))

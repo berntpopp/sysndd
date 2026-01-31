@@ -1,0 +1,116 @@
+# Development Overrides - Auto-loaded by Docker Compose
+#
+# TRAEFIK DEBUG: Expose Traefik API at localhost:8090 for debugging
+# Access dashboard at http://localhost:8090/dashboard/
+#
+# This file is automatically merged with docker-compose.yml when running:
+#   docker compose up
+#
+# For production (skip overrides):
+#   docker compose -f docker-compose.yml up
+#
+# What this enables:
+# - Hot-reload development for frontend (Dockerfile.dev + Compose Watch)
+# - MySQL port exposed at localhost:7654 for database tools
+# - Development environment settings
+
+services:
+  # DEVELOPMENT: Enable Traefik dashboard for debugging routing issues
+  traefik:
+    command:
+      # Enable dashboard for development debugging
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      # Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=sysndd_proxy"
+      # HTTP entrypoint
+      - "--entryPoints.web.address=:80"
+      # RFC 3986 encoded characters
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
+      # Health checks (on default API port so traefik healthcheck --ping works)
+      - "--ping=true"
+      # Debug logging for development
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "127.0.0.1:8090:8080"
+
+  # DEV-03: Database access for local tools
+  # Connect with DBeaver, MySQL Workbench, DataGrip, etc.
+  mysql:
+    ports:
+      # Bind to localhost only (not network-accessible for security)
+      - "127.0.0.1:7654:3306"
+
+  # DEV-02: API development mode
+  # Note: Compose Watch for API is configured in docker-compose.yml
+  # because the API Dockerfile serves both dev and prod
+  # Development mode uses sysndd_db_dev config with Mailpit for email testing
+  api:
+    # Expose API directly for local frontend development (npm run dev on host)
+    # Matches VITE_API_URL in .env.development: http://localhost:7778/api
+    ports:
+      - "127.0.0.1:7778:7777"
+    environment:
+      # Override to use development config (Mailpit SMTP, not Strato)
+      ENVIRONMENT: development
+
+  # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
+  app:
+    # Expose Vite dev server directly for development
+    # Use http://localhost:5173 to bypass Traefik routing issues
+    ports:
+      - "127.0.0.1:5173:5173"
+    # Override Traefik port for Vite dev server (production uses nginx on 8080)
+    labels:
+      - "traefik.http.services.app.loadbalancer.server.port=5173"
+    # Override healthcheck for development
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://127.0.0.1:5173/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    # Override build to use development Dockerfile
+    build:
+      context: ./app
+      dockerfile: Dockerfile.dev
+    # Volume mounts for live code changes
+    volumes:
+      # Mount entire app directory with caching for macOS/Windows performance
+      - ./app:/app:cached
+      # Anonymous volume for node_modules - CRITICAL for cross-platform
+      # Prevents host node_modules from overriding container (native binaries differ)
+      - /app/node_modules
+    environment:
+      NODE_ENV: development
+    # Override memory limit from docker-compose.yml (256M is for nginx in prod)
+    # Vite dev server needs less memory than webpack but still more than nginx
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+    # DEV-05: Compose Watch configuration for frontend
+    # Syncs source changes without full container restart
+    develop:
+      watch:
+        # Sync source code changes
+        - action: sync
+          path: ./app/src
+          target: /app/src
+          ignore:
+            - node_modules/
+        # Sync public assets
+        - action: sync
+          path: ./app/public
+          target: /app/public
+        # Rebuild on dependency changes
+        - action: rebuild
+          path: ./app/package.json
+        # Rebuild on Vite config changes
+        - action: rebuild
+          path: ./app/vite.config.ts

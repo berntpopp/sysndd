@@ -1,15 +1,29 @@
 # functions/pubtator-functions.R
-#### This file holds analyses functions for PubTator requests
+#### This file holds analysis functions for PubTator requests
+#### Includes transaction handling (rollback) & storing both total_page_number & queried_page_number.
 
 require(tidyverse)
 require(jsonlite)
+require(logger)
+require(DBI)
+require(digest) # for hashing
+log_threshold(INFO)
 
+# Load database helper functions for repository layer access (if not already loaded)
+if (!exists("db_execute_query", mode = "function")) {
+  if (file.exists("functions/db-helpers.R")) {
+    source("functions/db-helpers.R", local = TRUE)
+  }
+}
 
+#------------------------------------------------------------------------------
+# 1) Retrieve Total Number of Pages from PubTator API v3
+#   (unchanged from old code)
+#------------------------------------------------------------------------------
 #' Retrieve Total Number of Pages from PubTator API v3 for a Given Query
 #'
 #' This function contacts the PubTator API v3 and retrieves the total number of pages
-#' of results available for a specific query. This is useful for understanding the scope
-#' of the data set and planning pagination strategies when retrieving all data.
+#' of results available for a specific query. Useful for planning pagination.
 #'
 #' @param query Character string containing the search query for PubTator.
 #' @param api_base_url Character string containing the base URL of the PubTator API.
@@ -26,505 +40,700 @@ require(jsonlite)
 #' \dontrun{
 #'   total_pages <- pubtator_v3_total_pages_from_query("BRCA1")
 #' }
-#'
 #' @export
-pubtator_v3_total_pages_from_query <- function(query, 
-                                               api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/", 
-                                               endpoint_search = "search/", 
+pubtator_v3_total_pages_from_query <- function(query,
+                                               api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
+                                               endpoint_search = "search/",
                                                query_parameter = "?text=") {
   url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=1")
-  tryCatch({
-    response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
-    return(response_search$total_pages)
-  }, error = function(e) {
-    warning("Failed to fetch the total pages for the query: ", query, " Error: ", e$message)
-    return(NULL)
-  })
+  log_info("Fetching total pages for query: {query} with URL: {url_search}")
+
+  tryCatch(
+    {
+      response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
+      total_pages <- response_search$total_pages
+      log_info("Successfully retrieved total_pages = {total_pages} for query: {query}")
+      return(total_pages)
+    },
+    error = function(e) {
+      warning_msg <- paste(
+        "Failed to fetch the total pages for the query:",
+        query, "Error:", e$message
+      )
+      log_warn(warning_msg)
+      warning(warning_msg)
+      return(NULL)
+    }
+  )
+}
+
+#------------------------------------------------------------------------------
+# 2) generate_query_hash
+#   (unchanged logic, just a helper to hash the query)
+#------------------------------------------------------------------------------
+generate_query_hash <- function(query_string) {
+  q_squish <- stringr::str_squish(query_string)
+  q_hash <- digest::digest(q_squish, algo = "sha256", serialize = FALSE)
+  return(q_hash)
+}
+
+#------------------------------------------------------------------------------
+# 3) MASTER FUNCTION: pubtator_db_update
+#   - wraps DB writes in a transaction
+#   - stores total_page_number and queried_page_number
+#   - does rollback on error
+#------------------------------------------------------------------------------
+#' Store PubTator search & annotation results in DB (transaction + rollback on errors)
+#'
+#' @param db_host,db_port,db_name,db_user,db_password  Connection params
+#' @param query          The PubTator query string
+#' @param max_pages      Max pages to actually fetch (queried_page_number)
+#' @param do_full_update If TRUE, purge old data for that query_hash
+#'
+#' @return The `query_id` used in the DB, or NULL on error
+#' @export
+pubtator_db_update <- function(
+  db_host,
+  db_port,
+  db_name,
+  db_user,
+  db_password,
+  query,
+  max_pages = 10,
+  do_full_update = FALSE
+) {
+  # A) Retrieve total_pages BEFORE transaction (no DB write needed)
+  total_pages <- pubtator_v3_total_pages_from_query(query)
+  if (is.null(total_pages) || total_pages == 0) {
+    log_warn("No pages found for query: {query}. Aborting.")
+    return(NULL) # Early return - no DB operations started
+  }
+
+  if (max_pages > total_pages) {
+    log_info("max_pages={max_pages} > total_pages={total_pages}, adjusting.")
+    max_pages <- total_pages
+  }
+
+  # B) Query hash
+  q_hash <- generate_query_hash(query)
+  log_info("Query hash = {q_hash}")
+
+  # C) Wrap ALL database operations in a single transaction
+  result <- tryCatch(
+    {
+      db_with_transaction({
+        # Check if query exists
+        existing_query <- db_execute_query(
+          "SELECT query_id, queried_page_number, total_page_number, page_size
+         FROM pubtator_query_cache WHERE query_hash = ?",
+          list(q_hash)
+        )
+
+        query_id <- NA_integer_
+        old_queried_number <- 0
+
+        if (nrow(existing_query) == 0) {
+          # Insert new row
+          log_info("No record for query_hash={q_hash}, inserting new row.")
+          db_execute_statement(
+            "INSERT INTO pubtator_query_cache
+            (query_text, query_hash, total_page_number, queried_page_number, page_size)
+           VALUES (?, ?, ?, ?, ?)",
+            list(query, q_hash, total_pages, max_pages, 10)
+          )
+          query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
+        } else {
+          # Found existing row
+          query_id <- existing_query$query_id[1]
+          old_queried_number <- existing_query$queried_page_number[1]
+          old_total_number <- existing_query$total_page_number[1]
+
+          log_info("Found existing query_id={query_id}, old_queried_number={old_queried_number}")
+
+          if (do_full_update) {
+            log_info("do_full_update=TRUE => removing old records.")
+            db_execute_statement(
+              "DELETE FROM pubtator_search_cache WHERE query_id = ?",
+              list(query_id)
+            )
+            db_execute_statement(
+              "DELETE a FROM pubtator_annotation_cache a
+             JOIN pubtator_search_cache s ON a.search_id = s.search_id
+             WHERE s.query_id = ?",
+              list(query_id)
+            )
+            db_execute_statement(
+              "UPDATE pubtator_query_cache
+             SET total_page_number=?, queried_page_number=?, page_size=?
+             WHERE query_id=?",
+              list(total_pages, max_pages, 10, query_id)
+            )
+            old_queried_number <- 0
+          } else {
+            # Partial update check
+            if (max_pages <= old_queried_number) {
+              log_info("Already up to page={old_queried_number}, no new fetch needed.")
+              # Return query_id - transaction will auto-commit
+              return(query_id) # Early return WITH commit
+            }
+            log_info("Partial update: old_queried_number={old_queried_number}, new max_pages={max_pages}")
+          }
+        }
+
+        # D) Fetch new pages
+        start_page <- if (!do_full_update && nrow(existing_query) > 0) {
+          existing_query$queried_page_number[1] + 1
+        } else {
+          1
+        }
+
+        if (start_page <= max_pages) {
+          df_results <- pubtator_v3_pmids_from_request(
+            query = query, start_page = start_page,
+            max_pages = (max_pages - start_page + 1)
+          )
+
+          if (!is.null(df_results) && nrow(df_results) > 0) {
+            log_info("Inserting {nrow(df_results)} rows => pubtator_search_cache")
+
+            df_insert <- df_results %>%
+              mutate(
+                query_id = query_id,
+                id = if (!"id" %in% names(.)) NA_character_ else id,
+                date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
+              ) %>%
+              select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
+
+            for (r in seq_len(nrow(df_insert))) {
+              db_execute_statement(
+                "INSERT INTO pubtator_search_cache
+                (query_id, id, pmid, doi, title, journal, date, score, text_hl)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                unname(as.list(df_insert[r, ]))
+              )
+            }
+
+            db_execute_statement(
+              "UPDATE pubtator_query_cache
+             SET queried_page_number=?, total_page_number=? WHERE query_id=?",
+              list(max_pages, total_pages, query_id)
+            )
+          }
+        }
+
+        # E) Gather PMIDs and fetch annotations
+        pmid_rows <- db_execute_query(
+          "SELECT pmid FROM pubtator_search_cache
+         WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
+          list(query_id)
+        )
+
+        if (nrow(pmid_rows) == 0) {
+          log_info("No PMIDs in search_cache => skip annotation fetch.")
+          return(query_id) # Early return WITH commit
+        }
+
+        pmid_vector <- pmid_rows$pmid
+        log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
+
+        # F) Fetch and insert annotations
+        doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
+        if (is.null(doc_list) || length(doc_list) == 0) {
+          log_warn("No annotation data => skipping annotation_cache insert.")
+          return(query_id) # Early return WITH commit
+        }
+
+        flat_df <- flatten_pubtator_passages(doc_list) %>%
+          mutate(pmid = as.integer(pmid))
+
+        srch_map <- db_execute_query(
+          "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
+          list(query_id)
+        )
+
+        flat_df_j <- flat_df %>%
+          left_join(srch_map, by = "pmid", relationship = "many-to-many")
+
+        log_info("Inserting {nrow(flat_df_j)} annotation rows")
+
+        df_ann <- flat_df_j %>%
+          mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
+          select(
+            search_id, pmid, id, text, identifier, type, ncbi_homologene,
+            valid, normalized, `database`, normalized_id, biotype, name, accession
+          )
+
+        for (r in seq_len(nrow(df_ann))) {
+          db_execute_statement(
+            "INSERT INTO pubtator_annotation_cache
+            (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
+             normalized, `database`, normalized_id, biotype, name, accession)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            unname(as.list(df_ann[r, ]))
+          )
+        }
+
+        log_info("All done => returning query_id={query_id}")
+        query_id # Return value - transaction auto-commits
+      })
+    },
+    error = function(e) {
+      # Transaction auto-rolled back by db_with_transaction
+      log_error("pubtator_db_update: Error => {e$message}")
+      return(NULL)
+    }
+  )
+
+  return(result)
 }
 
 
+#------------------------------------------------------------------------------
+# 4) pubtator_v3_pmids_from_request
+#   (same logic as before, just ensuring columns: id, pmid, doi, etc.)
+#------------------------------------------------------------------------------
 #' Fetch PMIDs and Associated Data from PubTator API v3 Based on Query
 #'
-#' This function queries the PubTator v3 API to retrieve PubMed IDs (PMIDs) and associated metadata 
-#' (title, journal, date, and score) based on a given query string. It iterates through pages of 
-#' results, starting from a specified page, up to a maximum number of pages, handling pagination and 
-#' implementing retry logic in case of request failures.
+#' This function queries the PubTator v3 API to retrieve PubMed IDs (PMIDs) and
+#' specific metadata columns (id, pmid, doi, title, journal, date, score, text_hl)
+#' based on a given query string. It iterates through pages of results, starting
+#' from a specified page, up to a maximum number of pages, handling pagination
+#' and implementing retry logic.
 #'
 #' @param query Character: The search query string for PubTator.
-#' @param start_page Numeric: The starting page number for the API response (for pagination).
+#' @param start_page Numeric: The starting page number for the API response (pagination).
 #' @param max_pages Numeric: Maximum number of pages to iterate through.
-#' @param max_retries Numeric: Maximum number of retries for the API request in case of failure.
-#' @param sort Character: The sorting parameter for the PubTator API (e.g., "date desc").
+#' @param max_retries Numeric: Maximum number of retries if failure.
+#' @param sort Character: The sorting parameter (e.g., "date desc").
 #' @param api_base_url Character: Base URL of the PubTator API.
 #' @param endpoint_search Character: API endpoint for the search query.
 #' @param query_parameter Character: URL parameter for the search query.
 #'
-#' @return A tibble containing PMIDs and associated metadata (title, journal, date, score) if found; 
-#' NULL otherwise. Each row represents data associated with a specific PMID.
+#' @return A tibble containing columns: id, pmid, doi, title, journal, date, score, text_hl (if present).
+#'         Returns NULL if no records found.
 #' @export
-pubtator_v3_pmids_from_request <- function(query, start_page = 1, max_pages = 10, max_retries = 3, 
+pubtator_v3_pmids_from_request <- function(query,
+                                           start_page = 1,
+                                           max_pages = 10,
+                                           max_retries = 3,
                                            sort = "date desc",
                                            api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
-                                           endpoint_search = "search/", query_parameter = "?text=") {
-  all_data <- tibble()
-  end_page <- start_page + max_pages - 1
-  for (page in start_page:end_page) {
-    url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=", page, "&sort=", sort)
-    retries <- 0
-    while(retries <= max_retries) {
-      tryCatch({
-        response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
-        page_data <- response_search$results %>%
-          as_tibble() %>%
-          select(pmid, title, journal, date, score)
+                                           endpoint_search = "search/",
+                                           query_parameter = "?text=") {
+  log_info(
+    "Starting to fetch PMIDs for query: {query}, from page {start_page} to {start_page + max_pages - 1}"
+  )
 
-        all_data <- bind_rows(all_data, page_data)
-        if (page >= response_search$total_pages) {
+  all_data <- tibble::tibble()
+  end_page <- start_page + max_pages - 1
+
+  for (page in start_page:end_page) {
+    url_search <- paste0(
+      api_base_url,
+      endpoint_search,
+      query_parameter,
+      query,
+      "&page=", page,
+      "&sort=", sort
+    )
+    log_info("Fetching page {page} of PubTator results: {url_search}")
+
+    retries <- 0
+    while (retries <= max_retries) {
+      tryCatch(
+        {
+          response_search <- jsonlite::fromJSON(URLencode(url_search), flatten = TRUE)
+
+          page_data <- response_search$results %>%
+            tibble::as_tibble() %>%
+            dplyr::select(
+              dplyr::any_of(c(
+                "id",
+                "pmid",
+                "doi",
+                "title",
+                "journal",
+                "date",
+                "score",
+                "text_hl"
+              ))
+            )
+
+          all_data <- dplyr::bind_rows(all_data, page_data)
+          log_info(
+            "Page {page} fetched successfully; found {nrow(page_data)} records."
+          )
+
+          if (page >= response_search$total_pages) {
+            log_info("Reached the last available page {page} for query: {query}.")
+            break
+          }
           break
+        },
+        error = function(e) {
+          retries <- retries + 1
+          warning_msg <- paste(
+            "Error fetching PMIDs at page", page,
+            "Attempt:", retries, "/", max_retries,
+            "Error:", e$message
+          )
+          log_warn(warning_msg)
+
+          if (retries > max_retries) {
+            final_warning <- paste(
+              "Failed to fetch PMIDs at page", page, "after",
+              max_retries, "attempts."
+            )
+            log_warn(final_warning)
+            warning(final_warning)
+            break
+          }
         }
-        break
-      }, error = function(e) {
-        retries <- retries + 1
-        if (retries > max_retries) {
-          warning(paste("Failed to fetch PMIDs at page", page, "after", max_retries, "attempts."))
-          break
-        }
-      })
+      )
     }
   }
-  return(all_data)
+
+  log_info(
+    "Completed fetching PMIDs for query: {query}, total records = {nrow(all_data)}."
+  )
+  if (nrow(all_data) == 0) {
+    return(NULL)
+  } else {
+    return(all_data)
+  }
 }
 
 
-#' Fetch and Process Annotations Data from PubTator API v3 Based on PMIDs
+#------------------------------------------------------------------------------
+# 5) pubtator_v3_data_from_pmids
+#------------------------------------------------------------------------------
+#' Fetch & Process Annotations Data from PubTator API v3 Based on PMIDs
 #'
-#' Given a list of PubMed IDs (PMIDs), this function fetches and processes annotations 
-#' from the PubTator v3 API. It includes a retry mechanism for API requests.
+#' Given a list of PMIDs, fetch annotations via pubtator_v3_parse_nonstandard_json.
 #'
-#' @param pmids Vector: List of PubMed IDs.
-#' @param max_pmids_per_request Numeric: Maximum number of PMIDs per API request.
-#' @param max_retries Numeric: Maximum number of retries for each API request in case of failure.
-#' @param api_base_url Character: Base URL of the PubTator API.
-#' @param endpoint_annotations Character: API endpoint for fetching annotations.
+#' @param pmids Vector of PubMed IDs
+#' @param max_pmids_per_request numeric
+#' @param max_retries numeric
+#' @param api_base_url ...
+#' @param endpoint_annotations ...
 #'
-#' @return A list containing the processed annotations data if PMIDs are found; NULL otherwise.
+#' @return list of doc objects
 #' @export
-pubtator_v3_data_from_pmids <- function(pmids, max_pmids_per_request = 100, max_retries = 3,
+pubtator_v3_data_from_pmids <- function(pmids,
+                                        max_pmids_per_request = 100,
+                                        max_retries = 3,
                                         api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
                                         endpoint_annotations = "publications/export/biocjson") {
   if (is.null(pmids) || length(pmids) == 0) {
+    log_info("No PMIDs supplied; returning NULL.")
     return(NULL)
   }
 
-  split_pmids <- split(pmids, ceiling(seq_along(pmids) / max_pmids_per_request))
-  all_annotations_data <- list()
+  log_info(
+    "Fetching annotations for {length(pmids)} PMIDs in batches of {max_pmids_per_request}."
+  )
 
-  for (group in split_pmids) {
-    url_annotations <- paste0(api_base_url, endpoint_annotations, "?pmids=", paste(group, collapse = ","))
+  all_documents <- list()
+  pmid_groups <- split(pmids, ceiling(seq_along(pmids) / max_pmids_per_request))
+
+  for (group in pmid_groups) {
+    url_annotations <- paste0(
+      api_base_url, endpoint_annotations,
+      "?pmids=", paste(group, collapse = ",")
+    )
+    log_info("Fetching annotations for PMIDs: {paste(group, collapse=', ')} => {url_annotations}")
 
     retries <- 0
-    successful <- FALSE
-    while(retries <= max_retries && !successful) {
-      tryCatch({
-        annotations_content <- readLines(URLencode(url_annotations))
-        annotations_data <- pubtator_v3_parse_nonstandard_json(annotations_content)
-        all_annotations_data <- c(all_annotations_data, annotations_data)
-        successful <- TRUE
-      }, error = function(e) {
-        retries <- retries + 1
-        if (retries > max_retries) {
-          warning(paste("Failed to fetch data for PMIDs group after", max_retries, "attempts: ", paste(group, collapse = ", ")))
-        } else {
-          Sys.sleep(1) # Wait for 1 second before retrying
+    success <- FALSE
+    while (retries <= max_retries && !success) {
+      tryCatch(
+        {
+          annotations_content <- suppressWarnings(
+            readLines(URLencode(url_annotations))
+          )
+          parsed_json <- pubtator_v3_parse_nonstandard_json(annotations_content)
+
+          docs <- reassemble_pubtator_docs(parsed_json)
+          all_documents <- c(all_documents, docs)
+
+          success <- TRUE
+          log_info(
+            "Successfully fetched data for {length(group)} PMIDs. doc count so far: {length(all_documents)}."
+          )
+        },
+        error = function(e) {
+          retries <- retries + 1
+          warning_msg <- paste(
+            "Error fetching data for PMIDs:", paste(group, collapse = ","),
+            "Attempt:", retries, "/", max_retries,
+            "Error:", e$message
+          )
+          log_warn(warning_msg)
+
+          if (retries > max_retries) {
+            final_warn <- paste(
+              "Failed to fetch data for PMIDs group after",
+              max_retries, "attempts:", paste(group, collapse = ",")
+            )
+            log_warn(final_warn)
+            warning(final_warn)
+          } else {
+            log_info("Retrying in 1 second...")
+            Sys.sleep(1)
+          }
         }
-      })
+      )
     }
   }
 
-  return(all_annotations_data)
+  log_info("Completed fetching annotations for all PMIDs => doc count = {length(all_documents)}.")
+  return(all_documents)
 }
 
+#------------------------------------------------------------------------------
+# 6) reassemble_pubtator_docs
+#------------------------------------------------------------------------------
+#' Reassemble (flatten) the PubTator-Parsed JSON into a list of doc objects
+#'
+#' If top-level is "PubTator3", take doc objects from there. Otherwise, loop over numeric keys.
+#' Each doc has 'id' (copied from '_id' if needed) + 'passages'.
+#'
+#' @param parsed_json from pubtator_v3_parse_nonstandard_json
+#' @return list of doc objects
+#' @export
+reassemble_pubtator_docs <- function(parsed_json) {
+  if (is.null(parsed_json) || length(parsed_json) == 0) {
+    return(list())
+  }
+  if ("PubTator3" %in% names(parsed_json)) {
+    docs <- parsed_json[["PubTator3"]]
+    docs_fixed <- lapply(docs, fix_doc_id)
+    return(docs_fixed)
+  }
+  result <- list()
+  for (key in names(parsed_json)) {
+    sub_item <- parsed_json[[key]]
+    if (!is.null(sub_item) && "PubTator3" %in% names(sub_item)) {
+      docs <- sub_item[["PubTator3"]]
+      docs_fixed <- lapply(docs, fix_doc_id)
+      result <- c(result, docs_fixed)
+    } else {
+      doc_fixed <- fix_doc_id(sub_item)
+      result <- c(result, list(doc_fixed))
+    }
+  }
+  return(result)
+}
 
-#' Parse Non-standard JSON Content
-#'
-#' This function is designed to parse non-standard JSON content, typically returned
-#' from certain APIs. It restructures the content into valid JSON format and then parses it.
-#'
-#' @param json_content Character vector: The non-standard JSON content to be parsed.
-#'
-#' @return A list containing parsed JSON objects. If an error occurs during parsing,
-#'   or if the input content is not in the expected format, NULL is returned.
+#------------------------------------------------------------------------------
+# 7) fix_doc_id
+#------------------------------------------------------------------------------
+#' Ensure doc has 'id' (if only '_id' present)
+#' @export
+fix_doc_id <- function(doc) {
+  if (is.null(doc)) {
+    return(list())
+  }
+  if (!"id" %in% names(doc) && "_id" %in% names(doc)) {
+    doc$id <- doc$`_id`
+  }
+  doc
+}
+
+#------------------------------------------------------------------------------
+# 8) pubtator_v3_parse_nonstandard_json
+#------------------------------------------------------------------------------
+#' Parse Non-standard JSON => reassemble => fromJSON
 #' @export
 pubtator_v3_parse_nonstandard_json <- function(json_content) {
-  tryCatch({
-    # Check if json_content is not NULL or empty
-    if (is.null(json_content) || length(json_content) == 0) {
-      warning("json_content is NULL or empty.")
+  tryCatch(
+    {
+      if (is.null(json_content) || length(json_content) == 0) {
+        log_warn("pubtator_v3_parse_nonstandard_json got NULL or empty json_content => returning NULL.")
+        return(NULL)
+      }
+      json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
+      if (is.null(json_strings)) {
+        log_warn("Failed to split JSON content => returning NULL.")
+        return(NULL)
+      }
+      json_strings <- ifelse(grepl("}$", json_strings),
+        json_strings,
+        paste0(json_strings, "}")
+      )
+      json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings,
+        collapse = ", "
+      )
+      valid_json_string <- paste0("{", json_with_ids, "}")
+      parsed_json <- fromJSON(valid_json_string)
+      return(parsed_json)
+    },
+    error = function(e) {
+      warning_msg <- paste("Error in parsing JSON content:", e$message)
+      log_warn(warning_msg)
+      warning(warning_msg)
       return(NULL)
     }
+  )
+}
 
-    # Split the JSON content
-    json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
-    if (is.null(json_strings)) {
-      warning("Failed to split JSON content.")
-      return(NULL)
+#------------------------------------------------------------------------------
+# 9) flatten_pubtator_passages
+#------------------------------------------------------------------------------
+#' Flatten a PubTator object => row per annotation
+#'
+#' @param master_obj from pubtator_v3_data_from_pmids()
+#' @return tibble with columns pmid, id, text, type, ...
+#' @export
+flatten_pubtator_passages <- function(master_obj) {
+  base_tib <- build_pmid_annotations_table(master_obj)
+  log_info("base_tib has {nrow(base_tib)} rows => flattening annotation DF...")
+
+  if (nrow(base_tib) == 0) {
+    log_warn("No rows => returning empty tibble.")
+    return(base_tib)
+  }
+
+  base_tib2 <- base_tib %>%
+    mutate(
+      annotations = purrr::map2(annotations, dplyr::row_number(), function(ann_list, row_i) {
+        if (!is.data.frame(ann_list) || nrow(ann_list) == 0) {
+          log_info("Row {row_i}: annotation list is empty => empty tibble.")
+          return(tibble())
+        }
+        log_info("Row {row_i}: annotation DF => {nrow(ann_list)} rows, {ncol(ann_list)} cols.")
+        out_list <- vector("list", nrow(ann_list))
+        for (i in seq_len(nrow(ann_list))) {
+          single_row <- ann_list[i, , drop = FALSE]
+          out_list[[i]] <- flatten_annotation_row(single_row)
+        }
+        ann_list_char <- dplyr::bind_rows(out_list)
+        ann_list_char
+      })
+    )
+
+  log_info("Done normalizing each row's annotation DF => unnesting annotations.")
+
+  result <- base_tib2 %>%
+    tidyr::unnest(annotations, keep_empty = TRUE) %>%
+    dplyr::select(-dplyr::any_of(c("locations"))) %>%
+    dplyr::rename_with(~ gsub("^infons\\.", "", .x), dplyr::starts_with("infons."))
+
+  log_info("Flatten complete => {nrow(result)} rows, columns: {paste(names(result), collapse=', ')}")
+  return(result)
+}
+
+#------------------------------------------------------------------------------
+# 10) build_pmid_annotations_table
+#------------------------------------------------------------------------------
+build_pmid_annotations_table <- function(master_obj) {
+  if (!is.list(master_obj)) {
+    log_warn("master_obj not a list => returning empty tibble.")
+    return(tibble(pmid = character(), annotations = list()))
+  }
+  if (!all(c("id", "passages") %in% names(master_obj))) {
+    log_warn("master_obj missing 'id' or 'passages' => empty tibble.")
+    return(tibble(pmid = character(), annotations = list()))
+  }
+
+  pmids_vec <- master_obj$id
+  pass_list <- master_obj$passages
+  if (!is.vector(pmids_vec) || !is.list(pass_list) || length(pmids_vec) != length(pass_list)) {
+    log_warn("mismatch lengths => empty tibble.")
+    return(tibble(pmid = character(), annotations = list()))
+  }
+
+  all_rows <- list()
+  for (i in seq_along(pmids_vec)) {
+    pmid_str <- as.character(pmids_vec[i])
+    pass_df <- pass_list[[i]]
+    if (!is.data.frame(pass_df)) {
+      log_warn("passages[[{i}]] is not a data frame => skip.")
+      next
     }
-    json_strings <- ifelse(grepl("}$", json_strings), json_strings, paste0(json_strings, "}"))
-
-    # Add identifiers and reassemble into a valid JSON
-    json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings, collapse = ", ")
-    valid_json_string <- paste0("{", json_with_ids, "}")
-
-    # Parse the valid JSON
-    parsed_json <- fromJSON(valid_json_string)
-    return(parsed_json)
-  }, error = function(e) {
-    warning("Error in parsing JSON content: ", e$message)
-    return(NULL)
-  })
-}
-
-
-#' Extract ID and Passages as Tibble
-#'
-#' This function takes parsed JSON data and extracts the 'id' and 'passages',
-#' converting them into a tidyverse tibble. Annotations cells with empty lists are excluded.
-#'
-#' @param parsed_json The parsed JSON data from which to extract information.
-#'
-#' @return A tibble with columns 'id' and 'annotations'. Returns an empty tibble
-#'   if the input is NULL, empty, or if an error occurs during processing, or if annotations are empty.
-#'
-#' @examples
-#' # Assuming `json_data` is your JSON data
-#' result <- pubtator_v3_extract_id_and_passages_as_tibble(json_data)
-#'
-#' @export
-pubtator_v3_extract_id_and_passages_as_tibble <- function(parsed_json) {
-  # Check if parsed_json is not NULL or empty
-  if (is.null(parsed_json) || length(parsed_json) == 0) {
-    warning("parsed_json is NULL or empty.")
-    return(tibble())
-  }
-
-  # Safely extract data with error handling
-  tryCatch({
-    extracted_data <- lapply(parsed_json, function(x) {
-      if ("id" %in% names(x) && "passages" %in% names(x) && length(x$passages) > 0) {
-        list(id = x$id, passages = x$passages)
-      } else {
-        NULL
+    for (row_i in seq_len(nrow(pass_df))) {
+      ann_list <- NULL
+      if ("annotations" %in% names(pass_df)) {
+        ann_list <- pass_df$annotations[[row_i]]
       }
-    })
-
-    # Convert the list to a tibble
-    data_tibble <- tibble::enframe(extracted_data, name = NULL, value = "data") %>%
-      tidyr::unnest_wider(data) %>%
-      dplyr::select(id, passages) %>%
-      tidyr::unnest(passages) %>%
-      dplyr::select(id, annotations) %>%
-      dplyr::filter(!is_empty(annotations))
-
-    return(data_tibble)
-  }, error = function(e) {
-    warning("Error in extracting data: ", e$message)
-    return(tibble())
-  })
-}
-
-
-#' Process Annotations Data To Extract Gene Information
-#'
-#' This function processes annotations data to extract gene and species information,
-#' with options for filtering by species and whether a gene name is in uppercase.
-#'
-#' @param annotations_data The annotations data to be processed.
-#' @param filter_species A specific species to filter by (default is "9606").
-#' @param filter_uppercase If TRUE, filters to include only gene names in uppercase.
-#'
-#' @return A tibble with columns 'id', 'gene_name', 'entrez_id', 'species_name',
-#'   and 'gene_uppercase'. Returns NULL if an error occurs during processing.
-#'
-#' @examples
-#' # Assuming `annotations_data` is your annotations data
-#' results <- pubtator_v3_extract_gene_from_annotations(annotations_data)
-#'
-#' @export
-pubtator_v3_extract_gene_from_annotations <- function(annotations_data, filter_species = "9606", filter_uppercase = TRUE) {
-  tryCatch({
-    # Extract annotations as a tibble
-    annotations_extract <- pubtator_v3_extract_id_and_passages_as_tibble(annotations_data)
-
-    # Process to get genes and species
-    annotations_genes_species <- annotations_extract %>% 
-      unnest_wider(annotations, names_repair = "check_unique", names_sep = "_") %>%
-      select(id, annotations_infons) %>%
-      unnest_wider(annotations_infons, names_repair = "check_unique", names_sep = "_") %>%
-      select(id, annotations_infons_identifier, annotations_infons_type, annotations_infons_name) %>%
-      unnest_longer(c(annotations_infons_identifier, annotations_infons_type, annotations_infons_name)) %>%
-      filter(annotations_infons_type %in% c("Gene", "Species")) %>%
-      unique()
-
-    # Separate genes and species
-    genes <- annotations_genes_species %>%
-      filter(annotations_infons_type == "Gene") %>%
-      select(id, gene_name = annotations_infons_name, entrez_id = annotations_infons_identifier) %>%
-      mutate(gene_uppercase = grepl("^[A-Z0-9-]+$", gene_name),
-             entrez_id = stringr::str_extract(entrez_id, "^[^;]+")) %>%
-      filter(!stringr::str_detect(gene_name, "^[0-9]+$"))
-
-    species <- annotations_genes_species %>%
-      filter(annotations_infons_type == "Species") %>%
-      select(id, species_name = annotations_infons_name)
-
-    # Merge genes and species data frames by 'id' and rename 'id' to 'PMID'
-    results <- genes %>%
-      left_join(species, by = "id", relationship = "many-to-many") %>%
-      rename(pmid = id)
-
-    # Apply filters
-    if (!is.null(filter_species)) {
-      results <- results %>%
-        filter(species_name == filter_species)
+      row_obj <- list(
+        pmid = pmid_str,
+        annotations = list(ann_list %||% list())
+      )
+      all_rows <- append(all_rows, list(row_obj))
     }
-    if (filter_uppercase) {
-      results <- results %>%
-        filter(gene_uppercase)
+  }
+
+  if (length(all_rows) == 0) {
+    return(tibble(pmid = character(), annotations = list()))
+  }
+  tib_out <- dplyr::bind_rows(all_rows)
+  return(tib_out)
+}
+
+#------------------------------------------------------------------------------
+# 11) flatten_annotation_row
+#------------------------------------------------------------------------------
+flatten_annotation_row <- function(one_annot) {
+  stopifnot(nrow(one_annot) == 1)
+
+  log_info("flatten_annotation_row => columns: {paste(names(one_annot), collapse=', ')}")
+
+  if ("infons" %in% names(one_annot)) {
+    infons_val <- one_annot[["infons"]]
+    if (is.data.frame(infons_val) && nrow(infons_val) == 1) {
+      # expand columns => infons.xyz
+      for (cn in names(infons_val)) {
+        infons_val[[cn]] <- as.character(infons_val[[cn]])
+      }
+      names(infons_val) <- paste0("infons.", names(infons_val))
+      one_annot[["infons"]] <- NULL
+      one_annot <- cbind(one_annot, infons_val)
+    } else {
+      # fallback => JSON
+      one_annot[["infons"]] <- safe_as_json(infons_val)
     }
+  }
 
-    return(results)
-  }, error = function(e) {
-    warning("Error in processing annotations: ", e$message)
-    return(NULL)
-  })
+  for (colname in names(one_annot)) {
+    colval <- one_annot[[colname]][[1]]
+    if (is.null(colval)) {
+      one_annot[[colname]] <- ""
+    } else if (is.atomic(colval)) {
+      one_annot[[colname]] <- as.character(colval)
+    } else if (is.data.frame(colval)) {
+      one_annot[[colname]] <- safe_as_json(colval)
+    } else if (is.list(colval)) {
+      one_annot[[colname]] <- safe_as_json(colval)
+    } else {
+      one_annot[[colname]] <- as.character(colval)
+    }
+  }
+
+  for (cn in names(one_annot)) {
+    one_annot[[cn]] <- as.character(one_annot[[cn]])
+  }
+  out <- tibble::as_tibble(one_annot)
+  return(out)
 }
 
-
-# TODO: deprecate this function
-#' Retrieve Gene-Related Data from PubTator API v3
-#'
-#' This function queries the PubTator v3 API to retrieve gene-related data based on a given query string.
-#' It performs two main steps: firstly, it fetches the PubMed IDs (PMIDs) associated with the query;
-#' secondly, it retrieves annotations for these PMIDs.
-#'
-#' @param query Character: The search query string for PubTator.
-#' @param page Numeric: The page number for the API response (for pagination).
-#' @param max_retries Numeric: Maximum number of retries for the API request in case of failure. 
-#'   Defaults to 3.
-#' @param api_base_url Character: Base URL of the PubTator API. 
-#'   Defaults to "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/".
-#' @param endpoint_search Character: API endpoint for the search query. 
-#'   Defaults to "search/".
-#' @param endpoint_annotations Character: API endpoint for fetching annotations. 
-#'   Defaults to "publications/export/biocjson".
-#' @param query_parameter Character: URL parameter for the search query. 
-#'   Defaults to "?text=".
-#'
-#' @return A list containing the processed annotations data if PMIDs are found; NULL otherwise. 
-#'   The function internally parses non-standard JSON data from the API response.
-#'
-#' @details
-#' The function includes an internal method `pubtator_v3_parse_nonstandard_json` to handle non-standard JSON 
-#' format returned by the PubTator v3 API. This method corrects and parses the JSON data into a list 
-#' of R objects. After fetching PMIDs based on the query, the function makes a second API call to 
-#' retrieve annotations for these PMIDs. The annotations are then processed and returned as a list.
-#'
-#' @examples
-#' request_data <- pubtator_v3_request(query = '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)', page = 1)
-#'
-#' @export
-pubtator_v3_request <- function(query,
-                                         page,
-                                         max_retries = 3,
-                                         api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
-                                         endpoint_search = "search/",
-                                         endpoint_annotations = "publications/export/biocjson",
-                                         query_parameter = "?text=") {
-
-  # Custom function to parse non-standard JSON
-  pubtator_v3_parse_nonstandard_json <- function(json_content) {
-    # Split the JSON content
-    json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
-    json_strings <- ifelse(grepl("}$", json_strings), json_strings, paste0(json_strings, "}"))
-
-    # Add identifiers and reassemble into a valid JSON
-    json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings, collapse = ", ")
-    valid_json_string <- paste0("{", json_with_ids, "}")
-
-    # Parse the valid JSON
-    parsed_json <- tryCatch(fromJSON(valid_json_string), error = function(e) NULL)
-
-    return(parsed_json)
+#------------------------------------------------------------------------------
+# 12) safe_as_json
+#------------------------------------------------------------------------------
+safe_as_json <- function(x) {
+  if (is.null(x)) {
+    return("")
   }
-
-  # Define URL for search
-  url_search <- paste0(api_base_url, endpoint_search, query_parameter, query, "&page=", page)
-  retries <- 0
-  pmids <- NULL
-
-  # Fetch PMIDs
-  while(retries <= max_retries && is.null(pmids)) {
-    tryCatch({
-      response_search <- fromJSON(URLencode(url_search), flatten = TRUE)
-      pmids <- response_search$results %>%
-        as_tibble() %>%
-        pull(pmid)
-      break
-    }, error = function(e) {
-      retries <- retries + 1
-      if(retries <= max_retries) {
-        warning(paste("Attempt", retries, "failed. Retrying..."))
-      }
-    })
+  if (is.atomic(x) && length(x) == 1) {
+    return(as.character(x))
   }
-
-  if(retries > max_retries) {
-    stop("Failed to fetch PMIDs after", max_retries, "attempts.")
-  }
-
-  # Fetch and Process Annotations
-  if (!is.null(pmids) && length(pmids) > 0) {
-    url_annotations <- paste0(api_base_url, endpoint_annotations, "?pmids=", paste(pmids, collapse = ","))
-    annotations_content <- readLines(URLencode(url_annotations))
-    annotations_data <- pubtator_v3_parse_nonstandard_json(annotations_content)
-
-    # Process annotations data
-    # ...
-    # Extract the required data from annotations_data
-    # Return the processed data
-    return(annotations_data)
-  } else {
-    return(NULL)  # Return NULL if no PMIDs are found
-  }
-}
-
-
-# TODO: make a function that paginates through the results and returns a summarized list of genes and their counts of PMIDs  
-# TODO: deprecate this function
-#' Retrieve gene-related data from PubTator based on a given query
-#'
-#' This function makes a request to the PubTator API to find genes related to a specified query.
-#' It constructs the request URL using parameters for API base URL, endpoint, and query formatting.
-#' The function includes rate limiting to comply with the API's request frequency policy.
-#'
-#' @param query Character: The query string to be searched in PubTator.
-#' @param page Numeric: The page number for the search results.
-#' @param filter_type Character: The type of entity to be filtered from the results.
-#'   Defaults to "Gene".
-#' @param max_retries Numeric: The maximum number of retries for the API request.
-#'   Defaults to 3.
-#' @param api_base_url Character: The base URL of the PubTator API.
-#'   Defaults to "https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/".
-#' @param endpoint Character: The endpoint to be appended to the base URL for the API request.
-#'   Defaults to "search/".
-#' @param query_parameter Character: The parameter used in the query part of the URL.
-#'   Defaults to "text=".
-#' @param rate_limit Numeric: Time interval in seconds to wait between each API request.
-#'   This parameter is used to control the frequency of API requests to comply with the PubTator API's rate limit, 
-#'   which allows up to 3 requests per second. The default value is set to 0.35 seconds to adhere to this limit.
-#'
-#' @return A tibble containing the PubMed ID, text, text identifier, text part, source,
-#'   and text part count for each entry matching the filter type. Returns NULL if no results found.
-#'
-#' @examples
-#' genes <- pubtator_v2_genes_in_request(query = '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)', page = 10)
-#'
-#' @export
-pubtator_v2_genes_in_request <- function(query,
-                                      page,
-                                      max_retries = 3,
-                                      api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator-api/publications/",
-                                      endpoint = "search",
-                                      query_parameter = "?q=",
-                                      filter_type = "Gene",
-                                      rate_limit = 0.35) {
-  # define URL
-  url <- paste0(api_base_url, endpoint, query_parameter, query, "&page=", page)
-  retries <- 0
-
-  # Error handling
-  while(retries <= max_retries) {
-    tryCatch({
-      # Introduce delay for rate limiting
-      Sys.sleep(rate_limit)
-
-      # Attempt to get data
-      search_request <- fromJSON(URLencode(url), flatten = TRUE)
-      break
-
-    }, error = function(e) {
-      retries <- retries + 1
-      if(retries <= max_retries) {
-        warning(paste("Attempt", retries, "failed with error:", e$message, "Retrying..."))
-      }
-    })
-  }
-
-  # If max retries exhausted and still failed, throw an error
-  if(retries > max_retries) {
-    stop("Failed to fetch data after", max_retries, "attempts. Last error: ", e$message)
-  }
-
-  # Continue processing the data by extracting the results as a tibble
-  search_results_tibble <- search_request$results %>%
-    as_tibble()
-
-  # filter out results with no accessions
-  search_results_filtered <- search_results_tibble %>%
-    {if (!("accessions" %in% colnames(.))) add_column(., accessions = "NULL") else .} %>%
-    filter(accessions != "NULL")
-
-  # if there are results, process them
-  if (nrow(search_results_filtered) > 0) {
-    search_results <- search_results_filtered %>%
-      select(pmid, passages) %>%
-      unnest(passages) %>%
-      select(pmid, text_part = infons.type, annotations) %>%
-      rowwise() %>%
-      mutate(empty = is_empty(annotations)) %>%
-      ungroup() %>%
-      filter(annotations != "NULL" & !empty) %>%
-      unnest(annotations, names_repair = "universal") %>%
-      select(pmid, text_part, text, type = infons.type, text_identifier = infons.identifier) %>%
-      unique() %>%
-      filter(type == filter_type) %>%
-      group_by(pmid, text, text_identifier) %>%
-      summarise(text_part = paste(unique(text_part), collapse = " | "),
-        source = paste(unique(type), collapse = " | "),
-        text_part_count = n(),
-        .groups = "keep") %>%
-      ungroup()
-  }
-  return(search_results)
-}
-
-
-# TODO: deprecate this function
-#' Determine the number of pages available for a PubTator query
-#'
-#' This function queries the PubTator API to determine the total number of pages of results
-#' available for a given query.
-#'
-#' @param query Character: The query string to be searched in PubTator.
-#' @param api_base_url Character: The base URL of the PubTator API.
-#'   Defaults to "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/".
-#' @param endpoint Character: The endpoint to be appended to the base URL for the API request.
-#'   Defaults to "search/".
-#' @param query_parameter Character: The parameter used in the query part of the URL.
-#'   Defaults to "text=".
-#'
-#' @return Numeric: The total number of pages available for the given query.
-#'
-#' @examples
-#' pages <- pubtator_pages_request(query = "BRCA1")
-#'
-#' @export
-pubtator_pages_request <- function(query,
-                                   api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
-                                   endpoint = "search/",
-                                   query_parameter = "?text=") {
-  url <- paste0(api_base_url, endpoint, query_parameter, query, "&page=", 1)
-  search_request <- fromJSON(URLencode(url), flatten = TRUE)
-
-  return(search_request$total_pages)
+  out <- tryCatch(
+    {
+      jsonlite::toJSON(x, auto_unbox = TRUE)
+    },
+    error = function(e) {
+      as.character(x)
+    }
+  )
+  return(out)
 }

@@ -47,8 +47,10 @@ replace_strings <- function(input_file, output_file, find_vector, replace_vector
   # Replace the strings
   new_text <- text
   for (i in seq_along(find_vector)) {
-    new_text <- str_replace_all(new_text, pattern = find_vector[i],
-        replacement = as.character(replace_vector[i]))
+    new_text <- str_replace_all(new_text,
+      pattern = find_vector[i],
+      replacement = as.character(replace_vector[i])
+    )
   }
 
   # Write the new text to a file
@@ -83,7 +85,6 @@ replace_strings <- function(input_file, output_file, find_vector, replace_vector
 #'
 #' @export
 check_file_age <- function(file_basename, folder, months) {
-
   # Construct the regex pattern for the files
   pattern <- paste0(file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
 
@@ -138,7 +139,6 @@ check_file_age <- function(file_basename, folder, months) {
 #'
 #' @export
 get_newest_file <- function(file_basename, folder) {
-
   # Construct the regex pattern for the files
   pattern <- paste0(file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
 
@@ -175,14 +175,14 @@ get_newest_file <- function(file_basename, folder) {
 #' the file will be saved with a .json.gz extension in gzipped format. Otherwise,
 #' it will be saved with a .json extension.
 #'
-#' @param api_url A character string representing the API endpoint URL from which 
+#' @param api_url A character string representing the API endpoint URL from which
 #'        the JSON response will be fetched.
-#' @param save_path A character string representing the base path (including filename 
-#'        without date) where the JSON response will be saved. The current date in 
+#' @param save_path A character string representing the base path (including filename
+#'        without date) where the JSON response will be saved. The current date in
 #'        ISO 8601 format will be appended to the filename before the extension.
-#' @param gzip A logical value indicating whether the JSON file should be gzipped. 
+#' @param gzip A logical value indicating whether the JSON file should be gzipped.
 #'        Defaults to TRUE.
-#' @return A character string representing the saved filename if successful, 
+#' @return A character string representing the saved filename if successful,
 #'         or an error message otherwise.
 #'
 #' @examples

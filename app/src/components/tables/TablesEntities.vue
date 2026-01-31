@@ -1,41 +1,23 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <b-container
-      v-else
-      fluid
-    >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
-          col
-          md="12"
-        >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <b-card
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
+          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
             <template #header>
-              <b-row>
-                <b-col>
+              <BRow>
+                <BCol>
                   <TableHeaderLabel
                     :label="headerLabel"
                     :subtitle="'Entities: ' + totalRows"
                     :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
                   />
-                </b-col>
-                <b-col>
-                  <h5
-                    v-if="showFilterControls"
-                    class="mb-1 text-right font-weight-bold"
-                  >
+                </BCol>
+                <BCol>
+                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                     <TableDownloadLinkCopyButtons
                       :downloading="downloading"
                       :remove-filters-title="removeFiltersButtonTitle"
@@ -45,40 +27,33 @@
                       @remove-filters="removeFilters"
                     />
                   </h5>
-                </b-col>
-              </b-row>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col
-                class="my-1"
-                sm="8"
-              >
+            <BRow>
+              <BCol class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
                   :debounce-time="500"
-                  @input="filtered"
+                  @update:model-value="filtered"
                 />
-              </b-col>
+              </BCol>
 
-              <b-col
-                class="my-1"
-                sm="4"
-              >
-                <b-container
-                  v-if="totalRows > perPage || showPaginationControls"
-                >
+              <BCol class="my-1" sm="4">
+                <BContainer v-if="totalRows > perPage || showPaginationControls">
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
-                </b-container>
-              </b-col>
-            </b-row>
+                </BContainer>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
@@ -87,19 +62,12 @@
               :fields="fields"
               :field-details="fields_details"
               :sort-by="sortBy"
-              :sort-desc="sortDesc"
               @update-sort="handleSortUpdate"
             >
               <!-- Custom filter fields slot -->
-              <template
-                v-if="showFilterControls"
-                v-slot:filter-controls
-              >
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                >
-                  <b-form-input
+              <template v-if="showFilterControls" #filter-controls>
+                <td v-for="field in fields" :key="field.key">
+                  <BFormInput
                     v-if="field.filterable"
                     v-model="filter[field.key].content"
                     :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
@@ -107,154 +75,127 @@
                     type="search"
                     autocomplete="off"
                     @click="removeSearch()"
-                    @update="filtered()"
+                    @update:model-value="filtered()"
                   />
 
-                  <b-form-select
-                    v-if="field.selectable"
+                  <BFormSelect
+                    v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
                     v-model="filter[field.key].content"
                     :options="field.selectOptions"
-                    type="search"
-                    @input="removeSearch()"
-                    @change="filtered()"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
                   >
-                    <template v-slot:first>
-                      <b-form-select-option value="null">
+                    <template #first>
+                      <BFormSelectOption :value="null">
                         .. {{ truncate(field.label, 20) }} ..
-                      </b-form-select-option>
+                      </BFormSelectOption>
                     </template>
-                  </b-form-select>
+                  </BFormSelect>
+                  <BSpinner
+                    v-else-if="
+                      field.selectable && (!field.selectOptions || field.selectOptions.length === 0)
+                    "
+                    small
+                    label="Loading..."
+                  />
 
-                  <label
-                    v-if="field.multi_selectable"
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
+                  <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
+                  <BFormSelect
+                    v-if="
+                      field.multi_selectable &&
+                      field.selectOptions &&
+                      field.selectOptions.length > 0
+                    "
+                    v-model="filter[field.key].content"
+                    :options="normalizeSelectOptions(field.selectOptions)"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
                   >
-                    <treeselect
-                      v-if="field.multi_selectable"
-                      :id="'select_' + field.key"
-                      v-model="filter[field.key].content"
-                      size="small"
-                      :multiple="true"
-                      :options="field.selectOptions"
-                      :normalizer="normalizer"
-                      :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                      @input="removeSearch();filtered();"
-                    />
-                  </label>
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        .. {{ truncate(field.label, 20) }} ..
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                  <BSpinner
+                    v-else-if="
+                      field.multi_selectable &&
+                      (!field.selectOptions || field.selectOptions.length === 0)
+                    "
+                    small
+                    label="Loading..."
+                  />
                 </td>
               </template>
               <!-- Custom filter fields slot -->
 
-              <template v-slot:cell-entity_id="{ row }">
-                <div>
-                  <b-link :href="'/Entities/' + row.entity_id">
-                    <b-badge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ row.entity_id }}
-                    </b-badge>
-                  </b-link>
-                </div>
+              <template #cell-entity_id="{ row }">
+                <EntityBadge
+                  :entity-id="row.entity_id"
+                  :link-to="'/Entities/' + row.entity_id"
+                  size="sm"
+                />
               </template>
 
-              <template v-slot:cell-symbol="{ row }">
-                <div class="font-italic">
-                  <b-link :href="'/Genes/' + row.hgnc_id">
-                    <b-badge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="row.hgnc_id"
-                    >
-                      {{ row.symbol }}
-                    </b-badge>
-                  </b-link>
-                </div>
+              <template #cell-symbol="{ row }">
+                <GeneBadge
+                  :symbol="row.symbol"
+                  :hgnc-id="row.hgnc_id"
+                  :link-to="'/Genes/' + row.hgnc_id"
+                  size="sm"
+                />
               </template>
 
-              <template v-slot:cell-disease_ontology_name="{ row }">
-                <div class="overflow-hidden text-truncate">
-                  <b-link
-                    :href="
-                      '/Ontology/' +
-                        row.disease_ontology_id_version.replace(/_.+/g, '')
-                    "
-                  >
-                    <b-badge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        row.disease_ontology_name +
-                          '; ' +
-                          row.disease_ontology_id_version
-                      "
-                    >
-                      {{ row.disease_ontology_name }}
-                    </b-badge>
-                  </b-link>
-                </div>
+              <template #cell-disease_ontology_name="{ row }">
+                <DiseaseBadge
+                  :name="row.disease_ontology_name"
+                  :ontology-id="row.disease_ontology_id_version"
+                  :link-to="'/Ontology/' + row.disease_ontology_id_version.replace(/_.+/g, '')"
+                  :max-length="35"
+                  size="sm"
+                />
               </template>
 
               <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
-              <template v-slot:cell-hpo_mode_of_inheritance_term_name="{ row }">
-                <div>
-                  <b-badge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center px-1 mx-1"
-                    size="1.3em"
-                    :title="
-                      row.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        row.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        row.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </b-badge>
-                </div>
+              <template #cell-hpo_mode_of_inheritance_term_name="{ row }">
+                <InheritanceBadge
+                  :full-name="row.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="row.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
               </template>
 
               <!-- Custom slot for the 'ndd_phenotype_word' column -->
-              <template v-slot:cell-ndd_phenotype_word="{ row }">
-                <b-avatar
-                  v-b-tooltip.hover.left
-                  size="1.4em"
-                  :icon="ndd_icon[row.ndd_phenotype_word]"
-                  :variant="ndd_icon_style[row.ndd_phenotype_word]"
-                  :title="ndd_icon_text[row.ndd_phenotype_word]"
-                />
+              <template #cell-ndd_phenotype_word="{ row }">
+                <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
+                  <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
+                </span>
               </template>
 
               <!-- Custom slot for the 'category' column -->
-              <template v-slot:cell-category="{ row }">
-                <b-avatar
-                  v-b-tooltip.hover.left
-                  size="1.4em"
-                  icon="stoplights"
-                  :variant="stoplights_style[row.category]"
-                  :title="row.category"
-                />
+              <template #cell-category="{ row }">
+                <span v-b-tooltip.hover.left :title="row.category">
+                  <CategoryIcon :category="row.category" size="sm" :show-title="false" />
+                </span>
               </template>
               <!-- Custom slot for the 'category' column -->
             </GenericTable>
             <!-- Main table element -->
-          </b-card>
-        </b-col>
-      </b-row>
-    </b-container>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
-<script>/**
+<script>
+/**
  * TablesEntities Component
  *
  * This component is responsible for displaying and managing a table of entities.
@@ -275,19 +216,18 @@
  * />
  */
 
-// import the Treeselect component
-import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+// Import Vue utilities
+import { ref, inject } from 'vue';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
-
-// Import the table mixins
-import tableMethodsMixin from '@/assets/js/mixins/tableMethodsMixin';
-import tableDataMixin from '@/assets/js/mixins/tableDataMixin';
+// Import composables
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  useTableMethods,
+} from '@/composables';
 
 // Import the Table components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -296,23 +236,40 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 
-// Import the utilities file
-import Utils from '@/assets/js/utils';
+// Import badge components
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
-// Import the event bus
-import EventBus from '@/assets/js/eventBus';
+// Import the Pinia store
+import { useUiStore } from '@/stores/ui';
+
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null; // Cache last API response for remounted components
 
 export default {
   name: 'TablesEntities',
-  // register the Treeselect component
   components: {
     // Components used within TablesEntities
-    Treeselect, TablePaginationControls, TableDownloadLinkCopyButtons, TableHeaderLabel, TableSearchInput, GenericTable,
+    TablePaginationControls,
+    TableDownloadLinkCopyButtons,
+    TableHeaderLabel,
+    TableSearchInput,
+    GenericTable,
+    CategoryIcon,
+    NddIcon,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
   },
-  mixins: [
-    // Mixins used within TablesEntities
-    toastMixin, urlParsingMixin, colorAndSymbolsMixin, textMixin, tableMethodsMixin, tableDataMixin,
-  ],
   props: {
     apiEndpoint: {
       type: String,
@@ -331,9 +288,81 @@ export default {
       default:
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
+    disableUrlSync: { type: Boolean, default: false },
+  },
+  setup(props) {
+    // Independent composables
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+
+    // Table state composable
+    const tableData = useTableData({
+      pageSizeInput: props.pageSizeInput,
+      sortInput: props.sortInput,
+      pageAfterInput: props.pageAfterInput,
+    });
+
+    // Component-specific filter
+    const filter = ref({
+      any: { content: null, join_char: null, operator: 'contains' },
+      entity_id: { content: null, join_char: null, operator: 'contains' },
+      symbol: { content: null, join_char: null, operator: 'contains' },
+      disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
+      disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
+      hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
+      hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
+      ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
+      category: { content: null, join_char: ',', operator: 'any' },
+      entities_count: { content: null, join_char: ',', operator: 'any' },
+    });
+
+    // Inject axios
+    const axios = inject('axios');
+
+    // Table methods composable
+    const tableMethods = useTableMethods(tableData, {
+      filter,
+      filterObjToStr,
+      apiEndpoint: props.apiEndpoint,
+      axios,
+    });
+
+    // Destructure to exclude functions we override in methods
+
+    const {
+      filtered: _filtered,
+      handlePageChange: _handlePageChange,
+      handlePerPageChange: _handlePerPageChange,
+      handleSortByOrDescChange: _handleSortByOrDescChange,
+      removeFilters: _removeFilters,
+      removeSearch: _removeSearch,
+      ...restTableMethods
+    } = tableMethods;
+
+    // Return all needed properties
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+      ...text,
+      ...tableData,
+      ...restTableMethods,
+      filter,
+      axios,
+    };
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
+      // Pagination state not in useTableData
+      totalPages: 0,
       // ... data properties with a brief description for each
       fields: [
         {
@@ -341,37 +370,37 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'asc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
           label: 'Symbol',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'category',
           label: 'Category',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'details',
@@ -379,123 +408,301 @@ export default {
         },
       ],
       fields_details: [
-        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-left' },
+        { key: 'hgnc_id', label: 'HGNC ID', class: 'text-start' },
         {
           key: 'disease_ontology_id_version',
           label: 'Ontology ID version',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease ontology name',
-          class: 'text-left',
+          class: 'text-start',
         },
-        { key: 'entry_date', label: 'Entry date', class: 'text-left' },
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
+        { key: 'entry_date', label: 'Entry date', class: 'text-start' },
+        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
       ],
       infoModal: {
         id: 'info-modal',
         title: '',
         content: '',
       },
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-        entities_count: { content: null, join_char: ',', operator: 'any' },
-      },
     };
   },
   watch: {
-    // ... watchers with descriptions
-    filter(value) {
-      this.filtered();
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
+    filter: {
+      handler() {
+        if (this.isInitializing) return;
+        this.filtered();
+      },
+      deep: true,
     },
-    sortBy(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
-    },
-    sortDesc(newVal, oldVal) {
-      if (newVal !== oldVal) {
-        this.handleSortByOrDescChange();
-      }
+    // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
+    // Only trigger if sort actually changed to prevent resetting currentItemID during pagination
+    sortBy: {
+      handler(newVal) {
+        if (this.isInitializing) return;
+        // Build new sort string from sortBy array
+        const newSortColumn = newVal && newVal.length > 0 ? newVal[0].key : 'entity_id';
+        const newSortOrder = newVal && newVal.length > 0 ? newVal[0].order : 'asc';
+        const newSortString = (newSortOrder === 'desc' ? '-' : '+') + newSortColumn;
+        // Only trigger if sort actually changed - prevents resetting currentItemID during pagination
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
+      },
+      deep: true,
     },
   },
   created() {
-  // Lifecycle hooks
+    // Lifecycle hooks
   },
   mounted() {
-  // Lifecycle hooks
-    // transform input sort string to object and assign
-    // fixes double loading and update bugs
-    // TODO: find a better way to do this
-    if (this.sortInput !== '+entity_id') {
+    // Transform input sort string to Bootstrap-Vue-Next array format
+    // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
+    if (this.sortInput) {
       const sort_object = this.sortStringToVariables(this.sortInput);
       this.sortBy = sort_object.sortBy;
-      this.sortDesc = sort_object.sortDesc;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
 
-    // transform input filter string to object and assign
-    // fixes double loading and update bugs
-    // by checking if the filter is not null
-    if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
-    } else {
-      this.loadData();
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
     }
+
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
 
     setTimeout(() => {
       this.loading = false;
     }, 500);
   },
   methods: {
-    async loadData() {
+    // Update browser URL with current table state
+    // Uses history.replaceState instead of router.replace to prevent component remount
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+      // When embedded (e.g. GeneView), skip URL updates to keep URL clean
+      if (this.disableUrlSync) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      searchParams.set('page_size', String(this.perPage));
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      // This prevents component remount which was causing duplicate API calls
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
+    // Override filtered to call loadData (URL is updated AFTER API success to prevent remount)
+    filtered() {
+      const filter_string_loc = this.filterObjToStr(this.filter);
+
+      if (filter_string_loc !== this.filter_string) {
+        this.filter_string = filter_string_loc;
+      }
+
+      // Note: updateBrowserUrl() is now called in doLoadData() AFTER API success
+      // This prevents component remount during the API call
+      this.loadData();
+    },
+    // Override handlePageChange to properly update currentItemID and call loadData
+    handlePageChange(value) {
+      if (value === 1) {
+        this.currentItemID = 0;
+      } else if (value === this.totalPages) {
+        this.currentItemID = Number(this.lastItemID) || 0;
+      } else if (value > this.currentPage) {
+        this.currentItemID = Number(this.nextItemID) || 0;
+      } else if (value < this.currentPage) {
+        this.currentItemID = Number(this.prevItemID) || 0;
+      }
+      this.filtered();
+    },
+    // Override handlePerPageChange to reset pagination and reload
+    handlePerPageChange(newPerPage) {
+      this.perPage = parseInt(newPerPage, 10);
+      this.currentItemID = 0;
+      this.filtered();
+    },
+    // Override handleSortByOrDescChange to call the component's filtered method
+    handleSortByOrDescChange() {
+      this.currentItemID = 0;
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : '';
+      const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
+      const isDesc = sortOrder === 'desc';
+      // Build sort string for API: +column for asc, -column for desc
+      this.sort = (isDesc ? '-' : '+') + sortColumn;
+      this.filtered();
+    },
+    // Override removeFilters to use component's filter and filtered method
+    removeFilters() {
+      Object.keys(this.filter).forEach((key) => {
+        if (
+          this.filter[key] &&
+          typeof this.filter[key] === 'object' &&
+          'content' in this.filter[key]
+        ) {
+          this.filter[key].content = null;
+        }
+      });
+      this.filtered();
+    },
+    // Override removeSearch to use component's filter and filtered method
+    removeSearch() {
+      if (this.filter.any) {
+        this.filter.any.content = null;
+      }
+      this.filtered();
+    },
+    loadData() {
+      // Debounce to prevent duplicate calls from multiple triggers
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
+    async doLoadData() {
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
+        this.currentItemID
+      }&page_size=${this.perPage}`;
+
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
-        this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/entity?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
 
-        this.totalRows = response.data.meta[0].totalItems;
-        // this solves an update issue in b-pagination component
-        // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
-        });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
-
-        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
 
         this.isBusy = false;
       } catch (e) {
+        moduleApiCallInProgress = false;
         this.makeToast(e, 'Error', 'danger');
+        this.isBusy = false;
       }
+    },
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+      this.totalRows = data.meta[0].totalItems;
+      // this solves an update issue in b-pagination component
+      // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
+      this.$nextTick(() => {
+        this.currentPage = data.meta[0].currentPage;
+      });
+      this.totalPages = data.meta[0].totalPages;
+      this.prevItemID = Number(data.meta[0].prevItemID) || 0;
+      this.currentItemID = Number(data.meta[0].currentItemID) || 0;
+      this.nextItemID = Number(data.meta[0].nextItemID) || 0;
+      this.lastItemID = Number(data.meta[0].lastItemID) || 0;
+      this.executionTime = data.meta[0].executionTime;
+      this.fields = data.meta[0].fspec;
+
+      // Apply short label overrides for mobile-friendly stacked table headers
+      const shortLabels = {
+        entity_id: 'Entity',
+        disease_ontology_name: 'Disease',
+        hpo_mode_of_inheritance_term_name: 'Inheritance',
+        ndd_phenotype_word: 'NDD',
+      };
+      this.fields = this.fields.map((field) => {
+        if (shortLabels[field.key]) {
+          return { ...field, label: shortLabels[field.key] };
+        }
+        return field;
+      });
+
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
+    },
+    /**
+     * Normalize select options for BFormSelect
+     * Converts simple string arrays to { value, text } format
+     * @param {Array} options - Array of option values
+     * @returns {Array} - Array of { value, text } objects
+     */
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) {
+        return [];
+      }
+      return options.map((opt) => {
+        if (typeof opt === 'string') {
+          return { value: opt, text: opt };
+        }
+        if (typeof opt === 'object' && opt !== null) {
+          return {
+            value: opt.value || opt.id || opt,
+            text: opt.text || opt.label || opt.name || opt,
+          };
+        }
+        return { value: opt, text: String(opt) };
+      });
     },
   },
 };
@@ -522,9 +729,9 @@ export default {
   white-space: nowrap;
 }
 :deep(.vue-treeselect__placeholder) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 :deep(.vue-treeselect__control) {
-  color: #6C757D !important;
+  color: #6c757d !important;
 }
 </style>

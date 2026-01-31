@@ -1,332 +1,788 @@
 <!-- views/curate/ApproveUser.vue -->
 <template>
   <div class="container-fluid">
-    <b-container fluid>
-      <b-row class="justify-content-md-center py-2">
-        <b-col
-          col
-          md="12"
-        >
-          <!-- User Interface controls -->
-          <b-card
+    <BContainer fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol md="12">
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
+            header-bg-variant="dark"
+            header-text-variant="light"
           >
             <template #header>
-              <h6 class="mb-1 text-left font-weight-bold">
-                Approve new user applications
-              </h6>
+              <BRow class="align-items-center">
+                <BCol>
+                  <h5 class="mb-0 text-start fw-bold">
+                    Approve User Applications
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} pending </BBadge>
+                  </h5>
+                </BCol>
+                <BCol class="text-end">
+                  <BButton
+                    v-b-tooltip.hover.bottom
+                    variant="outline-light"
+                    size="sm"
+                    title="Refresh data"
+                    aria-label="Refresh table data"
+                    @click="loadUserTableData()"
+                  >
+                    <i class="bi bi-arrow-clockwise" aria-hidden="true" />
+                  </BButton>
+                </BCol>
+              </BRow>
             </template>
-            <!-- User Interface controls -->
 
-            <!-- Pagination Controls -->
-            <b-row class="my-2">
-              <b-col>
-                <b-pagination
+            <!-- Search and pagination row -->
+            <BRow class="px-3 py-2 align-items-center">
+              <BCol cols="12" md="5" class="mb-2 mb-md-0">
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText>
+                      <i class="bi bi-search" />
+                    </BInputGroupText>
+                  </template>
+                  <BFormInput
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Search by name, email..."
+                    debounce="300"
+                  />
+                </BInputGroup>
+              </BCol>
+
+              <BCol cols="12" md="7" class="d-flex justify-content-end align-items-center gap-2">
+                <BInputGroup size="sm" class="w-auto">
+                  <template #prepend>
+                    <BInputGroupText>Per page</BInputGroupText>
+                  </template>
+                  <BFormSelect
+                    id="per-page-select"
+                    v-model="perPage"
+                    :options="pageOptions"
+                    size="sm"
+                    style="width: 70px"
+                  />
+                </BInputGroup>
+
+                <BPagination
                   v-model="currentPage"
-                  :total-rows="totalRows_UsersTable"
+                  :total-rows="totalRows"
                   :per-page="perPage"
-                  align="fill"
                   size="sm"
+                  class="my-0"
+                  limit="3"
                 />
-              </b-col>
-              <b-col class="text-right">
-                <b-form-select
-                  v-model="perPage"
-                  :options="pageOptions"
+              </BCol>
+            </BRow>
+
+            <!-- Filter dropdowns -->
+            <BRow class="px-3 pb-2 align-items-center">
+              <BCol cols="6" md="3" class="mb-2 mb-md-0">
+                <BFormSelect
+                  v-model="roleFilter"
                   size="sm"
+                  :options="roleFilterOptions"
+                  aria-label="Filter by role"
                 />
-              </b-col>
-            </b-row>
-            <!-- Pagination Controls -->
+              </BCol>
+              <BCol cols="6" md="9" class="d-flex align-items-center flex-wrap gap-1">
+                <!-- Active filter tags -->
+                <BBadge
+                  v-if="filter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="filter = ''"
+                >
+                  Search: {{ filter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+                <BBadge
+                  v-if="roleFilter"
+                  variant="secondary"
+                  class="d-flex align-items-center gap-1"
+                  style="cursor: pointer"
+                  @click="roleFilter = null"
+                >
+                  Role: {{ roleFilter }}
+                  <i class="bi bi-x" />
+                </BBadge>
+              </BCol>
+            </BRow>
 
             <!-- Main table -->
-            <b-spinner
-              v-if="loadingUsersApprove"
-              label="Loading..."
-              class="float-center m-5"
-            />
-            <b-table
-              v-else
-              :items="items_UsersTable"
-              :fields="fields_UsersTable"
-              :per-page="perPage"
-              :current-page="currentPage"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              empty-text="Currently no open user applications."
-              @filtered="onFiltered"
-            >
-              <template #cell(user_role)="row">
-                <b-form-select
-                  v-model="row.item.user_role"
-                  class="form-control"
-                  size="sm"
-                  :options="role_options"
-                />
-              </template>
+            <div class="position-relative">
+              <BSpinner
+                v-if="loadingUsersApprove"
+                class="position-absolute top-50 start-50 translate-middle"
+                variant="primary"
+              />
+              <div
+                v-if="!loadingUsersApprove && filteredItems.length === 0"
+                class="text-center py-5"
+              >
+                <i class="bi bi-person-check fs-1 text-success" />
+                <p class="text-muted mt-2">No pending user applications</p>
+              </div>
+              <BTable
+                v-else-if="!loadingUsersApprove"
+                :items="filteredItems"
+                :fields="fields"
+                :per-page="perPage"
+                :current-page="currentPage"
+                :class="{ 'opacity-50': loadingUsersApprove }"
+                stacked="md"
+                head-variant="light"
+                show-empty
+                small
+                striped
+                hover
+                sort-icon-left
+                empty-text="No pending applications found"
+              >
+                <template #cell(user_name)="data">
+                  <div class="d-flex align-items-center gap-2">
+                    <span
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
+                      style="width: 28px; height: 28px; font-size: 0.8rem"
+                    >
+                      <i class="bi bi-person-fill" />
+                    </span>
+                    <div>
+                      <strong>{{ data.item.user_name }}</strong>
+                      <div class="text-muted small">
+                        {{ data.item.first_name }} {{ data.item.family_name }}
+                      </div>
+                    </div>
+                  </div>
+                </template>
 
-              <template #cell(approved)="row">
-                <b-button
-                  v-b-tooltip.hover.top
-                  size="sm"
-                  class="mr-1 btn-xs"
-                  title="Manage user approval"
-                  :variant="user_approval_style[row.item.approved]"
-                  @click="infoApproveUser(row.item, row.index, $event.target)"
-                >
-                  <b-icon
-                    icon="hand-thumbs-up"
-                    font-scale="0.9"
-                  />
-                  <b-icon
-                    icon="hand-thumbs-down"
-                    font-scale="0.9"
-                  />
-                </b-button>
-              </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
+                <template #cell(email)="data">
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-envelope me-1 text-muted" />
+                    <span class="small">{{ data.item.email }}</span>
+                  </div>
+                </template>
 
-      <!-- Manage user approval modal -->
-      <b-modal
-        :id="approveUserModal.id"
+                <template #cell(orcid)="data">
+                  <a
+                    v-if="data.item.orcid"
+                    :href="'https://orcid.org/' + data.item.orcid"
+                    target="_blank"
+                    class="text-decoration-none"
+                  >
+                    <i class="bi bi-link-45deg me-1" />
+                    {{ data.item.orcid }}
+                  </a>
+                  <span v-else class="text-muted">—</span>
+                </template>
+
+                <template #cell(user_role)="data">
+                  <BBadge
+                    :variant="getRoleBadgeVariant(data.item.user_role)"
+                    class="d-inline-flex align-items-center gap-1"
+                  >
+                    <i :class="getRoleIcon(data.item.user_role)" />
+                    {{ data.item.user_role }}
+                  </BBadge>
+                </template>
+
+                <template #cell(created_at)="data">
+                  <div class="d-flex align-items-center gap-1">
+                    <span
+                      v-b-tooltip.hover.top
+                      :title="data.item.created_at"
+                      class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
+                      style="width: 24px; height: 24px; font-size: 0.75rem"
+                    >
+                      <i class="bi bi-calendar3" />
+                    </span>
+                    <span class="small text-muted">
+                      {{ formatDate(data.item.created_at) }}
+                    </span>
+                  </div>
+                </template>
+
+                <template #cell(comment)="data">
+                  <div
+                    v-if="data.item.comment"
+                    :id="'comment-user-' + data.item.user_id"
+                    class="text-truncate-multiline small text-popover-trigger"
+                    style="max-width: 150px"
+                  >
+                    {{ data.item.comment }}
+                  </div>
+                  <BPopover
+                    v-if="data.item.comment"
+                    :target="'comment-user-' + data.item.user_id"
+                    triggers="hover focus"
+                    placement="top"
+                    custom-class="wide-popover"
+                  >
+                    <template #title>
+                      <i class="bi bi-chat-left-text me-1" />
+                      Application Comment
+                    </template>
+                    <div class="popover-text-content">
+                      {{ data.item.comment }}
+                    </div>
+                  </BPopover>
+                  <span v-else class="text-muted small">—</span>
+                </template>
+
+                <template #cell(actions)="row">
+                  <div class="d-flex gap-1">
+                    <BButton
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-xs"
+                      variant="success"
+                      title="Approve user"
+                      :aria-label="`Approve user ${row.item.user_name}`"
+                      @click="approveUser(row.item)"
+                    >
+                      <i class="bi bi-check-lg" aria-hidden="true" />
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-xs"
+                      variant="outline-secondary"
+                      title="Edit & review"
+                      :aria-label="`Review user ${row.item.user_name}`"
+                      @click="reviewUser(row.item)"
+                    >
+                      <i class="bi bi-pencil" aria-hidden="true" />
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover.top
+                      size="sm"
+                      class="btn-xs"
+                      variant="outline-danger"
+                      title="Reject application"
+                      :aria-label="`Reject user ${row.item.user_name}`"
+                      @click="rejectUser(row.item)"
+                    >
+                      <i class="bi bi-x-lg" aria-hidden="true" />
+                    </BButton>
+                  </div>
+                </template>
+              </BTable>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Review/Edit User Modal -->
+      <BModal
+        v-model="showReviewModal"
         size="lg"
         centered
-        ok-title="Submit"
+        ok-title="Save & Approve"
+        ok-variant="success"
+        cancel-title="Cancel"
+        cancel-variant="outline-secondary"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        @hide="resetUserApproveModal"
-        @ok="handleUserApproveOk"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        header-close-label="Close"
+        @ok="handleApproveWithChanges"
       >
-        <template #modal-title>
-          <h4>
-            Manage application from:
-            <b-badge variant="primary">
-              {{ approveUserModal.title }}
-            </b-badge>
-          </h4>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-person-gear me-2 text-primary" />
+            <span class="fw-semibold">Review Application</span>
+          </div>
         </template>
-        What should happen to this user ?
 
-        <div class="custom-control custom-switch">
-          <input
-            id="approveUserSwitch"
-            v-model="user_approved"
-            type="checkbox"
-            button-variant="info"
-            class="custom-control-input"
-          >
-          <label
-            class="custom-control-label"
-            for="approveUserSwitch"
-          >
-            <b>{{ switch_user_approval_text[user_approved] }}</b>
-          </label>
+        <template #footer="{ ok, cancel }">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <BButton variant="outline-danger" size="sm" @click="rejectFromModal">
+              <i class="bi bi-x-lg me-1" />
+              Reject
+            </BButton>
+            <div class="d-flex gap-2">
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="success" @click="ok()">
+                <i class="bi bi-check-lg me-1" />
+                Save & Approve
+              </BButton>
+            </div>
+          </div>
+        </template>
+
+        <!-- User Info Header -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <span
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+              style="width: 48px; height: 48px; font-size: 1.2rem"
+            >
+              <i class="bi bi-person-fill" />
+            </span>
+            <div>
+              <h5 class="mb-0">{{ selectedUser.first_name }} {{ selectedUser.family_name }}</h5>
+              <div class="text-muted small">
+                @{{ selectedUser.user_name }} · Applied {{ formatDate(selectedUser.created_at) }}
+              </div>
+            </div>
+          </div>
         </div>
-      </b-modal>
-      <!-- Manage user approval modal -->
-    </b-container>
+
+        <!-- Application Details Section -->
+        <div class="mb-4">
+          <h6 class="text-muted border-bottom pb-2 mb-3">
+            <i class="bi bi-info-circle me-2" />
+            Application Details
+          </h6>
+          <BRow>
+            <BCol md="6">
+              <div class="mb-3">
+                <label class="form-label text-muted small">Email</label>
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-envelope me-2 text-muted" />
+                  <span>{{ selectedUser.email }}</span>
+                </div>
+              </div>
+            </BCol>
+            <BCol md="6">
+              <div class="mb-3">
+                <label class="form-label text-muted small">ORCID</label>
+                <div class="d-flex align-items-center">
+                  <i class="bi bi-link-45deg me-2 text-muted" />
+                  <a
+                    v-if="selectedUser.orcid"
+                    :href="'https://orcid.org/' + selectedUser.orcid"
+                    target="_blank"
+                  >
+                    {{ selectedUser.orcid }}
+                  </a>
+                  <span v-else class="text-muted">Not provided</span>
+                </div>
+              </div>
+            </BCol>
+          </BRow>
+          <BRow>
+            <BCol md="6">
+              <div class="mb-3">
+                <label class="form-label text-muted small">Abbreviation</label>
+                <div>{{ selectedUser.abbreviation || '—' }}</div>
+              </div>
+            </BCol>
+            <BCol md="6">
+              <div class="mb-3">
+                <label class="form-label text-muted small">Terms Agreed</label>
+                <BBadge :variant="selectedUser.terms_agreed ? 'success' : 'danger'">
+                  <i
+                    :class="selectedUser.terms_agreed ? 'bi bi-check-circle' : 'bi bi-x-circle'"
+                    class="me-1"
+                  />
+                  {{ selectedUser.terms_agreed ? 'Yes' : 'No' }}
+                </BBadge>
+              </div>
+            </BCol>
+          </BRow>
+          <div v-if="selectedUser.comment">
+            <label class="form-label text-muted small">Application Comment</label>
+            <div class="bg-warning-subtle rounded p-2 small">
+              {{ selectedUser.comment }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Role Assignment Section -->
+        <div class="mb-3">
+          <h6 class="text-muted border-bottom pb-2 mb-3">
+            <i class="bi bi-shield-check me-2" />
+            Role Assignment
+          </h6>
+          <BFormGroup label="Assign Role" label-for="role-select">
+            <BFormSelect
+              id="role-select"
+              v-model="selectedUser.user_role"
+              :options="role_options"
+              size="sm"
+            >
+              <template #first>
+                <BFormSelectOption :value="null"> Select a role... </BFormSelectOption>
+              </template>
+            </BFormSelect>
+            <small class="text-muted">
+              Choose the appropriate role for this user based on their application.
+            </small>
+          </BFormGroup>
+        </div>
+      </BModal>
+
+      <!-- Quick Approve Confirmation Modal -->
+      <BModal
+        v-model="showApproveModal"
+        size="md"
+        centered
+        ok-title="Approve"
+        ok-variant="success"
+        cancel-title="Cancel"
+        cancel-variant="outline-secondary"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        header-close-label="Close"
+        @ok="confirmApprove"
+      >
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill me-2 text-success" />
+            <span class="fw-semibold">Approve User</span>
+          </div>
+        </template>
+
+        <div class="text-center py-3">
+          <span
+            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success mb-3"
+            style="width: 64px; height: 64px; font-size: 1.5rem"
+          >
+            <i class="bi bi-person-check" />
+          </span>
+          <p class="mb-2">
+            Approve user <strong>{{ selectedUser.user_name }}</strong
+            >?
+          </p>
+          <p class="text-muted small">
+            {{ selectedUser.first_name }} {{ selectedUser.family_name }} will be granted access with
+            <BBadge :variant="getRoleBadgeVariant(selectedUser.user_role)">
+              {{ selectedUser.user_role }}
+            </BBadge>
+            role.
+          </p>
+        </div>
+      </BModal>
+
+      <!-- Reject Confirmation Modal -->
+      <BModal
+        v-model="showRejectModal"
+        size="md"
+        centered
+        ok-title="Reject Application"
+        ok-variant="danger"
+        cancel-title="Cancel"
+        cancel-variant="outline-secondary"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        header-close-label="Close"
+        @ok="confirmReject"
+      >
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-2 text-danger" />
+            <span class="fw-semibold">Reject Application</span>
+          </div>
+        </template>
+
+        <div class="text-center py-3">
+          <span
+            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
+            style="width: 64px; height: 64px; font-size: 1.5rem"
+          >
+            <i class="bi bi-person-x" />
+          </span>
+          <p class="mb-2">
+            Reject application from <strong>{{ selectedUser.user_name }}</strong
+            >?
+          </p>
+          <p class="text-muted small">
+            This will delete the user application. This action cannot be undone.
+          </p>
+        </div>
+      </BModal>
+
+      <!-- ARIA live region for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+    </BContainer>
   </div>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-
-// Import the event bus
-import EventBus from '@/assets/js/eventBus';
+import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
+import { useUiStore } from '@/stores/ui';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 
 export default {
-  name: 'ApproveStatus',
-  mixins: [toastMixin, colorAndSymbolsMixin],
+  name: 'ApproveUser',
+  components: {
+    AriaLiveRegion,
+  },
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
+    };
+  },
   data() {
     return {
       role_options: [],
-      user_options: [],
-      switch_user_approval_text: {
-        true: 'Approve user',
-        false: 'Delete application',
-      },
       items_UsersTable: [],
-      fields_UsersTable: [
+      fields: [
         {
-          key: 'user_id', label: 'User Id', sortable: true, class: 'text-left',
+          key: 'user_name',
+          label: 'User',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'user_name', label: 'User Name', sortable: true, class: 'text-left',
+          key: 'email',
+          label: 'Email',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'email', label: 'Email', sortable: true, class: 'text-left',
+          key: 'orcid',
+          label: 'ORCID',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'orcid', label: 'Orcid', sortable: true, class: 'text-left',
+          key: 'user_role',
+          label: 'Requested Role',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'abbreviation', label: 'Abbreviation', sortable: true, class: 'text-left',
+          key: 'created_at',
+          label: 'Applied',
+          sortable: true,
+          class: 'text-start',
         },
         {
-          key: 'first_name', label: 'First Name', sortable: true, class: 'text-left',
+          key: 'comment',
+          label: 'Comment',
+          sortable: false,
+          class: 'text-start',
         },
         {
-          key: 'family_name', label: 'Family Name', sortable: true, class: 'text-left',
-        },
-        {
-          key: 'comment', label: 'Comment', sortable: true, class: 'text-left',
-        },
-        {
-          key: 'terms_agreed', label: 'Terms Agreed', sortable: true, class: 'text-left',
-        },
-        {
-          key: 'created_at', label: 'Created At', sortable: true, class: 'text-left',
-        },
-        {
-          key: 'user_role', label: 'User Role', sortable: false, class: 'text-left',
-        },
-        {
-          key: 'approved', label: 'Approved', sortable: false, class: 'text-left',
+          key: 'actions',
+          label: 'Actions',
+          class: 'text-center',
         },
       ],
-      totalRows_UsersTable: 0,
+      totalRows: 0,
       loadingUsersApprove: true,
-      approveUserModal: {
-        id: 'approve-usermodal',
-        title: '',
-        content: [],
-      },
-      user_approved: false,
+      selectedUser: {},
+      showReviewModal: false,
+      showApproveModal: false,
+      showRejectModal: false,
       currentPage: 1,
       perPage: 10,
       pageOptions: [
         { value: 5, text: '5' },
         { value: 10, text: '10' },
-        { value: 20, text: '20' },
+        { value: 25, text: '25' },
         { value: 50, text: '50' },
       ],
+      filter: '',
+      roleFilter: null,
     };
+  },
+  computed: {
+    roleFilterOptions() {
+      const roles = [...new Set(this.items_UsersTable.map((item) => item.user_role))].filter(
+        Boolean
+      );
+      return [
+        { value: null, text: 'All Roles' },
+        ...roles.map((role) => ({ value: role, text: role })),
+      ];
+    },
+    filteredItems() {
+      let items = this.items_UsersTable;
+
+      // Filter by search text
+      if (this.filter) {
+        const searchTerm = this.filter.toLowerCase();
+        items = items.filter(
+          (item) =>
+            (item.user_name && item.user_name.toLowerCase().includes(searchTerm)) ||
+            (item.email && item.email.toLowerCase().includes(searchTerm)) ||
+            (item.first_name && item.first_name.toLowerCase().includes(searchTerm)) ||
+            (item.family_name && item.family_name.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      // Filter by role
+      if (this.roleFilter) {
+        items = items.filter((item) => item.user_role === this.roleFilter);
+      }
+
+      return items;
+    },
+  },
+  watch: {
+    filteredItems() {
+      this.totalRows = this.filteredItems.length;
+      this.currentPage = 1;
+    },
   },
   mounted() {
     this.loadRoleList();
-    this.loadUserList();
     this.loadUserTableData();
   },
   methods: {
     async loadUserTableData() {
       this.loadingUsersApprove = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/table`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.items_UsersTable = response.data;
-        this.totalRows_UsersTable = response.data.length;
+        const data = response.data;
+        let users = [];
+        if (Array.isArray(data)) {
+          users = data;
+        } else if (data?.data && Array.isArray(data.data)) {
+          users = data.data;
+        }
+        // Filter to show only unapproved (pending) users
+        this.items_UsersTable = users.filter((user) => !user.approved || user.approved === 0);
+        this.totalRows = this.items_UsersTable.length;
 
-        EventBus.$emit('update-scrollbar'); // Emit event to update scrollbar
+        const uiStore = useUiStore();
+        uiStore.requestScrollbarUpdate();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.items_UsersTable = [];
+        this.totalRows = 0;
+      } finally {
+        this.loadingUsersApprove = false;
       }
-
-      this.loadingUsersApprove = false;
     },
     async loadRoleList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/role_list`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        this.role_options = response.data.map((item) => ({ value: item.role, text: item.role }));
+        const data = response.data;
+        this.role_options = Array.isArray(data)
+          ? data.map((item) => ({ value: item.role, text: item.role }))
+          : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    async loadUserList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/list?roles=Curator,Reviewer`;
-      try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        this.user_options = response.data.map((item) => ({
-          value: item.user_id,
-          text: item.user_name,
-          role: item.user_role,
-        }));
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
+    formatDate(dateString) {
+      if (!dateString) return '—';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
     },
-    infoApproveUser(item, index, button) {
-      this.approveUserModal.title = `${item.user_name}`;
-      this.approve_user = [];
-      this.approve_user.push(item);
-      this.$root.$emit('bv::show::modal', this.approveUserModal.id, button);
-    },
-    resetUserApproveModal() {
-      this.approveUserModal = {
-        id: 'approve-usermodal',
-        title: '',
-        content: [],
+    getRoleBadgeVariant(role) {
+      const variants = {
+        Administrator: 'danger',
+        Curator: 'primary',
+        Reviewer: 'info',
+        Viewer: 'secondary',
       };
-      this.approve_user = [];
-      this.user_approved = false;
+      return variants[role] || 'secondary';
     },
-    async handleUserApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/approval?user_id=${this.approve_user[0].user_id}&status_approval=${this.user_approved}`;
+    getRoleIcon(role) {
+      const icons = {
+        Administrator: 'bi bi-shield-fill-check',
+        Curator: 'bi bi-pencil-fill',
+        Reviewer: 'bi bi-eye-fill',
+        Viewer: 'bi bi-person-fill',
+      };
+      return icons[role] || 'bi bi-person-fill';
+    },
+    approveUser(user) {
+      this.selectedUser = { ...user };
+      this.showApproveModal = true;
+    },
+    reviewUser(user) {
+      this.selectedUser = { ...user };
+      this.showReviewModal = true;
+    },
+    rejectUser(user) {
+      this.selectedUser = { ...user };
+      this.showRejectModal = true;
+    },
+    rejectFromModal() {
+      this.showReviewModal = false;
+      this.$nextTick(() => {
+        this.showRejectModal = true;
+      });
+    },
+    async confirmApprove() {
+      await this.handleUserApproval(this.selectedUser.user_id, true);
+      this.showApproveModal = false;
+    },
+    async handleApproveWithChanges() {
+      // First update the role if changed
+      if (this.selectedUser.user_role) {
+        await this.handleUserChangeRole(this.selectedUser.user_id, this.selectedUser.user_role);
+      }
+      // Then approve
+      await this.handleUserApproval(this.selectedUser.user_id, true);
+      this.showReviewModal = false;
+    },
+    async confirmReject() {
+      await this.handleUserApproval(this.selectedUser.user_id, false);
+      this.showRejectModal = false;
+    },
+    async handleUserApproval(userId, approved) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${userId}&status_approval=${approved}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
-        this.makeToast('User approval updated successfully.', 'Success', 'success');
+        const message = approved ? 'User approved successfully.' : 'User application rejected.';
+        this.makeToast(message, 'Success', approved ? 'success' : 'info');
+        this.announce(message);
+        this.loadUserTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Error approving user', 'assertive');
       }
-      this.resetUserApproveModal();
-      this.loadUserTableData();
     },
-    async handleUserChangeRole(user_id, user_role) {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/user/change_role?user_id=${user_id}&role_assigned=${user_role}`;
+    async handleUserChangeRole(userId, userRole) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/change_role?user_id=${userId}&role_assigned=${userRole}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
-        this.makeToast('User role updated successfully.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
-    },
-    onFiltered(filteredItems) {
-      this.totalRows_UsersTable = filteredItems.length;
     },
   },
 };
@@ -341,59 +797,51 @@ export default {
   border-radius: 0.2rem;
 }
 
-.username-select {
+/* Multi-line text truncation with ellipsis */
+.text-truncate-multiline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* Cursor style for popover triggers */
+.text-popover-trigger {
+  cursor: help;
+  border-bottom: 1px dotted #6c757d;
+}
+
+.text-popover-trigger:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+  border-radius: 2px;
+}
+</style>
+
+<!-- Non-scoped styles for popovers (rendered outside component DOM) -->
+<style>
+/* Wide popover for comment text */
+.wide-popover {
+  max-width: 400px !important;
+}
+
+.wide-popover .popover-header {
+  font-size: 0.85rem;
+  font-weight: 600;
   background-color: #f8f9fa;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  border-bottom: 1px solid #e9ecef;
 }
 
-.username-select:focus {
-  border-color: #80bdff;
-  outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+.wide-popover .popover-body {
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.table-header h6 {
-  margin-bottom: 0;
-}
-
-.table-header .actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.table-search-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-}
-
-.table-search-pagination .search-input {
-  flex: 1;
-  margin-right: 1rem;
-}
-
-.table-search-pagination .pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.table-search-pagination .pagination-controls .b-pagination,
-.table-search-pagination .pagination-controls .b-form-select {
-  margin-bottom: 0;
-}
-
-.text-left {
-  text-align: left;
+.popover-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

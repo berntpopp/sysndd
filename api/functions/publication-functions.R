@@ -3,7 +3,48 @@
 
 # load source files if not already loaded
 if (!exists("info_from_genereviews_pmid", mode = "function")) {
-  source("functions/genereviews-functions.R", local = TRUE)
+  if (file.exists("functions/genereviews-functions.R")) {
+    source("functions/genereviews-functions.R", local = TRUE)
+  }
+}
+
+# Load database helper functions for repository layer access (if not already loaded)
+if (!exists("db_execute_query", mode = "function")) {
+  if (file.exists("functions/db-helpers.R")) {
+    source("functions/db-helpers.R", local = TRUE)
+  }
+}
+
+#' Helper function to extract count from get_pubmed_ids result
+#' Handles both old (list) and new (S4) API styles
+#'
+#' @param pubmed_result Result from get_pubmed_ids()
+#'
+#' @return The count value
+#' @noRd
+extract_pubmed_count <- function(pubmed_result) {
+  # Try S4 slot access first (newer easyPubMed versions)
+  tryCatch(
+    {
+      if (isS4(pubmed_result)) {
+        return(pubmed_result@count)
+      } else {
+        # Fall back to list access (older versions)
+        return(pubmed_result$Count)
+      }
+    },
+    error = function(e) {
+      # If both fail, try alternative approaches
+      tryCatch(
+        {
+          return(pubmed_result$Count)
+        },
+        error = function(e2) {
+          return(0)
+        }
+      )
+    }
+  )
 }
 
 #' A function that checks whether all PMIDs in a list are valid
@@ -24,7 +65,7 @@ check_pmid <- function(pmid_input) {
     mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
     unique() %>%
     rowwise() %>%
-    mutate(count = get_pubmed_ids(publication_id)$Count) %>%
+    mutate(count = extract_pubmed_count(get_pubmed_ids(publication_id))) %>%
     ungroup()
 
   return(as.logical(prod(as.logical(as.integer(input_tibble_request$count)))))
@@ -41,7 +82,6 @@ check_pmid <- function(pmid_input) {
 new_publication <- function(publications_received) {
   # check if all received PMIDs are valid
   if (check_pmid(publications_received$publication_id)) {
-
     # check if publication_ids are already present in the database
     publications_list_collected <- pool %>%
       tbl("publication") %>%
@@ -75,27 +115,27 @@ new_publication <- function(publications_received) {
     }
 
     # bind the two tibbles if they exist
-    publications_list_collected_info <- bind_rows(get0("pub_list_coll_gr_info"),
-      get0("pub_list_coll_other_info"))
+    publications_list_collected_info <- bind_rows(
+      get0("pub_list_coll_gr_info"),
+      get0("pub_list_coll_other_info")
+    )
 
-    # connect to database
-    sysndd_db <- dbConnect(RMariaDB::MariaDB(),
-      dbname = dw$dbname,
-      user = dw$user,
-      password = dw$password,
-      server = dw$server,
-      host = dw$host,
-      port = dw$port)
     # add new publications to database table "publication" if present and not NA
     if (nrow(publications_list_collected_info) > 0) {
-      dbAppendTable(sysndd_db, "publication", publications_list_collected_info)
+      # Insert each publication using parameterized query
+      # Use names(tibble) to ensure column order matches INSERT statement
+      cols <- names(publications_list_collected_info)
+      placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
+
+      for (i in seq_len(nrow(publications_list_collected_info))) {
+        row <- publications_list_collected_info[i, ]
+        db_execute_statement(sql, as.list(row))
+      }
     }
-    # disconnect from database
-    dbDisconnect(sysndd_db)
 
     # return OK
     return(list(status = 200, message = "OK. Entry created."))
-
   } else {
     # return Bad Request
     return(list(status = 400, message = "Bad Request. Invalid PMIDs detected."))
@@ -111,127 +151,128 @@ new_publication <- function(publications_received) {
 #' @return tibble with article information columns
 #' @export
 table_articles_from_xml <- function(pubmed_xml_data) {
-# convert to xml
-pmid_xml <- read_xml(pubmed_xml_data)
+  # convert to xml
+  pmid_xml <- read_xml(pubmed_xml_data)
 
-# extract values
-pmid <- pmid_xml %>%
-  xml_find_all("//PMID") %>%
-  xml_text()
+  # extract values
+  pmid <- pmid_xml %>%
+    xml_find_all("//PMID") %>%
+    xml_text()
 
-doi <- (pmid_xml %>%
-  xml_find_all("//ELocationID[@EIdType='doi']") %>%
-  xml_text())
+  doi <- (pmid_xml %>%
+    xml_find_all("//ELocationID[@EIdType='doi']") %>%
+    xml_text())
 
-doi2 <- pmid_xml %>%
-  xml_find_all("//ArticleId[@EIdType='doi']") %>%
-  xml_text()
+  doi2 <- pmid_xml %>%
+    xml_find_all("//ArticleId[@EIdType='doi']") %>%
+    xml_text()
 
-doi3 <- pmid_xml %>%
-  xml_find_all("//ArticleId[@IdType='doi' and
+  doi3 <- pmid_xml %>%
+    xml_find_all("//ArticleId[@IdType='doi' and
     not(ancestor::ReferenceList)]") %>%
     # this removes possible citations from the DOI list
-  xml_text()
+    xml_text()
 
-if (length(doi) == 0 && length(doi2) != 0) {
+  if (length(doi) == 0 && length(doi2) != 0) {
     doi <- doi2
-} else if (length(doi) == 0 &&
-  length(doi2) == 0 &&
-  length(doi3) != 0) {
+  } else if (length(doi) == 0 &&
+    length(doi2) == 0 &&
+    length(doi3) != 0) {
     doi <- doi3
-} else if (length(doi) == 0 &&
-  length(doi2) == 0 &&
-  length(doi3) == 0) {
+  } else if (length(doi) == 0 &&
+    length(doi2) == 0 &&
+    length(doi3) == 0) {
     doi <- ""
-}
+  }
 
-title <- pmid_xml %>%
-  xml_find_all("//ArticleTitle") %>%
-  xml_text()
+  title <- pmid_xml %>%
+    xml_find_all("//ArticleTitle") %>%
+    xml_text()
 
-abstract <- pmid_xml %>%
-  xml_find_all("//AbstractText") %>%
-  xml_text()
+  abstract <- pmid_xml %>%
+    xml_find_all("//AbstractText") %>%
+    xml_text()
 
-jabbrv <- pmid_xml %>%
-  xml_find_all("//ISOAbbreviation") %>%
-  xml_text()
+  jabbrv <- pmid_xml %>%
+    xml_find_all("//ISOAbbreviation") %>%
+    xml_text()
 
-journal <- pmid_xml %>%
-  xml_find_all("//Title") %>%
-  xml_text()
+  journal <- pmid_xml %>%
+    xml_find_all("//Title") %>%
+    xml_text()
 
-# get both keyword and mesh terms, later merge
-mesh <- pmid_xml %>%
-  xml_find_all("//DescriptorName") %>%
-  xml_text()
+  # get both keyword and mesh terms, later merge
+  mesh <- pmid_xml %>%
+    xml_find_all("//DescriptorName") %>%
+    xml_text()
 
-keyword <- pmid_xml %>%
-  xml_find_all("//Keyword") %>%
-  xml_text()
+  keyword <- pmid_xml %>%
+    xml_find_all("//Keyword") %>%
+    xml_text()
 
-year <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Year") %>%
-  xml_text()
+  year <- pmid_xml %>%
+    xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Year") %>%
+    xml_text()
 
-month <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Month") %>%
-  xml_text()
+  month <- pmid_xml %>%
+    xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Month") %>%
+    xml_text()
 
-day <- pmid_xml %>%
-  xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Day") %>%
-  xml_text()
+  day <- pmid_xml %>%
+    xml_find_all("//PubMedPubDate[@Pubstatus = 'pubmed']/Day") %>%
+    xml_text()
 
-lastname <- pmid_xml %>%
-  xml_find_all("//AuthorList/Author[1]/LastName") %>%
-  xml_text()
+  lastname <- pmid_xml %>%
+    xml_find_all("//AuthorList/Author[1]/LastName") %>%
+    xml_text()
 
-firstname <- pmid_xml %>%
-  xml_find_all("//AuthorList/Author[1]/ForeName") %>%
-  xml_text()
+  firstname <- pmid_xml %>%
+    xml_find_all("//AuthorList/Author[1]/ForeName") %>%
+    xml_text()
 
-collective <- pmid_xml %>%
-  xml_find_all("//AuthorList/Author[1]/CollectiveName") %>%
-  xml_text()
+  collective <- pmid_xml %>%
+    xml_find_all("//AuthorList/Author[1]/CollectiveName") %>%
+    xml_text()
 
-if ((length(firstname) == 0 ||
-  length(firstname) == 0) &&
-  length(collective) != 0) {
+  if ((length(firstname) == 0 ||
+    length(firstname) == 0) &&
+    length(collective) != 0) {
     lastname <- collective
     firstname <- collective
-}
+  }
 
-if (length(year) == 0 ||
-  length(month) == 0 ||
-  length(day) == 0)  {
+  if (length(year) == 0 ||
+    length(month) == 0 ||
+    length(day) == 0) {
     year <- format(Sys.time(), "%Y")
     month <- format(Sys.time(), "%m")
     day <- format(Sys.time(), "%d")
-}
+  }
 
-address <- pmid_xml %>%
-  xml_find_all("//AuthorList/Author[1]/AffiliationInfo") %>%
-  xml_text()
+  address <- pmid_xml %>%
+    xml_find_all("//AuthorList/Author[1]/AffiliationInfo") %>%
+    xml_text()
 
-# return list of results
-return_tibble <- as_tibble(
-    list(pmid = pmid[1],
-        doi = doi,
-        title = str_c(title, collapse = " "),
-        abstract = str_c(abstract, collapse = " "),
-        jabbrv = jabbrv,
-        journal = journal[1],
-        keywords = str_c(unique(str_squish(c(mesh, keyword))), collapse = "; "),
-        year = year,
-        month = str_pad(month, 2, "left", pad = "0"),
-        day = str_pad(day, 2, "left", pad = "0"),
-        lastname = lastname,
-        firstname = firstname,
-        address = str_c(address, collapse = "; ")
+  # return list of results
+  return_tibble <- as_tibble(
+    list(
+      pmid = pmid[1],
+      doi = doi,
+      title = str_c(title, collapse = " "),
+      abstract = str_c(abstract, collapse = " "),
+      jabbrv = jabbrv,
+      journal = journal[1],
+      keywords = str_c(unique(str_squish(c(mesh, keyword))), collapse = "; "),
+      year = year,
+      month = str_pad(month, 2, "left", pad = "0"),
+      day = str_pad(day, 2, "left", pad = "0"),
+      lastname = lastname,
+      firstname = firstname,
+      address = str_c(address, collapse = "; ")
     )
   )
 
-return(return_tibble)
+  return(return_tibble)
 }
 
 
@@ -262,14 +303,16 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
     ungroup() %>%
     rowwise() %>%
     mutate(response = fetch_pubmed_data(get_pubmed_ids(publication_id),
-      encoding = "ASCII")) %>%
+      encoding = "ASCII"
+    )) %>%
     ungroup() %>%
-    mutate(new_PM_df = map(response, ~table_articles_from_xml(.x))) %>%
+    mutate(new_PM_df = map(response, ~ table_articles_from_xml(.x))) %>%
     unnest(cols = new_PM_df) %>%
     mutate(other_publication_id = paste0("DOI:", doi)) %>%
     mutate(Publication_date = paste0(year, "-", month, "-", day)) %>%
     select(-publication_id, -group, -response) %>%
-    select(publication_id = pmid,
+    select(
+      publication_id = pmid,
       other_publication_id,
       Title = title,
       Abstract = abstract,
@@ -278,12 +321,13 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Journal = journal,
       Keywords = keywords,
       Lastname = lastname,
-      Firstname = firstname)
+      Firstname = firstname
+    )
 
   output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
     select(-publication_id) %>%
-    mutate(across(everything(), ~replace_na(.x, "")))
+    mutate(across(everything(), ~ replace_na(.x, "")))
 
   return(output_tibble)
 }

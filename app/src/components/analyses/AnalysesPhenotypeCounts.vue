@@ -1,68 +1,43 @@
 <!-- src/components/analyses/AnalysesPhenotypeCounts.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Bar plot of
             <mark
               v-b-tooltip.hover.leftbottom
               title="This plot shows the counts of different phenotypes observed in the data set."
-            >phenotype counts</mark>.
-            <b-badge
-              id="popover-badge-help-phenotype-counts"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
-              target="popover-badge-help-phenotype-counts"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Phenotype Counts Information
-              </template>
+              >phenotype counts</mark
+            >.
+            <BBadge id="popover-badge-help-phenotype-counts" pill href="#" variant="info">
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover target="popover-badge-help-phenotype-counts" variant="info" triggers="focus">
+              <template #title> Phenotype Counts Information </template>
               This bar plot displays the counts of different phenotypes observed in the data set.
-              The x-axis represents the different phenotypes, and the y-axis shows the count of each phenotype.
-            </b-popover>
+              The x-axis represents the different phenotypes, and the y-axis shows the count of each
+              phenotype.
+            </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'phenotype-svg'"
-            :file-name="'phenotype_counts'"
-          />
+          <DownloadImageButtons :svg-id="'phenotype-svg'" :file-name="'phenotype_counts'" />
         </div>
       </template>
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <b-spinner
-          v-if="loadingCount"
-          label="Loading..."
-          class="spinner"
-        />
-        <div
-          v-show="!loadingCount"
-          id="count_dataviz"
-          class="svg-container"
-        />
+        <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
+        <div v-show="!loadingCount" id="count_dataviz" class="svg-container" />
       </div>
-    </b-card>
+    </BCard>
     <!-- User Interface controls -->
-  </b-container>
+  </BContainer>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
@@ -71,7 +46,10 @@ export default {
   components: {
     DownloadImageButtons,
   },
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       itemsCount: [],
@@ -90,7 +68,7 @@ export default {
     async loadCountData() {
       this.loadingCount = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/phenotype/count`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/count`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -111,7 +89,10 @@ export default {
     generateCountGraph() {
       // Set the dimensions and margins of the graph
       const margin = {
-        top: 30, right: 30, bottom: 200, left: 150,
+        top: 30,
+        right: 30,
+        bottom: 200,
+        left: 150,
       };
       const width = 760 - margin.left - margin.right;
       const height = 500 - margin.top - margin.bottom;
@@ -150,7 +131,10 @@ export default {
 
       // Add Y axis
       const maxY = d3.max(data, (d) => d.count);
-      const y = d3.scaleLinear().domain([0, maxY * 1.1]).range([height, 0]); // Add 10% buffer to the max value
+      const y = d3
+        .scaleLinear()
+        .domain([0, maxY * 1.1])
+        .range([height, 0]); // Add 10% buffer to the max value
       svg.append('g').call(d3.axisLeft(y));
 
       // Create a tooltip
@@ -170,7 +154,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseover = function mouseover(event, d) {
+      const mouseover = function mouseover(_event, _d) {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
@@ -192,7 +176,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseleave = function mouseleave(event, d) {
+      const mouseleave = function mouseleave(_event, _d) {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
       };
@@ -203,7 +187,11 @@ export default {
         .data(data)
         .enter()
         .append('a')
-        .attr('xlink:href', (d) => `/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id,${d.phenotype_id})&page_after=0&page_size=10`) // Add links to the filtered phenotype table to the bars
+        .attr(
+          'xlink:href',
+          (d) =>
+            `/Phenotypes/?sort=entity_id&filter=any(category,Definitive),all(modifier_phenotype_id,${d.phenotype_id})&page_after=0&page_size=10`
+        ) // Add links to the filtered phenotype table to the bars
         .attr('aria-label', (d) => `Link to phenotypes table for ${d.phenotype_id}`)
         .append('rect')
         .attr('x', (d) => x(d.HPO_term))

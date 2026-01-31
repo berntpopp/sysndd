@@ -35,18 +35,17 @@
 #'
 #' @export
 nest_gene_tibble <- function(tibble) {
-
   # remember the initial sorting
   initial_sort <- tibble %>%
     select(symbol, hgnc_id, entities_count) %>%
     unique()
 
   # nest then re-apply the sorting
-    nested_tibble <- tibble %>%
-        tidyr::nest(.by = c(symbol, hgnc_id, entities_count), .key = "entities") %>%
-        arrange(factor(symbol, levels = initial_sort$symbol))
+  nested_tibble <- tibble %>%
+    tidyr::nest(.by = c(symbol, hgnc_id, entities_count), .key = "entities") %>%
+    arrange(factor(symbol, levels = initial_sort$symbol))
 
-    return(nested_tibble)
+  return(nested_tibble)
 }
 
 
@@ -119,10 +118,10 @@ random_password <- function() {
 #'
 #' @export
 is_valid_email <- function(email_address) {
-    grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
-      as.character(email_address),
-      ignore.case = TRUE
-      )
+  grepl("\\<[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\>",
+    as.character(email_address),
+    ignore.case = TRUE
+  )
 }
 
 
@@ -146,14 +145,22 @@ is_valid_email <- function(email_address) {
 #' for the Stack Overflow question that inspired this function.
 #' @export
 generate_initials <- function(first_name, family_name) {
-    initials <- paste(substr(strsplit(paste0(first_name,
+  initials <- paste(
+    substr(
+      strsplit(
+        paste0(
+          first_name,
           " ",
-          family_name),
-          " ")[[1]],
-        1, 1),
-      collapse = "")
+          family_name
+        ),
+        " "
+      )[[1]],
+      1, 1
+    ),
+    collapse = ""
+  )
 
-    return(initials)
+  return(initials)
 }
 
 
@@ -162,13 +169,18 @@ generate_initials <- function(first_name, family_name) {
 #' @description
 #' This function sends a no-reply email with a specified email body, subject,
 #' and recipient. It allows for an optional blind copy recipient.
+#' Supports both plain text (legacy) and full HTML content.
 #'
 #' @param email_body A character string representing the body of the email.
+#'   Can be plain text (will be converted to markdown) or full HTML
+#'   (when html_content=TRUE).
 #' @param email_subject A character string representing the subject of the email.
 #' @param email_recipient A character string representing the recipient's email
 #'   address.
 #' @param email_blind_copy A character string representing the blind copy
 #'   recipient's email address, with a default value of "noreply@sysndd.org".
+#' @param html_content Logical. If TRUE, email_body is treated as complete HTML.
+#'   If FALSE (default), email_body is treated as markdown/plain text.
 #'
 #' @return
 #' A character string indicating that the email has been sent.
@@ -180,18 +192,32 @@ generate_initials <- function(first_name, family_name) {
 #'   email_recipient = "example@example.com"
 #' )
 #' @export
-send_noreply_email <- function(email_body,
+send_noreply_email <- function(
+  email_body,
   email_subject,
   email_recipient,
-  email_blind_copy = "noreply@sysndd.org") {
+  email_blind_copy = "noreply@sysndd.org",
+  html_content = FALSE
+) {
+  if (html_content) {
+    # Use full HTML content directly (from email-templates.R)
+    # Wrap with htmltools::HTML() for proper raw HTML handling
+    email <- compose_email(
+      body = htmltools::HTML(email_body)
+    )
+  } else {
+    # Legacy: treat as markdown with standard footer
     email <- compose_email(
       body = md(email_body),
-      footer = md(paste0("Visit [SysNDD.org](https://www.sysndd.org) for ",
-        "the latest information on Neurodevelopmental Disorders."))
-      )
+      footer = md(paste0(
+        "Visit [SysNDD.org](https://www.sysndd.org) for ",
+        "the latest information on Neurodevelopmental Disorders."
+      ))
+    )
+  }
 
-    suppressMessages(email %>%
-      smtp_send(
+  suppressMessages(email %>%
+    smtp_send(
       from = "noreply@sysndd.org",
       subject = email_subject,
       to = email_recipient,
@@ -203,8 +229,8 @@ send_noreply_email <- function(email_body,
         port = dw$mail_noreply_port,
         use_ssl = dw$mail_noreply_use_ssl
       )
-      ))
-    return("Request mail send!")
+    ))
+  return("Request mail send!")
 }
 
 
@@ -237,40 +263,40 @@ send_noreply_email <- function(email_body,
 #' \url{https://dplyr.tidyverse.org/reference/desc.html} for details on how
 #' the "desc()" function is used to sort in descending order.
 generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
-
   # split the sort input by comma and compute
   # directions based on presence of + or - in front of the string
   sort_tibble <- as_tibble(str_split(
-          str_replace_all(sort_string, fixed(" "), ""), ",")[[1]]) %>%
-        select(column = value) %>%
-        mutate(direction = case_when(
-            str_sub(column, 1, 1) == "+" ~ "asc",
-            str_sub(column, 1, 1) == "-" ~ "desc",
-            TRUE ~ "asc",
-        )) %>%
-        mutate(column = case_when(
-            str_sub(column, 1, 1) == "+" ~ str_sub(column, 2, -1),
-            str_sub(column, 1, 1) == "-" ~ str_sub(column, 2, -1),
-            TRUE ~ column,
-        )) %>%
-        mutate(exprs = case_when(
-            direction == "asc" ~ column,
-            direction == "desc" ~ paste0("desc(", column, ")"),
-        )) %>%
-    unique %>%
+    str_replace_all(sort_string, fixed(" "), ""), ","
+  )[[1]]) %>%
+    select(column = value) %>%
+    mutate(direction = case_when(
+      str_sub(column, 1, 1) == "+" ~ "asc",
+      str_sub(column, 1, 1) == "-" ~ "desc",
+      TRUE ~ "asc",
+    )) %>%
+    mutate(column = case_when(
+      str_sub(column, 1, 1) == "+" ~ str_sub(column, 2, -1),
+      str_sub(column, 1, 1) == "-" ~ str_sub(column, 2, -1),
+      TRUE ~ column,
+    )) %>%
+    mutate(exprs = case_when(
+      direction == "asc" ~ column,
+      direction == "desc" ~ paste0("desc(", column, ")"),
+    )) %>%
+    unique() %>%
     group_by(column) %>%
     mutate(count = n())
 
-    sort_list <- sort_tibble$exprs
+  sort_list <- sort_tibble$exprs
 
-    # and check if entity_id is in the resulting list,
-    # if not append to the list for unique sorting
-    if (!(unique_id %in% sort_list ||
-        paste0("desc(", unique_id, ")") %in% sort_list)) {
-      sort_list <- append(sort_list, unique_id)
-    }
+  # and check if entity_id is in the resulting list,
+  # if not append to the list for unique sorting
+  if (!(unique_id %in% sort_list ||
+          paste0("desc(", unique_id, ")") %in% sort_list)) {
+    sort_list <- append(sort_list, unique_id)
+  }
 
-    return(sort_list)
+  return(sort_list)
 }
 
 
@@ -301,17 +327,22 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 #' \url{https://www.jsonapi.net/usage/reading/filtering.html}
 #'
 #' @note
-#' TODO: Implement error handling.
-#' TODO: Implement checking if the respective columns exist.
-#' TODO: Implement allowed operations as input argument.
-#' TODO: Implement column type handling.
-generate_filter_expressions <- function(filter_string,
-    operations_allowed =
-    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual") {
-
+#' Error handling and validation implemented for malformed expressions and missing columns.
+#' Column type handling uses string comparison for all operations (sufficient for current use cases).
+#'
+#' @seealso
+#' For more information on the filtering semantics, see the following resource:
+#' \url{https://www.jsonapi.net/usage/reading/filtering.html}
+generate_filter_expressions <- function(
+  filter_string,
+  operations_allowed =
+    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual"
+) {
   # define supported operations
-  operations_supported <- paste0("equals,contains,any,all,",
-      "lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not") %>%
+  operations_supported <- paste0(
+    "equals,contains,any,all,",
+    "lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not"
+  ) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
     unique()
@@ -331,16 +362,25 @@ generate_filter_expressions <- function(filter_string,
   filter_string <- URLdecode(filter_string) %>%
     str_trim()
 
-  # If the filter_string is empty or "null" (as a string), return an empty 
-  # string immediately, indicating no filtering should be applied. This 
-  # handles cases where users input "null" as a literal string, which is 
+  # If the filter_string is empty or "null" (as a string), return an empty
+  # string immediately, indicating no filtering should be applied. This
+  # handles cases where users input "null" as a literal string, which is
   # not valid for generating filter expressions.
-  if (filter_string == "" | filter_string == "null") {
-      return("")
+  if (filter_string == "" || filter_string == "null") {
+    return("")
   }
 
-  logical_operator <- stringr::str_extract(string = filter_string,
-      pattern = ".+?\\(") %>%
+  # Validate filter expression structure (basic parentheses check)
+  open_parens <- str_count(filter_string, "\\(")
+  close_parens <- str_count(filter_string, "\\)")
+  if (open_parens != close_parens) {
+    stop("Malformed filter expression: mismatched parentheses")
+  }
+
+  logical_operator <- stringr::str_extract(
+    string = filter_string,
+    pattern = ".+?\\("
+  ) %>%
     stringr::str_remove_all("\\(")
 
   if (logical_operator %in% logic_supported) {
@@ -350,18 +390,24 @@ generate_filter_expressions <- function(filter_string,
     logical_operator <- "and"
   }
 
-    # check if requested operations are supported, if not through error
+  # check if requested operations are supported, if not through error
   if (all(operations_allowed %in% operations_supported)) {
     if (filter_string != "") {
-
-      # generate tibble from expressions
-      filter_string_tibble <- as_tibble(str_split(str_squish(filter_string),
-          "\\),")[[1]]) %>%
-        separate(value, c("logic", "column_value"), sep = "\\(") %>%
-        separate(column_value, c("column", "filter_value"),
-          sep = "\\,",
-          extra = "merge") %>%
-        mutate(filter_value = str_remove_all(filter_value, "'|\\)"))
+      # generate tibble from expressions with error handling
+      filter_string_tibble <- tryCatch(
+        {
+          as_tibble(str_split(str_squish(filter_string), "\\),")[[1]]) %>%
+            separate(value, c("logic", "column_value"), sep = "\\(") %>%
+            separate(column_value, c("column", "filter_value"),
+              sep = "\\,",
+              extra = "merge"
+            ) %>%
+            mutate(filter_value = str_remove_all(filter_value, "'|\\)"))
+        },
+        error = function(e) {
+          stop(paste("Failed to parse filter expression:", e$message))
+        }
+      )
 
       # check if hash is in filter expression
       filter_string_hash <- filter_string_tibble %>%
@@ -387,102 +433,134 @@ generate_filter_expressions <- function(filter_string,
           colnames(table_hash_filter_value),
           " %in% c('",
           str_c(as.list(table_hash_filter_value)[[1]], collapse = "','"),
-          "')")
-
+          "')"
+        )
       } else if (filter_string_has_hash && !hash_found) {
         stop("Hash not found.")
-      }  else {
-      # compute filter expressions if hash keyword NOT found
-      filter_tibble <- filter_string_tibble %>%
-        filter(!str_detect(column, "hash"))  %>%
-        mutate(exprs = case_when(
-      ## logic for contains based on regex
-          column == "any" & logic == "contains" ~
-            paste0("if_any(everything(), ~str_detect(.x, '",
-              filter_value, "'))"),
-          column == "all" & logic == "contains" ~
-            paste0("if_all(everything(), ~str_detect(.x, '",
-              filter_value, "'))"),
-          !(column %in% c("all", "any")) & logic == "contains" ~
-            paste0("str_detect(", column, ", '", filter_value, "')"),
-      ## logic for equals based on regex
-          column == "any" & logic == "equals" ~
-            paste0("if_any(everything(), ~str_detect(.x, '^",
-              filter_value, "$'))"),
-          column == "all" & logic == "equals" ~
-            paste0("if_all(everything(), ~str_detect(.x, '^",
-              filter_value, "$'))"),
-          !(column %in% c("all", "any")) & logic == "equals" ~
-            paste0("str_detect(", column, ", '^", filter_value, "$')"),
-      ## logic for any based on regex
-          column == "any" & logic == "any" ~
-            paste0("if_any(everything(), ~str_detect(.x, ",
-              str_replace_all(paste0("'", filter_value, "')"),
-                pattern = "\\,",
-                replacement = "|"), ")"),
-          column == "all" & logic == "any" ~
-            paste0("if_all(everything(), ~str_detect(.x, ",
-              str_replace_all(paste0("'", filter_value, "')"),
-                pattern = "\\,",
-                replacement = "|"), ")"),
-          !(column %in% c("all", "any")) & logic == "any" ~
-            paste0("str_detect(", column, ", ",
-              str_replace_all(paste0("'",
-                filter_value, "')"),
-                pattern = "\\,",
-                replacement = "|")),
-      ## logic for all based on regex
-          column == "any" & logic == "all" ~
-            paste0("if_any(everything(), ~str_detect(.x, ",
-              str_replace_all(paste0("'(?=.*", filter_value, ")')"),
-                pattern = "\\,",
-                replacement = ")(?=.*"), ")"),
-          column == "all" & logic == "all" ~
-            paste0("if_all(everything(), ~str_detect(.x, ",
-              str_replace_all(paste0("'(?=.*", filter_value, ")')"),
-                pattern = "\\,",
-                replacement = ")(?=.*"), ")"),
-          !(column %in% c("all", "any")) & logic == "all" ~
-            paste0("str_detect(", column, ", ",
-              str_replace_all(paste0("'(?=.*",
-                filter_value, ")')"),
-                pattern = "\\,",
-                replacement = ")(?=.*")),
-      ## logic for Less than
-          column == "any" & logic == "lessThan" ~
-            paste0("if_any(everything(), .x < '", filter_value, "'"),
-          column == "all" & logic == "lessThan" ~
-            paste0("if_any(everything(), .x < '", filter_value, "'"),
-          !(column %in% c("all", "any")) & logic == "lessThan" ~
-            paste0(column, " < '", filter_value, "'"),
-      ## logic for Greater than
-          column == "any" & logic == "greaterThan" ~
-            paste0("if_any(everything(), .x > '", filter_value, "'"),
-          column == "all" & logic == "greaterThan" ~
-            paste0("if_any(everything(), .x > '", filter_value, "'"),
-          !(column %in% c("all", "any")) & logic == "greaterThan" ~
-            paste0(column, " > '", filter_value, "'"),
-      ## logic for Less than or equal to
-          column == "any" & logic == "lessOrEqual" ~
-            paste0("if_any(everything(), .x <= '", filter_value, "'"),
-          column == "all" & logic == "lessOrEqual" ~
-            paste0("if_any(everything(), .x <= '", filter_value, "'"),
-          !(column %in% c("all", "any")) & logic == "lessOrEqual" ~
-            paste0(column, " <= '", filter_value, "'"),
-      ## logic for Greater than or equal to
-          column == "any" & logic == "greaterOrEqual" ~
-            paste0("if_any(everything(), .x >= '", filter_value, "'"),
-          column == "all" & logic == "greaterOrEqual" ~
-            paste0("if_any(everything(), .x >= '", filter_value, "'"),
-          !(column %in% c("all", "any")) & logic == "greaterOrEqual" ~
-            paste0(column, " >= '", filter_value, "'"),
-        )) %>%
-      ## remove non fitting values
-        filter(logic %in% operations_allowed) %>%
-        filter(!is.na(exprs))
+      } else {
+        # compute filter expressions if hash keyword NOT found
+        filter_tibble <- filter_string_tibble %>%
+          filter(!str_detect(column, "hash")) %>%
+          mutate(exprs = case_when(
+            ## logic for contains based on regex
+            column == "any" & logic == "contains" ~
+              paste0(
+                "if_any(everything(), ~str_detect(.x, '",
+                filter_value, "'))"
+              ),
+            column == "all" & logic == "contains" ~
+              paste0(
+                "if_all(everything(), ~str_detect(.x, '",
+                filter_value, "'))"
+              ),
+            !(column %in% c("all", "any")) & logic == "contains" ~
+              paste0("str_detect(", column, ", '", filter_value, "')"),
+            ## logic for equals based on regex
+            column == "any" & logic == "equals" ~
+              paste0(
+                "if_any(everything(), ~str_detect(.x, '^",
+                filter_value, "$'))"
+              ),
+            column == "all" & logic == "equals" ~
+              paste0(
+                "if_all(everything(), ~str_detect(.x, '^",
+                filter_value, "$'))"
+              ),
+            !(column %in% c("all", "any")) & logic == "equals" ~
+              paste0("str_detect(", column, ", '^", filter_value, "$')"),
+            ## logic for any based on regex
+            column == "any" & logic == "any" ~
+              paste0(
+                "if_any(everything(), ~str_detect(.x, ",
+                str_replace_all(paste0("'", filter_value, "')"),
+                  pattern = "\\,",
+                  replacement = "|"
+                ), ")"
+              ),
+            column == "all" & logic == "any" ~
+              paste0(
+                "if_all(everything(), ~str_detect(.x, ",
+                str_replace_all(paste0("'", filter_value, "')"),
+                  pattern = "\\,",
+                  replacement = "|"
+                ), ")"
+              ),
+            !(column %in% c("all", "any")) & logic == "any" ~
+              paste0(
+                "str_detect(", column, ", ",
+                str_replace_all(
+                  paste0(
+                    "'",
+                    filter_value, "')"
+                  ),
+                  pattern = "\\,",
+                  replacement = "|"
+                )
+              ),
+            ## logic for all based on regex
+            column == "any" & logic == "all" ~
+              paste0(
+                "if_any(everything(), ~str_detect(.x, ",
+                str_replace_all(paste0("'(?=.*", filter_value, ")')"),
+                  pattern = "\\,",
+                  replacement = ")(?=.*"
+                ), ")"
+              ),
+            column == "all" & logic == "all" ~
+              paste0(
+                "if_all(everything(), ~str_detect(.x, ",
+                str_replace_all(paste0("'(?=.*", filter_value, ")')"),
+                  pattern = "\\,",
+                  replacement = ")(?=.*"
+                ), ")"
+              ),
+            !(column %in% c("all", "any")) & logic == "all" ~
+              paste0(
+                "str_detect(", column, ", ",
+                str_replace_all(
+                  paste0(
+                    "'(?=.*",
+                    filter_value, ")')"
+                  ),
+                  pattern = "\\,",
+                  replacement = ")(?=.*"
+                )
+              ),
+            ## logic for Less than
+            column == "any" & logic == "lessThan" ~
+              paste0("if_any(everything(), .x < '", filter_value, "'"),
+            column == "all" & logic == "lessThan" ~
+              paste0("if_any(everything(), .x < '", filter_value, "'"),
+            !(column %in% c("all", "any")) & logic == "lessThan" ~
+              paste0(column, " < '", filter_value, "'"),
+            ## logic for Greater than
+            column == "any" & logic == "greaterThan" ~
+              paste0("if_any(everything(), .x > '", filter_value, "'"),
+            column == "all" & logic == "greaterThan" ~
+              paste0("if_any(everything(), .x > '", filter_value, "'"),
+            !(column %in% c("all", "any")) & logic == "greaterThan" ~
+              paste0(column, " > '", filter_value, "'"),
+            ## logic for Less than or equal to
+            column == "any" & logic == "lessOrEqual" ~
+              paste0("if_any(everything(), .x <= '", filter_value, "'"),
+            column == "all" & logic == "lessOrEqual" ~
+              paste0("if_any(everything(), .x <= '", filter_value, "'"),
+            !(column %in% c("all", "any")) & logic == "lessOrEqual" ~
+              paste0(column, " <= '", filter_value, "'"),
+            ## logic for Greater than or equal to
+            column == "any" & logic == "greaterOrEqual" ~
+              paste0("if_any(everything(), .x >= '", filter_value, "'"),
+            column == "all" & logic == "greaterOrEqual" ~
+              paste0("if_any(everything(), .x >= '", filter_value, "'"),
+            !(column %in% c("all", "any")) & logic == "greaterOrEqual" ~
+              paste0(column, " >= '", filter_value, "'"),
+          )) %>%
+          ## remove non fitting values
+          filter(logic %in% operations_allowed) %>%
+          filter(!is.na(exprs))
 
-      ## generate a list of filters
-      filter_list <- filter_tibble$exprs
+        ## generate a list of filters
+        filter_list <- filter_tibble$exprs
       }
 
       # compute filter string based on input logic
@@ -491,9 +569,11 @@ generate_filter_expressions <- function(filter_string,
       } else if (logical_operator == "or") {
         filter_expression <- stringr::str_c(filter_list, collapse = " | ")
       } else if (logical_operator == "not") {
-        filter_expression <- paste0("!( ",
+        filter_expression <- paste0(
+          "!( ",
           stringr::str_c(filter_list, collapse = " | "),
-          " )")
+          " )"
+        )
       }
 
       return(filter_expression)
@@ -532,10 +612,11 @@ generate_filter_expressions <- function(filter_string,
 #' @seealso
 #' For more information on working with tibbles in R, see the following resource:
 #' \url{https://tibble.tidyverse.org/}
-select_tibble_fields <- function(selection_tibble,
+select_tibble_fields <- function(
+  selection_tibble,
   fields_requested,
-  unique_id = "entity_id") {
-
+  unique_id = "entity_id"
+) {
   # get column names from selection_tibble
   tibble_colnames <- colnames(selection_tibble)
 
@@ -544,7 +625,8 @@ select_tibble_fields <- function(selection_tibble,
   # split the fields_requested input by comma
   if (fields_requested != "") {
     fields_requested <- str_split(str_replace_all(
-      fields_requested, fixed(" "), ""), ",")[[1]]
+      fields_requested, fixed(" "), ""
+    ), ",")[[1]]
   } else {
     fields_requested <- tibble_colnames
   }
@@ -552,18 +634,18 @@ select_tibble_fields <- function(selection_tibble,
   # check if unique_id variable is in the column names,
   # if not prepend to the list for unique sorting
   if (!(unique_id %in% fields_requested)) {
-    fields_requested <- purrr::prepend(fields_requested, unique_id)
+    fields_requested <- append(fields_requested, unique_id, after = 0)
     fields_requested <- Filter(function(x) !identical("", x), fields_requested)
   }
 
   # check if requested column names exist in tibble, if error
   if (all(fields_requested %in% tibble_colnames)) {
     selection_tibble <- selection_tibble %>%
-    select(all_of(fields_requested))
+      select(all_of(fields_requested))
   } else {
     stop("Some requested fields are not in the column names.")
   }
-    return(selection_tibble)
+  return(selection_tibble)
 }
 
 
@@ -599,14 +681,15 @@ select_tibble_fields <- function(selection_tibble,
 #' @seealso
 #' For more information on cursor-based pagination, see the following resource:
 #' \url{https://www.sitepoint.com/paginating-real-time-data-cursor-based-pagination/}
-generate_cursor_pag_inf <- function(pagination_tibble,
+generate_cursor_pag_inf <- function(
+  pagination_tibble,
   page_size = "all",
   page_after = 0,
-  pagination_identifier = "entity_id") {
-
+  pagination_identifier = "entity_id"
+) {
   # get number of rows in filtered ndd_entity_view
   pagination_tibble_rows <- (pagination_tibble %>%
-    summarize(n = n()))$n
+                               summarize(n = n()))$n
 
   # check if page_size is either "all" or
   # a valid integer and convert or assign values accordingly
@@ -623,91 +706,100 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 
   # find the current row of the requested page_after entry
   page_after_row <- (pagination_tibble %>%
-    mutate(row = row_number()) %>%
-    filter(!!sym(pagination_identifier) == page_after)
-    )$row
+      mutate(row = row_number()) %>%
+      filter(!!sym(pagination_identifier) == page_after)
+  )$row
 
   if (length(page_after_row) == 0) {
     page_after_row <- 0
     page_after_row_next <- (pagination_tibble %>%
-      filter(row_number() == page_after_row + page_size + 1) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                              filter(row_number() == page_after_row + page_size + 1) %>%
+                              select(!!sym(pagination_identifier)))[[1]]
   } else {
     page_after_row_next <- (pagination_tibble %>%
-      filter(row_number() == page_after_row + page_size) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                              filter(row_number() == page_after_row + page_size) %>%
+                              select(!!sym(pagination_identifier)))[[1]]
   }
 
   # find next and prev item row
   page_after_row_prev <- (pagination_tibble %>%
-    filter(row_number() == page_after_row - page_size) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                            filter(row_number() == page_after_row - page_size) %>%
+                            select(!!sym(pagination_identifier)))[[1]]
   page_after_row_last <- (pagination_tibble %>%
-    filter(row_number() == page_size * (page_count - 1)) %>%
-      select(!!sym(pagination_identifier)))[[1]]
+                            filter(row_number() == page_size * (page_count - 1)) %>%
+                            select(!!sym(pagination_identifier)))[[1]]
 
   # filter by row
   pagination_tibble <- pagination_tibble %>%
     filter((row_number() > page_after_row) &
-      (row_number() <= page_after_row + page_size))
+             (row_number() <= page_after_row + page_size))
 
   # generate links for self, next and prev pages
   self <- paste0("&page_after=", page_after, "&page_size=", page_size)
   if (length(page_after_row_prev) == 0) {
     prev <- "null"
   } else {
-    prev <- paste0("&page_after=",
+    prev <- paste0(
+      "&page_after=",
       page_after_row_prev,
       "&page_size=",
-      page_size)
+      page_size
+    )
   }
 
   if (length(page_after_row_next) == 0) {
     `next` <- "null"
   } else {
-    `next` <- paste0("&page_after=",
+    `next` <- paste0(
+      "&page_after=",
       page_after_row_next,
       "&page_size=",
-      page_size)
+      page_size
+    )
   }
 
   if (length(page_after_row_last) == 0) {
     last <- "null"
   } else {
-    last <- paste0("&page_after=",
+    last <- paste0(
+      "&page_after=",
       page_after_row_last,
       "&page_size=",
-      page_size)
+      page_size
+    )
   }
 
   # generate links object
-  links <- as_tibble(list("prev" = prev,
+  links <- as_tibble(list(
+    "prev" = prev,
     "self" = self,
     "next" = `next`,
-    "last" = last))
+    "last" = last
+  ))
 
   # generate meta object
-  meta <- as_tibble(list("perPage" = page_size,
+  meta <- as_tibble(list(
+    "perPage" = page_size,
     "currentPage" = ceiling((page_after_row + 1) / page_size),
     "totalPages" = page_count,
     "prevItemID" = (if (length(page_after_row_prev) == 0) {
       "null"
-      } else {
-        page_after_row_prev
-        }),
+    } else {
+      page_after_row_prev
+    }),
     "currentItemID" = page_after,
     "nextItemID" = (if (length(page_after_row_next) == 0) {
       "null"
-      } else {
-        page_after_row_next
-        }),
+    } else {
+      page_after_row_next
+    }),
     "lastItemID" = (if (length(page_after_row_last) == 0) {
       "null"
-      } else {
-        page_after_row_last
-        }),
-    "totalItems" = pagination_tibble_rows)
-  )
+    } else {
+      page_after_row_last
+    }),
+    "totalItems" = pagination_tibble_rows
+  ))
 
   # generate return list
   return_data <- list(links = links, meta = meta, data = pagination_tibble)
@@ -738,56 +830,59 @@ generate_cursor_pag_inf <- function(pagination_tibble,
 #'
 #' @export
 generate_tibble_fspec <- function(field_tibble, fspecInput) {
+  # get column names from field_tibble
+  tibble_colnames <- colnames(field_tibble)
 
-    # get column names from field_tibble
-    tibble_colnames <- colnames(field_tibble)
+  # check if fspecInput is empty string,
+  # if so assign tibble_colnames to it, else
+  # split the fields_requested input by comma
+  if (fspecInput != "") {
+    fspecInput <- str_split(str_replace_all(
+      fspecInput, fixed(" "), ""
+    ), ",")[[1]]
+  } else {
+    fspecInput <- tibble_colnames
+  }
 
-    # check if fspecInput is empty string,
-    # if so assign tibble_colnames to it, else
-    # split the fields_requested input by comma
-    if (fspecInput != "") {
-      fspecInput <- str_split(str_replace_all(
-        fspecInput, fixed(" "), ""), ",")[[1]]
-    } else {
-      fspecInput <- tibble_colnames
-    }
-
-    # generate fields object
-    fields_values <- field_tibble %>%
-      mutate(across(everything(), as.character)) %>%
-      pivot_longer(everything(),
-        names_to = "key",
-        values_to = "values",
-        values_ptypes = list(values = character())) %>%
-      arrange(key, values) %>%
-      unique() %>%
-      group_by(key) %>%
-      summarize(selectOptions = list(values)) %>%
-      mutate(count = lengths(selectOptions)) %>%
-      mutate(filterable = case_when(
-        count > 10 ~ TRUE,
-        count <= 10 ~ FALSE,
-      )) %>%
-      mutate(multi_selectable = case_when(
-        count <= 10 & count > 2 ~ TRUE,
-        TRUE ~ FALSE,
-      )) %>%
-      mutate(selectable = case_when(
-        count <= 2 ~ TRUE,
-        TRUE ~ FALSE,
-      )) %>%
-      mutate(selectOptions = case_when(
-        count > 10 ~ list("null"),
-        count <= 10 ~ selectOptions,
-      )) %>%
-      mutate(sortDirection = "asc") %>%
-      mutate(sortable = TRUE) %>%
-      mutate(class = "text-left") %>%
-      mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
-      filter(key %in% fspecInput) %>%
-      arrange(factor(key, levels = fspecInput)) %>%
-      {if ("details" %in% fspecInput)
-        add_row(., key = "details",
+  # generate fields object
+  fields_values <- field_tibble %>%
+    mutate(across(everything(), as.character)) %>%
+    pivot_longer(everything(),
+      names_to = "key",
+      values_to = "values",
+      values_ptypes = list(values = character())
+    ) %>%
+    arrange(key, values) %>%
+    unique() %>%
+    group_by(key) %>%
+    summarize(selectOptions = list(values)) %>%
+    mutate(count = lengths(selectOptions)) %>%
+    mutate(filterable = case_when(
+      count > 10 ~ TRUE,
+      count <= 10 ~ FALSE,
+    )) %>%
+    mutate(multi_selectable = case_when(
+      count <= 10 & count > 2 ~ TRUE,
+      TRUE ~ FALSE,
+    )) %>%
+    mutate(selectable = case_when(
+      count <= 2 ~ TRUE,
+      TRUE ~ FALSE,
+    )) %>%
+    mutate(selectOptions = case_when(
+      count > 10 ~ list("null"),
+      count <= 10 ~ selectOptions,
+    )) %>%
+    mutate(sortDirection = "asc") %>%
+    mutate(sortable = TRUE) %>%
+    mutate(class = "text-left") %>%
+    mutate(label = str_to_sentence(str_replace_all(key, "_", " "))) %>%
+    filter(key %in% fspecInput) %>%
+    arrange(factor(key, levels = fspecInput)) %>%
+    {
+      if ("details" %in% fspecInput) {
+        add_row(.,
+          key = "details",
           selectOptions = NULL,
           filterable = FALSE,
           selectable = FALSE,
@@ -795,9 +890,12 @@ generate_tibble_fspec <- function(field_tibble, fspecInput) {
           sortable = FALSE,
           sortDirection = "asc",
           class = "text-center",
-          label = "Details")
-      else .
+          label = "Details"
+        )
+      } else {
+        .
       }
+    }
 
   # generate return list
   return_data <- list(fspec = fields_values)
@@ -884,7 +982,7 @@ generate_json_hash <- function(json_input) {
 generate_function_hash <- function(function_input) {
   # deparse function, compute sha256 hash
   function_hash <- function_input %>%
-    deparse1 %>%
+    deparse1() %>%
     sha256()
 
   # return result
@@ -913,36 +1011,57 @@ generate_function_hash <- function(function_input) {
 #' 6. Delete the temporary xlsx file.
 #' 7. Return the binary content of the file.
 #'
-#' @param data_object A list containing three elements: 'data', 'meta', and 'links', each containing a data frame to be written to the respective sheets in the output Excel file.
+#' @param data_object A list containing three elements: 'data', 'meta', and 'links', each containing a data frame to be written to the respective sheets in the output Excel file. # nolint: line_length_linter
 #' @param file_base_name A string representing the base name to be used for the temporary Excel file.
 #'
 #' @return The binary content of the generated xlsx file as a raw vector
 #' @export
 generate_xlsx_bin <- function(data_object, file_base_name) {
-
   # generate excel file output
-  xlsx_file <- file.path(tempdir(),
-    paste0(file_base_name, ".xlsx"))
+  xlsx_file <- file.path(
+    tempdir(),
+    paste0(file_base_name, ".xlsx")
+  )
 
-  write.xlsx(data_object$data,
+  # Convert nested data columns to JSON strings for Excel compatibility
+  data_export <- data_object$data %>%
+    mutate(across(where(is.list), ~ sapply(., function(x) {
+      if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
+        as.character(x)
+      } else {
+        jsonlite::toJSON(x, auto_unbox = TRUE)
+      }
+    })))
+
+  write.xlsx(data_export,
     xlsx_file,
     sheetName = "data",
-    append = FALSE)
+    append = FALSE
+  )
 
-  # here we unselect the nested column fspec
-  # based on https://stackoverflow.com/questions/43786883/how-do-i-select-columns-that-may-or-may-not-exist
-  # TODO: instead of unselecting
-  # TODO: we could transform to string for all nested
-  write.xlsx(data_object$meta %>%
-      select(-any_of(c("fspec"))),
+  # Convert nested fspec column to JSON string for Excel export
+  # This preserves all metadata - requires JSON parsing on import
+  meta_export <- data_object$meta %>%
+    mutate(across(where(is.list), ~ sapply(., function(x) {
+      if (is.null(x) || (is.atomic(x) && length(x) == 1)) {
+        as.character(x)
+      } else {
+        jsonlite::toJSON(x, auto_unbox = TRUE)
+      }
+    })))
+
+  write.xlsx(
+    meta_export,
     xlsx_file,
     sheetName = "meta",
-    append = TRUE)
+    append = TRUE
+  )
 
   write.xlsx(data_object$links,
     xlsx_file,
     sheetName = "links",
-    append = TRUE)
+    append = TRUE
+  )
 
   # Read in the raw contents of the binary file
   bin <- readBin(xlsx_file, "raw", n = file.info(xlsx_file)$size)
@@ -954,4 +1073,166 @@ generate_xlsx_bin <- function(data_object, file_base_name) {
 
   # return the binary contents
   return(bin)
+}
+
+
+#' Nest PubTator Gene Tibble
+#'
+#' @description
+#' Groups a PubTator data frame by gene-related columns (e.g. `gene_name`,
+#' `gene_symbol`, `hgnc_id`, `gene_normalized_id`). Then creates two
+#' nested list-columns:
+#' \itemize{
+#'   \item \strong{publications:} pmid, doi, title, journal, date, score, text_hl
+#'   \item \strong{entities:} entity_id, disease_ontology_id_version, disease_ontology_name,
+#'       hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
+#'       inheritance_filter, ndd_phenotype, ndd_phenotype_word, entry_date, category, category_id
+#' }
+#'
+#' @param df A data frame (tibble) containing:
+#' \itemize{
+#'   \item \code{gene_name}, \code{gene_symbol}, \code{hgnc_id}, \code{gene_normalized_id}
+#'   \item \code{pmid}, \code{doi}, \code{title}, \code{journal}, \code{date}, \code{score}, \code{text_hl}
+#'   \item \code{entity_id}, \code{disease_ontology_id_version}, \code{disease_ontology_name},
+#'         \code{hpo_mode_of_inheritance_term}, etc.
+#' }
+#'
+#' @return A \strong{nested tibble} with one row per gene, plus two new list-columns:
+#'   \code{publications} and \code{entities}.
+#'
+#' @examples
+#' # Suppose `df_pubtator` has all required columns:
+#' # nest_pubtator_gene_tibble(df_pubtator)
+#'
+#' @export
+nest_pubtator_gene_tibble <- function(df) {
+  df %>%
+    dplyr::group_by(
+      gene_name,
+      gene_symbol,
+      hgnc_id,
+      gene_normalized_id
+    ) %>%
+    tidyr::nest(
+      publications = c(
+        pmid, doi, title, journal, date, score, text_hl
+      ),
+      entities = c(
+        entity_id, disease_ontology_id_version, disease_ontology_name,
+        hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name,
+        inheritance_filter, ndd_phenotype, ndd_phenotype_word,
+        entry_date, category, category_id
+      )
+    ) %>%
+    dplyr::ungroup()
+}
+
+
+#' Calculate and post a hash for a series of column values
+#'
+#' This function calculates and posts a hash for a series of column values
+#' given as a JSON input. The column names in the JSON input can be
+#' controlled with the 'allowed_columns' parameter. The resulting hash is
+#' stored in the 'table_hash' table in the database.
+#'
+#' @param json_data JSON input containing the data to hash
+#' @param allowed_columns comma-separated list of column names to allow
+#' in the JSON input, defaults to "symbol,hgnc_id,entity_id"
+#' @param endpoint endpoint to hash, defaults to "/api/gene"
+#'
+#' @return A list object with the following components:
+#' \item{links}{a tibble with a link to the stored hash in the format
+#' "equals(hash, hash_value)"}
+#' \item{status}{HTTP status code}
+#' \item{message}{message related to the request status}
+#' \item{data}{the resulting hash value}
+#'
+#' @export
+#' @seealso generate_json_hash()
+post_db_hash <- function(
+  json_data,
+  allowed_columns = "symbol,hgnc_id,entity_id",
+  endpoint = "/api/gene"
+) {
+  # generate list of allowed term from input
+  allowed_col_list <- (allowed_columns %>%
+                         str_split(pattern = ","))[[1]]
+
+  ## -------------------------------------------------------------------##
+  # block to convert the json list into tibble
+  # then sort it
+  # check if the column name is in the allowed identifier list
+  # then convert back to JSON and hash it
+  # '!!!' in arrange needed to evaluate the external variable as column name
+  json_tibble <- as_tibble(json_data)
+  json_tibble <- json_tibble %>%
+    arrange(!!!rlang::parse_exprs((json_tibble %>% colnames())[1]))
+
+  json_sort <- toJSON(json_tibble)
+  ## -------------------------------------------------------------------##
+
+
+  ## -------------------------------------------------------------------##
+  # block to generate hash and check if present in data
+  json_sort_hash <- as.character(generate_json_hash(json_sort))
+
+  # Check if database is available (pool exists)
+  # In mirai daemon context, pool is not available
+  db_available <- tryCatch({
+    exists("pool") && !is.null(pool)
+  }, error = function(e) FALSE)
+
+  if (!db_available) {
+    # Database not available (daemon context) - compute hash only
+    # The hash string is still usable, just not registered in database
+    links <- as_tibble(list(
+      "hash" = paste0("equals(hash,", json_sort_hash, ")")
+    ))
+    return(list(
+      links = links,
+      status = 200,
+      message = "OK. Hash computed (no database).",
+      data = json_sort_hash
+    ))
+  }
+
+  # validate columns using hash repository
+  hash_validate_columns(colnames(json_tibble), allowed_col_list)
+
+  # check if hash exists using repository
+  hash_already_exists <- hash_exists(json_sort_hash)
+  ## -------------------------------------------------------------------##
+
+  if (!hash_already_exists) {
+    # use hash repository to create hash
+    hash_create(json_sort_hash, as.character(json_sort), endpoint)
+
+    # generate links object
+    links <- as_tibble(list(
+      "hash" =
+        paste0("equals(hash,", json_sort_hash, ")")
+    ))
+
+    # generate object to return
+    return(list(
+      links = links,
+      status = 200,
+      message = "OK. Hash created.",
+      data = json_sort_hash
+    ))
+  } else {
+    # generate links object
+    links <- as_tibble(list(
+      "hash" =
+        paste0("equals(hash,", json_sort_hash, ")")
+    ))
+
+    # generate object to return
+    return(list(
+      links = links,
+      status = 200,
+      message = "OK. Hash already present.",
+      data = json_sort_hash
+    ))
+  }
 }

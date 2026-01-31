@@ -1,0 +1,814 @@
+// src/router/routes.ts
+
+import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+
+// TODO: remove redundance in localStorage setting/reading
+
+export const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'Home',
+    component: () => import('@/views/HomeView.vue'),
+    meta: {
+      sitemap: {
+        priority: 1.0,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/Entities',
+    name: 'Entities',
+    component: () => import('@/views/tables/EntitiesTable.vue'),
+    props: (route) => ({
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
+    }),
+    meta: {
+      sitemap: {
+        priority: 0.9,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/Genes',
+    name: 'Genes',
+    component: () => import('@/views/tables/GenesTable.vue'),
+    props: (route) => ({
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
+    }),
+    meta: {
+      sitemap: {
+        priority: 0.9,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/Phenotypes',
+    name: 'Phenotypes',
+    component: () => import('@/views/tables/PhenotypesTable.vue'),
+    props: (route) => ({
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size || undefined,
+      fspec: route.query.fspec || undefined,
+    }),
+    meta: {
+      sitemap: {
+        priority: 0.9,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/CurationComparisons',
+    component: () => import('@/views/analyses/CurationComparisons.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('@/components/analyses/AnalysesCurationUpset.vue'),
+        name: 'CurationComparisons',
+      },
+      {
+        path: 'Similarity',
+        component: () => import('@/components/analyses/AnalysesCurationMatrixPlot.vue'),
+      },
+      {
+        path: 'Table',
+        component: () => import('@/components/analyses/AnalysesCurationComparisonsTable.vue'),
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/PhenotypeCorrelations',
+    component: () => import('@/views/analyses/PhenotypeCorrelations.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('@/components/analyses/AnalysesPhenotypeCorrelogram.vue'),
+        name: 'PhenotypeCorrelations',
+      },
+      {
+        path: 'PhenotypeCounts',
+        component: () => import('@/components/analyses/AnalysesPhenotypeCounts.vue'),
+      },
+      {
+        path: 'PhenotypeClusters',
+        component: () => import('@/components/analyses/AnalysesPhenotypeClusters.vue'),
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
+  // UNIFIED ANALYSIS VIEW (Combines Phenotype Clusters, Gene Networks, Correlation)
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/Analysis',
+    name: 'Analysis',
+    component: () => import('@/views/AnalysisView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
+  // NEW ROUTE FOR PHENO-FUNC CORRELATION
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/PhenotypeFunctionalCorrelation',
+    name: 'PhenotypeFunctionalCorrelation',
+    component: () => import('@/views/analyses/PhenotypeFunctionalCorrelation.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    path: '/VariantCorrelations',
+    component: () => import('@/views/analyses/VariantCorrelations.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('@/components/analyses/AnalysesVariantCorrelogram.vue'),
+        name: 'VariantCorrelations',
+      },
+      {
+        path: 'VariantCounts',
+        component: () => import('@/components/analyses/AnalysesVariantCounts.vue'),
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/EntriesOverTime',
+    name: 'EntriesOverTime',
+    component: () => import('@/views/analyses/EntriesOverTime.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/PublicationsNDD',
+    component: () => import('@/views/analyses/PublicationsNDD.vue'),
+    children: [
+      // 1) The "All" publications table from DB
+      {
+        path: '',
+        name: 'PublicationsNDDTable',
+        component: () => import('@/components/analyses/PublicationsNDDTable.vue'),
+      },
+      // 2) The time plot
+      {
+        path: 'TimePlot',
+        name: 'PublicationsNDDTimePlot',
+        component: () => import('@/components/analyses/PublicationsNDDTimePlot.vue'),
+      },
+      // 3) The stats bar plot
+      {
+        path: 'Stats',
+        name: 'PublicationsNDDStats',
+        component: () => import('@/components/analyses/PublicationsNDDStats.vue'),
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/PubtatorNDD',
+    component: () => import('@/views/analyses/PubtatorNDD.vue'),
+    // Example children: your table, genes, stats, etc. Expand as needed:
+    children: [
+      {
+        path: '',
+        name: 'PubtatorNDDTable',
+        component: () => import('@/components/analyses/PubtatorNDDTable.vue'),
+      },
+      {
+        path: 'PubtatorNDDGenes',
+        name: 'PubtatorNDDGenes',
+        component: () => import('@/components/analyses/PubtatorNDDGenes.vue'),
+      },
+      {
+        path: 'Stats',
+        name: 'PubtatorNDDStats',
+        component: () => import('@/components/analyses/PubtatorNDDStats.vue'),
+      },
+    ],
+    meta: {
+      sitemap: { priority: 0.7, changefreq: 'monthly' },
+    },
+  },
+  {
+    path: '/GeneNetworks',
+    name: 'GeneNetworks',
+    component: () => import('@/views/analyses/GeneNetworks.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
+    path: '/Panels/:category_input?/:inheritance_input?',
+    name: 'Panels',
+    component: () => import('@/views/tables/PanelsTable.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const categoryInput = Array.isArray(to.params.category_input)
+        ? to.params.category_input[0]
+        : to.params.category_input;
+      const inheritanceInput = Array.isArray(to.params.inheritance_input)
+        ? to.params.inheritance_input[0]
+        : to.params.inheritance_input;
+
+      if (
+        ['All', 'Limited', 'Definitive', 'Moderate', 'Refuted'].includes(categoryInput as string) &&
+        ['All', 'Autosomal dominant', 'Other', 'Autosomal recessive', 'X-linked'].includes(
+          inheritanceInput as string
+        )
+      ) {
+        next(); // everything good, proceed
+      } else {
+        next({ path: '/Panels/All/All' }); // redirect to a known setup
+      }
+    },
+  },
+  {
+    path: '/About',
+    name: 'About',
+    component: () => import('@/views/help/AboutView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
+    path: '/Documentation',
+    name: 'Documentation',
+    component: () => import('@/views/help/DocumentationView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
+    path: '/Login',
+    name: 'Login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
+    path: '/Register',
+    name: 'Register',
+    component: () => import('@/views/RegisterView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
+    path: '/User',
+    name: 'User',
+    component: () => import('@/views/UserView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/PasswordReset/:request_jwt?',
+    name: 'PasswordReset',
+    component: () => import('@/views/PasswordResetView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/Review',
+    name: 'Review',
+    component: () => import('@/views/review/Review.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ReviewInstructions',
+    name: 'ReviewInstructions',
+    component: () => import('@/views/review/ReviewInstructions.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/CreateEntity',
+    name: 'CreateEntity',
+    component: () => import('@/views/curate/CreateEntity.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ModifyEntity',
+    name: 'ModifyEntity',
+    component: () => import('@/views/curate/ModifyEntity.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ApproveReview',
+    name: 'ApproveReview',
+    component: () => import('@/views/curate/ApproveReview.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ApproveStatus',
+    name: 'ApproveStatus',
+    component: () => import('@/views/curate/ApproveStatus.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ApproveUser',
+    name: 'ApproveUser',
+    component: () => import('@/views/curate/ApproveUser.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ManageReReview',
+    name: 'ManageReReview',
+    component: () => import('@/views/curate/ManageReReview.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator', 'Curator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ManageUser',
+    name: 'ManageUser',
+    component: () => import('@/views/admin/ManageUser.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ManageAnnotations',
+    name: 'ManageAnnotations',
+    component: () => import('@/views/admin/ManageAnnotations.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ManageOntology',
+    name: 'ManageOntology',
+    component: () => import('@/views/admin/ManageOntology.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ManageAbout',
+    name: 'ManageAbout',
+    component: () => import('@/views/admin/ManageAbout.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else next();
+    },
+  },
+  {
+    path: '/ViewLogs',
+    name: 'ViewLogs',
+    component: () => import('@/views/admin/ViewLogs.vue'),
+    props: (route) => ({
+      sort: route.query.sort || undefined,
+      filter: route.query.filter || undefined,
+      fields: route.query.fields || undefined,
+      pageAfter: route.query.page_after || undefined,
+      pageSize: route.query.page_size ? parseInt(route.query.page_size as string, 10) : undefined,
+      fspec: route.query.fspec || undefined,
+    }),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else {
+        next();
+      }
+    },
+  },
+  {
+    path: '/AdminStatistics',
+    name: 'AdminStatistics',
+    component: () => import('@/views/admin/AdminStatistics.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else {
+        next();
+      }
+    },
+  },
+  {
+    path: '/ManageBackups',
+    name: 'ManageBackups',
+    component: () => import('@/views/admin/ManageBackups.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: (
+      to: RouteLocationNormalized,
+      from: RouteLocationNormalized,
+      next: NavigationGuardNext
+    ) => {
+      const allowed_roles = ['Administrator'];
+      let expires = 0;
+      let timestamp = 0;
+      let user_role = 'Viewer';
+
+      if (localStorage.token) {
+        expires = JSON.parse(localStorage.user).exp;
+        user_role = JSON.parse(localStorage.user).user_role;
+        timestamp = Math.floor(new Date().getTime() / 1000);
+      }
+
+      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
+        next({ name: 'Login' });
+      } else {
+        next();
+      }
+    },
+  },
+  {
+    path: '/Entities/:entity_id',
+    name: 'Entity',
+    component: () => import('@/views/pages/EntityView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/Genes/:symbol',
+    name: 'Gene',
+    component: () => import('@/views/pages/GeneView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/Ontology/:disease_term',
+    name: 'Ontology',
+    component: () => import('@/views/pages/OntologyView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/Search/:search_term',
+    name: 'Search',
+    component: () => import('@/views/pages/SearchView.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/PageNotFoundView.vue'),
+  },
+  {
+    path: '/API',
+    name: 'API',
+    component: () => import('@/views/ApiView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.8,
+        changefreq: 'monthly',
+      },
+    },
+  },
+];
+
+// Module augmentation for route meta types
+declare module 'vue-router' {
+  interface RouteMeta {
+    sitemap?: {
+      priority?: number;
+      changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+      ignoreRoute?: boolean;
+    };
+    requiresAuth?: boolean;
+  }
+}

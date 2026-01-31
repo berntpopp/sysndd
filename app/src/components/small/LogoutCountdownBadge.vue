@@ -1,27 +1,20 @@
 <!-- LogoutCountdownBadge.vue -->
 <template>
-  <b-badge variant="info">
+  <BBadge variant="info">
     {{ Math.floor(time_to_logout) }}m
-    {{
-      ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(
-        0
-      )
-    }}s
-  </b-badge>
+    {{ ((time_to_logout - Math.floor(time_to_logout)) * 60).toFixed(0) }}s
+  </BBadge>
 </template>
 
 <script>
-import Vue from 'vue';
-
-import toastMixin from '@/assets/js/mixins/toastMixin';
-
-import { BBadge } from 'bootstrap-vue';
-
-Vue.component('b-badge', BBadge);
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'LogoutCountdownBadge',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       time_to_logout: 0,
@@ -36,7 +29,7 @@ export default {
     }, UPDATE_INTERVAL);
     this.updateDiffs();
   },
-  beforeDestroy() {
+  beforeUnmount() {
     clearInterval(this.interval);
   },
   methods: {
@@ -59,7 +52,7 @@ export default {
     },
     // TODO: move to a mixin to be used in other components (DRY)
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/refresh`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/refresh`;
       try {
         const response_refresh = await this.axios.get(apiAuthenticateURL, {
           headers: {
@@ -74,7 +67,7 @@ export default {
     },
     // TODO: move to a mixin to be used in other components (DRY)
     async signinWithJWT() {
-      const apiAuthenticateURL = `${process.env.VUE_APP_API_URL}/api/auth/signin`;
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
 
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
@@ -105,24 +98,23 @@ export default {
             const h = this.$createElement;
 
             // compose the logout message
-            const vNodesMsg = h(
-              'p',
-              { class: ['text-center', 'mb-0'] },
-              [
-                'Token ',
-                h('b-badge', {
+            const vNodesMsg = h('p', { class: ['text-center', 'mb-0'] }, [
+              'Token ',
+              h(
+                'b-badge',
+                {
                   props: { variant: 'success', href: '#' },
                   // TODO: make the modal close after clicking on the badge
                   on: { click: () => this.refreshWithJWT() },
                 },
-                'refresh now'),
-              ],
-            );
+                'refresh now'
+              ),
+            ]);
 
             this.makeToast(
               [vNodesMsg],
               `Warning: Logout in ${expires - timestamp} seconds`,
-              'danger',
+              'danger'
             );
           }
         } else {

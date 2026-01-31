@@ -1,0 +1,94 @@
+// Modern card component styling
+// Implements soft shadows, rounded corners, and compact density for data-heavy views
+
+:root {
+  // Card-specific design tokens
+  --card-border-color: rgba(0, 0, 0, 0.08); // Subtle border
+  --card-header-bg: var(--neutral-50); // Light background for headers
+  --card-header-dark-bg: var(--neutral-700); // Dark variant
+}
+
+// Base card styles - enhance Bootstrap card appearance
+.card {
+  border-radius: var(--radius-md); // 0.375rem - subtle rounding
+  box-shadow: var(--shadow-sm); // Soft elevation
+  border: 1px solid var(--card-border-color); // Subtle border
+  transition: box-shadow var(--transition-base); // Smooth shadow changes
+}
+
+// Interactive cards - hover elevation effect
+// Use .card-interactive class for clickable cards (not all cards need this)
+.card-interactive {
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: var(--shadow-md); // Elevated on hover
+  }
+
+  // Keyboard focus indicator (WCAG 2.2 compliance)
+  &:focus {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+// Card header refinements
+.card-header {
+  // Rounded top corners only
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: var(--spacing-3) var(--spacing-4); // Compact vertical, comfortable horizontal
+  border-bottom: 1px solid var(--card-border-color);
+  background-color: var(--card-header-bg);
+  font-weight: 600; // Emphasize header text
+
+  // Dark variant with proper contrast
+  &.bg-dark {
+    background-color: var(--card-header-dark-bg);
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+// Card body spacing options
+.card-body {
+  padding: var(--spacing-4); // Default comfortable padding
+
+  // Compact variant for data-heavy views (tables, gene lists, etc.)
+  &.card-body-compact {
+    padding: var(--spacing-2) var(--spacing-3); // Tighter padding for density
+  }
+}
+
+// Card footer refinements
+.card-footer {
+  // Rounded bottom corners only
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--card-border-color);
+  background-color: var(--neutral-50);
+}
+
+// Card title sizing
+.card-title {
+  margin-bottom: var(--spacing-3);
+  font-weight: 600;
+}
+
+.card-subtitle {
+  margin-bottom: var(--spacing-2);
+  color: var(--neutral-600);
+}
+
+// Nested cards (cards within cards)
+.card .card {
+  box-shadow: var(--shadow-xs); // Less shadow for nested context
+}
+
+// WCAG 2.2 NFR-03.6: Respect reduced motion preferences
+// Transitions already use var(--transition-base) which becomes 0.01ms with prefers-reduced-motion
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card-interactive {
+    transition: none; // Disable all transitions
+  }
+}

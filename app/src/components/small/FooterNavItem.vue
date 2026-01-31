@@ -1,9 +1,5 @@
 <template>
-  <b-nav-item
-    :link-attrs="item.linkAttr"
-    :href="item.link"
-    :target="item.target"
-  >
+  <BNavItem :link-attrs="item.linkAttr" :href="item.link" :target="item.target">
     <img
       :src="item.imgSrc"
       height="34"
@@ -11,8 +7,8 @@
       :alt="item.alt"
       :rel="relAttribute"
       @error="handleImageError"
-    >
-  </b-nav-item>
+    />
+  </BNavItem>
 </template>
 
 <script>

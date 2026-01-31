@@ -10,3 +10,16 @@ app/docker/nginx/key.pem
 
 # testing files
 TESTING.md
+
+# claude files
+CLAUDE.md
+.claude.planning/intel/
+
+# Coverage reports
+coverage/
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.playwright-mcp/

@@ -29,11 +29,15 @@ info_from_genereviews_pmid <- function(pmid_input) {
 genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   pmid_input <- str_replace_all(pmid_input, "PMID:", "")
 
-## TODO: find a faster implementation of the check
+  # Web scraping used for GeneReviews search (no dedicated API available)
+  # NCBI E-utilities does not provide GeneReviews Bookshelf ID mappings
+  # Current approach is reliable for GeneReviews-specific content
 
-  url <- paste0("https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
+  url <- paste0(
+    "https://www.ncbi.nlm.nih.gov/books/NBK1116/?term=",
     pmid_input,
-    "[PMID]")
+    "[PMID]"
+  )
   url_request <- url(url, "rb")
 
   webpage_request <- xml2::read_html(url_request, options = c("RECOVER"))
@@ -55,7 +59,6 @@ genereviews_from_pmid <- function(pmid_input, check = FALSE) {
   } else {
     return(as.logical(nchar(Bookshelf_IDs)))
   }
-
 }
 
 
@@ -120,27 +123,40 @@ info_from_genereviews <- function(Bookshelf_ID) {
     html_attr("content") %>%
     str_c(collapse = "; ")
 
-## TODO: some error here with title now having multiple matches,
-## seems to work in the import script check solution there
+  # Handle multiple title matches by taking the first one
+  # Multiple matches can occur when title extraction finds multiple elements
+  if (length(title) > 1) {
+    log_warn("Multiple title matches found",
+      bookshelf_id = Bookshelf_ID,
+      count = length(title)
+    )
+    title <- title[1]
+  }
 
-  return_tibble <- as_tibble_row(c("publication_id" = pmid,
-      "Bookshelf_ID" = Bookshelf_ID,
-      "Title" = title[1], "Abstract" = abstract,
-      "Date" = date_revision,
-      "First_author" = first_author,
-      "Keywords" = keywords)) %>%
+  return_tibble <- as_tibble_row(c(
+    "publication_id" = pmid,
+    "Bookshelf_ID" = Bookshelf_ID,
+    "Title" = title[1], "Abstract" = abstract,
+    "Date" = date_revision,
+    "First_author" = first_author,
+    "Keywords" = keywords
+  )) %>%
     separate(Date, c("Day", "Month", "Year"), sep = " ") %>%
     mutate(Month = match(Month, month.name)) %>%
     separate(First_author, c("Firstname", "Lastname"),
       sep = " (?=[^ ]*$)",
-      extra = "merge") %>%
+      extra = "merge"
+    ) %>%
     mutate(Journal_abbreviation = "GeneReviews") %>%
     mutate(Journal = "GeneReviews") %>%
     mutate(other_publication_id = paste0("Bookshelf_ID:", Bookshelf_ID)) %>%
-    mutate(Publication_date = paste0(Year, "-", str_pad(Month, 2, pad = "0"),
+    mutate(Publication_date = paste0(
+      Year, "-", str_pad(Month, 2, pad = "0"),
       "-",
-      str_pad(Day, 2, pad = "0"))) %>%
-    select(publication_id,
+      str_pad(Day, 2, pad = "0")
+    )) %>%
+    select(
+      publication_id,
       other_publication_id,
       Title, Abstract,
       Publication_date,
@@ -148,9 +164,10 @@ info_from_genereviews <- function(Bookshelf_ID) {
       Journal,
       Keywords,
       Lastname,
-      Firstname) %>%
+      Firstname
+    ) %>%
     select(-publication_id) %>%
-    mutate(across(everything(), ~replace_na(.x, "")))
+    mutate(across(everything(), ~ replace_na(.x, "")))
 
   return(return_tibble)
 }
@@ -184,31 +201,33 @@ info_from_genereviews <- function(Bookshelf_ID) {
 pmid_from_genereviews_name <- function(genereviews_name,
                                        base_url = "https://www.ncbi.nlm.nih.gov/books/n/gene/",
                                        selector = c("div.small", "span.label", "a")) {
-
   genereviews_url <- paste0(base_url, genereviews_name)
 
-  tryCatch({
-    genereviews_request <- xml2::read_html(genereviews_url, options = "RECOVER")
+  tryCatch(
+    {
+      genereviews_request <- xml2::read_html(genereviews_url, options = "RECOVER")
 
-    # Apply the CSS selectors in sequence
-    for (sel in selector) {
-      genereviews_request <- html_nodes(genereviews_request, sel)
+      # Apply the CSS selectors in sequence
+      for (sel in selector) {
+        genereviews_request <- html_nodes(genereviews_request, sel)
+      }
+
+      pmid <- genereviews_request %>%
+        html_attr("href") %>%
+        str_replace("/pubmed/", "") %>%
+        str_replace("/", "")
+
+      if (length(pmid) == 0) {
+        return(NA) # Return NA if PMID not found
+      }
+
+      return(pmid)
+    },
+    error = function(e) {
+      message("Error in reading URL: ", e$message)
+      return(NA)
     }
-
-    pmid <- genereviews_request %>%
-      html_attr("href") %>%
-      str_replace("/pubmed/", "") %>%
-      str_replace("/", "")
-
-    if (length(pmid) == 0) {
-      return(NA) # Return NA if PMID not found
-    }
-
-    return(pmid)
-  }, error = function(e) {
-    message("Error in reading URL: ", e$message)
-    return(NA)
-  })
+  )
 }
 
 
@@ -240,29 +259,31 @@ pmid_from_genereviews_name <- function(genereviews_name,
 pmid_from_bookshelf_id <- function(bookshelf_id,
                                    base_url = "https://www.ncbi.nlm.nih.gov/books/",
                                    selector = c("div.small", "span.label", "a")) {
-
   bookshelf_url <- paste0(base_url, bookshelf_id)
 
-  tryCatch({
-    bookshelf_request <- xml2::read_html(bookshelf_url, options = "RECOVER")
+  tryCatch(
+    {
+      bookshelf_request <- xml2::read_html(bookshelf_url, options = "RECOVER")
 
-    # Apply the CSS selectors in sequence
-    for (sel in selector) {
-      bookshelf_request <- html_nodes(bookshelf_request, sel)
+      # Apply the CSS selectors in sequence
+      for (sel in selector) {
+        bookshelf_request <- html_nodes(bookshelf_request, sel)
+      }
+
+      pmid <- bookshelf_request %>%
+        html_attr("href") %>%
+        str_replace("/pubmed/", "") %>%
+        str_replace("/", "")
+
+      if (length(pmid) == 0) {
+        return(NA) # Return NA if PMID not found
+      }
+
+      return(pmid)
+    },
+    error = function(e) {
+      message("Error in reading URL: ", e$message)
+      return(NA)
     }
-
-    pmid <- bookshelf_request %>%
-      html_attr("href") %>%
-      str_replace("/pubmed/", "") %>%
-      str_replace("/", "")
-
-    if (length(pmid) == 0) {
-      return(NA) # Return NA if PMID not found
-    }
-
-    return(pmid)
-  }, error = function(e) {
-    message("Error in reading URL: ", e$message)
-    return(NA)
-  })
+  )
 }

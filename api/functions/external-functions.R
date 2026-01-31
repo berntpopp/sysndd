@@ -24,36 +24,59 @@
 #' post_url_archive("https://example.com", parameter_capture_screenshot = "off")
 #'
 #' @export
-post_url_archive <- function(parameter_url,
-    parameter_capture_screenshot = "on") {
+post_url_archive <- function(
+  parameter_url,
+  parameter_capture_screenshot = "on"
+) {
+  # Validate URL is from SysNDD domain
+  # Additional checks: URL format, protocol (https), domain whitelist
+  url_valid <- str_detect(parameter_url, dw$archive_base_url) &&
+    str_starts(parameter_url, "https://") &&
+    nchar(parameter_url) < 2048 # URL length sanity check
 
-    # check if provided URL is valid
-    # TODO: implement more sanity checks
-    url_valid <- str_detect(parameter_url, dw$archive_base_url)
-
-    if (url_valid) {
+  if (url_valid) {
     # based on https://docs.google.com/document/
     # d/1Nsv52MvSjbLb2PCpHlat0gkzw0EvtSgpKHu4mk0MnrA/edit
     response <- httr::POST("https://web.archive.org/save",
-      body = list(url = parameter_url,
-        capture_screenshot = parameter_capture_screenshot),
-      add_headers(Accept = "application/json",
-        Authorization = paste0("LOW ",
+      body = list(
+        url = parameter_url,
+        capture_screenshot = parameter_capture_screenshot
+      ),
+      add_headers(
+        Accept = "application/json",
+        Authorization = paste0(
+          "LOW ",
           dw$archive_access_key,
           ":",
-          dw$archive_secret_key)))
-
-    # TODO: more meaningful response
-    # TODO: wait for and get success message
-    return(content(response))
-
-    } else {
-    # return Bad Request
-    return(list(status = 400,
-      message = paste0("The submittedURL",
-      "is not a valid SyNDD URL."
-                )
-            )
+          dw$archive_secret_key
         )
+      )
+    )
+
+    # Internet Archive SPN2 API is asynchronous
+    # Returns job_id immediately, actual archiving completes later
+    # Current implementation returns raw response with job_id
+    # Clients can poll job_id status endpoint if needed
+    response_content <- content(response)
+
+    # Basic response validation
+    if (response$status_code >= 400) {
+      return(list(
+        status = response$status_code,
+        message = "Internet Archive request failed",
+        details = response_content
+      ))
     }
+
+    return(response_content)
+  } else {
+    # return Bad Request
+    return(list(
+      status = 400,
+      message = paste0(
+        "The submittedURL",
+        "is not a valid SyNDD URL."
+      )
+    ))
+  }
 }

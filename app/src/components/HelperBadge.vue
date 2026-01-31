@@ -1,30 +1,19 @@
-/**
- * components/HelperBadge.vue
- *
- * @description The HelperBadge component displays a dropdown menu with various options for user assistance and feedback.
- * @component HelperBadge
- *
- * @example
- * <HelperBadge />
- *
- * @slot button-content - The content of the button that triggers the dropdown menu.
- *
- * @prop {String} variant - The variant of the dropdown button. Default is "primary".
- * @prop {String} toggle-class - The class to be applied to the dropdown button. Default is "rounded-circle px-2".
- * @prop {Boolean} no-caret - Whether to hide the caret icon. Default is false.
- * @prop {Boolean} dropup - Whether to show the dropdown menu above the button. Default is true.
- * @prop {String} title - The title of the dropdown button.
- *
- * @event click - Emitted when a dropdown item is clicked.
- *
- * @method copyURLCitation - Copies the URL citation to the clipboard.
- * @method createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API.
- */
+/** * components/HelperBadge.vue * * @description The HelperBadge component displays a dropdown menu
+with various options for user assistance and feedback. * @component HelperBadge * * @example *
+<HelperBadge />
+* * @slot button-content - The content of the button that triggers the dropdown menu. * * @prop
+{String} variant - The variant of the dropdown button. Default is "primary". * @prop {String}
+toggle-class - The class to be applied to the dropdown button. Default is "rounded-circle px-2". *
+@prop {Boolean} no-caret - Whether to hide the caret icon. Default is false. * @prop {Boolean}
+dropup - Whether to show the dropdown menu above the button. Default is true. * @prop {String} title
+- The title of the dropdown button. * * @event click - Emitted when a dropdown item is clicked. * *
+@method copyURLCitation - Copies the URL citation to the clipboard. * @method
+createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet Archive API. */
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- https://stackoverflow.com/questions/64487119/how-to-style-the-button-in-bootstrap-vue-dropdown-like-a-circle
    style based on https://codepen.io/Akrinu10/pen/vQJMVB -->
-    <b-dropdown
+    <BDropdown
       v-b-tooltip.hover.left
       variant="primary"
       toggle-class="rounded-circle px-2"
@@ -32,88 +21,71 @@
       no-caret
       dropup
       title="Help us improve this page. We value your feedback."
+      aria-label="Feedback and help menu"
     >
       <template #button-content>
-        <b-icon
-          icon="emoji-smile"
-          scale="1"
-        />
+        <i class="bi bi-emoji-smile" aria-hidden="true" />
+        <span class="visually-hidden">Feedback and help</span>
       </template>
 
-      <b-dropdown-item
-        v-b-tooltip.hover.left
-        title="Cite this page."
-        @click="copyURLCitation(path)"
-      >
-        <b-icon
-          icon="chat-left-quote-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
+      <BDropdownItem v-b-tooltip.hover.left title="Cite this page." @click="copyURLCitation(path)">
+        <i class="bi bi-chat-left-quote-fill" aria-hidden="true" /> Cite
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Fill out our form and tell us why you like this entry."
         :href="
           'https://docs.google.com/forms/d/e/1FAIpQLSdhfXPurTlJxIpocAasi7av-OoN-49QPt3gQac2HQhV49BXxA/viewform?usp=pp_url&entry.2050768323=' +
-            path
+          path
         "
         target="_blank"
       >
-        <b-icon
-          icon="hand-thumbs-up"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-hand-thumbs-up" aria-hidden="true" /> Like
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Fill out our form and tell us how to improve this entry."
         :href="
           'https://docs.google.com/forms/d/e/1FAIpQLSduPUP28WiFmhGTeWPPJoc18leskmdEReGB_Lv68sjY5n9w5g/viewform?usp=pp_url&entry.2050768323=' +
-            path
+          path
         "
         target="_blank"
       >
-        <b-icon
-          icon="hand-thumbs-down"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-hand-thumbs-down" aria-hidden="true" /> Improve
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="View our documentation."
         href="https://berntpopp.github.io/sysndd/"
         target="_blank"
       >
-        <b-icon
-          icon="book-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
+        <i class="bi bi-book-fill" aria-hidden="true" /> Docs
+      </BDropdownItem>
 
-      <b-dropdown-item
+      <BDropdownItem
         v-b-tooltip.hover.left
         title="Get help on our GitHub discussions page."
         href="https://github.com/berntpopp/sysndd/discussions"
         target="_blank"
       >
-        <b-icon
-          icon="question-circle-fill"
-          scale="1"
-        />
-      </b-dropdown-item>
-    </b-dropdown>
-  </b-container>
+        <i class="bi bi-question-circle-fill" aria-hidden="true" /> Help
+      </BDropdownItem>
+    </BDropdown>
+  </BContainer>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'HelperBadge',
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       name: 'HelperBadge',
@@ -157,7 +129,11 @@ export default {
         // copy to clipboard
         // TODO: update with job_id success info when in API response
         await navigator.clipboard.writeText(citation);
-        this.makeToast(`Thank you! Internet archive job_id: ${snapshotResponse.job_id}`, 'Citation copied', 'success');
+        this.makeToast(
+          `Thank you! Internet archive job_id: ${snapshotResponse.job_id}`,
+          'Citation copied',
+          'success'
+        );
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }
@@ -165,7 +141,7 @@ export default {
     async createInternetArchiveSnapshot(url) {
       try {
         // compose API URL
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/external/internet_archive?parameter_url=${url}`;
+        const apiUrl = `${import.meta.env.VITE_API_URL}/api/external/internet_archive?parameter_url=${url}`;
 
         // make the API call
         const response = await this.axios.get(apiUrl);

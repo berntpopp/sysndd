@@ -2,7 +2,7 @@
 <template>
   <div>
     <!-- Search inputs, filter buttons, etc. -->
-    <b-form-input
+    <BFormInput
       v-if="showFilterControls"
       v-model="filterContent"
       placeholder="Search any field..."
@@ -17,15 +17,14 @@ export default {
   props: {
     showFilterControls: {
       type: Boolean,
-      required: true,
       default: true,
     },
     initialFilterContent: {
       type: String,
-      required: true,
       default: '',
     },
   },
+  emits: ['update-filter'],
   data() {
     return {
       filterContent: this.initialFilterContent,

@@ -1,152 +1,188 @@
 <!-- views/review/Review.vue -->
 <template>
   <div class="container-fluid">
-    <b-spinner
-      v-if="loading"
-      label="Loading..."
-      class="float-center m-5"
-    />
-    <b-container
-      v-else
-      fluid
-    >
-      <b-row class="justify-content-md-center py-2">
-        <b-col
-          col
-          md="12"
-        >
+    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <BContainer v-else fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
           <!-- User Interface controls -->
-          <b-card
+          <BCard
             header-tag="header"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
-            :header-bg-variant="header_style[curation_selected]"
+            header-bg-variant="dark"
+            header-text-variant="light"
           >
             <template #header>
-              <b-row>
-                <b-col>
-                  <h6 class="mb-1 text-left font-weight-bold">
+              <BRow class="align-items-center">
+                <BCol>
+                  <h5 class="mb-0 text-start fw-bold">
                     Re-review table
-                    <b-badge variant="primary">
-                      Entities: {{ totalRows }}
-                    </b-badge>
-                  </h6>
-                </b-col>
-                <b-col>
-                  <h6 class="mb-1 text-right font-weight-bold">
-                    <b-icon
-                      :icon="user_icon[user.user_role[0]]"
-                      :variant="user_style[user.user_role[0]]"
-                      font-scale="1.0"
-                    />
-                    <b-badge
-                      :variant="user_style[user.user_role[0]]"
-                      class="ml-1"
-                    >
-                      {{ user.user_name[0] }}
-                    </b-badge>
-                    <b-badge
-                      :variant="user_style[user.user_role[0]]"
-                      class="ml-1"
-                    >
-                      {{ user.user_role[0] }}
-                    </b-badge>
-                    <b-badge
-                      v-if="
-                        (totalRows === 0) &
-                          ((filter === null) | (filter === '')) &
-                          !curation_selected
-                      "
-                      href="#"
-                      variant="warning"
-                      pill
-                      @click="newBatchApplication()"
-                    >
-                      New batch
-                    </b-badge>
-                    <div
+                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} entities </BBadge>
+                  </h5>
+                </BCol>
+                <BCol class="text-end">
+                  <div class="d-flex align-items-center justify-content-end gap-2">
+                    <!-- Curation mode switch -->
+                    <BFormCheckbox
                       v-if="curator_mode"
-                      class="custom-control custom-switch"
+                      v-model="curation_selected"
+                      switch
+                      size="sm"
+                      class="mb-0 text-light"
                     >
-                      <input
-                        id="curationSwitch"
-                        v-model="curation_selected"
-                        type="checkbox"
-                        button-variant="info"
-                        class="custom-control-input"
-                      >
-                      <label
-                        class="custom-control-label"
-                        for="curationSwitch"
-                      >Switch to curation</label>
-                    </div>
-                  </h6>
-                </b-col>
-              </b-row>
+                      Curation mode
+                    </BFormCheckbox>
+
+                    <!-- User info (compact) -->
+                    <span class="d-none d-md-inline text-light small">
+                      <i :class="'bi bi-' + user_icon[user.user_role[0]]" />
+                      {{ user.user_name[0] }}
+                    </span>
+
+                    <!-- Refresh button -->
+                    <BButton
+                      v-b-tooltip.hover.bottom
+                      variant="outline-light"
+                      size="sm"
+                      title="Refresh data"
+                      aria-label="Refresh table data"
+                      @click="loadReReviewData()"
+                    >
+                      <i class="bi bi-arrow-clockwise" aria-hidden="true" />
+                    </BButton>
+                  </div>
+                </BCol>
+              </BRow>
             </template>
 
-            <b-row>
-              <b-col class="my-1">
-                <b-form-group class="mb-1">
-                  <b-input-group
-                    prepend="Search"
-                    size="sm"
-                  >
-                    <b-form-input
-                      id="filter-input"
-                      v-model="filter"
-                      type="search"
-                      placeholder="any field by typing here"
-                      debounce="500"
-                    />
-                  </b-input-group>
-                </b-form-group>
-              </b-col>
+            <!-- Icon Legend -->
+            <div class="px-3 pt-2">
+              <IconLegend :legend-items="legendItems" title="Category & Re-review Status Icons" />
+            </div>
 
-              <b-col class="my-1" />
+            <!-- Search, filters, and pagination row (single consolidated row) -->
+            <BRow class="px-3 py-2 align-items-center">
+              <!-- Search input -->
+              <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
+                <BInputGroup size="sm">
+                  <template #prepend>
+                    <BInputGroupText>
+                      <i class="bi bi-search" />
+                    </BInputGroupText>
+                  </template>
+                  <BFormInput
+                    id="filter-input"
+                    v-model="filter"
+                    type="search"
+                    placeholder="Search any field..."
+                    debounce="500"
+                  />
+                </BInputGroup>
+              </BCol>
 
-              <b-col class="my-1" />
-
-              <b-col class="my-1">
-                <b-input-group
-                  prepend="Per page"
-                  class="mb-1"
+              <!-- Column filters (always visible) -->
+              <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
+                <BFormSelect
+                  v-model="categoryFilter"
                   size="sm"
-                >
-                  <b-form-select
+                  :options="categoryFilterOptions"
+                  aria-label="Filter by category"
+                />
+              </BCol>
+              <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
+                <BFormSelect
+                  v-model="userFilter"
+                  size="sm"
+                  :options="userFilterOptions"
+                  aria-label="Filter by user"
+                />
+              </BCol>
+
+              <!-- Quick filters -->
+              <BCol
+                cols="12"
+                md="4"
+                lg="5"
+                class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
+              >
+                <!-- Quick filter tags -->
+                <div class="d-flex align-items-center flex-wrap gap-1 me-2">
+                  <BBadge
+                    v-for="qf in activeQuickFilters"
+                    :key="qf.key"
+                    variant="secondary"
+                    class="d-flex align-items-center gap-1"
+                    style="cursor: pointer"
+                    @click="removeQuickFilter(qf.key)"
+                  >
+                    {{ qf.label }}
+                    <i class="bi bi-x" />
+                  </BBadge>
+                  <BDropdown
+                    v-if="availableQuickFilters.length > 0"
+                    size="sm"
+                    variant="outline-secondary"
+                    text="+ Filter"
+                    class="quick-filter-dropdown"
+                    toggle-class="py-0 px-2"
+                  >
+                    <BDropdownItem
+                      v-for="qf in availableQuickFilters"
+                      :key="qf.key"
+                      @click="addQuickFilter(qf.key)"
+                    >
+                      {{ qf.label }}
+                    </BDropdownItem>
+                  </BDropdown>
+                  <!-- New batch button -->
+                  <BBadge
+                    v-if="
+                      totalRows === 0 && (filter === null || filter === '') && !curation_selected
+                    "
+                    variant="warning"
+                    pill
+                    style="cursor: pointer"
+                    @click="newBatchApplication()"
+                  >
+                    <i class="bi bi-plus-circle me-1" />
+                    New batch
+                  </BBadge>
+                </div>
+
+                <!-- Pagination controls -->
+                <BInputGroup prepend="Per page" size="sm">
+                  <BFormSelect
                     id="per-page-select"
                     v-model="perPage"
                     :options="pageOptions"
                     size="sm"
                   />
-                </b-input-group>
+                </BInputGroup>
 
-                <b-pagination
+                <BPagination
                   v-model="currentPage"
                   :total-rows="totalRows"
                   :per-page="perPage"
-                  align="fill"
                   size="sm"
-                  class="my-0"
-                  last-number
+                  class="mb-0"
+                  limit="2"
                 />
-              </b-col>
-            </b-row>
+              </BCol>
+            </BRow>
             <!-- User Interface controls -->
 
             <!-- Main table element -->
-            <b-table
-              :items="items"
+            <BTable
+              :items="filteredItems"
               :fields="fields"
               :busy="isBusy"
               :current-page="currentPage"
               :per-page="perPage"
               :filter="filter"
               :filter-included-fields="filterOn"
-              :sort-by.sync="sortBy"
-              :sort-desc.sync="sortDesc"
-              :sort-direction="sortDirection"
+              :sort-by="sortBy"
               stacked="md"
               head-variant="light"
               show-empty
@@ -156,208 +192,159 @@
               hover
               sort-icon-left
               :empty-text="empty_table_text[curation_selected]"
+              @update:sort-by="handleSortByUpdate"
               @filtered="onFiltered"
             >
               <template #cell(actions)="row">
-                <b-button
+                <!-- Edit Review button -->
+                <BButton
                   v-b-tooltip.hover.left
                   size="sm"
-                  class="mr-1 btn-xs"
-                  variant="secondary"
-                  title="edit review"
+                  class="me-1 btn-xs"
+                  variant="outline-primary"
+                  title="Edit review"
+                  :aria-label="`Edit review for sysndd:${row.item.entity_id}`"
                   @click="infoReview(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="pen"
-                    font-scale="0.9"
-                    :variant="review_style[saved(row.item.review_id)]"
-                  />
-                </b-button>
+                  <i class="bi bi-pencil-square" aria-hidden="true" />
+                </BButton>
 
-                <b-button
+                <!-- Edit Status button -->
+                <BButton
                   v-b-tooltip.hover.top
                   size="sm"
-                  class="mr-1 btn-xs"
-                  :variant="stoplights_style[row.item.category_id]"
-                  title="edit status"
+                  class="me-1 btn-xs"
+                  variant="outline-secondary"
+                  title="Edit status"
+                  :aria-label="`Edit status for sysndd:${row.item.entity_id}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="stoplights"
-                    font-scale="0.9"
-                    :variant="status_style[saved(row.item.status_id)]"
-                  />
-                </b-button>
+                  <i class="bi bi-stoplights" aria-hidden="true" />
+                </BButton>
 
-                <!-- Button for review mode -->
-                <b-button
+                <!-- Submit button for review mode -->
+                <BButton
                   v-if="!curation_selected"
                   v-b-tooltip.hover.top
                   size="sm"
-                  class="mr-1 btn-xs"
-                  :variant="saved_style[row.item.re_review_review_saved]"
-                  title="submit entity review"
+                  class="me-1 btn-xs"
+                  :variant="row.item.re_review_review_saved ? 'success' : 'outline-success'"
+                  title="Submit entity review"
+                  :aria-label="`Submit review for sysndd:${row.item.entity_id}`"
                   @click="infoSubmit(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="check2-circle"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-send-check" aria-hidden="true" />
+                </BButton>
 
-                <!-- Button for curation mode -->
-                <b-button
+                <!-- Approve button for curation mode -->
+                <BButton
                   v-if="curation_selected"
                   v-b-tooltip.hover.right
                   size="sm"
-                  class="mr-1 btn-xs"
+                  class="me-1 btn-xs"
                   variant="danger"
-                  title="approve entity review/status"
+                  title="Approve entity review/status"
+                  :aria-label="`Approve review/status for sysndd:${row.item.entity_id}`"
                   @click="infoApprove(row.item, row.index, $event.target)"
                 >
-                  <b-icon
-                    icon="check2-circle"
-                    font-scale="0.9"
-                  />
-                </b-button>
+                  <i class="bi bi-check-circle-fill" aria-hidden="true" />
+                </BButton>
               </template>
 
               <template #cell(entity_id)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-link
-                    :href="'/Entities/' + data.item.entity_id"
-                    target="_blank"
-                  >
-                    <b-badge
-                      variant="primary"
-                      style="cursor: pointer"
-                    >
-                      sysndd:{{ data.item.entity_id }}
-                    </b-badge>
-                  </b-link>
-                </div>
+                <EntityBadge
+                  :entity-id="data.item.entity_id"
+                  :link-to="'/Entities/' + data.item.entity_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(symbol)="data">
-                <div class="font-italic overflow-hidden text-truncate">
-                  <b-link
-                    :href="'/Genes/' + data.item.hgnc_id"
-                    target="_blank"
-                  >
-                    <b-badge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="success"
-                      :title="data.item.hgnc_id"
-                    >
-                      {{ data.item.symbol }}
-                    </b-badge>
-                  </b-link>
-                </div>
+                <GeneBadge
+                  :symbol="data.item.symbol"
+                  :hgnc-id="data.item.hgnc_id"
+                  :link-to="'/Genes/' + data.item.hgnc_id"
+                  size="sm"
+                />
               </template>
 
               <template #cell(disease_ontology_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-link
-                    :href="
-                      '/Ontology/' +
-                        data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                    "
-                    target="_blank"
-                  >
-                    <b-badge
-                      v-b-tooltip.hover.leftbottom
-                      pill
-                      variant="secondary"
-                      :title="
-                        data.item.disease_ontology_name +
-                          '; ' +
-                          data.item.disease_ontology_id_version
-                      "
-                    >
-                      {{ truncate(data.item.disease_ontology_name, 40) }}
-                    </b-badge>
-                  </b-link>
-                </div>
+                <DiseaseBadge
+                  :name="data.item.disease_ontology_name"
+                  :ontology-id="data.item.disease_ontology_id_version"
+                  :link-to="
+                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                  "
+                  :max-length="35"
+                  size="sm"
+                />
               </template>
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-badge
-                    v-b-tooltip.hover.leftbottom
-                    pill
-                    variant="info"
-                    class="justify-content-md-center"
-                    size="1.3em"
-                    :title="
-                      data.item.hpo_mode_of_inheritance_term_name +
-                        ' (' +
-                        data.item.hpo_mode_of_inheritance_term +
-                        ')'
-                    "
-                  >
-                    {{
-                      inheritance_short_text[
-                        data.item.hpo_mode_of_inheritance_term_name
-                      ]
-                    }}
-                  </b-badge>
+                <InheritanceBadge
+                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
+              </template>
+
+              <template #cell(category)="data">
+                <div class="overflow-hidden text-truncate text-center">
+                  <span v-if="data.item.category" v-b-tooltip.hover.top :title="data.item.category">
+                    <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+                  </span>
+                  <span v-else class="text-muted">—</span>
                 </div>
               </template>
 
               <template #cell(ndd_phenotype_word)="data">
-                <div class="overflow-hidden text-truncate">
-                  <b-avatar
-                    v-b-tooltip.hover.left
-                    size="1.4em"
-                    :icon="ndd_icon[data.item.ndd_phenotype_word]"
-                    :variant="ndd_icon_style[data.item.ndd_phenotype_word]"
-                    :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                  />
+                <div class="overflow-hidden text-truncate text-center">
+                  <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+                    <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
+                  </span>
                 </div>
               </template>
 
               <template #cell(review_date)="data">
-                <div>
-                  <b-icon
-                    icon="pen"
-                    font-scale="0.7"
-                  />
-                  <b-badge
-                    v-b-tooltip.hover.right
-                    :variant="data_age_style[dateYearAge(data.item.review_date, 3)]"
+                <div class="d-flex align-items-center gap-1">
+                  <span
+                    v-b-tooltip.hover.top
                     :title="data_age_text[dateYearAge(data.item.review_date, 3)]"
-                    class="ml-1"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                    :class="`bg-${data_age_style[dateYearAge(data.item.review_date, 3)]}-subtle text-${data_age_style[dateYearAge(data.item.review_date, 3)]}`"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
-                    {{ data.item.review_date.substring(0,10) }}
-                  </b-badge>
+                    <i class="bi bi-calendar3" />
+                  </span>
+                  <span class="small text-muted">
+                    {{ data.item.review_date.substring(0, 10) }}
+                  </span>
                 </div>
               </template>
 
               <template #cell(review_user_name)="data">
-                <div>
-                  <b-icon
-                    :icon="user_icon[data.item.review_user_role]"
-                    :variant="user_style[data.item.review_user_role]"
-                    font-scale="1.0"
-                  />
-                  <b-badge
-                    v-b-tooltip.hover.right
-                    :variant="user_style[data.item.review_user_role]"
+                <div class="d-flex align-items-center gap-1">
+                  <span
+                    v-b-tooltip.hover.top
                     :title="data.item.review_user_role"
-                    class="ml-1"
+                    class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                    :class="`bg-${user_style[data.item.review_user_role]}-subtle text-${user_style[data.item.review_user_role]}`"
+                    style="width: 24px; height: 24px; font-size: 0.75rem"
                   >
+                    <i :class="'bi bi-' + user_icon[data.item.review_user_role]" />
+                  </span>
+                  <span class="small">
                     {{ data.item.review_user_name }}
-                  </b-badge>
+                  </span>
                 </div>
               </template>
-            </b-table>
-          </b-card>
-        </b-col>
-      </b-row>
+            </BTable>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- 1) Review modal -->
-      <b-modal
+      <BModal
         :id="reviewModal.id"
         :ref="reviewModal.id"
         size="xl"
@@ -365,461 +352,94 @@
         ok-title="Submit"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        :busy="loading_review_modal"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        :busy="reviewFormLoading"
+        @show="onReviewModalShow"
         @ok="submitReviewChange"
       >
-        <template #modal-title>
-          <h4>
-            Modify review for entity:
-            <b-link
-              :href="'/Entities/' + review_info.entity_id"
-              target="_blank"
-            >
-              <b-badge variant="primary">
-                sysndd:{{ review_info.entity_id }}
-              </b-badge>
-            </b-link>
-            <b-link
-              :href="'/Genes/' + entity_info.symbol"
-              target="_blank"
-            >
-              <b-badge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="success"
-                :title="entity_info.hgnc_id"
-              >
-                {{ entity_info.symbol }}
-              </b-badge>
-            </b-link>
-            <b-link
-              :href="
-                '/Ontology/' +
-                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
-              "
-              target="_blank"
-            >
-              <b-badge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="secondary"
-                :title="
-                  entity_info.disease_ontology_name +
-                    '; ' +
-                    entity_info.disease_ontology_id_version
-                "
-              >
-                {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </b-badge>
-            </b-link>
-            <b-badge
-              v-b-tooltip.hover.leftbottom
-              pill
-              variant="info"
-              class="justify-content-md-center"
-              size="1.3em"
-              :title="
-                entity_info.hpo_mode_of_inheritance_term_name +
-                  ' (' +
-                  entity_info.hpo_mode_of_inheritance_term +
-                  ')'
-              "
-            >
-              {{
-                inheritance_short_text[
-                  entity_info.hpo_mode_of_inheritance_term_name
-                ]
-              }}
-            </b-badge>
-          </h4>
-        </template>
-
-        <template #modal-footer="{ ok, cancel }">
-          <div class="w-100">
-            <p class="float-left">
-              Review by:
-              <b-icon
-                :icon="user_icon[review_info.review_user_role]"
-                :variant="user_style[review_info.review_user_role]"
-                font-scale="1.0"
-              />
-              <b-badge
-                :variant="user_style[review_info.review_user_role]"
-                class="ml-1"
-              >
-                {{ review_info.review_user_name }}
-              </b-badge>
-              <b-badge
-                :variant="user_style[review_info.review_user_role]"
-                class="ml-1"
-              >
-                {{ review_info.review_user_role }}
-              </b-badge>
-              <b-badge
-                variant="dark"
-                class="ml-1"
-              >
-                {{ review_info.review_date }}
-              </b-badge>
-            </p>
-
-            <!-- Emulate built in modal footer ok and cancel button actions -->
-            <b-button
-              variant="primary"
-              class="float-right mr-2"
-              @click="ok()"
-            >
-              Save review
-            </b-button>
-            <b-button
-              variant="secondary"
-              class="float-right mr-2"
-              @click="cancel()"
-            >
-              Cancel
-            </b-button>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-pencil-square me-2 text-primary" />
+            <span class="fw-semibold">Edit Review</span>
           </div>
         </template>
 
-        <b-overlay
-          :show="loading_review_modal"
-          rounded="sm"
-        >
-          <b-form
-            ref="form"
-            @submit.stop.prevent="submitReviewChange"
-          >
-            <!-- Synopsis textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-synopsis"
-            >Synopsis</label>
+        <template #footer="{ ok, cancel }">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <span v-if="reviewFormIsSaving" class="d-flex align-items-center gap-1">
+                <BSpinner small variant="secondary" />
+                <span>Saving...</span>
+              </span>
+              <span v-if="review_info.review_user_name" class="d-flex align-items-center gap-1">
+                <i :class="'bi bi-' + user_icon[review_info.review_user_role]" />
+                <span>{{ review_info.review_user_name }}</span>
+                <span class="text-muted">·</span>
+                <span>{{ review_info.review_date?.substring(0, 10) }}</span>
+              </span>
+            </div>
+            <div class="d-flex gap-2">
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
+                <i class="bi bi-check-lg me-1" />
+                Save Review
+              </BButton>
+            </div>
+          </div>
+        </template>
 
-            <b-badge
-              id="popover-badge-help-synopsis"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-synopsis"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Synopsis instructions
-              </template>
-              Short summary for this disease entity. Please include information
-              on: <br>
-              <strong>a)</strong> approximate number of patients described in
-              literature, <br>
-              <strong>b)</strong> nature of reported variants, <br>
-              <strong>c)</strong> severity of intellectual disability, <br>
-              <strong>d)</strong> further phenotypic aspects (if possible with
-              frequencies), <br>
-              <strong>e)</strong> any valuable further information (e.g.
-              genotype-phenotype correlations).<br>
-            </b-popover>
-
-            <b-form-textarea
-              id="review-textarea-synopsis"
-              v-model="review_info.synopsis"
-              rows="3"
+        <!-- Entity context header -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <h6 class="text-muted mb-2 small text-uppercase fw-semibold">
+            <i class="bi bi-info-circle me-1" />
+            Entity Details
+          </h6>
+          <div class="d-flex flex-wrap gap-2">
+            <EntityBadge
+              v-if="review_info.entity_id"
+              :entity-id="review_info.entity_id"
+              :link-to="'/Entities/' + review_info.entity_id"
               size="sm"
             />
-            <!-- Synopsis textarea -->
-
-            <!-- Phenotype select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-phenotype-select"
-            >Phenotypes</label>
-
-            <b-badge
-              id="popover-badge-help-phenotypes"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-phenotypes"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Phenotypes instructions
-              </template>
-              Add or remove associated phenotypes. Only phenotypes that occur in
-              20% or more of affected individuals should be included. Please
-              also include information on severity of ID.
-            </b-popover>
-
-            <treeselect
-              id="review-phenotype-select"
-              v-model="select_phenotype"
-              :multiple="true"
-              :flat="true"
-              :options="phenotypes_options"
-              :normalizer="normalizePhenotypes"
-              required
-            />
-            <!-- Phenotype select -->
-
-            <!-- Variation ontology select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-variation-select"
-            >Variation ontology</label>
-
-            <b-badge
-              id="popover-badge-help-variation"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-variation"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Variation instructions
-              </template>
-              Please select or deselect the types of variation associated with the disease entity.
-              <br>
-              Minimum information should include <strong>“protein truncating variation”</strong> and/or
-              <strong>“non-synonymous variation”</strong>.
-              <br>
-              If known, please also select the functional impact of these variations,
-              i.e. if there is a protein <strong>"loss-of-function"</strong> or <strong>"gain-of-function"</strong>.
-              <br>
-            </b-popover>
-
-            <treeselect
-              id="review-variation-select"
-              v-model="select_variation"
-              :multiple="true"
-              :flat="true"
-              :options="variation_ontology_options"
-              :normalizer="normalizeVariationOntology"
-              required
-            />
-            <!-- Variation ontology select -->
-
-            <!-- publications tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-publications-select"
-            >Publications</label>
-
-            <b-badge
-              id="popover-badge-help-publications"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-publications"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Publications instructions
-              </template>
-              No complete catalog of entity-related literature required.
-              <br>
-              If information in the clinical synopsis is not only based on OMIM
-              entries, please include PMID of the article(s) used as a source
-              for the clinical synopsis. <br>
-              - Input is only valid when starting with
-              <strong>"PMID:"</strong> followed by a number
-            </b-popover>
-
-            <b-form-tags
-              v-model="select_additional_references"
-              input-id="review-literature-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template
-                v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
-                <b-input-group class="my-0">
-                  <b-form-input
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <b-form-tag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <b-link
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
-                        {{ tag }}
-                      </b-link>
-                    </b-form-tag>
-                  </h6>
-                </div>
-              </template>
-            </b-form-tags>
-            <!-- publications tag form with links out -->
-
-            <!-- genereviews tag form with links out -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-genereviews-select"
-            >Genereviews</label>
-
-            <b-badge
-              id="popover-badge-help-genereviews"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-genereviews"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                GeneReviews instructions
-              </template>
-              Please add PMID for GeneReview article if available for this
-              entity. <br>
-              - Input is only valid when starting with
-              <strong>"PMID:"</strong> followed by a number
-            </b-popover>
-
-            <b-form-tags
-              v-model="select_gene_reviews"
-              input-id="review-genereviews-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template
-                v-slot="{ tags, inputAttrs, inputHandlers, addTag, removeTag }"
-              >
-                <b-input-group class="my-0">
-                  <b-form-input
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <b-input-group-append>
-                    <b-button
-                      variant="secondary"
-                      size="sm"
-                      @click="addTag()"
-                    >
-                      Add
-                    </b-button>
-                  </b-input-group-append>
-                </b-input-group>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <b-form-tag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <b-link
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                            tag.replace('PMID:', '')
-                        "
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <b-icon
-                          icon="box-arrow-up-right"
-                          font-scale="0.9"
-                        />
-                        {{ tag }}
-                      </b-link>
-                    </b-form-tag>
-                  </h6>
-                </div>
-              </template>
-            </b-form-tags>
-            <!-- genereviews tag form with links out -->
-
-            <!-- Review comment textarea -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="review-textarea-comment"
-            >Comment</label>
-            <b-form-textarea
-              id="review-textarea-comment"
-              v-model="review_info.comment"
-              rows="2"
+            <GeneBadge
+              :symbol="entity_info.symbol"
+              :hgnc-id="entity_info.hgnc_id"
+              :link-to="'/Genes/' + entity_info.hgnc_id"
               size="sm"
-              placeholder="Additional comments to this entity relevant for the curator."
             />
-            <!-- Review comment textarea -->
-          </b-form>
-        </b-overlay>
-      </b-modal>
+            <DiseaseBadge
+              :name="entity_info.disease_ontology_name"
+              :ontology-id="entity_info.disease_ontology_id_version"
+              :link-to="'/Ontology/' + entity_info.disease_ontology_id_version.replace(/_.+/g, '')"
+              :max-length="35"
+              size="sm"
+            />
+            <InheritanceBadge
+              :full-name="entity_info.hpo_mode_of_inheritance_term_name"
+              :hpo-term="entity_info.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <!-- Review form section -->
+        <h6 class="text-muted border-bottom pb-2 mb-3">
+          <i class="bi bi-journal-text me-2" />
+          Review Information
+        </h6>
+
+        <ReviewFormFields
+          v-model="reviewFormData"
+          :phenotypes-options="phenotypes_options"
+          :variation-options="variation_ontology_options"
+          :loading="reviewFormLoading"
+        />
+      </BModal>
       <!-- 1) Review modal -->
 
       <!-- 2) Status modal -->
-      <b-modal
+      <BModal
         :id="statusModal.id"
         :ref="statusModal.id"
         size="lg"
@@ -827,345 +447,366 @@
         ok-title="Submit"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        :busy="loading_status_modal"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        :busy="statusFormLoading"
+        @show="onStatusModalShow"
         @ok="submitStatusChange"
       >
-        <template #modal-title>
-          <h4>
-            Modify status for entity:
-            <b-link
-              :href="'/Entities/' + status_info.entity_id"
-              target="_blank"
-            >
-              <b-badge variant="primary">
-                sysndd:{{ status_info.entity_id }}
-              </b-badge>
-            </b-link>
-            <b-link
-              :href="'/Genes/' + entity_info.symbol"
-              target="_blank"
-            >
-              <b-badge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="success"
-                :title="entity_info.hgnc_id"
-              >
-                {{ entity_info.symbol }}
-              </b-badge>
-            </b-link>
-            <b-link
-              :href="
-                '/Ontology/' +
-                  entity_info.disease_ontology_id_version.replace(/_.+/g, '')
-              "
-              target="_blank"
-            >
-              <b-badge
-                v-b-tooltip.hover.leftbottom
-                pill
-                variant="secondary"
-                :title="
-                  entity_info.disease_ontology_name +
-                    '; ' +
-                    entity_info.disease_ontology_id_version
-                "
-              >
-                {{ truncate(entity_info.disease_ontology_name, 40) }}
-              </b-badge>
-            </b-link>
-            <b-badge
-              v-b-tooltip.hover.leftbottom
-              pill
-              variant="info"
-              class="justify-content-md-center"
-              size="1.3em"
-              :title="
-                entity_info.hpo_mode_of_inheritance_term_name +
-                  ' (' +
-                  entity_info.hpo_mode_of_inheritance_term +
-                  ')'
-              "
-            >
-              {{
-                inheritance_short_text[
-                  entity_info.hpo_mode_of_inheritance_term_name
-                ]
-              }}
-            </b-badge>
-          </h4>
-        </template>
-
-        <template #modal-footer="{ ok, cancel }">
-          <div class="w-100">
-            <p class="float-left">
-              Status by:
-              <b-icon
-                :icon="user_icon[status_info.status_user_role]"
-                :variant="user_style[status_info.status_user_role]"
-                font-scale="1.0"
-              />
-              <b-badge
-                :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
-              >
-                {{ status_info.status_user_name }}
-              </b-badge>
-              <b-badge
-                :variant="user_style[status_info.status_user_role]"
-                class="ml-1"
-              >
-                {{ status_info.status_user_role }}
-              </b-badge>
-              <b-badge
-                variant="dark"
-                class="ml-1"
-              >
-                {{ status_info.status_date }}
-              </b-badge>
-            </p>
-
-            <!-- Emulate built in modal footer ok and cancel button actions -->
-            <b-button
-              variant="primary"
-              class="float-right mr-2"
-              @click="ok()"
-            >
-              Save status
-            </b-button>
-            <b-button
-              variant="secondary"
-              class="float-right mr-2"
-              @click="cancel()"
-            >
-              Cancel
-            </b-button>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-stoplights me-2 text-secondary" />
+            <span class="fw-semibold">Edit Status</span>
           </div>
         </template>
 
-        <b-overlay
-          :show="loading_status_modal"
-          rounded="sm"
-        >
-          <b-form
-            ref="form"
-            @submit.stop.prevent="submitStatusChange"
-          >
-            <!-- Status select -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="status-select"
-            >Status</label>
-
-            <b-badge
-              id="popover-badge-help-status"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-status"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Status instructions
-              </template>
-              Please refer to the curation manual for details on the categories.
-            </b-popover>
-
-            <treeselect
-              id="status-select"
-              v-model="status_info.category_id"
-              :multiple="false"
-              :options="status_options"
-              :normalizer="normalizeStatus"
-            />
-            <!-- Status select -->
-
-            <!-- Suggest removal switch -->
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="removeSwitch"
-            >Removal</label>
-
-            <b-badge
-              id="popover-badge-help-removal"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-
-            <b-popover
-              target="popover-badge-help-removal"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Removal instructions
-              </template>
-              SysNDD does not forget, meaning that entities will not be deleted
-              but they can be deactivated. Deactivated entities will not be
-              displayed on the website. Typically duplicate entities should be
-              deactivated especially if there is a more specific disease name.
-            </b-popover>
-
-            <div class="custom-control custom-switch">
-              <input
-                id="removeSwitch"
-                v-model="status_info.problematic"
-                type="checkbox"
-                button-variant="info"
-                class="custom-control-input"
-              >
-              <label
-                class="custom-control-label"
-                for="removeSwitch"
-              >Suggest removal</label>
+        <template #footer="{ ok, cancel }">
+          <div class="w-100 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2 text-muted small">
+              <span v-if="statusFormIsSaving" class="d-flex align-items-center gap-1">
+                <BSpinner small variant="secondary" />
+                <span>Saving...</span>
+              </span>
+              <span v-if="statusFormData.status_user_name" class="d-flex align-items-center gap-1">
+                <i :class="'bi bi-' + user_icon[statusFormData.status_user_role]" />
+                <span>{{ statusFormData.status_user_name }}</span>
+                <span class="text-muted">·</span>
+                <span>{{ statusFormData.status_date?.substring(0, 10) }}</span>
+              </span>
             </div>
-            <!-- Suggest removal switch -->
+            <div class="d-flex gap-2">
+              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+              <BButton variant="primary" @click="ok()">
+                <i class="bi bi-check-lg me-1" />
+                Save Status
+              </BButton>
+            </div>
+          </div>
+        </template>
 
-            <label
-              class="mr-sm-2 font-weight-bold"
-              for="status-textarea-comment"
-            >Comment</label>
-            <b-form-textarea
-              id="status-textarea-comment"
-              v-model="status_info.comment"
-              rows="2"
+        <!-- Entity context header -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <h6 class="text-muted mb-2 small text-uppercase fw-semibold">
+            <i class="bi bi-info-circle me-1" />
+            Entity Details
+          </h6>
+          <div class="d-flex flex-wrap gap-2">
+            <EntityBadge
+              v-if="statusFormData.entity_id"
+              :entity-id="statusFormData.entity_id"
+              :link-to="'/Entities/' + statusFormData.entity_id"
               size="sm"
-              placeholder="Why should this entities status be changed."
             />
-          </b-form>
-        </b-overlay>
-      </b-modal>
+            <GeneBadge
+              :symbol="entity_info.symbol"
+              :hgnc-id="entity_info.hgnc_id"
+              :link-to="'/Genes/' + entity_info.hgnc_id"
+              size="sm"
+            />
+            <DiseaseBadge
+              :name="entity_info.disease_ontology_name"
+              :ontology-id="entity_info.disease_ontology_id_version"
+              :link-to="'/Ontology/' + entity_info.disease_ontology_id_version.replace(/_.+/g, '')"
+              :max-length="35"
+              size="sm"
+            />
+            <InheritanceBadge
+              :full-name="entity_info.hpo_mode_of_inheritance_term_name"
+              :hpo-term="entity_info.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <BOverlay :show="statusFormLoading" rounded="sm">
+          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
+            <!-- Status Classification Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+              <i class="bi bi-diagram-3 me-2" />
+              Classification
+            </h6>
+
+            <BFormGroup label="Status Category" label-for="status-select" class="mb-3">
+              <template #label>
+                <span class="fw-semibold">Status Category</span>
+                <BBadge
+                  id="popover-badge-help-status"
+                  pill
+                  href="#"
+                  variant="info"
+                  class="ms-2"
+                  style="cursor: help"
+                >
+                  <i class="bi bi-question-circle-fill" />
+                </BBadge>
+              </template>
+              <BFormSelect
+                v-if="status_options && status_options.length > 0"
+                id="status-select"
+                v-model="statusFormData.category_id"
+                :options="normalizeStatusOptions(status_options)"
+              >
+                <template #first>
+                  <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
+                </template>
+              </BFormSelect>
+            </BFormGroup>
+
+            <BPopover target="popover-badge-help-status" variant="info" triggers="focus">
+              <template #title> Status instructions </template>
+              Please refer to the curation manual for details on the categories.
+            </BPopover>
+
+            <!-- Removal Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-exclamation-triangle me-2" />
+              Entity Flags
+            </h6>
+
+            <BFormGroup class="mb-3">
+              <template #label>
+                <span class="fw-semibold">Removal Flag</span>
+                <BBadge
+                  id="popover-badge-help-removal"
+                  pill
+                  href="#"
+                  variant="info"
+                  class="ms-2"
+                  style="cursor: help"
+                >
+                  <i class="bi bi-question-circle-fill" />
+                </BBadge>
+              </template>
+              <BFormCheckbox id="removeSwitch" v-model="statusFormData.problematic" switch>
+                Suggest removal of this entity
+              </BFormCheckbox>
+            </BFormGroup>
+
+            <BPopover target="popover-badge-help-removal" variant="info" triggers="focus">
+              <template #title> Removal instructions </template>
+              SysNDD does not forget, meaning that entities will not be deleted but they can be
+              deactivated. Deactivated entities will not be displayed on the website. Typically
+              duplicate entities should be deactivated especially if there is a more specific
+              disease name.
+            </BPopover>
+
+            <!-- Comment Section -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+              <i class="bi bi-chat-left-text me-2" />
+              Notes
+            </h6>
+
+            <BFormGroup label="Comment" label-for="status-textarea-comment" class="mb-0">
+              <template #label>
+                <span class="fw-semibold">Comment</span>
+              </template>
+              <BFormTextarea
+                id="status-textarea-comment"
+                v-model="statusFormData.comment"
+                rows="3"
+                placeholder="Why should this entity's status be changed..."
+              />
+            </BFormGroup>
+          </BForm>
+        </BOverlay>
+      </BModal>
       <!-- 2) Status modal -->
 
       <!-- 3) Submit modal -->
-      <b-modal
+      <BModal
         :id="submitModal.id"
-        size="sm"
+        :ref="submitModal.id"
+        size="md"
         centered
-        ok-title="Submit review"
+        ok-title="Submit Review"
+        ok-variant="success"
+        cancel-variant="outline-secondary"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         @ok="handleSubmitOk"
       >
-        <template #modal-title>
-          <h4>
-            Entity:
-            <b-badge variant="primary">
-              {{ submitModal.title }}
-            </b-badge>
-          </h4>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-send-check me-2 text-success" />
+            <span class="fw-semibold">Submit Review</span>
+          </div>
         </template>
 
-        You have finished the re-review of this entity and
-        <span class="font-weight-bold">want to submit it</span>?
-      </b-modal>
+        <div class="text-center py-3">
+          <div class="mb-3">
+            <span
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success"
+              style="width: 64px; height: 64px; font-size: 1.5rem"
+            >
+              <i class="bi bi-check2-circle" />
+            </span>
+          </div>
+          <p class="mb-2">You have finished the re-review of entity</p>
+          <p class="mb-3">
+            <BBadge variant="primary" class="fs-6">
+              {{ submitModal.title }}
+            </BBadge>
+          </p>
+          <p class="text-muted small mb-0">Ready to submit for curator approval?</p>
+        </div>
+      </BModal>
       <!-- 3) Submit modal -->
 
       <!-- 4) Approve modal -->
-      <b-modal
+      <BModal
         :id="approveModal.id"
-        size="sm"
+        :ref="approveModal.id"
+        size="md"
         centered
         ok-title="Approve"
+        ok-variant="success"
+        cancel-variant="outline-secondary"
         no-close-on-esc
         no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
         @ok="handleApproveOk"
       >
-        <template #modal-title>
-          <h4>
-            Entity:
-            <b-badge variant="primary">
-              {{ approveModal.title }}
-            </b-badge>
-          </h4>
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill me-2 text-success" />
+            <span class="fw-semibold">Approve Entity</span>
+          </div>
         </template>
-        What should be approved ?
 
-        <div class="custom-control custom-switch">
-          <input
-            id="approveReviewSwitch"
-            v-model="review_approved"
-            type="checkbox"
-            button-variant="info"
-            class="custom-control-input"
-          >
-          <label
-            class="custom-control-label"
-            for="approveReviewSwitch"
-          >Review</label>
+        <!-- Entity context -->
+        <div class="bg-light rounded-3 p-3 mb-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">Entity:</span>
+            <BBadge variant="primary">
+              {{ approveModal.title }}
+            </BBadge>
+          </div>
         </div>
 
-        <div class="custom-control custom-switch">
-          <input
-            id="approveStatusSwitch"
-            v-model="status_approved"
-            type="checkbox"
-            button-variant="info"
-            class="custom-control-input"
-          >
-          <label
-            class="custom-control-label"
-            for="approveStatusSwitch"
-          >Status</label>
+        <!-- Approval options -->
+        <h6 class="text-muted border-bottom pb-2 mb-3">
+          <i class="bi bi-check2-square me-2" />
+          Select Items to Approve
+        </h6>
+
+        <div class="d-flex flex-column gap-2 mb-4">
+          <BFormCheckbox id="approveReviewSwitch" v-model="review_approved" switch>
+            <span class="fw-semibold">Review</span>
+            <span class="text-muted small d-block"
+              >Approve the clinical synopsis and annotations</span
+            >
+          </BFormCheckbox>
+
+          <BFormCheckbox id="approveStatusSwitch" v-model="status_approved" switch>
+            <span class="fw-semibold">Status</span>
+            <span class="text-muted small d-block">Approve the entity classification status</span>
+          </BFormCheckbox>
         </div>
 
-        <div>
-          <b-button
+        <!-- Danger zone -->
+        <div class="border border-warning rounded-3 p-3 bg-warning-subtle">
+          <h6 class="text-warning mb-2">
+            <i class="bi bi-exclamation-triangle me-1" />
+            Other Actions
+          </h6>
+          <BButton
             size="sm"
-            variant="warning"
-            @click="handleUnsetSubmission(), hideModal(approveModal.id)"
+            variant="outline-warning"
+            @click="(handleUnsetSubmission(), hideModal(approveModal.id))"
           >
-            <b-icon
-              icon="unlock"
-              font-scale="1.0"
-            /> Unsubmit
-          </b-button>
+            <i class="bi bi-unlock me-1" />
+            Unsubmit Review
+          </BButton>
+          <p class="text-muted small mb-0 mt-2">
+            Return this entity to the reviewer for further changes
+          </p>
         </div>
-      </b-modal>
+      </BModal>
       <!-- 4) Approve modal -->
-    </b-container>
+
+      <!-- AriaLiveRegion for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+    </BContainer>
   </div>
 </template>
 
 <script>
-// import the Treeselect component
-import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
+import useStatusForm from '@/views/curate/composables/useStatusForm';
+import useReviewForm from '@/views/curate/composables/useReviewForm';
+import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
+import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import IconLegend from '@/components/accessibility/IconLegend.vue';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
-import textMixin from '@/assets/js/mixins/textMixin';
+// Import UI components for consistent icons and badges
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import NddIcon from '@/components/ui/NddIcon.vue';
+import EntityBadge from '@/components/ui/EntityBadge.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
 
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Status from '@/assets/js/classes/submission/submissionStatus';
-import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
-import Variation from '@/assets/js/classes/submission/submissionVariation';
-import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 export default {
-  name: 'Review',
-  // register the Treeselect component
-  components: { Treeselect },
-  mixins: [toastMixin, colorAndSymbolsMixin, textMixin],
+  name: 'ReviewView',
+  components: {
+    ReviewFormFields,
+    CategoryIcon,
+    NddIcon,
+    EntityBadge,
+    GeneBadge,
+    DiseaseBadge,
+    InheritanceBadge,
+    AriaLiveRegion,
+    IconLegend,
+  },
+  setup() {
+    const { makeToast } = useToast();
+    const colorAndSymbols = useColorAndSymbols();
+    const text = useText();
+    const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
+
+    // Initialize status form composable
+    const statusForm = useStatusForm();
+    const {
+      formData: statusFormData,
+      loading: statusFormLoading,
+      isSaving: statusFormIsSaving,
+    } = statusForm;
+
+    // Initialize review form composable
+    const reviewForm = useReviewForm();
+    const {
+      formData: reviewFormData,
+      loading: reviewFormLoading,
+      isSaving: reviewFormIsSaving,
+    } = reviewForm;
+
+    return {
+      makeToast,
+      ...colorAndSymbols,
+      ...text,
+      statusFormData,
+      statusFormLoading,
+      statusFormIsSaving,
+      statusForm,
+      reviewFormData,
+      reviewFormLoading,
+      reviewFormIsSaving,
+      reviewForm,
+      a11yMessage,
+      a11yPoliteness,
+      announce,
+    };
+  },
   data() {
     return {
       items: [],
@@ -1175,7 +816,7 @@ export default {
           label: 'Entity',
           sortable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'symbol',
@@ -1183,13 +824,13 @@ export default {
           sortable: true,
           filterable: true,
           sortDirection: 'desc',
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'disease_ontology_name',
           label: 'Disease',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
         },
@@ -1197,45 +838,64 @@ export default {
           key: 'hpo_mode_of_inheritance_term_name',
           label: 'Inheritance',
           sortable: true,
-          class: 'text-left',
+          class: 'text-start',
           sortByFormatted: true,
           filterByFormatted: true,
+        },
+        {
+          key: 'category',
+          label: 'Category',
+          sortable: true,
+          class: 'text-center',
         },
         {
           key: 'ndd_phenotype_word',
           label: 'NDD',
           sortable: true,
-          class: 'text-left',
+          class: 'text-center',
         },
         {
           key: 'review_date',
           label: 'Review date',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'review_user_name',
           label: 'User',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'actions',
           label: 'Actions',
-          class: 'text-left',
+          class: 'text-center',
         },
       ],
       totalRows: 1,
       currentPage: 1,
-      perPage: '10',
-      pageOptions: ['10', '25', '50', '200'],
-      sortBy: '',
-      sortDesc: false,
-      sortDirection: 'asc',
+      perPage: 25,
+      pageOptions: [10, 25, 50, 100],
+      // Bootstrap-Vue-Next uses array-based sortBy format
+      sortBy: [{ key: 'entity_id', order: 'asc' }],
       filter: null,
       filterOn: [],
+      // Column filter controls
+      categoryFilter: null,
+      userFilter: null,
+      quickFilters: {
+        pending: false,
+        submitted: false,
+        needsStatus: false,
+      },
+      // Quick filter definitions
+      quickFilterDefs: [
+        { key: 'pending', label: 'Pending Review' },
+        { key: 'submitted', label: 'Submitted' },
+        { key: 'needsStatus', label: 'Needs Status' },
+      ],
       reviewModal: {
         id: 'review-modal',
         title: '',
@@ -1257,9 +917,7 @@ export default {
         content: [],
       },
       review: [{ synopsis: '' }],
-      review_fields: [
-        { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-left' },
-      ],
+      review_fields: [{ key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' }],
       status_options: [],
       status_info: new Status(),
       loading_status_modal: true,
@@ -1273,18 +931,13 @@ export default {
         hpo_mode_of_inheritance_term: '',
       },
       review_info: new Review(),
-      select_phenotype: [],
-      select_variation: [],
       phenotypes_options: [],
       variation_ontology_options: [],
-      select_additional_references: [],
-      select_gene_reviews: [],
       curation_selected: false,
       review_approved: false,
       status_approved: false,
       curator_mode: 0,
       loading: true,
-      loading_review_modal: true,
       user: {
         user_id: [],
         user_name: [],
@@ -1296,46 +949,90 @@ export default {
         exp: [],
       },
       isBusy: true,
+      legendItems: [
+        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+        { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'Re-review approved' },
+        { icon: 'bi bi-hourglass-split', color: '#ffc107', label: 'Pending re-review' },
+      ],
     };
   },
   computed: {
     sortOptions() {
       // Create an options list from our fields
-      return this.fields
-        .filter((f) => f.sortable)
-        .map((f) => ({ text: f.label, value: f.key }));
+      return this.fields.filter((f) => f.sortable).map((f) => ({ text: f.label, value: f.key }));
+    },
+    // Quick filter computed properties
+    activeQuickFilters() {
+      return this.quickFilterDefs.filter((qf) => this.quickFilters[qf.key]);
+    },
+    availableQuickFilters() {
+      return this.quickFilterDefs.filter((qf) => !this.quickFilters[qf.key]);
+    },
+    // Category filter options from unique values in items
+    categoryFilterOptions() {
+      const categories = [...new Set(this.items.map((item) => item.category))].filter(Boolean);
+      return [
+        { value: null, text: 'All Categories' },
+        ...categories.map((cat) => ({ value: cat, text: cat })),
+      ];
+    },
+    // User filter options from unique values in items
+    userFilterOptions() {
+      const users = [...new Set(this.items.map((item) => item.review_user_name))].filter(Boolean);
+      return [
+        { value: null, text: 'All Users' },
+        ...users.map((user) => ({ value: user, text: user })),
+      ];
+    },
+    // Filtered items based on category and user filters
+    filteredItems() {
+      let result = this.items;
+
+      // Apply category filter
+      if (this.categoryFilter) {
+        result = result.filter((item) => item.category === this.categoryFilter);
+      }
+
+      // Apply user filter
+      if (this.userFilter) {
+        result = result.filter((item) => item.review_user_name === this.userFilter);
+      }
+
+      // Apply quick filters
+      if (this.quickFilters.pending) {
+        result = result.filter((item) => !item.re_review_review_saved);
+      }
+      if (this.quickFilters.submitted) {
+        result = result.filter((item) => item.re_review_review_saved && !item.approved);
+      }
+      if (this.quickFilters.needsStatus) {
+        result = result.filter((item) => !item.status_id || !item.re_review_status_saved);
+      }
+
+      return result;
     },
   },
   watch: {
     // used to reload table when switching curator mode
-    curation_selected(newVal, oldVal) {
-      // watch it
+    curation_selected() {
       this.loadReReviewData();
     },
-    select_additional_references: {
-      handler(newVal) {
-        const sanitizedValues = newVal.map(this.sanitizeInput);
-        if (!this.arraysAreEqual(this.select_additional_references, sanitizedValues)) {
-          this.select_additional_references = sanitizedValues;
-        }
+    // Update totalRows when filters change
+    filteredItems: {
+      handler(newItems) {
+        this.totalRows = newItems.length;
       },
-      deep: true,
-    },
-    select_gene_reviews: {
-      handler(newVal) {
-        const sanitizedValues = newVal.map(this.sanitizeInput);
-        if (!this.arraysAreEqual(this.select_gene_reviews, sanitizedValues)) {
-          this.select_gene_reviews = sanitizedValues;
-        }
-      },
-      deep: true,
+      immediate: true,
     },
   },
   mounted() {
     if (localStorage.user) {
       this.user = JSON.parse(localStorage.user);
-      this.curator_mode = (this.user.user_role[0] === 'Administrator')
-        || (this.user.user_role[0] === 'Curator');
+      this.curator_mode =
+        this.user.user_role[0] === 'Administrator' || this.user.user_role[0] === 'Curator';
       console.log(this.user.user_role[0]);
       console.log(this.curator_mode);
     }
@@ -1345,26 +1042,69 @@ export default {
     this.loadStatusList();
   },
   methods: {
+    /**
+     * Transform phenotype/variation tree to make all modifiers selectable children.
+     * API returns: "present: X" as parent with [uncertain, variable, rare, absent] as children.
+     * We want: "X" as parent with [present, uncertain, variable, rare, absent] as children.
+     */
+    transformModifierTree(nodes) {
+      if (!Array.isArray(nodes)) return [];
+      return nodes.map((node) => {
+        // Extract phenotype name from "present: Phenotype Name" format
+        const phenotypeName = node.label.replace(/^present:\s*/, '');
+        // Extract the HP/ontology code from the ID (e.g., "1-HP:0001999" -> "HP:0001999")
+        const ontologyCode = node.id.replace(/^\d+-/, '');
+
+        // Create new parent with just the phenotype name
+        const newParent = {
+          id: `parent-${ontologyCode}`,
+          label: phenotypeName,
+          children: [
+            // Add "present" as first child (the original parent node, now selectable)
+            {
+              id: node.id,
+              label: `present: ${phenotypeName}`,
+            },
+            // Add all other modifiers as children with phenotype name for context
+            ...(node.children || []).map((child) => {
+              const modifier = child.label.replace(/:\s*.*$/, '');
+              return {
+                id: child.id,
+                label: `${modifier}: ${phenotypeName}`,
+              };
+            }),
+          ],
+        };
+
+        return newParent;
+      });
+    },
     async loadPhenotypesList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/phenotype?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.phenotypes_options = response.data;
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.phenotypes_options = [];
       }
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/variation_ontology?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
-        this.variation_ontology_options = response.data;
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        // Transform to make all modifiers selectable
+        this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.variation_ontology_options = [];
       }
     },
     async loadStatusList() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/list/status?tree=true`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
         const response = await this.axios.get(apiUrl);
         this.status_options = response.data;
@@ -1372,23 +1112,19 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    normalizePhenotypes(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
-    },
     normalizeStatus(node) {
       return {
         id: node.category_id,
         label: node.category,
       };
     },
-    normalizeVariationOntology(node) {
-      return {
-        id: node.id,
-        label: node.label,
-      };
+    // Normalize status options for BFormSelect
+    normalizeStatusOptions(options) {
+      if (!options || !Array.isArray(options)) return [];
+      return options.map((opt) => ({
+        value: opt.id,
+        text: opt.label,
+      }));
     },
     onFiltered(filteredItems) {
       // Trigger pagination to update the number of buttons/pages due to filtering
@@ -1399,35 +1135,46 @@ export default {
       this.status_approved = false;
       this.review_approved = false;
     },
-    infoReview(item, index, button) {
+    async infoReview(item, _index, _button) {
       this.reviewModal.title = `sysndd:${item.entity_id}`;
-      this.getEntity(item.entity_id);
-      this.loadReviewInfo(item.review_id, item.re_review_review_saved);
-      this.$root.$emit('bv::show::modal', this.reviewModal.id, button);
+      await this.getEntity(item.entity_id);
+
+      // Clear any existing draft and load fresh data from server
+      this.reviewForm.clearDraft();
+      await this.reviewForm.loadReviewData(item.review_id, item.re_review_review_saved);
+
+      // Load review metadata for footer display
+      await this.loadReviewInfo(item.review_id, item.re_review_review_saved);
+
+      this.$refs[this.reviewModal.id].show();
     },
-    infoStatus(item, index, button) {
+    async infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
-      this.getEntity(item.entity_id);
-      this.loadStatusInfo(item.status_id, item.re_review_status_saved);
-      this.$root.$emit('bv::show::modal', this.statusModal.id, button);
+      await this.getEntity(item.entity_id);
+
+      // Clear any existing draft and load fresh data from server
+      this.statusForm.clearDraft();
+      await this.statusForm.loadStatusData(item.status_id, item.re_review_status_saved);
+
+      this.$refs[this.statusModal.id].show();
     },
-    infoSubmit(item, index, button) {
+    infoSubmit(item, _index, _button) {
       this.submitModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit('bv::show::modal', this.submitModal.id, button);
+      this.$refs[this.submitModal.id].show();
     },
-    infoApprove(item, index, button) {
+    infoApprove(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
       this.entity = [];
       this.entity.push(item);
-      this.$root.$emit('bv::show::modal', this.approveModal.id, button);
+      this.$refs[this.approveModal.id].show();
     },
     async loadReReviewData() {
       this.isBusy = true;
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/re_review_table?curate=${
-        this.curation_selected}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/table?curate=${
+        this.curation_selected
+      }`;
       try {
         const response = await this.axios.get(apiUrl, {
           headers: {
@@ -1435,8 +1182,8 @@ export default {
           },
         });
 
-        this.items = response.data;
-        this.totalRows = response.data.length;
+        this.items = response.data.data || [];
+        this.totalRows = response.data.data?.length || 0;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1444,8 +1191,7 @@ export default {
       this.loading = false;
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${process.env.VUE_APP_API_URL
-      }/api/entity?filter=equals(entity_id,${
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
         entity_input
       })`;
 
@@ -1458,67 +1204,21 @@ export default {
       }
     },
     async loadReviewInfo(review_id, re_review_review_saved) {
-      this.loading_review_modal = true;
+      // Load form data via composable
+      await this.reviewForm.loadReviewData(review_id, re_review_review_saved);
 
-      const apiGetReviewURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}`;
-      const apiGetPhenotypesURL = `${process.env.VUE_APP_API_URL
-      }/api/review/${
-        review_id
-      }/phenotypes`;
-      const apiGetVariationURL = `${process.env.VUE_APP_API_URL}/api/review/${review_id}/variation`;
-      const apiGetPublicationsURL = `${process.env.VUE_APP_API_URL
-      }/api/review/${
-        review_id
-      }/publications`;
-
+      // Also load metadata for modal footer display
+      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
       try {
         const response_review = await this.axios.get(apiGetReviewURL);
-        const response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
-        const response_variation = await this.axios.get(apiGetVariationURL);
-        const response_publications = await this.axios.get(apiGetPublicationsURL);
-
-        // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map((item) => new Phenotype(item.phenotype_id, item.modifier_id));
-        this.select_phenotype = response_phenotypes.data.map((item) => `${item.modifier_id}-${item.phenotype_id}`);
-
-        // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map((item) => new Variation(item.vario_id, item.modifier_id));
-        this.select_variation = response_variation.data.map((item) => `${item.modifier_id}-${item.vario_id}`);
-
-        // define publication specific attributes as constants from response
-        const literature_gene_reviews = response_publications.data
-          .filter((item) => item.publication_type === 'gene_review')
-          .map((item) => item.publication_id);
-
-        const literature_additional_references = response_publications.data
-          .filter((item) => item.publication_type === 'additional_references')
-          .map((item) => item.publication_id);
-
-        this.select_additional_references = literature_additional_references;
-        this.select_gene_reviews = literature_gene_reviews;
-
-        const new_literature = new Literature(
-          literature_additional_references,
-          literature_gene_reviews,
-        );
-
-        // compose review
-        this.review_info = new Review(
-          response_review.data[0].synopsis,
-          new_literature,
-          new_phenotype,
-          new_variation,
-          response_review.data[0].comment,
-        );
-
-        this.review_info.review_id = response_review.data[0].review_id;
-        this.review_info.entity_id = response_review.data[0].entity_id;
-        this.review_info.review_user_name = response_review.data[0].review_user_name;
-        this.review_info.review_user_role = response_review.data[0].review_user_role;
-        this.review_info.review_date = response_review.data[0].review_date;
-        this.review_info.re_review_review_saved = re_review_review_saved;
-
-        this.loading_review_modal = false;
+        if (response_review.data && response_review.data.length > 0) {
+          this.review_info.review_id = response_review.data[0].review_id;
+          this.review_info.entity_id = response_review.data[0].entity_id;
+          this.review_info.review_user_name = response_review.data[0].review_user_name;
+          this.review_info.review_user_role = response_review.data[0].review_user_role;
+          this.review_info.review_date = response_review.data[0].review_date;
+          this.review_info.re_review_review_saved = re_review_review_saved;
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1526,7 +1226,7 @@ export default {
     async loadStatusInfo(status_id, re_review_status_saved) {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${process.env.VUE_APP_API_URL}/api/status/${status_id}`;
+      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/status/${status_id}`;
 
       try {
         const response = await this.axios.get(apiGetURL);
@@ -1535,7 +1235,7 @@ export default {
         this.status_info = new Status(
           response.data[0].category_id,
           response.data[0].comment,
-          response.data[0].problematic,
+          response.data[0].problematic
         );
 
         this.status_info.status_id = response.data[0].status_id;
@@ -1551,182 +1251,41 @@ export default {
       }
     },
     async submitStatusChange() {
-      const status_saved = this.status_info.re_review_status_saved;
-
-      // remove user info from status object
-      // TODO: handle this server side to make it more robust
-      this.status_info.status_user_name = null;
-      this.status_info.status_user_role = null;
-      this.status_info.re_review_status_saved = null;
-
-      if (status_saved === 1) {
-        // perform update PUT request
-        try {
-          const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/update?re_review=true`;
-          const response = await this.axios.put(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      } else {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/status/create?re_review=true`;
-        // perform update POST request
-        try {
-          const response = await this.axios.post(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new status for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
+      try {
+        // Check if status exists (has status_id) to determine create vs update
+        // Note: re_review_status_saved only tracks if saved during THIS re-review cycle
+        const isUpdate = this.statusFormData.status_id != null;
+        await this.statusForm.submitForm(isUpdate, true); // reReview = true
+        this.makeToast('Status submitted successfully', 'Success', 'success');
+        this.announce('Status submitted successfully');
+        this.statusForm.resetForm();
+        this.loadReReviewData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit status', 'assertive');
       }
     },
     async submitReviewChange() {
-      this.isBusy = true;
-
-      const review_saved = this.review_info.re_review_review_saved;
-
-      // remove user info from review object
-      // TODO: handle this server side to make it more robust
-      this.review_info.review_user_name = null;
-      this.review_info.review_user_role = null;
-      this.review_info.re_review_review_saved = null;
-
-      // define literature specific attributes as constants from inputs
-      // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map(
-        (element) => this.sanitizeInput(element),
-      );
-
-      const select_gene_reviews_clean = this.select_gene_reviews.map(
-        (element) => this.sanitizeInput(element),
-      );
-
-      const replace_literature = new Literature(
-        select_additional_references_clean,
-        select_gene_reviews_clean,
-      );
-
-      // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map((item) => new Phenotype(item.split('-')[1], item.split('-')[0]));
-
-      // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map((item) => new Variation(item.split('-')[1], item.split('-')[0]));
-
-      // assign to object
-      this.review_info.literature = replace_literature;
-      this.review_info.phenotypes = replace_phenotype;
-      this.review_info.variation_ontology = replace_variation_ontology;
-
-      if (review_saved === 1) {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/update?re_review=true`;
-
-        // perform update POST request
-        try {
-          const response = await this.axios.put(
-            apiUrl,
-            { review_json: this.review_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new review for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
-      } else {
-        const apiUrl = `${process.env.VUE_APP_API_URL}/api/review/create?re_review=true`;
-
-        // perform update POST request
-        try {
-          const response = await this.axios.post(
-            apiUrl,
-            { review_json: this.review_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            },
-          );
-
-          this.makeToast(
-            `${'The new review for this entity has been submitted '
-              + '(status '}${
-              response.status
-            } (${
-              response.statusText
-            }).`,
-            'Success',
-            'success',
-          );
-          this.resetForm();
-          this.loadReReviewData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        }
+      try {
+        // Check if review exists (has review_id) to determine create vs update
+        // Note: re_review_review_saved only tracks if saved during THIS re-review cycle
+        const isUpdate = this.review_info.review_id != null;
+        await this.reviewForm.submitForm(isUpdate, true); // reReview = true
+        this.makeToast('Review submitted successfully', 'Success', 'success');
+        this.announce('Review submitted successfully');
+        this.reviewForm.resetForm();
+        this.loadReReviewData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to submit review', 'assertive');
       }
     },
     resetForm() {
       // status
-      this.status_info = new Status();
+      this.statusForm.resetForm();
 
       // review
-      this.select_phenotype = [];
-      this.select_variation = [];
-      this.select_additional_references = [];
-      this.select_gene_reviews = [];
+      this.reviewForm.resetForm();
       this.entity_info = {
         entity_id: 0,
         symbol: '',
@@ -1738,22 +1297,22 @@ export default {
       };
       this.review_info = new Review();
     },
-    async handleSubmitOk(bvModalEvt) {
+    async handleSubmitOk(_bvModalEvt) {
       const re_review_submission = {};
 
       re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
       re_review_submission.re_review_submitted = 1;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/submit`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/submit`;
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           { submit_json: re_review_submission },
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1761,24 +1320,20 @@ export default {
 
       this.loadReReviewData();
     },
-    async handleApproveOk(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/re_review/approve/${
+    async handleApproveOk(_bvModalEvt) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/approve/${
         this.entity[0].re_review_entity_id
-      }?status_ok=${
-        this.status_approved
-      }&review_ok=${
-        this.review_approved}`;
+      }?status_ok=${this.status_approved}&review_ok=${this.review_approved}`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1787,20 +1342,20 @@ export default {
       this.resetApproveModal();
       this.loadReReviewData();
     },
-    async handleUnsetSubmission(bvModalEvt) {
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/re_review/unsubmit/${
-        this.entity[0].re_review_entity_id}`;
+    async handleUnsetSubmission(_bvModalEvt) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/unsubmit/${
+        this.entity[0].re_review_entity_id
+      }`;
 
       try {
-        const response = await this.axios.put(
+        await this.axios.put(
           apiUrl,
           {},
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
-          },
+          }
         );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1810,28 +1365,20 @@ export default {
       this.loadReReviewData();
     },
     async newBatchApplication() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/re_review/batch/apply`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/apply`;
 
       try {
-        const response = await this.axios.get(apiUrl, {
+        await this.axios.get(apiUrl, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
         this.makeToast('Application send.', 'Success', 'success');
+        this.announce('Batch application sent successfully');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.announce('Failed to send batch application', 'assertive');
       }
-    },
-    tagValidatorPMID(tag) {
-      // Individual PMID tag validator function
-      const tag_copy = tag.replace(/\s+/g, '');
-      return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', '').replaceAll(' ', '')))
-        && tag_copy.includes('PMID:')
-        && tag_copy.replace('PMID:', '').length > 4
-        && tag_copy.replace('PMID:', '').length < 9
-      );
     },
     saved(any_id) {
       // TODO: implement this server side and with real logic :D
@@ -1854,35 +1401,37 @@ export default {
     dateYearAge(date, rounding) {
       // calculate the age based on the difference from current date
       // round to nearest input argument "rounding"
-      return Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) * rounding;
+      return (
+        Math.round((Date.now() - Date.parse(date)) / 1000 / 60 / 60 / 24 / 365 / rounding) *
+        rounding
+      );
     },
     hideModal(id) {
-      this.$root.$emit('bv::hide::modal', id);
+      this.$refs[id].hide();
     },
     /**
-     * Sanitizes the input by removing extra white spaces, especially for PubMed IDs.
-     * Expected input format: "PMID: 123456"
-     * Output format: "PMID:123456"
-     * @param {String} input - The input string to be sanitized.
-     * @return {String} The sanitized string.
+     * Handles sortBy updates from Bootstrap-Vue-Next BTable
+     * @param {Array} newSortBy - Array of sort objects [{key, order}]
      */
-    sanitizeInput(input) {
-      if (!input) return '';
-
-      // Split the input based on ':' (e.g., "PMID: 123456")
-      const parts = input.split(':');
-
-      // Check if the input format is as expected
-      if (parts.length !== 2 || !parts[0].trim().startsWith('PMID')) return input;
-
-      // Trim whitespace from both parts and rejoin them
-      return `${parts[0].trim()}:${parts[1].trim()}`;
+    handleSortByUpdate(newSortBy) {
+      this.sortBy = newSortBy;
     },
-    arraysAreEqual(array1, array2) {
-      if (array1.length !== array2.length) {
-        return false;
-      }
-      return array1.every((value, index) => value === array2[index]);
+    onReviewModalShow() {
+      // Data is already loaded by infoReview() before show() is called
+      // Do not reset here - it would clear the loaded data
+      // The form state is managed by infoReview() which calls clearDraft() then loadReviewData()
+    },
+    onStatusModalShow() {
+      // Data is already loaded by infoStatus() before show() is called
+      // Do not reset here - it would clear the loaded data
+      // The form state is managed by infoStatus() which calls clearDraft() then loadStatusData()
+    },
+    // Quick filter methods
+    addQuickFilter(key) {
+      this.quickFilters[key] = true;
+    },
+    removeQuickFilter(key) {
+      this.quickFilters[key] = false;
     },
   },
 };
@@ -1901,10 +1450,5 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-:deep(.vue-treeselect__menu) {
-  outline: 1px solid red;
-  color: blue;
 }
 </style>

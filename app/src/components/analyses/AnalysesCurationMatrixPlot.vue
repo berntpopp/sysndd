@@ -1,81 +1,57 @@
 <!-- src/components/analyses/AnalysesCurationMatrixPlot.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
+          <h6 class="mb-1 text-start font-weight-bold">
             Matrix plot of the
             <mark
               v-b-tooltip.hover.leftbottom
               title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
-            >cosine similarity</mark>
+              >cosine similarity</mark
+            >
             between different curation efforts for neurodevelopmental disorders.
-            <b-badge
-              id="popover-badge-help-similarity"
-              pill
-              href="#"
-              variant="info"
-            >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
-              target="popover-badge-help-similarity"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Cosine Similarity Analysis
-              </template>
-              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is used to calculate the similarity between different curation efforts by comparing their respective gene lists. The values range from -1 (completely dissimilar) to 1 (completely similar), with 0 indicating orthogonality (no similarity).
-            </b-popover>
+            <BBadge id="popover-badge-help-similarity" pill href="#" variant="info">
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
+              <template #title> Cosine Similarity Analysis </template>
+              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is
+              used to calculate the similarity between different curation efforts by comparing their
+              respective gene lists. The values range from -1 (completely dissimilar) to 1
+              (completely similar), with 0 indicating orthogonality (no similarity).
+            </BPopover>
           </h6>
-          <DownloadImageButtons
-            :svg-id="'matrix-svg'"
-            :file-name="'matrix_plot'"
-          />
+          <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'matrix_plot'" />
         </div>
       </template>
-      <b-row>
+      <BRow>
         <!-- column 1 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 2 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 3 -->
-        <b-col class="my-1" />
+        <BCol class="my-1" />
         <!-- column 4 -->
-        <b-col class="my-1" />
-      </b-row>
+        <BCol class="my-1" />
+      </BRow>
       <!-- User Interface controls -->
 
       <!-- Content with overlay spinner -->
       <div class="position-relative">
-        <div
-          id="matrix_dataviz"
-          class="svg-container"
-        />
-        <div
-          v-show="loadingMatrix"
-          class="float-center m-5"
-        >
-          <b-spinner
-            label="Loading..."
-            class="spinner"
-          />
+        <div id="matrix_dataviz" class="svg-container" />
+        <div v-show="loadingMatrix" class="float-center m-5">
+          <BSpinner label="Loading..." class="spinner" />
         </div>
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
@@ -84,7 +60,10 @@ export default {
   components: {
     DownloadImageButtons,
   },
-  mixins: [toastMixin],
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
+  },
   data() {
     return {
       items: [],
@@ -104,7 +83,7 @@ export default {
     async loadMatrixData() {
       this.loadingMatrix = true;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/comparisons/similarity`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/similarity`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -124,7 +103,10 @@ export default {
     generateGraph() {
       // Graph dimension
       const margin = {
-        top: 0, right: 150, bottom: 120, left: 150,
+        top: 0,
+        right: 150,
+        bottom: 120,
+        left: 150,
       };
       const width = 800 - margin.left - margin.right;
       const height = 600 - margin.top - margin.bottom;
@@ -187,7 +169,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseover = function mouseover(event, d) {
+      const mouseover = function mouseover(_event, _d) {
         tooltip.style('opacity', 1);
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
@@ -209,7 +191,7 @@ export default {
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
-      const mouseleave = function mouseleave(event, d) {
+      const mouseleave = function mouseleave(_event, _d) {
         tooltip.style('opacity', 0);
         d3.select(this).style('stroke', 'none');
       };
@@ -262,7 +244,11 @@ mark {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

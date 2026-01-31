@@ -1,53 +1,49 @@
 <!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
-  <b-container fluid>
-    <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+  <BContainer fluid>
+    <!-- The main card -->
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
         <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-left font-weight-bold">
-            Entities <mark
+          <h6 class="mb-1 text-start font-weight-bold">
+            Entities
+            <mark
               v-b-tooltip.hover.leftbottom
               title="Entities clustered based on their phenotype annotations to identify groups with similar characteristics. Interactive visualization allows exploration of cluster details."
-            >clustered using phenotype</mark> annotation.
-            <b-badge
-              id="popover-badge-help-clusters"
-              pill
-              href="#"
-              variant="info"
             >
-              <b-icon icon="question-circle-fill" />
-            </b-badge>
-            <b-popover
-              target="popover-badge-help-clusters"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title>
-                Cluster Analysis Details
-              </template>
-              This section provides an interactive visualization of entities grouped by phenotype annotations. The graphical part allows you to explore the clusters by clicking on the nodes, and the table displays detailed information about the variables within each cluster.
-            </b-popover>
+              clustered using phenotype
+            </mark>
+            annotation.
+            <BBadge id="popover-badge-help-clusters" pill href="#" variant="info">
+              <i class="bi bi-question-circle-fill" />
+            </BBadge>
+            <BPopover target="popover-badge-help-clusters" variant="info" triggers="focus">
+              <template #title> Cluster Analysis Details </template>
+              This section provides an interactive visualization of entities grouped by phenotype
+              annotations. The graphical part allows you to explore the clusters by clicking on the
+              nodes, and the table displays detailed information about the variables within each
+              cluster.
+            </BPopover>
           </h6>
-          <!-- Add download button for the cluster plot -->
-          <DownloadImageButtons
-            :svg-id="'cluster_dataviz-svg'"
-            :file-name="'cluster_plot'"
-          />
+          <!-- Add export buttons for Cytoscape network -->
+          <div class="btn-group btn-group-sm">
+            <BButton variant="outline-secondary" size="sm" title="Export as PNG" @click="exportPNG">
+              <i class="bi bi-image" />
+            </BButton>
+            <BButton variant="outline-secondary" size="sm" title="Export as SVG" @click="exportSVG">
+              <i class="bi bi-filetype-svg" />
+            </BButton>
+          </div>
         </div>
       </template>
 
-      <!-- Content -->
-      <b-row>
-        <b-col md="4">
-          <b-card
+      <!-- Put both graph and table in ONE row -->
+      <BRow>
+        <!-- LEFT COLUMN (Graph) -->
+        <BCol md="4">
+          <BCard
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             footer-class="p-1"
@@ -55,340 +51,563 @@
           >
             <template #header>
               <h6 class="mb-0 font-weight-bold">
-                Selected cluster {{ selectedCluster.cluster }} with
-                <b-badge variant="primary">
-                  {{ selectedCluster.cluster_size }} entities
-                </b-badge>
+                Selected cluster {{ selectedCluster.cluster }}
+                with
+                <BBadge variant="primary">
+                  {{ selectedCluster.cluster_size }}
+                </BBadge>
+                entities
               </h6>
             </template>
 
-            <div
-              id="cluster_dataviz"
-              class="svg-container"
-            >
-              <b-spinner
-                v-if="loading"
-                label="Loading..."
-                class="spinner"
-              />
-              <div v-else>
-                <!-- Cluster graph will be rendered here -->
+            <div id="cluster_dataviz" class="svg-container">
+              <!-- Error state with retry -->
+              <div v-if="error" class="error-state text-center p-4">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+                <p class="text-muted mb-3">
+                  {{ error }}
+                </p>
+                <BButton variant="primary" @click="retryLoad">
+                  <i class="bi bi-arrow-clockwise me-1" />
+                  Retry
+                </BButton>
               </div>
+
+              <!-- Loading spinner -->
+              <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
+
+              <div
+                v-else
+                ref="cytoscapeContainer"
+                class="cytoscape-container"
+                :style="{ height: '380px', width: '100%' }"
+              />
             </div>
 
             <template #footer>
-              <b-link :href="'/Entities/?filter=' + selectedCluster.hash_filter">
-                Entities for cluster {{ selectedCluster.cluster }}
-              </b-link>
+              <div class="d-flex justify-content-between align-items-center">
+                <BLink :href="entitiesLink">
+                  Entities for cluster {{ selectedCluster.cluster }}
+                </BLink>
+                <small class="text-muted">
+                  <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
+                  <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
+                </small>
+              </div>
             </template>
-          </b-card>
-        </b-col>
-        <b-col md="8">
-          <b-card
+          </BCard>
+        </BCol>
+
+        <!-- RIGHT COLUMN (Table) -->
+        <BCol md="8">
+          <BCard
             header-tag="header"
-            class="my-3 mx-2 text-left"
+            class="my-3 mx-2 text-start"
             body-class="p-0"
             header-class="p-1"
             border-variant="dark"
           >
+            <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
             <template #header>
-              <h6 class="mb-0 font-weight-bold">
-                <b-input-group
-                  prepend="Table type"
-                  class="mb-1"
-                  size="sm"
-                >
-                  <b-form-select
-                    v-model="tableType"
-                    :options="tableOptions"
-                    type="search"
-                    size="sm"
-                  />
-                </b-input-group>
-              </h6>
+              <div class="mb-0 font-weight-bold">
+                <BRow>
+                  <BCol sm="6" class="mb-1">
+                    <BInputGroup prepend="Table type" size="sm">
+                      <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
+                    </BInputGroup>
+                  </BCol>
+
+                  <BCol sm="6" class="mb-1 text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-2">
+                      <!-- A search input controlling the 'any' filter -->
+                      <TableSearchInput
+                        v-model="filter.any.content"
+                        :placeholder="'Search variables here...'"
+                        :debounce-time="500"
+                        @input="onFilterChange"
+                      />
+                      <!-- Excel download button -->
+                      <BButton
+                        v-b-tooltip.hover.bottom
+                        size="sm"
+                        variant="outline-secondary"
+                        title="Download table data as Excel file"
+                        :disabled="isExporting"
+                        @click="downloadExcel"
+                      >
+                        <i class="bi bi-table me-1" />
+                        <i v-if="!isExporting" class="bi bi-download" />
+                        <BSpinner v-else small />
+                        .xlsx
+                      </BButton>
+                    </div>
+                  </BCol>
+                </BRow>
+              </div>
             </template>
-            <b-card-text class="text-left">
-              <b-table
-                id="my-table"
-                :items="selectedCluster[tableType]"
-                :fields="selectedClusterFields"
-                stacked="lg"
-                head-variant="light"
-                show-empty
-                small
-                style="width: 100%; white-space: nowrap"
-                :per-page="perPage"
-                :current-page="currentPage"
-              />
-              <b-row class="justify-content-md-center">
-                <b-col />
-                <b-col
-                  cols="12"
-                  md="auto"
-                >
-                  <b-pagination
-                    v-model="currentPage"
+
+            <!-- MAIN TABLE -->
+            <BCardText class="text-start">
+              <GenericTable
+                :items="displayedItems"
+                :fields="fields"
+                :sort-by="sortBy"
+                :sort-desc="sortDesc"
+                @update-sort="handleSortUpdate"
+              >
+                <!-- Column-level filter slot (optional) -->
+                <template #filter-controls>
+                  <td v-for="field in fields" :key="field.key">
+                    <BFormInput
+                      v-if="field.key !== 'details'"
+                      v-model="filter[field.key].content"
+                      :placeholder="'Filter ' + field.label"
+                      debounce="500"
+                      @input="onFilterChange"
+                    />
+                  </td>
+                </template>
+
+                <!-- Optionally define custom column slots -->
+                <template #cell-variable="{ row }">
+                  <BBadge variant="primary">
+                    {{ row.variable }}
+                  </BBadge>
+                </template>
+
+                <template #cell-p.value="{ row }">
+                  <BBadge variant="info">
+                    {{ row['p.value'] }}
+                  </BBadge>
+                </template>
+
+                <template #cell-v.test="{ row }">
+                  <BBadge variant="warning">
+                    {{ row['v.test'] }}
+                  </BBadge>
+                </template>
+              </GenericTable>
+
+              <!-- Bottom pagination controls (optional) -->
+              <BRow class="justify-content-end">
+                <BCol cols="12" md="auto" class="my-1">
+                  <TablePaginationControls
                     :total-rows="totalRows"
-                    :per-page="perPage"
-                    aria-controls="my-table"
+                    :initial-per-page="perPage"
+                    :page-options="[5, 10, 20]"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePerPageChange"
                   />
-                </b-col>
-                <b-col />
-              </b-row>
-            </b-card-text>
-          </b-card>
-        </b-col>
-      </b-row>
-      <!-- Content -->
-    </b-card>
-    <!-- User Interface controls -->
-  </b-container>
+                </BCol>
+              </BRow>
+            </BCardText>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import * as d3 from 'd3';
-import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import { ref, onBeforeUnmount } from 'vue';
+import useToast from '@/composables/useToast';
+import { usePhenotypeCytoscape, useExcelExport } from '@/composables';
+
+// Import your small table components:
+import GenericTable from '@/components/small/GenericTable.vue';
+import TableSearchInput from '@/components/small/TableSearchInput.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
-    DownloadImageButtons,
+    GenericTable,
+    TableSearchInput,
+    TablePaginationControls,
   },
-  mixins: [toastMixin],
+  props: {
+    /**
+     * Optional filter state from parent AnalysisView
+     * Enables shared filter state across analysis views in 27-04
+     */
+    filterState: {
+      type: Object,
+      default: null,
+    },
+  },
+  setup(_props, { expose: _expose }) {
+    const { makeToast } = useToast();
+    const cytoscapeContainer = ref(null);
+    const activeClusterRef = ref('1');
+
+    // Initialize composable in setup() to properly register lifecycle hooks
+    const cytoscape = usePhenotypeCytoscape({
+      container: cytoscapeContainer,
+      onClusterClick: (clusterId) => {
+        activeClusterRef.value = String(clusterId);
+      },
+    });
+
+    // Excel export functionality
+    const { isExporting, exportToExcel } = useExcelExport();
+
+    // Cleanup on unmount
+    onBeforeUnmount(() => {
+      cytoscape.destroy();
+    });
+
+    return {
+      makeToast,
+      cytoscapeContainer,
+      cytoscape,
+      activeClusterRef,
+      isExporting,
+      exportToExcel,
+    };
+  },
   data() {
     return {
+      /* --------------------------------------
+       * Clustering + Graph data
+       * ------------------------------------ */
       itemsCluster: [],
       selectedCluster: {
         quali_inp_var: [],
         quali_sup_var: [],
         quanti_sup_var: [],
       },
-      selectedClusterFields: [
+      // activeCluster moved to setup() as activeClusterRef
+      loading: false,
+      error: null, // Error state for retry functionality
+      // cyInstance moved to setup() as 'cytoscape'
+
+      /* --------------------------------------
+       * Table logic / fields
+       * ------------------------------------ */
+      fields: [
         {
-          key: 'variable', label: 'Variable', class: 'text-left', sortable: true,
+          key: 'variable',
+          label: 'Variable',
+          class: 'text-start',
+          sortable: true,
         },
         {
-          key: 'p.value', label: 'p-value', class: 'text-left', sortable: true,
+          key: 'p.value',
+          label: 'p-value',
+          class: 'text-start',
+          sortable: true,
         },
         {
-          key: 'v.test', label: 'v-test', class: 'text-left', sortable: true,
+          key: 'v.test',
+          label: 'v-test',
+          class: 'text-start',
+          sortable: true,
         },
       ],
       tableOptions: [
-        { value: 'quali_inp_var', text: 'Qualitative input variables (phenotypes)' },
-        { value: 'quali_sup_var', text: 'Qualitative supplementary variables (inheritance)' },
-        { value: 'quanti_sup_var', text: 'Quantitative supplementary variables (phenotype counts)' },
+        {
+          value: 'quali_inp_var',
+          text: 'Qualitative input variables (phenotypes)',
+        },
+        {
+          value: 'quali_sup_var',
+          text: 'Qualitative supplementary variables (inheritance)',
+        },
+        {
+          value: 'quanti_sup_var',
+          text: 'Quantitative supplementary variables (phenotype counts)',
+        },
       ],
       tableType: 'quali_inp_var',
-      activeCluster: '1',
+
+      /* --------------------------------------
+       * Pagination / Sorting / Filtering
+       * ------------------------------------ */
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
-      loading: false, // New loading state
+      sortBy: 'p.value',
+      sortDesc: false,
+      filter: {
+        any: { content: null, join_char: null, operator: 'contains' },
+        variable: { content: null, join_char: null, operator: 'contains' },
+        'p.value': { content: null, join_char: null, operator: 'contains' },
+        'v.test': { content: null, join_char: null, operator: 'contains' },
+      },
     };
   },
-  watch: {
-    activeCluster(value) {
-      this.setActiveCluster();
-      this.generateClusterGraph();
+  computed: {
+    /**
+     * Bridge between setup() ref and Options API
+     */
+    activeCluster: {
+      get() {
+        return this.activeClusterRef;
+      },
+      set(value) {
+        this.activeClusterRef = value;
+      },
     },
-    tableType(value) {
-      this.totalRows = this.selectedCluster[this.tableType].length;
+    /**
+     * Computed URL for the Entities link (fixes NAVL-07 bug)
+     * Prevents 'filter=undefined' when hash_filter is not set
+     * @returns {string} URL to the Entities page with or without filter
+     */
+    entitiesLink() {
+      const base = '/Entities/';
+      if (this.selectedCluster?.hash_filter) {
+        return `${base}?filter=${this.selectedCluster.hash_filter}`;
+      }
+      return base;
+    },
+    /**
+     * The items currently being displayed in the table (filtered + sorted + paginated).
+     */
+    displayedItems() {
+      // 1. Start from the relevant cluster data
+      let dataArray = this.selectedCluster[this.tableType] || [];
+
+      // 2. Apply filtering
+      dataArray = this.applyFilters(dataArray);
+
+      // 3. Apply sorting
+      if (this.sortBy) {
+        dataArray = [...dataArray].sort((a, b) => {
+          let aVal = a[this.sortBy];
+          let bVal = b[this.sortBy];
+
+          // Handle null/undefined - push to end
+          if (aVal == null && bVal == null) return 0;
+          if (aVal == null) return 1;
+          if (bVal == null) return -1;
+
+          // Handle numeric comparison (including scientific notation)
+          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
+          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
+
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            const diff = aNum - bNum;
+            return this.sortDesc ? -diff : diff;
+          }
+
+          // String comparison for non-numeric values
+          const aStr = String(aVal).toLowerCase();
+          const bStr = String(bVal).toLowerCase();
+          if (aStr < bStr) return this.sortDesc ? 1 : -1;
+          if (aStr > bStr) return this.sortDesc ? -1 : 1;
+          return 0;
+        });
+      }
+
+      // 4. Paginate (client-side)
+      const start = (this.currentPage - 1) * this.perPage;
+      const end = start + this.perPage;
+      return dataArray.slice(start, end);
+    },
+  },
+  watch: {
+    // Update data whenever the user picks a new cluster
+    activeCluster(newCluster) {
+      this.setActiveCluster();
+      // Highlight selected cluster in Cytoscape using the composable method
+      if (this.cytoscape?.isInitialized.value) {
+        this.cytoscape.selectCluster(newCluster);
+      }
+    },
+    // Watch the tableType so we can update totalRows based on new array
+    tableType() {
+      const arr = this.selectedCluster[this.tableType] || [];
+      this.totalRows = arr.length;
+      this.currentPage = 1; // Reset to first page
     },
   },
   mounted() {
     this.loadClusterData();
   },
   methods: {
+    /* --------------------------------------
+     * Load cluster data from API
+     * ------------------------------------ */
     async loadClusterData() {
-      const apiUrl = `${process.env.VUE_APP_API_URL}/api/analysis/phenotype_clustering`;
-      this.loading = true; // Start loading
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_clustering`;
+      this.loading = true;
+      this.error = null;
       try {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data;
         this.setActiveCluster();
-        this.generateClusterGraph();
+        this.$nextTick(() => {
+          this.updateClusterGraph();
+        });
       } catch (e) {
+        this.error = e.message || 'Failed to load phenotype cluster data. Please try again.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
-        this.loading = false; // End loading
+        this.loading = false;
       }
+    },
+    /**
+     * Retry loading data after an error
+     */
+    retryLoad() {
+      this.loadClusterData();
     },
     setActiveCluster() {
-      let rest;
-      [this.selectedCluster, ...rest] = this.itemsCluster.filter((item) => item.cluster === this.activeCluster);
-      this.totalRows = this.selectedCluster[this.tableType].length;
+      // Filter out the cluster matching activeCluster
+      const match = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
+      this.selectedCluster = match || {
+        quali_inp_var: [],
+        quali_sup_var: [],
+        quanti_sup_var: [],
+      };
+      // Update total rows
+      const arr = this.selectedCluster[this.tableType] || [];
+      this.totalRows = arr.length;
     },
-    generateClusterGraph() {
-      // Graph dimension
-      const margin = {
-        top: 10, right: 10, bottom: 10, left: 10,
-      };
-      const width = 400 - margin.left - margin.right;
-      const height = 400 - margin.top - margin.bottom;
 
-      // First remove existing svg and div elements
-      d3.select('#cluster_dataviz').select('svg').remove();
-      d3.select('#cluster_dataviz').select('div').remove();
+    /* --------------------------------------
+     * Searching + Filtering (client-side example)
+     * ------------------------------------ */
+    applyFilters(items) {
+      const anyFilterValue = (this.filter.any.content || '').toLowerCase();
 
-      // Create the svg area
-      const svg = d3
-        .select('#cluster_dataviz')
-        .append('svg')
-        .attr('id', 'cluster_dataviz-svg') // Add ID here
-        .attr('width', width)
-        .attr('height', height);
-
-      // Define data from API call object
-      const data = this.itemsCluster;
-
-      // Color palette for clusters
-      const color = d3
-        .scaleOrdinal()
-        .domain([1, 2, 3, 4, 5, 6])
-        .range(d3.schemeSet1);
-
-      // Size scale for clusters
-      const size = d3
-        .scaleLinear()
-        .domain([0, 1000])
-        .range([7, 55]);
-
-      // Get unique cluster ids as array
-      const unique = (value, index, self) => self.indexOf(value) === index;
-      const unique_cluster = data
-        .map(({ cluster }) => cluster)
-        .filter(unique);
-
-      // A scale that gives a X target position for each cluster
-      const x = d3
-        .scaleOrdinal()
-        .domain(unique_cluster)
-        .range(unique_cluster.map((x) => x * 30));
-
-      // Create a tooltip
-      const Tooltip = d3
-        .select('#cluster_dataviz')
-        .append('div')
-        .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '2px')
-        .style('border-radius', '5px')
-        .style('padding', '5px');
-
-      const mouseover = function mouseover(event, d) {
-        d3.select(this).style('cursor', 'pointer');
-        Tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
-      };
-
-      const mousemove = function mousemove(event, d) {
-        Tooltip.html(
-          `<u>Cluster: ${d.cluster}</u><br>${d.cluster_size} entities`,
-        )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
-      };
-
-      const mouseleave = function mouseleave(event, d) {
-        d3.select(this).style('cursor', 'default');
-        Tooltip.style('opacity', 0);
-        d3.select(this).style('stroke', '#696969');
-      };
-
-      // Features of the forces applied to the nodes:
-      const simulation = d3
-        .forceSimulation()
-        .force(
-          'center',
-          d3
-            .forceCenter()
-            .x(width / 2)
-            .y(height / 2),
-        ) // Attraction to the center of the svg area
-        .force('charge', d3.forceManyBody().strength(0.1)) // Nodes are attracted one each other of value is > 0
-        .force(
-          'collide',
-          d3
-            .forceCollide()
-            .strength(0.2)
-            .radius((d) => size(d.cluster_size) + 3)
-            .iterations(1),
-        ) // Force that avoids circle overlapping
-        .force(
-          'forceX',
-          d3
-            .forceX()
-            .strength(0.5)
-            .x((d) => x(d.cluster)),
-        )
-        .force(
-          'forceY',
-          d3
-            .forceY()
-            .strength(0.1)
-            .y(height * 0.5),
-        );
-
-      // What happens when a circle is dragged?
-      function dragstarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.03).restart();
-        d.fx = d.x;
-        d.fy = d.y;
-      }
-      function dragged(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
-      }
-      function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0.03);
-        d.fx = null;
-        d.fy = null;
-      }
-
-      // Initialize the circle: all located at the center of the svg area
-      const node = svg
-        .append('g')
-        .selectAll('circle')
-        .data(data)
-        .enter()
-        .append('a')
-        .append('circle')
-        .attr('class', 'node')
-        .attr('r', (d) => size(d.cluster_size))
-        .attr('cx', width / 2)
-        .attr('cy', height / 2)
-        .style('fill', (d) => color(d.cluster))
-        .style('fill-opacity', 0.8)
-        .attr('stroke', '#696969')
-        .style('stroke-width', (d) => {
-          if (d.cluster === this.activeCluster) {
-            return 4;
+      // Return items that match the global "any" filter AND column-specific filters
+      return items.filter((row) => {
+        // 1. Global "any" filter
+        if (anyFilterValue) {
+          const rowString = Object.values(row).join(' ').toLowerCase();
+          if (!rowString.includes(anyFilterValue)) {
+            return false;
           }
-          return 1;
-        })
-        .on('mouseover', mouseover) // What to do when hovered
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave)
-        .on('click', (e, d) => {
-          this.activeCluster = d.cluster;
-          Tooltip.style('opacity', 0); // Hide tooltip on click
-        })
-        .call(
-          d3
-            .drag() // Call specific function when circle is dragged
-            .on('start', dragstarted)
-            .on('drag', dragged)
-            .on('end', dragended),
-        );
+        }
+        // 2. Column-specific filters
+        const filterKeys = Object.keys(this.filter).filter((f) => f !== 'any');
+        let keepRow = true;
+        filterKeys.forEach((fieldKey) => {
+          const colFilterVal = (this.filter[fieldKey].content || '').toLowerCase();
+          if (colFilterVal) {
+            const rowVal = String(row[fieldKey] || '').toLowerCase();
+            if (!rowVal.includes(colFilterVal)) {
+              keepRow = false;
+            }
+          }
+        });
+        return keepRow;
+      });
+    },
+    onFilterChange() {
+      // Reset page to 1 to see the updated first page
+      this.currentPage = 1;
+    },
 
-      // Apply these forces to the nodes and update their positions.
-      // Once the force algorithm is happy with positions ('alpha' value is low enough), simulations will stop.
-      simulation.nodes(data).on('tick', (d) => {
-        node.attr('cx', (d) => d.x).attr('cy', (d) => d.y);
+    /* --------------------------------------
+     * Pagination controls
+     * ------------------------------------ */
+    handlePageChange(newPage) {
+      this.currentPage = newPage;
+    },
+    handlePerPageChange(newPerPage) {
+      this.perPage = newPerPage;
+      this.currentPage = 1;
+    },
+
+    /* --------------------------------------
+     * Sorting
+     * ------------------------------------ */
+    handleSortUpdate(ctx) {
+      this.sortBy = ctx.sortBy;
+      this.sortDesc = ctx.sortDesc;
+    },
+
+    /* --------------------------------------
+     * Graph code for cluster viz (Cytoscape)
+     * ------------------------------------ */
+    initializeCytoscape() {
+      if (!this.cytoscapeContainer) return;
+      // Cytoscape composable initialized in setup(), just init the graph
+      this.cytoscape.initializeCytoscape();
+    },
+
+    updateClusterGraph() {
+      if (!this.cytoscape.isInitialized.value) {
+        this.initializeCytoscape();
+      }
+      if (this.cytoscape && this.itemsCluster.length > 0) {
+        this.cytoscape.updateElements(this.itemsCluster);
+        // Select the initial cluster after a short delay for layout to complete
+        setTimeout(() => {
+          this.cytoscape.selectCluster(this.activeCluster);
+        }, 600);
+      }
+    },
+
+    handleClusterClick(clusterId) {
+      this.activeCluster = clusterId;
+    },
+
+    /* --------------------------------------
+     * Export functions for Cytoscape network
+     * ------------------------------------ */
+    exportPNG() {
+      if (!this.cytoscape?.isInitialized.value) return;
+      const png = this.cytoscape.exportPNG();
+      const link = document.createElement('a');
+      link.href = png;
+      link.download = 'phenotype_clusters.png';
+      link.click();
+    },
+
+    exportSVG() {
+      if (!this.cytoscape?.isInitialized.value) return;
+      const svgContent = this.cytoscape.exportSVG();
+      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'phenotype_clusters.svg';
+      link.click();
+      URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Download the current table data as Excel file
+     * Exports all filtered data (not just the current page)
+     */
+    downloadExcel() {
+      // Get all filtered data (not just paginated subset)
+      let dataArray = this.selectedCluster[this.tableType] || [];
+      dataArray = this.applyFilters(dataArray);
+
+      if (dataArray.length === 0) {
+        this.makeToast('No data to export', 'Warning', 'warning');
+        return;
+      }
+
+      // Define column headers based on table type
+      const tableTypeLabels = {
+        quali_inp_var: 'Qualitative Input Variables',
+        quali_sup_var: 'Qualitative Supplementary Variables',
+        quanti_sup_var: 'Quantitative Supplementary Variables',
+      };
+
+      const headers = {
+        variable: 'Variable',
+        'p.value': 'p-value',
+        'v.test': 'v-test',
+        // Additional columns that might be present
+        Mean_in_category: 'Mean in Category',
+        Overall_mean: 'Overall Mean',
+        sd_in_category: 'SD in Category',
+        Overall_sd: 'Overall SD',
+      };
+
+      // Generate filename with context
+      const filename = `sysndd_phenotype_cluster_${this.activeCluster}_${this.tableType}`;
+
+      this.exportToExcel(dataArray, {
+        filename,
+        sheetName: tableTypeLabels[this.tableType] || 'Data',
+        headers,
       });
     },
   },
@@ -405,11 +624,26 @@ export default {
   overflow: hidden;
 }
 
+.cytoscape-container {
+  width: 100%;
+  height: 380px;
+  background: #fafafa;
+  border-radius: 4px;
+}
+
 .spinner {
   width: 2rem;
   height: 2rem;
   margin: 5rem auto;
   display: block;
+}
+
+.error-state {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 mark {

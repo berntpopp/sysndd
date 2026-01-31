@@ -3,7 +3,7 @@
 <template>
   <div class="download-buttons">
     <!-- Download CSV Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
@@ -11,52 +11,39 @@
       :disabled="downloading"
       @click="$emit('request-excel')"
     >
-      <b-icon
-        icon="table"
-        class="mx-1"
-      />
-      <b-icon
-        v-if="!downloading"
-        icon="download"
-      />
-      <b-spinner
-        v-if="downloading"
-        small
-      />
+      <i class="bi bi-table mx-1" />
+      <i v-if="!downloading" class="bi bi-download" />
+      <BSpinner v-if="downloading" small />
       .xlsx
-    </b-button>
+    </BButton>
     <!-- Download CSV Button -->
 
     <!-- Copy Link Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
       title="Copy link to this page."
+      aria-label="Copy link to this page"
       variant="success"
       @click="$emit('copy-link')"
     >
-      <b-icon
-        icon="link"
-        font-scale="1.0"
-      />
-    </b-button>
+      <i class="bi bi-link" aria-hidden="true" />
+    </BButton>
     <!-- Copy Link Button -->
 
     <!-- Remove Filters Button -->
-    <b-button
+    <BButton
       v-b-tooltip.hover.bottom
       class="download-button"
       size="sm"
       :title="removeFiltersTitle"
+      :aria-label="removeFiltersTitle"
       :variant="removeFiltersVariant"
       @click="$emit('remove-filters')"
     >
-      <b-icon
-        icon="filter"
-        font-scale="1.0"
-      />
-    </b-button>
+      <i class="bi bi-filter" aria-hidden="true" />
+    </BButton>
     <!-- Remove Filters Button -->
   </div>
 </template>
@@ -77,6 +64,7 @@ export default {
       default: 'info',
     },
   },
+  emits: ['request-excel', 'copy-link', 'remove-filters'],
 };
 </script>
 

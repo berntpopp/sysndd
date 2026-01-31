@@ -1,0 +1,175 @@
+// Form styling with enhanced focus states and validation
+// Per CONTEXT.md: Colored border + glow, stacked labels, inline validation
+
+// Form group spacing - consistent vertical rhythm
+.form-group,
+.mb-3 {
+  margin-bottom: var(--spacing-base);
+}
+
+// Label styling - stacked above input (per CONTEXT)
+label,
+.form-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: var(--bs-body-color);
+}
+
+// Required field indicator (accessible)
+.required-label::after,
+label.required::after {
+  content: ' *';
+  color: var(--status-danger);
+  aria-label: 'required';
+}
+
+// Form control base styles
+.form-control,
+.form-select {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+
+  // Enhanced focus states (colored border + glow per CONTEXT)
+  &:focus {
+    border-color: var(--medical-blue-500);
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    outline: none; // Custom focus replaces default
+  }
+
+  // Placeholder styling
+  &::placeholder {
+    color: var(--bs-secondary, #6c757d);
+    opacity: 0.7;
+  }
+
+  // Disabled state
+  &:disabled,
+  &[readonly] {
+    background-color: var(--neutral-100);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// Invalid state styling
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: var(--status-danger);
+
+  // Focus on invalid: combine red border with red-tinted glow
+  &:focus {
+    border-color: var(--status-danger);
+    box-shadow: 0 0 0 var(--focus-ring-width) rgba(198, 40, 40, 0.25);
+  }
+}
+
+// Invalid feedback positioning (inline below field per CONTEXT)
+.invalid-feedback {
+  display: none;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--status-danger);
+
+  // Show when adjacent to invalid control
+  .is-invalid ~ &,
+  .form-control.is-invalid ~ &,
+  .form-select.is-invalid ~ & {
+    display: block;
+  }
+}
+
+// Valid state (optional enhancement)
+.form-control.is-valid,
+.form-select.is-valid {
+  border-color: var(--status-success);
+
+  // Subtle green glow on focus
+  &:focus {
+    border-color: var(--status-success);
+    box-shadow: 0 0 0 var(--focus-ring-width) rgba(46, 125, 50, 0.25);
+  }
+}
+
+// Valid feedback positioning
+.valid-feedback {
+  display: none;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--status-success);
+
+  // Show when adjacent to valid control
+  .is-valid ~ &,
+  .form-control.is-valid ~ &,
+  .form-select.is-valid ~ & {
+    display: block;
+  }
+}
+
+// Form text/help text
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--neutral-600);
+}
+
+// Textarea specific sizing
+textarea.form-control {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+// Input group focus state coordination
+.input-group {
+  .form-control:focus {
+    z-index: 3; // Ensure focus ring appears above adjacent elements
+  }
+}
+
+// Checkbox and radio styling
+.form-check-input {
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+
+  &:focus {
+    border-color: var(--medical-blue-500);
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+  }
+
+  &:checked {
+    background-color: var(--medical-blue-500);
+    border-color: var(--medical-blue-500);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.form-check-label {
+  cursor: pointer;
+  margin-bottom: 0;
+
+  .form-check-input:disabled ~ & {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+}
+
+// Switch styling
+.form-switch .form-check-input {
+  &:focus {
+    background-image: var(--bs-form-switch-bg);
+  }
+
+  &:checked {
+    background-color: var(--medical-blue-500);
+  }
+}

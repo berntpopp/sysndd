@@ -16,5 +16,22 @@ data/*.obo
 # Ignore the log files in logs directory in api folder
 logs/*.log
 
+# Ignore cache directory (external API cache, Docker volume mount)
+cache/
+
 # ignore the development start script
 *_development.R
+
+# renv library cache (regenerated via renv::restore())
+# Note: renv/library/ etc. are handled by renv/.gitignore
+# Additional patterns for safety:
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+
+# User-specific R profile (not project config)
+.Rprofile.user

@@ -1,0 +1,62 @@
+// Spacing scale - Compact density for data-heavy views
+// Supports dense tables, forms, and scientific data displays
+
+:root {
+  // Core spacing scale (rem-based for accessibility)
+  --spacing-compact: 0.5rem; // 8px - for dense data tables
+  --spacing-base: 0.75rem; // 12px - default spacing
+  --spacing-comfortable: 1rem; // 16px - for readability-focused sections
+
+  // Extended spacing scale (matches Bootstrap's spacing system)
+  --spacing-0: 0;
+  --spacing-1: 0.25rem; // 4px
+  --spacing-2: 0.5rem; // 8px
+  --spacing-3: 0.75rem; // 12px
+  --spacing-4: 1rem; // 16px
+  --spacing-5: 1.5rem; // 24px
+  --spacing-6: 2rem; // 32px
+  --spacing-7: 2.5rem; // 40px
+  --spacing-8: 3rem; // 48px
+
+  // Component-specific spacing
+  --spacing-card-padding: var(--spacing-4);
+  --spacing-form-group: var(--spacing-3);
+  --spacing-table-cell: var(--spacing-2);
+  --spacing-section: var(--spacing-6);
+
+  // Gaps for flexbox/grid layouts
+  --gap-compact: var(--spacing-2);
+  --gap-base: var(--spacing-3);
+  --gap-comfortable: var(--spacing-4);
+}
+
+// Utility classes for compact layouts
+.compact {
+  --bs-gutter-y: var(--spacing-compact);
+  --bs-gutter-x: var(--spacing-compact);
+}
+
+.spacing-base {
+  --bs-gutter-y: var(--spacing-base);
+  --bs-gutter-x: var(--spacing-base);
+}
+
+.spacing-comfortable {
+  --bs-gutter-y: var(--spacing-comfortable);
+  --bs-gutter-x: var(--spacing-comfortable);
+}
+
+// Table density utilities
+.table-compact {
+  td,
+  th {
+    padding: var(--spacing-table-cell);
+  }
+}
+
+.table-comfortable {
+  td,
+  th {
+    padding: var(--spacing-4);
+  }
+}

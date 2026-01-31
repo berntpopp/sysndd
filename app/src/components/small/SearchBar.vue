@@ -1,6 +1,6 @@
 <template>
-  <b-input-group class="mb-2 p-2 search-bar-container">
-    <b-form-input
+  <BInputGroup class="mb-2 p-2 search-bar-container">
+    <BFormInput
       v-model="search_input"
       autofocus
       :class="inNavbar ? 'navbar-search' : 'border-dark'"
@@ -10,26 +10,22 @@
       :size="inNavbar ? 'sm' : 'md'"
       autocomplete="off"
       debounce="300"
-      @update="loadSearchInfo"
-      @keydown.native="handleSearchInputKeydown"
+      @update:model-value="loadSearchInfo"
+      @keydown="handleSearchInputKeydown"
     />
 
-    <b-form-datalist
-      id="search-list"
-      :options="search_keys"
-    />
+    <BFormDatalist id="search-list" :options="search_keys" />
 
-    <b-input-group-append>
-      <b-button
-        :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
-        :size="inNavbar ? 'sm' : 'md'"
-        :disabled="search_input.length < 2"
-        @click="handleSearchInputKeydown"
-      >
-        <b-icon icon="search" />
-      </b-button>
-    </b-input-group-append>
-  </b-input-group>
+    <BButton
+      :variant="inNavbar ? 'outline-primary' : 'outline-dark'"
+      :size="inNavbar ? 'sm' : 'md'"
+      :disabled="search_input.length < 2"
+      aria-label="Search"
+      @click="handleSearchInputKeydown"
+    >
+      <i class="bi bi-search" aria-hidden="true" />
+    </BButton>
+  </BInputGroup>
 </template>
 
 <script>
@@ -40,12 +36,10 @@ export default {
   props: {
     placeholderString: {
       type: String,
-      required: true,
       default: '...',
     },
     inNavbar: {
       type: Boolean,
-      required: true,
       default: false,
     },
   },
@@ -75,13 +69,36 @@ export default {
     },
     // Function to handle keydown events on the search input.
     // This function listens for the 'Enter' key and performs a search action.
-    handleSearchInputKeydown(event) {
-      if ((event.key === 'Enter' || event.which === 1) && this.search_input.length > 0) {
+    async handleSearchInputKeydown(event) {
+      // Only proceed if the key is Enter or if it's a click (event.which === 1)
+      // and ensure search_input is nonempty and we are not already navigating.
+      if (
+        (event.key === 'Enter' || event.which === 1) &&
+        this.search_input.length > 0 &&
+        !this._isNavigating
+      ) {
+        // Set flag so duplicate calls are ignored
+        this._isNavigating = true;
+        let targetLink = '';
         if (this.search_object[this.search_input] !== undefined) {
-          this.$router.push(this.search_object[this.search_input][0].link);
+          targetLink = this.search_object[this.search_input][0].link;
         } else {
-          this.$router.push(`/Search/${this.search_input}`);
+          targetLink = `/Search/${this.search_input}`;
         }
+
+        this.$router
+          .push(targetLink)
+          .catch((err) => {
+            // Only ignore NavigationDuplicated errors; throw others.
+            if (err.name !== 'NavigationDuplicated') {
+              throw err;
+            }
+          })
+          .finally(() => {
+            this._isNavigating = false;
+          });
+
+        // Clear search input and keys
         this.search_input = '';
         this.search_keys = [];
       }

@@ -1,130 +1,100 @@
 <!-- src/components/analyses/AnalysesCurationComparisonsTable.vue -->
 <template>
-  <b-container fluid>
+  <BContainer fluid>
     <!-- User Interface controls -->
-    <b-card
-      header-tag="header"
-      body-class="p-0"
-      header-class="p-1"
-      border-variant="dark"
-    >
+    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
       <template #header>
-        <b-row>
-          <b-col>
-            <h6 class="mb-1 text-left font-weight-bold">
+        <BRow>
+          <BCol>
+            <h6 class="mb-1 text-start font-weight-bold">
               Comparing the presence of a gene in different
               <mark
                 v-b-tooltip.hover.leftbottom
                 title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (normalized category/ not listed) in the respective list overlaps."
-              >curation efforts</mark>
+                >curation efforts</mark
+              >
               for NDDs.
 
-              <b-badge
-                id="popover-badge-help-comparisons"
-                pill
-                href="#"
-                variant="info"
-              >
-                <b-icon icon="question-circle-fill" />
-              </b-badge>
+              <BBadge id="popover-badge-help-comparisons" pill href="#" variant="info">
+                <i class="bi bi-question-circle-fill" />
+              </BBadge>
 
-              <b-popover
-                target="popover-badge-help-comparisons"
-                variant="info"
-                triggers="focus"
-              >
-                <template #title>
-                  Comparisons selection [last update 2023-04-13]
-                </template>
+              <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+                <template #title> Comparisons selection [last update 2023-04-13] </template>
                 The NDD databases and lists for the comparison with SysNDD are:
-                <br>
-                <strong>1) radboudumc ID,</strong> downloaded and normalized
-                from https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br>
-                <strong>2) gene2phenotype ID</strong> downloaded and normalized
-                from https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
-                <br>
+                <br />
+                <strong>1) radboudumc ID,</strong> downloaded and normalized from
+                https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br />
+                <strong>2) gene2phenotype ID</strong> downloaded and normalized from
+                https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
+                <br />
                 <strong>3) panelapp ID</strong> downloaded and normalized from
                 https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
-                <br>
+                <br />
                 <strong>4) sfari</strong> downloaded and normalized from
                 https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes,
-                <br>
+                <br />
                 <strong>5) geisinger DBD</strong> downloaded and normalized from
                 https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv,
-                <br>
+                <br />
                 <strong>6) orphanet ID</strong> downloaded and normalized from
-                https://id-genes.orphanet.app/es/index/sysid_index_1, <br>
-                <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term
-                "Neurodevelopmental abnormality" (HP:0012759) and all its child
-                terms using the files phenotype_to_genes
-                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa)
-                and genemap2
+                https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
+                <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
+                abnormality" (HP:0012759) and all its child terms using the files phenotype_to_genes
+                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa) and genemap2
                 (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
-                <br>
-              </b-popover>
+                <br />
+              </BPopover>
             </h6>
 
-            <h6 class="mb-1 text-left font-weight-bold">
-              <b-badge
+            <h6 class="mb-1 text-start font-weight-bold">
+              <BBadge
                 v-b-tooltip.hover.bottom
                 variant="success"
                 :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
               >
                 Genes: {{ totalRows }}
-              </b-badge>
+              </BBadge>
             </h6>
-          </b-col>
-          <b-col>
-            <h5
-              v-if="showFilterControls"
-              class="mb-1 text-right font-weight-bold"
-            >
-              <b-button
+          </BCol>
+          <BCol>
+            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+              <BButton
                 v-b-tooltip.hover.bottom
-                class="mr-1"
+                class="me-1"
                 size="sm"
                 title="Download data as Excel file."
                 @click="requestExcel()"
               >
-                <b-icon
-                  icon="table"
-                  class="mx-1"
-                />
-                <b-icon
-                  v-if="!downloading"
-                  icon="download"
-                />
-                <b-spinner
-                  v-if="downloading"
-                  small
-                />
+                <i class="bi bi-table mx-1" />
+                <i v-if="!downloading" class="bi bi-download" />
+                <BSpinner v-if="downloading" small />
                 .xlsx
-              </b-button>
-              <b-button
+              </BButton>
+              <BButton
                 v-b-tooltip.hover.bottom
                 size="sm"
-                :title="'The table is ' + (filter_string === '' ? 'not' : '') + ' filtered.' + (filter_string === '' ? '' : ' Click to remove all filters.')"
+                :title="
+                  'The table is ' +
+                  (filter_string === '' ? 'not' : '') +
+                  ' filtered.' +
+                  (filter_string === '' ? '' : ' Click to remove all filters.')
+                "
                 :variant="filter_string === '' ? 'info' : 'warning'"
                 @click="removeFilters()"
               >
-                <b-icon
-                  icon="filter"
-                  font-scale="1.0"
-                />
-              </b-button>
+                <i class="bi bi-filter" />
+              </BButton>
             </h5>
-          </b-col>
-        </b-row>
+          </BCol>
+        </BRow>
       </template>
 
       <div v-if="!loadingTable">
-        <b-row>
-          <b-col
-            class="my-1"
-            sm="6"
-          >
-            <b-form-group class="mb-1 border-dark">
-              <b-form-input
+        <BRow>
+          <BCol class="my-1" sm="6">
+            <BFormGroup class="mb-1 border-dark">
+              <BFormInput
                 v-if="showFilterControls"
                 id="filter-input"
                 v-model="filter['any'].content"
@@ -134,53 +104,41 @@
                 placeholder="Search any field by typing here"
                 debounce="500"
                 @click="removeFilters()"
-                @update="filtered()"
+                @update:model-value="filtered()"
               />
-            </b-form-group>
-          </b-col>
+            </BFormGroup>
+          </BCol>
 
-          <b-col
-            class="my-1"
-            sm="4"
-          >
-            <b-container
-              v-if="totalRows > perPage || showPaginationControls"
-            >
-              <b-input-group
-                prepend="Per page"
-                class="mb-1"
-                size="sm"
-              >
-                <b-form-select
+          <BCol class="my-1" sm="4">
+            <BContainer v-if="totalRows > perPage || showPaginationControls">
+              <BInputGroup prepend="Per page" class="mb-1" size="sm">
+                <BFormSelect
                   id="per-page-select"
-                  v-model="perPage"
+                  :model-value="perPage"
                   :options="pageOptions"
                   class="filter-input"
                   size="sm"
+                  @update:model-value="handlePerPageChange"
                 />
-              </b-input-group>
+              </BInputGroup>
 
-              <b-pagination
-                v-model="currentPage"
+              <BPagination
+                :model-value="currentPage"
                 :total-rows="totalRows"
                 :per-page="perPage"
                 align="fill"
                 size="sm"
                 class="my-0"
                 limit="2"
-                @change="handlePageChange"
+                @update:model-value="handlePageChange"
               />
-            </b-container>
-          </b-col>
-        </b-row>
+            </BContainer>
+          </BCol>
+        </BRow>
       </div>
 
       <div class="position-relative">
-        <b-spinner
-          v-if="loadingTable"
-          label="Loading..."
-          class="spinner"
-        />
+        <BSpinner v-if="loadingTable" label="Loading..." class="spinner" />
         <GenericTable
           v-else
           :items="items"
@@ -191,12 +149,9 @@
           :sort-desc="sortDesc"
           @update-sort="handleSortUpdate"
         >
-          <template v-slot:filter-controls>
-            <td
-              v-for="field in fields"
-              :key="field.key"
-            >
-              <b-form-input
+          <template #filter-controls>
+            <td v-for="field in fields" :key="field.key">
+              <BFormInput
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
                 class="filter-input"
@@ -205,171 +160,103 @@
                 type="search"
                 autocomplete="off"
                 @click="removeSearch()"
-                @update="filtered()"
+                @update:model-value="filtered()"
               />
 
-              <b-form-select
-                v-if="field.selectable"
+              <BFormSelect
+                v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
                 v-model="filter[field.key].content"
                 class="filter-input"
-                :options="field.selectOptions"
-                type="search"
-                @input="removeSearch()"
-                @change="filtered()"
+                :options="normalizeSelectOptions(field.selectOptions)"
+                size="sm"
+                @update:model-value="
+                  removeSearch();
+                  filtered();
+                "
               >
-                <template v-slot:first>
-                  <b-form-select-option value="null">
+                <template #first>
+                  <BFormSelectOption :value="null">
                     .. {{ truncate(field.label, 20) }} ..
-                  </b-form-select-option>
+                  </BFormSelectOption>
                 </template>
-              </b-form-select>
+              </BFormSelect>
 
-              <label
-                v-if="field.multi_selectable"
-                :for="'select_' + field.key"
-                :aria-label="field.label"
+              <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
+              <BFormSelect
+                v-if="
+                  field.multi_selectable && field.selectOptions && field.selectOptions.length > 0
+                "
+                v-model="filter[field.key].content"
+                class="filter-input"
+                :options="normalizeSelectOptions(field.selectOptions)"
+                size="sm"
+                @update:model-value="
+                  removeSearch();
+                  filtered();
+                "
               >
-                <treeselect
-                  v-if="field.multi_selectable"
-                  :id="'select_' + field.key"
-                  v-model="filter[field.key].content"
-                  class="filter-input"
-                  size="small"
-                  :multiple="true"
-                  :options="field.selectOptions"
-                  :normalizer="normalizer"
-                  :placeholder="'.. ' + truncate(field.label, 20) + ' ..'"
-                  @input="removeSearch();filtered();"
-                />
-              </label>
+                <template #first>
+                  <BFormSelectOption :value="null">
+                    .. {{ truncate(field.label, 20) }} ..
+                  </BFormSelectOption>
+                </template>
+              </BFormSelect>
             </td>
           </template>
 
-          <template v-slot:cell-symbol="{ row }">
-            <div class="font-italic">
-              <b-link :href="'/Genes/' + row.hgnc_id">
-                <b-badge
-                  v-b-tooltip.hover.leftbottom
-                  pill
-                  variant="success"
-                  :title="row.hgnc_id"
-                >
-                  {{ row.symbol }}
-                </b-badge>
-              </b-link>
-            </div>
+          <template #cell-symbol="{ row }">
+            <GeneBadge
+              :symbol="row.symbol"
+              :hgnc-id="row.hgnc_id"
+              :link-to="'/Genes/' + row.hgnc_id"
+              size="sm"
+            />
           </template>
 
-          <template v-slot:cell-SysNDD="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.SysNDD]"
-                :title="row.SysNDD"
-              />
-            </div>
+          <template #cell-SysNDD="{ row }">
+            <CategoryIcon :category="row.SysNDD" size="sm" />
           </template>
 
-          <template v-slot:cell-radboudumc_ID="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.radboudumc_ID]"
-                :title="row.radboudumc_ID"
-              />
-            </div>
+          <template #cell-radboudumc_ID="{ row }">
+            <CategoryIcon :category="row.radboudumc_ID" size="sm" />
           </template>
 
-          <template v-slot:cell-gene2phenotype="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.gene2phenotype]"
-                :title="row.gene2phenotype"
-              />
-            </div>
+          <template #cell-gene2phenotype="{ row }">
+            <CategoryIcon :category="row.gene2phenotype" size="sm" />
           </template>
 
-          <template v-slot:cell-panelapp="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.panelapp]"
-                :title="row.panelapp"
-              />
-            </div>
+          <template #cell-panelapp="{ row }">
+            <CategoryIcon :category="row.panelapp" size="sm" />
           </template>
 
-          <template v-slot:cell-sfari="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.sfari]"
-                :title="row.sfari"
-              />
-            </div>
+          <template #cell-sfari="{ row }">
+            <CategoryIcon :category="row.sfari" size="sm" />
           </template>
 
-          <template v-slot:cell-geisinger_DBD="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.geisinger_DBD]"
-                :title="row.geisinger_DBD"
-              />
-            </div>
+          <template #cell-geisinger_DBD="{ row }">
+            <CategoryIcon :category="row.geisinger_DBD" size="sm" />
           </template>
 
-          <template v-slot:cell-omim_ndd="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.omim_ndd]"
-                :title="row.omim_ndd"
-              />
-            </div>
+          <template #cell-omim_ndd="{ row }">
+            <CategoryIcon :category="row.omim_ndd" size="sm" />
           </template>
 
-          <template v-slot:cell-orphanet_id="{ row }">
-            <div>
-              <b-avatar
-                v-b-tooltip.hover.left
-                size="1.4em"
-                icon="stoplights"
-                :variant="stoplights_style[row.orphanet_id]"
-                :title="row.orphanet_id"
-              />
-            </div>
+          <template #cell-orphanet_id="{ row }">
+            <CategoryIcon :category="row.orphanet_id" size="sm" />
           </template>
         </GenericTable>
       </div>
-    </b-card>
-  </b-container>
+    </BCard>
+  </BContainer>
 </template>
 
 <script>
-// import the Treeselect component
-import Treeselect from '@riophae/vue-treeselect';
-// import the Treeselect styles
-import '@riophae/vue-treeselect/dist/vue-treeselect.css';
+// Treeselect temporarily disabled due to Vue 3 compatibility issues
+// TODO: Re-enable when vue3-treeselect compatibility is fixed
+// import Treeselect from '@zanmato/vue3-treeselect';
+// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import toastMixin from '@/assets/js/mixins/toastMixin';
-import urlParsingMixin from '@/assets/js/mixins/urlParsingMixin';
-import colorAndSymbolsMixin from '@/assets/js/mixins/colorAndSymbolsMixin';
+import { useToast, useUrlParsing, useColorAndSymbols } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -377,11 +264,18 @@ import Utils from '@/assets/js/utils';
 // Import the GenericTable component
 import GenericTable from '@/components/small/GenericTable.vue';
 
+// Import badge components
+import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
-  // register the Treeselect component and GenericTable component
-  components: { Treeselect, GenericTable },
-  mixins: [toastMixin, urlParsingMixin, colorAndSymbolsMixin],
+  // register the GenericTable component (Treeselect temporarily disabled)
+  components: {
+    GenericTable,
+    CategoryIcon,
+    GeneBadge,
+  },
   props: {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
@@ -389,12 +283,25 @@ export default {
     filterInput: { type: String, default: 'filter=' },
     fieldsInput: { type: String, default: null },
     pageAfterInput: { type: String, default: '' },
-    pageSizeInput: { type: String, default: '10' },
+    pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
       default:
-          'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
     },
+  },
+  setup() {
+    const { makeToast } = useToast();
+    const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
+    const colorAndSymbols = useColorAndSymbols();
+
+    return {
+      makeToast,
+      filterObjToStr,
+      filterStrToObj,
+      sortStringToVariables,
+      ...colorAndSymbols,
+    };
   },
   data() {
     return {
@@ -405,63 +312,63 @@ export default {
           label: 'Symbol',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'SysNDD',
           label: 'SysNDD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'radboudumc_ID',
           label: 'Radboud UMC ID',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'gene2phenotype',
           label: 'gene2phenotype',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'panelapp',
           label: 'PanelApp',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'sfari',
           label: 'SFARI',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'geisinger_DBD',
           label: 'Geisinger DBD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'omim_ndd',
           label: 'OMIM NDD',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
         {
           key: 'orphanet_id',
           label: 'Orphanet ID',
           sortable: true,
           filterable: true,
-          class: 'text-left',
+          class: 'text-start',
         },
       ],
       totalRows: 0,
@@ -472,7 +379,7 @@ export default {
       lastItemID: null,
       executionTime: 0,
       perPage: this.pageSizeInput,
-      pageOptions: ['10', '25', '50', '200'],
+      pageOptions: [10, 25, 50, 200],
       sortBy: 'symbol',
       sortDesc: false,
       sort: this.sortInput,
@@ -496,8 +403,11 @@ export default {
     };
   },
   watch: {
-    filter(value) {
-      this.filtered();
+    filter: {
+      handler(_value) {
+        this.filtered();
+      },
+      deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     sortBy() {
       this.handleSortByOrDescChange();
@@ -514,7 +424,8 @@ export default {
   },
   mounted() {
     const sort_object = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sort_object.sortBy;
+    // Use sortColumn for string format, sortDesc for boolean
+    this.sortBy = sort_object.sortColumn;
     this.sortDesc = sort_object.sortDesc;
 
     setTimeout(() => {
@@ -523,33 +434,19 @@ export default {
   },
   methods: {
     copyLinkToClipboard() {
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
-      navigator.clipboard.writeText(
-        `${process.env.VUE_APP_URL + this.$route.path}?${urlParam}`,
-      );
+      }&page_size=${this.perPage}`;
+      navigator.clipboard.writeText(`${import.meta.env.VITE_URL + this.$route.path}?${urlParam}`);
     },
     async loadTableData() {
       this.isBusy = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=${
+      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${
-        this.perPage}`;
+      }&page_size=${this.perPage}`;
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/comparisons/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
       try {
         const response = await this.axios.get(apiUrl);
@@ -575,19 +472,14 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      const urlParam = `sort=${
-        this.sort
-      }&filter=${
-        this.filter_string
-      }&page_after=`
-          + '0'
-          + '&page_size='
-          + 'all'
-          + '&format=xlsx';
+      const urlParam =
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=` +
+        '0' +
+        '&page_size=' +
+        'all' +
+        '&format=xlsx';
 
-      const apiUrl = `${process.env.VUE_APP_API_URL
-      }/api/comparisons/browse?${
-        urlParam}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
       try {
         const response = await this.axios({
@@ -612,10 +504,24 @@ export default {
     },
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      this.sort = (!this.sortDesc ? '-' : '+') + this.sortBy;
+      // Ensure sortBy is a string for the API URL
+      const sortColumn =
+        typeof this.sortBy === 'string' ? this.sortBy : this.sortBy[0]?.key || 'symbol';
+      this.sort = (!this.sortDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
-    handlePerPageChange() {
+    /**
+     * Handle sort updates from GenericTable component
+     * @param {Object} ctx - Sort context with sortBy (string) and sortDesc (boolean)
+     */
+    handleSortUpdate(ctx) {
+      this.sortBy = ctx.sortBy;
+      this.sortDesc = ctx.sortDesc;
+    },
+    handlePerPageChange(newPerPage) {
+      if (newPerPage !== undefined) {
+        this.perPage = typeof newPerPage === 'string' ? parseInt(newPerPage, 10) : newPerPage;
+      }
       this.currentItemID = 0;
       this.filtered();
     },
@@ -665,6 +571,29 @@ export default {
         id: node,
         label: node,
       };
+    },
+    /**
+     * Normalize select options for BFormSelect
+     * Converts simple string arrays to { value, text } format
+     * @param {Array} options - Array of option values
+     * @returns {Array} - Array of { value, text } objects
+     */
+    normalizeSelectOptions(options) {
+      if (!options || !Array.isArray(options)) {
+        return [];
+      }
+      return options.map((opt) => {
+        if (typeof opt === 'string') {
+          return { value: opt, text: opt };
+        }
+        if (typeof opt === 'object' && opt !== null) {
+          return {
+            value: opt.value || opt.id || opt,
+            text: opt.text || opt.label || opt.name || opt,
+          };
+        }
+        return { value: opt, text: String(opt) };
+      });
     },
     // Function to truncate a string to a specified length.
     // If the string is longer than the specified length, it adds '...' to the end.

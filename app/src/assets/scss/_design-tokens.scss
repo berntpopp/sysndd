@@ -1,0 +1,9 @@
+// Design tokens - CSS custom properties for SysNDD
+// This file aggregates all design token partials into a single import
+
+// Import all design token partials
+@use './partials/colors';
+@use './partials/shadows';
+@use './partials/spacing';
+@use './partials/typography';
+@use './partials/animations';

@@ -1,0 +1,61 @@
+// Shadow depth system - Subtle elevation for medical/scientific aesthetic
+// Based on medical blue primary color for brand consistency
+
+:root {
+  // Shadow depth tokens
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px 0 rgba(13, 71, 161, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(13, 71, 161, 0.1), 0 1px 2px 0 rgba(13, 71, 161, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(13, 71, 161, 0.1), 0 2px 4px -1px rgba(13, 71, 161, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(13, 71, 161, 0.1), 0 4px 6px -2px rgba(13, 71, 161, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(13, 71, 161, 0.1), 0 10px 10px -5px rgba(13, 71, 161, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(13, 71, 161, 0.25);
+
+  // Focus shadow (for keyboard navigation accessibility)
+  --shadow-focus: 0 0 0 3px rgba(13, 71, 161, 0.25);
+}
+
+// Utility classes for shadow application
+.shadow-none {
+  box-shadow: var(--shadow-none) !important;
+}
+
+.shadow-xs {
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.shadow-xl {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+.shadow-2xl {
+  box-shadow: var(--shadow-2xl) !important;
+}
+
+// Hover states for elevated cards
+.shadow-hover-sm:hover {
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base, 250ms ease);
+}
+
+.shadow-hover-md:hover {
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--transition-base, 250ms ease);
+}
+
+.shadow-hover-lg:hover {
+  box-shadow: var(--shadow-lg);
+  transition: box-shadow var(--transition-base, 250ms ease);
+}

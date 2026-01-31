@@ -1,0 +1,47 @@
+// Border radius tokens - Rounded corners for modern aesthetic
+// Subtle rounding for professional scientific context
+
+:root {
+  // Radius scale
+  --radius-none: 0;
+  --radius-xs: 0.125rem; // 2px - minimal rounding
+  --radius-sm: 0.25rem; // 4px - subtle rounding
+  --radius-md: 0.375rem; // 6px - default card corners
+  --radius-lg: 0.5rem; // 8px - prominent rounding
+  --radius-xl: 0.75rem; // 12px - large rounding
+  --radius-2xl: 1rem; // 16px - maximum rounding
+  --radius-full: 9999px; // Pill shape (for badges, buttons)
+}
+
+// Utility classes for radius application
+.radius-none {
+  border-radius: var(--radius-none) !important;
+}
+
+.radius-xs {
+  border-radius: var(--radius-xs) !important;
+}
+
+.radius-sm {
+  border-radius: var(--radius-sm) !important;
+}
+
+.radius-md {
+  border-radius: var(--radius-md) !important;
+}
+
+.radius-lg {
+  border-radius: var(--radius-lg) !important;
+}
+
+.radius-xl {
+  border-radius: var(--radius-xl) !important;
+}
+
+.radius-2xl {
+  border-radius: var(--radius-2xl) !important;
+}
+
+.radius-full {
+  border-radius: var(--radius-full) !important;
+}

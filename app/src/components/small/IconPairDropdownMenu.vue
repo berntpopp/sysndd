@@ -1,39 +1,30 @@
 <!-- src/components/small/IconPairDropdownMenu.vue -->
 <template>
-  <b-nav-item-dropdown
+  <BNavItemDropdown
     :text="title"
-    :right="align === 'right'"
+    :end="align === 'right' || undefined"
     menu-class="dropdown-menu-center"
   >
-    <b-dropdown-item
+    <BDropdownItem
       v-for="(item, index) in items"
       :key="index"
       :to="item.path"
       class="text-center"
       @click="handleItemClick(item)"
     >
-      <b-icon
-        v-for="(icon, iconIndex) in item.icons"
-        :key="iconIndex"
-        :icon="icon"
-        font-scale="1.0"
-      />
+      <i v-for="(icon, iconIndex) in item.icons" :key="iconIndex" :class="'bi bi-' + icon" />
       {{ item.text }}
-      <component
-        :is="item.component"
-        v-if="item.component"
-      />
-    </b-dropdown-item>
-  </b-nav-item-dropdown>
+      <component :is="item.component" v-if="item.component" />
+    </BDropdownItem>
+  </BNavItemDropdown>
 </template>
 
 <script>
 import URLS from '@/assets/js/constants/url_constants';
-import toastMixin from '@/assets/js/mixins/toastMixin';
+import useToast from '@/composables/useToast';
 
 export default {
   name: 'IconPairDropdownMenu',
-  mixins: [toastMixin],
   props: {
     title: {
       type: String,
@@ -51,6 +42,10 @@ export default {
       type: Array,
       required: true,
     },
+  },
+  setup() {
+    const { makeToast } = useToast();
+    return { makeToast };
   },
   methods: {
     handleItemClick(item) {

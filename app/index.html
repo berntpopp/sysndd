@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!-- Modern PWA meta tag (replaces deprecated apple-mobile-web-app-capable) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" type="image/png" href="/brain-neurodevelopmental-disorders-sysndd.png"><!-- Major Browsers -->
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+      {
+        "@context": "http://schema.org",
+        "@type": "WebSite",
+        "name": "SysNDD",
+        "url": "https://sysndd.dbmr.unibe.ch",
+        "description": "SysNDD is the expert curated database of gene-inheritance-disease relationships in neurodevelopmental disorders (NDD) including developmental delay (DD), intellectual disability (ID), and autism spectrum disorder (ASD).",
+        "publisher": {
+          "@type": "Organization",
+          "name": "University of Bern, Department for BioMedical Research (DBMR)",
+          "url": "https://www.dbmr.unibe.ch"
+        },
+        "creator": [
+          {
+            "@type": "Person",
+            "name": "Bernt Popp",
+            "jobTitle": "Senior Physician & Postdoctoral Research Fellow",
+            "worksFor": {
+              "@type": "EducationalOrganization",
+              "name": "BIH Charite – Universitatsmedizin Berlin"
+            },
+            "memberOf": [
+              {
+                "@type": "Organization",
+                "name": "Institute of Human Genetics, University Hospital Leipzig"
+              },
+              {
+                "@type": "EducationalOrganization",
+                "name": "FAU Erlangen-Nurnberg"
+              }
+            ],
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Berlin",
+              "addressCountry": "DE"
+            },
+            "url": "https://berntpopp.com/",
+            "sameAs": [
+              "https://berntpopp.github.io/berntpopp/",
+              "https://scholar.google.com/citations?user=Uvhu3t0AAAAJ",
+              "https://twitter.com/berntpopp",
+              "https://orcid.org/0000-0002-3679-1081",
+              "https://github.com/berntpopp"
+            ],
+            "skills": ["genetics", "bioinformatics", "high-throughput sequencing data analysis", "genetic disease curation"],
+            "email": "mailto:bernt.popp.md@gmail.com",
+            "birthDate": "1985-09-12",
+            "birthPlace": "Martinskirch",
+            "gender": "male",
+            "award": [
+              {
+                "name": "Deutsche Gesellschaft fur Humangenetik (GfH) Promotionspreis fur Medizin 2017",
+                "awardedBy": "Deutsche Gesellschaft fur Humangenetik (GfH)",
+                "date": "2017-03-31"
+              },
+              {
+                "name": "Presentation award at the 30th European Dysmorphology meeting, Bischenberg/France",
+                "awardedBy": "SynLab / ITHAKA",
+                "date": "2019-09-13"
+              }
+            ]
+          },
+          {
+            "@type": "Person",
+            "name": "Christiane Zweier",
+            "jobTitle": "Professor",
+            "affiliation": {
+              "@type": "Organization",
+              "name": "University of Bern, Department for BioMedical Research (DBMR)"
+            },
+            "url": "https://www.medizin.unibe.ch/ueber_uns/personen/prof_dr_med_zweier_christiane/index_ger.html",
+            "sameAs": [
+              "https://orcid.org/0000-0001-8002-2020",
+              "https://scholar.google.com/citations?user=KE0N1r8AAAAJ"
+            ]
+          }
+        ],
+        "sponsor": [
+          {
+            "@type": "Organization",
+            "name": "DFG (Deutsche Forschungsgemeinschaft)",
+            "url": "https://www.dfg.de"
+          },
+          {
+            "@type": "Organization",
+            "name": "ERN ITHACA",
+            "url": "https://ern-ithaca.eu/"
+          },
+          {
+            "@type": "Organization",
+            "name": "IZKF (Interdisziplinares Zentrum fur Klinische Forschung) Erlangen",
+            "url": "https://www.izkf.uk-erlangen.de"
+          }
+        ],
+        "about": {
+          "@type": "WebAPI",
+          "name": "SysNDD API",
+          "description": "API providing access to the SysNDD curated gene-disease data.",
+          "documentation": "https://documentation.sysndd.org",
+          "url": "https://sysndd.dbmr.unibe.ch/api"
+        },
+        "mainEntity": {
+          "@type": "DataCatalog",
+          "name": "SysNDD Database",
+          "url": "https://sysndd.dbmr.unibe.ch",
+          "about": {
+            "@type": "DataSet",
+            "name": "SysNDD Gene-Disease Associations",
+            "description": "Manually curated gene-disease associations implicated in neurodevelopmental disorders (NDD) including developmental delay (DD), intellectual disability (ID), and autism spectrum disorder (ASD).",
+            "url": "https://sysndd.dbmr.unibe.ch/datasets"
+          }
+        }
+      }
+    </script>
+
+    <!--[if IE]><link rel="icon" href="/favicon.ico"><![endif]--><!-- Internet Explorer-->
+    <title>SysNDD</title>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but SysNDD doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
