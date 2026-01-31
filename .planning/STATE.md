@@ -141,7 +141,7 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Warning logging vs hard validation for PMID deletion | Root cause in frontend; blocking would break workflows | Operations continue but losses are detected via logs |
 | 2026-01-31 | Floor vs ceiling for time aggregation | Ceiling shifts dates to next period incorrectly | Entities-over-time chart now aligns with database dates |
 | 2026-01-31 | Explicit field protection in repository updates | Preserve attribution (review_user_id should never change) | review_update explicitly removes review_user_id from updates |
-| 2026-01-31 | Document vs implement disease rename approval | Full workflow requires architectural changes across layers | Infrastructure added (is_active param), implementation deferred |
+| 2026-01-31 | Close disease rename approval as wontfix | Current behavior is functional; approval workflow adds complexity without proportional benefit | Issue #41 closed, infrastructure reverted |
 
 ---
 
@@ -167,7 +167,7 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - ✅ Viewer profile / auto-logout (BUG-04) - Fixed in 55-02
    - ✅ PMID deletion during re-review (BUG-05) - Protected with logging in 55-02
    - ✅ #44: Entities over time counts incorrect (BUG-06) - Fixed in 55-02
-   - ⚠️ #41: Disease renaming bypasses approval (BUG-07) - Documented in 55-02, needs implementation
+   - ✅ #41: Disease renaming bypasses approval (BUG-07) - Closed as wontfix, current behavior is intentional
    - ✅ Re-reviewer identity lost (BUG-08) - Fixed in 55-02
 
 3. **LLM Implementation Notes:**
