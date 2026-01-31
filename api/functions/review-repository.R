@@ -97,16 +97,25 @@ review_create <- function(review_data) {
     )
   }
 
+  # Validate review_user_id (required by database schema - NOT NULL without default)
+  if (is.null(review_data$review_user_id) || is.na(review_data$review_user_id)) {
+    rlang::abort(
+      message = "review_user_id is required",
+      class = c("review_validation_error", "validation_error"),
+      missing_fields = "review_user_id"
+    )
+  }
+
   # Escape single quotes in synopsis (even if NA, handle safely)
   synopsis <- review_data$synopsis
   if (!is.null(synopsis) && !is.na(synopsis) && is.character(synopsis)) {
     synopsis <- stringr::str_replace_all(synopsis, "'", "''")
   }
 
-  # Insert review
-  sql <- "INSERT INTO ndd_entity_review (entity_id, synopsis) VALUES (?, ?)"
+  # Insert review (BUG-01 fix: include review_user_id which is required by database)
+  sql <- "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id) VALUES (?, ?, ?)"
 
-  params <- list(review_data$entity_id, synopsis)
+  params <- list(review_data$entity_id, synopsis, review_data$review_user_id)
 
   db_execute_statement(sql, params)
 
