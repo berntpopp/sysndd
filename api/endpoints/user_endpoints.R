@@ -523,21 +523,27 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
       collect() %>%
       filter(user_id == user_jwt$user_id) %>%
       mutate(hash = toString(md5(paste0(dw$salt, password)))) %>%
-      mutate(timestamp_iat = as.integer(password_reset_date)) %>%
-      mutate(timestamp_exp = as.integer(password_reset_date) + dw$refresh) %>%
-      select(user_id, user_name, hash, email, timestamp_iat, timestamp_exp)
+      mutate(reset_posix = as.POSIXct(password_reset_date, tz = "UTC")) %>%
+      mutate(timestamp_iat = as.integer(reset_posix)) %>%
+      select(user_id, user_name, hash, email, timestamp_iat)
 
-    claim_check <- jwt_claim(
-      user_id = user_table$user_id,
-      user_name = user_table$user_name,
-      email = user_table$email,
-      hash = user_table$hash,
-      iat = user_table$timestamp_iat,
-      exp = user_table$timestamp_exp
-    )
+    # Check user was found
+    if (nrow(user_table) == 0) {
+      res$status <- 404
+      return(list(error = "User not found."))
+    }
 
-    jwt_check <- jwt_encode_hmac(claim_check, secret = key)
-    jwt_match <- (jwt == jwt_check)
+    # Validate JWT claims against database values (instead of comparing JWT strings)
+    # This properly handles jti/nbf fields that are auto-generated
+    # Use first() to extract scalar values from tibble columns
+    # Allow 2-second tolerance on iat to handle datetime rounding when storing/retrieving
+    iat_tolerance <- abs(user_jwt$iat - user_table$timestamp_iat[[1]]) <= 2
+
+    jwt_claims_valid <- (user_jwt$user_id == user_table$user_id[[1]]) &&
+      (user_jwt$user_name == user_table$user_name[[1]]) &&
+      (user_jwt$email == user_table$email[[1]]) &&
+      (user_jwt$hash == user_table$hash[[1]]) &&
+      iat_tolerance
 
     new_pass_match_and_valid <- (new_pass_1 == new_pass_2) &&
       nchar(new_pass_1) > 7 &&
@@ -546,11 +552,15 @@ function(req, res, new_pass_1 = "", new_pass_2 = "") {
       grepl("\\d", new_pass_1) &&
       grepl("[!@#$%^&*]", new_pass_1)
 
-    if (jwt_match && new_pass_match_and_valid) {
+    if (jwt_claims_valid && new_pass_match_and_valid) {
       # Hash new password with Argon2id before storing
       hashed_new_password <- hash_password(new_pass_1)
       user_update_password(user_jwt$user_id, hashed_new_password)
-      user_update(user_jwt$user_id, list(password_reset_date = NULL))
+      # Clear password_reset_date using direct SQL (NULL params don't work well with DBI)
+      db_execute_statement(
+        "UPDATE user SET password_reset_date = NULL WHERE user_id = ?",
+        list(user_jwt$user_id)
+      )
 
       res$status <- 201
       return(list(message = "Password successfully changed."))

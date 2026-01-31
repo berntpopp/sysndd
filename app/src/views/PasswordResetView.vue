@@ -159,9 +159,12 @@ export default {
       })();
     },
     onPasswordRequest() {
-      this.handleRequestSubmit(() => {
-        this.requestPasswordReset();
-      })();
+      // Validate email format before submitting
+      if (!this.emailEntry || !this.emailEntry.includes('@')) {
+        this.makeToast('Please enter a valid email address', 'Error', 'danger');
+        return;
+      }
+      this.requestPasswordReset();
     },
     async checkURLParameter() {
       this.loading = true;
@@ -195,7 +198,7 @@ export default {
       }/api/user/password/reset/request?email_request=${this.emailEntry}`;
 
       try {
-        const responseResetRequest = await this.axios.get(apiPasswordResetRequest);
+        const responseResetRequest = await this.axios.put(apiPasswordResetRequest);
         this.makeToast(
           `If the mail exists your request has been sent (status ${responseResetRequest.status} - ${responseResetRequest.statusText}).`,
           'Success',
@@ -223,7 +226,7 @@ export default {
             Authorization: `Bearer ${this.$route.params.request_jwt}`,
           },
         });
-      } catch (_e) {
+      } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
       this.resetChangeForm();
