@@ -432,6 +432,11 @@ function(req,
          min_journal_count = 1,
          min_lastname_count = 1,
          min_keyword_count = 1) {
+  # Convert min count parameters to integers (Plumber passes query params as strings)
+  min_journal_count <- as.integer(min_journal_count)
+  min_lastname_count <- as.integer(min_lastname_count)
+  min_keyword_count <- as.integer(min_keyword_count)
+
   # 1) Generate filter expressions from the user-provided 'filter' string
   filter_exprs <- generate_filter_expressions(filter)
 
