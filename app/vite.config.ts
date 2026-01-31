@@ -152,7 +152,7 @@ export default defineConfig({
 
   // Optimization for dependencies that need pre-bundling
   optimizeDeps: {
-    include: ['xlsx', 'ngl'],
+    include: ['exceljs', 'ngl'],
   },
 
   build: {
