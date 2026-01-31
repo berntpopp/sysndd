@@ -140,7 +140,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 57.1-01-PLAN.md - Refactor pubtator_db_update_async to use db-helpers with parameterized queries
+- [x] 57.1-01-PLAN.md - Refactor pubtator_db_update_async to use db-helpers with parameterized queries
 
 **Requirements:**
 - PUBT-ASYNC-01: Async PubTator function uses parameterized queries (no sprintf SQL construction)
@@ -273,6 +273,7 @@ Plans:
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Complete |
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
+| 57.1 | PubTator Async Repository Refactor | PUBT-ASYNC-01 to PUBT-ASYNC-03 | Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Complete |
 | 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
@@ -359,4 +360,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-01-31*
+*Last updated: 2026-01-31 — Phase 57.1 complete*
