@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -165,6 +165,48 @@ pre-commit: ## [quality] Run all quality checks before committing
 	@printf "\n$(CYAN)[3/3] Running R API tests...$(RESET)\n"
 	@$(MAKE) test-api
 	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
+
+ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
+	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
+	@printf "\n$(CYAN)[1/5] Starting test database...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d mysql-test && \
+		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
+		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
+	@printf "$(CYAN)Waiting for MySQL to be ready...$(RESET)\n"
+	@SECONDS=0; \
+	while [ $$SECONDS -lt 30 ]; do \
+		if docker compose -f docker-compose.dev.yml exec -T mysql-test mysqladmin ping -h localhost -u bernt -pNur7DoofeFliegen. --silent 2>/dev/null; then \
+			printf "$(GREEN)MySQL ready$(RESET)\n"; \
+			break; \
+		fi; \
+		printf "."; \
+		sleep 1; \
+		SECONDS=$$((SECONDS+1)); \
+	done
+	@printf "\n$(CYAN)[2/5] Linting R code...$(RESET)\n"
+	@$(MAKE) lint-api || ($(MAKE) _ci-cleanup && exit 1)
+	@printf "\n$(CYAN)[3/5] Linting frontend code...$(RESET)\n"
+	@$(MAKE) lint-app || ($(MAKE) _ci-cleanup && exit 1)
+	@printf "\n$(CYAN)[4/5] Type-checking frontend...$(RESET)\n"
+	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) _ci-cleanup && exit 1)
+	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
+	@printf "\n$(CYAN)[5/5] Running R API tests (with database)...$(RESET)\n"
+	@cd $(ROOT_DIR)/api && \
+		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
+		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \
+		Rscript -e "testthat::test_dir('tests/testthat')" || \
+		($(MAKE) _ci-cleanup && exit 1)
+	@printf "$(GREEN)✓ Tests passed$(RESET)\n"
+	@$(MAKE) _ci-cleanup
+	@printf "\n$(GREEN)========================================$(RESET)\n"
+	@printf "$(GREEN)       CI-LOCAL PASSED                  $(RESET)\n"
+	@printf "$(GREEN)========================================$(RESET)\n"
+	@printf "\nAll checks that run in GitHub Actions passed locally.\n"
+	@printf "Safe to push to trigger CI.\n"
+
+_ci-cleanup:
+	@printf "\n$(CYAN)Cleaning up test database...$(RESET)\n"
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml stop mysql-test 2>/dev/null || true
 
 # Configuration for preflight validation
 PREFLIGHT_TIMEOUT := 120

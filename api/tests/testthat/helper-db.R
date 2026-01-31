@@ -102,10 +102,34 @@ with_test_db_transaction <- function(code) {
 #' Get test configuration value
 #'
 #' Helper to access test config values (secret, etc.)
+#' Falls back to environment variables in CI when config.yml is unavailable.
 #'
 #' @param key Configuration key to retrieve
-#' @return Configuration value
+#' @return Configuration value or full config list
 get_test_config <- function(key = NULL) {
+
+  # First check if running in CI with environment variables set
+  # This is the preferred method in GitHub Actions
+  if (Sys.getenv("MYSQL_HOST", "") != "") {
+    # Build config from environment variables (CI mode)
+    config <- list(
+      dbtype = "mysql",
+      dbname = Sys.getenv("MYSQL_DATABASE", "sysndd_test"),
+      user = Sys.getenv("MYSQL_USER", "test"),
+      password = Sys.getenv("MYSQL_PASSWORD", "test"),
+      host = Sys.getenv("MYSQL_HOST", "127.0.0.1"),
+      port = Sys.getenv("MYSQL_PORT", "3306"),
+      # Defaults for other values needed by tests
+      secret = Sys.getenv("TEST_SECRET", "test-secret-for-ci"),
+      salt = Sys.getenv("TEST_SALT", "test-salt")
+    )
+
+    if (is.null(key)) {
+      return(config)
+    }
+    return(config[[key]])
+  }
+
   # Try multiple paths to find config.yml
   # testthat changes working directory during tests, so we need robust path handling
   possible_paths <- c(
@@ -114,8 +138,6 @@ get_test_config <- function(key = NULL) {
     "../../config.yml",                    # Two levels up (from tests/testthat/)
     file.path(getwd(), "config.yml"),     # Explicit current dir
     file.path(dirname(getwd()), "config.yml"),  # Explicit parent
-    # CI/CD paths - testthat may run from different directories
-    file.path(Sys.getenv("GITHUB_WORKSPACE", ""), "api", "config.yml"),
     # Use test_path to get path relative to tests/testthat/
     if (exists("test_path", mode = "function")) {
       tryCatch(test_path("..", "..", "config.yml"), error = function(e) NULL)
@@ -134,7 +156,8 @@ get_test_config <- function(key = NULL) {
   }
 
   if (is.null(config_path)) {
-    stop("config.yml not found. Tried: ", paste(possible_paths, collapse = ", "))
+    stop("config.yml not found and MYSQL_HOST env not set. ",
+         "Tried paths: ", paste(possible_paths, collapse = ", "))
   }
 
   config <- config::get("sysndd_db_test", file = config_path)
