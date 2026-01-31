@@ -70,8 +70,8 @@
               type="number"
               min="1"
               step="1"
-              debounce="300"
-              @update:model-value="generateBarPlot"
+              debounce="500"
+              @update:model-value="fetchStats"
             />
           </BInputGroup>
         </BCol>
@@ -112,13 +112,8 @@ export default {
         { value: 'keyword', text: 'Keywords' },
       ],
 
-      // Client-side minimum count filter (applies to bar chart)
+      // Minimum count filter (sent to API for all category filters)
       minCount: 20,
-
-      // API-level filters (set to 1 to fetch ALL data, filter client-side)
-      min_journal_count: 1,
-      min_lastname_count: 1,
-      min_keyword_count: 1,
 
       // data from the stats endpoint
       statsData: null,
@@ -208,18 +203,16 @@ export default {
       return [];
     },
     /**
-     * Number of items shown after applying minCount filter
+     * Number of items shown (already filtered by API)
      */
     filteredItemCount() {
-      return this.currentCategoryData.filter((d) => d.count >= this.minCount).length;
+      return this.currentCategoryData.length;
     },
     /**
-     * Total publications in filtered items
+     * Total publications in displayed items (already filtered by API)
      */
     filteredPublicationCount() {
-      return this.currentCategoryData
-        .filter((d) => d.count >= this.minCount)
-        .reduce((sum, d) => sum + d.count, 0);
+      return this.currentCategoryData.reduce((sum, d) => sum + d.count, 0);
     },
   },
   async mounted() {
@@ -234,13 +227,13 @@ export default {
     async fetchStats() {
       this.loadingCount = true;
 
-      // build query string
+      // build query string - use minCount for ALL category filters (API-side filtering only)
       const baseUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       const params = new URLSearchParams();
-      params.set('min_journal_count', this.min_journal_count);
-      params.set('min_lastname_count', this.min_lastname_count);
-      params.set('min_keyword_count', this.min_keyword_count);
-      params.set('time_aggregate', 'year'); // or let them pick 'month' in future
+      params.set('min_journal_count', this.minCount);
+      params.set('min_lastname_count', this.minCount);
+      params.set('min_keyword_count', this.minCount);
+      params.set('time_aggregate', 'year');
 
       const apiUrl = `${baseUrl}?${params.toString()}`;
 
@@ -311,10 +304,9 @@ export default {
         xKey = 'Keywords';
       }
 
-      // Apply client-side minimum count filter
-      data = data.filter((d) => d.count >= this.minCount);
+      // Data is already filtered by API (min_*_count parameters)
 
-      // Handle empty data after filtering
+      // Handle empty data
       if (data.length === 0) {
         d3.select('#stats_dataviz')
           .append('div')
