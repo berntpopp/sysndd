@@ -115,10 +115,10 @@ export default {
       // Client-side minimum count filter (applies to bar chart)
       minCount: 20,
 
-      // API-level filters (set low to fetch more data, filter client-side)
-      min_journal_count: 5,
-      min_lastname_count: 2,
-      min_keyword_count: 10,
+      // API-level filters (set to 1 to fetch ALL data, filter client-side)
+      min_journal_count: 1,
+      min_lastname_count: 1,
+      min_keyword_count: 1,
 
       // data from the stats endpoint
       statsData: null,
