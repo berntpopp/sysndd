@@ -165,8 +165,8 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - ✅ #115: GAP43 entity not visible (BUG-02) - Atomic function prevents orphaning in 55-01
    - ✅ #114: MEF2C entity updating issues (BUG-03) - Logging detects partial updates in 55-01
    - ✅ Viewer profile / auto-logout (BUG-04) - Fixed in 55-02
-   - ✅ PMID deletion during re-review (BUG-05) - Protected with logging in 55-02
-   - ✅ #44: Entities over time counts incorrect (BUG-06) - Fixed in 55-02
+   - ✅ PMID deletion during re-review (BUG-05) - Fixed: Frontend now merges original publications with additions in useReviewForm.ts
+   - ✅ #44: Entities over time counts incorrect (BUG-06) - Fixed: (1) floor aggregation, (2) removed inheritance filter to match homepage, (3) lessThan with next month for full month inclusion, (4) same NDD filter across all views
    - ✅ #41: Disease renaming bypasses approval (BUG-07) - Closed as wontfix, current behavior is intentional
    - ✅ Re-reviewer identity lost (BUG-08) - Fixed in 55-02
 
@@ -189,4 +189,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Completed 56-02-PLAN.md (Phase 56 complete)*
+*Last updated: 2026-01-31 — Fixed BUG-06 (chart link filter_string) in AnalysesTimePlot.vue*

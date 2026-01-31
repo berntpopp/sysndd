@@ -1,16 +1,26 @@
 ---
 phase: 56-variant-correlations-publications
-verified: 2026-01-31T16:10:50Z
+verified: 2026-01-31T18:00:00Z
 status: passed
 score: 8/8 must-haves verified
+re-verified: true
 ---
 
 # Phase 56: Variant Correlations & Publications Verification Report
 
 **Phase Goal:** Navigation links work correctly; publications view has improved usability
-**Verified:** 2026-01-31T16:10:50Z
+**Verified:** 2026-01-31T18:00:00Z
 **Status:** passed
-**Re-verification:** No - initial verification
+**Re-verification:** Yes - post-bugfix verification
+
+## Bug Fixes Applied (Post Initial Verification)
+
+The following issues were discovered during manual testing and fixed:
+
+1. **Tooltip positioning** - Changed from deprecated `event.layerX/layerY` to `event.pageX/pageY` with container-relative calculations
+2. **Filter parameter** - Changed from `modifier_variant_id` to `vario_id` (correct filter name)
+3. **API support** - Added `vario_id` filter support to entity API endpoint
+4. **Count consistency** - Fixed by using `ndd_review_variant_connect_view` in entity filter
 
 ## Goal Achievement
 
@@ -18,9 +28,9 @@ score: 8/8 must-haves verified
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Clicking a cell in variant correlation matrix navigates to Entities table filtered by those variants | VERIFIED | `AnalysesVariantCorrelogram.vue` line 196: `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})` |
-| 2 | Clicking a bar in variant counts chart navigates to Entities table filtered by that variant | VERIFIED | `AnalysesVariantCounts.vue` line 194: `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.vario_id})` |
-| 3 | Navigation links include correct filter parameters for modifier_variant_id | VERIFIED | Both files use `all(modifier_variant_id,...)` filter syntax consistent with router |
+| 1 | Clicking a cell in variant correlation matrix navigates to Entities table filtered by those variants | VERIFIED | `AnalysesVariantCorrelogram.vue` line 209: `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,${d.x_vario_id},${d.y_vario_id})` |
+| 2 | Clicking a bar in variant counts chart navigates to Entities table filtered by that variant | VERIFIED | `AnalysesVariantCounts.vue` line 206: `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,${d.vario_id})` |
+| 3 | Navigation links include correct filter parameters for vario_id | VERIFIED | Both files use `any(vario_id,...)` filter syntax; API endpoint supports this filter via `extract_vario_filter()` helper |
 | 4 | User can expand publication rows to see detailed metadata (title, abstract, authors) | VERIFIED | `PublicationsNDDTable.vue` lines 316-321: `fields_details` array with Abstract, Lastname, Firstname, Keywords; line 73: `:field-details="fields_details"` passed to GenericTable |
 | 5 | Publications table shows cached data instantly when returning to view | VERIFIED | `PublicationsNDDTable.vue` lines 202-205: module-level caching vars; lines 440-447: cache check and reuse logic |
 | 6 | User can select time aggregation (year/month/quarter) in TimePlot | VERIFIED | `PublicationsNDDTimePlot.vue` lines 37-44: Aggregate dropdown; lines 95-100: timeAggregation options; lines 166-189: aggregateData method |
@@ -43,8 +53,9 @@ score: 8/8 must-haves verified
 
 | From | To | Via | Status | Details |
 |------|-----|-----|--------|---------|
-| AnalysesVariantCorrelogram.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 193-196: `.attr('xlink:href', (d) => \`/Entities/?...\`)` |
-| AnalysesVariantCounts.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 191-194: `.attr('xlink:href', (d) => \`/Entities/?...\`)` |
+| AnalysesVariantCorrelogram.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 206-209: `.attr('xlink:href', (d) => \`/Entities/?...any(vario_id,...)\`)` |
+| AnalysesVariantCounts.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 203-206: `.attr('xlink:href', (d) => \`/Entities/?...any(vario_id,...)\`)` |
+| Entity API | vario_id filter | extract_vario_filter() helper | WIRED | `api/functions/helper-functions.R`: extracts vario_id from filter string, queries `ndd_review_variant_connect_view` |
 | PublicationsNDDTable.vue | /api/publication | axios fetch with caching | WIRED | Line 459: axios.get(apiUrl), lines 440-447: cache check before API call |
 | PublicationsNDDTable.vue | GenericTable | field-details prop | WIRED | Line 73: `:field-details="fields_details"`, GenericTable.vue lines 270-272 accepts fieldDetails prop |
 | PublicationsNDDTable.vue | PubMed | external href | WIRED | Line 142: `:href="\`https://pubmed.ncbi.nlm.nih.gov/${row.publication_id}\`"` |
@@ -75,14 +86,16 @@ No blocking anti-patterns found in phase 56 modifications.
 ### 1. Variant Correlation Navigation Test
 
 **Test:** Navigate to Variant Correlations view, click a cell in the correlation matrix
-**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,X,Y)` and Entities table shows filtered results
-**Why human:** Requires running dev server and visual confirmation of navigation behavior
+**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,X,Y)` and Entities table shows filtered results
+**Status:** PASSED (Playwright verified)
+**Note:** Tooltip now follows mouse correctly using pageX/pageY positioning
 
 ### 2. Variant Counts Navigation Test
 
 **Test:** Navigate to Variant Counts view, click a bar in the bar chart
-**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,X)` and Entities table shows filtered results
-**Why human:** Requires running dev server and visual confirmation of navigation behavior
+**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,X)` and Entities table shows filtered results matching the count shown in the bar chart
+**Status:** PASSED (Playwright verified - nonsynonymous bar shows 1138, Entities table shows 1138)
+**Note:** Tooltip now follows mouse correctly using pageX/pageY positioning
 
 ### 3. Publications Row Details Test
 
@@ -99,14 +112,18 @@ No blocking anti-patterns found in phase 56 modifications.
 ### 5. TimePlot Aggregation Test
 
 **Test:** Navigate to Publications TimePlot, select "Month" aggregation, then "Quarter"
-**Expected:** Chart updates to show monthly/quarterly data points; tooltip shows appropriate date format
-**Why human:** Requires visual confirmation of chart updates and tooltip content
+**Expected:** Chart updates to show monthly/quarterly data points with readable axis labels
+**Status:** PASSED (Playwright verified)
+- Year: ~35 data points, labels every 5 years (1990, 1995, 2000, 2005, 2010, 2015, 2020, 2025)
+- Month: ~420 data points (visible waviness in line), clean year labels
+- Quarter: ~140 data points, clean year labels
+**Fix Applied:** Smart tick interval selection based on time span (5-year intervals for 35-year span)
 
 ### 6. TimePlot Cumulative View Test
 
 **Test:** Enable "Cumulative View" toggle on TimePlot
 **Expected:** Line shows running total instead of per-period counts; tooltip shows "Total" label instead of "Count"
-**Why human:** Requires visual confirmation of line shape and tooltip label
+**Status:** PASSED (Playwright verified - Y-axis changes from 0-900 to 0-5000 when cumulative enabled)
 
 ### 7. Stats Metrics Cards Test
 
