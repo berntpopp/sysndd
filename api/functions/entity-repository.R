@@ -45,6 +45,7 @@ entity_find_by_id <- function(entity_id) {
 #'   - disease_ontology_id_version (required)
 #'   - ndd_phenotype (required)
 #'   - entry_user_id (required)
+#'   - is_active (optional, defaults to 1; set to 0 for pending approval)
 #'
 #' @return Integer entity_id of the newly created entity
 #'
@@ -86,18 +87,34 @@ entity_create <- function(entity_data) {
     )
   }
 
-  # Insert entity
-  # nolint start: line_length_linter
-  sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
-  # nolint end
+  # Build SQL based on whether is_active is specified
+  if (!is.null(entity_data$is_active)) {
+    # nolint start: line_length_linter
+    sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id, is_active) VALUES (?, ?, ?, ?, ?, ?)"
+    # nolint end
 
-  params <- list(
-    entity_data$hgnc_id,
-    entity_data$hpo_mode_of_inheritance_term,
-    entity_data$disease_ontology_id_version,
-    entity_data$ndd_phenotype,
-    entity_data$entry_user_id
-  )
+    params <- list(
+      entity_data$hgnc_id,
+      entity_data$hpo_mode_of_inheritance_term,
+      entity_data$disease_ontology_id_version,
+      entity_data$ndd_phenotype,
+      entity_data$entry_user_id,
+      as.integer(entity_data$is_active)
+    )
+  } else {
+    # Insert entity (is_active defaults to 1 in database)
+    # nolint start: line_length_linter
+    sql <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+    # nolint end
+
+    params <- list(
+      entity_data$hgnc_id,
+      entity_data$hpo_mode_of_inheritance_term,
+      entity_data$disease_ontology_id_version,
+      entity_data$ndd_phenotype,
+      entity_data$entry_user_id
+    )
+  }
 
   db_execute_statement(sql, params)
 
