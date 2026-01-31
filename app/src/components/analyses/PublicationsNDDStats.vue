@@ -78,7 +78,7 @@
 
         <BCol class="my-1" sm="4">
           <small class="text-muted">
-            Showing items with ≥ {{ minCount }} publications
+            Showing {{ filteredItemCount }} items ({{ filteredPublicationCount.toLocaleString() }} pubs)
           </small>
         </BCol>
       </BRow>
@@ -192,6 +192,34 @@ export default {
           variant: 'info',
         },
       ];
+    },
+    /**
+     * Get the raw data array for the currently selected category
+     */
+    currentCategoryData() {
+      if (!this.statsData) return [];
+      if (this.selectedCategory === 'journal') {
+        return this.statsData.journal_counts || [];
+      } else if (this.selectedCategory === 'author') {
+        return this.statsData.last_name_counts || [];
+      } else if (this.selectedCategory === 'keyword') {
+        return this.statsData.keyword_counts || [];
+      }
+      return [];
+    },
+    /**
+     * Number of items shown after applying minCount filter
+     */
+    filteredItemCount() {
+      return this.currentCategoryData.filter((d) => d.count >= this.minCount).length;
+    },
+    /**
+     * Total publications in filtered items
+     */
+    filteredPublicationCount() {
+      return this.currentCategoryData
+        .filter((d) => d.count >= this.minCount)
+        .reduce((sum, d) => sum + d.count, 0);
     },
   },
   async mounted() {
