@@ -153,6 +153,16 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Used D3 rollups for time aggregation | Built-in D3 function, cleaner than manual grouping | Consistent with D3 patterns elsewhere in codebase |
 | 2026-01-31 | Added YTD label to current year metric | "Publications [year] (YTD)" clarifies it's year-to-date | Clearer user understanding of metric scope |
 
+**Additional Bug Fixes (Post-Plan):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Replace YoY Growth with 5-Year Average | -100% was misleading (comparing 2026 with 0 pubs to 2024) | Shows "583/yr" - more meaningful metric |
+| 2026-01-31 | API-only filtering (no client-side) | User requirement: "no client side filter EVER! all API!" | Single minCount variable, fetchStats on change |
+| 2026-01-31 | Convert API params to integers | Plumber passes query params as strings; numeric comparison failed | `as.integer()` ensures correct filtering |
+| 2026-01-31 | Smart tooltip edge positioning | Tooltips cut off at container edges | Flips left/right based on edge proximity |
+| 2026-01-31 | Fetch actual newest publication date | Stats showed aggregated year bucket (2025-01-01) not actual date | Separate API call shows "2025-07-14" |
+
 ### Decisions from Phase 57
 
 **Plan 01 (Stats Fix and API Enhancement):**
@@ -177,7 +187,7 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 57-02-PLAN.md (Genes Table Enhancements)
+**Stopped at:** Phase 56 additional bug fixes (tooltip edge positioning, API filter fix)
 **Next action:** Start Phase 58 (LLM Foundation) planning
 **Resume file:** None
 
@@ -216,4 +226,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Completed 57-02-PLAN.md (Genes Table Enhancements)*
+*Last updated: 2026-01-31 — Phase 56 additional bug fixes (API filter, tooltip positioning, metrics)*
