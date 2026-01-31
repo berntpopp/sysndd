@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 56.1 (Admin Publication Bulk Management) - COMPLETE
-**Plan:** 2/2 complete
-**Status:** Phase complete
-**Progress:** v10.0 [███████             ] 3/8 phases + 56.1 complete (40%)
+**Phase:** 58 (LLM Foundation) - IN PROGRESS
+**Plan:** 1/4 complete
+**Status:** In progress
+**Progress:** v10.0 [████████            ] 4/8 phases (50%) + 58-01 complete
 
-**Last completed:** 56.1-02 - Publication Metadata Refresh UI (PUB-ADMIN-02, PUB-ADMIN-03)
-**Last activity:** 2026-01-31 — Completed 56.1-02-PLAN.md
+**Last completed:** 58-01 - LLM Infrastructure Setup (LLM-01 partial)
+**Last activity:** 2026-01-31 — Completed 58-01-PLAN.md
 
 ---
 
@@ -37,7 +37,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
-| 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
+| 58 | LLM Foundation | LLM-01 to LLM-04 | In progress (1/4 plans) |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
 | 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
@@ -77,7 +77,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | **Backend Tests** | 687 + 11 E2E | 20.3% coverage, 24 integration + 53 migration + 11 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
-| **Migrations** | 3 files + runner | api/functions/migration-runner.R ready |
+| **Migrations** | 4 files + runner | api/functions/migration-runner.R ready, LLM cache tables added |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
 | **Bundle Size** | ~600 KB gzipped | Vite 7.3.1, 164ms dev startup |
@@ -234,16 +234,34 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
      - Refresh All Publications button with async job tracking
      - Real-time progress bar and job history integration
 
+6. **Phase 58 Progress (LLM Foundation):**
+   - ✅ Plan 01: LLM Infrastructure Setup
+     - Migration 006: llm_cluster_summary_cache and llm_generation_log tables
+     - api/functions/llm-cache-repository.R: hash generation, cache lookup/storage, logging
+     - api/functions/llm-service.R: Gemini API client with ellmer, structured output types
+     - ellmer 0.4.0 and coro 1.1.0 added to renv.lock
+   - Next: Plan 02 (Entity Validation) - validate gene symbols against HGNC database
+
+### Decisions from Phase 58
+
+**Plan 01 (LLM Infrastructure Setup):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Multi-valued JSON index outside stored procedure | MySQL limitation with CAST(...AS...ARRAY) in procedures | idx_tags applied via prepared statement |
+| 2026-01-31 | Default model gemini-2.0-flash | Preview models (gemini-3-pro-preview) may be unstable | Production stability over cutting-edge features |
+| 2026-01-31 | Conservative rate limit (30 RPM) | Half of Paid Tier 1 limit to avoid 429 errors | Safe margin for rate limiting |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed Phase 56.1 Plan 02 (Publication Metadata Refresh UI)
-**Next action:** Execute Phase 58 (LLM Foundation) or Phase 62 (Admin & Infrastructure)
+**Stopped at:** Completed Phase 58 Plan 01 (LLM Infrastructure Setup)
+**Next action:** Execute Phase 58 Plan 02 (Entity Validation)
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 56.1 Plan 02 (Publication Metadata Refresh UI)*
+*Last updated: 2026-01-31 — Phase 58 Plan 01 (LLM Infrastructure Setup)*
