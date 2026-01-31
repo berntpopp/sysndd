@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 57.1 (PubTator Async Repository Refactor) - COMPLETE
-**Plan:** 1/1 complete
-**Status:** Phase complete
-**Progress:** v10.0 [████████░░          ] 6/8 phases (75%)
+**Phase:** 59 (LLM Batch, Caching & Validation)
+**Plan:** 1/4 complete (59-01: Batch Generation Orchestrator)
+**Status:** In progress
+**Progress:** v10.0 [████████░░          ] 6.25/8 phases (78%)
 
-**Last completed:** 57.1-01 - PubTator Async Parameterized Queries
-**Last activity:** 2026-01-31 — Completed 57.1-01-PLAN.md
+**Last completed:** 59-01 - Batch LLM Generation Orchestrator
+**Last activity:** 2026-01-31 — Completed 59-01-PLAN.md
 
 ---
 
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | ✓ Complete |
 | 57.1 | PubTator Async Repository Refactor | SQL injection fix | ✓ Complete |
-| 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Not started |
+| 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | In progress (1/4 plans) |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
@@ -275,16 +275,26 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Preserve manual transaction handling | db_with_transaction uses pool, mirai daemons need direct connections | dbBegin/dbCommit/dbRollback still used, only query execution changed |
 | 2026-01-31 | Use NA directly in params | DBI's dbBind() handles NA to NULL conversion automatically | Simpler code, no manual ifelse(is.na(...), "NULL", ...) needed |
 
+### Decisions from Phase 59
+
+**Plan 01 (Batch LLM Generation Orchestrator):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Graceful failure for individual clusters | Failed clusters should not stop entire batch - log and continue | Batch completes even with some failures |
+| 2026-01-31 | Job chaining in promise callback (main process) | Clustering completes in daemon, promise callback fires in main process where create_job() is safe | Clean separation - no mirai-in-mirai issues |
+| 2026-01-31 | Cache-first lookup for each cluster | Avoid regenerating summaries when cluster composition hasn't changed | Fast re-runs, cost savings on API calls |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed Phase 57.1 Plan 01 (PubTator Async Parameterized Queries)
-**Next action:** Phase 59 (LLM Batch & Caching) or other work as directed
+**Stopped at:** Completed Phase 59 Plan 01 (Batch LLM Generation Orchestrator)
+**Next action:** Phase 59 Plan 02 or other work as directed
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 57.1 Plan 01 (PubTator Async Parameterized Queries)*
+*Last updated: 2026-01-31 — Phase 59 Plan 01 (Batch LLM Generation Orchestrator)*
