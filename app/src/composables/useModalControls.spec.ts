@@ -97,12 +97,13 @@ describe('useModalControls', () => {
   });
 
   describe('hideModal', () => {
-    it('calls modal.hide with provided ID', () => {
+    it('calls modal.hide with trigger and ID', () => {
       const [result, app] = withSetup(() => useModalControls());
 
       result.hideModal('my-modal-id');
 
-      expect(mockHide).toHaveBeenCalledWith('my-modal-id');
+      // hideModal passes (trigger, id) - default trigger is 'close'
+      expect(mockHide).toHaveBeenCalledWith('close', 'my-modal-id');
       expect(mockHide).toHaveBeenCalledTimes(1);
 
       app.unmount();
@@ -114,8 +115,8 @@ describe('useModalControls', () => {
       result.hideModal('modal-a');
       result.hideModal('modal-b');
 
-      expect(mockHide).toHaveBeenNthCalledWith(1, 'modal-a');
-      expect(mockHide).toHaveBeenNthCalledWith(2, 'modal-b');
+      expect(mockHide).toHaveBeenNthCalledWith(1, 'close', 'modal-a');
+      expect(mockHide).toHaveBeenNthCalledWith(2, 'close', 'modal-b');
 
       app.unmount();
     });
@@ -202,7 +203,7 @@ describe('useModalControls', () => {
       result.hideModal('edit-modal');
 
       expect(mockShow).toHaveBeenCalledWith('edit-modal');
-      expect(mockHide).toHaveBeenCalledWith('edit-modal');
+      expect(mockHide).toHaveBeenCalledWith('close', 'edit-modal');
 
       app.unmount();
     });
@@ -220,7 +221,7 @@ describe('useModalControls', () => {
       }
 
       expect(shouldDelete).toBe(true);
-      expect(mockHide).toHaveBeenCalledWith('item-list-modal');
+      expect(mockHide).toHaveBeenCalledWith('close', 'item-list-modal');
 
       app.unmount();
     });

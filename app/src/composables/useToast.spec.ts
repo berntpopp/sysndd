@@ -124,11 +124,11 @@ describe('useToast', () => {
 
       result.makeToast('Critical error', 'Error', 'danger');
 
-      // modelValue: 0 means no auto-hide
+      // modelValue: -1 means no auto-hide (negative value disables auto-hide)
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'danger',
-          modelValue: 0, // No auto-hide for danger
+          modelValue: -1, // No auto-hide for danger
         })
       );
 
@@ -144,7 +144,7 @@ describe('useToast', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'danger',
-          modelValue: 0, // Forced to 0 regardless of parameters
+          modelValue: -1, // Forced to -1 regardless of parameters
         })
       );
 
@@ -218,7 +218,7 @@ describe('useToast', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          modelValue: 0, // No auto-hide when autoHide=false
+          modelValue: -1, // Negative value disables auto-hide
         })
       );
 

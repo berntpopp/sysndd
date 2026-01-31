@@ -22,10 +22,15 @@ describe('FooterNavItem accessibility', () => {
     target: '_blank',
   };
 
-  // Disable region rule for isolated component tests
-  // Components would normally be within a page with proper landmarks
+  // Disable rules for isolated component tests
+  // Components would normally be within a page with proper landmarks and list structure
   const axeOptions = {
-    rules: { region: { enabled: false } },
+    rules: {
+      region: { enabled: false },
+      // FooterNavItem renders as <li> which requires <ul>/<ol> parent
+      // In production, this is wrapped by BNavbarNav which provides the list structure
+      listitem: { enabled: false },
+    },
   };
 
   it('has no accessibility violations', async () => {

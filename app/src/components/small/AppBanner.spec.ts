@@ -26,18 +26,30 @@ describe('Banner', () => {
   });
 
   /**
-   * Helper function to mount the component with explicit stubs
-   * We stub Bootstrap-Vue-Next components to isolate the Banner component.
+   * Helper function to mount the component with stubs that render slot content
+   * We use custom stubs that pass through slot content so we can test the inner HTML.
    */
   const mountComponent = () => {
     return shallowMount(Banner, {
       global: {
         stubs: {
-          BAlert: true,
-          BRow: true,
-          BCol: true,
-          BButton: true,
-          BLink: true,
+          // Use stubs that render slot content
+          BAlert: {
+            template: '<div class="b-alert-stub"><slot /></div>',
+          },
+          BRow: {
+            template: '<div class="b-row-stub"><slot /></div>',
+          },
+          BCol: {
+            template: '<div class="b-col-stub"><slot /></div>',
+          },
+          BButton: {
+            template: '<button class="b-button-stub"><slot /></button>',
+          },
+          BLink: {
+            template: '<a class="b-link-stub" :href="href" :target="target"><slot /></a>',
+            props: ['href', 'target'],
+          },
         },
       },
     });
