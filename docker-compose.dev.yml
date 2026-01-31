@@ -19,7 +19,7 @@
 
 services:
   mysql-dev:
-    image: mysql:8.0.40
+    image: mysql:9.6.0
     container_name: sysndd_mysql_dev
     restart: unless-stopped
     security_opt:
@@ -50,7 +50,7 @@ services:
       start_period: 30s
 
   mysql-test:
-    image: mysql:8.0.40
+    image: mysql:9.6.0
     container_name: sysndd_mysql_test
     restart: unless-stopped
     security_opt:
