@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 56 (Variant Correlations & Publications) ✓ COMPLETE
-**Plan:** 2/2 complete
-**Status:** Phase verified, ready for next phase
-**Progress:** v10.0 [████                ] 2/8 phases (25%)
+**Phase:** 57 (Pubtator Improvements) - In progress
+**Plan:** 1/2 complete
+**Status:** Plan 01 complete, ready for Plan 02
+**Progress:** v10.0 [█████               ] 2.5/8 phases (31%)
 
-**Last completed:** 56-02 - Publications Enhancements (PUB-01 to PUB-04)
-**Last activity:** 2026-01-31 — Completed 56-02-PLAN.md
+**Last completed:** 57-01 - Stats Fix and API Enhancement (PUBT-01 partial, PUBT-02/03 foundation)
+**Last activity:** 2026-01-31 — Completed 57-01-PLAN.md
 
 ---
 
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
-| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
+| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | In progress (1/2) |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
@@ -50,7 +50,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 260
+- Total plans completed: 261
 - Milestones shipped: 9 (v1-v9)
 - Phases completed: 56
 
@@ -143,13 +143,33 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Explicit field protection in repository updates | Preserve attribution (review_user_id should never change) | review_update explicitly removes review_user_id from updates |
 | 2026-01-31 | Close disease rename approval as wontfix | Current behavior is functional; approval workflow adds complexity without proportional benefit | Issue #41 closed, infrastructure reverted |
 
+### Decisions from Phase 56
+
+**Plan 02 (Publications Enhancements):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Combined Tasks 1 and 2 | Initialization guards are integral to the caching implementation pattern | Cleaner implementation, single coherent commit |
+| 2026-01-31 | Used D3 rollups for time aggregation | Built-in D3 function, cleaner than manual grouping | Consistent with D3 patterns elsewhere in codebase |
+| 2026-01-31 | Added YTD label to current year metric | "Publications [year] (YTD)" clarifies it's year-to-date | Clearer user understanding of metric scope |
+
+### Decisions from Phase 57
+
+**Plan 01 (Stats Fix and API Enhancement):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | pmids as comma-separated string | Excel export compatibility - arrays don't export well to XLSX format | pmids field is a string, not JSON array |
+| 2026-01-31 | Default sort: -is_novel,oldest_pub_date | Surface coverage gaps (novel genes) first, then prioritize long-overlooked genes | Novel genes appear first in API response |
+| 2026-01-31 | Fetch novel count via API filter | Consistent with other stats, avoids downloading all data to client | Admin panel uses filter=is_novel==1 |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 56-02-PLAN.md (Publications enhancements)
-**Next action:** Start Phase 57 (Pubtator Improvements) or Phase 58 (LLM Foundation)
+**Stopped at:** Completed 57-01-PLAN.md (Stats Fix and API Enhancement)
+**Next action:** Execute 57-02-PLAN.md (Genes Table Enhancements)
 **Resume file:** None
 
 **Handoff notes:**
@@ -176,17 +196,13 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - Structured JSON output with entity validation
    - Batch pre-generation via mirai (no real-time generation)
 
-### Decisions from Phase 56
-
-**Plan 02 (Publications Enhancements):**
-
-| Date | Decision | Rationale | Impact |
-|------|----------|-----------|--------|
-| 2026-01-31 | Combined Tasks 1 and 2 | Initialization guards are integral to the caching implementation pattern | Cleaner implementation, single coherent commit |
-| 2026-01-31 | Used D3 rollups for time aggregation | Built-in D3 function, cleaner than manual grouping | Consistent with D3 patterns elsewhere in codebase |
-| 2026-01-31 | Added YTD label to current year metric | "Publications [year] (YTD)" clarifies it's year-to-date | Clearer user understanding of metric scope |
+4. **Phase 57 Progress (Pubtator):**
+   - ✅ 57-01: Stats page fixed, API enhanced with prioritization fields
+   - API returns: is_novel, oldest_pub_date, pmids (CSV string)
+   - Admin panel shows Pubtator cache stats
+   - Ready for 57-02: Genes table with prioritization display
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Fixed BUG-06 (chart link filter_string) in AnalysesTimePlot.vue*
+*Last updated: 2026-01-31 — Completed 57-01-PLAN.md (Pubtator Stats Fix and API Enhancement)*
