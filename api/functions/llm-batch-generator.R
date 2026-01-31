@@ -43,6 +43,13 @@ if (!exists("create_job", mode = "function")) {
   }
 }
 
+# Load LLM judge module (if not already loaded)
+if (!exists("generate_and_validate_with_judge", mode = "function")) {
+  if (file.exists("functions/llm-judge.R")) {
+    source("functions/llm-judge.R", local = TRUE)
+  }
+}
+
 
 #' Trigger LLM batch generation after clustering completion
 #'
@@ -266,44 +273,23 @@ llm_batch_executor <- function(params) {
         Sys.sleep(backoff_time)
       }
 
-      # Attempt generation
+      # Attempt generation and validation
       result <- tryCatch(
-        generate_cluster_summary(
+        generate_and_validate_with_judge(
           cluster_data = cluster_data,
           cluster_type = cluster_type
         ),
         error = function(e) {
-          log_warn("Generation error for cluster {cluster_row$cluster_number} (attempt {attempt}): {e$message}")
+          log_warn("Cluster {cluster_row$cluster_number} attempt {attempt}: {e$message}")
           return(list(success = FALSE, error = e$message))
         }
       )
 
       if (result$success) {
-        # Success - save to cache
-        cache_id <- tryCatch(
-          save_summary_to_cache(
-            cluster_type = cluster_type,
-            cluster_number = as.integer(cluster_row$cluster_number),
-            cluster_hash = cluster_hash,
-            model_name = "gemini-2.0-flash",
-            prompt_version = "1.0",
-            summary_json = result$summary,
-            tags = result$summary$tags
-          ),
-          error = function(e) {
-            log_error("Failed to save to cache for cluster {cluster_row$cluster_number}: {e$message}")
-            return(NULL)
-          }
-        )
-
-        if (!is.null(cache_id)) {
-          log_info("Generated summary for cluster {cluster_row$cluster_number} (cache_id={cache_id})")
-          succeeded <- succeeded + 1
-          generation_success <- TRUE
-        } else {
-          # Cache save failed but generation succeeded - count as failure
-          log_warn("Generation succeeded but cache save failed for cluster {cluster_row$cluster_number}")
-        }
+        # Success - already cached by generate_and_validate_with_judge
+        log_info("Cluster {cluster_row$cluster_number}: {result$validation_status} (judge: {result$judge_result$verdict}, cache_id={result$cache_id})")
+        succeeded <- succeeded + 1
+        generation_success <- TRUE
       }
     }
 

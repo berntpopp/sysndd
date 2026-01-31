@@ -396,3 +396,53 @@ get_generation_stats <- function() {
      GROUP BY status"
   )
 }
+
+
+#' Update validation status of a cached summary
+#'
+#' Allows admins to manually update validation status.
+#' Useful for correcting judge verdicts or manually validating summaries.
+#'
+#' @param cache_id Integer, the cache_id to update
+#' @param validation_status Character, new status ("pending", "validated", "rejected")
+#' @param validated_by Character or NULL, admin user who validated
+#'
+#' @return Logical, TRUE if update succeeded
+#'
+#' @examples
+#' \dontrun{
+#' # Manually validate a pending summary
+#' update_validation_status(cache_id = 123, validation_status = "validated", validated_by = "admin")
+#'
+#' # Mark a summary as rejected
+#' update_validation_status(cache_id = 456, validation_status = "rejected")
+#' }
+#'
+#' @export
+update_validation_status <- function(cache_id, validation_status, validated_by = NULL) {
+  valid_statuses <- c("pending", "validated", "rejected")
+  if (!validation_status %in% valid_statuses) {
+    log_error("Invalid validation_status: {validation_status}")
+    return(FALSE)
+  }
+
+  tryCatch(
+    {
+      db_execute_statement(
+        "UPDATE llm_cluster_summary_cache
+         SET validation_status = ?,
+             validated_at = CASE WHEN ? = 'validated' THEN NOW() ELSE NULL END,
+             validated_by = ?
+         WHERE cache_id = ?",
+        list(validation_status, validation_status, validated_by, as.integer(cache_id))
+      )
+
+      log_info("Updated cache_id={cache_id} to validation_status={validation_status}")
+      return(TRUE)
+    },
+    error = function(e) {
+      log_error("Failed to update validation status: {e$message}")
+      return(FALSE)
+    }
+  )
+}
