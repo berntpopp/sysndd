@@ -509,6 +509,12 @@ function(req, res) {
   new_entry_user_id <- req$user_id
   rename_data <- req$argsBody$rename_json
 
+  logger::log_info(
+    "Entity rename started",
+    entity_id = rename_data$entity$entity_id,
+    user_id = new_entry_user_id
+  )
+
   ndd_entity_original <- pool %>%
     tbl("ndd_entity") %>%
     collect() %>%
@@ -641,9 +647,22 @@ function(req, res) {
         response_review_post$status == 200 &&
         response_status_post$status == 200
     ) {
+      logger::log_info(
+        "Entity rename completed successfully",
+        old_entity_id = rename_data$entity$entity_id,
+        new_entity_id = response_new_entity$entry$entity_id,
+        user_id = new_entry_user_id
+      )
       res$status <- response_new_entity$status
       return(response_new_entity)
     } else {
+      logger::log_error(
+        "Entity rename failed - PARTIAL RENAME POSSIBLE",
+        old_entity_id = rename_data$entity$entity_id,
+        new_entity_status = response_new_entity$status,
+        review_status = response_review_post$status,
+        status_status = response_status_post$status
+      )
       response <- tibble::as_tibble(response_new_entity) %>%
         bind_rows(tibble::as_tibble(response_review_post)) %>%
         bind_rows(tibble::as_tibble(response_status_post)) %>%
