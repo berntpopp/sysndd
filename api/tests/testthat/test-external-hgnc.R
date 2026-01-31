@@ -336,8 +336,9 @@ test_that("Date columns are converted to character for DB compatibility", {
   )
 
   # Apply the same transformation used in update_process_hgnc_data
+  # Use inherits() for base R compatibility (is.Date is from lubridate)
   result <- test_data %>%
-    mutate(across(where(is.Date), ~ as.character(.x)))
+    mutate(across(where(~ inherits(.x, "Date")), ~ as.character(.x)))
 
   # All Date columns should now be character
   expect_type(result$date_approved_reserved, "character")
@@ -360,9 +361,10 @@ test_that("mixed data types are handled correctly", {
   )
 
   # Apply both transformations
+  # Use inherits() for base R compatibility (is.Date is from lubridate)
   result <- test_data %>%
     mutate(across(where(is.logical), ~ as.character(.x))) %>%
-    mutate(across(where(is.Date), ~ as.character(.x)))
+    mutate(across(where(~ inherits(.x, "Date")), ~ as.character(.x)))
 
   # Check types after transformation
   expect_type(result$hgnc_id, "character")

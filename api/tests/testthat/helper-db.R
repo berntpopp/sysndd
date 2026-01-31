@@ -107,17 +107,27 @@ with_test_db_transaction <- function(code) {
 #' @return Configuration value
 get_test_config <- function(key = NULL) {
   # Try multiple paths to find config.yml
+  # testthat changes working directory during tests, so we need robust path handling
   possible_paths <- c(
     "config.yml",                          # Current directory
     "../config.yml",                       # Parent directory
     "../../config.yml",                    # Two levels up (from tests/testthat/)
     file.path(getwd(), "config.yml"),     # Explicit current dir
-    file.path(dirname(getwd()), "config.yml")  # Explicit parent
+    file.path(dirname(getwd()), "config.yml"),  # Explicit parent
+    # CI/CD paths - testthat may run from different directories
+    file.path(Sys.getenv("GITHUB_WORKSPACE", ""), "api", "config.yml"),
+    # Use test_path to get path relative to tests/testthat/
+    if (exists("test_path", mode = "function")) {
+      tryCatch(test_path("..", "..", "config.yml"), error = function(e) NULL)
+    } else NULL
   )
+
+  # Filter out NULL values
+  possible_paths <- possible_paths[!vapply(possible_paths, is.null, logical(1))]
 
   config_path <- NULL
   for (path in possible_paths) {
-    if (file.exists(path)) {
+    if (!is.null(path) && file.exists(path)) {
       config_path <- path
       break
     }
