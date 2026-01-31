@@ -106,46 +106,46 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUG-01 | TBD | Pending |
-| BUG-02 | TBD | Pending |
-| BUG-03 | TBD | Pending |
-| BUG-04 | TBD | Pending |
-| BUG-05 | TBD | Pending |
-| BUG-06 | TBD | Pending |
-| BUG-07 | TBD | Pending |
-| BUG-08 | TBD | Pending |
-| VCOR-01 | TBD | Pending |
-| VCOR-02 | TBD | Pending |
-| PUB-01 | TBD | Pending |
-| PUB-02 | TBD | Pending |
-| PUB-03 | TBD | Pending |
-| PUB-04 | TBD | Pending |
-| PUBT-01 | TBD | Pending |
-| PUBT-02 | TBD | Pending |
-| PUBT-03 | TBD | Pending |
-| PUBT-04 | TBD | Pending |
-| PUBT-05 | TBD | Pending |
-| PUBT-06 | TBD | Pending |
-| LLM-01 | TBD | Pending |
-| LLM-02 | TBD | Pending |
-| LLM-03 | TBD | Pending |
-| LLM-04 | TBD | Pending |
-| LLM-05 | TBD | Pending |
-| LLM-06 | TBD | Pending |
-| LLM-07 | TBD | Pending |
-| LLM-08 | TBD | Pending |
-| LLM-09 | TBD | Pending |
-| LLM-10 | TBD | Pending |
-| LLM-11 | TBD | Pending |
-| LLM-12 | TBD | Pending |
-| ADMIN-01 | TBD | Pending |
-| INFRA-01 | TBD | Pending |
+| BUG-01 | 55 | Pending |
+| BUG-02 | 55 | Pending |
+| BUG-03 | 55 | Pending |
+| BUG-04 | 55 | Pending |
+| BUG-05 | 55 | Pending |
+| BUG-06 | 55 | Pending |
+| BUG-07 | 55 | Pending |
+| BUG-08 | 55 | Pending |
+| VCOR-01 | 56 | Pending |
+| VCOR-02 | 56 | Pending |
+| PUB-01 | 56 | Pending |
+| PUB-02 | 56 | Pending |
+| PUB-03 | 56 | Pending |
+| PUB-04 | 56 | Pending |
+| PUBT-01 | 57 | Pending |
+| PUBT-02 | 57 | Pending |
+| PUBT-03 | 57 | Pending |
+| PUBT-04 | 57 | Pending |
+| PUBT-05 | 57 | Pending |
+| PUBT-06 | 57 | Pending |
+| LLM-01 | 58 | Pending |
+| LLM-02 | 58 | Pending |
+| LLM-03 | 58 | Pending |
+| LLM-04 | 58 | Pending |
+| LLM-05 | 59 | Pending |
+| LLM-06 | 59 | Pending |
+| LLM-07 | 60 | Pending |
+| LLM-08 | 60 | Pending |
+| LLM-09 | 61 | Pending |
+| LLM-10 | 61 | Pending |
+| LLM-11 | 61 | Pending |
+| LLM-12 | 60 | Pending |
+| ADMIN-01 | 62 | Pending |
+| INFRA-01 | 62 | Pending |
 
 **Coverage:**
 - v10.0 requirements: 34 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 34 ⚠️
+- Mapped to phases: 34 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 after roadmap creation*

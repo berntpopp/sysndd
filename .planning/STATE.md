@@ -19,31 +19,31 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
-**Progress:** v10.0 ░░░░░░░░░░░░ 0%
+**Phase:** 55 (Bug Fixes)
+**Plan:** Not started
+**Status:** Ready to plan
+**Progress:** v10.0 [                    ] 0/8 phases
 
 **Last completed:** v9.0 Production Readiness milestone shipped
-**Last activity:** 2026-01-31 — Milestone v10.0 started
+**Last activity:** 2026-01-31 — v10.0 roadmap created
 
 ---
 
-## Milestone v9.0 Roadmap
+## Milestone v10.0 Roadmap
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
-| 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete (2/2 plans) |
-| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete (2/2 plans) |
-| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete (2/2 plans) |
-| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete (2/2 plans) |
-| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete (2/2 plans) |
-| 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Complete (2/2 plans) |
-| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Complete (2/2 plans) |
+| 55 | Bug Fixes | BUG-01 to BUG-08 | Not started |
+| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Not started |
+| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
+| 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
+| 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
+| 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
+| 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
+| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
-**Phases:** 8 (47-54)
-**Requirements:** 29 mapped (100% coverage)
+**Phases:** 8 (55-62)
+**Requirements:** 34 mapped (100% coverage)
 
 ---
 
@@ -67,10 +67,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
 | v9 Production Readiness | 47-54 | 16 | 2026-01-31 |
-
-**Post-v9.0 Enhancements (2026-01-31):**
-- Batch assignment email notification (re_review_endpoints.R, email-templates.R)
-- Self-service profile editing for email and ORCID (user_endpoints.R, UserView.vue)
+| v10 Data Quality & AI Insights | 55-62 | TBD | In progress |
 
 **Current Stats:**
 
@@ -88,69 +85,61 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Accumulated Context
 
-### Phase Dependencies
+### Phase Dependencies (v10.0)
 
 ```
-Phase 47 (Migration Foundation)
-    |
-    v
-Phase 48 (Migration Auto-Run & Health)
+Phase 55 (Bug Fixes)
     |
     +---------------------------+
     |                           |
     v                           v
-Phase 49 (Backup API)     Phase 51 (SMTP Infrastructure)
+Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
     |                           |
     v                           v
-Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
-    |                           |
-    +---------------------------+
-                |
-                v
-        Phase 53 (Production Docker Validation)
-                |
-                v
-        Phase 54 (Docker Infrastructure Hardening)
+Phase 57 (Pubtator)        Phase 59 (LLM Batch & Caching)
+                                |
+                                v
+                           Phase 60 (LLM Display)
+                                |
+                                v
+                           Phase 61 (LLM Validation)
+
+Phase 62 (Admin & Infra) can run parallel after Phase 55
 ```
-
-### Roadmap Evolution
-
-- Phase 54 added: Docker Infrastructure Hardening (from DOCKER-INFRASTRUCTURE-REVIEW-2026-01-30.md)
-- v9.0 milestone complete with 16 plans across 8 phases
 
 ### Research Findings (from research/SUMMARY.md)
 
-- **No new R packages needed** - all features use existing stack
-- **Mailpit** replaces abandoned MailHog for local SMTP testing
-- **Migration 002** now idempotent (stored procedure pattern added in 47-01)
-- **Migration 003** uses correct stored procedure pattern (reference)
-- **Existing backup container** (fradelg/mysql-cron-backup) already runs
-- **pool package** needs explicit sizing for 4-worker setup
+- **Use ellmer >= 0.4.0** for Gemini API (not gemini.R)
+- **Entity validation mandatory** — LLMs invent plausible gene names
+- **LLM-as-judge has 64-68% agreement** — use rule-based validators as primary
+- **easyPubMed deprecated functions** retiring 2026 — update to epm_* API
+- **Existing patterns cover 80%** — external-proxy, mirai jobs, pubtator caching
 
 ### Key Technical Notes
 
-1. **Migration integration point:** `api/start_sysndd_api.R` (between pool creation and endpoint mounting)
-2. **Backup patterns:** Follow `api/endpoints/admin_endpoints.R` and `api/functions/job-manager.R`
-3. **Email sending:** Already implemented via `blastula` in `send_noreply_email()`
-4. **Health check:** Extend existing `/health` endpoint to `/health/ready`
-5. **Docker security:** All containers use no-new-privileges, CPU limits, and log rotation
+1. **LLM integration point:** New `api/functions/llm-service.R` following external-proxy pattern
+2. **Summary storage:** New `llm_cluster_summary_cache` table following pubtator cache pattern
+3. **Batch generation:** Follow HGNC update job pattern via mirai
+4. **Summary display:** Extend AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
+5. **Admin panel:** Follow ManageAnnotations.vue pattern
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** v9.0 milestone shipped and archived
-**Next action:** Use `/gsd:new-milestone` to start v10.0 planning
+**Stopped at:** v10.0 roadmap created
+**Next action:** `/gsd:plan-phase 55` to create Phase 55 plans
 
 **Handoff notes:**
 
-1. **v10.0 Milestone Started (2026-01-31):**
-   - Focus: Bug fixes, Publications/Pubtator improvements, LLM cluster summaries
-   - Priority: Bugs first, then features
-   - LLM: Gemini API with batch pre-generation, LLM-as-judge validation
+1. **v10.0 Roadmap Created (2026-01-31):**
+   - 8 phases (55-62), 34 requirements
+   - Bug fixes first (Phase 55), then features
+   - LLM phases (58-61) form sequential chain
+   - Phase 62 can run parallel after Phase 55
 
-2. **Known bugs to fix:**
+2. **Phase 55 Priority Bugs:**
    - #122: EIF2AK2 publication update incomplete
    - #115: GAP43 entity not visible
    - #114: MEF2C entity updating issues
@@ -159,11 +148,13 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
    - #44: Entities over time counts incorrect
    - #41: Disease renaming / re-reviewer identity
 
-3. **v9.0 Milestone Shipped (2026-01-31):**
-   - All 8 phases (47-54) completed with 16 plans
-   - Git tag: `v9.0`
+3. **LLM Implementation Notes:**
+   - Add ellmer >= 0.4.0 to renv
+   - GEMINI_API_KEY in environment variable
+   - Structured JSON output with entity validation
+   - Batch pre-generation via mirai (no real-time generation)
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — v9.0 milestone shipped*
+*Last updated: 2026-01-31 — v10.0 roadmap created*

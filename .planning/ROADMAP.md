@@ -1,224 +1,229 @@
-# Roadmap: SysNDD v9.0 Production Readiness
+# Roadmap: SysNDD v10.0 Data Quality & AI Insights
 
-**Created:** 2026-01-29
-**Milestone:** v9.0 Production Readiness
-**Phases:** 47-54 (8 phases)
-**Requirements:** 29 mapped
+**Created:** 2026-01-31
+**Milestone:** v10.0 Data Quality & AI Insights
+**Phases:** 55-62 (8 phases)
+**Requirements:** 34 mapped
 
 ---
 
 ## Overview
 
-SysNDD v9.0 focuses on production readiness infrastructure: automated database migrations with tracking and auto-apply, backup management with admin UI, user lifecycle verification with real SMTP testing, and production Docker validation. These seven phases build sequentially from migration foundation through production validation.
+SysNDD v10.0 stabilizes data quality with 8 major bug fixes, enhances literature research tools (Publications, Pubtator), and adds AI-generated cluster summaries using Gemini API. Bugs are fixed first (user priority), followed by view improvements and LLM integration. The milestone concludes with admin updates and GitHub Pages modernization.
 
 ---
 
-## Phase 47: Migration System Foundation
+## Phase 55: Bug Fixes
 
-**Goal:** Database migrations execute reliably with state tracking
+**Goal:** All 8 major entity and curation bugs resolved, restoring expected behavior
 
 **Dependencies:** None (foundation phase)
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 47-01-PLAN.md — Create migration runner infrastructure and fix Migration 002 for idempotency
-- [x] 47-02-PLAN.md — Add unit tests for migration runner
+- [ ] 55-01-PLAN.md - Entity update bugs (EIF2AK2, GAP43, MEF2C)
+- [ ] 55-02-PLAN.md - Curation workflow bugs (viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
 
 **Requirements:**
-- MIGR-01: System creates schema_version table to track applied migrations
-- MIGR-02: Migrations execute sequentially in numeric order (001, 002, 003...)
-- MIGR-03: Migration runner is idempotent (safe to run multiple times)
-- MIGR-05: Migration 002 rewritten to be idempotent (IF NOT EXISTS guards)
+- BUG-01: EIF2AK2 entity (sysndd:4375) - Publication 33236446 update completes correctly (#122)
+- BUG-02: GAP43 newly created entity is visible in entity list (#115)
+- BUG-03: MEF2C entity (sysndd:4512) updates save correctly (#114)
+- BUG-04: Viewer status users can view profile without auto-logout
+- BUG-05: Adding new PMID during re-review preserves existing PMIDs
+- BUG-06: Entities over time by gene displays correct counts (#44)
+- BUG-07: Disease renaming requires approval per review concept (#41)
+- BUG-08: Re-reviewer identity preserved when changing reviews
 
 **Success Criteria:**
-1. Developer can run migration runner manually and see which migrations were applied
-2. Running migration runner twice produces identical database state (no errors, no duplicates)
-3. Schema_version table shows timestamp and filename for each applied migration
-4. Migration 002 can be re-run on a database where it already ran without error
+1. EIF2AK2 entity (sysndd:4375) publication 33236446 update completes without error
+2. Newly created entities (e.g., GAP43) appear in entity list immediately after creation
+3. MEF2C entity (sysndd:4512) updates save all fields correctly
+4. Viewer-status users can view their profile page without auto-logout
+5. Adding a new PMID during re-review preserves existing PMIDs (no accidental deletion)
+6. Entities-over-time chart displays accurate counts matching database
+7. Disease renaming triggers approval workflow per review concept
+8. Re-reviewer identity preserved when reviews are modified
 
 ---
 
-## Phase 48: Migration Auto-Run & Health
+## Phase 56: Variant Correlations & Publications
 
-**Goal:** API startup automatically applies pending migrations with health visibility
+**Goal:** Navigation links work correctly; publications view has improved usability
 
-**Dependencies:** Phase 47 (migration foundation must exist)
+**Dependencies:** Phase 55
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 48-01-PLAN.md — Integrate migration runner into API startup with lock coordination
-- [x] 48-02-PLAN.md — Add readiness health endpoint for migration status visibility
+- [ ] 56-01-PLAN.md - Variant navigation fixes
+- [ ] 56-02-PLAN.md - Publications improvements (table UX, API metadata, TimePlot, Stats)
 
 **Requirements:**
-- MIGR-04: API startup auto-detects and applies missing migrations
-- MIGR-06: Health endpoint reports pending migrations count
+- VCOR-01: VariantCorrelations view navigation links work correctly
+- VCOR-02: VariantCounts view navigation links work correctly
+- PUB-01: Publications table has improved UX (pagination, search, filters)
+- PUB-02: Publication metadata fetched from PubMed API (title, journal, abstract)
+- PUB-03: PublicationsNDD TimePlot has improved visualization
+- PUB-04: PublicationsNDD Stats view displays correctly
 
 **Success Criteria:**
-1. API container starting against fresh database automatically applies all migrations
-2. API container starting against up-to-date database reports zero pending migrations
-3. Health endpoint shows pending_migrations count (0 when current, >0 when behind)
-4. API startup logs clearly show which migrations were applied
+1. VariantCorrelations view navigation links route to correct destinations
+2. VariantCounts view navigation links route to correct destinations
+3. Publications table supports pagination, search, and column filters
+4. Publication detail shows title, journal, and abstract fetched from PubMed API
+5. PublicationsNDD TimePlot renders with improved visualization
 
 ---
 
-## Phase 49: Backup API Layer
+## Phase 57: Pubtator Improvements
 
-**Goal:** Backups can be managed programmatically via REST API
+**Goal:** Curators can prioritize genes for review; users can explore gene-literature connections
 
-**Dependencies:** None (parallel with Phase 48)
+**Dependencies:** Phase 56
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 49-01-PLAN.md — Create backup infrastructure and list endpoint
-- [x] 49-02-PLAN.md — Add backup creation and restore endpoints with async job handling
+- [ ] 57-01-PLAN.md - Pubtator Stats fix and documentation
+- [ ] 57-02-PLAN.md - Gene prioritization and research tools
 
 **Requirements:**
-- BKUP-01: API endpoint lists available backup files with metadata
-- BKUP-03: API endpoint triggers manual backup creation
-- BKUP-05: System creates automatic backup before any restore operation
-- BKUP-06: Backup metadata includes file size, creation date, and table count
+- PUBT-01: PubtatorNDD Stats page displays correctly (fix broken)
+- PUBT-02: Gene prioritization list ranks genes by publication count, recency, coverage gap
+- PUBT-03: Novel gene alerts highlight Pubtator genes not in SysNDD entities
+- PUBT-04: User can explore gene-literature connections for research
+- PUBT-05: Curator can export prioritized gene list for offline planning
+- PUBT-06: Pubtator concept and purpose documented in views
 
 **Success Criteria:**
-1. GET /api/backup/list returns list of backup files with size, date, and table count
-2. POST /api/backup/create triggers new backup and returns job ID for polling
-3. Restore operation automatically creates timestamped backup before proceeding
-4. Backup metadata accurately reflects file properties (verified against filesystem)
+1. PubtatorNDD Stats page displays without errors
+2. Curator can view gene prioritization list ranked by publication count, recency, and coverage gap
+3. Curator can see novel gene alerts highlighting Pubtator genes not in SysNDD entities
+4. User can explore gene-literature connections for research purposes
+5. Curator can export prioritized gene list as CSV/Excel for offline curation planning
 
 ---
 
-## Phase 50: Backup Admin UI
+## Phase 58: LLM Foundation
 
-**Goal:** Administrators can manage backups through the admin panel
+**Goal:** Gemini API integrated with structured output and entity validation
 
-**Dependencies:** Phase 49 (backup API must exist)
+**Dependencies:** Phase 55 (bug fixes complete before new features)
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 50-01-PLAN.md — Add backup download endpoint to API
-- [x] 50-02-PLAN.md — Create ManageBackups admin view with list, download, backup, and restore
+- [ ] 58-01-PLAN.md - Gemini API client with ellmer
+- [ ] 58-02-PLAN.md - Entity validation pipeline
 
 **Requirements:**
-- BKUP-02: Admin UI displays backup list with download links
-- BKUP-04: Restore requires typed confirmation ("RESTORE" to proceed)
+- LLM-01: Gemini API client integrated using ellmer package
+- LLM-02: API key stored securely in environment variable (GEMINI_API_KEY)
+- LLM-03: Cluster summaries use structured JSON output schema
+- LLM-04: Entity validation checks all gene names exist in database
 
 **Success Criteria:**
-1. Admin can navigate to /ManageBackups and see list of available backups
-2. Admin can download any backup file directly from the UI
-3. Admin can trigger "Backup Now" and see progress via job polling
-4. Restore modal requires typing "RESTORE" exactly before proceeding (prevents accidents)
+1. Gemini API calls work via ellmer package with Gemini 2.0 Flash model
+2. API key stored in GEMINI_API_KEY environment variable (not in code)
+3. Cluster summaries use structured JSON schema (summary, genes, pathways, confidence)
+4. All gene symbols in LLM output validated against non_alt_loci_set before storage
 
 ---
 
-## Phase 51: SMTP Testing Infrastructure
+## Phase 59: LLM Batch & Caching
 
-**Goal:** Email system is testable in development with captured messages
+**Goal:** Summaries pre-generated via background jobs; cached with hash-based invalidation
 
-**Dependencies:** None (parallel with backup phases)
+**Dependencies:** Phase 58
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 51-01-PLAN.md — Add Mailpit container and SMTP test endpoint
-- [x] 51-02-PLAN.md — Create Mailpit test helpers and email integration tests
+- [ ] 59-01-PLAN.md - Batch generation job
+- [ ] 59-02-PLAN.md - Database caching with invalidation
 
 **Requirements:**
-- SMTP-01: Mailpit container captures all emails in development
-- SMTP-02: API endpoint tests SMTP connection and returns status
+- LLM-05: Batch pre-generation job runs via mirai async system
+- LLM-06: Summaries cached in database with hash-based invalidation
 
 **Success Criteria:**
-1. Development environment includes Mailpit container accessible at localhost:8025
-2. All emails sent by API in development mode appear in Mailpit inbox (none sent externally)
-3. GET /api/admin/smtp/test returns connection status (success/failure with error details)
-4. Mailpit UI shows email content, headers, and attachments for debugging
+1. Batch generation job runs via mirai async system with progress tracking
+2. Job checkpoints allow resume after failure
+3. Summaries stored in database with cluster hash for invalidation
+4. Changed cluster composition triggers re-generation on next batch run
 
 ---
 
-## Phase 52: User Lifecycle E2E
+## Phase 60: LLM Display
 
-**Goal:** User registration, confirmation, and password reset work end-to-end
+**Goal:** Cluster summaries visible on analysis pages with clear AI provenance
 
-**Dependencies:** Phase 51 (Mailpit must capture emails)
+**Dependencies:** Phase 59
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 60-01-PLAN.md - Cluster summary display components
+
+**Requirements:**
+- LLM-07: Phenotype cluster summaries generated and displayed
+- LLM-08: Functional cluster summaries generated and displayed
+- LLM-12: Summaries show "AI-generated" badge with validation status
+
+**Success Criteria:**
+1. Phenotype cluster pages display generated summaries
+2. Functional cluster pages display generated summaries
+3. Summaries show "AI-generated" badge visible to users
+4. Badge includes validation status (pending, validated, rejected)
+
+---
+
+## Phase 61: LLM Validation
+
+**Goal:** Quality control via LLM-as-judge and human approval workflow
+
+**Dependencies:** Phase 60
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 52-01-PLAN.md — Add token extraction helper and registration/approval E2E tests
-- [x] 52-02-PLAN.md — Add password reset E2E tests with failure scenarios
+- [ ] 61-01-PLAN.md - LLM-as-judge and confidence scoring
+- [ ] 61-02-PLAN.md - Admin validation panel
 
 **Requirements:**
-- SMTP-03: User registration flow works end-to-end with email capture
-- SMTP-04: Email confirmation flow works end-to-end
-- SMTP-05: Password reset flow works end-to-end
+- LLM-09: LLM-as-judge validates summary accuracy
+- LLM-10: Confidence scoring flags low-confidence summaries
+- LLM-11: Admin panel for summary review and approval
 
 **Success Criteria:**
-1. New user registers, confirmation email appears in Mailpit within 5 seconds
-2. Clicking confirmation link in captured email activates the user account
-3. Password reset request sends email visible in Mailpit with reset link
-4. Password reset link allows user to set new password and log in successfully
+1. LLM-as-judge validates summary accuracy against source data
+2. Confidence scores assigned (high/medium/low) with threshold flagging
+3. Low-confidence summaries hidden from public view until approved
+4. Admin panel displays pending summaries for review and approval/rejection
 
 ---
 
-## Phase 53: Production Docker Validation
+## Phase 62: Admin & Infrastructure
 
-**Goal:** Production Docker build is validated and ready for deployment
+**Goal:** Admin comparisons updated; GitHub Pages deploys via Actions workflow
 
-**Dependencies:** Phases 47-52 (all features complete for integration testing)
+**Dependencies:** Phase 55 (can run parallel to LLM phases after bugs fixed)
 
 **Plans:** 2 plans
 
 Plans:
-- [x] 53-01-PLAN.md — Configure explicit pool sizing and enhance /health/ready with database connectivity check
-- [x] 53-02-PLAN.md — Add Makefile preflight target and health endpoint integration tests
+- [ ] 62-01-PLAN.md - Admin comparisons update
+- [ ] 62-02-PLAN.md - GitHub Pages Actions deployment
 
 **Requirements:**
-- PROD-01: Production Docker build with 4 API workers validated
-- PROD-02: Connection pool sized correctly for multi-worker setup
-- PROD-03: Extended health check (/health/ready) verifies database connectivity
-- PROD-04: Makefile target for pre-flight production validation
+- ADMIN-01: Admin comparisons functionality updated
+- INFRA-01: GitHub Pages deployed via GitHub Actions workflow (not gh-pages branch)
 
 **Success Criteria:**
-1. Production Docker build starts successfully with 4 API worker processes
-2. All 4 workers can handle concurrent database queries without pool exhaustion
-3. /health/ready returns 200 only when database is connected and migrations current
-4. `make preflight` runs validation suite and reports pass/fail with clear output
-
----
-
-## Phase 54: Docker Infrastructure Hardening
-
-**Goal:** Harden Docker infrastructure with security and performance improvements from review
-
-**Dependencies:** Phase 53 (production validation complete)
-
-**Plans:** 2 plans
-
-Plans:
-- [x] 54-01-PLAN.md — Pin nginx image, configure static asset caching, enable access logging and brotli
-- [x] 54-02-PLAN.md — Add security_opt, CPU limits, and log rotation to all Docker services
-
-**Requirements:**
-- DOCKER-01: Nginx image pinned to specific version (not `latest`)
-- DOCKER-02: Static asset caching configured with proper Cache-Control headers
-- DOCKER-03: Access logging enabled with buffered writes
-- DOCKER-04: security_opt no-new-privileges on all services
-- DOCKER-05: CPU resource limits configured on all services
-- DOCKER-06: Log rotation configured on all services
-- DOCKER-07: Brotli compression enabled in nginx
-- DOCKER-08: Graceful shutdown handler in API
-
-**Success Criteria:**
-1. App Dockerfile uses pinned nginx image version (v1.27.4)
-2. Static assets (js, css, fonts) served with 1-year cache headers
-3. nginx access logs written to /var/log/nginx/access.log with buffering
-4. All services have `security_opt: no-new-privileges:true`
-5. All services have `deploy.resources.limits.cpus` configured
-6. All services have log rotation with max-size and max-file
-7. Brotli compression returns .br encoded responses for supported content
-8. API handles SIGTERM gracefully, closes pool, exits cleanly
+1. Admin comparisons functionality works correctly
+2. GitHub Pages site deploys via GitHub Actions workflow
+3. Deployment triggers on push to main and manual dispatch
 
 ---
 
@@ -226,80 +231,95 @@ Plans:
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 47 | Migration System Foundation | MIGR-01, MIGR-02, MIGR-03, MIGR-05 | Complete |
-| 48 | Migration Auto-Run & Health | MIGR-04, MIGR-06 | Complete |
-| 49 | Backup API Layer | BKUP-01, BKUP-03, BKUP-05, BKUP-06 | Complete |
-| 50 | Backup Admin UI | BKUP-02, BKUP-04 | Complete |
-| 51 | SMTP Testing Infrastructure | SMTP-01, SMTP-02 | Complete |
-| 52 | User Lifecycle E2E | SMTP-03, SMTP-04, SMTP-05 | Complete |
-| 53 | Production Docker Validation | PROD-01, PROD-02, PROD-03, PROD-04 | Complete |
-| 54 | Docker Infrastructure Hardening | DOCKER-01 to DOCKER-08 | Complete |
+| 55 | Bug Fixes | BUG-01 to BUG-08 | Not started |
+| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Not started |
+| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
+| 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
+| 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
+| 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
+| 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
+| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
-**Coverage:** 29/29 requirements mapped (100%)
+**Coverage:** 34/34 requirements mapped (100%)
 
 ---
 
 ## Dependency Graph
 
 ```
-Phase 47 (Migration Foundation)
-    |
-    v
-Phase 48 (Migration Auto-Run & Health)
+Phase 55 (Bug Fixes)
     |
     +---------------------------+
     |                           |
     v                           v
-Phase 49 (Backup API)     Phase 51 (SMTP Infrastructure)
+Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
     |                           |
     v                           v
-Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
-    |                           |
-    +---------------------------+
-                |
-                v
-        Phase 53 (Production Docker Validation)
-                |
-                v
-        Phase 54 (Docker Infrastructure Hardening)
+Phase 57 (Pubtator)        Phase 59 (LLM Batch & Caching)
+                                |
+                                v
+                           Phase 60 (LLM Display)
+                                |
+                                v
+                           Phase 61 (LLM Validation)
+
+Phase 62 (Admin & Infra) can run parallel after Phase 55
 ```
 
 ---
 
-## Post-Milestone Enhancements
+## Previous Milestones
 
-The following enhancements were added after the v9.0 milestone completion:
+<details>
+<summary>v9.0 Production Readiness (Phases 47-54) - SHIPPED 2026-01-31</summary>
 
-### Batch Assignment Email Notification (2026-01-31)
+### Phase 47: Migration System Foundation
+**Status:** Complete
+**Requirements:** MIGR-01, MIGR-02, MIGR-03, MIGR-05
+**Plans:** 47-01, 47-02
 
-**Commit:** `e49cc74c` - feat(email): add batch assignment notification email
+### Phase 48: Migration Auto-Run & Health
+**Status:** Complete
+**Requirements:** MIGR-04, MIGR-06
+**Plans:** 48-01, 48-02
 
-**Changes:**
-- Added `email_batch_assigned()` template function in `api/functions/email-templates.R`
-- Updated `PUT /api/batch/assign` endpoint to send email notification to assigned user
-- Email includes batch number, entity count, and "Start Reviewing" CTA button
-- BCC to curator@sysndd.org for monitoring
+### Phase 49: Backup API Layer
+**Status:** Complete
+**Requirements:** BKUP-01, BKUP-03, BKUP-05, BKUP-06
+**Plans:** 49-01, 49-02
 
-**Files:**
-- `api/functions/email-templates.R`
-- `api/endpoints/re_review_endpoints.R`
+### Phase 50: Backup Admin UI
+**Status:** Complete
+**Requirements:** BKUP-02, BKUP-04
+**Plans:** 50-01, 50-02
 
-### Self-Service Profile Editing (2026-01-31)
+### Phase 51: SMTP Testing Infrastructure
+**Status:** Complete
+**Requirements:** SMTP-01, SMTP-02
+**Plans:** 51-01, 51-02
 
-**Commit:** `ab917f6c` - feat(user): add self-service profile editing for email and ORCID
+### Phase 52: User Lifecycle E2E
+**Status:** Complete
+**Requirements:** SMTP-03, SMTP-04, SMTP-05
+**Plans:** 52-01, 52-02
 
-**Changes:**
-- Added `PUT /api/profile` endpoint for authenticated users to update their own profile
-- Email validation: format check (`*@*.*`) + uniqueness check (no duplicates)
-- ORCID validation: pattern `^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$`
-- Updated `UserView.vue` with inline editing mode, real-time validation, and Save/Cancel buttons
-- JavaScript validation mirrors API validation for immediate feedback
+### Phase 53: Production Docker Validation
+**Status:** Complete
+**Requirements:** PROD-01, PROD-02, PROD-03, PROD-04
+**Plans:** 53-01, 53-02
 
-**Files:**
-- `api/endpoints/user_endpoints.R`
-- `app/src/views/UserView.vue`
+### Phase 54: Docker Infrastructure Hardening
+**Status:** Complete
+**Requirements:** DOCKER-01 to DOCKER-08
+**Plans:** 54-01, 54-02
+
+**Post-Milestone Enhancements:**
+- Batch assignment email notification (2026-01-31)
+- Self-service profile editing (2026-01-31)
+
+</details>
 
 ---
 
-*Roadmap created: 2026-01-29*
-*Last updated: 2026-01-31 — Post-milestone enhancements (batch email, profile editing) added*
+*Roadmap created: 2026-01-31*
+*Last updated: 2026-01-31*
