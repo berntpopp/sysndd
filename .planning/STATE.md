@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 55 (Bug Fixes)
-**Plan:** Not started
-**Status:** Ready to plan
-**Progress:** v10.0 [                    ] 0/8 phases
+**Plan:** 02 of ~8 (in progress)
+**Status:** Executing
+**Progress:** v10.0 [==                  ] 1/8 phases (12.5%)
 
-**Last completed:** v9.0 Production Readiness milestone shipped
-**Last activity:** 2026-01-31 — v10.0 roadmap created
+**Last completed:** Phase 55 Plan 02 - Curation workflow bug fixes
+**Last activity:** 2026-01-31 — Completed 55-02-PLAN.md
 
 ---
 
@@ -123,13 +123,24 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 4. **Summary display:** Extend AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
 5. **Admin panel:** Follow ManageAnnotations.vue pattern
 
+### Decisions from Phase 55 Plan 02 (Curation Bugs)
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Self-service authorization for contributions endpoint | Users should view own data regardless of role | Viewer users can access /user/{id}/contributions for their own ID |
+| 2026-01-31 | Warning logging vs hard validation for PMID deletion | Root cause in frontend; blocking would break workflows | Operations continue but losses are detected via logs |
+| 2026-01-31 | Floor vs ceiling for time aggregation | Ceiling shifts dates to next period incorrectly | Entities-over-time chart now aligns with database dates |
+| 2026-01-31 | Explicit field protection in repository updates | Preserve attribution (review_user_id should never change) | review_update explicitly removes review_user_id from updates |
+| 2026-01-31 | Document vs implement disease rename approval | Full workflow requires architectural changes across layers | Infrastructure added (is_active param), implementation deferred |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** v10.0 roadmap created
-**Next action:** `/gsd:plan-phase 55` to create Phase 55 plans
+**Stopped at:** Completed 55-02-PLAN.md (curation workflow bugs)
+**Next action:** Continue with remaining Phase 55 plans (entity bugs, publication updates, etc.)
+**Resume file:** None
 
 **Handoff notes:**
 
@@ -139,14 +150,15 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - LLM phases (58-61) form sequential chain
    - Phase 62 can run parallel after Phase 55
 
-2. **Phase 55 Priority Bugs:**
-   - #122: EIF2AK2 publication update incomplete
-   - #115: GAP43 entity not visible
-   - #114: MEF2C entity updating issues
-   - Viewer profile / auto-logout
-   - PMID deletion during re-review
-   - #44: Entities over time counts incorrect
-   - #41: Disease renaming / re-reviewer identity
+2. **Phase 55 Bug Status:**
+   - ✅ Viewer profile / auto-logout (BUG-04) - Fixed in 55-02
+   - ✅ PMID deletion during re-review (BUG-05) - Protected with logging in 55-02
+   - ✅ #44: Entities over time counts incorrect (BUG-06) - Fixed in 55-02
+   - ⚠️ #41: Disease renaming bypasses approval (BUG-07) - Documented in 55-02, needs implementation
+   - ✅ Re-reviewer identity lost (BUG-08) - Fixed in 55-02
+   - ❌ #122: EIF2AK2 publication update incomplete (BUG-01) - Not started
+   - ❌ #115: GAP43 entity not visible (BUG-02) - Not started
+   - ❌ #114: MEF2C entity updating issues (BUG-03) - Not started
 
 3. **LLM Implementation Notes:**
    - Add ellmer >= 0.4.0 to renv
