@@ -1,7 +1,7 @@
 # Project State: SysNDD
 
 **Last updated:** 2026-01-31
-**Current milestone:** v10.0 (Planning)
+**Current milestone:** v10.0 Data Quality & AI Insights
 
 ---
 
@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v10.0 planning — use `/gsd:new-milestone` to start
+**Current focus:** v10.0 — Bug fixes, Publications/Pubtator improvements, LLM cluster summaries
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** None active (between milestones)
-**Plan:** N/A
-**Status:** v9.0 shipped, ready for v10.0 planning
-**Progress:** v9.0 ████████████ 100% SHIPPED
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Progress:** v10.0 ░░░░░░░░░░░░ 0%
 
 **Last completed:** v9.0 Production Readiness milestone shipped
-**Next step:** Use `/gsd:new-milestone` to start v10.0 planning
+**Last activity:** 2026-01-31 — Milestone v10.0 started
 
 ---
 
@@ -145,31 +145,23 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 
 **Handoff notes:**
 
-1. **v9.0 Milestone Shipped (2026-01-31):**
+1. **v10.0 Milestone Started (2026-01-31):**
+   - Focus: Bug fixes, Publications/Pubtator improvements, LLM cluster summaries
+   - Priority: Bugs first, then features
+   - LLM: Gemini API with batch pre-generation, LLM-as-judge validation
+
+2. **Known bugs to fix:**
+   - #122: EIF2AK2 publication update incomplete
+   - #115: GAP43 entity not visible
+   - #114: MEF2C entity updating issues
+   - Viewer profile / auto-logout
+   - PMID deletion during re-review
+   - #44: Entities over time counts incorrect
+   - #41: Disease renaming / re-reviewer identity
+
+3. **v9.0 Milestone Shipped (2026-01-31):**
    - All 8 phases (47-54) completed with 16 plans
-   - All 29 requirements satisfied
-   - 102 commits, 320 files modified (+27,140/-9,056 lines)
-   - Git range: `f747e97c` → `5e674728`
    - Git tag: `v9.0`
-
-2. **Key deliverables:**
-   - Migration runner with schema_version tracking and auto-apply on startup
-   - Backup management API and ManageBackups admin UI
-   - Mailpit integration for development email capture
-   - E2E tests for user registration, approval, and password reset
-   - Production Docker with /api/health/ready endpoint
-   - Docker hardening: security_opt, CPU limits, log rotation, Brotli
-   - `make preflight` target for production validation
-
-3. **Post-milestone enhancements included:**
-   - Batch assignment email notification
-   - Self-service profile editing (email/ORCID)
-
-4. **Archives created:**
-   - `.planning/milestones/v9.0-ROADMAP.md`
-   - `.planning/milestones/v9.0-REQUIREMENTS.md`
-   - `.planning/milestones/v9.0-MILESTONE-AUDIT.md`
-   - MILESTONES.md updated with v9.0 entry
 
 ---
 

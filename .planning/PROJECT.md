@@ -2,14 +2,20 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v9 focuses on production readiness — automated database migrations, backup management with admin UI, user lifecycle testing with real SMTP, and production Docker validation. Building on v8's gene page with genomic data integration, v7's curation workflows, v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current Milestone: v10.0 (Planning)
+## Current Milestone: v10.0 Data Quality & AI Insights
 
-**Goal:** To be defined in next milestone planning session.
+**Goal:** Stabilize data quality with major bug fixes, enhance literature research tools (Publications, Pubtator), and add AI-generated cluster summaries for reproducible biological interpretation.
 
 **Target features:**
-- TBD
+- Fix 8-9 major GitHub issues (EIF2AK2, GAP43, MEF2C, viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
+- Fix Variant Correlations broken links
+- Publications view improvements: table UX, API metadata fetching, TimePlot/Stats enhancements
+- Pubtator overhaul: fix Stats, curator gene prioritization lists, user research tools, better concept documentation
+- LLM cluster summaries: Gemini API with batch pre-generation, structured output, LLM-as-judge validation
+- Admin comparisons update
+- GitHub Pages: migrate from gh-pages branch to GitHub Actions workflow
 
 ## Core Value
 
@@ -264,9 +270,33 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v10.0 TBD -->
+<!-- v10.0 Data Quality & AI Insights -->
 
-None currently planned. Use `/gsd:new-milestone` to start planning.
+- [ ] Fix EIF2AK2 publication update incomplete (#122)
+- [ ] Fix GAP43 entity not visible (#115)
+- [ ] Fix MEF2C entity updating issues (#114)
+- [ ] Fix viewer profile / auto-logout bug
+- [ ] Fix PMID deletion when adding new PMID during re-review
+- [ ] Fix entities over time by gene counts (#44)
+- [ ] Fix disease renaming requiring no approval (#41)
+- [ ] Fix re-reviewer identity preservation (#41)
+- [ ] Fix Variant Correlations broken links (VariantCounts, VariantCorrelations)
+- [ ] Publications table UX improvements
+- [ ] Publications API metadata fetching view
+- [ ] Publications TimePlot improvements
+- [ ] Publications Stats improvements
+- [ ] Pubtator Stats fix
+- [ ] Pubtator curator gene prioritization lists
+- [ ] Pubtator user research tools
+- [ ] Pubtator concept documentation
+- [ ] LLM cluster summary backend (Gemini API)
+- [ ] LLM batch pre-generation job
+- [ ] LLM structured output prompts
+- [ ] LLM-as-judge validation
+- [ ] Phenotype cluster summaries
+- [ ] Functional cluster summaries
+- [ ] Admin comparisons update
+- [ ] GitHub Pages Actions workflow deployment
 
 ### Out of Scope
 
@@ -284,6 +314,9 @@ None currently planned. Use `/gsd:new-milestone` to start planning.
 - Direct frontend calls to external APIs — all routed through R/Plumber backend
 
 ## Context
+
+**After v10:**
+- Planned: Data quality stabilization, literature tools enhancement, AI cluster interpretation
 
 **After v9:**
 - Production-ready with automated database migrations, backup management, and E2E tested user workflows
@@ -386,4 +419,4 @@ None currently planned. Use `/gsd:new-milestone` to start planning.
 | Error isolation in aggregation | tryCatch per source returns partial data on failures | ✓ Good |
 
 ---
-*Last updated: 2026-01-31 after v9.0 milestone shipped*
+*Last updated: 2026-01-31 after v10.0 milestone started*
