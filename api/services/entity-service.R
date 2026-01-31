@@ -422,9 +422,10 @@ entity_create_with_review_status <- function(entity_data, review_data, status_da
           synopsis <- stringr::str_replace_all(synopsis, "'", "''")
         }
 
+        # BUG-01/BUG-02/BUG-03 fix: include review_user_id which is required by database
         db_execute_statement(
-          "INSERT INTO ndd_entity_review (entity_id, synopsis) VALUES (?, ?)",
-          list(entity_id, synopsis),
+          "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id) VALUES (?, ?, ?)",
+          list(entity_id, synopsis, review_data$review_user_id),
           conn = txn_conn
         )
 
