@@ -343,3 +343,150 @@ entity_check_duplicate <- function(entity_data, pool) {
 
   NULL
 }
+
+
+#' Create entity with review and status atomically
+#'
+#' Creates entity, review, and status records in a single transaction.
+#' This ensures entity is never orphaned (created without review/status).
+#' Fixes BUG-02/BUG-03 (GAP43, MEF2C visibility issues).
+#'
+#' @param entity_data List with entity fields (hgnc_id, hpo_mode_of_inheritance_term, etc.)
+#' @param review_data List with review fields (synopsis, comment, review_user_id)
+#' @param status_data List with status fields (category_id, problematic, status_user_id)
+#' @param pool Database connection pool
+#' @return List with status, message, and entry (tibble with entity_id, review_id, status_id)
+#'
+#' @examples
+#' \dontrun{
+#' result <- entity_create_with_review_status(
+#'   entity_data = list(hgnc_id = 123, ...),
+#'   review_data = list(synopsis = "...", review_user_id = 10),
+#'   status_data = list(category_id = 1, problematic = 0, status_user_id = 10),
+#'   pool = pool
+#' )
+#' }
+entity_create_with_review_status <- function(entity_data, review_data, status_data, pool) {
+  logger::log_debug(
+    "Starting atomic entity+review+status creation",
+    hgnc_id = entity_data$hgnc_id
+  )
+
+  # Validate required fields
+  entity_validate(entity_data)
+
+  # Check for duplicate
+  duplicate <- entity_check_duplicate(entity_data, pool)
+  if (!is.null(duplicate)) {
+    logger::log_warn(
+      "Duplicate entity detected",
+      hgnc_id = entity_data$hgnc_id,
+      existing_entity_id = duplicate$entity_id
+    )
+    return(list(
+      status = 409,
+      message = "Conflict. Entity with same quadruple already exists.",
+      entry = duplicate
+    ))
+  }
+
+  # Execute entity+review+status creation in transaction
+  tryCatch(
+    {
+      result <- db_with_transaction(function(txn_conn) {
+        # Step 1: Create entity
+        # nolint start: line_length_linter
+        sql_entity <- "INSERT INTO ndd_entity (hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ndd_phenotype, entry_user_id) VALUES (?, ?, ?, ?, ?)"
+        # nolint end
+        db_execute_statement(
+          sql_entity,
+          list(
+            entity_data$hgnc_id,
+            entity_data$hpo_mode_of_inheritance_term,
+            entity_data$disease_ontology_id_version,
+            entity_data$ndd_phenotype,
+            entity_data$entry_user_id
+          ),
+          conn = txn_conn
+        )
+
+        # Get entity_id
+        result_id <- db_execute_query("SELECT LAST_INSERT_ID() as entity_id", conn = txn_conn)
+        entity_id <- as.integer(result_id$entity_id[1])
+
+        logger::log_debug("Entity created in transaction", entity_id = entity_id)
+
+        # Step 2: Create review
+        synopsis <- review_data$synopsis
+        if (!is.null(synopsis) && !is.na(synopsis) && is.character(synopsis)) {
+          synopsis <- stringr::str_replace_all(synopsis, "'", "''")
+        }
+
+        db_execute_statement(
+          "INSERT INTO ndd_entity_review (entity_id, synopsis) VALUES (?, ?)",
+          list(entity_id, synopsis),
+          conn = txn_conn
+        )
+
+        # Get review_id
+        review_result <- db_execute_query("SELECT LAST_INSERT_ID() as review_id", conn = txn_conn)
+        review_id <- as.integer(review_result$review_id[1])
+
+        logger::log_debug("Review created in transaction", review_id = review_id)
+
+        # Step 3: Create status
+        db_execute_statement(
+          "INSERT INTO ndd_entity_status (entity_id, category_id, problematic) VALUES (?, ?, ?)",
+          list(
+            entity_id,
+            status_data$category_id,
+            if (!is.null(status_data$problematic)) status_data$problematic else 0
+          ),
+          conn = txn_conn
+        )
+
+        # Get status_id
+        status_result <- db_execute_query("SELECT LAST_INSERT_ID() as status_id", conn = txn_conn)
+        status_id <- as.integer(status_result$status_id[1])
+
+        logger::log_debug("Status created in transaction", status_id = status_id)
+
+        # Return all IDs
+        list(
+          entity_id = entity_id,
+          review_id = review_id,
+          status_id = status_id
+        )
+      }, pool_obj = pool)
+
+      logger::log_info(
+        "Entity+review+status created atomically",
+        entity_id = result$entity_id,
+        review_id = result$review_id,
+        status_id = result$status_id
+      )
+
+      return(list(
+        status = 200,
+        message = "OK. Entry created.",
+        entry = tibble::tibble(
+          entity_id = result$entity_id,
+          review_id = result$review_id,
+          status_id = result$status_id
+        )
+      ))
+    },
+    error = function(e) {
+      logger::log_error(
+        "Atomic entity creation failed",
+        error = e$message,
+        hgnc_id = entity_data$hgnc_id
+      )
+      return(list(
+        status = 500,
+        message = "Internal Server Error. Entity creation failed.",
+        error = e$message
+      ))
+    }
+  )
+}

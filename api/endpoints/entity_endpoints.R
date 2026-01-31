@@ -372,6 +372,11 @@ function(req, res, direct_approval = FALSE) {
       mutate(message = str_c(message, collapse = "; ")) %>%
       unique()
   } else {
+    logger::log_error(
+      "Entity creation failed",
+      status = response_entity$status,
+      error = response_entity$error
+    )
     res$status <- response_entity$status
     return(list(
       status = response_entity$status,
@@ -413,6 +418,11 @@ function(req, res, direct_approval = FALSE) {
       )
     }
   } else {
+    logger::log_error(
+      "Entity created but review creation failed - PARTIAL CREATION",
+      entity_id = response_entity$entry$entity_id,
+      review_status = response_review_post$status
+    )
     response_entity_review_post <- tibble::as_tibble(response_entity) %>%
       bind_rows(tibble::as_tibble(response_review_post)) %>%
       dplyr::select(status, message) %>%
@@ -439,8 +449,8 @@ function(req, res, direct_approval = FALSE) {
     return(response_entity)
   } else {
     logger::log_error(
-      "Entity creation failed during review or status",
-      entity_status = response_entity$status,
+      "Entity+review created but status creation failed - PARTIAL CREATION",
+      entity_id = response_entity$entry$entity_id,
       review_status = response_review_post$status,
       status_status = response_status_post$status
     )
