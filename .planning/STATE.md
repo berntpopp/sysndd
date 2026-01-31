@@ -38,13 +38,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | ✓ Complete |
-| 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
+| 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
-| 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
+| 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
-**Phases:** 8 (55-62)
-**Requirements:** 34 mapped (100% coverage)
+**Phases:** 7 active (55-62, Phase 61 merged into 59)
+**Requirements:** 36 mapped (100% coverage)
 
 ---
 
@@ -94,17 +94,15 @@ Phase 55 (Bug Fixes)
     +---------------------------+
     |                           |
     v                           v
-Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
+Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation) ✓
     |                           |
     v                           v
-Phase 57 (Pubtator) ✓      Phase 59 (LLM Batch & Caching)
+Phase 57 (Pubtator) ✓      Phase 59 (LLM Batch, Caching & Validation)
                                 |
                                 v
                            Phase 60 (LLM Display)
-                                |
-                                v
-                           Phase 61 (LLM Validation)
 
+Phase 61 merged into Phase 59 (LLM-as-judge in pipeline)
 Phase 62 (Admin & Infra) can run parallel after Phase 55
 ```
 

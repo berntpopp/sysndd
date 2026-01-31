@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-31
 **Milestone:** v10.0 Data Quality & AI Insights
-**Phases:** 55-62 + 56.1 (9 phases)
-**Requirements:** 37 mapped
+**Phases:** 55-62 + 56.1 (8 active phases, Phase 61 merged)
+**Requirements:** 36 mapped
 
 ---
 
@@ -131,6 +131,31 @@ Plans:
 
 ---
 
+## Phase 57.1: PubTator Async Repository Refactor
+
+**Goal:** Async PubTator database operations use parameterized queries via repository pattern (SQL injection prevention)
+
+**Dependencies:** Phase 57
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 57.1-01-PLAN.md - Refactor pubtator_db_update_async to use db-helpers with parameterized queries
+
+**Requirements:**
+- PUBT-ASYNC-01: Async PubTator function uses parameterized queries (no sprintf SQL construction)
+- PUBT-ASYNC-02: Direct connection passed to db_execute_query/db_execute_statement helpers
+- PUBT-ASYNC-03: Gene symbol computation uses parameterized queries
+
+**Success Criteria:**
+1. pubtator_db_update_async() uses db_execute_query() and db_execute_statement() with conn parameter
+2. All SQL uses ? placeholders with DBI::dbBind() (no sprintf, no manual escaping)
+3. Gene symbol computation JOIN query uses parameterized approach
+4. Existing async job submission continues to work (/api/jobs/pubtator_update/submit)
+5. All tests pass
+
+---
+
 ## Phase 58: LLM Foundation
 
 **Goal:** Gemini API integrated with structured output and entity validation
@@ -157,27 +182,31 @@ Plans:
 
 ---
 
-## Phase 59: LLM Batch & Caching
+## Phase 59: LLM Batch, Caching & Validation
 
-**Goal:** Summaries pre-generated via background jobs; cached with hash-based invalidation
+**Goal:** Summaries generated as part of clustering pipeline, validated by LLM-as-judge, cached with long TTL
 
 **Dependencies:** Phase 58
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 59-01-PLAN.md - Batch generation job
-- [ ] 59-02-PLAN.md - Database caching with invalidation
+- [ ] 59-01-PLAN.md - Batch generation chained after clustering
+- [ ] 59-02-PLAN.md - LLM-as-judge validation and caching
 
 **Requirements:**
-- LLM-05: Batch pre-generation job runs via mirai async system
-- LLM-06: Summaries cached in database with hash-based invalidation
+- LLM-05: LLM generation chained after clustering job (user operation, not admin)
+- LLM-06: Summaries cached in database with hash-based invalidation (cluster composition)
+- LLM-09: LLM-as-judge validates summary accuracy (integrated into pipeline)
+- LLM-10: Confidence scoring with metadata (model, prompt version, date)
 
 **Success Criteria:**
-1. Batch generation job runs via mirai async system with progress tracking
-2. Job checkpoints allow resume after failure
-3. Summaries stored in database with cluster hash for invalidation
-4. Changed cluster composition triggers re-generation on next batch run
+1. Clustering completion automatically triggers LLM summary generation
+2. LLM-as-judge validates each summary as final pipeline step
+3. Summaries stored with cluster hash — same genes = cache hit
+4. Both phenotype and functional clusters get summaries
+5. Per-cluster progress visible in job manager (e.g., "Generating 15/47 clusters")
+6. 3 retries per cluster on failure, continue to next cluster
 
 ---
 
@@ -193,40 +222,23 @@ Plans:
 - [ ] 60-01-PLAN.md - Cluster summary display components
 
 **Requirements:**
-- LLM-07: Phenotype cluster summaries generated and displayed
-- LLM-08: Functional cluster summaries generated and displayed
-- LLM-12: Summaries show "AI-generated" badge with validation status
+- LLM-07: Phenotype cluster summaries displayed on cluster pages
+- LLM-08: Functional cluster summaries displayed on cluster pages
+- LLM-12: Summaries show "AI-generated" badge with confidence indicator
 
 **Success Criteria:**
-1. Phenotype cluster pages display generated summaries
-2. Functional cluster pages display generated summaries
-3. Summaries show "AI-generated" badge visible to users
-4. Badge includes validation status (pending, validated, rejected)
+1. Phenotype cluster pages display cached summaries (generated in Phase 59)
+2. Functional cluster pages display cached summaries
+3. Summaries show "AI-generated" badge with confidence score
+4. Metadata visible: model used, generation date
 
 ---
 
-## Phase 61: LLM Validation
+## ~~Phase 61: LLM Validation~~ (Merged into Phase 59)
 
-**Goal:** Quality control via LLM-as-judge and human approval workflow
+**Status:** Merged — LLM-as-judge validation integrated into Phase 59 pipeline
 
-**Dependencies:** Phase 60
-
-**Plans:** 2 plans
-
-Plans:
-- [ ] 61-01-PLAN.md - LLM-as-judge and confidence scoring
-- [ ] 61-02-PLAN.md - Admin validation panel
-
-**Requirements:**
-- LLM-09: LLM-as-judge validates summary accuracy
-- LLM-10: Confidence scoring flags low-confidence summaries
-- LLM-11: Admin panel for summary review and approval
-
-**Success Criteria:**
-1. LLM-as-judge validates summary accuracy against source data
-2. Confidence scores assigned (high/medium/low) with threshold flagging
-3. Low-confidence summaries hidden from public view until approved
-4. Admin panel displays pending summaries for review and approval/rejection
+**Rationale:** LLM summaries are a user operation (like clustering), not admin workflow. Validation runs automatically as the final pipeline step with no human approval needed. Requirements LLM-09 and LLM-10 moved to Phase 59. Requirement LLM-11 (admin panel) dropped — fully automated.
 
 ---
 
@@ -262,12 +274,12 @@ Plans:
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Complete |
-| 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
+| 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
-| 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
+| 61 | ~~LLM Validation~~ | ~~LLM-09 to LLM-11~~ | Merged into 59 |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
-**Coverage:** 37/37 requirements mapped (100%)
+**Coverage:** 36/36 requirements mapped (100%) — LLM-11 dropped (no admin approval needed)
 
 ---
 
@@ -282,14 +294,12 @@ Phase 55 (Bug Fixes)
 Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
     |                           |
     v                           v
-Phase 56.1 (Pub Admin)     Phase 59 (LLM Batch & Caching)
+Phase 56.1 (Pub Admin)     Phase 59 (LLM Batch, Caching & Validation)
     |                           |
     v                           v
 Phase 57 (Pubtator)        Phase 60 (LLM Display)
-                                |
-                                v
-                           Phase 61 (LLM Validation)
 
+Phase 61 merged into Phase 59
 Phase 62 (Admin & Infra) can run parallel after Phase 55
 ```
 
