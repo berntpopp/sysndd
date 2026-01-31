@@ -426,9 +426,15 @@ function(req,
 #*
 #* This endpoint returns a cursor pagination object with one row per gene,
 #* listing nested `publications` and `entities` for each gene. The data is
-#* from `pubtator_human_gene_entity_view`. It also provides two count columns:
+#* from `pubtator_human_gene_entity_view`. It provides prioritization fields:
 #* - `publication_count`: how many valid publication rows
-#* - `entities_count`: how many valid entity rows
+#* - `entities_count`: how many valid entity rows (SysNDD entities)
+#* - `is_novel`: 1 if gene has no SysNDD entity (coverage gap), 0 otherwise
+#* - `oldest_pub_date`: earliest publication date for this gene
+#* - `pmids`: comma-separated list of PMIDs for this gene
+#*
+#* Default sort prioritizes novel genes (not in SysNDD) then by oldest_pub_date
+#* to surface long-overlooked genes for curator review.
 #*
 #* If the nested list-column has rows that are all NA in the key column
 #* (e.g. `entity_id` == NA), those get filtered out => count becomes 0.
@@ -436,7 +442,8 @@ function(req,
 #* @tag publication
 #* @serializer json list(na="string")
 #*
-#* @param sort:str    Which columns to sort on, e.g. "gene_symbol".
+#* @param sort:str    Which columns to sort on. Default "-is_novel,oldest_pub_date"
+#*                    (novel genes first, then by oldest publication date).
 #* @param filter:str  Comma-separated filters, e.g. "gene_symbol=='BRCA1'".
 #* @param fields:str  Comma-separated columns to return
 #* @param page_after:str The cursor to start results after. Default "0".
@@ -449,12 +456,12 @@ function(req,
 #* @get /pubtator/genes
 function(req,
          res,
-         sort = "gene_symbol",
+         sort = "-is_novel,oldest_pub_date",
          filter = "",
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,publications,entities", # nolint: line_length_linter
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,pmids,publications,entities", # nolint: line_length_linter
          format = "json") {
   # 1) Set serializer
   res$serializer <- serializers[[format]]
@@ -466,37 +473,58 @@ function(req,
   sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol")
   filter_exprs <- generate_filter_expressions(filter)
 
-  # 4) Fetch from DB => apply filter & sorting
+  # 4) Fetch from DB => apply filter
   df_raw <- pool %>%
     tbl("pubtator_human_gene_entity_view") %>%
     collect()
 
   df_filtered <- df_raw %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs))
+    filter(!!!rlang::parse_exprs(filter_exprs))
 
   # 5) Nest the data => one row per gene
   df_nested <- nest_pubtator_gene_tibble_mem(df_filtered)
 
-  # 6) Add publication_count & entities_count
-  #    For publications, we check `pmid` is non-NA.
-  #    For entities, we check `entity_id` is non-NA.
+  # 6) Add computed fields for prioritization
+  #    - publication_count: number of valid publications
+  #    - entities_count: number of SysNDD entities (0 = novel/coverage gap)
+  #    - is_novel: 1 if gene has no SysNDD entity, 0 otherwise
+  #    - oldest_pub_date: earliest publication date
+  #    - pmids: comma-separated list of PMIDs (string, not array)
   df_counts <- df_nested %>%
-    mutate(
+    dplyr::mutate(
       publication_count = purrr::map_int(publications, ~
         dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
       entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow())
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
+      is_novel = as.integer(entities_count == 0),
+      oldest_pub_date = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
+        if (nrow(valid_pubs) == 0) {
+          return(NA_character_)
+        }
+        min_date <- min(valid_pubs$date, na.rm = TRUE)
+        as.character(min_date)
+      }),
+      pmids = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
+          dplyr::arrange(date) %>%
+          dplyr::distinct(pmid)
+        paste(valid_pubs$pmid, collapse = ",")
+      })
     )
 
-  # 7) Field selection
+  # 7) Apply sorting after computed fields are available
+  df_sorted <- df_counts %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
+
+  # 8) Field selection
   df_selected <- select_tibble_fields(
-    df_counts,
+    df_sorted,
     fields,
     unique_id = "gene_symbol"
   )
 
-  # 8) Cursor pagination on 'gene_symbol'
+  # 9) Cursor pagination on 'gene_symbol'
   pag_info <- generate_cursor_pag_inf(
     df_selected,
     page_size,
@@ -504,15 +532,15 @@ function(req,
     "gene_symbol"
   )
 
-  # 9) Field specs
+  # 10) Field specs
   tbl_fspec <- generate_tibble_fspec_mem(pag_info$data, fspec)
   tbl_fspec$fspec$count_filtered <- tbl_fspec$fspec$count
 
-  # 10) Execution time
+  # 11) Execution time
   end_time <- Sys.time()
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
-  # 11) Build meta
+  # 12) Build meta
   meta <- pag_info$meta %>%
     add_column(
       tibble::as_tibble(list(
@@ -524,7 +552,7 @@ function(req,
       ))
     )
 
-  # 12) Build links for next/prev
+  # 13) Build links for next/prev
   links <- pag_info$links %>%
     tidyr::pivot_longer(everything(), names_to = "type", values_to = "link") %>%
     dplyr::mutate(
@@ -552,7 +580,7 @@ function(req,
     data  = pag_info$data
   )
 
-  # 13) XLSX or JSON
+  # 14) XLSX or JSON
   if (format == "xlsx") {
     creation_date <- format(Sys.time(), "%Y-%m-%d_T%H-%M-%S")
     base_filename <- gsub("/", "_", req$PATH_INFO)
