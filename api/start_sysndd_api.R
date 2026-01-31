@@ -84,8 +84,10 @@ message(paste("ENVIRONMENT set to:", env_mode))
 # Map that environment to the config key:
 if (tolower(env_mode) == "production") {
   Sys.setenv(API_CONFIG = "sysndd_db") # Production entry in config.yml
+} else if (tolower(env_mode) == "development") {
+  Sys.setenv(API_CONFIG = "sysndd_db_dev") # Docker development entry (Mailpit SMTP)
 } else {
-  Sys.setenv(API_CONFIG = "sysndd_db_local") # Local entry in config.yml
+  Sys.setenv(API_CONFIG = "sysndd_db_local") # Local entry in config.yml (Windows)
 }
 
 ## -------------------------------------------------------------------##

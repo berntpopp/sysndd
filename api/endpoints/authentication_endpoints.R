@@ -85,7 +85,7 @@ function(signup_data) {
     cols <- names(user)
     placeholders <- paste(rep("?", length(cols)), collapse = ", ")
     sql <- sprintf("INSERT INTO user (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
-    db_execute_statement(sql, as.list(user))
+    db_execute_statement(sql, unname(as.list(user)))
 
     # Send email
     send_noreply_email(

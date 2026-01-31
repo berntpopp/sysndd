@@ -98,6 +98,9 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: 1
       MP_SMTP_AUTH_ALLOW_INSECURE: 1
       MP_MAX_MESSAGES: 500
+    networks:
+      - default
+      - sysndd_proxy  # Connect to main stack network for API communication
     healthcheck:
       test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8025/"]
       interval: 30s
@@ -110,3 +113,7 @@ volumes:
     name: sysndd_mysql_dev_data
   mysql_test_data:
     name: sysndd_mysql_test_data
+
+networks:
+  sysndd_proxy:
+    external: true  # Use existing network from main docker-compose.yml
