@@ -190,6 +190,13 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
 
+// Module-level variables to track API calls across component remounts
+// This survives when Vue Router remounts the component on URL changes
+let moduleLastApiParams = null;
+let moduleApiCallInProgress = false;
+let moduleLastApiCallTime = 0;
+let moduleLastApiResponse = null; // Cache last API response for remounted components
+
 export default {
   name: 'PublicationsNDDTable',
   components: {
@@ -258,6 +265,10 @@ export default {
   },
   data() {
     return {
+      // Flag to prevent watchers from triggering during initialization
+      isInitializing: true,
+      // Debounce timer for loadData to prevent duplicate calls
+      loadDataDebounceTimer: null,
       // Table columns
       fields: [
         {
@@ -302,89 +313,180 @@ export default {
     };
   },
   watch: {
-    // Watch the filters -> load new data
-    filter() {
-      this.filtered();
+    // Watch for filter changes (deep required for Vue 3 behavior)
+    // Skip during initialization to prevent multiple API calls
+    filter: {
+      handler() {
+        if (this.isInitializing) return;
+        this.filtered();
+      },
+      deep: true,
     },
-    // Watch sorting -> load new data
-    sortBy() {
-      this.handleSortByOrDescChange();
+    // Watch for sortBy changes (deep watch for array)
+    // Skip during initialization to prevent multiple API calls
+    sortBy: {
+      handler(newVal) {
+        if (this.isInitializing) return;
+        // Build new sort string from sortBy
+        const sortColumn =
+          typeof newVal === 'string'
+            ? newVal
+            : newVal && newVal.length > 0
+              ? newVal[0].key
+              : 'publication_id';
+        const sortOrder =
+          typeof newVal === 'string'
+            ? this.sortDesc
+              ? 'desc'
+              : 'asc'
+            : newVal && newVal.length > 0
+              ? newVal[0].order
+              : 'asc';
+        const newSortString = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
+        // Only trigger if sort actually changed
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
+      },
+      deep: true,
     },
-    sortDesc() {
-      this.handleSortByOrDescChange();
-    },
-    // NOTE: We remove watch(perPage) to avoid double-calling
-    // and rely solely on handlePerPageChange(newSize).
+    // NOTE: We remove watch(perPage) and sortDesc to avoid double-calling
+    // and rely solely on handlePerPageChange(newSize) and sortBy watcher.
   },
   mounted() {
-    // Initialize sorting from input
-    const sortObject = this.sortStringToVariables(this.sortInput);
-    this.sortBy = sortObject.sortColumn;
-    this.sortDesc = sortObject.sortDesc;
-
-    // Initialize filters from input
-    if (this.filterInput && this.filterInput !== 'null') {
-      this.filter = this.filterStrToObj(this.filterInput, this.filter);
+    // Transform input sort string to Bootstrap-Vue-Next array format
+    // sortStringToVariables now returns { sortBy: [{ key: 'column', order: 'asc'|'desc' }] }
+    if (this.sortInput) {
+      const sortObject = this.sortStringToVariables(this.sortInput);
+      this.sortBy = sortObject.sortBy;
+      this.sort = this.sortInput; // Also set the sort string for API calls
     }
 
-    // Slight delay, then mark loading false
+    // Initialize pagination from URL if provided
+    if (this.pageAfterInput && this.pageAfterInput !== '0') {
+      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+    }
+
+    // Transform input filter string to object and load data
+    // Use $nextTick to ensure Vue reactivity is fully initialized
+    this.$nextTick(() => {
+      if (this.filterInput && this.filterInput !== 'null' && this.filterInput !== '') {
+        // Parse URL filter string into filter object for proper UI state
+        this.filter = this.filterStrToObj(this.filterInput, this.filter);
+        // Also set filter_string so the API call uses the URL filter
+        this.filter_string = this.filterInput;
+      }
+      // Load data first while still in initializing state
+      this.loadData();
+      // Delay marking initialization complete to ensure watchers triggered
+      // by filter/sortBy changes above see isInitializing=true
+      this.$nextTick(() => {
+        this.isInitializing = false;
+      });
+    });
+
     setTimeout(() => {
       this.loading = false;
     }, 500);
-
-    // Load initial table data
-    this.loadTableData();
   },
   methods: {
     /**
-     * loadTableData
-     * Fetches data from /api/publication using sort/filter/cursor pagination
+     * loadData
+     * Debounced wrapper for doLoadData to prevent duplicate calls
      */
-    async loadTableData() {
-      this.isBusy = true;
+    loadData() {
+      // Debounce to prevent duplicate calls from multiple triggers
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+      }
+      this.loadDataDebounceTimer = setTimeout(() => {
+        this.loadDataDebounceTimer = null;
+        this.doLoadData();
+      }, 50);
+    },
 
-      // Build query
+    /**
+     * doLoadData
+     * Fetches data from /api/publication using sort/filter/cursor pagination
+     * Uses module-level caching to prevent duplicate API calls
+     */
+    async doLoadData() {
       const urlParam =
         `sort=${this.sort}` +
         `&filter=${this.filter_string}` +
         `&page_after=${this.currentItemID}` +
-        `&page_size=${this.perPage}` +
-        `&fields=${this.fspecInput}`;
+        `&page_size=${this.perPage}`;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
+      const now = Date.now();
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
+        }
+        return;
+      }
+
+      // Also prevent if a call is already in progress with same params
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+        return;
+      }
+
+      moduleLastApiParams = urlParam;
+      moduleLastApiCallTime = now;
+      moduleApiCallInProgress = true;
+      this.isBusy = true;
+
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}&fields=${this.fspecInput}`;
 
       try {
         const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
-
-        // The meta array presumably includes pagination info
-        if (response.data.meta && response.data.meta.length > 0) {
-          const metaObj = response.data.meta[0];
-          this.totalRows = metaObj.totalItems || 0;
-
-          // Fix for b-pagination
-          this.$nextTick(() => {
-            this.currentPage = metaObj.currentPage;
-          });
-          this.totalPages = metaObj.totalPages;
-          this.prevItemID = metaObj.prevItemID;
-          this.currentItemID = metaObj.currentItemID;
-          this.nextItemID = metaObj.nextItemID;
-          this.lastItemID = metaObj.lastItemID;
-          this.executionTime = metaObj.executionTime;
-
-          // Merge inbound fspec so we keep filterable: true
-          if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
-            this.fields = this.mergeFields(metaObj.fspec);
-          }
-        }
-        const uiStore = useUiStore();
-        uiStore.requestScrollbarUpdate();
+        moduleApiCallInProgress = false;
+        // Cache response for remounted components
+        moduleLastApiResponse = response.data;
+        this.applyApiResponse(response.data);
+        this.isBusy = false;
       } catch (error) {
+        moduleApiCallInProgress = false;
         this.makeToast(error, 'Error', 'danger');
-      } finally {
         this.isBusy = false;
       }
+    },
+
+    /**
+     * Apply API response data to component state.
+     * Extracted to allow reuse when skipping duplicate API calls.
+     * @param {Object} data - API response data
+     */
+    applyApiResponse(data) {
+      this.items = data.data;
+
+      // The meta array presumably includes pagination info
+      if (data.meta && data.meta.length > 0) {
+        const metaObj = data.meta[0];
+        this.totalRows = metaObj.totalItems || 0;
+
+        // Fix for b-pagination
+        this.$nextTick(() => {
+          this.currentPage = metaObj.currentPage;
+        });
+        this.totalPages = metaObj.totalPages;
+        this.prevItemID = Number(metaObj.prevItemID) || 0;
+        this.currentItemID = Number(metaObj.currentItemID) || 0;
+        this.nextItemID = Number(metaObj.nextItemID) || 0;
+        this.lastItemID = Number(metaObj.lastItemID) || 0;
+        this.executionTime = metaObj.executionTime;
+
+        // Merge inbound fspec so we keep filterable: true
+        if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
+          this.fields = this.mergeFields(metaObj.fspec);
+        }
+      }
+      const uiStore = useUiStore();
+      uiStore.requestScrollbarUpdate();
     },
 
     /**
@@ -417,14 +519,14 @@ export default {
 
     /**
      * filtered
-     * Rebuilds filter_string from filter object, calls loadTableData.
+     * Rebuilds filter_string from filter object, calls loadData.
      */
     filtered() {
       const filterStringLoc = this.filterObjToStr(this.filter);
       if (filterStringLoc !== this.filter_string) {
         this.filter_string = filterStringLoc;
       }
-      this.loadTableData();
+      this.loadData();
     },
 
     /**
@@ -466,10 +568,22 @@ export default {
      */
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      // Ensure sortBy is a string for the API URL
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
       const sortColumn =
-        typeof this.sortBy === 'string' ? this.sortBy : this.sortBy[0]?.key || 'publication_id';
-      this.sort = (!this.sortDesc ? '+' : '-') + sortColumn;
+        Array.isArray(this.sortBy) && this.sortBy.length > 0
+          ? this.sortBy[0].key
+          : typeof this.sortBy === 'string'
+            ? this.sortBy
+            : 'publication_id';
+      const sortOrder =
+        Array.isArray(this.sortBy) && this.sortBy.length > 0
+          ? this.sortBy[0].order
+          : this.sortDesc
+            ? 'desc'
+            : 'asc';
+      const isDesc = sortOrder === 'desc';
+      // Build sort string for API: +column for asc, -column for desc
+      this.sort = (isDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
 
