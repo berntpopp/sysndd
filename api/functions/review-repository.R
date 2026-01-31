@@ -134,6 +134,7 @@ review_create <- function(review_data) {
 #'
 #' @export
 review_update <- function(review_id, updates) {
+
   # Remove entity_id if present (not allowed to change)
   if ("entity_id" %in% names(updates)) {
     updates$entity_id <- NULL
@@ -142,6 +143,16 @@ review_update <- function(review_id, updates) {
   # Remove review_id if present (used in WHERE clause)
   if ("review_id" %in% names(updates)) {
     updates$review_id <- NULL
+  }
+
+
+  # Protect review_user_id - original re-reviewer identity must never change (BUG-08)
+  if ("review_user_id" %in% names(updates)) {
+    log_debug(
+      "Prevented review_user_id modification attempt for review {review_id}. ",
+      "Original re-reviewer identity is protected."
+    )
+    updates$review_user_id <- NULL
   }
 
   # Validate we have something to update
