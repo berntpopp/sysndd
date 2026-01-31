@@ -4,21 +4,18 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v9 focuses on production readiness — automated database migrations, backup management with admin UI, user lifecycle testing with real SMTP, and production Docker validation. Building on v8's gene page with genomic data integration, v7's curation workflows, v6's admin panel, v5's Cytoscape.js visualizations, v4's backend overhaul, v3's Vue 3 migration, v2's Docker infrastructure, and v1's developer tooling.
 
-## Current Milestone: v9.0 Production Readiness
+## Current Milestone: v10.0 (Planning)
 
-**Goal:** Make SysNDD production-ready with automated migrations, backup management, verified user workflows, and production Docker validation.
+**Goal:** To be defined in next milestone planning session.
 
 **Target features:**
-- Automated database migration system (detect and apply missing migrations on startup)
-- Backup management API and admin UI (trigger dumps, list backups, restore with confirmation)
-- User lifecycle verification with real SMTP (Mailpit for dev, real SMTP for production testing)
-- Production Docker build validation (4-worker API setup)
+- TBD
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v8.0 shipped 2026-01-29)
+## Current State (v9.0 shipped 2026-01-31)
 
 **Backend Stack:** 10/10
 - R 4.4.3 with 281 packages in renv.lock
@@ -240,22 +237,36 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Gene structure visualization with exon/intron display — v8
 - ✓ Reusable gene page components (IdentifierRow, ResourceLink, etc.) — v8
 
+<!-- Shipped in v9 -->
+
+- ✓ Automated migration system with schema_version tracking — v9
+- ✓ Migration runner auto-applies on API startup — v9
+- ✓ Migration 002 idempotent (IF NOT EXISTS guards) — v9
+- ✓ Backup management API (list, create, download, restore) — v9
+- ✓ ManageBackups admin UI with download and restore — v9
+- ✓ Type-to-confirm pattern for restore ("RESTORE") — v9
+- ✓ Pre-restore automatic backup creation — v9
+- ✓ Mailpit container for development email capture — v9
+- ✓ /api/admin/smtp/test endpoint — v9
+- ✓ User registration E2E tests with email verification — v9
+- ✓ Password reset E2E tests with Mailpit — v9
+- ✓ Production Docker with explicit DB_POOL_SIZE — v9
+- ✓ /api/health/ready endpoint with DB ping and migration status — v9
+- ✓ Makefile preflight target for production validation — v9
+- ✓ Docker security_opt no-new-privileges on all services — v9
+- ✓ Docker CPU resource limits on all services — v9
+- ✓ Docker log rotation on all services — v9
+- ✓ nginx-brotli with pinned version and Brotli compression — v9
+- ✓ Static asset caching with 1-year immutable headers — v9
+- ✓ API graceful shutdown handler — v9
+- ✓ Batch assignment email notification — v9
+- ✓ Self-service profile editing (email/ORCID) — v9
+
 ### Active
 
-<!-- v9.0 Production Readiness -->
+<!-- v10.0 TBD -->
 
-- [ ] Automated migration system with schema_version tracking
-- [ ] Migration runner that auto-applies on API startup
-- [ ] Migration 002 idempotency fix
-- [ ] Backup management API (trigger, list, restore)
-- [ ] Admin backup management page (/admin/backups)
-- [ ] Restore with safety rails (typed confirmation, auto-backup before restore)
-- [ ] Mailpit integration for local email testing
-- [ ] Real SMTP configuration for production testing
-- [ ] User registration E2E verification
-- [ ] Email confirmation E2E verification
-- [ ] Password reset E2E verification
-- [ ] Production Docker build with 4 API workers validated
+None currently planned. Use `/gsd:new-milestone` to start planning.
 
 ### Out of Scope
 
@@ -274,15 +285,16 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ## Context
 
-**After v8:**
-- Gene page transformed from flat identifier list to modern genomic analysis interface
-- Backend proxy layer for 6 external APIs with disk caching (30d/14d/7d TTL)
-- 17 new Vue components for gene page (GeneHero, IdentifierCard, GeneConstraintCard, etc.)
-- 5 new composables (useGeneExternalData, useModelOrganismData, useD3Lollipop, useD3GeneStructure, use3DStructure)
-- D3.js for protein domain lollipop and gene structure visualizations
-- NGL Viewer for 3D AlphaFold structure with pLDDT coloring and variant highlighting
-- WCAG 2.2 AA accessibility compliance maintained across all new components
-- 28 Vue 3 composables total (7 original + 6 admin + 10 curation + 5 gene page)
+**After v9:**
+- Production-ready with automated database migrations, backup management, and E2E tested user workflows
+- Migration runner with schema_version tracking and idempotent execution
+- Backup management API and admin UI with type-to-confirm safety for restore
+- Mailpit container for development email capture and E2E testing
+- /api/health/ready endpoint with database connectivity and migration status checks
+- `make preflight` target validates production Docker builds
+- Docker hardening: security_opt, CPU limits, log rotation, Brotli compression
+- Post-milestone enhancements: batch assignment email and self-service profile editing
+- 29 Vue 3 composables total (7 original + 6 admin + 10 curation + 5 gene page + useAsyncJob)
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
@@ -374,4 +386,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Error isolation in aggregation | tryCatch per source returns partial data on failures | ✓ Good |
 
 ---
-*Last updated: 2026-01-29 after v9.0 milestone started*
+*Last updated: 2026-01-31 after v9.0 milestone shipped*

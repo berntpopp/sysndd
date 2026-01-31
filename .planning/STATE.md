@@ -1,17 +1,17 @@
 # Project State: SysNDD
 
 **Last updated:** 2026-01-31
-**Current milestone:** v9.0 Production Readiness (Complete)
+**Current milestone:** v10.0 (Planning)
 
 ---
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-29)
+See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v9.0 Production Readiness — migrations, backups, user lifecycle, Docker validation
+**Current focus:** v10.0 planning — use `/gsd:new-milestone` to start
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 ## Current Position
 
-**Phase:** 54 - Docker Infrastructure Hardening (Complete)
-**Plan:** 2 of 2 complete
-**Status:** Milestone complete + post-milestone enhancements
-**Progress:** ████████████ 100% (8/8 phases)
+**Phase:** None active (between milestones)
+**Plan:** N/A
+**Status:** v9.0 shipped, ready for v10.0 planning
+**Progress:** v9.0 ████████████ 100% SHIPPED
 
-**Last completed:** Post-milestone enhancements (batch email, profile editing)
-**Next step:** v9.0 milestone merge to master, then v10.0 planning
+**Last completed:** v9.0 Production Readiness milestone shipped
+**Next step:** Use `/gsd:new-milestone` to start v10.0 planning
 
 ---
 
@@ -51,7 +51,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Velocity (across all milestones):**
 - Total plans completed: 256
-- Milestones shipped: 8 (v1-v8)
+- Milestones shipped: 9 (v1-v9)
 - Phases completed: 54
 
 **By Milestone:**
@@ -66,7 +66,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 | v6 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
 | v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
 | v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
-| v9 Production Readiness | 47-54 | 16 | 2026-01-30 |
+| v9 Production Readiness | 47-54 | 16 | 2026-01-31 |
 
 **Post-v9.0 Enhancements (2026-01-31):**
 - Batch assignment email notification (re_review_endpoints.R, email-templates.R)
@@ -140,46 +140,38 @@ Phase 50 (Backup Admin UI) Phase 52 (User Lifecycle E2E)
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Post-milestone enhancements complete
-**Next action:** v9.0 milestone merge to master, then v10.0 planning
+**Stopped at:** v9.0 milestone shipped and archived
+**Next action:** Use `/gsd:new-milestone` to start v10.0 planning
 
 **Handoff notes:**
 
-1. **Phase 54 complete (Docker Infrastructure Hardening - 2/2 plans):**
-   - 54-01: Nginx hardening (image pinning, access logging, static asset caching)
-   - 54-02: Security hardening (no-new-privileges, CPU limits, log rotation)
-   - All DOCKER-01 through DOCKER-08 requirements resolved
+1. **v9.0 Milestone Shipped (2026-01-31):**
+   - All 8 phases (47-54) completed with 16 plans
+   - All 29 requirements satisfied
+   - 102 commits, 320 files modified (+27,140/-9,056 lines)
+   - Git range: `f747e97c` → `5e674728`
+   - Git tag: `v9.0`
 
-2. **Post-v9.0 Enhancements (2026-01-31):**
+2. **Key deliverables:**
+   - Migration runner with schema_version tracking and auto-apply on startup
+   - Backup management API and ManageBackups admin UI
+   - Mailpit integration for development email capture
+   - E2E tests for user registration, approval, and password reset
+   - Production Docker with /api/health/ready endpoint
+   - Docker hardening: security_opt, CPU limits, log rotation, Brotli
+   - `make preflight` target for production validation
 
-   a. **Batch Assignment Email Notification:**
-      - Added `email_batch_assigned()` template function in `api/functions/email-templates.R`
-      - Updated `PUT /api/batch/assign` endpoint in `api/endpoints/re_review_endpoints.R`
-      - Email includes batch number, entity count, and "Start Reviewing" CTA button
-      - BCC to curator@sysndd.org for monitoring
-      - Commit: `e49cc74c` - feat(email): add batch assignment notification email
+3. **Post-milestone enhancements included:**
+   - Batch assignment email notification
+   - Self-service profile editing (email/ORCID)
 
-   b. **Self-Service Profile Editing:**
-      - Added `PUT /api/profile` endpoint in `api/endpoints/user_endpoints.R`
-      - Users can update their own email and ORCID
-      - Email validation: format check + uniqueness check
-      - ORCID validation: pattern `^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$`
-      - Updated `UserView.vue` with inline editing, real-time validation, Save/Cancel UI
-      - Commit: `ab917f6c` - feat(user): add self-service profile editing for email and ORCID
-
-3. **Key files modified:**
-   - `api/functions/email-templates.R` - Added batch assignment template
-   - `api/endpoints/re_review_endpoints.R` - Added email notification on batch assign
-   - `api/endpoints/user_endpoints.R` - Added PUT /profile endpoint
-   - `app/src/views/UserView.vue` - Added profile editing UI with validation
-
-4. **v9.0 Milestone Complete:**
-   - All 8 phases (47-54) completed
-   - All 29 requirements addressed
-   - Production-ready Docker infrastructure
-   - Plus 2 post-milestone user experience enhancements
+4. **Archives created:**
+   - `.planning/milestones/v9.0-ROADMAP.md`
+   - `.planning/milestones/v9.0-REQUIREMENTS.md`
+   - `.planning/milestones/v9.0-MILESTONE-AUDIT.md`
+   - MILESTONES.md updated with v9.0 entry
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Post-v9.0 enhancements (batch email, profile editing) complete*
+*Last updated: 2026-01-31 — v9.0 milestone shipped*

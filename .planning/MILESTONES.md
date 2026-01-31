@@ -1,5 +1,50 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v9.0 Production Readiness (Shipped: 2026-01-31)
+
+**Delivered:** Make SysNDD production-ready with automated database migrations, backup management with admin UI, verified user lifecycle workflows with real SMTP testing, and production Docker validation with security hardening.
+
+**Phases completed:** 47-54 (16 plans total)
+
+**Key accomplishments:**
+
+- Built migration runner infrastructure with schema_version tracking and idempotent execution
+- Integrated auto-migration on API startup with multi-worker lock coordination
+- Created backup management API (list, create, download, restore) with async job handling
+- Built ManageBackups admin UI with type-to-confirm safety for restore operations
+- Added Mailpit container for development email capture
+- Created comprehensive E2E tests for user registration, approval, and password reset flows
+- Configured production Docker with explicit connection pool sizing (DB_POOL_SIZE)
+- Added /api/health/ready endpoint with database connectivity and migration status checks
+- Created `make preflight` target for production validation
+- Hardened Docker: pinned nginx-brotli v1.28.0, 1-year immutable asset caching, Brotli compression
+- Added security_opt no-new-privileges, CPU limits, and log rotation to all services
+- Implemented graceful shutdown handler in API for clean pool closure
+- Post-milestone: batch assignment email notification and self-service profile editing
+
+**Stats:**
+
+- 32,275 lines R code, 64,597 lines Vue/TS
+- 8 phases, 16 plans
+- 102 commits
+- 320 files modified (+27,140/-9,056 lines)
+- 3 days (2026-01-29 → 2026-01-31)
+
+**Git range:** `f747e97c` → `5e674728`
+
+**Patterns established:**
+- Migration lock pattern (single worker applies, others skip)
+- Type-to-confirm pattern for destructive operations ("RESTORE")
+- Async backup jobs with polling via useAsyncJob composable
+- Mailpit helper pattern for E2E email testing
+- Health endpoint pattern with DB ping + migration status
+- Preflight validation pattern (build → start → health check → cleanup)
+- Docker hardening pattern (security_opt, resource limits, log rotation)
+
+**What's next:** Planning next milestone
+
+---
+
 ## v8.0 Gene Page & Genomic Data Integration (Shipped: 2026-01-29)
 
 **Delivered:** Transform the gene detail page from a flat identifier list into a modern genomic analysis interface with gnomAD constraint scores, ClinVar variant summaries, D3.js protein domain lollipop plots, gene structure visualization, 3D AlphaFold structure viewer with variant highlighting, and model organism phenotypes from MGI and RGD — all with WCAG 2.2 AA accessibility compliance.
