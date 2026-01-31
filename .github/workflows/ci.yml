@@ -80,10 +80,25 @@ jobs:
           r-version: '4.4.3'
           use-public-rspm: true
 
+      # Install system dependencies required by R packages
+      # Must run BEFORE renv restore to enable package compilation
+      # These match the api/Dockerfile dependencies for consistency
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglpk-dev \
+            libxml2-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libmariadb-dev \
+            libsodium-dev \
+            libpng-dev
+
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 1
+          cache-version: 2
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
@@ -119,10 +134,25 @@ jobs:
           r-version: '4.4.3'
           use-public-rspm: true
 
+      # Install system dependencies required by R packages
+      # Must run BEFORE renv restore to enable package compilation
+      # These match the api/Dockerfile dependencies for consistency
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglpk-dev \
+            libxml2-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libmariadb-dev \
+            libsodium-dev \
+            libpng-dev
+
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 1
+          cache-version: 2
 
       - name: Run testthat tests
         env:
