@@ -60,15 +60,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-r-docs-
 
+      - name: Install Chrome (for webshot2)
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
       - name: Install packages
         run: |
-          Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "webshot", "readr", "DT", "knitr", "ggplot2", "readxl"))'
-
-      - name: Install phantomjs
-        run: Rscript -e 'webshot::install_phantomjs()'
+          Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "webshot2", "readr", "DT", "knitr", "ggplot2", "readxl", "chromote"))'
 
       - name: Render Book
-        run: Rscript -e 'bookdown::render_book("index.Rmd", "all")'
+        run: |
+          Rscript -e '
+            # Use webshot2 for HTML widget screenshots (more reliable than phantomjs)
+            options(knitr.screenshot.force = TRUE)
+            bookdown::render_book("index.Rmd", "all")
+          '
 
       - uses: actions/upload-artifact@v4
         with:
