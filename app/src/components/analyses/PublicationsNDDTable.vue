@@ -135,12 +135,19 @@
               </template>
               <!-- Custom filter fields slot -->
 
-              <!-- Example custom slot for 'publication_id' -->
+              <!-- Custom slot for 'publication_id' - links to PubMed -->
               <template #cell-publication_id="{ row }">
                 <div>
-                  <BBadge variant="primary" style="cursor: pointer">
-                    {{ row.publication_id }}
-                  </BBadge>
+                  <a
+                    :href="`https://pubmed.ncbi.nlm.nih.gov/${row.publication_id}`"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    :aria-label="`Open PubMed article ${row.publication_id} in new tab`"
+                  >
+                    <BBadge variant="primary" style="cursor: pointer">
+                      {{ row.publication_id }}
+                    </BBadge>
+                  </a>
                 </div>
               </template>
 
@@ -300,9 +307,18 @@ export default {
           class: 'text-start',
           filterable: true,
         },
+        {
+          key: 'details',
+          label: 'Details',
+        },
       ],
-      // Additional hidden or detail fields can go here:
-      fields_details: [],
+      // Detail fields shown in expandable row view
+      fields_details: [
+        { key: 'Abstract', label: 'Abstract', class: 'text-start' },
+        { key: 'Lastname', label: 'Authors (Last names)', class: 'text-start' },
+        { key: 'Firstname', label: 'Authors (First names)', class: 'text-start' },
+        { key: 'Keywords', label: 'Keywords', class: 'text-start' },
+      ],
 
       // Note: Table state (items, totalRows, perPage, sortBy, sortDesc, loading, isBusy,
       // downloading, currentItemID, prevItemID, nextItemID, lastItemID, executionTime,
