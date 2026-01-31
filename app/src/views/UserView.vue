@@ -215,9 +215,7 @@
                       <BFormInvalidFeedback v-if="orcidError">
                         {{ orcidError }}
                       </BFormInvalidFeedback>
-                      <BFormText v-else class="text-muted">
-                        Leave empty to remove ORCID
-                      </BFormText>
+                      <BFormText v-else class="text-muted"> Leave empty to remove ORCID </BFormText>
                     </template>
                     <template v-else>
                       <a
