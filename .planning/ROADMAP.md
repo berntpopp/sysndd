@@ -22,8 +22,8 @@ SysNDD v10.0 stabilizes data quality with 8 major bug fixes, enhances literature
 **Plans:** 2 plans
 
 Plans:
-- [ ] 55-01-PLAN.md - Entity update bugs (EIF2AK2, GAP43, MEF2C)
-- [ ] 55-02-PLAN.md - Curation workflow bugs (viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
+- [x] 55-01-PLAN.md - Entity update bugs (EIF2AK2, GAP43, MEF2C)
+- [x] 55-02-PLAN.md - Curation workflow bugs (viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
 
 **Requirements:**
 - BUG-01: EIF2AK2 entity (sysndd:4375) - Publication 33236446 update completes correctly (#122)
@@ -231,7 +231,7 @@ Plans:
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 55 | Bug Fixes | BUG-01 to BUG-08 | Not started |
+| 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Not started |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
