@@ -69,13 +69,13 @@ function(n = 5) {
 #* @param aggregate Aggregation level (either 'entity_id' or 'symbol').
 #* @param group     Group by 'category', 'inheritance_filter', or 'inheritance_multiple'.
 #* @param summarize Time summarization level (e.g. 'month').
-#* @param filter    Filters to apply, e.g. "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)". # nolint: line_length_linter
+#* @param filter    Filters to apply, e.g. "contains(ndd_phenotype_word,Yes)" for NDD entities.
 #* @get /entities_over_time
 function(res,
          aggregate = "entity_id",
          group = "category",
          summarize = "month",
-         filter = "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)") { # nolint: line_length_linter
+         filter = "contains(ndd_phenotype_word,Yes)") {
   start_time <- Sys.time()
 
   # Validate input for 'aggregate' and 'group'

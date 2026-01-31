@@ -93,8 +93,10 @@ export default {
         { value: 'inheritance_multiple', text: 'Inheritance Multiple' },
       ],
       selected_group: 'category',
-      filter_string:
-        'contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)',
+      // BUG-06 fix: Removed inheritance filter to match homepage stats
+      // Homepage (/category_count) uses ndd_phenotype==1 without inheritance filter
+      // This ensures "same source of truth" across homepage, chart, and filtered pages
+      filter_string: 'contains(ndd_phenotype_word,Yes)',
       items: [],
       itemsMeta: [],
       loadingData: true, // Added loading state
@@ -142,13 +144,32 @@ export default {
         this.loadingData = false; // Set loading to false after data is fetched
       }
     },
+    /**
+     * Calculate the first day of the next month from a given date string.
+     * The API uses floor-based monthly aggregation, so "2025-02-01" represents
+     * all entries from Feb 1-28. To include the full month in our filter,
+     * we use lessThan(entry_date, nextMonthFirstDay).
+     */
+    getNextMonthFirstDay(dateStr) {
+      const date = new Date(dateStr);
+      // Move to next month, day 1
+      date.setMonth(date.getMonth() + 1);
+      date.setDate(1);
+      // Format as YYYY-MM-DD
+      return date.toISOString().split('T')[0];
+    },
     generateLink(d) {
+      // BUG-06 fix: Include the same filter_string used by the API call
+      // to ensure chart counts match linked page counts (same source of truth)
       let baseUrl = '/Entities/?sort=entity_id&filter=';
       if (this.selected_aggregate === 'symbol') {
         baseUrl = '/Genes/?sort=symbol&filter=';
       }
 
-      const dateFilter = `lessOrEqual(entry_date,${d.entry_date_text})`;
+      // Use lessThan with next month's first day to include the entire month
+      // This matches the API's floor-based monthly aggregation
+      const nextMonthFirstDay = this.getNextMonthFirstDay(d.entry_date_text);
+      const dateFilter = `lessThan(entry_date,${nextMonthFirstDay})`;
       let groupFilter = '';
 
       if (this.selected_group === 'category') {
@@ -167,7 +188,8 @@ export default {
             : `any(hpo_mode_of_inheritance_term_name,${groupText})`;
       }
 
-      return `${baseUrl}${groupFilter},${dateFilter}`;
+      // Include filter_string to match API query filters (NDD phenotype + inheritance)
+      return `${baseUrl}${this.filter_string},${groupFilter},${dateFilter}`;
     },
     generateGraph() {
       // based on https://d3-graph-gallery.com/graph/connectedscatter_legend.html and https://d3-graph-gallery.com/graph/connectedscatter_tooltip.html
