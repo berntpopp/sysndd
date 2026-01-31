@@ -230,44 +230,6 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # Docker Build (only on push to master)
-  # ============================================================================
-  docker-build:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    needs: [lint-api, test-api, build-app]
-    if: |
-      always() &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      (needs.lint-api.result == 'success' || needs.lint-api.result == 'skipped') &&
-      (needs.test-api.result == 'success' || needs.test-api.result == 'skipped') &&
-      (needs.build-app.result == 'success' || needs.build-app.result == 'skipped')
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build API image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./api
-          push: false
-          tags: sysndd-api:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build App image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./app
-          push: false
-          tags: sysndd-app:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  # ============================================================================
   # Summary Job (ensures required checks pass)
   # ============================================================================
   ci-success:
