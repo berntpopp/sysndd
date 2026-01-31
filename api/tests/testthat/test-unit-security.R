@@ -63,10 +63,17 @@ describe("is_hashed", {
 # ============================================================================
 
 describe("hash_password", {
-  it("returns Argon2id hash string", {
+
+  # Helper to check valid sodium hash format (scrypt $7$ or Argon2 $argon2)
+  # sodium::password_store() uses scrypt by default in R package
+  is_valid_sodium_hash <- function(hash) {
+    startsWith(hash, "$7$") || startsWith(hash, "$argon2")
+  }
+
+  it("returns valid sodium hash string", {
     hash <- hash_password("testpassword")
     expect_true(is.character(hash))
-    expect_true(startsWith(hash, "$argon2"))
+    expect_true(is_valid_sodium_hash(hash))
   })
 
   it("produces different hashes for same password (random salt)", {
@@ -79,22 +86,22 @@ describe("hash_password", {
   it("produces consistent length hashes", {
     hash1 <- hash_password("short")
     hash2 <- hash_password("this is a much longer password with special chars !@#$%")
-    # Both should produce valid Argon2 hashes (similar structure)
-    expect_true(startsWith(hash1, "$argon2"))
-    expect_true(startsWith(hash2, "$argon2"))
+    # Both should produce valid sodium hashes (similar structure)
+    expect_true(is_valid_sodium_hash(hash1))
+    expect_true(is_valid_sodium_hash(hash2))
   })
 
   it("handles special characters in password", {
     # Password with various special characters
     hash <- hash_password("P@$$w0rd!#%^&*(){}[]|\\:\";<>?,./~`")
     expect_true(is.character(hash))
-    expect_true(startsWith(hash, "$argon2"))
+    expect_true(is_valid_sodium_hash(hash))
   })
 
   it("handles unicode characters in password", {
     hash <- hash_password("password123")
     expect_true(is.character(hash))
-    expect_true(startsWith(hash, "$argon2"))
+    expect_true(is_valid_sodium_hash(hash))
   })
 
   it("throws error for NULL password", {

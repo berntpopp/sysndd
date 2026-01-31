@@ -32,17 +32,18 @@ is_hashed <- function(password_from_db) {
   grepl("^\\$7\\$|^\\$argon2", password_from_db)
 }
 
-#' Hash password with Argon2id
+#' Hash password with sodium (scrypt or Argon2)
 #'
-#' Uses sodium::password_store() which implements Argon2id hashing
-#' with secure defaults (memory-hard, CPU-hard parameters).
-#' The result includes the salt and parameters in PHC string format.
+#' Uses sodium::password_store() which implements memory-hard, CPU-hard
+#' password hashing. The R sodium package uses scrypt by default ($7$ prefix),
+#' though libsodium supports Argon2id. Both are secure choices per OWASP.
+#' The result includes the salt and parameters in modular crypt format.
 #'
 #' @param password Plaintext password to hash
-#' @return Argon2id hash string (includes salt and parameters)
+#' @return Hash string with salt and parameters ($7$ scrypt or $argon2 format)
 #' @examples
 #' hash <- hash_password("mypassword")
-#' # Returns: "$argon2id$v=19$m=65536,t=3,p=1$..."
+#' # Returns: "$7$C6..../..." (scrypt) or "$argon2id$v=19$..."
 hash_password <- function(password) {
   if (is.null(password) || is.na(password) || nchar(password) == 0) {
     stop("Password cannot be NULL, NA, or empty")
