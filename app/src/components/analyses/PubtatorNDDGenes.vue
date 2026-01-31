@@ -240,32 +240,86 @@
                   size="sm"
                   variant="outline-secondary"
                   class="btn-xs"
-                  @click="data.toggleDetails"
+                  @click="
+                    handleRowExpand(data.item as GeneItem);
+                    data.toggleDetails();
+                  "
                 >
                   <i :class="data.detailsShowing ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" />
                 </BButton>
               </template>
 
-              <!-- Row details - expanded view with all PMIDs -->
+              <!-- Row details - expanded view with actual publication data -->
               <template #row-details="data">
-                <BCard class="mb-2">
+                <BCard class="mb-2 publication-details-card">
                   <BCardTitle class="h6">
-                    All Publications for {{ (data.item as GeneItem).gene_symbol }}
+                    <i class="bi bi-journal-text me-2" />
+                    Publications for {{ (data.item as GeneItem).gene_symbol }}
                     ({{ parsePmids((data.item as GeneItem).pmids).length }})
                   </BCardTitle>
-                  <div class="d-flex flex-wrap gap-2">
-                    <BButton
-                      v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
-                      :key="pmid"
-                      size="sm"
-                      variant="outline-primary"
-                      :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
-                      target="_blank"
-                      rel="noopener noreferrer"
+
+                  <!-- Loading spinner -->
+                  <div
+                    v-if="isLoadingPublications((data.item as GeneItem).gene_symbol)"
+                    class="text-center py-3"
+                  >
+                    <BSpinner small label="Loading publications..." />
+                    <span class="ms-2 text-muted">Loading publication details...</span>
+                  </div>
+
+                  <!-- Publication list -->
+                  <div v-else class="publication-list">
+                    <div
+                      v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
+                      :key="pub.publication_id"
+                      class="publication-item"
                     >
-                      <i class="bi bi-journal-text me-1" />
-                      PMID: {{ pmid }}
-                    </BButton>
+                      <div class="pub-header">
+                        <a
+                          :href="
+                            'https://pubmed.ncbi.nlm.nih.gov/' +
+                            pub.publication_id.replace('PMID:', '')
+                          "
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="pub-pmid"
+                        >
+                          <i class="bi bi-box-arrow-up-right me-1" />
+                          {{ pub.publication_id }}
+                        </a>
+                        <span v-if="pub.Publication_date" class="pub-date">
+                          <i class="bi bi-calendar3 me-1" />
+                          {{ pub.Publication_date }}
+                        </span>
+                      </div>
+                      <div v-if="pub.Title" class="pub-title">{{ pub.Title }}</div>
+                      <div v-if="pub.Journal" class="pub-journal">
+                        <i class="bi bi-book me-1" />
+                        {{ pub.Journal }}
+                      </div>
+                      <div v-if="pub.Abstract" class="pub-abstract">
+                        {{ truncateText(pub.Abstract, 300) }}
+                      </div>
+                    </div>
+
+                    <!-- Fallback if no cached data yet -->
+                    <div
+                      v-if="getPublications((data.item as GeneItem).gene_symbol).length === 0"
+                      class="d-flex flex-wrap gap-2"
+                    >
+                      <BButton
+                        v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
+                        :key="pmid"
+                        size="sm"
+                        variant="outline-primary"
+                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <i class="bi bi-journal-text me-1" />
+                        PMID: {{ pmid }}
+                      </BButton>
+                    </div>
                   </div>
                 </BCard>
               </template>
@@ -305,6 +359,14 @@ interface GeneItem {
   is_novel: number;
   pmids?: string;
   _showDetails?: boolean;
+}
+
+interface PublicationData {
+  publication_id: string;
+  Title?: string;
+  Journal?: string;
+  Publication_date?: string;
+  Abstract?: string;
 }
 
 interface FilterField {
@@ -476,6 +538,10 @@ const dateRangeOptions = [
 // Cursor pagination info
 const totalPages = ref(0);
 
+// Publication data cache (keyed by gene_symbol)
+const publicationCache = ref<Record<string, PublicationData[]>>({});
+const loadingPublications = ref<Record<string, boolean>>({});
+
 // Computed: sortBy as properly typed array for BTable
 const sortByArray = computed(() => sortBy.value);
 
@@ -527,6 +593,46 @@ const parsePmids = (pmids: string | undefined): string[] => {
 const truncateText = (str: string | undefined, n: number): string => {
   if (!str) return '';
   return str.length > n ? `${str.slice(0, n)}...` : str;
+};
+
+// Fetch publication data for a gene's PMIDs
+const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
+  if (!axios || pmids.length === 0) return;
+  if (publicationCache.value[geneSymbol]) return; // Already cached
+
+  loadingPublications.value[geneSymbol] = true;
+
+  try {
+    // Fetch publications by PMID filter
+    const pmidFilter = pmids.map((p) => `PMID:${p}`).join(';');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication?filter=publication_id:in:${pmidFilter}&fields=publication_id,Title,Journal,Publication_date,Abstract&page_size=${pmids.length}`;
+
+    const response = await axios.get(apiUrl);
+    publicationCache.value[geneSymbol] = response.data.data || [];
+  } catch (error) {
+    console.error('Failed to fetch publication data:', error);
+    publicationCache.value[geneSymbol] = [];
+  } finally {
+    loadingPublications.value[geneSymbol] = false;
+  }
+};
+
+// Handle row expansion - fetch publication data
+const handleRowExpand = (item: GeneItem) => {
+  const pmids = parsePmids(item.pmids);
+  if (pmids.length > 0 && !publicationCache.value[item.gene_symbol]) {
+    fetchPublicationData(item.gene_symbol, pmids);
+  }
+};
+
+// Get cached publications for a gene
+const getPublications = (geneSymbol: string): PublicationData[] => {
+  return publicationCache.value[geneSymbol] || [];
+};
+
+// Check if publications are loading for a gene
+const isLoadingPublications = (geneSymbol: string): boolean => {
+  return loadingPublications.value[geneSymbol] || false;
 };
 
 // Apply prioritization filters
@@ -714,9 +820,9 @@ const handleExcelExport = async () => {
   }
 };
 
-// Merge server fspec changes into local fields
+// Merge server fspec changes into local fields - preserve actions column
 const mergeFields = (inboundFields: FieldDefinition[]): FieldDefinition[] => {
-  return inboundFields.map((f) => {
+  const merged = inboundFields.map((f) => {
     const existing = fields.value.find((x) => x.key === f.key);
     return {
       ...f,
@@ -724,6 +830,17 @@ const mergeFields = (inboundFields: FieldDefinition[]): FieldDefinition[] => {
       class: existing?.class ?? 'text-start',
     };
   });
+
+  // Always add actions column at the end for expand functionality
+  merged.push({
+    key: 'actions',
+    label: '',
+    sortable: false,
+    class: 'text-center',
+    filterable: false,
+  });
+
+  return merged;
 };
 
 // Lifecycle
@@ -770,5 +887,69 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+
+/* Publication details styling */
+.publication-details-card {
+  background-color: #fafbfc;
+}
+
+.publication-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.publication-item {
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  border-left: 3px solid #0d6efd;
+}
+
+.pub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pub-pmid {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.pub-pmid:hover {
+  text-decoration: underline;
+}
+
+.pub-date {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.pub-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #212529;
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+.pub-journal {
+  font-size: 0.8rem;
+  color: #495057;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.pub-abstract {
+  font-size: 0.8rem;
+  color: #6c757d;
+  line-height: 1.5;
+  text-align: justify;
 }
 </style>
