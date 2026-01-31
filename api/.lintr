@@ -16,5 +16,9 @@ linters: linters_with_defaults(
     # Disable indentation linter - styler handles formatting
     indentation_linter = NULL
   )
-exclusions: list("_old", "data/", "logs/", "results/", "renv/", "tests/")
+exclusions: list(
+    "_old", "data/", "logs/", "results/", "renv/", "tests/",
+    # HTML email templates have intentionally long inline style attributes
+    "functions/email-templates.R"
+  )
 encoding: "UTF-8"

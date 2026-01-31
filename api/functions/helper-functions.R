@@ -37,7 +37,7 @@
 nest_gene_tibble <- function(tibble) {
   # remember the initial sorting
   initial_sort <- tibble %>%
-    select(symbol, hgnc_id, entities_count) %>%
+    dplyr::select(symbol, hgnc_id, entities_count) %>%
     unique()
 
   # nest then re-apply the sorting
@@ -268,7 +268,7 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
   sort_tibble <- as_tibble(str_split(
     str_replace_all(sort_string, fixed(" "), ""), ","
   )[[1]]) %>%
-    select(column = value) %>%
+    dplyr::select(column = value) %>%
     mutate(direction = case_when(
       str_sub(column, 1, 1) == "+" ~ "asc",
       str_sub(column, 1, 1) == "-" ~ "desc",
@@ -641,7 +641,7 @@ select_tibble_fields <- function(
   # check if requested column names exist in tibble, if error
   if (all(fields_requested %in% tibble_colnames)) {
     selection_tibble <- selection_tibble %>%
-      select(all_of(fields_requested))
+      dplyr::select(all_of(fields_requested))
   } else {
     stop("Some requested fields are not in the column names.")
   }
@@ -714,20 +714,20 @@ generate_cursor_pag_inf <- function(
     page_after_row <- 0
     page_after_row_next <- (pagination_tibble %>%
                               filter(row_number() == page_after_row + page_size + 1) %>%
-                              select(!!sym(pagination_identifier)))[[1]]
+                              dplyr::select(!!sym(pagination_identifier)))[[1]]
   } else {
     page_after_row_next <- (pagination_tibble %>%
                               filter(row_number() == page_after_row + page_size) %>%
-                              select(!!sym(pagination_identifier)))[[1]]
+                              dplyr::select(!!sym(pagination_identifier)))[[1]]
   }
 
   # find next and prev item row
   page_after_row_prev <- (pagination_tibble %>%
                             filter(row_number() == page_after_row - page_size) %>%
-                            select(!!sym(pagination_identifier)))[[1]]
+                            dplyr::select(!!sym(pagination_identifier)))[[1]]
   page_after_row_last <- (pagination_tibble %>%
                             filter(row_number() == page_size * (page_count - 1)) %>%
-                            select(!!sym(pagination_identifier)))[[1]]
+                            dplyr::select(!!sym(pagination_identifier)))[[1]]
 
   # filter by row
   pagination_tibble <- pagination_tibble %>%

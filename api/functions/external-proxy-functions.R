@@ -222,26 +222,32 @@ create_external_error <- function(api_name, detail, status = 503L, instance = NU
 #' @return Logical: TRUE if valid HGNC symbol, FALSE otherwise
 #'
 #' @details
-#' HGNC gene symbols follow pattern: start with uppercase letter, followed by
-#' uppercase letters, digits, or hyphens. Examples: BRCA1, TP53, PTEN, IL-6.
+#' HGNC gene symbols follow pattern: start with uppercase letter or digit,
+#' followed by letters (upper or lower), digits, or hyphens.
+#' Examples: BRCA1, TP53, PTEN, IL-6, C9orf72, MIR21.
 #'
-#' Returns FALSE for NULL, empty string, or non-matching patterns.
+#' Returns FALSE for NULL, NA, empty string, or non-matching patterns.
 #'
 #' @examples
 #' validate_gene_symbol("BRCA1")    # TRUE
 #' validate_gene_symbol("TP53")     # TRUE
 #' validate_gene_symbol("IL-6")     # TRUE
-#' validate_gene_symbol("brca1")    # FALSE (lowercase)
+#' validate_gene_symbol("C9orf72")  # TRUE (contains lowercase orf)
+#' validate_gene_symbol("brca1")    # FALSE (starts with lowercase)
 #' validate_gene_symbol("1INVALID") # FALSE (starts with number)
 #' validate_gene_symbol(NULL)       # FALSE
+#' validate_gene_symbol(NA)         # FALSE
 #'
 #' @export
 validate_gene_symbol <- function(symbol) {
-  # Check for NULL or empty
-  if (is.null(symbol) || length(symbol) == 0 || nchar(symbol) == 0) {
+  # Check for NULL, NA, or empty
+  # Note: is.na() must be checked before nchar() as nchar(NA) returns NA
+  if (is.null(symbol) || length(symbol) == 0 || is.na(symbol) || nchar(symbol) == 0) {
     return(FALSE)
   }
 
-  # Check pattern: starts with uppercase letter, followed by uppercase alphanumeric or hyphen
-  return(grepl("^[A-Z][A-Z0-9-]+$", symbol))
+  # Check pattern: starts with uppercase letter, followed by alphanumeric or hyphen
+
+  # HGNC symbols can contain lowercase letters (e.g., C9orf72, miR genes)
+  return(grepl("^[A-Z][A-Za-z0-9-]+$", symbol))
 }

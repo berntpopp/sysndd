@@ -374,8 +374,9 @@ update_process_hgnc_data <- function(hgnc_link = "https://storage.googleapis.com
     mutate(across(where(is.logical), ~ as.character(.x)))
 
   # Convert Date columns to character for MySQL timestamp compatibility
+  # Use inherits() for base R compatibility (is.Date is from lubridate)
   non_alt_loci_set_final <- non_alt_loci_set_final %>%
-    mutate(across(where(is.Date), ~ as.character(.x)))
+    mutate(across(where(~ inherits(.x, "Date")), ~ as.character(.x)))
 
   # Return the tibble (DB write is reported by the executor)
   return(non_alt_loci_set_final)
