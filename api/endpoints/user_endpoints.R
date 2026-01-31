@@ -438,11 +438,18 @@ function(
 #*
 #* # `Details`
 #* If the email is valid and exists in the DB, generates a reset token
-#* and sends email with reset URL.
+#* and sends email with reset URL. Uses POST with JSON body per OWASP guidelines
+#* to avoid exposing email in URL/logs.
 #*
 #* @tag user
-#* @put password/reset/request
-function(req, res, email_request = "") {
+#* @post password/reset/request
+function(req, res) {
+  # Parse email from JSON body (OWASP: sensitive data should not be in URLs)
+  body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) list()
+  )
+  email_request <- body$email %||% ""
   user_table <- pool %>%
     tbl("user") %>%
     collect()
@@ -504,10 +511,18 @@ function(req, res, email_request = "") {
 #* # `Details`
 #* This endpoint is called with a Bearer token that includes a
 #* password_reset_date-based JWT. If valid and not expired, updates the password.
+#* Uses POST with JSON body per OWASP guidelines - passwords must NEVER be in URLs.
 #*
 #* @tag user
-#* @get password/reset/change
-function(req, res, new_pass_1 = "", new_pass_2 = "") {
+#* @post password/reset/change
+function(req, res) {
+  # Parse passwords from JSON body (OWASP: passwords MUST NOT be in URLs)
+  body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) list()
+  )
+  new_pass_1 <- body$password %||% ""
+  new_pass_2 <- body$password_confirm %||% ""
   jwt <- str_remove(req$HTTP_AUTHORIZATION, "Bearer ")
   key <- charToRaw(dw$secret)
 

@@ -193,12 +193,13 @@ export default {
       }
     },
     async requestPasswordReset() {
-      const apiPasswordResetRequest = `${
-        import.meta.env.VITE_API_URL
-      }/api/user/password/reset/request?email_request=${this.emailEntry}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/request`;
 
       try {
-        const responseResetRequest = await this.axios.put(apiPasswordResetRequest);
+        // POST with JSON body per OWASP guidelines (email should not be in URL)
+        const responseResetRequest = await this.axios.post(apiUrl, {
+          email: this.emailEntry,
+        });
         this.makeToast(
           `If the mail exists your request has been sent (status ${responseResetRequest.status} - ${responseResetRequest.statusText}).`,
           'Success',
@@ -217,15 +218,21 @@ export default {
       }, 1000);
     },
     async doPasswordChange() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/change?new_pass_1=${
-        this.newPasswordEntry
-      }&new_pass_2=${this.newPasswordRepeat}`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/change`;
       try {
-        await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${this.$route.params.request_jwt}`,
+        // POST with JSON body per OWASP guidelines (passwords MUST NOT be in URLs)
+        await this.axios.post(
+          apiUrl,
+          {
+            password: this.newPasswordEntry,
+            password_confirm: this.newPasswordRepeat,
           },
-        });
+          {
+            headers: {
+              Authorization: `Bearer ${this.$route.params.request_jwt}`,
+            },
+          }
+        );
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
