@@ -58,6 +58,7 @@
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
                     :page-options="pageOptions"
+                    :current-page="currentPage"
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   />
@@ -137,39 +138,48 @@
 
               <!-- Custom slot for 'publication_id' - links to PubMed -->
               <template #cell-publication_id="{ row }">
-                <div>
-                  <a
-                    :href="`https://pubmed.ncbi.nlm.nih.gov/${row.publication_id}`"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    :aria-label="`Open PubMed article ${row.publication_id} in new tab`"
-                  >
-                    <BBadge variant="primary" style="cursor: pointer">
-                      {{ row.publication_id }}
-                    </BBadge>
-                  </a>
-                </div>
+                <a
+                  :href="getPubMedUrl(row.publication_id)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="publication-link"
+                  :aria-label="`Open PubMed article ${row.publication_id} in new tab`"
+                >
+                  <span class="publication-badge">
+                    <i class="bi bi-journal-medical me-1" />
+                    <span class="publication-id">{{ row.publication_id }}</span>
+                    <i class="bi bi-box-arrow-up-right ms-1 external-icon" />
+                  </span>
+                </a>
               </template>
 
-              <!-- Example custom slot for 'Title' -->
+              <!-- Custom slot for 'Title' -->
               <template #cell-Title="{ row }">
-                <div v-b-tooltip.hover class="overflow-hidden text-truncate" :title="row.Title">
-                  {{ truncate(row.Title, 50) }}
+                <div
+                  v-b-tooltip.hover.top
+                  class="title-cell"
+                  :title="row.Title"
+                >
+                  <span class="title-text">{{ truncate(row.Title, 60) }}</span>
                 </div>
               </template>
 
-              <!-- Example custom slot for 'Journal' -->
+              <!-- Custom slot for 'Journal' -->
               <template #cell-Journal="{ row }">
-                <div>
-                  {{ row.Journal }}
-                </div>
+                <span v-if="row.Journal" class="journal-badge">
+                  <i class="bi bi-book me-1" />
+                  {{ truncate(row.Journal, 35) }}
+                </span>
+                <span v-else class="text-muted">—</span>
               </template>
 
-              <!-- Example custom slot for 'Publication_date' -->
+              <!-- Custom slot for 'Publication_date' -->
               <template #cell-Publication_date="{ row }">
-                <div>
-                  {{ row.Publication_date }}
-                </div>
+                <span v-if="row.Publication_date" class="date-badge">
+                  <i class="bi bi-calendar3 me-1" />
+                  {{ formatDate(row.Publication_date) }}
+                </span>
+                <span v-else class="text-muted">—</span>
               </template>
             </GenericTable>
             <!-- Main GenericTable -->
@@ -280,7 +290,7 @@ export default {
       fields: [
         {
           key: 'publication_id',
-          label: 'ID',
+          label: 'Publication id',
           sortable: true,
           sortDirection: 'asc',
           class: 'text-start',
@@ -294,22 +304,18 @@ export default {
           filterable: true,
         },
         {
+          key: 'Publication_date',
+          label: 'Publication date',
+          sortable: true,
+          class: 'text-start',
+          filterable: true,
+        },
+        {
           key: 'Journal',
           label: 'Journal',
           sortable: true,
           class: 'text-start',
           filterable: true,
-        },
-        {
-          key: 'Publication_date',
-          label: 'Date',
-          sortable: true,
-          class: 'text-start',
-          filterable: true,
-        },
-        {
-          key: 'details',
-          label: 'Details',
         },
       ],
       // Detail fields shown in expandable row view
@@ -407,6 +413,34 @@ export default {
   },
   methods: {
     /**
+     * updateBrowserUrl
+     * Updates the browser URL with current table state using history.replaceState
+     * to prevent Vue Router from remounting the component
+     */
+    updateBrowserUrl() {
+      // Don't update URL during initialization - preserves URL params from navigation
+      if (this.isInitializing) return;
+
+      const searchParams = new URLSearchParams();
+
+      if (this.sort) {
+        searchParams.set('sort', this.sort);
+      }
+      if (this.filter_string) {
+        searchParams.set('filter', this.filter_string);
+      }
+      const currentId = Number(this.currentItemID) || 0;
+      if (currentId > 0) {
+        searchParams.set('page_after', String(currentId));
+      }
+      searchParams.set('page_size', String(this.perPage));
+
+      // Use history.replaceState to update URL without triggering Vue Router navigation
+      const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+      window.history.replaceState({ ...window.history.state }, '', newUrl);
+    },
+
+    /**
      * loadData
      * Debounced wrapper for doLoadData to prevent duplicate calls
      */
@@ -464,6 +498,10 @@ export default {
         // Cache response for remounted components
         moduleLastApiResponse = response.data;
         this.applyApiResponse(response.data);
+
+        // Update URL AFTER API success to prevent component remount during API call
+        this.updateBrowserUrl();
+
         this.isBusy = false;
       } catch (error) {
         moduleApiCallInProgress = false;
@@ -490,10 +528,12 @@ export default {
           this.currentPage = metaObj.currentPage;
         });
         this.totalPages = metaObj.totalPages;
-        this.prevItemID = Number(metaObj.prevItemID) || 0;
-        this.currentItemID = Number(metaObj.currentItemID) || 0;
-        this.nextItemID = Number(metaObj.nextItemID) || 0;
-        this.lastItemID = Number(metaObj.lastItemID) || 0;
+        // Note: Publication IDs are strings like "PMID:12345", not numbers
+        // Store as-is for cursor pagination, only convert to 0 if null/undefined
+        this.prevItemID = metaObj.prevItemID === 'null' ? 0 : metaObj.prevItemID || 0;
+        this.currentItemID = metaObj.currentItemID === 'null' ? 0 : metaObj.currentItemID || 0;
+        this.nextItemID = metaObj.nextItemID === 'null' ? 0 : metaObj.nextItemID || 0;
+        this.lastItemID = metaObj.lastItemID === 'null' ? 0 : metaObj.lastItemID || 0;
         this.executionTime = metaObj.executionTime;
 
         // Merge inbound fspec so we keep filterable: true
@@ -680,6 +720,39 @@ export default {
     truncate(str, n) {
       return Utils.truncate(str, n);
     },
+
+    /**
+     * getPubMedUrl
+     * Constructs PubMed URL from publication ID
+     * @param {string} pubId - Publication ID (e.g., "PMID:12345678")
+     * @returns {string} - PubMed URL
+     */
+    getPubMedUrl(pubId) {
+      // Extract numeric ID from formats like "PMID:12345678" or just "12345678"
+      const numericId = pubId?.replace(/^PMID:/i, '') || pubId;
+      return `https://pubmed.ncbi.nlm.nih.gov/${numericId}`;
+    },
+
+    /**
+     * formatDate
+     * Formats date string for display
+     * @param {string} dateStr - Date string (e.g., "2024-01-15")
+     * @returns {string} - Formatted date
+     */
+    formatDate(dateStr) {
+      if (!dateStr) return '';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
+      } catch {
+        return dateStr;
+      }
+    },
+
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {
       if (!options || !Array.isArray(options)) return [];
@@ -695,5 +768,66 @@ export default {
 </script>
 
 <style scoped>
-/* Example styling similar to your Entities table code. */
+/* Modern publication table styling */
+.publication-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.publication-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35em 0.65em;
+  font-size: 0.85em;
+  font-weight: 500;
+  background-color: #e7f1ff;
+  color: #0d6efd;
+  border-radius: 0.375rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.publication-link:hover .publication-badge {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.publication-id {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+}
+
+.external-icon {
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+.title-cell {
+  max-width: 400px;
+}
+
+.title-text {
+  color: #333;
+  line-height: 1.4;
+}
+
+.journal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  font-size: 0.85em;
+  background-color: #f8f9fa;
+  color: #495057;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
+}
+
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  font-size: 0.85em;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
 </style>

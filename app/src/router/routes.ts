@@ -193,6 +193,13 @@ export const routes: RouteRecordRaw[] = [
         path: '',
         name: 'PublicationsNDDTable',
         component: () => import('@/components/analyses/PublicationsNDDTable.vue'),
+        props: (route) => ({
+          sortInput: route.query.sort || '+publication_id',
+          filterInput: route.query.filter || null,
+          fieldsInput: route.query.fields || null,
+          pageAfterInput: route.query.page_after || '0',
+          pageSizeInput: Number(route.query.page_size) || 10,
+        }),
       },
       // 2) The time plot
       {
