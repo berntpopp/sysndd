@@ -2,12 +2,12 @@
 /**
  * Composable for client-side Excel export functionality
  *
- * Uses the xlsx library (SheetJS) to generate Excel files from table data.
+ * Uses the ExcelJS library to generate Excel files from table data.
  * Useful for analysis components where data is already loaded client-side.
  */
 
 import { ref } from 'vue';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 export interface ExcelExportOptions {
@@ -26,7 +26,7 @@ export interface UseExcelExportReturn {
   exportToExcel: <T extends Record<string, unknown>>(
     data: T[],
     options?: ExcelExportOptions
-  ) => void;
+  ) => Promise<void>;
 }
 
 /**
@@ -37,10 +37,10 @@ export interface UseExcelExportReturn {
  * const { isExporting, exportToExcel } = useExcelExport();
  *
  * // Export with default settings
- * exportToExcel(tableData);
+ * await exportToExcel(tableData);
  *
  * // Export with custom options
- * exportToExcel(tableData, {
+ * await exportToExcel(tableData, {
  *   filename: 'gene_clusters',
  *   sheetName: 'Enrichment',
  *   headers: { fdr: 'FDR', description: 'Description' }
@@ -56,10 +56,10 @@ export function useExcelExport(): UseExcelExportReturn {
    * @param data - Array of objects to export
    * @param options - Export options (filename, sheetName, headers)
    */
-  const exportToExcel = <T extends Record<string, unknown>>(
+  const exportToExcel = async <T extends Record<string, unknown>>(
     data: T[],
     options: ExcelExportOptions = {}
-  ): void => {
+  ): Promise<void> => {
     if (!data || data.length === 0) {
       console.warn('useExcelExport: No data to export');
       return;
@@ -70,38 +70,44 @@ export function useExcelExport(): UseExcelExportReturn {
     try {
       const { filename = 'export', sheetName = 'Data', headers } = options;
 
-      // If headers mapping provided, rename columns
-      let exportData = data;
-      if (headers && Object.keys(headers).length > 0) {
-        exportData = data.map((row) => {
-          const newRow: Record<string, unknown> = {};
-          Object.entries(row).forEach(([key, value]) => {
-            const newKey = headers[key] || key;
-            newRow[newKey] = value;
-          });
-          return newRow as T;
+      // Create workbook and worksheet
+      const workbook = new ExcelJS.Workbook();
+      workbook.created = new Date();
+      const worksheet = workbook.addWorksheet(sheetName);
+
+      // Get column keys from first data item
+      const keys = Object.keys(data[0]);
+
+      // Set up columns with headers
+      worksheet.columns = keys.map((key) => ({
+        header: headers?.[key] || key,
+        key,
+        width: calculateColumnWidth(key, data, headers),
+      }));
+
+      // Style header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' },
+      };
+
+      // Add data rows
+      data.forEach((row) => {
+        const rowData: Record<string, unknown> = {};
+        keys.forEach((key) => {
+          rowData[key] = row[key];
         });
-      }
-
-      // Create worksheet from data
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-
-      // Auto-size columns based on content
-      const columnWidths = getColumnWidths(exportData);
-      worksheet['!cols'] = columnWidths;
-
-      // Create workbook and add worksheet
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-      // Generate Excel file as array buffer
-      const excelBuffer = XLSX.write(workbook, {
-        bookType: 'xlsx',
-        type: 'array',
+        worksheet.addRow(rowData);
       });
 
+      // Generate Excel file as buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+
       // Create blob and trigger download
-      const blob = new Blob([excelBuffer], {
+      const blob = new Blob([buffer], {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       saveAs(blob, `${filename}.xlsx`);
@@ -120,31 +126,31 @@ export function useExcelExport(): UseExcelExportReturn {
 }
 
 /**
- * Calculate column widths based on content
- * Returns array of column width objects for xlsx
+ * Calculate column width based on content
+ * Returns width value for ExcelJS column
  */
-function getColumnWidths<T extends Record<string, unknown>>(data: T[]): Array<{ wch: number }> {
-  if (!data || data.length === 0) return [];
+function calculateColumnWidth<T extends Record<string, unknown>>(
+  key: string,
+  data: T[],
+  headers?: Record<string, string>
+): number {
+  // Start with header length
+  const headerText = headers?.[key] || key;
+  let maxWidth = headerText.length;
 
-  const keys = Object.keys(data[0]);
-  return keys.map((key) => {
-    // Start with header length
-    let maxWidth = key.length;
-
-    // Check each row's value length
-    data.forEach((row) => {
-      const value = row[key];
-      if (value !== null && value !== undefined) {
-        const valueStr = String(value);
-        // Limit cell width to prevent extremely wide columns
-        const width = Math.min(valueStr.length, 50);
-        maxWidth = Math.max(maxWidth, width);
-      }
-    });
-
-    // Add some padding
-    return { wch: maxWidth + 2 };
+  // Check each row's value length
+  data.forEach((row) => {
+    const value = row[key];
+    if (value !== null && value !== undefined) {
+      const valueStr = String(value);
+      // Limit cell width to prevent extremely wide columns
+      const width = Math.min(valueStr.length, 50);
+      maxWidth = Math.max(maxWidth, width);
+    }
   });
+
+  // Add padding and return (ExcelJS uses character width units)
+  return Math.min(maxWidth + 2, 60);
 }
 
 export default useExcelExport;
