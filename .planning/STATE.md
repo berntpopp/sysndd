@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 57 (Pubtator Improvements) - In progress
-**Plan:** 1/2 complete
-**Status:** Plan 01 complete, ready for Plan 02
-**Progress:** v10.0 [█████               ] 2.5/8 phases (31%)
+**Phase:** 57 (Pubtator Improvements) - COMPLETE
+**Plan:** 2/2 complete
+**Status:** Phase complete, ready for Phase 58 (LLM Foundation)
+**Progress:** v10.0 [██████              ] 3/8 phases (37%)
 
-**Last completed:** 57-01 - Stats Fix and API Enhancement (PUBT-01 partial, PUBT-02/03 foundation)
-**Last activity:** 2026-01-31 — Completed 57-01-PLAN.md
+**Last completed:** 57-02 - Genes Table Enhancements (PUBT-02, PUBT-03, PUBT-04, PUBT-05, PUBT-06)
+**Last activity:** 2026-01-31 — Completed 57-02-PLAN.md
 
 ---
 
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
-| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | In progress (1/2) |
+| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
@@ -50,9 +50,9 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 261
+- Total plans completed: 262
 - Milestones shipped: 9 (v1-v9)
-- Phases completed: 56
+- Phases completed: 57
 
 **By Milestone:**
 
@@ -96,7 +96,7 @@ Phase 55 (Bug Fixes)
 Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
     |                           |
     v                           v
-Phase 57 (Pubtator)        Phase 59 (LLM Batch & Caching)
+Phase 57 (Pubtator) ✓      Phase 59 (LLM Batch & Caching)
                                 |
                                 v
                            Phase 60 (LLM Display)
@@ -163,13 +163,22 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Default sort: -is_novel,oldest_pub_date | Surface coverage gaps (novel genes) first, then prioritize long-overlooked genes | Novel genes appear first in API response |
 | 2026-01-31 | Fetch novel count via API filter | Consistent with other stats, avoids downloading all data to client | Admin panel uses filter=is_novel==1 |
 
+**Plan 02 (Genes Table Enhancements):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Emit pattern for novel count | Consistent with must_haves.key_links, simpler than provide/inject | Parent view listens for @novel-count emit |
+| 2026-01-31 | Truncate PMIDs to 5 chips | Keeps table readable, overflow badge shows more exist | Row expansion shows full list |
+| 2026-01-31 | Helper functions for filter content | TypeScript type safety - content can be string or string[] | Proper binding in template |
+| 2026-01-31 | Fetch is_novel in Stats view | Accurate summary card counts without separate API call | Single fetch provides chart + card data |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 57-01-PLAN.md (Stats Fix and API Enhancement)
-**Next action:** Execute 57-02-PLAN.md (Genes Table Enhancements)
+**Stopped at:** Completed 57-02-PLAN.md (Genes Table Enhancements)
+**Next action:** Start Phase 58 (LLM Foundation) planning
 **Resume file:** None
 
 **Handoff notes:**
@@ -196,13 +205,15 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - Structured JSON output with entity validation
    - Batch pre-generation via mirai (no real-time generation)
 
-4. **Phase 57 Progress (Pubtator):**
-   - ✅ 57-01: Stats page fixed, API enhanced with prioritization fields
-   - API returns: is_novel, oldest_pub_date, pmids (CSV string)
-   - Admin panel shows Pubtator cache stats
-   - Ready for 57-02: Genes table with prioritization display
+4. **Phase 57 Complete (Pubtator):**
+   - ✅ PUBT-01: Stats page fixed (Plan 01)
+   - ✅ PUBT-02: Gene prioritization display (Plan 02)
+   - ✅ PUBT-03: Novel gene highlighting (Plan 02)
+   - ✅ PUBT-04: Gene-literature exploration (Plan 02)
+   - ✅ PUBT-05: Excel export (Plan 02)
+   - ✅ PUBT-06: Documentation (Plans 01 + 02)
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Completed 57-01-PLAN.md (Pubtator Stats Fix and API Enhancement)*
+*Last updated: 2026-01-31 — Completed 57-02-PLAN.md (Genes Table Enhancements)*
