@@ -438,6 +438,114 @@ function(
 }
 
 
+#* Update User Profile (Self-Service)
+#*
+#* Allows authenticated users to update their own email and ORCID.
+#* This is a self-service endpoint - users can only modify their own profile.
+#*
+#* # `Details`
+#* Validates email format and ORCID format (if provided).
+#* ORCID must match pattern: 0000-0000-0000-000X (where X is digit or X).
+#* Email changes require re-verification in production (not implemented yet).
+#*
+#* # `Return`
+#* Success message with updated fields, or error if validation fails.
+#*
+#* @tag user
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. Profile updated successfully.
+#* @response 400 Bad Request. Invalid email or ORCID format.
+#* @response 401 Unauthorized. Not authenticated.
+#*
+#* @put profile
+function(req, res) {
+  user_id <- req$user_id
+
+  if (length(user_id) == 0 || is.null(user_id)) {
+    res$status <- 401
+    return(list(error = "Please authenticate."))
+  }
+
+  # Parse JSON body
+  body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) list()
+  )
+
+  new_email <- body$email
+  new_orcid <- body$orcid
+
+  # Track what will be updated
+
+  updates <- list()
+  updated_fields <- c()
+
+
+  # Validate and prepare email update
+  if (!is.null(new_email) && nchar(trimws(new_email)) > 0) {
+    new_email <- trimws(new_email)
+    if (!is_valid_email(new_email)) {
+      res$status <- 400
+      return(list(error = "Invalid email format."))
+    }
+
+    # Check if email is already taken by another user
+    existing_email <- pool %>%
+      tbl("user") %>%
+      filter(email == new_email, user_id != !!user_id) %>%
+      collect()
+
+    if (nrow(existing_email) > 0) {
+      res$status <- 400
+      return(list(error = "Email address is already in use by another account."))
+    }
+
+    updates$email <- new_email
+    updated_fields <- c(updated_fields, "email")
+  }
+
+  # Validate and prepare ORCID update
+  if (!is.null(new_orcid)) {
+    new_orcid <- trimws(new_orcid)
+
+    # Allow empty string to clear ORCID
+    if (nchar(new_orcid) == 0) {
+      updates$orcid <- ""
+      updated_fields <- c(updated_fields, "orcid")
+    } else {
+      # ORCID format: 0000-0000-0000-000X (last char can be digit or X)
+      # Using [0-9] instead of \d for R compatibility
+      orcid_pattern <- "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"
+      if (!grepl(orcid_pattern, new_orcid, ignore.case = TRUE)) {
+        res$status <- 400
+        return(list(
+          error = "Invalid ORCID format. Expected: 0000-0000-0000-000X"
+        ))
+      }
+      # Normalize: uppercase X
+      updates$orcid <- toupper(new_orcid)
+      updated_fields <- c(updated_fields, "orcid")
+    }
+  }
+
+  # Check if there's anything to update
+  if (length(updates) == 0) {
+    res$status <- 400
+    return(list(error = "No valid fields provided for update."))
+  }
+
+  # Perform update using existing repository function
+  user_update(user_id, updates)
+
+  res$status <- 200
+  return(list(
+    message = "Profile updated successfully.",
+    updated_fields = updated_fields
+  ))
+}
+
+
 #* Allows a user to request a password reset by email.
 #*
 #* # `Details`

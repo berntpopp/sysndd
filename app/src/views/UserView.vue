@@ -107,10 +107,43 @@
           <!-- Profile Details Card -->
           <BCard class="border-0 shadow-sm mb-4">
             <BCardBody>
-              <h6 class="text-muted fw-semibold mb-3 d-flex align-items-center">
-                <i class="bi bi-person-lines-fill me-2" />
-                Profile Details
-              </h6>
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="text-muted fw-semibold mb-0 d-flex align-items-center">
+                  <i class="bi bi-person-lines-fill me-2" />
+                  Profile Details
+                </h6>
+                <BButton
+                  v-if="!isEditingProfile"
+                  variant="outline-primary"
+                  size="sm"
+                  class="d-flex align-items-center gap-1"
+                  @click="startEditProfile"
+                >
+                  <i class="bi bi-pencil" />
+                  <span class="d-none d-sm-inline">Edit</span>
+                </BButton>
+                <div v-else class="d-flex gap-2">
+                  <BButton
+                    variant="primary"
+                    size="sm"
+                    class="d-flex align-items-center gap-1"
+                    :disabled="isSavingProfile"
+                    @click="saveProfile"
+                  >
+                    <BSpinner v-if="isSavingProfile" small />
+                    <i v-else class="bi bi-check-lg" />
+                    Save
+                  </BButton>
+                  <BButton
+                    variant="outline-secondary"
+                    size="sm"
+                    :disabled="isSavingProfile"
+                    @click="cancelEditProfile"
+                  >
+                    Cancel
+                  </BButton>
+                </div>
+              </div>
 
               <div class="profile-details">
                 <div class="detail-row">
@@ -123,32 +156,81 @@
                   </div>
                 </div>
 
+                <!-- Email Row - Editable -->
                 <div class="detail-row">
                   <div class="detail-icon">
                     <i class="bi bi-envelope text-muted" />
                   </div>
-                  <div class="detail-content">
+                  <div class="detail-content flex-grow-1">
                     <span class="detail-label">Email</span>
-                    <span class="detail-value">{{ user.email[0] }}</span>
+                    <template v-if="isEditingProfile">
+                      <BFormInput
+                        v-model="editForm.email"
+                        type="email"
+                        size="sm"
+                        placeholder="Enter email address"
+                        :state="emailValidationState"
+                        class="mt-1"
+                      />
+                      <BFormInvalidFeedback v-if="emailError">
+                        {{ emailError }}
+                      </BFormInvalidFeedback>
+                    </template>
+                    <span v-else class="detail-value">{{ user.email[0] }}</span>
                   </div>
                 </div>
 
+                <!-- ORCID Row - Editable -->
                 <div class="detail-row">
                   <div class="detail-icon">
                     <i class="bi bi-link-45deg text-muted" />
                   </div>
-                  <div class="detail-content">
-                    <span class="detail-label">ORCID</span>
-                    <a
-                      v-if="user.orcid[0]"
-                      :href="'https://orcid.org/' + user.orcid[0]"
-                      target="_blank"
-                      class="detail-value text-decoration-none"
-                    >
-                      <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.75rem" />
-                      {{ user.orcid[0] }}
-                    </a>
-                    <span v-else class="detail-value text-muted">Not provided</span>
+                  <div class="detail-content flex-grow-1">
+                    <span class="detail-label d-flex align-items-center gap-1">
+                      ORCID
+                      <i
+                        v-if="isEditingProfile"
+                        id="orcid-help"
+                        class="bi bi-question-circle text-muted"
+                        style="cursor: help; font-size: 0.75rem"
+                      />
+                      <BTooltip
+                        v-if="isEditingProfile"
+                        target="orcid-help"
+                        triggers="hover"
+                        placement="right"
+                      >
+                        Format: 0000-0000-0000-000X (16 digits with dashes)
+                      </BTooltip>
+                    </span>
+                    <template v-if="isEditingProfile">
+                      <BFormInput
+                        v-model="editForm.orcid"
+                        type="text"
+                        size="sm"
+                        placeholder="0000-0000-0000-0000"
+                        :state="orcidValidationState"
+                        class="mt-1"
+                      />
+                      <BFormInvalidFeedback v-if="orcidError">
+                        {{ orcidError }}
+                      </BFormInvalidFeedback>
+                      <BFormText v-else class="text-muted">
+                        Leave empty to remove ORCID
+                      </BFormText>
+                    </template>
+                    <template v-else>
+                      <a
+                        v-if="user.orcid[0]"
+                        :href="'https://orcid.org/' + user.orcid[0]"
+                        target="_blank"
+                        class="detail-value text-decoration-none"
+                      >
+                        <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.75rem" />
+                        {{ user.orcid[0] }}
+                      </a>
+                      <span v-else class="detail-value text-muted">Not provided</span>
+                    </template>
                   </div>
                 </div>
 
@@ -401,6 +483,15 @@ export default {
       },
       time_to_logout: 0,
       pass_change_visible: false,
+      // Profile editing state
+      isEditingProfile: false,
+      isSavingProfile: false,
+      editForm: {
+        email: '',
+        orcid: '',
+      },
+      emailError: null,
+      orcidError: null,
     };
   },
   computed: {
@@ -441,6 +532,20 @@ export default {
       const minutes = Math.floor(this.time_to_logout);
       const seconds = Math.floor((this.time_to_logout - minutes) * 60);
       return `${minutes}m ${seconds}s`;
+    },
+    emailValidationState() {
+      if (!this.isEditingProfile) return null;
+      if (this.emailError) return false;
+      if (this.editForm.email && this.isValidEmail(this.editForm.email)) return true;
+      return null;
+    },
+    orcidValidationState() {
+      if (!this.isEditingProfile) return null;
+      if (this.orcidError) return false;
+      // Empty is valid (clears ORCID)
+      if (!this.editForm.orcid || this.editForm.orcid.trim() === '') return null;
+      if (this.isValidOrcid(this.editForm.orcid)) return true;
+      return false;
     },
   },
   mounted() {
@@ -559,6 +664,102 @@ export default {
     },
     resetPasswordForm() {
       this.resetForm();
+    },
+    // Profile editing methods
+    startEditProfile() {
+      this.editForm.email = this.user.email[0] || '';
+      this.editForm.orcid = this.user.orcid[0] || '';
+      this.emailError = null;
+      this.orcidError = null;
+      this.isEditingProfile = true;
+    },
+    cancelEditProfile() {
+      this.isEditingProfile = false;
+      this.editForm.email = '';
+      this.editForm.orcid = '';
+      this.emailError = null;
+      this.orcidError = null;
+    },
+    isValidEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    },
+    isValidOrcid(orcid) {
+      // ORCID format: 0000-0000-0000-000X (last char can be digit or X)
+      const orcidRegex = /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/i;
+      return orcidRegex.test(orcid);
+    },
+    async saveProfile() {
+      // Reset errors
+      this.emailError = null;
+      this.orcidError = null;
+
+      // Validate email
+      if (!this.editForm.email || !this.editForm.email.trim()) {
+        this.emailError = 'Email is required.';
+        return;
+      }
+      if (!this.isValidEmail(this.editForm.email)) {
+        this.emailError = 'Please enter a valid email address.';
+        return;
+      }
+
+      // Validate ORCID (if provided)
+      const orcidTrimmed = this.editForm.orcid ? this.editForm.orcid.trim() : '';
+      if (orcidTrimmed && !this.isValidOrcid(orcidTrimmed)) {
+        this.orcidError = 'Invalid ORCID format. Expected: 0000-0000-0000-000X';
+        return;
+      }
+
+      // Check if anything changed
+      const emailChanged = this.editForm.email.trim() !== (this.user.email[0] || '');
+      const orcidChanged = orcidTrimmed !== (this.user.orcid[0] || '');
+
+      if (!emailChanged && !orcidChanged) {
+        this.makeToast('No changes detected.', 'Info', 'info');
+        this.isEditingProfile = false;
+        return;
+      }
+
+      // Save profile
+      this.isSavingProfile = true;
+      const apiProfileURL = `${import.meta.env.VITE_API_URL}/api/user/profile`;
+
+      try {
+        const payload = {};
+        if (emailChanged) payload.email = this.editForm.email.trim();
+        if (orcidChanged) payload.orcid = orcidTrimmed;
+
+        const response = await this.axios.put(apiProfileURL, payload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        // Update local user data
+        if (emailChanged) {
+          this.user.email = [this.editForm.email.trim()];
+        }
+        if (orcidChanged) {
+          this.user.orcid = [orcidTrimmed];
+        }
+
+        // Update localStorage
+        localStorage.setItem('user', JSON.stringify(this.user));
+
+        this.makeToast(
+          `Profile updated successfully. ${response.data.updated_fields?.join(', ') || ''}`,
+          'Success',
+          'success'
+        );
+        this.isEditingProfile = false;
+      } catch (e) {
+        const errorMessage = e.response?.data?.error || e.message || 'Failed to update profile.';
+        this.makeToast(errorMessage, 'Error', 'danger');
+      } finally {
+        this.isSavingProfile = false;
+      }
     },
   },
 };
