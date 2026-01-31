@@ -164,16 +164,18 @@ export default {
         .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear)))
         .reduce((sum, d) => sum + d.count, 0);
 
-      // Previous year for growth calculation
-      const prevYearPubs = pubDates
-        .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear - 1)))
-        .reduce((sum, d) => sum + d.count, 0);
-
-      // Year-over-year growth rate
-      const growthRate =
-        prevYearPubs > 0
-          ? (((thisYearPubs - prevYearPubs) / prevYearPubs) * 100).toFixed(1)
-          : 'N/A';
+      // 5-Year Average (last 5 complete years: currentYear-6 to currentYear-2)
+      // More meaningful than YoY which shows -100% at start of year
+      // Excludes current year AND previous year (which may be incomplete if early in year)
+      const lastCompleteYear = currentYear - 1;
+      const fiveYearData = pubDates.filter((d) => {
+        if (!d.Publication_date) return false;
+        const year = parseInt(d.Publication_date.substring(0, 4), 10);
+        return year >= lastCompleteYear - 4 && year <= lastCompleteYear;
+      });
+      const yearsWithData = fiveYearData.length;
+      const fiveYearTotal = fiveYearData.reduce((sum, d) => sum + d.count, 0);
+      const fiveYearAvg = yearsWithData > 0 ? Math.round(fiveYearTotal / yearsWithData) : 0;
 
       // Total publications
       const totalPubs = pubDates.reduce((sum, d) => sum + d.count, 0);
@@ -195,13 +197,10 @@ export default {
           variant: 'success',
         },
         {
-          title: 'YoY Growth',
-          value: growthRate === 'N/A' ? growthRate : `${growthRate}%`,
-          icon:
-            growthRate !== 'N/A' && parseFloat(growthRate) >= 0
-              ? 'bi-graph-up-arrow'
-              : 'bi-graph-down-arrow',
-          variant: growthRate !== 'N/A' && parseFloat(growthRate) >= 0 ? 'success' : 'warning',
+          title: '5-Year Avg',
+          value: fiveYearAvg > 0 ? `${fiveYearAvg}/yr` : 'N/A',
+          icon: 'bi-bar-chart-line',
+          variant: 'secondary',
         },
         {
           title: 'Newest Publication',
