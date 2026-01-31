@@ -28,6 +28,28 @@
         </div>
       </template>
 
+      <!-- Metrics Cards Row - Loading skeleton -->
+      <BRow v-if="loadingCount" class="mb-3 px-2">
+        <BCol v-for="n in 4" :key="n" sm="6" md="3" class="mb-2">
+          <BCard class="h-100 text-center">
+            <BSpinner small label="Loading..." />
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Metrics Cards Row - Loaded -->
+      <BRow v-if="!loadingCount && statsData" class="mb-3 px-2">
+        <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
+          <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
+            <div class="d-flex flex-column align-items-center">
+              <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" />
+              <h6 class="mt-2 mb-1 text-muted">{{ card.title }}</h6>
+              <h4 class="mb-0">{{ card.value }}</h4>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- User Interface controls: category selection, minJournalCount, etc. -->
       <BRow>
         <BCol class="my-1" sm="3">
@@ -122,6 +144,81 @@ export default {
       loadingCount: true,
     };
   },
+  computed: {
+    /**
+     * metricsCards
+     * Computes summary metrics for display in cards above the chart
+     * @returns {Array} - Array of card configuration objects
+     */
+    metricsCards() {
+      if (!this.statsData) return [];
+
+      const pubDates = this.statsData.publication_date_aggregated || [];
+      const currentYear = new Date().getFullYear();
+
+      // Publications this year (YTD)
+      const thisYearPubs = pubDates
+        .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear)))
+        .reduce((sum, d) => sum + d.count, 0);
+
+      // Previous year for growth calculation
+      const prevYearPubs = pubDates
+        .filter(
+          (d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear - 1))
+        )
+        .reduce((sum, d) => sum + d.count, 0);
+
+      // Year-over-year growth rate
+      const growthRate =
+        prevYearPubs > 0
+          ? (((thisYearPubs - prevYearPubs) / prevYearPubs) * 100).toFixed(1)
+          : 'N/A';
+
+      // Total publications
+      const totalPubs = pubDates.reduce((sum, d) => sum + d.count, 0);
+
+      // Newest publication date
+      const newestDate =
+        pubDates.length > 0
+          ? pubDates
+              .map((d) => d.Publication_date)
+              .filter(Boolean)
+              .sort()
+              .reverse()[0] || 'N/A'
+          : 'N/A';
+
+      return [
+        {
+          title: 'Total Publications',
+          value: totalPubs.toLocaleString(),
+          icon: 'bi-journal-text',
+          variant: 'primary',
+        },
+        {
+          title: `Publications ${currentYear} (YTD)`,
+          value: thisYearPubs.toLocaleString(),
+          icon: 'bi-calendar-event',
+          variant: 'success',
+        },
+        {
+          title: 'YoY Growth',
+          value: growthRate === 'N/A' ? growthRate : `${growthRate}%`,
+          icon:
+            growthRate !== 'N/A' && parseFloat(growthRate) >= 0
+              ? 'bi-graph-up-arrow'
+              : 'bi-graph-down-arrow',
+          variant:
+            growthRate !== 'N/A' && parseFloat(growthRate) >= 0 ? 'success' : 'warning',
+        },
+        {
+          title: 'Newest Publication',
+          value: newestDate,
+          icon: 'bi-clock-history',
+          variant: 'info',
+        },
+      ];
+    },
+  },
   async mounted() {
     // fetch stats on mount
     await this.fetchStats();
@@ -166,8 +263,9 @@ export default {
       // guard if statsData not loaded
       if (!this.statsData) return;
 
-      // remove old svg
+      // remove old svg and tooltips to prevent duplicates
       d3.select('#stats_dataviz').select('svg').remove();
+      d3.select('#stats_dataviz').selectAll('.tooltip').remove();
 
       let data = [];
       let xKey = ''; // 'Journal', 'Lastname', or 'Keywords'
@@ -227,19 +325,20 @@ export default {
         .range([height, 0]);
       svg.append('g').call(d3.axisLeft(y));
 
-      // Create a tooltip element
+      // Create a tooltip element with improved styling
       const tooltip = d3
         .select('#stats_dataviz')
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
         .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
+        .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '2px')
-        .style('position', 'absolute') // matching your "AnalysesPhenotypeCounts" approach
-        .style('pointer-events', 'none'); // let mouse events go through
+        .style('padding', '8px')
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -256,7 +355,10 @@ export default {
         // Using event.layerX and event.layerY to position near the cursor
         // offset by +20 so it doesn't overlap the cursor
         tooltip
-          .html(`Count: ${d.count}<br>(${d[xKey]})`)
+          .html(
+            `<strong>${d[xKey]}</strong><br/>` +
+              `Count: <strong>${d.count.toLocaleString()}</strong>`
+          )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       };
@@ -320,5 +422,12 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+/* Metrics card styling */
+.metrics-card {
+  transition: transform 0.2s ease;
+}
+.metrics-card:hover {
+  transform: translateY(-2px);
 }
 </style>
