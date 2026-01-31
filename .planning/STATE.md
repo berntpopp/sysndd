@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 58 (LLM Foundation) - COMPLETE
-**Plan:** 2/2 complete
+**Phase:** 57.1 (PubTator Async Repository Refactor) - COMPLETE
+**Plan:** 1/1 complete
 **Status:** Phase complete
-**Progress:** v10.0 [████████░░          ] 5/8 phases (62.5%)
+**Progress:** v10.0 [████████░░          ] 6/8 phases (75%)
 
-**Last completed:** 58-02 - Entity Validation Pipeline
-**Last activity:** 2026-01-31 — Completed 58-02-PLAN.md
+**Last completed:** 57.1-01 - PubTator Async Parameterized Queries
+**Last activity:** 2026-01-31 — Completed 57.1-01-PLAN.md
 
 ---
 
@@ -38,6 +38,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | ✓ Complete |
+| 57.1 | PubTator Async Repository Refactor | SQL injection fix | ✓ Complete |
 | 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
@@ -264,16 +265,26 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Case-insensitive pathway matching | Pathways may have varying capitalization | More flexible validation without losing accuracy |
 | 2026-01-31 | Derived confidence separate from LLM confidence | LLM self-assessment may be unreliable | Objective metric based on FDR values and term counts |
 
+### Decisions from Phase 57.1
+
+**Plan 01 (PubTator Async Parameterized Queries):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Single commit for all tasks | Tasks are interdependent - partial refactoring would break the function | Atomic change ensures code is always in working state |
+| 2026-01-31 | Preserve manual transaction handling | db_with_transaction uses pool, mirai daemons need direct connections | dbBegin/dbCommit/dbRollback still used, only query execution changed |
+| 2026-01-31 | Use NA directly in params | DBI's dbBind() handles NA to NULL conversion automatically | Simpler code, no manual ifelse(is.na(...), "NULL", ...) needed |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed Phase 58 Plan 02 (Entity Validation Pipeline)
+**Stopped at:** Completed Phase 57.1 Plan 01 (PubTator Async Parameterized Queries)
 **Next action:** Phase 59 (LLM Batch & Caching) or other work as directed
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 58 Plan 02 (Entity Validation Pipeline)*
+*Last updated: 2026-01-31 — Phase 57.1 Plan 01 (PubTator Async Parameterized Queries)*
