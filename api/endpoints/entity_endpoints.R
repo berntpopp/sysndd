@@ -217,8 +217,24 @@ function(req, res, direct_approval = FALSE) {
 
   create_data$entity$entry_user_id <- entry_user_id
 
+  logger::log_info(
+    "Entity creation started",
+    hgnc_id = create_data$entity$hgnc_id,
+    user_id = entry_user_id
+  )
+
   # Block to post new entity
   response_entity <- post_db_entity(create_data$entity)
+
+  logger::log_debug(
+    "Entity creation response",
+    status = response_entity$status,
+    entity_id = if (!is.null(response_entity$entry) && !is.null(response_entity$entry$entity_id)) {
+      response_entity$entry$entity_id
+    } else {
+      NA
+    }
+  )
 
   if (response_entity$status == 200) {
     # Prepare data for review
@@ -289,6 +305,16 @@ function(req, res, direct_approval = FALSE) {
 
     # Use put_post_db_review to add the review
     response_review <- put_post_db_review("POST", sysnopsis_received)
+
+    logger::log_debug(
+      "Review creation response",
+      status = response_review$status,
+      review_id = if (!is.null(response_review$entry) && !is.null(response_review$entry$review_id)) {
+        response_review$entry$review_id
+      } else {
+        NA
+      }
+    )
 
     # Submit publications if not empty
     if (length(compact(create_data$review$literature)) > 0) {
@@ -369,6 +395,16 @@ function(req, res, direct_approval = FALSE) {
     create_data$status$status_user_id <- status_user_id
     response_status_post <- put_post_db_status("POST", create_data$status)
 
+    logger::log_debug(
+      "Status creation response",
+      status = response_status_post$status,
+      status_id = if (!is.null(response_status_post$entry)) {
+        response_status_post$entry
+      } else {
+        NA
+      }
+    )
+
     if (direct_approval) {
       response_status_approve <- put_db_status_approve(
         response_status_post$entry,
@@ -394,9 +430,20 @@ function(req, res, direct_approval = FALSE) {
   if (response_entity$status == 200 &&
     response_review_post$status == 200 &&
     response_status_post$status == 200) {
+    logger::log_info(
+      "Entity creation completed successfully",
+      entity_id = response_entity$entry$entity_id,
+      user_id = entry_user_id
+    )
     res$status <- response_entity$status
     return(response_entity)
   } else {
+    logger::log_error(
+      "Entity creation failed during review or status",
+      entity_status = response_entity$status,
+      review_status = response_review_post$status,
+      status_status = response_status_post$status
+    )
     response <- tibble::as_tibble(response_entity) %>%
       bind_rows(tibble::as_tibble(response_review_post)) %>%
       bind_rows(tibble::as_tibble(response_status_post)) %>%
