@@ -259,6 +259,13 @@
       </slot>
     </template>
 
+    <!-- Text highlight column (for PubTator annotations) -->
+    <template #cell(text_hl)="data">
+      <slot name="cell-text_hl" :row="data.item" :index="data.index">
+        {{ data.item.text_hl }}
+      </slot>
+    </template>
+
     <!-- Details column -->
     <template #cell(details)="row">
       <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">

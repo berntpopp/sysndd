@@ -201,20 +201,48 @@
                 </div>
               </template>
 
-              <!-- text_hl -->
+              <!-- text_hl - truncated preview -->
               <template #cell-text_hl="{ row }">
-                <div
-                  v-if="row.text_hl"
-                  v-b-tooltip.hover
-                  :title="row.text_hl"
-                  class="overflow-hidden text-truncate"
-                  style="max-width: 400px"
-                >
-                  {{ truncate(row.text_hl, 60) }}
+                <div v-if="row.text_hl" class="overflow-hidden text-truncate" style="max-width: 300px">
+                  <span
+                    v-for="(segment, idx) in parseAnnotations(row.text_hl).slice(0, 5)"
+                    :key="idx"
+                    :class="getSegmentClass(segment)"
+                  >{{ segment.text }}</span>
+                  <span v-if="parseAnnotations(row.text_hl).length > 5" class="text-muted">...</span>
                 </div>
                 <div v-else>
                   <span class="text-muted">No highlight text</span>
                 </div>
+              </template>
+
+              <!-- Row details slot for expanded annotation view -->
+              <template #row-details="{ row }">
+                <BCard class="mb-2 details-card">
+                  <BCardTitle class="details-title h6 mb-3">
+                    <i class="bi bi-file-text me-2" />Annotated Text
+                  </BCardTitle>
+                  <div v-if="row.text_hl" class="annotated-text">
+                    <span
+                      v-for="(segment, idx) in parseAnnotations(row.text_hl)"
+                      :key="idx"
+                      :class="getSegmentClass(segment)"
+                      :title="getSegmentTooltip(segment)"
+                    >{{ segment.text }}</span>
+                  </div>
+                  <div v-else class="text-muted">
+                    No annotated text available for this publication.
+                  </div>
+                  <hr class="my-3" />
+                  <div class="pubtator-legend d-flex flex-wrap gap-3 small">
+                    <span><span class="pubtator-gene px-1">Gene</span></span>
+                    <span><span class="pubtator-disease px-1">Disease</span></span>
+                    <span><span class="pubtator-variant px-1">Variant</span></span>
+                    <span><span class="pubtator-species px-1">Species</span></span>
+                    <span><span class="pubtator-chemical px-1">Chemical</span></span>
+                    <span><span class="pubtator-match px-1">Match</span></span>
+                  </div>
+                </BCard>
               </template>
             </GenericTable>
             <!-- Main GenericTable -->
@@ -225,12 +253,20 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 // Import Vue utilities
 import { ref, inject } from 'vue';
 
 // Import composables
-import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
+import {
+  useToast,
+  useUrlParsing,
+  useColorAndSymbols,
+  useText,
+  useTableData,
+  parsePubtatorText,
+} from '@/composables';
+import type { ParsedSegment } from '@/composables';
 
 // Small reusable components
 import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
@@ -294,6 +330,7 @@ export default {
       date: { content: null, join_char: null, operator: 'contains' },
       score: { content: null, join_char: null, operator: 'contains' },
       text_hl: { content: null, join_char: null, operator: 'contains' },
+      details: { content: null, join_char: null, operator: 'contains' }, // Virtual field for row expansion
     });
 
     // Inject axios
@@ -372,6 +409,12 @@ export default {
           sortable: true,
           class: 'text-start',
           filterable: true,
+        },
+        {
+          key: 'details',
+          label: 'Details',
+          sortable: false,
+          class: 'text-center',
         },
       ],
       // Additional hidden or detail fields can go here:
@@ -504,6 +547,7 @@ export default {
         date: { content: null, join_char: null, operator: 'contains' },
         score: { content: null, join_char: null, operator: 'contains' },
         text_hl: { content: null, join_char: null, operator: 'contains' },
+        details: { content: null, join_char: null, operator: 'contains' },
       };
       this.currentItemID = 0;
       this.filtered();
@@ -569,7 +613,7 @@ export default {
     },
 
     mergeFields(inboundFields) {
-      return inboundFields.map((f) => {
+      const merged = inboundFields.map((f) => {
         const existing = this.fields.find((x) => x.key === f.key);
         return {
           ...f,
@@ -581,10 +625,61 @@ export default {
           multi_selectable: existing ? existing.multi_selectable : false,
         };
       });
+
+      // Always append the 'details' field at the end for row expansion
+      const detailsField = this.fields.find((x) => x.key === 'details');
+      if (detailsField) {
+        merged.push(detailsField);
+      }
+
+      return merged;
     },
 
     truncate(str, n) {
       return Utils.truncate(str, n);
+    },
+
+    /**
+     * Parse PubTator annotations from text_hl field
+     */
+    parseAnnotations(text: string | null | undefined): ParsedSegment[] {
+      return parsePubtatorText(text);
+    },
+
+    /**
+     * Get CSS class for a parsed segment based on its type
+     */
+    getSegmentClass(segment: ParsedSegment): string {
+      switch (segment.type) {
+        case 'gene':
+          return 'pubtator-gene';
+        case 'disease':
+          return 'pubtator-disease';
+        case 'variant':
+          return 'pubtator-variant';
+        case 'species':
+          return 'pubtator-species';
+        case 'chemical':
+          return 'pubtator-chemical';
+        case 'match':
+          return 'pubtator-match';
+        default:
+          return '';
+      }
+    },
+
+    /**
+     * Get tooltip text for annotated segments
+     */
+    getSegmentTooltip(segment: ParsedSegment): string {
+      if (segment.type === 'plain' || segment.type === 'match') {
+        return '';
+      }
+      const typeLabel = segment.type.charAt(0).toUpperCase() + segment.type.slice(1);
+      if (segment.entityId) {
+        return `${typeLabel}: ${segment.text} (ID: ${segment.entityId})`;
+      }
+      return `${typeLabel}: ${segment.text}`;
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {
@@ -607,5 +702,76 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+/* PubTator entity colors - matching official PubTator color scheme */
+.pubtator-gene {
+  background-color: #b4e3f9;
+  color: #0d6efd;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-disease {
+  background-color: #ffe0b2;
+  color: #e65100;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-variant {
+  background-color: #f8bbd9;
+  color: #c2185b;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-species {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-chemical {
+  background-color: #e1bee7;
+  color: #7b1fa2;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-match {
+  background-color: #fff59d;
+  color: #f57f17;
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Details card styling */
+.details-card {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+}
+
+.details-title {
+  text-align: left;
+  color: #495057;
+}
+
+.annotated-text {
+  text-align: left;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.pubtator-legend {
+  color: #6c757d;
 }
 </style>
