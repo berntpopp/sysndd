@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 57 (Pubtator Improvements) - COMPLETE
-**Plan:** 2/2 complete
-**Status:** Phase complete, ready for Phase 58 (LLM Foundation)
-**Progress:** v10.0 [██████              ] 3/8 phases (37%)
+**Phase:** 56.1 (Admin Publication Bulk Management) - IN PROGRESS
+**Plan:** 1/2 complete
+**Status:** API endpoints complete, UI plan pending
+**Progress:** v10.0 [██████              ] 3/8 phases + 56.1-01 (37%+)
 
-**Last completed:** 57-02 - Genes Table Enhancements (PUBT-02, PUBT-03, PUBT-04, PUBT-05, PUBT-06)
-**Last activity:** 2026-01-31 — Completed 57-02-PLAN.md
+**Last completed:** 56.1-01 - Admin Publication Bulk Management API (PUB-ADMIN-01)
+**Last activity:** 2026-01-31 — Completed 56.1-01-PLAN.md
 
 ---
 
@@ -35,6 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
+| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | In progress (1/2 plans) |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
@@ -182,13 +183,23 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Helper functions for filter content | TypeScript type safety - content can be string or string[] | Proper binding in template |
 | 2026-01-31 | Fetch is_novel in Stats view | Accurate summary card counts without separate API call | Single fetch provides chart + card data |
 
+### Decisions from Phase 56.1
+
+**Plan 01 (Publication Bulk Management API):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | 350ms delay between PubMed requests | NCBI limit is 3 req/sec without API key; 350ms = 2.86 req/sec gives safety margin | Rate limiting prevents API blocks |
+| 2026-01-31 | Per-PMID error handling | Bulk operations should complete for all valid items even if some fail | One bad PMID doesn't stop entire refresh |
+| 2026-01-31 | Return not_found status | Distinguish between "PMID not in database" vs "PubMed API error" | Clearer error reporting for admins |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Phase 56 additional bug fixes (tooltip edge positioning, API filter fix)
-**Next action:** Start Phase 58 (LLM Foundation) planning
+**Stopped at:** Completed Phase 56.1 Plan 01 (Publication Bulk Management API)
+**Next action:** Execute Phase 56.1 Plan 02 (ManageAnnotations Publications Tab UI)
 **Resume file:** None
 
 **Handoff notes:**
@@ -223,7 +234,13 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - ✅ PUBT-05: Excel export (Plan 02)
    - ✅ PUBT-06: Documentation (Plans 01 + 02)
 
+5. **Phase 56.1 In Progress (Admin Publication Management):**
+   - ✅ Plan 01: API endpoints complete
+     - GET /publications/stats for publication statistics
+     - POST /admin/publications/refresh for bulk PubMed refresh
+   - Pending: Plan 02 - ManageAnnotations Publications Tab UI
+
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 56 additional bug fixes (API filter, tooltip positioning, metrics)*
+*Last updated: 2026-01-31 — Phase 56.1 Plan 01 (Publication Bulk Management API)*
