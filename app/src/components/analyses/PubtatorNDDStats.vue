@@ -10,7 +10,7 @@
               v-b-tooltip.hover.leftbottom
               title="Shows aggregated statistics from PubTator gene-publication associations."
             >
-              (Bar Plots)
+              (Summary &amp; Bar Plots)
             </mark>
             <BBadge id="popover-badge-help-pubtator-stats" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
@@ -24,6 +24,7 @@
               </p>
               <p class="mb-0">
                 <strong>How to use:</strong><br />
+                - <em>Summary cards</em>: Quick overview of gene coverage<br />
                 - <em>Top Genes</em>: Shows genes with most publication mentions<br />
                 - <em>Publications by Gene Count</em>: Histogram of how many publications mention N
                 genes<br />
@@ -34,6 +35,49 @@
           </h6>
         </div>
       </template>
+
+      <!-- Summary Stats Cards -->
+      <BRow class="p-3">
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="primary">
+            <template #header>
+              <small class="text-muted">Total Genes</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <h3 v-else class="mb-0 text-primary">{{ totalGenes }}</h3>
+            </BCardBody>
+          </BCard>
+        </BCol>
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="warning">
+            <template #header>
+              <small class="text-muted">Novel Genes</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <template v-else>
+                <h3 class="mb-0 text-warning">{{ novelGenes }}</h3>
+                <small class="text-muted">(not in SysNDD)</small>
+              </template>
+            </BCardBody>
+          </BCard>
+        </BCol>
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="success">
+            <template #header>
+              <small class="text-muted">In SysNDD</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <template v-else>
+                <h3 class="mb-0 text-success">{{ inSysnddGenes }}</h3>
+                <small class="text-muted">(already curated)</small>
+              </template>
+            </BCardBody>
+          </BCard>
+        </BCol>
+      </BRow>
 
       <!-- User Interface controls -->
       <BRow class="p-2">
@@ -86,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import * as d3 from 'd3';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
@@ -95,6 +139,7 @@ import useToast from '@/composables/useToast';
 interface GeneData {
   gene_symbol: string;
   publication_count: number;
+  is_novel?: number;
 }
 
 interface StatsDataItem {
@@ -120,29 +165,38 @@ const topN = ref(30);
 const rawGeneData = ref<GeneData[]>([]);
 const statsData = ref<StatsDataItem[]>([]);
 
-// Loading state
+// Loading states
 const loading = ref(true);
+const loadingStats = ref(true);
+
+// Computed stats for summary cards
+const totalGenes = computed(() => rawGeneData.value.length);
+const novelGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 1).length);
+const inSysnddGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 0).length);
 
 /**
  * Fetches PubTator gene statistics from the API
  */
 async function fetchStats() {
   loading.value = true;
+  loadingStats.value = true;
 
   const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`;
   const params = new URLSearchParams();
   params.set('page_size', '2000'); // Get enough data for stats
-  params.set('fields', 'gene_symbol,publication_count'); // Only need these for stats
+  params.set('fields', 'gene_symbol,publication_count,is_novel'); // Include is_novel for stats cards
 
   const apiUrl = `${baseUrl}?${params.toString()}`;
 
   try {
     const response = await axios.get(apiUrl);
-    // Store the raw gene data - each item has gene_symbol and publication_count
+    // Store the raw gene data - each item has gene_symbol, publication_count, and is_novel
     rawGeneData.value = (response.data.data || []).map((item: Record<string, unknown>) => ({
       gene_symbol: String(item.gene_symbol || 'Unknown'),
       publication_count: Number(item.publication_count) || 0,
+      is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
     }));
+    loadingStats.value = false;
     processAndPlot();
   } catch (error) {
     makeToast(error, 'Error fetching PubTator stats', 'danger');
