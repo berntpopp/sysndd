@@ -42,7 +42,7 @@ hpo_children_from_term <- function(term_input_id, hpo_input = hpo_ontology) {
   children_tibble <- children_terms %>%
     tidyr::as_tibble() %>%
     mutate(query_date = Sys.Date()) %>%
-    select(term = value, query_date)
+    dplyr::select(term = value, query_date)
 
   return(children_tibble)
 }
