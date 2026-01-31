@@ -140,6 +140,9 @@ export default {
       // data from the stats endpoint
       statsData: null,
 
+      // actual newest publication date (fetched separately)
+      newestPublicationDate: null,
+
       // chart loading state
       loadingCount: true,
     };
@@ -175,15 +178,8 @@ export default {
       // Total publications
       const totalPubs = pubDates.reduce((sum, d) => sum + d.count, 0);
 
-      // Newest publication date
-      const newestDate =
-        pubDates.length > 0
-          ? pubDates
-              .map((d) => d.Publication_date)
-              .filter(Boolean)
-              .sort()
-              .reverse()[0] || 'N/A'
-          : 'N/A';
+      // Newest publication date (from separate API call, not aggregated data)
+      const newestDate = this.newestPublicationDate || 'N/A';
 
       return [
         {
@@ -217,8 +213,8 @@ export default {
     },
   },
   async mounted() {
-    // fetch stats on mount
-    await this.fetchStats();
+    // fetch stats and newest publication date on mount
+    await Promise.all([this.fetchStats(), this.fetchNewestPublicationDate()]);
   },
   methods: {
     /**
@@ -248,6 +244,32 @@ export default {
         this.makeToast(error, 'Error fetching publication stats', 'danger');
       } finally {
         this.loadingCount = false;
+      }
+    },
+
+    /**
+     * fetchNewestPublicationDate
+     * Fetches the actual newest publication date by querying publications sorted by date descending
+     */
+    async fetchNewestPublicationDate() {
+      const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication`;
+      const params = new URLSearchParams();
+      params.set('sort', '-Publication_date');
+      params.set('page_size', '1');
+      params.set('fields', 'publication_id,Publication_date');
+
+      const apiUrl = `${baseUrl}?${params.toString()}`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        if (response.data?.data?.length > 0) {
+          const pubDate = response.data.data[0].Publication_date;
+          // Format the date for display (YYYY-MM-DD)
+          this.newestPublicationDate = pubDate || 'N/A';
+        }
+      } catch (error) {
+        // Silently fail - the card will show 'N/A'
+        console.warn('Failed to fetch newest publication date:', error);
       }
     },
 
