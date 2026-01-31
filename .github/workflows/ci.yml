@@ -1,0 +1,252 @@
+# SysNDD CI/CD Pipeline
+# https://docs.github.com/en/actions/automating-builds-and-tests
+#
+# Best practices applied:
+# - Parallel jobs for speed (lint, test, build run concurrently)
+# - Dependency caching (renv for R, npm for Node)
+# - Uses Makefile commands for consistency with local development
+# - Fail-fast disabled to see all failures at once
+#
+# References:
+# - https://rstudio.github.io/renv/articles/ci.html
+# - https://github.com/r-lib/actions
+# - https://github.com/actions/setup-node
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '.planning/**'
+      - '.plan/**'
+  pull_request:
+    branches: [master]
+    paths-ignore:
+      - 'documentation/**'
+      - '*.md'
+      - '.planning/**'
+      - '.plan/**'
+
+# Cancel in-progress runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # R API Jobs
+  # ============================================================================
+  lint-api:
+    name: Lint R API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2
+        with:
+          working-directory: ./api
+
+      - name: Run lintr
+        run: Rscript scripts/lint-check.R
+
+  test-api:
+    name: Test R API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    services:
+      mysql:
+        image: mysql:8.0.40
+        env:
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.4.3'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-renv@v2
+        with:
+          working-directory: ./api
+
+      - name: Run testthat tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript -e "testthat::test_dir('tests/testthat')"
+
+  # ============================================================================
+  # Frontend Jobs
+  # ============================================================================
+  lint-app:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run ESLint
+        run: npm run lint
+
+  type-check:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run type-check
+        run: npm run type-check
+
+  test-app:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run Vitest
+        run: npm run test:unit
+
+  build-app:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: [lint-app, type-check]
+    defaults:
+      run:
+        working-directory: ./app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build production bundle
+        run: npm run build:docker
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: app/dist
+          retention-days: 7
+
+  # ============================================================================
+  # Docker Build (only on push to master or PR merge)
+  # ============================================================================
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [lint-api, test-api, build-app]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          push: false
+          tags: sysndd-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build App image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: false
+          tags: sysndd-app:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================================
+  # Summary Job (ensures all checks pass)
+  # ============================================================================
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [lint-api, test-api, lint-app, type-check, test-app, build-app]
+    if: always()
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ needs.lint-api.result }}" != "success" ]] || \
+             [[ "${{ needs.test-api.result }}" != "success" ]] || \
+             [[ "${{ needs.lint-app.result }}" != "success" ]] || \
+             [[ "${{ needs.type-check.result }}" != "success" ]] || \
+             [[ "${{ needs.test-app.result }}" != "success" ]] || \
+             [[ "${{ needs.build-app.result }}" != "success" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed!"
