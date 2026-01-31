@@ -163,9 +163,7 @@ export default {
 
       // Previous year for growth calculation
       const prevYearPubs = pubDates
-        .filter(
-          (d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear - 1))
-        )
+        .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear - 1)))
         .reduce((sum, d) => sum + d.count, 0);
 
       // Year-over-year growth rate
@@ -207,8 +205,7 @@ export default {
             growthRate !== 'N/A' && parseFloat(growthRate) >= 0
               ? 'bi-graph-up-arrow'
               : 'bi-graph-down-arrow',
-          variant:
-            growthRate !== 'N/A' && parseFloat(growthRate) >= 0 ? 'success' : 'warning',
+          variant: growthRate !== 'N/A' && parseFloat(growthRate) >= 0 ? 'success' : 'warning',
         },
         {
           title: 'Newest Publication',

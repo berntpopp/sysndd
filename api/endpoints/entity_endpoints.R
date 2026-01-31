@@ -53,14 +53,18 @@ function(req,
   # Set serializers
   res$serializer <- serializers[[format]]
 
+
   # Start time calculation
   start_time <- Sys.time()
 
   # Generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
 
-  # Generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
+  # Extract vario_id filter (handled separately due to join table)
+  vario_filter_result <- extract_vario_filter(filter)
+
+  # Generate filter expression for non-vario filters
+  filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario)
 
   # Get review data from database
   ndd_entity_review <- pool %>%
@@ -73,6 +77,13 @@ function(req,
     tbl("ndd_entity_view") %>%
     left_join(ndd_entity_review, by = c("entity_id")) %>%
     collect()
+
+  # Apply vario_id filter if present (filter by entity_ids that have the variants)
+  if (vario_filter_result$has_vario_filter) {
+    matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
+    ndd_entity_view <- ndd_entity_view %>%
+      filter(entity_id %in% matching_entity_ids)
+  }
 
   sysndd_db_disease_table <- ndd_entity_view %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%

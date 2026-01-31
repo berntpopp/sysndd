@@ -24,7 +24,8 @@
                 <li><strong>Blue:</strong> Negative correlation</li>
                 <li><strong>White:</strong> No correlation</li>
               </ul>
-              Click on the cells to explore the detailed variant relationships.
+              Click on cells to view entities with either variant, or hover to see exact correlation
+              values.
             </BPopover>
           </h6>
           <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />
@@ -140,17 +141,21 @@ export default {
       // Build color scale
       const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
 
-      // Create a tooltip
+      // Create a tooltip with proper positioning
       const tooltip = d3
         .select('#matrix_dataviz')
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
         .style('background-color', 'white')
         .style('border', 'solid')
         .style('border-width', '1px')
         .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('padding', '5px')
+        .style('font-size', '12px')
+        .style('z-index', '10');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -162,16 +167,24 @@ export default {
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
 
+      // Get the container for relative positioning
+      const container = document.getElementById('matrix_dataviz');
+
       /**
        * Mousemove event handler to move the tooltip with the mouse.
+       * Uses pageX/pageY for reliable cross-browser positioning.
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
       const mousemove = function mousemove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
         tooltip
           .html(`R: ${d.value}<br>(${d.x} &<br>${d.y})`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
+          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
       };
 
       /**
@@ -184,7 +197,7 @@ export default {
         d3.select(this).style('stroke', 'none');
       };
 
-      // Add the squares
+      // Add the squares with links to entities filtered by vario_id
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
@@ -193,18 +206,16 @@ export default {
         .attr(
           'xlink:href',
           (d) =>
-            `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
-        ) // Link to entities table with both variants
-        .attr(
-          'aria-label',
-          (d) => `Link to entities table for variant combination ${d.x_vario_id} and ${d.y_vario_id}`
+            `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
         )
+        .attr('aria-label', (d) => `View entities with ${d.x} or ${d.y} variants`)
         .append('rect')
         .attr('x', (d) => x(d.x))
         .attr('y', (d) => y(d.y))
         .attr('width', x.bandwidth())
         .attr('height', y.bandwidth())
         .style('fill', (d) => myColor(d.value))
+        .style('cursor', 'pointer')
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave);
