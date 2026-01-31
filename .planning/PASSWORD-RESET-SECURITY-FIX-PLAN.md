@@ -158,11 +158,11 @@ return(list(message = "If this email exists, a reset link has been sent."))
 
 ## Implementation Order
 
-1. [ ] Update API endpoints (user_endpoints.R)
-2. [ ] Update frontend (PasswordResetView.vue)
-3. [ ] Test API directly with curl
-4. [ ] Test frontend with Playwright
-5. [ ] Commit changes with descriptive message
+1. [x] Update API endpoints (user_endpoints.R) - Done in commit 7ec45dee
+2. [x] Update frontend (PasswordResetView.vue) - Done in commit 7ec45dee
+3. [x] Test API directly with curl - Verified both endpoints return valid JSON
+4. [x] Test frontend with Playwright - Full flow tested: request → email → change → login
+5. [x] Commit changes with descriptive message - Done in commit 7ec45dee
 
 ## References
 
