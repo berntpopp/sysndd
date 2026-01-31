@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-31
 **Milestone:** v10.0 Data Quality & AI Insights
-**Phases:** 55-62 (8 phases)
-**Requirements:** 34 mapped
+**Phases:** 55-62 + 56.1 (9 phases)
+**Requirements:** 37 mapped
 
 ---
 
@@ -73,6 +73,32 @@ Plans:
 3. Publications table supports pagination, search, and column filters
 4. Publication detail shows title, journal, and abstract fetched from PubMed API
 5. PublicationsNDD TimePlot renders with improved visualization
+
+---
+
+## Phase 56.1: Admin Publication Bulk Management
+
+**Goal:** Administrators can refresh publication metadata from PubMed in bulk via ManageAnnotations
+
+**Dependencies:** Phase 56
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 56.1-01-PLAN.md - API endpoints for publication refresh (async job) and stats
+- [ ] 56.1-02-PLAN.md - ManageAnnotations UI with progress tracking
+
+**Requirements:**
+- PUB-ADMIN-01: Admin API endpoint to refresh publication metadata from PubMed
+- PUB-ADMIN-02: ManageAnnotations UI for bulk publication management
+- PUB-ADMIN-03: Progress feedback during bulk refresh operations
+
+**Success Criteria:**
+1. POST /api/admin/publications/refresh endpoint accepts list of PMIDs and refreshes metadata
+2. ManageAnnotations has Publications section showing stats and refresh button
+3. Admin can trigger bulk metadata refresh from PubMed
+4. Progress indicator shows refresh status (X of Y completed)
+5. Refresh errors are logged and displayed without blocking other publications
 
 ---
 
@@ -233,6 +259,7 @@ Plans:
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Complete |
+| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Not started |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
@@ -240,7 +267,7 @@ Plans:
 | 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
-**Coverage:** 34/34 requirements mapped (100%)
+**Coverage:** 37/37 requirements mapped (100%)
 
 ---
 
@@ -255,10 +282,10 @@ Phase 55 (Bug Fixes)
 Phase 56 (Variant & Pubs)  Phase 58 (LLM Foundation)
     |                           |
     v                           v
-Phase 57 (Pubtator)        Phase 59 (LLM Batch & Caching)
-                                |
-                                v
-                           Phase 60 (LLM Display)
+Phase 56.1 (Pub Admin)     Phase 59 (LLM Batch & Caching)
+    |                           |
+    v                           v
+Phase 57 (Pubtator)        Phase 60 (LLM Display)
                                 |
                                 v
                            Phase 61 (LLM Validation)
