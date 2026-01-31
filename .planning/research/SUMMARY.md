@@ -1,207 +1,182 @@
 # Project Research Summary
 
-**Project:** SysNDD v9.0 Production Readiness
-**Domain:** Infrastructure - migrations, backups, SMTP testing, Docker validation
-**Researched:** 2026-01-29
+**Project:** SysNDD v10.0 Data Quality & AI Insights
+**Domain:** LLM cluster summaries, Publications/Pubtator improvements, Bug fixes
+**Researched:** 2026-01-31
 **Confidence:** HIGH
 
 ## Executive Summary
 
-SysNDD v9.0 Production Readiness focuses on four infrastructure areas: database migrations, backup management, SMTP email testing, and production Docker validation. Research reveals that **no new R packages are required** - all features can be implemented using existing stack components (DBI, RMariaDB, pool, blastula, fs) plus one Docker service addition (Mailpit for local email testing). The existing codebase provides strong foundations with established patterns for admin endpoints, async job handling, and health checks.
+SysNDD v10.0 adds LLM-generated cluster summaries using Gemini API, improves Publications and Pubtator views for research/curation, and fixes 8-9 major bugs. Research reveals:
 
-**However, a critical security blocker was discovered:** `api/config.yml` contains hardcoded credentials (SMTP password, database password, OMIM tokens, archive access keys, JWT secret) committed to version control. This must be remediated before any new production features are implemented. The credentials have been exposed in git history and should be rotated.
+1. **Use ellmer (not gemini.R)** for Gemini API integration — structured output, batch processing, LLM-as-judge support, maintained by Tidyverse team
+2. **LLM hallucinations are the critical risk** — 2026 research shows even grounded LLMs produce plausible but incorrect gene names; entity validation against database is mandatory
+3. **LLM-as-judge has only 64-68% agreement** with domain experts — use rule-based validators as primary, LLM-as-judge as supplementary
+4. **easyPubMed deprecated functions** retiring in 2026 — must update to new epm_* API
+5. **Existing infrastructure covers 80%** — mirai job system, httr2 patterns, and pubtator caching pattern need minimal adaptation
 
-The recommended approach is to: (1) remediate credential exposure as Phase 0, (2) implement migration system as foundation, (3) add backup management UI leveraging existing backup infrastructure, (4) add SMTP testing with Mailpit, and (5) validate production Docker configuration with multi-worker setup. Each phase builds on existing patterns with minimal new complexity.
-
-## Critical Blocker
-
-### Credential Exposure in Version Control
-
-**Severity:** CRITICAL - Must be addressed before any other work proceeds
-
-**Finding:** `api/config.yml` contains multiple hardcoded credentials:
-- `mail_noreply_password` (SMTP password)
-- `password` (database password)
-- `archive_access_key`, `archive_secret_key` (archive credentials)
-- `omim_token` (OMIM API token)
-- `secret` (JWT signing secret)
-
-**Required Actions:**
-1. Remove ALL credentials from `config.yml` immediately
-2. Convert all secrets to environment variable references
-3. Create `config.yml.example` as template without real values
-4. Add `config.yml` to `.gitignore`
-5. Rotate all compromised credentials (they exist in git history)
-6. Use Docker secrets or environment variables for production
-
-**Impact:** Blocks all phases - cannot deploy new production features until credentials are secured.
+**Key stack decision:** Add `ellmer >= 0.4.0` to renv. Update easyPubMed deprecated calls. Store Gemini API key in environment variable (GEMINI_API_KEY).
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new R packages required. The four production features leverage existing stack components:
+| Component | Version | Action | Notes |
+|-----------|---------|--------|-------|
+| **ellmer** | >= 0.4.0 | **NEW** | Gemini API with structured output, batch processing |
+| easyPubMed | >= 3.1.3 | UPDATE | Deprecated function calls retiring 2026 |
+| httr2 | 1.2.1 | KEEP | External API patterns already established |
+| mirai | 2.5.1 | KEEP | Async job system already working |
+| cachem | 1.0.x | KEEP | Disk-based caching for LLM summaries |
 
-**Core technologies already in place:**
-- **DBI + RMariaDB + pool:** Database connectivity and connection pooling - used for migration runner
-- **blastula:** Email composition and SMTP sending - already implemented in `send_noreply_email()`
-- **fs:** File system operations - used for listing/managing backup files
-- **logger:** Structured logging - used throughout codebase
-- **mirai:** Async job execution - used for long-running backup operations
-
-**New Docker service:**
-- **Mailpit:** Local SMTP testing (replaces abandoned MailHog) - captures emails in development without sending to real recipients
-
-**Explicitly NOT adding:**
-- Flyway/Liquibase (Java dependencies, overkill for 3 migrations)
-- External backup tools (fradelg/mysql-cron-backup already running)
-- MailHog (abandoned since 2020)
-- Kubernetes (Docker Compose sufficient)
+**What NOT to add:**
+- gemini.R — limited features, single maintainer
+- langchain R bindings — overkill, Python-centric
+- chromadb/vector store — no RAG requirement
+- rentrez — easyPubMed already integrated
 
 ### Expected Features
 
-**Must have (table stakes):**
-- Sequential migration execution with state tracking table
-- Idempotent migration runner (skips applied, runs pending)
-- Backup listing with metadata (filename, date, size)
-- Backup download capability for disaster recovery
-- SMTP connection test endpoint
-- Pre-deployment validation script
+**Table stakes (must have):**
+- Grounded LLM summaries from cluster data (genes, GO terms, phenotypes)
+- Structured JSON output with validation
+- Batch pre-generation (avoid real-time API calls)
+- Entity validation (check gene names exist in database)
+- Cached summaries in database with hash-based invalidation
+- Publications metadata from PubMed E-utilities
+- Pubtator gene prioritization for curators
 
-**Should have (differentiators):**
-- Admin UI migration status panel
-- Manual backup trigger ("Backup Now" button)
-- Admin UI SMTP test panel
-- Production readiness checklist endpoint
+**Differentiators:**
+- Full LLM-as-judge validation with confidence scoring
+- Novel gene discovery alerts (genes in Pubtator not in SysNDD)
+- Summary version history with model tracking
+- Curator annotation overlay (expert corrections visible)
 
-**Defer (v2+):**
-- Auto-generated migrations from schema diff
-- One-click restore from UI (too dangerous)
-- Email bounce handling
-- Incremental/differential backups
-- Point-in-time recovery
+**Anti-features (do NOT build):**
+- Real-time LLM generation on page load
+- Frontend Gemini API calls (exposes key)
+- LLM-generated statistics or p-values
+- Custom LLM fine-tuning
+- Multiple LLM provider fallbacks
 
 ### Architecture Approach
 
-SysNDD uses a layered architecture with clear integration points for each feature. Migration system integrates at API startup (between pool creation and endpoint mounting). Backup management adds new endpoint file following existing admin patterns. SMTP testing requires only configuration changes (Mailpit in docker-compose.override.yml). Production Docker validation extends existing health check infrastructure.
+Five integration points, all following existing patterns:
 
-**Major components:**
-1. **Migration Runner** (`api/functions/migration-runner.R`) - Executes pending migrations at startup, tracks state in `_schema_migrations` table
-2. **Backup Endpoints** (`api/endpoints/backup_endpoints.R`) - List, download, trigger, delete backups via REST API
-3. **Backup Admin UI** (`app/src/views/admin/ManageBackups.vue`) - Following ManageOntology.vue pattern with async job polling
-4. **Enhanced Health Check** (`/health/ready`) - Validates database, workers, and migrations before accepting traffic
+1. **Gemini API client** (`llm-service.R`) — follows `external-proxy-*.R` pattern
+2. **Summary storage** (`llm_cluster_summary_cache` table) — follows pubtator cache pattern
+3. **Batch generation job** — follows HGNC update job pattern via mirai
+4. **Summary display** — extends AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
+5. **Admin validation panel** — follows ManageAnnotations.vue pattern
 
 ### Critical Pitfalls
 
-1. **Credential Exposure in Version Control** - Remove all credentials from config.yml, use environment variables, rotate compromised secrets
-2. **Non-Idempotent Migrations** - Migration 002 uses plain `ALTER TABLE ADD COLUMN` without guards; must use stored procedure pattern with `IF NOT EXISTS` checks
-3. **Table Locking During Migration** - Use MySQL 8.0 Online DDL (`ALGORITHM=INPLACE, LOCK=NONE`) and schedule during low-traffic periods
-4. **Restore Without Safety Rails** - Implement type-to-confirm pattern (user types "RESTORE sysndd_db"), auto-backup before restore, audit logging
-5. **Emails to Real Users from Dev** - Use Mailpit in development, environment-specific SMTP config, domain allowlist
-6. **Connection Pool Exhaustion** - With 4 workers, configure explicit pool sizes (`maxSize = 10` per worker, total < MySQL max_connections)
+1. **Hallucinated gene names** — LLMs invent plausible but non-existent genes; validate every gene symbol against `non_alt_loci_set`
+
+2. **Schema ≠ content validation** — Gemini structured output validates JSON format, not semantic accuracy; build separate content validators
+
+3. **LLM-as-judge unreliability** — 64-68% agreement with experts; use rule-based validators as primary, LLM as supplementary
+
+4. **Cache staleness** — Summaries invalid when cluster composition changes; use SHA-256 hash of cluster genes as cache key
+
+5. **Rate limits per-project** — All API keys in a GCP project share quota; batch jobs compete with user requests; implement client-side rate limiting
+
+6. **Cost underestimation** — Cluster context can be 2000+ tokens; output tokens cost 2.5-10x more than input; use Batch API for 50% savings
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Phase 0: Credential Remediation (PREREQUISITE)
-**Rationale:** Security blocker - cannot deploy production features with credentials in version control
-**Delivers:** Secure configuration with all secrets in environment variables
-**Addresses:** Critical pitfall - credential exposure
-**Avoids:** Deploying production features with compromised credentials
+### Bug Fixes (Priority 1)
+**Rationale:** Bugs first, then features (user priority)
+**Delivers:** Fixes for 8-9 open GitHub issues
+**Risk:** LOW (isolated fixes)
 
-### Phase 1: Migration System Foundation
-**Rationale:** Required foundation - all schema changes need migration system before deployment
-**Delivers:** `_schema_migrations` table, migration-runner.R, startup integration
-**Addresses:** Sequential execution, state tracking, pre-flight check (table stakes)
-**Avoids:** Non-idempotent migrations causing deployment failures
+### LLM Foundation
+**Rationale:** Required foundation for AI features
+**Delivers:** ellmer integration, DB schema, entity validation pipeline
+**Addresses:** Hallucination prevention, structured output, API key security
+**Risk:** MEDIUM (new external dependency)
 
-### Phase 2: Migration Auto-Run and Admin UI
-**Rationale:** Builds on foundation, makes migrations operational
-**Delivers:** Auto-run at startup with extended health check timeout, admin status panel
-**Addresses:** Admin UI migration status, pre-flight check (differentiators)
-**Avoids:** API startup blocked by slow migration, table locking during migration
+### LLM Batch Generation
+**Rationale:** Avoid real-time API latency
+**Delivers:** mirai job for summary generation, progress tracking, checkpointing
+**Addresses:** Pre-generation, cost control, failure handling
+**Risk:** LOW (follows existing job patterns)
 
-### Phase 3: Backup API and Admin UI
-**Rationale:** Backend before frontend, uses existing backup infrastructure
-**Delivers:** Backup endpoints (list, download, trigger, delete), ManageBackups.vue
-**Addresses:** Backup listing, download, manual trigger (table stakes + differentiators)
-**Avoids:** Restore without safety rails, mysqldump locking
+### LLM Validation & Display
+**Rationale:** Human-in-the-loop before public display
+**Delivers:** Validation pipeline, admin UI, cluster view integration
+**Addresses:** Quality control, confidence scoring
+**Risk:** LOW (follows existing admin patterns)
 
-### Phase 4: SMTP Testing Infrastructure
-**Rationale:** Independent feature, adds development safety
-**Delivers:** Mailpit in docker-compose.override.yml, SMTP test endpoint
-**Addresses:** SMTP connection test, test email send (table stakes)
-**Avoids:** Emails to real users from dev, credential management issues
+### Publications Improvements
+**Rationale:** Better metadata for researchers
+**Delivers:** Updated easyPubMed calls, abstract display, author affiliations
+**Risk:** LOW (API wrapper updates)
 
-### Phase 5: Production Docker Validation
-**Rationale:** Validates entire system, requires other phases complete
-**Delivers:** Enhanced /health/ready endpoint, multi-worker validation, load testing
-**Addresses:** Pre-deployment validation, production checklist (table stakes)
-**Avoids:** Connection pool exhaustion, pool sharing across workers
+### Pubtator Overhaul
+**Rationale:** Curator prioritization and user research
+**Delivers:** Gene prioritization lists, novel gene alerts, concept documentation
+**Risk:** LOW (extends existing Pubtator integration)
 
-### Phase Ordering Rationale
-
-- **Phase 0 first:** Security blocker - no new features until credentials secured
-- **Phase 1 before 2:** Migration foundation needed before auto-run
-- **Phase 3 after 2:** Backup metadata table may use migration system
-- **Phase 4 independent:** Can proceed in parallel with Phase 3 if resources available
-- **Phase 5 last:** Integration testing requires other features complete
+### GitHub Pages Deployment
+**Rationale:** Modern CI/CD
+**Delivers:** GitHub Actions workflow replacing gh-pages branch
+**Risk:** LOW (well-documented pattern)
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2:** Table locking behavior needs MySQL 8.0 Online DDL verification with actual table sizes
-- **Phase 5:** Multi-worker connection pooling needs load testing to determine optimal settings
+- **LLM Validation:** May need iteration on validation prompts based on false positive rates
 
 Phases with standard patterns (skip research-phase):
-- **Phase 0:** Standard credential remediation, well-documented
-- **Phase 1:** Custom migration runner follows existing db-helpers.R patterns
-- **Phase 3:** Follows existing admin endpoint and Vue patterns exactly
-- **Phase 4:** Mailpit has excellent documentation, drop-in replacement
+- **Bug fixes** — specific issues, no research needed
+- **Publications** — easyPubMed migration well-documented
+- **Pubtator** — extends existing integration
+- **GitHub Pages** — GitHub Actions docs are comprehensive
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new packages - all existing components, verified in renv.lock |
-| Features | MEDIUM | Web research patterns verified against existing codebase |
-| Architecture | HIGH | Based on direct codebase analysis of existing patterns |
-| Pitfalls | HIGH | Verified with official docs (pool, Plumber, MySQL) and codebase analysis |
+| Stack (ellmer) | HIGH | Tidyverse maintained, CRAN verified |
+| Hallucination risks | HIGH | Verified against 2026 Nature, IEEE, JAMA research |
+| LLM-as-judge reliability | HIGH | ACM IUI 2025 research with 64-68% figures |
+| Rate limits | HIGH | Official Gemini API documentation |
+| Existing pattern reuse | HIGH | Based on codebase analysis |
+| Cost estimation | MEDIUM | Pricing may change; verified Jan 2026 |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **MySQL Online DDL behavior:** Need to verify `ALGORITHM=INPLACE, LOCK=NONE` works with actual migration SQL for tables with current data volume
-- **Connection pool sizing:** Load testing required to determine optimal pool size for 4-worker setup
-- **Backup container flags:** Need to verify fradelg/mysql-cron-backup uses `--single-transaction` flag
-- **Point-in-time recovery:** Documented as out of scope, but should determine if binary logging should be enabled for future capability
+- Gemini model retirement schedule (currently 2.0 Flash retiring March 2026)
+- Exact token counts for cluster context (pilot needed)
+- Cost per summary batch (pilot needed before full generation)
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [R pool package documentation](https://solutions.posit.co/connections/db/r-packages/pool/) - connection pooling behavior
-- [Plumber Execution Model](https://www.rplumber.io/articles/execution-model.html) - multi-worker patterns
-- [MySQL Online DDL Reference](https://dev.mysql.com/doc/refman/8.0/en/innodb-online-ddl.html) - ALTER TABLE locking
-- [Mailpit Documentation](https://mailpit.axllent.org/) - SMTP testing configuration
-- [fradelg/docker-mysql-cron-backup](https://github.com/fradelg/docker-mysql-cron-backup) - existing backup container
+- [ellmer 0.4.0 Tidyverse blog](https://tidyverse.org/blog/2025/11/ellmer-0-4-0/)
+- [ellmer structured data vignette](https://ellmer.tidyverse.org/articles/structured-data.html)
+- [easyPubMed CRAN PDF](https://cran.r-project.org/web/packages/easyPubMed/easyPubMed.pdf) — 2026 retirement
+- [Gemini API Rate Limits](https://ai.google.dev/gemini-api/docs/rate-limits)
+- [Nature Scientific Reports: Biomedical LLM Hallucinations](https://www.nature.com/articles/s41598-026-35492-8)
+- [ACM IUI 2025: LLM-as-a-Judge Limitations](https://dl.acm.org/doi/10.1145/3708359.3712091)
 
 ### Secondary (MEDIUM confidence)
-- [Database Migration Best Practices](https://www.bacancytechnology.com/blog/database-migration-best-practices) - migration patterns
-- [Docker Compose Health Checks](https://last9.io/blog/docker-compose-health-checks/) - health check configuration
-- [Three Useful Endpoints for Plumber APIs](https://unconj.ca/blog/three-useful-endpoints-for-any-plumber-api.html) - health endpoint patterns
+- [IEEE JBHI: Healthcare LLM Hallucinations](https://www.embs.org/jbhi/)
+- [Gemini API Pricing 2026](https://www.metacto.com/blogs/the-true-cost-of-google-gemini)
+- [PubTator 3.0 NAR paper](https://academic.oup.com/nar/article/52/W1/W540/7640526)
 
 ### Codebase Analysis (HIGH confidence)
-- `/home/bernt-popp/development/sysndd/api/config.yml` - Credential exposure verified
-- `/home/bernt-popp/development/sysndd/db/migrations/` - Migration 002 non-idempotent verified
-- `/home/bernt-popp/development/sysndd/api/start_sysndd_api.R` - Pool and startup patterns
-- `/home/bernt-popp/development/sysndd/api/functions/db-helpers.R` - Database layer patterns
-- `/home/bernt-popp/development/sysndd/api/endpoints/admin_endpoints.R` - Admin endpoint patterns
-- `/home/bernt-popp/development/sysndd/app/src/views/admin/ManageOntology.vue` - Admin UI patterns
-- `/home/bernt-popp/development/sysndd/docker-compose.yml` - Container orchestration
+- `api/functions/external-proxy-*.R` — httr2 patterns
+- `api/functions/job-manager.R` — mirai async patterns
+- `api/functions/pubtator-functions.R` — caching patterns
+- `app/src/views/admin/ManageAnnotations.vue` — admin job UI pattern
 
 ---
 
-**Research completed:** 2026-01-29
-**Ready for roadmap:** Yes (after credential remediation decision)
+**Research completed:** 2026-01-31
+**Ready for roadmap:** Yes
