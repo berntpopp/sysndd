@@ -382,17 +382,24 @@ function(req, res) {
 function(req, res, user_id) {
   require_role(req, res, "Curator")
 
-  user <- req$user_id
   user_id_assign <- as.integer(user_id)
 
-  user_table <- pool %>%
+  # Get assignee user info for email
+
+  user_info <- pool %>%
     tbl("user") %>%
-    select(user_id, approved) %>%
+    select(user_id, user_name, email, approved) %>%
     filter(user_id == user_id_assign) %>%
     collect()
 
-  user_id_assign_exists <- as.logical(length(user_table$user_id))
+  user_id_assign_exists <- as.logical(length(user_info$user_id))
 
+  if (!user_id_assign_exists) {
+    res$status <- 409
+    return(list(error = "User account does not exist."))
+  }
+
+  # Find next available batch
   re_review_assignment <- pool %>%
     tbl("re_review_assignment") %>%
     select(re_review_batch)
@@ -406,19 +413,51 @@ function(req, res, user_id) {
     summarize(re_review_batch = min(re_review_batch))
 
   re_review_batch_next <- re_review_entity_connect$re_review_batch
-  assignment_table <- tibble(
-    "user_id" = user_id_assign,
-    "re_review_batch" = re_review_batch_next
-  )
 
-  if (!user_id_assign_exists) {
+  if (is.na(re_review_batch_next)) {
     res$status <- 409
-    return(list(error = "User account does not exist."))
+    return(list(error = "No available batches to assign."))
   }
 
+  # Get entity count for the batch
+  entity_count <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    filter(re_review_batch == re_review_batch_next) %>%
+    summarize(n = n()) %>%
+    collect() %>%
+    pull(n)
+
+  # Insert assignment
   db_execute_statement(
     "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
     list(user_id_assign, re_review_batch_next)
+  )
+
+  # Send notification email to assignee
+  email_html <- email_batch_assigned(
+    user_info = list(
+      user_name = user_info$user_name,
+      email = user_info$email
+    ),
+    batch_info = list(
+      batch_number = re_review_batch_next,
+      entity_count = entity_count
+    ),
+    review_url = paste0(dw$base_url, "/ReReview")
+  )
+
+  send_noreply_email(
+    email_body = email_html,
+    email_subject = "SysNDD Re-Review Batch Assigned",
+    email_recipient = user_info$email,
+    email_blind_copy = "curator@sysndd.org",
+    html_content = TRUE
+  )
+
+  list(
+    message = "Batch assigned successfully.",
+    batch_number = re_review_batch_next,
+    entity_count = entity_count
   )
 }
 

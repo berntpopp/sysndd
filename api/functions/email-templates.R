@@ -329,6 +329,68 @@ email_rereview_request <- function(user_info, batch_info = NULL) {
 }
 
 
+#' Batch Assigned Email Template
+#'
+#' Sent when a curator assigns a re-review batch to a user.
+#'
+#' @param user_info Named list with user details (user_name, email)
+#' @param batch_info Named list with batch details (batch_number, entity_count)
+#' @param review_url URL to access the review interface
+#' @return Complete HTML email string
+email_batch_assigned <- function(user_info, batch_info, review_url = "https://sysndd.org/ReReview") {
+  user_name <- user_info$user_name %||% "User"
+  batch_number <- batch_info$batch_number %||% "N/A"
+  entity_count <- batch_info$entity_count %||% 0
+
+  content <- glue::glue('
+<h2 style="color: {SYSNDD_TEXT}; font-size: 20px; margin: 0 0 16px 0; font-weight: 600;">Re-Review Batch Assigned</h2>
+
+<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+  Hello <span class="highlight" style="color: {SYSNDD_PRIMARY}; font-weight: 600;">{user_name}</span>,
+</p>
+
+<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+  Great news! A new re-review batch has been assigned to you by our curators. You can now begin reviewing the entities in your batch.
+</p>
+
+<div class="success-box" style="background-color: #d4edda; border-left: 4px solid {SYSNDD_SUCCESS}; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
+  <p style="margin: 0 0 8px 0; color: {SYSNDD_TEXT}; font-size: 14px;"><strong>Batch Details:</strong></p>
+  <table style="font-size: 14px; color: {SYSNDD_TEXT};">
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Batch Number:</td><td style="font-weight: 600;">{batch_number}</td></tr>
+    <tr><td style="padding: 4px 12px 4px 0; color: {SYSNDD_TEXT_LIGHT};">Entities to Review:</td><td style="font-weight: 600;">{entity_count}</td></tr>
+  </table>
+</div>
+
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px auto;">
+  <tr>
+    <td style="border-radius: 6px; background-color: {SYSNDD_SUCCESS};">
+      <a href="{review_url}" target="_blank" style="display: inline-block; background-color: {SYSNDD_SUCCESS}; color: {SYSNDD_WHITE}; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        Start Reviewing
+      </a>
+    </td>
+  </tr>
+</table>
+
+<div style="border-top: 1px solid #e0e0e0; margin: 24px 0;"></div>
+
+<p style="color: {SYSNDD_TEXT}; font-size: 16px; line-height: 1.6; margin: 0 0 8px 0;">
+  <strong>How to proceed:</strong>
+</p>
+<ul style="color: {SYSNDD_TEXT}; font-size: 15px; line-height: 1.8; margin: 0; padding-left: 20px;">
+  <li>Sign in to SysNDD and navigate to the Re-Review section</li>
+  <li>Review each entity in your assigned batch</li>
+  <li>Submit your assessments for curator approval</li>
+</ul>
+
+<p style="color: {SYSNDD_TEXT_LIGHT}; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+  Thank you for your contributions to SysNDD!
+</p>
+', .open = "{", .close = "}")
+
+  email_wrapper(content, preheader = glue::glue("Batch #{batch_number} with {entity_count} entities has been assigned to you"))
+}
+
+
 #' Generic Notification Email Template
 #'
 #' For general system notifications.
