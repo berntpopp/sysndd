@@ -9,10 +9,12 @@
 Integrate Gemini API for generating cluster summaries with structured output and entity validation. This phase delivers:
 - Gemini API client using ellmer package
 - Secure API key management (GEMINI_API_KEY)
-- Structured JSON output schema for summaries
+- Structured JSON output schema for summaries (including tags/keywords)
 - Entity validation to ensure gene names exist in database
+- Database schema for summary storage (`llm_cluster_summary_cache`, `llm_generation_log`)
+- Hash-based cluster identification for cache invalidation
 
-**Not in scope:** Batch generation (Phase 59), display components (Phase 60), validation workflows (Phase 61).
+**Not in scope:** Batch generation jobs (Phase 59), display components (Phase 60), admin validation workflows (Phase 61).
 
 </domain>
 
@@ -26,9 +28,10 @@ Integrate Gemini API for generating cluster summaries with structured output and
 - **Prompt template**: Unified template for both functional and phenotype clusters with type-specific placeholders
 
 ### Output Schema
-- **Structure**: `summary` (prose) + `key_themes` (array) + `pathways` (array) + `confidence` (enum)
+- **Structure**: `summary` (prose) + `key_themes` (array) + `pathways` (array) + `tags` (array) + `confidence` (enum)
 - **Summary length**: 2-3 sentences (~100 words)
 - **Key themes count**: 3-5 themes
+- **Tags/Keywords**: 3-7 searchable tags (e.g., "neurodevelopment", "mitochondrial", "metabolism")
 - **Confidence**: Both LLM self-reported (high/medium/low) AND derived from FDR values
 - **Additional for phenotype clusters**: `syndrome_hints` and `curation_notes` fields
 
@@ -50,11 +53,34 @@ Integrate Gemini API for generating cluster summaries with structured output and
 - **Connectivity failures**: Exponential backoff, max 3 retries, then skip + log
 - **Semantic failures**: Retry with same prompt up to 3 times
 
+### Storage Strategy
+- **Database storage**: MySQL with native JSON columns (MySQL 8.0.40 supports JSON)
+- **Main table**: `llm_cluster_summary_cache` — stores validated summaries
+  - `cluster_type` (ENUM: 'functional', 'phenotype')
+  - `cluster_number` (INT)
+  - `cluster_hash` (VARCHAR 64) — SHA256 of sorted gene/entity IDs for invalidation
+  - `model_name`, `prompt_version` — track generation parameters
+  - `summary_json` (JSON) — full structured response
+  - `tags` (JSON) — extracted tags for search/filtering
+  - `is_current` (BOOLEAN) — flag for newest version
+  - `validation_status` (ENUM: 'pending', 'validated', 'rejected')
+  - `created_at`, `validated_at`, `validated_by` — audit trail
+- **Log table**: `llm_generation_log` — audit trail for all attempts (success + failure)
+  - Stores prompt text, response, validation errors, tokens used, latency
+  - Enables prompt improvement and debugging
+
+### Hash-Based Invalidation
+- **Functional clusters**: `SHA256(sorted(hgnc_ids).join(','))`
+- **Phenotype clusters**: `SHA256(sorted(entity_ids).join(','))`
+- When cluster composition changes → hash changes → triggers re-generation
+- Old summaries retained with `is_current=FALSE` for history
+
 ### Claude's Discretion
-- Exact prompt wording and template structure
+- Exact prompt wording and Jinja/glue template structure
 - Retry temperature variation strategy
-- Logging format and storage mechanism
-- Specific validation error messages
+- Migration script implementation details
+- Specific validation error messages and codes
+- Index optimization for JSON queries
 
 </decisions>
 
@@ -74,10 +100,32 @@ Sample output from Cluster 3 (Metabolic/Mitochondrial) using gemini-3-pro-previe
   "summary": "This cluster encompasses genes distinctively characterized by their roles in mitochondrial bioenergetics, mitochondrial translation, and broader metabolic homeostasis. The strong enrichment for abnormal muscle physiology and muscle tone, alongside neurodevelopmental delay, aligns with the clinical presentation of mitochondrial encephalomyopathies.",
   "key_themes": ["Mitochondrial Bioenergetics", "Neuromuscular Physiology", "Metabolic Homeostasis", "Mitochondrial Translation"],
   "pathways": ["Oxidative phosphorylation", "Urea cycle", "Mitochondrial ribosome assembly"],
+  "tags": ["mitochondrial", "metabolism", "myopathy", "encephalomyopathy", "hypotonia"],
   "clinical_relevance": "High priority for patients presenting with syndromic NDDs featuring comorbid hypotonia or myopathy.",
   "confidence": "high"
 }
 ```
+
+### Full JSON Schema for Storage
+```json
+{
+  "summary": "string (2-3 sentences)",
+  "key_themes": ["string", "..."],
+  "pathways": ["string", "..."],
+  "tags": ["string", "..."],
+  "clinical_relevance": "string",
+  "confidence": "high|medium|low",
+  "llm_confidence": "high|medium|low",
+  "derived_confidence": {
+    "avg_fdr": 1.5e-50,
+    "term_count": 45,
+    "score": 0.92
+  },
+  "syndrome_hints": ["string", "..."],
+  "curation_notes": "string"
+}
+```
+Note: `syndrome_hints` and `curation_notes` only for phenotype clusters.
 
 ### Reference Implementation
 - Use `chat_google_gemini()` from ellmer with `GEMINI_API_KEY` env var
