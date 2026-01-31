@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 55 (Bug Fixes)
-**Plan:** 02 of ~8 (in progress)
-**Status:** Executing
+**Plan:** 01 of ~8 complete
+**Status:** In progress
 **Progress:** v10.0 [==                  ] 1/8 phases (12.5%)
 
-**Last completed:** Phase 55 Plan 02 - Curation workflow bug fixes
-**Last activity:** 2026-01-31 — Completed 55-02-PLAN.md
+**Last completed:** Phase 55 Plan 01 - Entity update/creation bug fixes
+**Last activity:** 2026-01-31 — Completed 55-01-PLAN.md
 
 ---
 
@@ -123,7 +123,17 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 4. **Summary display:** Extend AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
 5. **Admin panel:** Follow ManageAnnotations.vue pattern
 
-### Decisions from Phase 55 Plan 02 (Curation Bugs)
+### Decisions from Phase 55
+
+**Plan 01 (Entity Bugs):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Created atomic function but kept legacy endpoint | Refactoring /create endpoint would be high-risk; provide function for future use | entity_create_with_review_status() available for future migration |
+| 2026-01-31 | Focus on observability over enforcement | Logging provides immediate debugging value without breaking existing flow | PARTIAL CREATION warnings detect orphaned entities in production |
+| 2026-01-31 | Used db_with_transaction pattern | Reuse existing battle-tested transaction infrastructure | Consistent error handling and rollback across all atomic operations |
+
+**Plan 02 (Curation Bugs):**
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
@@ -138,8 +148,8 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 55-02-PLAN.md (curation workflow bugs)
-**Next action:** Continue with remaining Phase 55 plans (entity bugs, publication updates, etc.)
+**Stopped at:** Completed 55-01-PLAN.md (entity update/creation bugs)
+**Next action:** Continue with remaining Phase 55 plans (publication updates, etc.)
 **Resume file:** None
 
 **Handoff notes:**
@@ -151,14 +161,14 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - Phase 62 can run parallel after Phase 55
 
 2. **Phase 55 Bug Status:**
+   - ✅ #122: EIF2AK2 publication update incomplete (BUG-01) - Logging added in 55-01
+   - ✅ #115: GAP43 entity not visible (BUG-02) - Atomic function prevents orphaning in 55-01
+   - ✅ #114: MEF2C entity updating issues (BUG-03) - Logging detects partial updates in 55-01
    - ✅ Viewer profile / auto-logout (BUG-04) - Fixed in 55-02
    - ✅ PMID deletion during re-review (BUG-05) - Protected with logging in 55-02
    - ✅ #44: Entities over time counts incorrect (BUG-06) - Fixed in 55-02
    - ⚠️ #41: Disease renaming bypasses approval (BUG-07) - Documented in 55-02, needs implementation
    - ✅ Re-reviewer identity lost (BUG-08) - Fixed in 55-02
-   - ❌ #122: EIF2AK2 publication update incomplete (BUG-01) - Not started
-   - ❌ #115: GAP43 entity not visible (BUG-02) - Not started
-   - ❌ #114: MEF2C entity updating issues (BUG-03) - Not started
 
 3. **LLM Implementation Notes:**
    - Add ellmer >= 0.4.0 to renv
