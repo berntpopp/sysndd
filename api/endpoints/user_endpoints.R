@@ -152,14 +152,16 @@ function(req, res, filter = "", sort = "+user_id", page_after = 0,
 #* Retrieves count statistics of all contributions for a specified user.
 #*
 #* # `Details`
-#* Admin/Curator/Reviewer can see. Returns active reviews and statuses user contributed.
+#* Users can view their own contributions. Reviewer/Curator/Admin can view any user.
 #*
 #* @tag user
 #* @serializer json list(na="string")
 #* @get <user_id>/contributions
 function(req, res, user_id) {
-  # Require Reviewer role or higher
-  require_role(req, res, "Reviewer")
+  # Allow users to view their own contributions, or require Reviewer role for others
+  if (as.integer(user_id) != req$user_id) {
+    require_role(req, res, "Reviewer")
+  }
 
   user_requested <- user_id
 
