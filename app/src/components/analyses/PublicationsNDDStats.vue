@@ -384,17 +384,42 @@ export default {
 
       /**
        * Mousemove event handler to move the tooltip with the mouse.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        */
       const mousemove = function mousemove(event, d) {
-        // Using event.layerX and event.layerY to position near the cursor
-        // offset by +20 so it doesn't overlap the cursor
+        const container = document.getElementById('stats_dataviz');
+        const containerRect = container.getBoundingClientRect();
+        const tooltipWidth = 200; // approximate tooltip width
+        const tooltipHeight = 60; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
         tooltip
           .html(
             `<strong>${d[xKey]}</strong><br/>` +
               `Count: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       };
 
       /**
@@ -431,7 +456,7 @@ export default {
   width: 100%;
   max-width: 900px;
   vertical-align: top;
-  overflow: hidden;
+  overflow: visible;
 }
 .svg-container svg {
   display: inline-block;

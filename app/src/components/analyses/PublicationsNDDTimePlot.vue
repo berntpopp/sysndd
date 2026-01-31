@@ -303,22 +303,44 @@ export default {
 
       /**
        * Handle mouse move for line points.
-       * Uses pageX/pageY for reliable cross-browser positioning.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        * @param {Event} event
        * @param {Object} d
        */
       function handleLineMouseMove(event, d) {
         const containerRect = container.getBoundingClientRect();
-        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const tooltipWidth = 150; // approximate tooltip width
+        const tooltipHeight = 50; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
         const label = isCumulative ? 'Total' : 'Count';
         tooltip
           .html(
             `<strong>${formatDate(d.dateVal)}</strong><br/>` +
               `${label}: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
-          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       }
 
       /**
@@ -424,21 +446,43 @@ export default {
 
       /**
        * Handle mouse move for bar chart bars.
-       * Uses pageX/pageY for reliable cross-browser positioning.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        * @param {Event} event
        * @param {Object} d
        */
       function handleBarMouseMove(event, d) {
         const containerRect = container.getBoundingClientRect();
-        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const tooltipWidth = 180; // approximate tooltip width
+        const tooltipHeight = 50; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
         tooltip
           .html(
             `<strong>${d.publication_type}</strong><br/>` +
               `Count: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
-          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       }
 
       /**
@@ -476,7 +520,7 @@ export default {
   width: 100%;
   max-width: 800px;
   vertical-align: top;
-  overflow: hidden;
+  overflow: visible;
 }
 .spinner {
   width: 2rem;
