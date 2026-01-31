@@ -168,7 +168,7 @@ pre-commit: ## [quality] Run all quality checks before committing
 
 # Configuration for preflight validation
 PREFLIGHT_TIMEOUT := 120
-PREFLIGHT_HEALTH_ENDPOINT := http://localhost/health/ready
+PREFLIGHT_HEALTH_ENDPOINT := http://localhost/api/health/ready
 
 preflight: check-docker ## [quality] Run production preflight validation
 	@printf "$(CYAN)==> Running production preflight validation...$(RESET)\n"
@@ -211,7 +211,7 @@ preflight: check-docker ## [quality] Run production preflight validation
 	@printf "\n$(CYAN)Production Docker build validated:$(RESET)\n"
 	@printf "  - API image builds successfully\n"
 	@printf "  - Containers start without errors\n"
-	@printf "  - /health/ready returns 200\n"
+	@printf "  - /api/health/ready returns 200\n"
 	@printf "  - Database connectivity verified\n"
 
 # =============================================================================

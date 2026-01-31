@@ -11,8 +11,8 @@ services:
         max-size: "10m"
         max-file: "3"
     command:
-      # Enable API for healthcheck CLI; disable dashboard (security)
-      # Port 8080 is not exposed externally - only used by container healthcheck
+      # Enable API for healthcheck CLI but disable dashboard (security)
+      # Internal API uses 'traefik' entrypoint, our routes use 'web' - no conflict
       - "--api=true"
       - "--api.insecure=true"
       - "--api.dashboard=false"
@@ -29,7 +29,7 @@ services:
       - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
       # Enable ping for health checks (on API port for traefik healthcheck CLI)
       - "--ping=true"
-      # Minimal logging
+      # Minimal logging in production
       - "--log.level=WARN"
     ports:
       - "80:80"
@@ -155,7 +155,7 @@ services:
       - proxy
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:7777/health/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/"]
       interval: 30s
       timeout: 10s
       retries: 3

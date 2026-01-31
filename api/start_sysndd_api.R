@@ -568,7 +568,7 @@ root <- pr() %>%
   ####################################################################
   # Mount health endpoint for Docker HEALTHCHECK
   ####################################################################
-  pr_mount("/health", pr("endpoints/health_endpoints.R")) %>%
+  pr_mount("/api/health", pr("endpoints/health_endpoints.R")) %>%
   ####################################################################
   # Mount version endpoint for API version discovery
   ####################################################################
