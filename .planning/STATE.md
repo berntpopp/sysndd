@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 58 (LLM Foundation) - IN PROGRESS
-**Plan:** 1/4 complete
-**Status:** In progress
-**Progress:** v10.0 [████████            ] 4/8 phases (50%) + 58-01 complete
+**Phase:** 58 (LLM Foundation) - COMPLETE
+**Plan:** 2/2 complete
+**Status:** Phase complete
+**Progress:** v10.0 [████████░░          ] 5/8 phases (62.5%)
 
-**Last completed:** 58-01 - LLM Infrastructure Setup (LLM-01 partial)
-**Last activity:** 2026-01-31 — Completed 58-01-PLAN.md
+**Last completed:** 58-02 - Entity Validation Pipeline
+**Last activity:** 2026-01-31 — Completed 58-02-PLAN.md
 
 ---
 
@@ -37,7 +37,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
-| 58 | LLM Foundation | LLM-01 to LLM-04 | In progress (1/4 plans) |
+| 58 | LLM Foundation | LLM-01 to LLM-04 | ✓ Complete |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
 | 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |
@@ -234,13 +234,18 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
      - Refresh All Publications button with async job tracking
      - Real-time progress bar and job history integration
 
-6. **Phase 58 Progress (LLM Foundation):**
+6. **Phase 58 Complete (LLM Foundation):**
    - ✅ Plan 01: LLM Infrastructure Setup
      - Migration 006: llm_cluster_summary_cache and llm_generation_log tables
      - api/functions/llm-cache-repository.R: hash generation, cache lookup/storage, logging
      - api/functions/llm-service.R: Gemini API client with ellmer, structured output types
      - ellmer 0.4.0 and coro 1.1.0 added to renv.lock
-   - Next: Plan 02 (Entity Validation) - validate gene symbols against HGNC database
+   - ✅ Plan 02: Entity Validation Pipeline
+     - api/functions/llm-validation.R: gene symbol and pathway validation
+     - Strict validation: any invalid gene rejects entire summary
+     - Integrated into generate_cluster_summary() with retry loop
+     - calculate_derived_confidence() for objective confidence scoring
+     - 23 unit tests in test-llm-validation.R
 
 ### Decisions from Phase 58
 
@@ -252,16 +257,25 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Default model gemini-2.0-flash | Preview models (gemini-3-pro-preview) may be unstable | Production stability over cutting-edge features |
 | 2026-01-31 | Conservative rate limit (30 RPM) | Half of Paid Tier 1 limit to avoid 429 errors | Safe margin for rate limiting |
 
+**Plan 02 (Entity Validation Pipeline):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | STRICT validation mode | Any invalid gene symbol should reject entire summary | Prevents hallucinated gene names in database |
+| 2026-01-31 | Common word filtering | DNA, RNA, ATP, HPO, OMIM etc. are not gene symbols | Reduces false positives in gene extraction |
+| 2026-01-31 | Case-insensitive pathway matching | Pathways may have varying capitalization | More flexible validation without losing accuracy |
+| 2026-01-31 | Derived confidence separate from LLM confidence | LLM self-assessment may be unreliable | Objective metric based on FDR values and term counts |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed Phase 58 Plan 01 (LLM Infrastructure Setup)
-**Next action:** Execute Phase 58 Plan 02 (Entity Validation)
+**Stopped at:** Completed Phase 58 Plan 02 (Entity Validation Pipeline)
+**Next action:** Phase 59 (LLM Batch & Caching) or other work as directed
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 58 Plan 01 (LLM Infrastructure Setup)*
+*Last updated: 2026-01-31 — Phase 58 Plan 02 (Entity Validation Pipeline)*
