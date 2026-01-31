@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 59 (LLM Batch, Caching & Validation)
-**Plan:** 1/4 complete (59-01: Batch Generation Orchestrator)
+**Plan:** 2/4 complete (59-02: LLM-as-judge Validation Pipeline)
 **Status:** In progress
-**Progress:** v10.0 [████████░░          ] 6.25/8 phases (78%)
+**Progress:** v10.0 [████████░░          ] 6.5/8 phases (81%)
 
-**Last completed:** 59-01 - Batch LLM Generation Orchestrator
-**Last activity:** 2026-01-31 — Completed 59-01-PLAN.md
+**Last completed:** 59-02 - LLM-as-judge Validation Pipeline
+**Last activity:** 2026-01-31 — Completed 59-02-PLAN.md
 
 ---
 
@@ -285,16 +285,25 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Job chaining in promise callback (main process) | Clustering completes in daemon, promise callback fires in main process where create_job() is safe | Clean separation - no mirai-in-mirai issues |
 | 2026-01-31 | Cache-first lookup for each cluster | Avoid regenerating summaries when cluster composition hasn't changed | Fast re-runs, cost savings on API calls |
 
+**Plan 02 (LLM-as-judge Validation Pipeline):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Use same model for judging as generation | Consistency in evaluation approach | All judgments use gemini-2.0-flash by default |
+| 2026-01-31 | Graceful degradation on judge failure | Prefer usability over perfection | Failed judge → low_confidence (pending) instead of hard error |
+| 2026-01-31 | Judge function handles caching | Simplify batch executor logic | Reduced duplicate cache save logic in batch executor |
+| 2026-01-31 | Store judge metadata in summary JSON | Enable judge calibration analysis | llm_judge_verdict and llm_judge_reasoning available for debugging |
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed Phase 59 Plan 01 (Batch LLM Generation Orchestrator)
-**Next action:** Phase 59 Plan 02 or other work as directed
+**Stopped at:** Completed Phase 59 Plan 02 (LLM-as-judge Validation Pipeline)
+**Next action:** Phase 59 Plan 03 or other work as directed
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 59 Plan 01 (Batch LLM Generation Orchestrator)*
+*Last updated: 2026-01-31 — Phase 59 Plan 02 (LLM-as-judge Validation Pipeline)*
