@@ -39,7 +39,7 @@
               v-model="timeAggregation"
               :options="timeAggregationOptions"
               :disabled="plotMode === 'type_counts'"
-              @change="generateGraph"
+              @change="loadData"
             />
           </BInputGroup>
         </BCol>
@@ -113,10 +113,14 @@ export default {
     async loadData() {
       this.loading = true;
 
-      // Example: GET /api/statistics/publication_stats
+      // GET /api/statistics/publication_stats with time_aggregate parameter
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       try {
-        const response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl, {
+          params: {
+            time_aggregate: this.timeAggregation,
+          },
+        });
         this.statsData = response.data;
         // Now we generate the graph
         this.generateGraph();
@@ -144,68 +148,6 @@ export default {
     },
 
     /**
-     * aggregateData
-     * Aggregates data by the selected time period (year/month/quarter)
-     * and optionally computes cumulative totals.
-     * @param {Array} dataArr - Raw data array
-     * @param {String} dateKey - Key for the date field
-     * @returns {Array} - Aggregated data array
-     */
-    aggregateData(dataArr, dateKey) {
-      // Parse dates
-      const parseDate = d3.timeParse('%Y-%m-%d');
-      const data = dataArr
-        .map((d) => ({
-          dateVal: parseDate(d[dateKey]),
-          count: d.count,
-        }))
-        .filter((d) => d.dateVal !== null);
-
-      // Aggregate based on timeAggregation setting
-      let aggregated;
-      if (this.timeAggregation === 'year') {
-        aggregated = d3.rollups(
-          data,
-          (v) => d3.sum(v, (d) => d.count),
-          (d) => d3.timeYear(d.dateVal)
-        );
-      } else if (this.timeAggregation === 'month') {
-        aggregated = d3.rollups(
-          data,
-          (v) => d3.sum(v, (d) => d.count),
-          (d) => d3.timeMonth(d.dateVal)
-        );
-      } else if (this.timeAggregation === 'quarter') {
-        // Quarter = floor to nearest 3 months
-        aggregated = d3.rollups(
-          data,
-          (v) => d3.sum(v, (d) => d.count),
-          (d) => {
-            const month = d.dateVal.getMonth();
-            const quarterMonth = Math.floor(month / 3) * 3;
-            return new Date(d.dateVal.getFullYear(), quarterMonth, 1);
-          }
-        );
-      }
-
-      // Sort by date and convert back to array format
-      const sorted = aggregated
-        .map(([dateVal, count]) => ({ dateVal, count }))
-        .sort((a, b) => a.dateVal - b.dateVal);
-
-      // Apply cumulative if enabled
-      if (this.showCumulative) {
-        let cumulative = 0;
-        return sorted.map((d) => {
-          cumulative += d.count;
-          return { ...d, count: cumulative };
-        });
-      }
-
-      return sorted;
-    },
-
-    /**
      * formatDateForTooltip
      * Formats date based on aggregation level
      * @param {Date} date - Date object
@@ -225,7 +167,7 @@ export default {
      * generateLinePlot
      * Renders a line plot for an array of objects with shape:
      *   { Publication_date or update_date: 'YYYY-MM-DD', count: number }
-     * Uses aggregation and cumulative settings.
+     * Uses data already aggregated by the API and optionally applies cumulative view.
      * @param {Array} dataArr
      * @param {String} dateKey e.g. 'Publication_date' or 'update_date'
      */
@@ -249,8 +191,24 @@ export default {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // Use aggregated data
-      const data = this.aggregateData(dataArr, dateKey);
+      // Parse dates from API data (already aggregated by server)
+      const parseDate = d3.timeParse('%Y-%m-%d');
+      let data = dataArr
+        .map((d) => ({
+          dateVal: parseDate(d[dateKey]),
+          count: d.count,
+        }))
+        .filter((d) => d.dateVal !== null)
+        .sort((a, b) => a.dateVal - b.dateVal);
+
+      // Apply cumulative view if enabled
+      if (this.showCumulative) {
+        let cumulative = 0;
+        data = data.map((d) => {
+          cumulative += d.count;
+          return { ...d, count: cumulative };
+        });
+      }
 
       if (data.length === 0) return;
 
@@ -258,9 +216,38 @@ export default {
       const x = d3
         .scaleTime()
         .domain(d3.extent(data, (d) => d.dateVal))
+        .nice()
         .range([0, width]);
 
-      svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x));
+      // Calculate time span to determine appropriate tick intervals
+      const [minDate, maxDate] = d3.extent(data, (d) => d.dateVal);
+      const yearsSpan = (maxDate - minDate) / (1000 * 60 * 60 * 24 * 365);
+
+      // Configure axis with smart tick selection based on time span
+      // Goal: Keep ~8-12 readable ticks regardless of aggregation level
+      const xAxis = d3.axisBottom(x);
+
+      if (this.timeAggregation === 'year') {
+        // For yearly data, show every N years based on span
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      } else if (this.timeAggregation === 'month') {
+        // For monthly data, show year ticks only (data points are still monthly)
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      } else if (this.timeAggregation === 'quarter') {
+        // For quarterly data, show year ticks only (data points are still quarterly)
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      }
+
+      svg
+        .append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('text-anchor', 'middle')
+        .style('font-size', '11px');
 
       // y scale
       const maxCount = d3.max(data, (d) => d.count);
@@ -304,6 +291,7 @@ export default {
       // Store references for tooltip content formatting
       const formatDate = this.formatDateForTooltip.bind(this);
       const isCumulative = this.showCumulative;
+      const container = document.getElementById('pubs_dataviz');
 
       /**
        * Handle mouse over for line points.
@@ -315,18 +303,22 @@ export default {
 
       /**
        * Handle mouse move for line points.
+       * Uses pageX/pageY for reliable cross-browser positioning.
        * @param {Event} event
        * @param {Object} d
        */
       function handleLineMouseMove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
         const label = isCumulative ? 'Total' : 'Count';
         tooltip
           .html(
             `<strong>${formatDate(d.dateVal)}</strong><br/>` +
               `${label}: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
+          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
       }
 
       /**
@@ -419,6 +411,9 @@ export default {
         .style('font-size', '0.85rem')
         .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
+      // Get the container for relative positioning
+      const container = document.getElementById('pubs_dataviz');
+
       /**
        * Handle mouse over for bar chart bars.
        */
@@ -429,17 +424,21 @@ export default {
 
       /**
        * Handle mouse move for bar chart bars.
+       * Uses pageX/pageY for reliable cross-browser positioning.
        * @param {Event} event
        * @param {Object} d
        */
       function handleBarMouseMove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
         tooltip
           .html(
             `<strong>${d.publication_type}</strong><br/>` +
               `Count: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
+          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
       }
 
       /**
