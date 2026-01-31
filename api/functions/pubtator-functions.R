@@ -17,6 +17,49 @@ if (!exists("db_execute_query", mode = "function")) {
 }
 
 #------------------------------------------------------------------------------
+# PubTator API Rate Limiting Configuration
+# Based on API documentation: ~30 requests/minute limit
+#------------------------------------------------------------------------------
+PUBTATOR_RATE_LIMIT_DELAY <- 2.5 # seconds between requests (24 req/min max)
+PUBTATOR_MAX_PMIDS_PER_REQUEST <- 100 # batch size for PMID fetches
+PUBTATOR_MAX_RETRIES <- 3
+PUBTATOR_BACKOFF_BASE <- 2 # exponential backoff base (seconds)
+
+#' Execute API call with rate limiting and exponential backoff
+#'
+#' @param api_func Function to execute
+#' @param ... Arguments to pass to api_func
+#' @param max_retries Maximum retry attempts (default: PUBTATOR_MAX_RETRIES)
+#' @return Result of api_func or NULL on failure
+pubtator_rate_limited_call <- function(api_func, ..., max_retries = PUBTATOR_MAX_RETRIES) {
+  retries <- 0
+  while (retries <= max_retries) {
+    tryCatch(
+      {
+        # Rate limiting delay before each request
+        if (retries > 0) {
+          backoff_time <- PUBTATOR_BACKOFF_BASE^retries + runif(1, 0, 1)
+          log_info("Retry {retries}/{max_retries}, backing off {round(backoff_time, 1)}s...")
+          Sys.sleep(backoff_time)
+        }
+        result <- api_func(...)
+        Sys.sleep(PUBTATOR_RATE_LIMIT_DELAY) # Rate limit after successful call
+        return(result)
+      },
+      error = function(e) {
+        retries <<- retries + 1
+        if (retries > max_retries) {
+          log_error("API call failed after {max_retries} retries: {e$message}")
+          return(NULL)
+        }
+        log_warn("API call failed (attempt {retries}): {e$message}")
+      }
+    )
+  }
+  return(NULL)
+}
+
+#------------------------------------------------------------------------------
 # 1) Retrieve Total Number of Pages from PubTator API v3
 #   (unchanged from old code)
 #------------------------------------------------------------------------------
@@ -100,9 +143,21 @@ pubtator_db_update <- function(
   db_password,
   query,
   max_pages = 10,
-  do_full_update = FALSE
+  do_full_update = FALSE,
+  progress_fn = NULL
 ) {
+  # Helper to report progress (safe no-op if no function provided)
+  report_progress <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn) && is.function(progress_fn)) {
+      tryCatch(
+        progress_fn(step, message, current = current, total = total),
+        error = function(e) NULL  # Don't let progress errors break the fetch
+      )
+    }
+  }
   # A) Retrieve total_pages BEFORE transaction (no DB write needed)
+  report_progress("query", "Querying PubTator API for total pages...", current = 0, total = max_pages)
+
   total_pages <- pubtator_v3_total_pages_from_query(query)
   if (is.null(total_pages) || total_pages == 0) {
     log_warn("No pages found for query: {query}. Aborting.")
@@ -113,6 +168,9 @@ pubtator_db_update <- function(
     log_info("max_pages={max_pages} > total_pages={total_pages}, adjusting.")
     max_pages <- total_pages
   }
+
+  report_progress("init", sprintf("Found %d total pages, fetching up to %d...", total_pages, max_pages),
+                  current = 0, total = max_pages)
 
   # B) Query hash
   q_hash <- generate_query_hash(query)
@@ -188,9 +246,13 @@ pubtator_db_update <- function(
         }
 
         if (start_page <= max_pages) {
+          report_progress("fetch", sprintf("Fetching pages %d-%d from PubTator API...", start_page, max_pages),
+                          current = start_page - 1, total = max_pages)
+
           df_results <- pubtator_v3_pmids_from_request(
             query = query, start_page = start_page,
-            max_pages = (max_pages - start_page + 1)
+            max_pages = (max_pages - start_page + 1),
+            progress_fn = progress_fn  # Pass through for per-page updates
           )
 
           if (!is.null(df_results) && nrow(df_results) > 0) {
@@ -235,6 +297,8 @@ pubtator_db_update <- function(
 
         pmid_vector <- pmid_rows$pmid
         log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
+        report_progress("annotations", sprintf("Fetching annotations for %d PMIDs...", length(pmid_vector)),
+                        current = max_pages, total = max_pages + 2)  # +2 for annotations + gene symbols
 
         # F) Fetch and insert annotations
         doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
@@ -273,6 +337,39 @@ pubtator_db_update <- function(
           )
         }
 
+        # G) Compute and store human gene symbols per search_id
+        # Join annotations with HGNC gene list to filter for human genes only
+        log_info("Computing human gene symbols for query_id={query_id}...")
+        report_progress("genes", "Computing human gene symbols...",
+                        current = max_pages + 1, total = max_pages + 2)
+
+        gene_symbols_df <- db_execute_query(
+          "SELECT
+             s.search_id,
+             GROUP_CONCAT(DISTINCT nal.symbol ORDER BY nal.symbol SEPARATOR ',') AS gene_symbols
+           FROM pubtator_search_cache s
+           JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+           JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
+           WHERE s.query_id = ?
+             AND a.type = 'Gene'
+             AND a.normalized_id IS NOT NULL
+             AND a.normalized_id != ''
+           GROUP BY s.search_id",
+          list(query_id)
+        )
+
+        if (nrow(gene_symbols_df) > 0) {
+          log_info("Updating gene_symbols for {nrow(gene_symbols_df)} publications")
+          for (r in seq_len(nrow(gene_symbols_df))) {
+            db_execute_statement(
+              "UPDATE pubtator_search_cache
+               SET gene_symbols = ?
+               WHERE search_id = ?",
+              list(gene_symbols_df$gene_symbols[r], gene_symbols_df$search_id[r])
+            )
+          }
+        }
+
         log_info("All done => returning query_id={query_id}")
         query_id # Return value - transaction auto-commits
       })
@@ -285,6 +382,301 @@ pubtator_db_update <- function(
   )
 
   return(result)
+}
+
+
+#------------------------------------------------------------------------------
+# 3b) ASYNC VERSION: pubtator_db_update_async
+#   - Designed for mirai daemons (no pool dependency)
+#   - Creates its own database connection
+#   - Transaction handling via DBI directly
+#------------------------------------------------------------------------------
+#' Store PubTator results in DB (async/daemon version with direct connection)
+#'
+#' This version is designed for use in mirai daemons where the global pool
+#' is not available. It creates its own database connection and uses direct
+#' DBI operations instead of pool-based helpers.
+#'
+#' @param db_config List with db_host, db_port, db_name, db_user, db_password
+#' @param query The PubTator query string
+#' @param max_pages Max pages to fetch
+#' @param do_full_update If TRUE, clear existing cache first
+#' @param progress_fn Optional progress reporting function
+#'
+#' @return List with success status, query_id, and message
+#' @export
+pubtator_db_update_async <- function(db_config, query, max_pages = 10,
+                                      do_full_update = FALSE, progress_fn = NULL) {
+  # Helper to report progress
+  report_progress <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn) && is.function(progress_fn)) {
+      tryCatch(progress_fn(step, message, current = current, total = total), error = function(e) NULL)
+    }
+  }
+
+  report_progress("init", "Querying PubTator API...", current = 0, total = max_pages)
+
+  # A) Get total pages from API (no DB needed)
+  total_pages <- pubtator_v3_total_pages_from_query(query)
+  if (is.null(total_pages) || total_pages == 0) {
+    log_warn("No pages found for query: {query}")
+    return(list(success = FALSE, query_id = NULL, message = "No results found from PubTator API"))
+  }
+
+  if (max_pages > total_pages) {
+    max_pages <- total_pages
+  }
+
+  q_hash <- generate_query_hash(query)
+  log_info("Query hash = {q_hash}, total_pages = {total_pages}, max_pages = {max_pages}")
+
+  report_progress("connect", "Connecting to database...", current = 0, total = max_pages)
+
+  # B) Create direct database connection
+  conn <- tryCatch(
+    DBI::dbConnect(
+      RMariaDB::MariaDB(),
+      dbname = db_config$db_name,
+      host = db_config$db_host,
+      user = db_config$db_user,
+      password = db_config$db_password,
+      port = db_config$db_port
+    ),
+    error = function(e) {
+      log_error("Failed to connect to database: {e$message}")
+      return(NULL)
+    }
+  )
+
+  if (is.null(conn)) {
+    return(list(success = FALSE, query_id = NULL, message = "Database connection failed"))
+  }
+
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  # C) Begin transaction
+  tryCatch({
+    DBI::dbBegin(conn)
+
+    # Check if query exists
+    existing <- db_execute_query(
+      "SELECT query_id, queried_page_number FROM pubtator_query_cache WHERE query_hash = ?",
+      list(q_hash), conn = conn
+    )
+
+    query_id <- NA_integer_
+    old_queried <- 0
+
+    if (nrow(existing) == 0) {
+      # Insert new query
+      log_info("Inserting new query record for hash: {q_hash}")
+      db_execute_statement(
+        "INSERT INTO pubtator_query_cache
+         (query_text, query_hash, total_page_number, queried_page_number, page_size)
+         VALUES (?, ?, ?, ?, 10)",
+        list(query, q_hash, total_pages, max_pages), conn = conn
+      )
+      query_id <- db_execute_query(
+        "SELECT LAST_INSERT_ID() AS id", list(), conn = conn
+      )$id[1]
+    } else {
+      query_id <- existing$query_id[1]
+      old_queried <- existing$queried_page_number[1]
+      log_info("Found existing query_id={query_id}, old_queried={old_queried}")
+
+      if (do_full_update) {
+        log_info("Hard update: clearing existing data")
+        # Delete old data (annotations first due to FK-like relationship)
+        db_execute_statement(
+          "DELETE a FROM pubtator_annotation_cache a
+           JOIN pubtator_search_cache s ON a.search_id = s.search_id
+           WHERE s.query_id = ?",
+          list(query_id), conn = conn
+        )
+        db_execute_statement(
+          "DELETE FROM pubtator_search_cache WHERE query_id = ?",
+          list(query_id), conn = conn
+        )
+        db_execute_statement(
+          "UPDATE pubtator_query_cache
+           SET total_page_number = ?, queried_page_number = ? WHERE query_id = ?",
+          list(total_pages, max_pages, query_id), conn = conn
+        )
+        old_queried <- 0
+      } else if (max_pages <= old_queried) {
+        log_info("Cache hit: already have {old_queried} pages")
+        DBI::dbCommit(conn)
+        return(list(success = TRUE, query_id = query_id,
+                    message = sprintf("Cache hit - already have %d pages", old_queried)))
+      }
+    }
+
+    # D) Fetch new pages
+    start_page <- if (!do_full_update && nrow(existing) > 0) old_queried + 1 else 1
+
+    if (start_page <= max_pages) {
+      report_progress("fetch", sprintf("Fetching pages %d-%d...", start_page, max_pages),
+                      current = start_page - 1, total = max_pages)
+
+      df_results <- pubtator_v3_pmids_from_request(
+        query = query, start_page = start_page,
+        max_pages = (max_pages - start_page + 1),
+        progress_fn = progress_fn
+      )
+
+      if (!is.null(df_results) && nrow(df_results) > 0) {
+        log_info("Inserting {nrow(df_results)} publications")
+
+        df_insert <- df_results %>%
+          mutate(
+            query_id = query_id,
+            id = if (!"id" %in% names(.)) NA_character_ else id,
+            date = if ("date" %in% names(.)) sub("T.*", "", date) else NA_character_
+          ) %>%
+          dplyr::select(query_id, id, pmid, doi, title, journal, date, score, text_hl)
+
+        # Insert search results row by row (parameterized queries for security)
+        for (r in seq_len(nrow(df_insert))) {
+          row <- df_insert[r, ]
+          db_execute_statement(
+            "INSERT INTO pubtator_search_cache
+             (query_id, id, pmid, doi, title, journal, date, score, text_hl)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            list(
+              row$query_id,
+              if (is.na(row$id)) NA else row$id,
+              if (is.na(row$pmid)) NA else row$pmid,
+              if (is.na(row$doi)) NA else row$doi,
+              if (is.na(row$title)) NA else substr(row$title, 1, 500),
+              if (is.na(row$journal)) NA else substr(row$journal, 1, 255),
+              if (is.na(row$date)) NA else row$date,
+              if (is.na(row$score)) NA else row$score,
+              if (is.na(row$text_hl)) NA else substr(row$text_hl, 1, 5000)
+            ),
+            conn = conn
+          )
+        }
+
+        db_execute_statement(
+          "UPDATE pubtator_query_cache
+           SET queried_page_number = ?, total_page_number = ? WHERE query_id = ?",
+          list(max_pages, total_pages, query_id), conn = conn
+        )
+      }
+    }
+
+    # E) Fetch annotations for PMIDs
+    report_progress("annotations", "Fetching annotations...", current = max_pages, total = max_pages + 1)
+
+    pmid_rows <- db_execute_query(
+      "SELECT pmid FROM pubtator_search_cache WHERE query_id = ? AND pmid IS NOT NULL GROUP BY pmid",
+      list(query_id), conn = conn
+    )
+
+    if (nrow(pmid_rows) > 0) {
+      pmid_vector <- pmid_rows$pmid
+      log_info("Fetching annotations for {length(pmid_vector)} PMIDs")
+
+      doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
+
+      if (!is.null(doc_list) && length(doc_list) > 0) {
+        flat_df <- flatten_pubtator_passages(doc_list) %>% mutate(pmid = as.integer(pmid))
+
+        srch_map <- db_execute_query(
+          "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id = ?",
+          list(query_id), conn = conn
+        )
+
+        flat_df_j <- flat_df %>% left_join(srch_map, by = "pmid", relationship = "many-to-many")
+        log_info("Inserting {nrow(flat_df_j)} annotations")
+
+        df_ann <- flat_df_j %>%
+          mutate(valid = if_else(valid == "TRUE", 1, 0, missing = 0)) %>%
+          dplyr::select(search_id, pmid, id, text, identifier, type, ncbi_homologene,
+                 valid, normalized, `database`, normalized_id, biotype, name, accession)
+
+        for (r in seq_len(nrow(df_ann))) {
+          row <- df_ann[r, ]
+          db_execute_statement(
+            "INSERT INTO pubtator_annotation_cache
+             (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
+              normalized, `database`, normalized_id, biotype, name, accession)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            list(
+              if (is.na(row$search_id)) NA else row$search_id,
+              if (is.na(row$pmid)) NA else row$pmid,
+              if (is.na(row$id)) NA else substr(as.character(row$id), 1, 100),
+              if (is.na(row$text)) NA else substr(as.character(row$text), 1, 500),
+              if (is.na(row$identifier)) NA else substr(as.character(row$identifier), 1, 255),
+              if (is.na(row$type)) NA else row$type,
+              if (is.na(row$ncbi_homologene)) NA else row$ncbi_homologene,
+              if (is.na(row$valid)) 0L else as.integer(row$valid),
+              if (is.na(row$normalized)) NA else substr(as.character(row$normalized), 1, 100),
+              if (is.na(row$`database`)) NA else substr(as.character(row$`database`), 1, 100),
+              if (is.na(row$normalized_id)) NA else substr(as.character(row$normalized_id), 1, 100),
+              if (is.na(row$biotype)) NA else substr(as.character(row$biotype), 1, 100),
+              if (is.na(row$name)) NA else substr(as.character(row$name), 1, 255),
+              if (is.na(row$accession)) NA else substr(as.character(row$accession), 1, 100)
+            ),
+            conn = conn
+          )
+        }
+      }
+    }
+
+    # F) Compute gene symbols
+    report_progress("genes", "Computing gene symbols...", current = max_pages + 1, total = max_pages + 1)
+
+    gene_df <- db_execute_query(
+      "SELECT s.search_id,
+              GROUP_CONCAT(DISTINCT nal.symbol ORDER BY nal.symbol SEPARATOR ',') AS gene_symbols
+       FROM pubtator_search_cache s
+       JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+       JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
+       WHERE s.query_id = ? AND a.type = 'Gene' AND a.normalized_id IS NOT NULL
+       GROUP BY s.search_id",
+      list(query_id), conn = conn
+    )
+
+    if (nrow(gene_df) > 0) {
+      log_info("Updating gene_symbols for {nrow(gene_df)} publications")
+      for (r in seq_len(nrow(gene_df))) {
+        db_execute_statement(
+          "UPDATE pubtator_search_cache SET gene_symbols = ? WHERE search_id = ?",
+          list(gene_df$gene_symbols[r], gene_df$search_id[r]),
+          conn = conn
+        )
+      }
+    }
+
+    DBI::dbCommit(conn)
+    log_info("PubTator update complete for query_id={query_id}")
+
+    # Get final stats
+    final_stats <- db_execute_query(
+      "SELECT queried_page_number, total_page_number FROM pubtator_query_cache WHERE query_id = ?",
+      list(query_id), conn = conn
+    )
+
+    pub_count <- db_execute_query(
+      "SELECT COUNT(*) as cnt FROM pubtator_search_cache WHERE query_id = ?",
+      list(query_id), conn = conn
+    )$cnt[1]
+
+    return(list(
+      success = TRUE,
+      query_id = query_id,
+      pages_cached = final_stats$queried_page_number[1],
+      pages_total = final_stats$total_page_number[1],
+      publications_count = pub_count,
+      message = sprintf("Fetched %d pages (%d publications)", final_stats$queried_page_number[1], pub_count)
+    ))
+
+  }, error = function(e) {
+    tryCatch(DBI::dbRollback(conn), error = function(e2) NULL)
+    log_error("PubTator async update failed: {e$message}")
+    return(list(success = FALSE, query_id = NULL, message = paste("Error:", e$message)))
+  })
 }
 
 
@@ -319,10 +711,21 @@ pubtator_v3_pmids_from_request <- function(query,
                                            sort = "date desc",
                                            api_base_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/",
                                            endpoint_search = "search/",
-                                           query_parameter = "?text=") {
+                                           query_parameter = "?text=",
+                                           progress_fn = NULL) {
   log_info(
     "Starting to fetch PMIDs for query: {query}, from page {start_page} to {start_page + max_pages - 1}"
   )
+
+  # Helper to report progress (safe no-op if no function provided)
+  report_progress <- function(step, message, current = NULL, total = NULL) {
+    if (!is.null(progress_fn) && is.function(progress_fn)) {
+      tryCatch(
+        progress_fn(step, message, current = current, total = total),
+        error = function(e) NULL
+      )
+    }
+  }
 
   all_data <- tibble::tibble()
   end_page <- start_page + max_pages - 1
@@ -339,9 +742,21 @@ pubtator_v3_pmids_from_request <- function(query,
     log_info("Fetching page {page} of PubTator results: {url_search}")
 
     retries <- 0
-    while (retries <= max_retries) {
+    success <- FALSE
+    while (retries <= max_retries && !success) {
       tryCatch(
         {
+          # Rate limiting: 2.5s between requests (~24 req/min, under 30/min limit)
+          if (page > start_page || retries > 0) {
+            delay <- if (retries > 0) {
+              PUBTATOR_BACKOFF_BASE^retries + runif(1, 0, 1)
+            } else {
+              PUBTATOR_RATE_LIMIT_DELAY
+            }
+            log_info("Rate limiting: waiting {round(delay, 1)}s...")
+            Sys.sleep(delay)
+          }
+
           response_search <- jsonlite::fromJSON(URLencode(url_search), flatten = TRUE)
 
           page_data <- response_search$results %>%
@@ -361,17 +776,21 @@ pubtator_v3_pmids_from_request <- function(query,
 
           all_data <- dplyr::bind_rows(all_data, page_data)
           log_info(
-            "Page {page} fetched successfully; found {nrow(page_data)} records."
+            "Page {page}/{end_page} fetched successfully; found {nrow(page_data)} records (total: {nrow(all_data)})."
           )
+          success <- TRUE
+
+          # Report progress for each page
+          report_progress("fetch", sprintf("Fetched page %d/%d (%d publications)", page, end_page, nrow(all_data)),
+                          current = page, total = end_page)
 
           if (page >= response_search$total_pages) {
             log_info("Reached the last available page {page} for query: {query}.")
-            break
+            return(all_data) # Early return when all pages fetched
           }
-          break
         },
         error = function(e) {
-          retries <- retries + 1
+          retries <<- retries + 1
           warning_msg <- paste(
             "Error fetching PMIDs at page", page,
             "Attempt:", retries, "/", max_retries,
@@ -386,7 +805,6 @@ pubtator_v3_pmids_from_request <- function(query,
             )
             log_warn(final_warning)
             warning(final_warning)
-            break
           }
         }
       )
@@ -435,19 +853,34 @@ pubtator_v3_data_from_pmids <- function(pmids,
 
   all_documents <- list()
   pmid_groups <- split(pmids, ceiling(seq_along(pmids) / max_pmids_per_request))
+  total_groups <- length(pmid_groups)
 
-  for (group in pmid_groups) {
+  for (group_idx in seq_along(pmid_groups)) {
+    group <- pmid_groups[[group_idx]]
     url_annotations <- paste0(
       api_base_url, endpoint_annotations,
       "?pmids=", paste(group, collapse = ",")
     )
-    log_info("Fetching annotations for PMIDs: {paste(group, collapse=', ')} => {url_annotations}")
+    log_info(
+      "Fetching annotations batch {group_idx}/{total_groups} ({length(group)} PMIDs)..."
+    )
 
     retries <- 0
     success <- FALSE
     while (retries <= max_retries && !success) {
       tryCatch(
         {
+          # Rate limiting: delay between batches
+          if (group_idx > 1 || retries > 0) {
+            delay <- if (retries > 0) {
+              PUBTATOR_BACKOFF_BASE^retries + runif(1, 0, 1)
+            } else {
+              PUBTATOR_RATE_LIMIT_DELAY
+            }
+            log_info("Rate limiting: waiting {round(delay, 1)}s...")
+            Sys.sleep(delay)
+          }
+
           annotations_content <- suppressWarnings(
             readLines(URLencode(url_annotations))
           )
@@ -458,13 +891,13 @@ pubtator_v3_data_from_pmids <- function(pmids,
 
           success <- TRUE
           log_info(
-            "Successfully fetched data for {length(group)} PMIDs. doc count so far: {length(all_documents)}."
+            "Batch {group_idx}/{total_groups} complete. Total docs: {length(all_documents)}."
           )
         },
         error = function(e) {
-          retries <- retries + 1
+          retries <<- retries + 1
           warning_msg <- paste(
-            "Error fetching data for PMIDs:", paste(group, collapse = ","),
+            "Error fetching batch", group_idx,
             "Attempt:", retries, "/", max_retries,
             "Error:", e$message
           )
