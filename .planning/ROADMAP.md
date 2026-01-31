@@ -85,8 +85,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 57-01-PLAN.md - Stats page fix, API enhancement for prioritization, admin panel section
-- [ ] 57-02-PLAN.md - Gene list UI with novel badges, filtering, PMID chips, Excel export
+- [x] 57-01-PLAN.md - Stats page fix, API enhancement for prioritization, admin panel section
+- [x] 57-02-PLAN.md - Gene list UI with novel badges, filtering, PMID chips, Excel export
 
 **Requirements:**
 - PUBT-01: PubtatorNDD Stats page displays correctly (fix broken)
@@ -233,7 +233,7 @@ Plans:
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Complete |
-| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Planned |
+| 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |

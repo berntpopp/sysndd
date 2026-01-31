@@ -9,35 +9,35 @@ Requirements for data quality stabilization, literature research tools, and AI-a
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: EIF2AK2 entity (sysndd:4375) - Publication 33236446 update completes correctly (#122)
-- [ ] **BUG-02**: GAP43 newly created entity is visible in entity list (#115)
-- [ ] **BUG-03**: MEF2C entity (sysndd:4512) updates save correctly (#114)
-- [ ] **BUG-04**: Viewer status users can view profile without auto-logout
-- [ ] **BUG-05**: Adding new PMID during re-review preserves existing PMIDs
-- [ ] **BUG-06**: Entities over time by gene displays correct counts (#44)
-- [ ] **BUG-07**: Disease renaming requires approval per review concept (#41)
-- [ ] **BUG-08**: Re-reviewer identity preserved when changing reviews
+- [x] **BUG-01**: EIF2AK2 entity (sysndd:4375) - Publication 33236446 update completes correctly (#122)
+- [x] **BUG-02**: GAP43 newly created entity is visible in entity list (#115)
+- [x] **BUG-03**: MEF2C entity (sysndd:4512) updates save correctly (#114)
+- [x] **BUG-04**: Viewer status users can view profile without auto-logout
+- [x] **BUG-05**: Adding new PMID during re-review preserves existing PMIDs
+- [x] **BUG-06**: Entities over time by gene displays correct counts (#44)
+- [x] **BUG-07**: Disease renaming requires approval per review concept (#41) - WONTFIX
+- [x] **BUG-08**: Re-reviewer identity preserved when changing reviews
 
 ### Variant Correlations
 
-- [ ] **VCOR-01**: VariantCorrelations view navigation links work correctly
-- [ ] **VCOR-02**: VariantCounts view navigation links work correctly
+- [x] **VCOR-01**: VariantCorrelations view navigation links work correctly
+- [x] **VCOR-02**: VariantCounts view navigation links work correctly
 
 ### Publications
 
-- [ ] **PUB-01**: Publications table has improved UX (pagination, search, filters)
-- [ ] **PUB-02**: Publication metadata fetched from PubMed API (title, journal, abstract)
-- [ ] **PUB-03**: PublicationsNDD TimePlot has improved visualization
-- [ ] **PUB-04**: PublicationsNDD Stats view displays correctly
+- [x] **PUB-01**: Publications table has improved UX (pagination, search, filters)
+- [x] **PUB-02**: Publication metadata fetched from PubMed API (title, journal, abstract)
+- [x] **PUB-03**: PublicationsNDD TimePlot has improved visualization
+- [x] **PUB-04**: PublicationsNDD Stats view displays correctly
 
 ### Pubtator
 
-- [ ] **PUBT-01**: PubtatorNDD Stats page displays correctly (fix broken)
-- [ ] **PUBT-02**: Gene prioritization list ranks genes by publication count, recency, coverage gap
-- [ ] **PUBT-03**: Novel gene alerts highlight Pubtator genes not in SysNDD entities
-- [ ] **PUBT-04**: User can explore gene-literature connections for research
-- [ ] **PUBT-05**: Curator can export prioritized gene list for offline planning
-- [ ] **PUBT-06**: Pubtator concept and purpose documented in views
+- [x] **PUBT-01**: PubtatorNDD Stats page displays correctly (fix broken)
+- [x] **PUBT-02**: Gene prioritization list ranks genes by publication count, recency, coverage gap
+- [x] **PUBT-03**: Novel gene alerts highlight Pubtator genes not in SysNDD entities
+- [x] **PUBT-04**: User can explore gene-literature connections for research
+- [x] **PUBT-05**: Curator can export prioritized gene list for offline planning
+- [x] **PUBT-06**: Pubtator concept and purpose documented in views
 
 ### LLM Cluster Summaries
 
@@ -106,26 +106,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUG-01 | 55 | Pending |
-| BUG-02 | 55 | Pending |
-| BUG-03 | 55 | Pending |
-| BUG-04 | 55 | Pending |
-| BUG-05 | 55 | Pending |
-| BUG-06 | 55 | Pending |
-| BUG-07 | 55 | Pending |
-| BUG-08 | 55 | Pending |
-| VCOR-01 | 56 | Pending |
-| VCOR-02 | 56 | Pending |
-| PUB-01 | 56 | Pending |
-| PUB-02 | 56 | Pending |
-| PUB-03 | 56 | Pending |
-| PUB-04 | 56 | Pending |
-| PUBT-01 | 57 | Pending |
-| PUBT-02 | 57 | Pending |
-| PUBT-03 | 57 | Pending |
-| PUBT-04 | 57 | Pending |
-| PUBT-05 | 57 | Pending |
-| PUBT-06 | 57 | Pending |
+| BUG-01 | 55 | Complete |
+| BUG-02 | 55 | Complete |
+| BUG-03 | 55 | Complete |
+| BUG-04 | 55 | Complete |
+| BUG-05 | 55 | Complete |
+| BUG-06 | 55 | Complete |
+| BUG-07 | 55 | Complete (WONTFIX) |
+| BUG-08 | 55 | Complete |
+| VCOR-01 | 56 | Complete |
+| VCOR-02 | 56 | Complete |
+| PUB-01 | 56 | Complete |
+| PUB-02 | 56 | Complete |
+| PUB-03 | 56 | Complete |
+| PUB-04 | 56 | Complete |
+| PUBT-01 | 57 | Complete |
+| PUBT-02 | 57 | Complete |
+| PUBT-03 | 57 | Complete |
+| PUBT-04 | 57 | Complete |
+| PUBT-05 | 57 | Complete |
+| PUBT-06 | 57 | Complete |
 | LLM-01 | 58 | Pending |
 | LLM-02 | 58 | Pending |
 | LLM-03 | 58 | Pending |
