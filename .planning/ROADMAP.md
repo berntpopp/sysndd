@@ -85,8 +85,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 56.1-01-PLAN.md - API endpoints for publication refresh (async job) and stats
-- [ ] 56.1-02-PLAN.md - ManageAnnotations UI with progress tracking
+- [x] 56.1-01-PLAN.md - API endpoints for publication refresh (async job) and stats
+- [x] 56.1-02-PLAN.md - ManageAnnotations UI with progress tracking
 
 **Requirements:**
 - PUB-ADMIN-01: Admin API endpoint to refresh publication metadata from PubMed
@@ -259,7 +259,7 @@ Plans:
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Complete |
-| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Not started |
+| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
