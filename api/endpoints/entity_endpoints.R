@@ -534,37 +534,24 @@ function(req, res) {
       rename_data$entity$disease_ontology_id_version !=
         ndd_entity_original$disease_ontology_id_version
   ) {
-    # BUG-07: Disease rename now requires approval workflow
-    # - New entity created with is_active = 0 (pending)
-    # - Review and status created with *_approved = 0
-    # - Old entity stays active until approval
-    # - New entity's replaced_by temporarily points to old entity (for tracking)
-    # - Use POST /entity/rename/approve to complete the rename
-    logger::log_info(
-      "Disease rename initiated (pending approval)",
-      old_entity_id = rename_data$entity$entity_id,
-      old_disease = ndd_entity_original$disease_ontology_id_version,
-      new_disease = rename_data$entity$disease_ontology_id_version
+    # TODO: Implement approval workflow for disease renaming (BUG-07)
+    # Currently disease renaming bypasses approval:
+    # - New entity is immediately active
+    # - Old entity is immediately deactivated
+    # - Review/status are copied without re-approval
+    # Should follow pattern: create inactive entity, mark review/status unapproved,
+    # keep old active until approval, then swap on approval
+    log_warn(
+      "Disease rename for entity {rename_data$entity$entity_id} bypassing approval workflow. ",
+      "Old disease: {ndd_entity_original$disease_ontology_id_version}, ",
+      "New disease: {rename_data$entity$disease_ontology_id_version}"
     )
 
-    # Create new entity as INACTIVE (pending approval)
-    ndd_entity_replaced_inactive <- ndd_entity_replaced %>%
-      mutate(is_active = 0)
-    response_new_entity <- post_db_entity(ndd_entity_replaced_inactive)
-
-    # Store the old entity ID in replaced_by for tracking pending rename
-    # (This is inverted from normal usage - cleared on approval)
-    if (response_new_entity$status == 200) {
-      db_execute_statement(
-        "UPDATE ndd_entity SET replaced_by = ? WHERE entity_id = ?",
-        list(
-          as.integer(ndd_entity_original$entity_id),
-          as.integer(response_new_entity$entry$entity_id)
-        )
-      )
-    }
-
-    # NOTE: Old entity stays active - NOT deactivated until approval
+    response_new_entity <- post_db_entity(ndd_entity_replaced)
+    response_deactivate <- put_db_entity_deactivation(
+      ndd_entity_original$entity_id,
+      response_new_entity$entry$entity_id
+    )
 
     ndd_entity_review_original <- pool %>%
       tbl("ndd_entity_review") %>%
@@ -655,40 +642,19 @@ function(req, res) {
       ndd_entity_status_replaced
     )
 
-    # BUG-07: Set review and status as unapproved (pending approval workflow)
-    if (response_review$status == 200 && !is.null(response_review$entry$review_id)) {
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
-        list(as.integer(response_review$entry$review_id))
-      )
-    }
-    if (response_status_post$status == 200 && !is.null(response_status_post$entry$status_id)) {
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ?",
-        list(as.integer(response_status_post$entry$status_id))
-      )
-    }
-
     if (
       response_new_entity$status == 200 &&
         response_review_post$status == 200 &&
         response_status_post$status == 200
     ) {
       logger::log_info(
-        "Entity rename created (pending approval)",
+        "Entity rename completed successfully",
         old_entity_id = rename_data$entity$entity_id,
         new_entity_id = response_new_entity$entry$entity_id,
         user_id = new_entry_user_id
       )
       res$status <- response_new_entity$status
-      # Return with pending_approval flag to inform frontend
-      return(list(
-        status = response_new_entity$status,
-        message = "OK. Disease rename pending approval.",
-        entry = response_new_entity$entry,
-        pending_approval = TRUE,
-        old_entity_id = rename_data$entity$entity_id
-      ))
+      return(response_new_entity)
     } else {
       logger::log_error(
         "Entity rename failed - PARTIAL RENAME POSSIBLE",
@@ -716,278 +682,6 @@ function(req, res) {
       )
     ))
   }
-}
-
-
-#* Approve Disease Rename
-#*
-#* Completes a pending disease rename by activating the new entity,
-#* approving its review and status, and deactivating the old entity.
-#*
-#* # `Details`
-#* Disease renames require approval (BUG-07). This endpoint:
-#* 1. Activates the new entity (is_active = 1)
-#* 2. Approves review and status (*_approved = 1)
-#* 3. Deactivates old entity with replaced_by pointing to new
-#* 4. Clears temporary replaced_by on new entity
-#*
-#* @tag entity
-#* @serializer json list(na="string")
-#*
-#* @param new_entity_id:int The ID of the pending new entity
-#*
-#* @response 200 OK. Disease rename approved.
-#* @response 400 Bad Request. Entity not pending rename approval.
-#* @response 403 Forbidden. User does not have the required role.
-#* @response 404 Not Found. Entity not found.
-#*
-#* @post /rename/approve
-function(req, res, new_entity_id) {
-  require_role(req, res, "Curator")
-
-  new_entity_id <- as.integer(new_entity_id)
-  user_id <- req$user_id
-
-  # Find the pending entity (is_active = 0 and replaced_by IS NOT NULL)
-  pending_entity <- pool %>%
-    tbl("ndd_entity") %>%
-    filter(entity_id == !!new_entity_id, is_active == 0) %>%
-    collect()
-
-  if (nrow(pending_entity) == 0) {
-    res$status <- 404
-    return(list(error = "Entity not found or not pending approval."))
-  }
-
-  old_entity_id <- pending_entity$replaced_by[1]
-  if (is.na(old_entity_id) || is.null(old_entity_id)) {
-    res$status <- 400
-    return(list(error = "Entity is not a pending disease rename."))
-  }
-
-  # Verify old entity exists and is active
-
-old_entity <- pool %>%
-    tbl("ndd_entity") %>%
-    filter(entity_id == !!old_entity_id, is_active == 1) %>%
-    collect()
-
-  if (nrow(old_entity) == 0) {
-    res$status <- 400
-    return(list(error = "Original entity not found or already deactivated."))
-  }
-
-  logger::log_info(
-    "Approving disease rename",
-    new_entity_id = new_entity_id,
-    old_entity_id = old_entity_id,
-    user_id = user_id
-  )
-
-  tryCatch({
-    db_with_transaction({
-      # 1. Activate new entity and clear temporary replaced_by
-      db_execute_statement(
-        "UPDATE ndd_entity SET is_active = 1, replaced_by = NULL WHERE entity_id = ?",
-        list(new_entity_id)
-      )
-
-      # 2. Approve review for new entity
-      db_execute_statement(
-        "UPDATE ndd_entity_review SET review_approved = 1, approving_user_id = ?
-         WHERE entity_id = ? AND is_primary = 1",
-        list(user_id, new_entity_id)
-      )
-
-      # 3. Approve status for new entity
-      db_execute_statement(
-        "UPDATE ndd_entity_status SET status_approved = 1, approving_user_id = ?
-         WHERE entity_id = ? AND is_active = 1",
-        list(user_id, new_entity_id)
-      )
-
-      # 4. Deactivate old entity with replaced_by pointing to new
-      db_execute_statement(
-        "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?",
-        list(new_entity_id, old_entity_id)
-      )
-    })
-
-    logger::log_info(
-      "Disease rename approved successfully",
-      new_entity_id = new_entity_id,
-      old_entity_id = old_entity_id,
-      user_id = user_id
-    )
-
-    res$status <- 200
-    return(list(
-      status = 200,
-      message = "OK. Disease rename approved.",
-      new_entity_id = new_entity_id,
-      old_entity_id = old_entity_id
-    ))
-  }, error = function(e) {
-    logger::log_error(
-      "Disease rename approval failed",
-      new_entity_id = new_entity_id,
-      error = e$message
-    )
-    res$status <- 500
-    return(list(error = paste("Approval failed:", e$message)))
-  })
-}
-
-
-#* List Pending Disease Renames
-#*
-#* Returns entities pending disease rename approval.
-#*
-#* @tag entity
-#* @serializer json list(na="string")
-#*
-#* @response 200 OK. List of pending renames.
-#* @response 403 Forbidden. User does not have the required role.
-#*
-#* @get /rename/pending
-function(req, res) {
-  require_role(req, res, "Curator")
-
-  # Find entities with is_active = 0 and replaced_by IS NOT NULL
-  # (replaced_by temporarily stores old entity ID for pending renames)
-  pending <- pool %>%
-    tbl("ndd_entity") %>%
-    filter(is_active == 0, !is.na(replaced_by)) %>%
-    select(entity_id, hgnc_id, disease_ontology_id_version, replaced_by, entry_date) %>%
-    collect()
-
-  if (nrow(pending) == 0) {
-    return(list())
-  }
-
-  # Get old entity details for comparison
-  old_ids <- unique(pending$replaced_by)
-  old_entities <- pool %>%
-    tbl("ndd_entity") %>%
-    filter(entity_id %in% !!old_ids) %>%
-    select(entity_id, disease_ontology_id_version) %>%
-    collect() %>%
-    rename(old_entity_id = entity_id, old_disease = disease_ontology_id_version)
-
-  # Join to get full picture
-  result <- pending %>%
-    rename(new_entity_id = entity_id, new_disease = disease_ontology_id_version, old_entity_id = replaced_by) %>%
-    left_join(old_entities, by = "old_entity_id")
-
-  return(result)
-}
-
-
-#* Reject Disease Rename
-#*
-#* Rejects a pending disease rename by deleting the new entity
-#* and its associated review/status records.
-#*
-#* @tag entity
-#* @serializer json list(na="string")
-#*
-#* @param new_entity_id:int The ID of the pending new entity to reject
-#*
-#* @response 200 OK. Disease rename rejected and pending entity deleted.
-#* @response 400 Bad Request. Entity not pending rename approval.
-#* @response 403 Forbidden. User does not have the required role.
-#* @response 404 Not Found. Entity not found.
-#*
-#* @post /rename/reject
-function(req, res, new_entity_id) {
-  require_role(req, res, "Curator")
-
-  new_entity_id <- as.integer(new_entity_id)
-  user_id <- req$user_id
-
-  # Find the pending entity
-  pending_entity <- pool %>%
-    tbl("ndd_entity") %>%
-    filter(entity_id == !!new_entity_id, is_active == 0) %>%
-    collect()
-
-  if (nrow(pending_entity) == 0) {
-    res$status <- 404
-    return(list(error = "Entity not found or not pending approval."))
-  }
-
-  old_entity_id <- pending_entity$replaced_by[1]
-  if (is.na(old_entity_id) || is.null(old_entity_id)) {
-    res$status <- 400
-    return(list(error = "Entity is not a pending disease rename."))
-  }
-
-  logger::log_info(
-    "Rejecting disease rename",
-    new_entity_id = new_entity_id,
-    old_entity_id = old_entity_id,
-    user_id = user_id
-  )
-
-  tryCatch({
-    db_with_transaction({
-      # Get review_id and status_id for cleanup
-      review <- pool %>%
-        tbl("ndd_entity_review") %>%
-        filter(entity_id == !!new_entity_id) %>%
-        select(review_id) %>%
-        collect()
-
-      status <- pool %>%
-        tbl("ndd_entity_status") %>%
-        filter(entity_id == !!new_entity_id) %>%
-        select(status_id) %>%
-        collect()
-
-      # Delete related records first (foreign key constraints)
-      if (nrow(review) > 0) {
-        for (rid in review$review_id) {
-          db_execute_statement("DELETE FROM ndd_review_publication_join WHERE review_id = ?", list(rid))
-          db_execute_statement("DELETE FROM ndd_review_phenotype_connect WHERE review_id = ?", list(rid))
-          db_execute_statement("DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?", list(rid))
-        }
-        db_execute_statement(
-          paste0("DELETE FROM ndd_entity_review WHERE entity_id = ?"),
-          list(new_entity_id)
-        )
-      }
-
-      if (nrow(status) > 0) {
-        db_execute_statement("DELETE FROM ndd_entity_status WHERE entity_id = ?", list(new_entity_id))
-      }
-
-      # Delete the pending entity
-      db_execute_statement("DELETE FROM ndd_entity WHERE entity_id = ?", list(new_entity_id))
-    })
-
-    logger::log_info(
-      "Disease rename rejected and pending entity deleted",
-      new_entity_id = new_entity_id,
-      old_entity_id = old_entity_id,
-      user_id = user_id
-    )
-
-    res$status <- 200
-    return(list(
-      status = 200,
-      message = "OK. Disease rename rejected.",
-      deleted_entity_id = new_entity_id,
-      preserved_entity_id = old_entity_id
-    ))
-  }, error = function(e) {
-    logger::log_error(
-      "Disease rename rejection failed",
-      new_entity_id = new_entity_id,
-      error = e$message
-    )
-    res$status <- 500
-    return(list(error = paste("Rejection failed:", e$message)))
-  })
 }
 
 
