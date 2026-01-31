@@ -8,6 +8,49 @@
 ## Publication endpoints
 ## -------------------------------------------------------------------##
 
+#* Get Publication Statistics
+#*
+#* Returns summary statistics about publications in the database:
+#* - total: count of all publications
+#* - oldest_update: the oldest update_date value (most stale publication)
+#* - outdated_count: count where update_date is older than 1 year
+#*
+#* # `Return`
+#* JSON object with total, oldest_update, and outdated_count fields.
+#*
+#* @tag publication
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. Returns publication statistics.
+#*
+#* @get /stats
+function(req, res) {
+  # Get total count
+  total_result <- db_execute_query(
+    "SELECT COUNT(*) as total FROM publication"
+  )
+  total <- as.integer(total_result$total[1])
+
+  # Get oldest update_date
+  oldest_result <- db_execute_query(
+    "SELECT MIN(update_date) as oldest_update FROM publication"
+  )
+  oldest_update <- as.character(oldest_result$oldest_update[1])
+
+  # Get count of publications not updated in over 1 year
+  outdated_result <- db_execute_query(
+    "SELECT COUNT(*) as outdated_count FROM publication WHERE update_date < DATE_SUB(NOW(), INTERVAL 1 YEAR)"
+  )
+  outdated_count <- as.integer(outdated_result$outdated_count[1])
+
+  list(
+    total = total,
+    oldest_update = oldest_update,
+    outdated_count = outdated_count
+  )
+}
+
+
 #* Fetch Publication by PMID
 #*
 #* Fetches a publication from the DB by PMID.
