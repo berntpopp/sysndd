@@ -237,27 +237,20 @@
               <template #cell(actions)="data">
                 <BButton
                   v-if="parsePmids((data.item as GeneItem).pmids).length > 0"
-                  size="sm"
-                  variant="outline-secondary"
                   class="btn-xs"
+                  variant="outline-primary"
                   @click="
                     handleRowExpand(data.item as GeneItem);
                     data.toggleDetails();
                   "
                 >
-                  <i :class="data.detailsShowing ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" />
+                  {{ data.detailsShowing ? 'Hide' : 'Show' }}
                 </BButton>
               </template>
 
               <!-- Row details - expanded view with actual publication data -->
               <template #row-details="data">
-                <BCard class="mb-2 publication-details-card">
-                  <BCardTitle class="h6">
-                    <i class="bi bi-journal-text me-2" />
-                    Publications for {{ (data.item as GeneItem).gene_symbol }}
-                    ({{ parsePmids((data.item as GeneItem).pmids).length }})
-                  </BCardTitle>
-
+                <div class="publication-details">
                   <!-- Loading spinner -->
                   <div
                     v-if="isLoadingPublications((data.item as GeneItem).gene_symbol)"
@@ -268,60 +261,75 @@
                   </div>
 
                   <!-- Publication list -->
-                  <div v-else class="publication-list">
+                  <div v-else>
                     <div
                       v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
                       :key="pub.publication_id"
-                      class="publication-item"
+                      class="details-section"
                     >
-                      <div class="pub-header">
-                        <a
-                          :href="
-                            'https://pubmed.ncbi.nlm.nih.gov/' +
-                            pub.publication_id.replace('PMID:', '')
-                          "
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="pub-pmid"
-                        >
-                          <i class="bi bi-box-arrow-up-right me-1" />
-                          {{ pub.publication_id }}
-                        </a>
-                        <span v-if="pub.Publication_date" class="pub-date">
-                          <i class="bi bi-calendar3 me-1" />
-                          {{ pub.Publication_date }}
-                        </span>
+                      <!-- Title -->
+                      <div v-if="pub.Title" class="details-title">
+                        {{ pub.Title }}
                       </div>
-                      <div v-if="pub.Title" class="pub-title">{{ pub.Title }}</div>
-                      <div v-if="pub.Journal" class="pub-journal">
-                        <i class="bi bi-book me-1" />
-                        {{ pub.Journal }}
+
+                      <div class="details-row">
+                        <!-- PMID & Date -->
+                        <div class="details-meta">
+                          <a
+                            :href="
+                              'https://pubmed.ncbi.nlm.nih.gov/' +
+                              pub.publication_id.replace('PMID:', '')
+                            "
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="details-pmid"
+                          >
+                            <i class="bi bi-journal-medical me-1" />
+                            {{ pub.publication_id }}
+                            <i class="bi bi-box-arrow-up-right ms-1" />
+                          </a>
+                          <span v-if="pub.Publication_date" class="details-date">
+                            <i class="bi bi-calendar3 me-1" />
+                            {{ pub.Publication_date }}
+                          </span>
+                          <span v-if="pub.Journal" class="details-journal">
+                            <i class="bi bi-book me-1" />
+                            {{ pub.Journal }}
+                          </span>
+                        </div>
                       </div>
-                      <div v-if="pub.Abstract" class="pub-abstract">
-                        {{ truncateText(pub.Abstract, 300) }}
+
+                      <!-- Abstract -->
+                      <div v-if="pub.Abstract" class="details-abstract">
+                        {{ truncateText(pub.Abstract, 400) }}
                       </div>
                     </div>
 
-                    <!-- Fallback if no cached data yet -->
+                    <!-- Fallback if no cached data -->
                     <div
                       v-if="getPublications((data.item as GeneItem).gene_symbol).length === 0"
-                      class="d-flex flex-wrap gap-2"
+                      class="details-section"
                     >
-                      <BButton
-                        v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
-                        :key="pmid"
-                        size="sm"
-                        variant="outline-primary"
-                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <i class="bi bi-journal-text me-1" />
-                        PMID: {{ pmid }}
-                      </BButton>
+                      <h6 class="details-label">
+                        <i class="bi bi-journal-text me-2" />Publications
+                      </h6>
+                      <div class="d-flex flex-wrap gap-2">
+                        <a
+                          v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
+                          :key="pmid"
+                          :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="details-pmid"
+                        >
+                          <i class="bi bi-journal-medical me-1" />
+                          PMID: {{ pmid }}
+                          <i class="bi bi-box-arrow-up-right ms-1" />
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </BCard>
+                </div>
               </template>
             </BTable>
             <!-- End b-table -->
@@ -889,67 +897,109 @@ mark {
   background-color: #eaadba;
 }
 
-/* Publication details styling */
-.publication-details-card {
-  background-color: #fafbfc;
+/* Publication details styling - matches PublicationsNDD */
+.publication-details {
+  padding: 1.25rem 1.5rem;
+  background: #fafbfc;
+  border-radius: 0.5rem;
+  margin: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.publication-list {
+.details-section {
+  margin-bottom: 1rem;
+}
+
+.details-section:last-child {
+  margin-bottom: 0;
+}
+
+.details-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+}
+
+.details-label i {
+  color: #0d6efd;
+  opacity: 0.7;
+}
+
+.details-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #212529;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.details-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.details-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 1rem;
 }
 
-.publication-item {
-  padding: 0.75rem;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 0.375rem;
-  border-left: 3px solid #0d6efd;
-}
-
-.pub-header {
-  display: flex;
-  justify-content: space-between;
+.details-pmid {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.pub-pmid {
-  font-family: monospace;
-  font-size: 0.85rem;
+  padding: 0.25em 0.5em;
+  font-size: 0.8em;
+  font-weight: 500;
+  background-color: #e7f1ff;
   color: #0d6efd;
+  border-radius: 0.3rem;
   text-decoration: none;
+  transition: all 0.15s ease-in-out;
 }
 
-.pub-pmid:hover {
-  text-decoration: underline;
+.details-pmid:hover {
+  background-color: #0d6efd;
+  color: white;
 }
 
-.pub-date {
-  font-size: 0.8rem;
-  color: #6c757d;
+.details-date {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2em 0.5em;
+  font-size: 0.8em;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 0.25rem;
 }
 
-.pub-title {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #212529;
-  margin-bottom: 0.25rem;
-  line-height: 1.4;
-}
-
-.pub-journal {
-  font-size: 0.8rem;
+.details-journal {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  font-size: 0.8em;
+  background-color: #f8f9fa;
   color: #495057;
-  font-style: italic;
-  margin-bottom: 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #dee2e6;
 }
 
-.pub-abstract {
-  font-size: 0.8rem;
-  color: #6c757d;
-  line-height: 1.5;
+.details-abstract {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #333;
   text-align: justify;
+  padding: 0.5rem 0;
 }
 </style>
