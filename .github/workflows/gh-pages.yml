@@ -1,6 +1,11 @@
 # GitHub Pages Documentation Build
 # Renders bookdown documentation and deploys to gh-pages branch
 #
+# Optimizations:
+# - Only triggers on documentation content changes (not workflow changes on PRs)
+# - R package caching via actions/cache
+# - Cancel in-progress runs
+#
 # References:
 # - https://github.com/r-lib/actions
 # - https://bookdown.org/yihui/bookdown/github.html
@@ -16,8 +21,9 @@ on:
   pull_request:
     branches: [master]
     paths:
+      # Only documentation content changes, not workflow changes
+      # Workflow changes are tested on push to master
       - 'documentation/**'
-      - '.github/workflows/gh-pages.yml'
 
 # Cancel in-progress runs for the same branch
 concurrency:
@@ -29,6 +35,8 @@ env:
   DISPLAY: :99.0
   CONFIG_FILE: config.yml
   R_ENVIRONMENT: github
+  # R package library path for caching
+  R_LIBS_USER: /home/runner/work/_temp/Library
 
 jobs:
   bookdown:
@@ -52,12 +60,14 @@ jobs:
         env:
           TINYTEX_INSTALLER: TinyTeX
 
+      # Cache R packages for faster builds
       - name: Cache R packages
         uses: actions/cache@v4
         with:
           path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-docs-${{ hashFiles('documentation/DESCRIPTION') }}
+          key: ${{ runner.os }}-r-docs-v2-${{ hashFiles('documentation/DESCRIPTION') }}
           restore-keys: |
+            ${{ runner.os }}-r-docs-v2-
             ${{ runner.os }}-r-docs-
 
       - name: Install Chrome (for webshot2)
@@ -67,7 +77,16 @@ jobs:
 
       - name: Install packages
         run: |
-          Rscript -e 'install.packages(c("tidyverse", "rmarkdown", "bookdown", "config", "webshot2", "readr", "DT", "knitr", "ggplot2", "readxl", "chromote"))'
+          Rscript -e '
+            # Install only if not cached
+            required_pkgs <- c("tidyverse", "rmarkdown", "bookdown", "config",
+                               "webshot2", "readr", "DT", "knitr", "ggplot2",
+                               "readxl", "chromote")
+            missing <- required_pkgs[!required_pkgs %in% installed.packages()[,"Package"]]
+            if (length(missing) > 0) {
+              install.packages(missing)
+            }
+          '
 
       - name: Render Book
         run: |
