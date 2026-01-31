@@ -50,9 +50,9 @@
         </BCol>
       </BRow>
 
-      <!-- User Interface controls: category selection, minJournalCount, etc. -->
+      <!-- User Interface controls: category selection and min count filter -->
       <BRow>
-        <BCol class="my-1" sm="3">
+        <BCol class="my-1" sm="4">
           <BInputGroup prepend="Category" class="mb-1" size="sm">
             <BFormSelect
               v-model="selectedCategory"
@@ -63,43 +63,23 @@
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Journal" class="mb-1" size="sm">
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
             <BFormInput
-              v-model="min_journal_count"
+              v-model.number="minCount"
               type="number"
               min="1"
               step="1"
-              debounce="500"
-              @change="fetchStats"
+              debounce="300"
+              @update:model-value="generateBarPlot"
             />
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Author" class="mb-1" size="sm">
-            <BFormInput
-              v-model="min_lastname_count"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @change="fetchStats"
-            />
-          </BInputGroup>
-        </BCol>
-
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Keyword" class="mb-1" size="sm">
-            <BFormInput
-              v-model="min_keyword_count"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @change="fetchStats"
-            />
-          </BInputGroup>
+        <BCol class="my-1" sm="4">
+          <small class="text-muted">
+            Showing items with ≥ {{ minCount }} publications
+          </small>
         </BCol>
       </BRow>
 
@@ -132,10 +112,13 @@ export default {
         { value: 'keyword', text: 'Keywords' },
       ],
 
-      // set defaults for min counts
-      min_journal_count: 20,
-      min_lastname_count: 5,
-      min_keyword_count: 100,
+      // Client-side minimum count filter (applies to bar chart)
+      minCount: 20,
+
+      // API-level filters (set low to fetch more data, filter client-side)
+      min_journal_count: 5,
+      min_lastname_count: 2,
+      min_keyword_count: 10,
 
       // data from the stats endpoint
       statsData: null,
@@ -281,9 +264,10 @@ export default {
       // guard if statsData not loaded
       if (!this.statsData) return;
 
-      // remove old svg and tooltips to prevent duplicates
+      // remove old svg, tooltips, and empty messages to prevent duplicates
       d3.select('#stats_dataviz').select('svg').remove();
       d3.select('#stats_dataviz').selectAll('.tooltip').remove();
+      d3.select('#stats_dataviz').selectAll('div').remove();
 
       let data = [];
       let xKey = ''; // 'Journal', 'Lastname', or 'Keywords'
@@ -297,6 +281,18 @@ export default {
       } else if (this.selectedCategory === 'keyword') {
         data = this.statsData.keyword_counts || [];
         xKey = 'Keywords';
+      }
+
+      // Apply client-side minimum count filter
+      data = data.filter((d) => d.count >= this.minCount);
+
+      // Handle empty data after filtering
+      if (data.length === 0) {
+        d3.select('#stats_dataviz')
+          .append('div')
+          .attr('class', 'text-center text-muted py-5')
+          .html(`<i class="bi bi-info-circle me-2"></i>No items with count ≥ ${this.minCount}. Try lowering the minimum.`);
+        return;
       }
 
       // set dimensions
