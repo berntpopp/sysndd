@@ -23,6 +23,13 @@ if (!exists("generate_cluster_hash", mode = "function")) {
   }
 }
 
+# Load validation functions (if not already loaded)
+if (!exists("validate_summary_entities", mode = "function")) {
+  if (file.exists("functions/llm-validation.R")) {
+    source("functions/llm-validation.R", local = TRUE)
+  }
+}
+
 #------------------------------------------------------------------------------
 # Rate limit configuration for Gemini API
 # Based on Paid Tier 1: 60 RPM for gemini-3-pro-preview
@@ -311,6 +318,8 @@ generate_cluster_summary <- function(
 
   retries <- 0
   last_error <- NULL
+  last_result <- NULL
+  last_validation <- NULL
 
   while (retries < max_retries) {
     start_time <- Sys.time()
@@ -342,29 +351,59 @@ generate_cluster_summary <- function(
         tokens_input <- NULL
         tokens_output <- NULL
 
-        # Log successful generation
-        log_generation_attempt(
-          cluster_type = cluster_type,
-          cluster_number = as.integer(cluster_number),
-          cluster_hash = cluster_hash,
-          model_name = model,
-          status = "success",
-          prompt_text = prompt,
-          response_json = result,
-          tokens_input = tokens_input,
-          tokens_output = tokens_output,
-          latency_ms = latency_ms
-        )
+        # Store for potential retry tracking
+        last_result <- result
 
-        log_info("Successfully generated {cluster_type} cluster summary in {latency_ms}ms")
+        # Validate entities in the generated summary
+        validation <- validate_summary_entities(result, cluster_data)
+        last_validation <- validation
 
-        return(list(
-          success = TRUE,
-          summary = result,
-          tokens_input = tokens_input,
-          tokens_output = tokens_output,
-          latency_ms = latency_ms
-        ))
+        if (validation$is_valid) {
+          # Log successful generation with validation pass
+          log_generation_attempt(
+            cluster_type = cluster_type,
+            cluster_number = as.integer(cluster_number),
+            cluster_hash = cluster_hash,
+            model_name = model,
+            status = "success",
+            prompt_text = prompt,
+            response_json = result,
+            tokens_input = tokens_input,
+            tokens_output = tokens_output,
+            latency_ms = latency_ms
+          )
+
+          log_info("Successfully generated and validated {cluster_type} cluster summary in {latency_ms}ms")
+
+          return(list(
+            success = TRUE,
+            summary = result,
+            tokens_input = tokens_input,
+            tokens_output = tokens_output,
+            latency_ms = latency_ms,
+            validation = validation
+          ))
+        } else {
+          # Validation failed - log and retry
+          validation_errors <- paste(validation$errors, collapse = "; ")
+          log_generation_attempt(
+            cluster_type = cluster_type,
+            cluster_number = as.integer(cluster_number),
+            cluster_hash = cluster_hash,
+            model_name = model,
+            status = "validation_failed",
+            prompt_text = prompt,
+            response_json = result,
+            validation_errors = validation_errors,
+            tokens_input = tokens_input,
+            tokens_output = tokens_output,
+            latency_ms = latency_ms
+          )
+
+          retries <- retries + 1
+          last_error <- paste("Validation failed:", validation_errors)
+          log_warn("Validation failed (attempt {retries}): {validation_errors}")
+        }
       },
       error = function(e) {
         retries <<- retries + 1
@@ -407,7 +446,9 @@ generate_cluster_summary <- function(
   return(list(
     success = FALSE,
     error = last_error,
-    attempts = retries
+    attempts = retries,
+    last_result = last_result,
+    last_validation = last_validation
   ))
 }
 
@@ -509,7 +550,39 @@ get_or_generate_summary <- function(
     model = model
   )
 
+  # Handle generation failure
   if (!result$success) {
+    # If we have a last result that failed validation, save it as rejected
+    if (!is.null(result$last_result) && !is.null(result$last_validation)) {
+      cluster_number <- cluster_data$cluster_number %||% 0L
+
+      # Add derived confidence even for rejected summaries
+      summary_with_confidence <- result$last_result
+      summary_with_confidence$derived_confidence <- calculate_derived_confidence(cluster_data$term_enrichment)
+
+      cache_id <- save_summary_to_cache(
+        cluster_type = cluster_type,
+        cluster_number = as.integer(cluster_number),
+        cluster_hash = cluster_hash,
+        model_name = model,
+        prompt_version = "1.0",
+        summary_json = summary_with_confidence,
+        tags = result$last_result$tags,
+        validation_status = "rejected"
+      )
+
+      log_warn("Saved rejected summary to cache (cache_id={cache_id})")
+
+      return(list(
+        success = FALSE,
+        error = result$error,
+        from_cache = FALSE,
+        cache_id = cache_id,
+        validation_status = "rejected",
+        validation = result$last_validation
+      ))
+    }
+
     return(list(
       success = FALSE,
       error = result$error,
@@ -517,7 +590,14 @@ get_or_generate_summary <- function(
     ))
   }
 
-  # Save to cache
+  # Calculate derived confidence from enrichment data
+  derived_confidence <- calculate_derived_confidence(cluster_data$term_enrichment)
+
+  # Add derived_confidence to summary
+  summary_with_confidence <- result$summary
+  summary_with_confidence$derived_confidence <- derived_confidence
+
+  # Save to cache with validation status
   cluster_number <- cluster_data$cluster_number %||% 0L
   tags <- result$summary$tags
 
@@ -527,7 +607,7 @@ get_or_generate_summary <- function(
     cluster_hash = cluster_hash,
     model_name = model,
     prompt_version = "1.0",
-    summary_json = result$summary,
+    summary_json = summary_with_confidence,
     tags = tags
   )
 
@@ -535,10 +615,11 @@ get_or_generate_summary <- function(
 
   return(list(
     success = TRUE,
-    summary = result$summary,
+    summary = summary_with_confidence,
     from_cache = FALSE,
     cache_id = cache_id,
-    validation_status = "pending"
+    validation_status = "pending",
+    validation = result$validation
   ))
 }
 
@@ -553,6 +634,84 @@ get_or_generate_summary <- function(
 is_gemini_configured <- function() {
   api_key <- Sys.getenv("GEMINI_API_KEY")
   return(api_key != "" && !is.na(api_key))
+}
+
+
+#' Calculate derived confidence from enrichment data
+#'
+#' Computes a confidence score based on enrichment data strength.
+#' Provides an objective measure independent of LLM self-assessment.
+#'
+#' @param enrichment_data Tibble with term enrichment data containing 'fdr' column
+#'
+#' @return List with:
+#'   - avg_fdr: Average FDR across top terms
+#'   - term_count: Number of significant terms (FDR < 0.05)
+#'   - score: Derived confidence score ("high", "medium", or "low")
+#'
+#' @details
+#' Confidence scoring:
+#' - high: avg_fdr < 1e-10 AND term_count > 20
+#' - medium: avg_fdr < 1e-5 AND term_count > 10
+#' - low: otherwise
+#'
+#' @examples
+#' \dontrun{
+#' enrichment <- tibble(term = c("GO:001", "GO:002"), fdr = c(1e-12, 1e-15))
+#' conf <- calculate_derived_confidence(enrichment)
+#' # conf$score = "high"
+#' }
+#'
+#' @export
+calculate_derived_confidence <- function(enrichment_data) {
+  # Handle NULL or empty enrichment data
+  if (is.null(enrichment_data) || nrow(enrichment_data) == 0) {
+    return(list(
+      avg_fdr = NA_real_,
+      term_count = 0L,
+      score = "low"
+    ))
+  }
+
+  # Ensure fdr column exists
+  if (!"fdr" %in% names(enrichment_data)) {
+    log_warn("Enrichment data missing 'fdr' column, returning low confidence")
+    return(list(
+      avg_fdr = NA_real_,
+      term_count = nrow(enrichment_data),
+      score = "low"
+    ))
+  }
+
+  # Count significant terms (FDR < 0.05)
+  significant_terms <- enrichment_data %>%
+    dplyr::filter(fdr < 0.05)
+
+  term_count <- nrow(significant_terms)
+
+  # Calculate average FDR across significant terms
+  avg_fdr <- if (term_count > 0) {
+    mean(significant_terms$fdr, na.rm = TRUE)
+  } else {
+    NA_real_
+  }
+
+  # Determine confidence score
+  score <- if (!is.na(avg_fdr) && avg_fdr < 1e-10 && term_count > 20) {
+    "high"
+  } else if (!is.na(avg_fdr) && avg_fdr < 1e-5 && term_count > 10) {
+    "medium"
+  } else {
+    "low"
+  }
+
+  log_debug("Derived confidence: avg_fdr={signif(avg_fdr, 3)}, term_count={term_count}, score={score}")
+
+  list(
+    avg_fdr = avg_fdr,
+    term_count = as.integer(term_count),
+    score = score
+  )
 }
 
 

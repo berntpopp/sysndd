@@ -185,9 +185,17 @@ save_summary_to_cache <- function(
   model_name,
   prompt_version = "1.0",
   summary_json,
-  tags = NULL
+  tags = NULL,
+  validation_status = "pending"
 ) {
-  log_info("Saving summary to cache for cluster {cluster_type}/{cluster_number}")
+  log_info("Saving summary to cache for cluster {cluster_type}/{cluster_number} (status={validation_status})")
+
+  # Validate validation_status
+  valid_statuses <- c("pending", "validated", "rejected")
+  if (!validation_status %in% valid_statuses) {
+    log_warn("Invalid validation_status '{validation_status}', defaulting to 'pending'")
+    validation_status <- "pending"
+  }
 
   # Serialize to JSON if needed
   summary_json_str <- if (is.character(summary_json)) {
@@ -217,14 +225,14 @@ save_summary_to_cache <- function(
       log_debug("Marked {affected} existing summary/summaries as non-current")
     }
 
-    # Insert new summary
+    # Insert new summary with specified validation status
     db_execute_statement(
       "INSERT INTO llm_cluster_summary_cache
        (cluster_type, cluster_number, cluster_hash, model_name, prompt_version,
         summary_json, tags, is_current, validation_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, 'pending')",
+       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?)",
       list(cluster_type, cluster_number, cluster_hash, model_name, prompt_version,
-           summary_json_str, tags_json_str)
+           summary_json_str, tags_json_str, validation_status)
     )
 
     # Get the inserted cache_id
