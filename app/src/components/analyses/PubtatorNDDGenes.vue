@@ -142,11 +142,9 @@
             <BTable
               :items="items"
               :fields="fields"
-              :current-page="currentPage"
               :busy="isBusy"
               :sort-by="sortByArray"
               no-local-sorting
-              no-local-pagination
               head-variant="light"
               show-empty
               small
