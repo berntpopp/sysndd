@@ -93,12 +93,14 @@ jobs:
             libssl-dev \
             libmariadb-dev \
             libsodium-dev \
-            libpng-dev
+            libpng-dev \
+            libsecret-1-dev \
+            libgit2-dev
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 2
+          cache-version: 3
 
       - name: Run lintr
         run: Rscript scripts/lint-check.R
@@ -147,12 +149,14 @@ jobs:
             libssl-dev \
             libmariadb-dev \
             libsodium-dev \
-            libpng-dev
+            libpng-dev \
+            libsecret-1-dev \
+            libgit2-dev
 
       - uses: r-lib/actions/setup-renv@v2
         with:
           working-directory: ./api
-          cache-version: 2
+          cache-version: 3
 
       - name: Run testthat tests
         env:
