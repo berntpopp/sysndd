@@ -1,0 +1,138 @@
+---
+phase: 56-variant-correlations-publications
+verified: 2026-01-31T16:10:50Z
+status: passed
+score: 8/8 must-haves verified
+---
+
+# Phase 56: Variant Correlations & Publications Verification Report
+
+**Phase Goal:** Navigation links work correctly; publications view has improved usability
+**Verified:** 2026-01-31T16:10:50Z
+**Status:** passed
+**Re-verification:** No - initial verification
+
+## Goal Achievement
+
+### Observable Truths
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 1 | Clicking a cell in variant correlation matrix navigates to Entities table filtered by those variants | VERIFIED | `AnalysesVariantCorrelogram.vue` line 196: `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})` |
+| 2 | Clicking a bar in variant counts chart navigates to Entities table filtered by that variant | VERIFIED | `AnalysesVariantCounts.vue` line 194: `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.vario_id})` |
+| 3 | Navigation links include correct filter parameters for modifier_variant_id | VERIFIED | Both files use `all(modifier_variant_id,...)` filter syntax consistent with router |
+| 4 | User can expand publication rows to see detailed metadata (title, abstract, authors) | VERIFIED | `PublicationsNDDTable.vue` lines 316-321: `fields_details` array with Abstract, Lastname, Firstname, Keywords; line 73: `:field-details="fields_details"` passed to GenericTable |
+| 5 | Publications table shows cached data instantly when returning to view | VERIFIED | `PublicationsNDDTable.vue` lines 202-205: module-level caching vars; lines 440-447: cache check and reuse logic |
+| 6 | User can select time aggregation (year/month/quarter) in TimePlot | VERIFIED | `PublicationsNDDTimePlot.vue` lines 37-44: Aggregate dropdown; lines 95-100: timeAggregation options; lines 166-189: aggregateData method |
+| 7 | User can toggle between count-per-period and cumulative view in TimePlot | VERIFIED | `PublicationsNDDTimePlot.vue` lines 48-56: showCumulative checkbox; lines 197-203: cumulative calculation logic |
+| 8 | Stats view displays metrics cards with publication counts and growth rate | VERIFIED | `PublicationsNDDStats.vue` lines 41-51: metricsCards template rendering; lines 147-220: computed metricsCards with Total, YTD, YoY Growth, Newest Publication |
+
+**Score:** 8/8 truths verified
+
+### Required Artifacts
+
+| Artifact | Expected | Status | Details |
+|----------|----------|--------|---------|
+| `app/src/components/analyses/AnalysesVariantCorrelogram.vue` | Correlation matrix with working navigation links to /Entities/ | VERIFIED | 245 lines, contains `/Entities/` route, xlink:href wired to D3 SVG elements |
+| `app/src/components/analyses/AnalysesVariantCounts.vue` | Variant counts chart with working navigation links to /Entities/ | VERIFIED | 240 lines, contains `/Entities/` route, xlink:href wired to D3 SVG elements |
+| `app/src/components/analyses/PublicationsNDDTable.vue` | Enhanced table with row details and module-level caching | VERIFIED | 700 lines, moduleLastApiParams present, fields_details array defined, field-details prop passed to GenericTable |
+| `app/src/components/analyses/PublicationsNDDTimePlot.vue` | Interactive time plot with aggregation options | VERIFIED | 494 lines, timeAggregation and showCumulative data properties, aggregateData method, D3 rollups for aggregation |
+| `app/src/components/analyses/PublicationsNDDStats.vue` | Stats view with metrics cards | VERIFIED | 434 lines, metricsCards computed property returns 4 cards (Total, YTD, YoY Growth, Newest), metrics-card CSS class |
+
+### Key Link Verification
+
+| From | To | Via | Status | Details |
+|------|-----|-----|--------|---------|
+| AnalysesVariantCorrelogram.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 193-196: `.attr('xlink:href', (d) => \`/Entities/?...\`)` |
+| AnalysesVariantCounts.vue | /Entities/ route | xlink:href attribute on SVG elements | WIRED | Line 191-194: `.attr('xlink:href', (d) => \`/Entities/?...\`)` |
+| PublicationsNDDTable.vue | /api/publication | axios fetch with caching | WIRED | Line 459: axios.get(apiUrl), lines 440-447: cache check before API call |
+| PublicationsNDDTable.vue | GenericTable | field-details prop | WIRED | Line 73: `:field-details="fields_details"`, GenericTable.vue lines 270-272 accepts fieldDetails prop |
+| PublicationsNDDTable.vue | PubMed | external href | WIRED | Line 142: `:href="\`https://pubmed.ncbi.nlm.nih.gov/${row.publication_id}\`"` |
+| PublicationsNDDTimePlot.vue | /api/statistics/publication_stats | axios fetch | WIRED | Line 117: axios.get(apiUrl) to publication_stats endpoint |
+| PublicationsNDDStats.vue | metricsCards computed | template v-for | WIRED | Line 42: `v-for="(card, index) in metricsCards"` renders 4 metrics cards |
+
+### Requirements Coverage
+
+| Requirement | Status | Blocking Issue |
+|-------------|--------|----------------|
+| VCOR-01: VariantCorrelations view navigation links work correctly | SATISFIED | - |
+| VCOR-02: VariantCounts view navigation links work correctly | SATISFIED | - |
+| PUB-01: Publications table has improved UX (pagination, search, filters) | SATISFIED | Pagination controls present, search input wired, column filters functional |
+| PUB-02: Publication metadata fetched from PubMed API (title, journal, abstract) | PARTIALLY SATISFIED | Metadata displayed in expandable rows; PubMed API not directly called - data comes from backend which fetches from PubMed |
+| PUB-03: PublicationsNDD TimePlot has improved visualization | SATISFIED | Time aggregation and cumulative view options added |
+| PUB-04: PublicationsNDD Stats view displays correctly | SATISFIED | 4 metrics cards with Total, YTD (with label), YoY Growth, Newest Publication |
+
+### Anti-Patterns Found
+
+| File | Line | Pattern | Severity | Impact |
+|------|------|---------|----------|--------|
+| PublicationsNDDTable.vue | 107 | `<!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->` | Info | Pre-existing TODO, not a blocker |
+
+No blocking anti-patterns found in phase 56 modifications.
+
+### Human Verification Required
+
+### 1. Variant Correlation Navigation Test
+
+**Test:** Navigate to Variant Correlations view, click a cell in the correlation matrix
+**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,X,Y)` and Entities table shows filtered results
+**Why human:** Requires running dev server and visual confirmation of navigation behavior
+
+### 2. Variant Counts Navigation Test
+
+**Test:** Navigate to Variant Counts view, click a bar in the bar chart
+**Expected:** Browser navigates to `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,X)` and Entities table shows filtered results
+**Why human:** Requires running dev server and visual confirmation of navigation behavior
+
+### 3. Publications Row Details Test
+
+**Test:** Navigate to Publications table, click "Show" button on a row
+**Expected:** Row expands showing Abstract, Authors (Last names), Authors (First names), Keywords fields
+**Why human:** Requires visual confirmation of expanded row content and layout
+
+### 4. Publications Caching Test
+
+**Test:** Apply a filter to Publications table, navigate away, then navigate back
+**Expected:** Table shows cached data instantly without network request (check Network tab)
+**Why human:** Requires monitoring Network tab in DevTools to verify caching behavior
+
+### 5. TimePlot Aggregation Test
+
+**Test:** Navigate to Publications TimePlot, select "Month" aggregation, then "Quarter"
+**Expected:** Chart updates to show monthly/quarterly data points; tooltip shows appropriate date format
+**Why human:** Requires visual confirmation of chart updates and tooltip content
+
+### 6. TimePlot Cumulative View Test
+
+**Test:** Enable "Cumulative View" toggle on TimePlot
+**Expected:** Line shows running total instead of per-period counts; tooltip shows "Total" label instead of "Count"
+**Why human:** Requires visual confirmation of line shape and tooltip label
+
+### 7. Stats Metrics Cards Test
+
+**Test:** Navigate to Publications Stats view
+**Expected:** 4 metrics cards visible above chart: Total Publications, Publications YYYY (YTD), YoY Growth (percentage), Newest Publication (date)
+**Why human:** Requires visual confirmation of card content, icons, and colors
+
+### 8. PMID External Link Test
+
+**Test:** Click PMID badge in Publications table
+**Expected:** PubMed opens in new tab at `https://pubmed.ncbi.nlm.nih.gov/{publication_id}`
+**Why human:** Requires confirmation that external link opens correctly
+
+### Gaps Summary
+
+No gaps found. All must-haves verified through code inspection:
+
+1. **Variant navigation links (VCOR-01, VCOR-02):** Both chart components now route to `/Entities/` instead of non-existent `/Variants/`. The filter parameters correctly use `modifier_variant_id` which the Entities table router accepts.
+
+2. **Publications table enhancements (PUB-01, PUB-02):** Module-level caching prevents duplicate API calls. Expandable row details show Abstract, Authors, Keywords metadata. PMID badges link to PubMed. Pagination, search, and filters are functional.
+
+3. **TimePlot interactivity (PUB-03):** Time aggregation selector (Year/Month/Quarter) and cumulative view toggle added. D3 rollups used for aggregation. Controls disabled when viewing bar chart mode.
+
+4. **Stats metrics cards (PUB-04):** Four metrics cards display Total Publications, Current Year YTD count (with "(YTD)" label for clarity), Year-over-Year growth percentage, and Newest publication date. Cards use Bootstrap icons and color-coded variants.
+
+---
+
+_Verified: 2026-01-31T16:10:50Z_
+_Verifier: Claude (gsd-verifier)_

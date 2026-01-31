@@ -56,8 +56,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 56-01-PLAN.md - Variant navigation fixes
-- [ ] 56-02-PLAN.md - Publications improvements (table UX, API metadata, TimePlot, Stats)
+- [x] 56-01-PLAN.md - Variant navigation fixes
+- [x] 56-02-PLAN.md - Publications improvements (table UX, API metadata, TimePlot, Stats)
 
 **Requirements:**
 - VCOR-01: VariantCorrelations view navigation links work correctly
@@ -232,7 +232,7 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
-| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Not started |
+| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
