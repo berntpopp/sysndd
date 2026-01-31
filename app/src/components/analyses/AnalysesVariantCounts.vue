@@ -191,9 +191,9 @@ export default {
         .attr(
           'xlink:href',
           (d) =>
-            `/Variants/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.vario_id})&page_after=0&page_size=10`
-        ) // Add links for filtering the table
-        .attr('aria-label', (d) => `Link to variants table for ${d.vario_id}`)
+            `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.vario_id})&page_after=0&page_size=10`
+        ) // Add links for filtering the entities table
+        .attr('aria-label', (d) => `Link to entities table for variant ${d.vario_id}`)
         .append('rect')
         .attr('x', (d) => x(d.variant_name))
         .attr('y', (d) => y(d.count))
