@@ -182,8 +182,30 @@ function(req,
   publication_tbl <- pool %>%
     tbl("publication") %>%
     collect() %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
+
+  # Handle numeric sorting for publication_id (PMID:12345 format)
+  # Extract the sort column and direction
+  sort_col <- str_replace_all(sort, "^[+-]", "")
+  sort_desc <- str_sub(sort, 1, 1) == "-"
+
+  if (sort_col == "publication_id") {
+    # Extract numeric part and sort numerically
+    publication_tbl <- publication_tbl %>%
+      mutate(.pmid_numeric = as.numeric(str_replace(publication_id, "^PMID:", "")))
+
+    if (sort_desc) {
+      publication_tbl <- publication_tbl %>% arrange(desc(.pmid_numeric))
+    } else {
+      publication_tbl <- publication_tbl %>% arrange(.pmid_numeric)
+    }
+
+    publication_tbl <- publication_tbl %>% dplyr::select(-.pmid_numeric)
+  } else {
+    # Standard sorting for other columns
+    publication_tbl <- publication_tbl %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs))
+  }
 
   # Select fields from table based on input
   publication_tbl <- select_tibble_fields(

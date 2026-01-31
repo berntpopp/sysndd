@@ -181,6 +181,50 @@
                 </span>
                 <span v-else class="text-muted">—</span>
               </template>
+
+              <!-- Custom row details for expanded publication info -->
+              <template #row-details="{ row }">
+                <div class="publication-details">
+                  <!-- Abstract -->
+                  <div v-if="row.Abstract" class="details-section">
+                    <h6 class="details-label">
+                      <i class="bi bi-file-text me-2" />Abstract
+                    </h6>
+                    <p class="details-abstract">{{ row.Abstract }}</p>
+                  </div>
+
+                  <div class="details-row">
+                    <!-- Authors -->
+                    <div v-if="row.Lastname || row.Firstname" class="details-section details-authors">
+                      <h6 class="details-label">
+                        <i class="bi bi-people me-2" />Authors
+                      </h6>
+                      <p class="details-text">{{ formatAuthors(row.Lastname, row.Firstname) }}</p>
+                    </div>
+
+                    <!-- Keywords -->
+                    <div v-if="row.Keywords" class="details-section details-keywords">
+                      <h6 class="details-label">
+                        <i class="bi bi-tags me-2" />Keywords
+                      </h6>
+                      <div class="keywords-container">
+                        <span
+                          v-for="(keyword, idx) in parseKeywords(row.Keywords)"
+                          :key="idx"
+                          class="keyword-tag"
+                        >
+                          {{ keyword }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Empty state -->
+                  <p v-if="!row.Abstract && !row.Lastname && !row.Keywords" class="text-muted">
+                    No additional details available for this publication.
+                  </p>
+                </div>
+              </template>
             </GenericTable>
             <!-- Main GenericTable -->
           </BCard>
@@ -355,18 +399,23 @@ export default {
       handler(newVal) {
         if (this.isInitializing) return;
         // Build new sort string from sortBy
+        // Must validate that we have a valid sort column before triggering API call
         const sortColumn =
-          typeof newVal === 'string'
+          typeof newVal === 'string' && newVal
             ? newVal
-            : newVal && newVal.length > 0
+            : newVal && newVal.length > 0 && newVal[0].key
               ? newVal[0].key
-              : 'publication_id';
+              : null; // Use null to indicate invalid/missing sort column
+
+        // Skip if we don't have a valid sort column
+        if (!sortColumn) return;
+
         const sortOrder =
           typeof newVal === 'string'
             ? this.sortDesc
               ? 'desc'
               : 'asc'
-            : newVal && newVal.length > 0
+            : newVal && newVal.length > 0 && newVal[0].order
               ? newVal[0].order
               : 'asc';
         const newSortString = (sortOrder === 'desc' ? '-' : '+') + sortColumn;
@@ -541,9 +590,16 @@ export default {
         this.lastItemID = metaObj.lastItemID === 'null' ? 0 : metaObj.lastItemID || 0;
         this.executionTime = metaObj.executionTime;
 
-        // Merge inbound fspec so we keep filterable: true
+        // Use API fspec directly but filter to visible columns
         if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
-          this.fields = this.mergeFields(metaObj.fspec);
+          const visibleKeys = ['publication_id', 'Title', 'Publication_date', 'Journal'];
+          const shortLabels = { publication_id: 'PMID', Publication_date: 'Date' };
+          const filtered = metaObj.fspec
+            .filter((f) => visibleKeys.includes(f.key))
+            .map((f) => ({ ...f, label: shortLabels[f.key] || f.label, class: 'text-start' }));
+          // Add details column
+          filtered.push({ key: 'details', label: 'Details', class: 'text-center', sortable: false });
+          this.fields = filtered;
         }
       }
       const uiStore = useUiStore();
@@ -616,11 +672,13 @@ export default {
 
     /**
      * handleSortUpdate
-     * Event fired from the GenericTable if user clicks a column header
+     * Event fired from the GenericTable if user clicks a column header.
+     * Converts legacy { sortBy: string, sortDesc: boolean } to array format.
+     * @param {Object} ctx - Sort context with sortBy (string) and sortDesc (boolean)
      */
     handleSortUpdate(ctx) {
-      this.sortBy = ctx.sortBy;
-      this.sortDesc = ctx.sortDesc;
+      // Convert from legacy format to Bootstrap-Vue-Next array format
+      this.sortBy = [{ key: ctx.sortBy, order: ctx.sortDesc ? 'desc' : 'asc' }];
     },
 
     /**
@@ -630,14 +688,15 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      // Must check that key exists to prevent 'undefined' being sent to API
       const sortColumn =
-        Array.isArray(this.sortBy) && this.sortBy.length > 0
+        Array.isArray(this.sortBy) && this.sortBy.length > 0 && this.sortBy[0].key
           ? this.sortBy[0].key
-          : typeof this.sortBy === 'string'
+          : typeof this.sortBy === 'string' && this.sortBy
             ? this.sortBy
             : 'publication_id';
       const sortOrder =
-        Array.isArray(this.sortBy) && this.sortBy.length > 0
+        Array.isArray(this.sortBy) && this.sortBy.length > 0 && this.sortBy[0].order
           ? this.sortBy[0].order
           : this.sortDesc
             ? 'desc'
@@ -700,37 +759,39 @@ export default {
 
     /**
      * mergeFields
-     * Merges inbound fspec from the backend with your local fields array,
-     * preserving filterable or selectable properties if they exist.
-     * Also ensures the 'details' column is always included at the end.
+     * Filters and processes inbound fspec from the backend.
+     * Only includes columns that should be visible in the main table view.
+     * Uses API sortable/filterable values which are already correct.
+     * Details-only fields (Abstract, Lastname, Firstname, Keywords) are excluded.
      */
     mergeFields(inboundFields) {
-      const merged = inboundFields
-        .filter((f) => f.key !== 'details') // Remove details from API fields (handled separately)
-        .map((f) => {
-          // Attempt to match inbound field by key
-          const existing = this.fields.find((x) => x.key === f.key);
-          // Apply short labels for cleaner display
-          const shortLabels = {
-            publication_id: 'PMID',
-            Publication_date: 'Date',
-          };
+      // Fields we want to show as columns (in order)
+      const visibleColumnKeys = ['publication_id', 'Title', 'Publication_date', 'Journal'];
+      // Short labels for cleaner display
+      const shortLabels = {
+        publication_id: 'PMID',
+        Publication_date: 'Date',
+      };
+
+      // Build merged array in the correct order
+      const merged = visibleColumnKeys
+        .map((key) => {
+          const apiField = inboundFields.find((f) => f.key === key);
+          if (!apiField) return null;
           return {
-            ...f,
-            label: shortLabels[f.key] || (existing ? existing.label : f.label),
-            // Preserve 'filterable' if it was in the local field
-            filterable: existing ? existing.filterable : false,
-            selectable: existing ? existing.selectable : false,
-            // Keep local classes if desired
-            class: existing ? existing.class : 'text-start',
+            ...apiField,
+            label: shortLabels[key] || apiField.label,
+            class: 'text-start',
           };
-        });
+        })
+        .filter(Boolean); // Remove nulls
 
       // Always add details column at the end
       merged.push({
         key: 'details',
         label: 'Details',
         class: 'text-center',
+        sortable: false,
       });
 
       return merged;
@@ -786,6 +847,39 @@ export default {
         return { value: opt, text: opt };
       });
     },
+
+    /**
+     * formatAuthors
+     * Combines last names and first names into a readable author list
+     * @param {string} lastNames - Semicolon-separated last names
+     * @param {string} firstNames - Semicolon-separated first names
+     * @returns {string} - Formatted author list
+     */
+    formatAuthors(lastNames, firstNames) {
+      if (!lastNames) return '';
+      const lasts = lastNames.split(';').map((s) => s.trim());
+      const firsts = firstNames ? firstNames.split(';').map((s) => s.trim()) : [];
+      return lasts
+        .map((last, i) => {
+          const first = firsts[i] || '';
+          return first ? `${last} ${first}` : last;
+        })
+        .join(', ');
+    },
+
+    /**
+     * parseKeywords
+     * Splits keyword string into array, handles semicolon-separated values
+     * @param {string} keywords - Semicolon-separated keywords
+     * @returns {Array} - Array of keyword strings
+     */
+    parseKeywords(keywords) {
+      if (!keywords) return [];
+      return keywords
+        .split(';')
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+    },
   },
 };
 </script>
@@ -800,12 +894,12 @@ export default {
 .publication-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.35em 0.65em;
-  font-size: 0.85em;
+  padding: 0.2em 0.45em;
+  font-size: 0.75em;
   font-weight: 500;
   background-color: #e7f1ff;
   color: #0d6efd;
-  border-radius: 0.375rem;
+  border-radius: 0.3rem;
   transition: all 0.15s ease-in-out;
 }
 
@@ -846,11 +940,140 @@ export default {
 .date-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.25em 0.5em;
-  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  font-size: 0.75em;
   background-color: #e8f5e9;
   color: #2e7d32;
   border-radius: 0.25rem;
   white-space: nowrap;
+}
+
+/* Publication details expanded row styling */
+.publication-details {
+  padding: 1.25rem 1.5rem;
+  background: #fafbfc;
+  border-radius: 0.5rem;
+  margin: 0.75rem 1rem;
+  border: 1px solid #e9ecef;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.details-section {
+  margin-bottom: 1.25rem;
+}
+
+.details-section:last-child {
+  margin-bottom: 0;
+}
+
+.details-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+}
+
+.details-label i {
+  color: #0d6efd;
+  opacity: 0.7;
+}
+
+.details-abstract {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #333;
+  margin: 0;
+  text-align: justify;
+  padding: 0.5rem 0;
+}
+
+.details-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(300px, 3fr);
+  gap: 2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e9ecef;
+  margin-top: 0.25rem;
+}
+
+.details-authors {
+  min-width: 0;
+}
+
+.details-keywords {
+  min-width: 0;
+}
+
+.details-text {
+  font-size: 0.875rem;
+  color: #495057;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.keywords-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.keyword-tag {
+  display: inline-block;
+  padding: 0.25em 0.6em;
+  font-size: 0.7rem;
+  font-weight: 500;
+  background-color: #e7f1ff;
+  color: #0d6efd;
+  border-radius: 1rem;
+  white-space: nowrap;
+  border: 1px solid rgba(13, 110, 253, 0.15);
+}
+
+/* Text truncation for table cells */
+.title-cell {
+  max-width: 350px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.entities-table td) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ensure journal badge truncates properly */
+.journal-badge {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767px) {
+  .publication-details {
+    padding: 0.75rem;
+  }
+
+  .details-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .details-authors,
+  .details-keywords {
+    min-width: auto;
+  }
+
+  .title-cell {
+    max-width: 200px;
+  }
 }
 </style>

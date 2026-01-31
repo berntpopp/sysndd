@@ -15,6 +15,8 @@
     class="entities-table"
     tbody-tr-class="entity-row"
     @update:sort-by="handleSortByUpdate"
+    @head-clicked="handleHeadClicked"
+    @sorted="handleSorted"
   >
     <!-- Slot for custom filter fields -->
     <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
@@ -264,11 +266,13 @@
       </BButton>
     </template>
 
-    <!-- Row details -->
+    <!-- Row details - allows custom slot override -->
     <template #row-details="row">
-      <BCard>
-        <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
-      </BCard>
+      <slot name="row-details" :row="row.item" :toggle="row.toggleDetails">
+        <BCard>
+          <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
+        </BCard>
+      </slot>
     </template>
   </BTable>
 </template>
@@ -314,7 +318,7 @@ export default {
       default: false,
     },
   },
-  emits: ['update-sort', 'update:sort-by'],
+  emits: ['update-sort', 'update:sort-by', 'head-clicked', 'sorted'],
   computed: {
     /**
      * Converts sortBy prop to Bootstrap-Vue-Next array format.
@@ -342,10 +346,55 @@ export default {
   methods: {
     handleSortByUpdate(newSortBy) {
       this.$emit('update:sort-by', newSortBy);
-      if (newSortBy && newSortBy.length > 0) {
+      if (newSortBy && newSortBy.length > 0 && newSortBy[0].key) {
         const sortByStr = newSortBy[0].key;
         const sortDescBool = newSortBy[0].order === 'desc';
         this.$emit('update-sort', { sortBy: sortByStr, sortDesc: sortDescBool });
+      }
+    },
+    /**
+     * Handle column header click for server-side sorting.
+     * Bootstrap-Vue-Next may not emit update:sort-by with no-local-sorting,
+     * so we handle head-clicked directly to ensure sorting works.
+     * @param {string} key - The field key that was clicked
+     * @param {Object} field - The field definition object
+     * @param {Event} event - The click event
+     */
+    handleHeadClicked(key, field, event) {
+      // Only handle sortable columns
+      if (!field || field.sortable === false) {
+        return;
+      }
+
+      // Determine current sort state and toggle
+      const currentSortKey = this.localSortBy.length > 0 ? this.localSortBy[0].key : null;
+      const currentSortOrder = this.localSortBy.length > 0 ? this.localSortBy[0].order : 'asc';
+
+      let newSortOrder = 'asc';
+      if (currentSortKey === key) {
+        // Same column - toggle order
+        newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      }
+
+      // Build and emit the new sort state
+      const newSortBy = [{ key, order: newSortOrder }];
+      this.$emit('update:sort-by', newSortBy);
+      this.$emit('update-sort', { sortBy: key, sortDesc: newSortOrder === 'desc' });
+    },
+    /**
+     * Handle sorted event from BTable (Bootstrap-Vue-Next).
+     * This event fires when sorting changes.
+     * @param {Object} ctx - Sort context with sortBy and sortDesc
+     */
+    handleSorted(ctx) {
+      if (ctx && ctx.sortBy) {
+        const sortKey = Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
+          ? ctx.sortBy[0].key
+          : ctx.sortBy;
+        const sortDesc = Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
+          ? ctx.sortBy[0].order === 'desc'
+          : ctx.sortDesc || false;
+        this.$emit('update-sort', { sortBy: sortKey, sortDesc });
       }
     },
   },
