@@ -169,13 +169,18 @@ generate_initials <- function(first_name, family_name) {
 #' @description
 #' This function sends a no-reply email with a specified email body, subject,
 #' and recipient. It allows for an optional blind copy recipient.
+#' Supports both plain text (legacy) and full HTML content.
 #'
 #' @param email_body A character string representing the body of the email.
+#'   Can be plain text (will be converted to markdown) or full HTML
+#'   (when html_content=TRUE).
 #' @param email_subject A character string representing the subject of the email.
 #' @param email_recipient A character string representing the recipient's email
 #'   address.
 #' @param email_blind_copy A character string representing the blind copy
 #'   recipient's email address, with a default value of "noreply@sysndd.org".
+#' @param html_content Logical. If TRUE, email_body is treated as complete HTML.
+#'   If FALSE (default), email_body is treated as markdown/plain text.
 #'
 #' @return
 #' A character string indicating that the email has been sent.
@@ -191,15 +196,25 @@ send_noreply_email <- function(
   email_body,
   email_subject,
   email_recipient,
-  email_blind_copy = "noreply@sysndd.org"
+  email_blind_copy = "noreply@sysndd.org",
+  html_content = FALSE
 ) {
-  email <- compose_email(
-    body = md(email_body),
-    footer = md(paste0(
-      "Visit [SysNDD.org](https://www.sysndd.org) for ",
-      "the latest information on Neurodevelopmental Disorders."
-    ))
-  )
+  if (html_content) {
+    # Use full HTML content directly (from email-templates.R)
+    # Wrap with htmltools::HTML() for proper raw HTML handling
+    email <- compose_email(
+      body = htmltools::HTML(email_body)
+    )
+  } else {
+    # Legacy: treat as markdown with standard footer
+    email <- compose_email(
+      body = md(email_body),
+      footer = md(paste0(
+        "Visit [SysNDD.org](https://www.sysndd.org) for ",
+        "the latest information on Neurodevelopmental Disorders."
+      ))
+    )
+  }
 
   suppressMessages(email %>%
     smtp_send(

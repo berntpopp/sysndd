@@ -234,15 +234,19 @@ function(req, res, user_id = 0, status_approval = FALSE) {
       user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
       user_update_password(user_id_approval, hashed_password)
 
+      # Generate professional HTML email using template
+      email_html <- email_account_approved(
+        user_name = user_table$user_name,
+        temp_password = user_password,
+        login_url = paste0(dw$base_url, "/Login")
+      )
+
       send_noreply_email(
-        c(
-          "Your registration for sysndd.org has been approved by a curator.",
-          "Your password (please change after first login):",
-          user_password
-        ),
-        "Account approved for SysNDD.org",
-        user_table$email,
-        "curator@sysndd.org"
+        email_body = email_html,
+        email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
+        email_recipient = user_table$email,
+        email_blind_copy = "curator@sysndd.org",
+        html_content = TRUE
       )
     } else {
       # Rejection - delete user using db_execute_statement
@@ -489,15 +493,19 @@ function(req, res) {
     jwt <- jwt_encode_hmac(claim, secret = key)
     reset_url <- paste0(dw$base_url, "/PasswordReset/", jwt)
 
+    # Generate professional HTML email using template
+    email_html <- email_password_reset(
+      reset_url = reset_url,
+      user_name = user_table$user_name,
+      expiry_minutes = round(dw$refresh / 60)
+    )
+
     res$status <- 200
     res <- send_noreply_email(
-      c(
-        "We received a password reset for your account",
-        "at sysndd.org. Use this link to reset:",
-        reset_url
-      ),
-      "Your password reset request for SysNDD.org",
-      user_table$email
+      email_body = email_html,
+      email_subject = "Reset Your SysNDD Password",
+      email_recipient = user_table$email,
+      html_content = TRUE
     )
   } else {
     res$status <- 401
@@ -727,14 +735,19 @@ function(req, res) {
         user_update_password(user_details$user_id, hashed_password)
         user_update(user_details$user_id, list(abbreviation = user_initials))
 
+        # Generate professional HTML email using template
+        email_html <- email_account_approved(
+          user_name = paste(user_table$first_name, user_table$family_name),
+          temp_password = user_password,
+          login_url = paste0(dw$base_url, "/Login")
+        )
+
         send_noreply_email(
-          email_body = paste0(
-            "Your registration for sysndd.org has been approved by a curator.\n",
-            "Your password (please change after first login): ", user_password
-          ),
-          email_subject = "Account approved for SysNDD.org",
+          email_body = email_html,
+          email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
           email_recipient = user_table$email,
-          email_blind_copy = "curator@sysndd.org"
+          email_blind_copy = "curator@sysndd.org",
+          html_content = TRUE
         )
       }
     }

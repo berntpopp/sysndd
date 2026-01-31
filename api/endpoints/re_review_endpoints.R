@@ -342,19 +342,21 @@ function(req, res) {
     filter(user_role == "Curator") %>%
     pull(email)
 
+  # Generate professional HTML email using template
+  email_html <- email_rereview_request(
+    user_info = list(
+      user_name = user_info$user_name,
+      email = user_info$email,
+      orcid = user_info$orcid %||% ""
+    )
+  )
+
   res_mail <- send_noreply_email(
-    c(
-      "Hello", user_info$user_name, "!<br />",
-      "<br />Your request for another **re-review batch** has been sent to the curators.",
-      "They will review and activate your application shortly.<br /><br />",
-      "Requesting user info:",
-      user_info %>% kable("html"),
-      "<br />",
-      "Best wishes,<br />The SysNDD team"
-    ),
-    "Your re-review batch request from SysNDD.org",
-    user_info$email,
-    curator_mail
+    email_body = email_html,
+    email_subject = "SysNDD Re-Review Batch Request Submitted",
+    email_recipient = user_info$email,
+    email_blind_copy = curator_mail,
+    html_content = TRUE
   )
   res_mail
 }

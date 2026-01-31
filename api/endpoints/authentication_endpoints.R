@@ -87,16 +87,22 @@ function(signup_data) {
     sql <- sprintf("INSERT INTO user (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
     db_execute_statement(sql, unname(as.list(user)))
 
-    # Send email
+    # Generate professional HTML email using template
+    email_html <- email_registration_request(
+      user_info = list(
+        user_name = user$user_name,
+        email = user$email,
+        first_name = user$first_name,
+        family_name = user$family_name
+      )
+    )
+
     send_noreply_email(
-      c(
-        "Your registration request for sysndd.org has been sent to the curators",
-        "who will review it soon. Information provided:",
-        user
-      ),
-      "Your registration request to SysNDD.org",
-      user$email,
-      "curator@sysndd.org"
+      email_body = email_html,
+      email_subject = "SysNDD Registration Request Received",
+      email_recipient = user$email,
+      email_blind_copy = "curator@sysndd.org",
+      html_content = TRUE
     )
   } else {
     res$status <- 404
