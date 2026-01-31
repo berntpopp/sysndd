@@ -140,8 +140,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 58-01-PLAN.md - Gemini API client with ellmer
-- [ ] 58-02-PLAN.md - Entity validation pipeline
+- [x] 58-01-PLAN.md - Gemini API client with ellmer
+- [x] 58-02-PLAN.md - Entity validation pipeline
 
 **Requirements:**
 - LLM-01: Gemini API client integrated using ellmer package
@@ -261,7 +261,7 @@ Plans:
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | Complete |
 | 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01 to PUB-ADMIN-03 | Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Complete |
-| 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
+| 58 | LLM Foundation | LLM-01 to LLM-04 | Complete |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
 | 61 | LLM Validation | LLM-09, LLM-10, LLM-11 | Not started |

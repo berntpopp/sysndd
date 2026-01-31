@@ -41,10 +41,10 @@ Requirements for data quality stabilization, literature research tools, and AI-a
 
 ### LLM Cluster Summaries
 
-- [ ] **LLM-01**: Gemini API client integrated using ellmer package
-- [ ] **LLM-02**: API key stored securely in environment variable (GEMINI_API_KEY)
-- [ ] **LLM-03**: Cluster summaries use structured JSON output schema
-- [ ] **LLM-04**: Entity validation checks all gene names exist in database
+- [x] **LLM-01**: Gemini API client integrated using ellmer package
+- [x] **LLM-02**: API key stored securely in environment variable (GEMINI_API_KEY)
+- [x] **LLM-03**: Cluster summaries use structured JSON output schema
+- [x] **LLM-04**: Entity validation checks all gene names exist in database
 - [ ] **LLM-05**: Batch pre-generation job runs via mirai async system
 - [ ] **LLM-06**: Summaries cached in database with hash-based invalidation
 - [ ] **LLM-07**: Phenotype cluster summaries generated and displayed
@@ -126,10 +126,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PUBT-04 | 57 | Complete |
 | PUBT-05 | 57 | Complete |
 | PUBT-06 | 57 | Complete |
-| LLM-01 | 58 | Pending |
-| LLM-02 | 58 | Pending |
-| LLM-03 | 58 | Pending |
-| LLM-04 | 58 | Pending |
+| LLM-01 | 58 | Complete |
+| LLM-02 | 58 | Complete |
+| LLM-03 | 58 | Complete |
+| LLM-04 | 58 | Complete |
 | LLM-05 | 59 | Pending |
 | LLM-06 | 59 | Pending |
 | LLM-07 | 60 | Pending |
