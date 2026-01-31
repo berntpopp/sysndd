@@ -238,7 +238,7 @@ export default {
     pageSizeInput: { type: Number, default: 10 },
     fspecInput: {
       type: String,
-      default: 'publication_id,Title,Journal,Publication_date',
+      default: 'publication_id,Title,Journal,Publication_date,Abstract,Lastname,Firstname,Keywords',
     },
   },
   setup(props) {
@@ -290,7 +290,7 @@ export default {
       fields: [
         {
           key: 'publication_id',
-          label: 'Publication id',
+          label: 'PMID',
           sortable: true,
           sortDirection: 'asc',
           class: 'text-start',
@@ -305,7 +305,7 @@ export default {
         },
         {
           key: 'Publication_date',
-          label: 'Publication date',
+          label: 'Date',
           sortable: true,
           class: 'text-start',
           filterable: true,
@@ -316,6 +316,11 @@ export default {
           sortable: true,
           class: 'text-start',
           filterable: true,
+        },
+        {
+          key: 'details',
+          label: 'Details',
+          class: 'text-center',
         },
       ],
       // Detail fields shown in expandable row view
@@ -697,20 +702,38 @@ export default {
      * mergeFields
      * Merges inbound fspec from the backend with your local fields array,
      * preserving filterable or selectable properties if they exist.
+     * Also ensures the 'details' column is always included at the end.
      */
     mergeFields(inboundFields) {
-      return inboundFields.map((f) => {
-        // Attempt to match inbound field by key
-        const existing = this.fields.find((x) => x.key === f.key);
-        return {
-          ...f,
-          // Preserve 'filterable' if it was in the local field
-          filterable: existing ? existing.filterable : false,
-          selectable: existing ? existing.selectable : false,
-          // Keep local classes if desired
-          class: existing ? existing.class : 'text-start',
-        };
+      const merged = inboundFields
+        .filter((f) => f.key !== 'details') // Remove details from API fields (handled separately)
+        .map((f) => {
+          // Attempt to match inbound field by key
+          const existing = this.fields.find((x) => x.key === f.key);
+          // Apply short labels for cleaner display
+          const shortLabels = {
+            publication_id: 'PMID',
+            Publication_date: 'Date',
+          };
+          return {
+            ...f,
+            label: shortLabels[f.key] || (existing ? existing.label : f.label),
+            // Preserve 'filterable' if it was in the local field
+            filterable: existing ? existing.filterable : false,
+            selectable: existing ? existing.selectable : false,
+            // Keep local classes if desired
+            class: existing ? existing.class : 'text-start',
+          };
+        });
+
+      // Always add details column at the end
+      merged.push({
+        key: 'details',
+        label: 'Details',
+        class: 'text-center',
       });
+
+      return merged;
     },
 
     /**

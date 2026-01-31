@@ -8,12 +8,12 @@
     stacked="md"
     head-variant="light"
     show-empty
-    small
     fixed
-    striped
     hover
     sort-icon-left
     no-local-sorting
+    class="entities-table"
+    tbody-tr-class="entity-row"
     @update:sort-by="handleSortByUpdate"
   >
     <!-- Slot for custom filter fields -->
@@ -223,6 +223,31 @@
       </slot>
     </template>
 
+    <!-- Publication-related columns -->
+    <template #cell(publication_id)="data">
+      <slot name="cell-publication_id" :row="data.item" :index="data.index">
+        {{ data.item.publication_id }}
+      </slot>
+    </template>
+
+    <template #cell(Title)="data">
+      <slot name="cell-Title" :row="data.item" :index="data.index">
+        {{ data.item.Title }}
+      </slot>
+    </template>
+
+    <template #cell(Journal)="data">
+      <slot name="cell-Journal" :row="data.item" :index="data.index">
+        {{ data.item.Journal }}
+      </slot>
+    </template>
+
+    <template #cell(Publication_date)="data">
+      <slot name="cell-Publication_date" :row="data.item" :index="data.index">
+        {{ data.item.Publication_date }}
+      </slot>
+    </template>
+
     <!-- Description column with truncation and tooltip -->
     <template #cell(description)="data">
       <slot name="cell-description" :row="data.item" :index="data.index">
@@ -342,6 +367,91 @@ export default {
     padding: 0.3rem 0.6rem;
     font-size: 0.8125rem;
     line-height: 1.2;
+  }
+}
+
+/* Modern table styling */
+.entities-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Row styling - subtle separator and better spacing */
+:deep(.entities-table tbody tr) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s ease;
+}
+
+:deep(.entities-table tbody tr:last-child) {
+  border-bottom: none;
+}
+
+/* Alternating row backgrounds - very subtle */
+:deep(.entities-table tbody tr:nth-child(even)) {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+/* Enhanced hover effect */
+:deep(.entities-table tbody tr:hover) {
+  background-color: rgba(13, 110, 253, 0.04);
+}
+
+/* Cell padding and alignment */
+:deep(.entities-table td) {
+  padding: 0.65rem 0.5rem;
+  vertical-align: middle;
+  border-top: none;
+}
+
+:deep(.entities-table th) {
+  padding: 0.6rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Filter row styling */
+:deep(.entities-table thead tr:first-child td) {
+  padding: 0.4rem 0.25rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+:deep(.entities-table thead tr:first-child input),
+:deep(.entities-table thead tr:first-child select) {
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+/* Stacked mode improvements for mobile */
+@media (max-width: 767px) {
+  :deep(.entities-table.b-table-stacked-md > tbody > tr) {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  :deep(.entities-table.b-table-stacked-md > tbody > tr:hover) {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  :deep(.entities-table.b-table-stacked-md > tbody > tr > td) {
+    padding: 0.35rem 0;
+    border: none;
+  }
+}
+
+/* Accessibility - respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.entities-table tbody tr) {
+    transition: none;
   }
 }
 </style>
