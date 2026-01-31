@@ -10,6 +10,11 @@
 # Load required packages for this module
 # Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
 
+# Load LLM batch generator if available
+if (file.exists("functions/llm-batch-generator.R")) {
+  source("functions/llm-batch-generator.R", local = FALSE)
+}
+
 ## -------------------------------------------------------------------##
 # Global State
 ## -------------------------------------------------------------------##
@@ -126,6 +131,36 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
     } else {
       jobs_env[[job_id]]$status <- "completed"
       jobs_env[[job_id]]$result <- result
+
+      # Chain LLM generation after clustering jobs
+      if (jobs_env[[job_id]]$operation %in% c("clustering", "phenotype_clustering")) {
+        # Determine cluster type from operation
+        chain_cluster_type <- if (jobs_env[[job_id]]$operation == "clustering") {
+          "functional"
+        } else {
+          "phenotype"
+        }
+
+        # Extract clusters from result (different structure for each type)
+        chain_clusters <- if (!is.null(result$clusters)) {
+          result$clusters
+        } else if (is.data.frame(result)) {
+          result
+        } else {
+          NULL
+        }
+
+        if (!is.null(chain_clusters) && nrow(chain_clusters) > 0) {
+          # Check if LLM batch generator is available
+          if (exists("trigger_llm_batch_generation", mode = "function")) {
+            trigger_llm_batch_generation(
+              clusters = chain_clusters,
+              cluster_type = chain_cluster_type,
+              parent_job_id = job_id
+            )
+          }
+        }
+      }
     }
     jobs_env[[job_id]]$completed_at <- Sys.time()
     cleanup_job_progress(job_id)
@@ -266,7 +301,9 @@ get_progress_message <- function(operation) {
     omim_update = "Updating OMIM annotations from mim2gene.txt + JAX API...",
     hgnc_update = "Downloading HGNC data and enriching with gnomAD constraints...",
     backup_create = "Creating database backup...",
-    backup_restore = "Restoring database from backup..."
+    backup_restore = "Restoring database from backup...",
+    pubtator_update = "Fetching publications from PubTator API...",
+    llm_generation = "Generating LLM summaries for clusters..."
   )
 
   messages[[operation]] %||% "Processing request..."
