@@ -32,6 +32,29 @@
             <BFormSelect v-model="plotMode" :options="plotModeOptions" @change="generateGraph" />
           </BInputGroup>
         </BCol>
+
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Aggregate" size="sm" class="mb-1">
+            <BFormSelect
+              v-model="timeAggregation"
+              :options="timeAggregationOptions"
+              :disabled="plotMode === 'type_counts'"
+              @change="generateGraph"
+            />
+          </BInputGroup>
+        </BCol>
+
+        <BCol class="my-1" sm="4">
+          <BFormCheckbox
+            v-model="showCumulative"
+            :disabled="plotMode === 'type_counts'"
+            switch
+            class="mt-1"
+            @change="generateGraph"
+          >
+            Cumulative View
+          </BFormCheckbox>
+        </BCol>
       </BRow>
 
       <!-- Overlay spinner & SVG container -->
@@ -68,6 +91,17 @@ export default {
       ],
       plotMode: 'publication_date', // default selection
 
+      // Time aggregation options (year/month/quarter)
+      timeAggregation: 'year',
+      timeAggregationOptions: [
+        { value: 'year', text: 'Year' },
+        { value: 'month', text: 'Month' },
+        { value: 'quarter', text: 'Quarter' },
+      ],
+
+      // Cumulative view toggle
+      showCumulative: false,
+
       statsData: null, // Will store the entire object from publication_stats
       loading: true,
     };
@@ -94,8 +128,9 @@ export default {
     },
 
     generateGraph() {
-      // remove old svg
+      // Remove old svg and tooltips to prevent duplicates
       d3.select('#pubs_dataviz').select('svg').remove();
+      d3.select('#pubs_dataviz').selectAll('.tooltip').remove();
 
       if (!this.statsData) return;
 
@@ -109,9 +144,88 @@ export default {
     },
 
     /**
+     * aggregateData
+     * Aggregates data by the selected time period (year/month/quarter)
+     * and optionally computes cumulative totals.
+     * @param {Array} dataArr - Raw data array
+     * @param {String} dateKey - Key for the date field
+     * @returns {Array} - Aggregated data array
+     */
+    aggregateData(dataArr, dateKey) {
+      // Parse dates
+      const parseDate = d3.timeParse('%Y-%m-%d');
+      const data = dataArr
+        .map((d) => ({
+          dateVal: parseDate(d[dateKey]),
+          count: d.count,
+        }))
+        .filter((d) => d.dateVal !== null);
+
+      // Aggregate based on timeAggregation setting
+      let aggregated;
+      if (this.timeAggregation === 'year') {
+        aggregated = d3.rollups(
+          data,
+          (v) => d3.sum(v, (d) => d.count),
+          (d) => d3.timeYear(d.dateVal)
+        );
+      } else if (this.timeAggregation === 'month') {
+        aggregated = d3.rollups(
+          data,
+          (v) => d3.sum(v, (d) => d.count),
+          (d) => d3.timeMonth(d.dateVal)
+        );
+      } else if (this.timeAggregation === 'quarter') {
+        // Quarter = floor to nearest 3 months
+        aggregated = d3.rollups(
+          data,
+          (v) => d3.sum(v, (d) => d.count),
+          (d) => {
+            const month = d.dateVal.getMonth();
+            const quarterMonth = Math.floor(month / 3) * 3;
+            return new Date(d.dateVal.getFullYear(), quarterMonth, 1);
+          }
+        );
+      }
+
+      // Sort by date and convert back to array format
+      const sorted = aggregated
+        .map(([dateVal, count]) => ({ dateVal, count }))
+        .sort((a, b) => a.dateVal - b.dateVal);
+
+      // Apply cumulative if enabled
+      if (this.showCumulative) {
+        let cumulative = 0;
+        return sorted.map((d) => {
+          cumulative += d.count;
+          return { ...d, count: cumulative };
+        });
+      }
+
+      return sorted;
+    },
+
+    /**
+     * formatDateForTooltip
+     * Formats date based on aggregation level
+     * @param {Date} date - Date object
+     * @returns {String} - Formatted date string
+     */
+    formatDateForTooltip(date) {
+      if (this.timeAggregation === 'year') {
+        return d3.timeFormat('%Y')(date);
+      } else if (this.timeAggregation === 'quarter') {
+        return `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
+      } else {
+        return d3.timeFormat('%b %Y')(date);
+      }
+    },
+
+    /**
      * generateLinePlot
      * Renders a line plot for an array of objects with shape:
      *   { Publication_date or update_date: 'YYYY-MM-DD', count: number }
+     * Uses aggregation and cumulative settings.
      * @param {Array} dataArr
      * @param {String} dateKey e.g. 'Publication_date' or 'update_date'
      */
@@ -121,7 +235,7 @@ export default {
         top: 30,
         right: 30,
         bottom: 50,
-        left: 60,
+        left: 70,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -135,13 +249,10 @@ export default {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // parse the data
-      const parseDate = d3.timeParse('%Y-%m-%d');
-      const data = dataArr.map((d) => ({
-        dateVal: parseDate(d[dateKey]),
-        count: d.count,
-        label: d[dateKey], // store the original string date
-      }));
+      // Use aggregated data
+      const data = this.aggregateData(dataArr, dateKey);
+
+      if (data.length === 0) return;
 
       // x scale
       const x = d3
@@ -175,7 +286,7 @@ export default {
         .attr('stroke-width', 2)
         .attr('d', line);
 
-      // tooltip
+      // tooltip with improved styling
       const tooltip = d3
         .select('#pubs_dataviz')
         .append('div')
@@ -184,16 +295,22 @@ export default {
         .style('background-color', 'white')
         .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '4px')
+        .style('padding', '8px')
         .style('position', 'absolute')
-        .style('pointer-events', 'none');
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+
+      // Store references for tooltip content formatting
+      const formatDate = this.formatDateForTooltip.bind(this);
+      const isCumulative = this.showCumulative;
 
       /**
        * Handle mouse over for line points.
        */
       function handleLineMouseOver() {
         tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
+        d3.select(this).style('stroke', 'black').attr('r', 6);
       }
 
       /**
@@ -202,8 +319,12 @@ export default {
        * @param {Object} d
        */
       function handleLineMouseMove(event, d) {
+        const label = isCumulative ? 'Total' : 'Count';
         tooltip
-          .html(`Date: <strong>${d.label}</strong><br>Count: <strong>${d.count}</strong>`)
+          .html(
+            `<strong>${formatDate(d.dateVal)}</strong><br/>` +
+              `${label}: <strong>${d.count.toLocaleString()}</strong>`
+          )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
       }
@@ -213,7 +334,7 @@ export default {
        */
       function handleLineMouseLeave() {
         tooltip.style('opacity', 0);
-        d3.select(this).style('stroke', 'none');
+        d3.select(this).style('stroke', 'white').attr('r', 4);
       }
 
       // points
@@ -283,7 +404,7 @@ export default {
 
       svg.append('g').call(d3.axisLeft(y));
 
-      // tooltip
+      // tooltip with improved styling
       const tooltip = d3
         .select('#pubs_dataviz')
         .append('div')
@@ -292,16 +413,18 @@ export default {
         .style('background-color', 'white')
         .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '4px')
+        .style('padding', '8px')
         .style('position', 'absolute')
-        .style('pointer-events', 'none');
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
       /**
        * Handle mouse over for bar chart bars.
        */
       function handleBarMouseOver() {
         tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
+        d3.select(this).style('stroke', 'black').style('stroke-width', '2px');
       }
 
       /**
@@ -312,7 +435,8 @@ export default {
       function handleBarMouseMove(event, d) {
         tooltip
           .html(
-            `Type: <strong>${d.publication_type}</strong><br>Count: <strong>${d.count}</strong>`
+            `<strong>${d.publication_type}</strong><br/>` +
+              `Count: <strong>${d.count.toLocaleString()}</strong>`
           )
           .style('left', `${event.layerX + 20}px`)
           .style('top', `${event.layerY + 20}px`);
