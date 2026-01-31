@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 56 (Variant Correlations & Publications)
-**Plan:** 1/2 complete
-**Status:** In progress
-**Progress:** v10.0 [██                  ] 1/8 phases (12.5%)
+**Phase:** 56 (Variant Correlations & Publications) COMPLETE
+**Plan:** 2/2 complete
+**Status:** Phase verified, ready for next phase
+**Progress:** v10.0 [████                ] 2/8 phases (25%)
 
-**Last completed:** 56-01 - Fix Variant Navigation Links (VCOR-01, VCOR-02)
-**Last activity:** 2026-01-31 — Completed 56-01-PLAN.md
+**Last completed:** 56-02 - Publications Enhancements (PUB-01 to PUB-04)
+**Last activity:** 2026-01-31 — Completed 56-02-PLAN.md
 
 ---
 
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
-| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | In progress (1/2) |
+| 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | Not started |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
@@ -148,8 +148,8 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 56-01-PLAN.md (variant navigation link fixes)
-**Next action:** Continue with 56-02-PLAN.md (publication search functionality)
+**Stopped at:** Completed 56-02-PLAN.md (Publications enhancements)
+**Next action:** Start Phase 57 (Pubtator Improvements) or Phase 58 (LLM Foundation)
 **Resume file:** None
 
 **Handoff notes:**
@@ -176,7 +176,17 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - Structured JSON output with entity validation
    - Batch pre-generation via mirai (no real-time generation)
 
+### Decisions from Phase 56
+
+**Plan 02 (Publications Enhancements):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-01-31 | Combined Tasks 1 and 2 | Initialization guards are integral to the caching implementation pattern | Cleaner implementation, single coherent commit |
+| 2026-01-31 | Used D3 rollups for time aggregation | Built-in D3 function, cleaner than manual grouping | Consistent with D3 patterns elsewhere in codebase |
+| 2026-01-31 | Added YTD label to current year metric | "Publications [year] (YTD)" clarifies it's year-to-date | Clearer user understanding of metric scope |
+
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Completed 56-01-PLAN.md*
+*Last updated: 2026-01-31 — Completed 56-02-PLAN.md (Phase 56 complete)*
