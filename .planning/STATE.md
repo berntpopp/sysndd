@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 56.1 (Admin Publication Bulk Management) - IN PROGRESS
-**Plan:** 1/2 complete
-**Status:** API endpoints complete, UI plan pending
-**Progress:** v10.0 [██████              ] 3/8 phases + 56.1-01 (37%+)
+**Phase:** 56.1 (Admin Publication Bulk Management) - COMPLETE
+**Plan:** 2/2 complete
+**Status:** Phase complete
+**Progress:** v10.0 [███████             ] 3/8 phases + 56.1 complete (40%)
 
-**Last completed:** 56.1-01 - Admin Publication Bulk Management API (PUB-ADMIN-01)
-**Last activity:** 2026-01-31 — Completed 56.1-01-PLAN.md
+**Last completed:** 56.1-02 - Publication Metadata Refresh UI (PUB-ADMIN-02, PUB-ADMIN-03)
+**Last activity:** 2026-01-31 — Completed 56.1-02-PLAN.md
 
 ---
 
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 |-------|------|--------------|--------|
 | 55 | Bug Fixes | BUG-01 to BUG-08 | ✓ Complete |
 | 56 | Variant Correlations & Publications | VCOR-01, VCOR-02, PUB-01 to PUB-04 | ✓ Complete |
-| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | In progress (1/2 plans) |
+| 56.1 | Admin Publication Bulk Management | PUB-ADMIN-01, PUB-ADMIN-02, PUB-ADMIN-03 | ✓ Complete |
 | 57 | Pubtator Improvements | PUBT-01 to PUBT-06 | ✓ Complete |
 | 58 | LLM Foundation | LLM-01 to LLM-04 | Not started |
 | 59 | LLM Batch & Caching | LLM-05, LLM-06 | Not started |
@@ -193,15 +193,6 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Per-PMID error handling | Bulk operations should complete for all valid items even if some fail | One bad PMID doesn't stop entire refresh |
 | 2026-01-31 | Return not_found status | Distinguish between "PMID not in database" vs "PubMed API error" | Clearer error reporting for admins |
 
----
-
-## Session Continuity
-
-**Last session:** 2026-01-31
-**Stopped at:** Completed Phase 56.1 Plan 01 (Publication Bulk Management API)
-**Next action:** Execute Phase 56.1 Plan 02 (ManageAnnotations Publications Tab UI)
-**Resume file:** None
-
 **Handoff notes:**
 
 1. **v10.0 Roadmap Created (2026-01-31):**
@@ -234,13 +225,25 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
    - ✅ PUBT-05: Excel export (Plan 02)
    - ✅ PUBT-06: Documentation (Plans 01 + 02)
 
-5. **Phase 56.1 In Progress (Admin Publication Management):**
+5. **Phase 56.1 Complete (Admin Publication Management):**
    - ✅ Plan 01: API endpoints complete
      - GET /publications/stats for publication statistics
      - POST /admin/publications/refresh for bulk PubMed refresh
-   - Pending: Plan 02 - ManageAnnotations Publications Tab UI
+   - ✅ Plan 02: ManageAnnotations Publications Refresh UI
+     - Publication Metadata Refresh section with stats badges
+     - Refresh All Publications button with async job tracking
+     - Real-time progress bar and job history integration
+
+---
+
+## Session Continuity
+
+**Last session:** 2026-01-31
+**Stopped at:** Completed Phase 56.1 Plan 02 (Publication Metadata Refresh UI)
+**Next action:** Execute Phase 58 (LLM Foundation) or Phase 62 (Admin & Infrastructure)
+**Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-01-31 — Phase 56.1 Plan 01 (Publication Bulk Management API)*
+*Last updated: 2026-01-31 — Phase 56.1 Plan 02 (Publication Metadata Refresh UI)*
