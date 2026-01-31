@@ -148,6 +148,86 @@
         </BCol>
       </BRow>
 
+      <!-- Pubtator Cache Management Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold">
+                Pubtator Cache Management
+                <span
+                  v-if="pubtatorStats.publication_count !== null"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ pubtatorStats.publication_count?.toLocaleString() }} publications
+                </span>
+                <span
+                  v-if="pubtatorStats.gene_count !== null"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ pubtatorStats.gene_count?.toLocaleString() }} genes
+                </span>
+                <span
+                  v-if="pubtatorStats.novel_count !== null && pubtatorStats.novel_count > 0"
+                  class="badge bg-warning text-dark ms-2 fw-normal"
+                >
+                  {{ pubtatorStats.novel_count?.toLocaleString() }} novel
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-2">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingPubtatorStats"
+                @click="fetchPubtatorStats"
+              >
+                <BSpinner v-if="loadingPubtatorStats" small type="grow" class="me-1" />
+                <i v-else class="bi bi-arrow-clockwise me-1" />
+                {{ loadingPubtatorStats ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <small class="text-muted ms-2">
+                Shows cached Pubtator gene-publication data for NDD literature
+              </small>
+            </div>
+
+            <div v-if="pubtatorStats.gene_count !== null" class="mt-2">
+              <p class="text-muted small mb-2">
+                The Pubtator cache contains gene-publication associations from NCBI's PubTator
+                text-mining service. Novel genes are those mentioned in NDD literature but not yet
+                in SysNDD.
+              </p>
+              <div class="d-flex flex-wrap gap-2">
+                <router-link
+                  :to="{ name: 'PubtatorNDD' }"
+                  class="btn btn-sm btn-outline-primary"
+                >
+                  <i class="bi bi-bar-chart me-1" />
+                  View Pubtator Analysis
+                </router-link>
+              </div>
+            </div>
+
+            <BAlert
+              v-if="pubtatorStats.gene_count === 0"
+              variant="warning"
+              show
+              class="mt-2 mb-0"
+            >
+              No Pubtator data cached. The cache will be populated when the Pubtator search is
+              first run.
+            </BAlert>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- Deprecated OMIM Entities Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -509,6 +589,14 @@ const deprecatedData = ref({
   message: null as string | null,
 });
 
+// Pubtator stats state
+const pubtatorStats = ref({
+  publication_count: null as number | null,
+  gene_count: null as number | null,
+  novel_count: null as number | null,
+});
+const loadingPubtatorStats = ref(false);
+
 const deprecatedTableFields = [
   { key: 'entity_id', label: 'Entity', sortable: true },
   { key: 'symbol', label: 'Gene', sortable: true },
@@ -809,6 +897,7 @@ function formatOperationType(operation: string): string {
     phenotype_clustering: 'Phenotype Clustering',
     ontology_update: 'Ontology Update',
     hgnc_update: 'HGNC Update',
+    pubtator_update: 'Pubtator Update',
   };
   return labels[operation] || operation;
 }
@@ -981,11 +1070,75 @@ async function updateHgncData() {
   }
 }
 
+async function fetchPubtatorStats() {
+  loadingPubtatorStats.value = true;
+  try {
+    // Fetch gene count and novel count from pubtator/genes endpoint
+    const genesResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
+      {
+        params: {
+          page_size: 1,
+          fields: 'gene_symbol',
+        },
+      }
+    );
+
+    // Get total gene count from meta
+    const geneCount = genesResponse.data?.meta?.totalItems ?? null;
+
+    // Fetch publication count from pubtator/table endpoint
+    const pubsResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table`,
+      {
+        params: {
+          page_size: 1,
+          fields: 'search_id',
+        },
+      }
+    );
+
+    // Get total publication count from meta
+    const pubCount = pubsResponse.data?.meta?.totalItems ?? null;
+
+    // Fetch novel gene count (is_novel=1)
+    const novelResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
+      {
+        params: {
+          page_size: 1,
+          filter: "is_novel==1",
+          fields: 'gene_symbol',
+        },
+      }
+    );
+
+    const novelCount = novelResponse.data?.meta?.totalItems ?? null;
+
+    pubtatorStats.value = {
+      publication_count: pubCount,
+      gene_count: geneCount,
+      novel_count: novelCount,
+    };
+  } catch (error) {
+    console.warn('Failed to fetch Pubtator stats:', error);
+    // Don't show toast - stats are optional enhancement
+    pubtatorStats.value = {
+      publication_count: null,
+      gene_count: null,
+      novel_count: null,
+    };
+  } finally {
+    loadingPubtatorStats.value = false;
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   initFromUrl();
   fetchAnnotationDates();
   fetchJobHistory();
+  fetchPubtatorStats();
 });
 </script>
 
