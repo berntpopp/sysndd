@@ -18,7 +18,7 @@
 # =============================================================================
 # Stage 1: Base - System dependencies and R configuration
 # =============================================================================
-FROM rocker/r-ver:4.4.3 AS base
+FROM rocker/r-ver:4.5.2 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
 # rocker/r-ver:4.4.3 uses Ubuntu 24.04 (noble), so we use noble binaries
