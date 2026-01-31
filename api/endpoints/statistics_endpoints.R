@@ -112,6 +112,10 @@ function(res,
     tbl("ndd_entity_view") %>%
     collect()
 
+  # Log initial count for diagnostics
+  initial_count <- nrow(entity_view_coll)
+  log_debug("Entities over time: Initial entity_view count = {initial_count}")
+
   entity_view_filtered <- entity_view_coll %>%
     dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(entry_date, entity_id) %>%
@@ -155,7 +159,12 @@ function(res,
       }
     }
 
+  # Log filtered count for diagnostics
+  filtered_count <- nrow(entity_view_filtered)
+  log_debug("Entities over time: After filtering count = {filtered_count}")
+
   # Summarize by time
+  # Note: Using .type = "floor" instead of "ceiling" to avoid shifting dates forward
   entity_view_summarized <- entity_view_filtered %>%
     mutate(count = 1) %>%
     arrange(entry_date) %>%
@@ -163,7 +172,7 @@ function(res,
     summarize_by_time(
       .date_var = entry_date,
       .by       = rlang::sym(summarize),
-      .type     = "ceiling",
+      .type     = "floor",
       count     = sum(count)
     ) %>%
     mutate(cumulative_count = cumsum(count)) %>%
@@ -179,6 +188,13 @@ function(res,
   end_time <- Sys.time()
   execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
+  # Log final cumulative count for diagnostics
+  max_cumulative <- max(entity_view_summarized$cumulative_count)
+  log_debug(
+    "Entities over time: Final max cumulative count = {max_cumulative}, ",
+    "filtered count = {filtered_count}"
+  )
+
   # Meta info
   meta <- tibble::as_tibble(
     list(
@@ -187,7 +203,7 @@ function(res,
       summarize            = summarize,
       filter               = filter,
       max_count            = max(entity_view_summarized$count),
-      max_cumulative_count = max(entity_view_summarized$cumulative_count),
+      max_cumulative_count = max_cumulative,
       executionTime        = execution_time
     )
   )
