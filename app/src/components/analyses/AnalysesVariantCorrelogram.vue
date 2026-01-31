@@ -193,11 +193,11 @@ export default {
         .attr(
           'xlink:href',
           (d) =>
-            `/Variants/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
-        ) // Link to a table with both variants
+            `/Entities/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.x_vario_id},${d.y_vario_id})&page_after=0&page_size=10`
+        ) // Link to entities table with both variants
         .attr(
           'aria-label',
-          (d) => `Link to variants table for combination ${d.x_vario_id} and ${d.y_vario_id}`
+          (d) => `Link to entities table for variant combination ${d.x_vario_id} and ${d.y_vario_id}`
         )
         .append('rect')
         .attr('x', (d) => x(d.x))
