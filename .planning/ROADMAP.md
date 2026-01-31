@@ -32,7 +32,7 @@ Plans:
 - BUG-04: Viewer status users can view profile without auto-logout
 - BUG-05: Adding new PMID during re-review preserves existing PMIDs
 - BUG-06: Entities over time by gene displays correct counts (#44)
-- BUG-07: Disease renaming requires approval per review concept (#41)
+- BUG-07: Disease renaming requires approval per review concept (#41) - WONTFIX
 - BUG-08: Re-reviewer identity preserved when changing reviews
 
 **Success Criteria:**
@@ -42,7 +42,7 @@ Plans:
 4. Viewer-status users can view their profile page without auto-logout
 5. Adding a new PMID during re-review preserves existing PMIDs (no accidental deletion)
 6. Entities-over-time chart displays accurate counts matching database
-7. Disease renaming triggers approval workflow per review concept
+7. Disease renaming works correctly (approval workflow not required - WONTFIX)
 8. Re-reviewer identity preserved when reviews are modified
 
 ---
