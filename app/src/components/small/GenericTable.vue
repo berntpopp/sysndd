@@ -8,13 +8,15 @@
     stacked="md"
     head-variant="light"
     show-empty
-    small
     fixed
-    striped
     hover
     sort-icon-left
     no-local-sorting
+    class="entities-table"
+    tbody-tr-class="entity-row"
     @update:sort-by="handleSortByUpdate"
+    @head-clicked="handleHeadClicked"
+    @sorted="handleSorted"
   >
     <!-- Slot for custom filter fields -->
     <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
@@ -223,12 +225,100 @@
       </slot>
     </template>
 
+    <!-- Publication-related columns -->
+    <template #cell(publication_id)="data">
+      <slot name="cell-publication_id" :row="data.item" :index="data.index">
+        {{ data.item.publication_id }}
+      </slot>
+    </template>
+
+    <template #cell(Title)="data">
+      <slot name="cell-Title" :row="data.item" :index="data.index">
+        {{ data.item.Title }}
+      </slot>
+    </template>
+
+    <template #cell(Journal)="data">
+      <slot name="cell-Journal" :row="data.item" :index="data.index">
+        {{ data.item.Journal }}
+      </slot>
+    </template>
+
+    <template #cell(Publication_date)="data">
+      <slot name="cell-Publication_date" :row="data.item" :index="data.index">
+        {{ data.item.Publication_date }}
+      </slot>
+    </template>
+
     <!-- Description column with truncation and tooltip -->
     <template #cell(description)="data">
       <slot name="cell-description" :row="data.item" :index="data.index">
         <span v-b-tooltip.hover.top class="description-text" :title="data.item.description">
           {{ data.item.description }}
         </span>
+      </slot>
+    </template>
+
+    <!-- Text highlight column (for PubTator annotations) -->
+    <template #cell(text_hl)="data">
+      <slot name="cell-text_hl" :row="data.item" :index="data.index">
+        {{ data.item.text_hl }}
+      </slot>
+    </template>
+
+    <!-- Title column (lowercase - for PubTator table) -->
+    <template #cell(title)="data">
+      <slot name="cell-title" :row="data.item" :index="data.index">
+        {{ data.item.title }}
+      </slot>
+    </template>
+
+    <!-- DOI column -->
+    <template #cell(doi)="data">
+      <slot name="cell-doi" :row="data.item" :index="data.index">
+        {{ data.item.doi }}
+      </slot>
+    </template>
+
+    <!-- Journal column (lowercase) -->
+    <template #cell(journal)="data">
+      <slot name="cell-journal" :row="data.item" :index="data.index">
+        {{ data.item.journal }}
+      </slot>
+    </template>
+
+    <!-- Date column -->
+    <template #cell(date)="data">
+      <slot name="cell-date" :row="data.item" :index="data.index">
+        {{ data.item.date }}
+      </slot>
+    </template>
+
+    <!-- Score column -->
+    <template #cell(score)="data">
+      <slot name="cell-score" :row="data.item" :index="data.index">
+        {{ data.item.score }}
+      </slot>
+    </template>
+
+    <!-- Gene symbols column -->
+    <template #cell(gene_symbols)="data">
+      <slot name="cell-gene_symbols" :row="data.item" :index="data.index">
+        {{ data.item.gene_symbols }}
+      </slot>
+    </template>
+
+    <!-- PMID column -->
+    <template #cell(pmid)="data">
+      <slot name="cell-pmid" :row="data.item" :index="data.index">
+        {{ data.item.pmid }}
+      </slot>
+    </template>
+
+    <!-- Search ID column -->
+    <template #cell(search_id)="data">
+      <slot name="cell-search_id" :row="data.item" :index="data.index">
+        {{ data.item.search_id }}
       </slot>
     </template>
 
@@ -239,11 +329,13 @@
       </BButton>
     </template>
 
-    <!-- Row details -->
+    <!-- Row details - allows custom slot override -->
     <template #row-details="row">
-      <BCard>
-        <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
-      </BCard>
+      <slot name="row-details" :row="row.item" :toggle="row.toggleDetails">
+        <BCard>
+          <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
+        </BCard>
+      </slot>
     </template>
   </BTable>
 </template>
@@ -289,7 +381,7 @@ export default {
       default: false,
     },
   },
-  emits: ['update-sort', 'update:sort-by'],
+  emits: ['update-sort', 'update:sort-by', 'head-clicked', 'sorted'],
   computed: {
     /**
      * Converts sortBy prop to Bootstrap-Vue-Next array format.
@@ -317,10 +409,55 @@ export default {
   methods: {
     handleSortByUpdate(newSortBy) {
       this.$emit('update:sort-by', newSortBy);
-      if (newSortBy && newSortBy.length > 0) {
+      if (newSortBy && newSortBy.length > 0 && newSortBy[0].key) {
         const sortByStr = newSortBy[0].key;
         const sortDescBool = newSortBy[0].order === 'desc';
         this.$emit('update-sort', { sortBy: sortByStr, sortDesc: sortDescBool });
+      }
+    },
+    /**
+     * Handle column header click for server-side sorting.
+     * Bootstrap-Vue-Next may not emit update:sort-by with no-local-sorting,
+     * so we handle head-clicked directly to ensure sorting works.
+     * @param {string} key - The field key that was clicked
+     * @param {Object} field - The field definition object
+     * @param {Event} _event - The click event (unused but required by event signature)
+     */
+    handleHeadClicked(key, field, _event) {
+      // Only handle sortable columns
+      if (!field || field.sortable === false) {
+        return;
+      }
+
+      // Determine current sort state and toggle
+      const currentSortKey = this.localSortBy.length > 0 ? this.localSortBy[0].key : null;
+      const currentSortOrder = this.localSortBy.length > 0 ? this.localSortBy[0].order : 'asc';
+
+      let newSortOrder = 'asc';
+      if (currentSortKey === key) {
+        // Same column - toggle order
+        newSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+      }
+
+      // Build and emit the new sort state
+      const newSortBy = [{ key, order: newSortOrder }];
+      this.$emit('update:sort-by', newSortBy);
+      this.$emit('update-sort', { sortBy: key, sortDesc: newSortOrder === 'desc' });
+    },
+    /**
+     * Handle sorted event from BTable (Bootstrap-Vue-Next).
+     * This event fires when sorting changes.
+     * @param {Object} ctx - Sort context with sortBy and sortDesc
+     */
+    handleSorted(ctx) {
+      if (ctx && ctx.sortBy) {
+        const sortKey =
+          Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0 ? ctx.sortBy[0].key : ctx.sortBy;
+        const sortDesc =
+          Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
+            ? ctx.sortBy[0].order === 'desc'
+            : ctx.sortDesc || false;
+        this.$emit('update-sort', { sortBy: sortKey, sortDesc });
       }
     },
   },
@@ -342,6 +479,91 @@ export default {
     padding: 0.3rem 0.6rem;
     font-size: 0.8125rem;
     line-height: 1.2;
+  }
+}
+
+/* Modern table styling */
+.entities-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Row styling - subtle separator and better spacing */
+:deep(.entities-table tbody tr) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s ease;
+}
+
+:deep(.entities-table tbody tr:last-child) {
+  border-bottom: none;
+}
+
+/* Alternating row backgrounds - very subtle */
+:deep(.entities-table tbody tr:nth-child(even)) {
+  background-color: rgba(0, 0, 0, 0.015);
+}
+
+/* Enhanced hover effect */
+:deep(.entities-table tbody tr:hover) {
+  background-color: rgba(13, 110, 253, 0.04);
+}
+
+/* Cell padding and alignment */
+:deep(.entities-table td) {
+  padding: 0.65rem 0.5rem;
+  vertical-align: middle;
+  border-top: none;
+}
+
+:deep(.entities-table th) {
+  padding: 0.6rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+/* Filter row styling */
+:deep(.entities-table thead tr:first-child td) {
+  padding: 0.4rem 0.25rem;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+:deep(.entities-table thead tr:first-child input),
+:deep(.entities-table thead tr:first-child select) {
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+/* Stacked mode improvements for mobile */
+@media (max-width: 767px) {
+  :deep(.entities-table.b-table-stacked-md > tbody > tr) {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  :deep(.entities-table.b-table-stacked-md > tbody > tr:hover) {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  :deep(.entities-table.b-table-stacked-md > tbody > tr > td) {
+    padding: 0.35rem 0;
+    border: none;
+  }
+}
+
+/* Accessibility - respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :deep(.entities-table tbody tr) {
+    transition: none;
   }
 }
 </style>

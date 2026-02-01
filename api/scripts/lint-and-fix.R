@@ -42,17 +42,17 @@ source("scripts/lint-check.R", local = TRUE)
 
 if (check_only) {
   cat("CHECK-ONLY mode: Will identify issues but not fix them\n\n")
-  
+
   # Run lint check without fixing
   initial_lint_result <- system("Rscript scripts/lint-check.R", intern = FALSE)
-  
+
   if (initial_lint_result == 0) {
     cat("\n✓ All code passes linting checks!\n")
     cat("✓ No styling needed\n")
   } else {
     cat("\n⚠ Issues found. Run without --check-only to fix automatically\n")
   }
-  
+
   quit(status = initial_lint_result)
 }
 

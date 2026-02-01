@@ -82,6 +82,8 @@ function() {
 #* It collects the comparison data from `ndd_database_comparison_view` and
 #* structures it in a way suitable for UpSet plots. Users can optionally
 #* specify which databases/fields to include in the intersections.
+#* When `definitive_only` is TRUE, each source is filtered to only include
+#* entries where the gene has "Definitive" status in that source.
 #*
 #* # `Return`
 #* Returns the data used to generate an UpSet plot (a list of items, each with
@@ -91,9 +93,10 @@ function() {
 #* @serializer json list(na="string")
 #*
 #* @param fields Comma-separated list of fields (databases) to include.
+#* @param definitive_only If TRUE, filter each source to only show Definitive entries.
 #*
 #* @get upset
-function(res, fields = "") {
+function(res, fields = "", definitive_only = "false") {
   ndd_database_comp_gene_list <- pool %>%
     tbl("ndd_database_comparison_view") %>%
     collect()
@@ -109,11 +112,41 @@ function(res, fields = "") {
       pull(list)
   }
 
+  # Parse definitive_only parameter
+  definitive_only <- tolower(definitive_only) %in% c("true", "1", "yes")
+
+  # Filter to selected sources
+  filtered_data <- ndd_database_comp_gene_list %>%
+    filter(list %in% fields)
+
+  # If definitive_only is TRUE, filter each source to only include Definitive entries
+  if (definitive_only) {
+    # Normalize categories to identify "Definitive" entries, then filter
+    filtered_data <- filtered_data %>%
+      mutate(normalized_category = case_when(
+        # gene2phenotype mappings
+        list == "gene2phenotype" & tolower(category) == "strong" ~ "Definitive",
+        list == "gene2phenotype" & tolower(category) == "definitive" ~ "Definitive",
+        # panelapp mappings (confidence levels 1-3)
+        list == "panelapp" & category == "3" ~ "Definitive",
+        # sfari mappings (gene scores 1-3)
+        list == "sfari" & category == "1" ~ "Definitive",
+        list == "sfari" & is.na(category) ~ "Definitive",
+        # geisinger_DBD - all entries are high confidence
+        list == "geisinger_DBD" ~ "Definitive",
+        # radboudumc_ID - all entries are high confidence
+        list == "radboudumc_ID" ~ "Definitive",
+        # SysNDD, omim_ndd, orphanet_id - use existing category
+        TRUE ~ category
+      )) %>%
+      # Keep only entries that are Definitive in their respective source
+      filter(normalized_category == "Definitive")
+  }
+
   # Construct the data for UpSet
-  comparison_upset_data <- ndd_database_comp_gene_list %>%
+  comparison_upset_data <- filtered_data %>%
     select(name = hgnc_id, sets = list) %>%
     distinct() %>%
-    filter(sets %in% fields) %>%
     group_by(name) %>%
     arrange(name) %>%
     mutate(sets = str_c(sets, collapse = ",")) %>%
@@ -186,6 +219,7 @@ function() {
 #* @param page_after Cursor after which entries are shown.
 #* @param page_size Page size in cursor pagination.
 #* @param fspec Fields for field-spec meta data.
+#* @param definitive_only If TRUE, filter each source to only show Definitive entries.
 #* @param format Either "json" or "xlsx".
 #*
 #* @get browse
@@ -196,7 +230,8 @@ function(req,
          fields = "",
          `page_after` = "0",
          `page_size` = "10",
-         fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id",
+         fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id",
+         definitive_only = "false",
          format = "json") {
   # Set serializer
   res$serializer <- serializers[[format]]
@@ -208,7 +243,8 @@ function(req,
     fields,
     `page_after`,
     `page_size`,
-    fspec
+    fspec,
+    definitive_only
   )
 
   if (format == "xlsx") {
@@ -225,6 +261,68 @@ function(req,
   } else {
     comparisons_list
   }
+}
+
+
+#* Get Comparisons Metadata
+#*
+#* Returns metadata about the last comparisons data refresh.
+#* Used by the admin UI to display last-updated date and statistics.
+#*
+#* # `Details`
+#* Fetches the single row from comparisons_metadata table containing
+#* last refresh timestamp, status, error message (if any), and statistics.
+#*
+#* # `Return`
+#* Returns a list with metadata fields.
+#*
+#* @tag comparisons
+#* @serializer json list(na="string")
+#*
+#* @get /metadata
+function() {
+  # Check if table exists (migration may not have run yet)
+  table_exists <- tryCatch({
+    pool %>%
+      tbl("comparisons_metadata") %>%
+      head(1) %>%
+      collect()
+    TRUE
+  }, error = function(e) FALSE)
+
+  if (!table_exists) {
+    return(list(
+      last_full_refresh = NULL,
+      last_refresh_status = "never",
+      last_refresh_error = NULL,
+      sources_count = 0,
+      rows_imported = 0,
+      message = "Comparisons metadata table not yet created"
+    ))
+  }
+
+  metadata <- pool %>%
+    tbl("comparisons_metadata") %>%
+    collect() %>%
+    dplyr::slice(1)
+
+  if (nrow(metadata) == 0) {
+    return(list(
+      last_full_refresh = NULL,
+      last_refresh_status = "never",
+      last_refresh_error = NULL,
+      sources_count = 0,
+      rows_imported = 0
+    ))
+  }
+
+  list(
+    last_full_refresh = metadata$last_full_refresh,
+    last_refresh_status = metadata$last_refresh_status,
+    last_refresh_error = metadata$last_refresh_error,
+    sources_count = metadata$sources_count,
+    rows_imported = metadata$rows_imported
+  )
 }
 
 ## Comparisons endpoints

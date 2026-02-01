@@ -1,0 +1,183 @@
+{
+  "functional_clusters": {
+    "1": {
+      "name": "Developmental/Growth Signaling",
+      "ground_truth_pathways": [
+        "PI3K-Akt signaling pathway",
+        "Ras signaling pathway",
+        "Pathways in cancer"
+      ],
+      "ground_truth_themes": [
+        "growth signaling",
+        "developmental regulation",
+        "cancer pathways",
+        "PI3K-Akt signaling",
+        "Ras signaling"
+      ],
+      "expected_confidence": "high",
+      "phase_63_score": 10,
+      "notes": "From Phase 63 benchmark - all pathways verbatim from KEGG. Agent reasoning: 'All three pathways are copied VERBATIM from the KEGG data. No invented pathways.'"
+    },
+    "2": {
+      "name": "Cluster 2",
+      "ground_truth_pending": true,
+      "ground_truth_pathways": [],
+      "ground_truth_themes": [],
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database enrichment data"
+    },
+    "3": {
+      "name": "Chromatin/Epigenetic",
+      "ground_truth_pathways": [
+        "Lysine degradation",
+        "Cell cycle"
+      ],
+      "ground_truth_themes": [
+        "chromatin remodeling",
+        "histone modification",
+        "cell cycle",
+        "lysine degradation",
+        "epigenetic regulation"
+      ],
+      "expected_confidence": "high",
+      "phase_63_score": 10,
+      "notes": "From Phase 63 benchmark - pathways verbatim. Agent reasoning: 'Pathways listed are copied VERBATIM from the KEGG section. No paraphrasing.'"
+    },
+    "4": {
+      "name": "Cluster 4",
+      "ground_truth_pending": true,
+      "ground_truth_pathways": [],
+      "ground_truth_themes": [],
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database enrichment data"
+    },
+    "5": {
+      "name": "Cluster 5",
+      "ground_truth_pending": true,
+      "ground_truth_pathways": [],
+      "ground_truth_themes": [],
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database enrichment data"
+    },
+    "6": {
+      "name": "Cluster 6",
+      "ground_truth_pending": true,
+      "ground_truth_pathways": [],
+      "ground_truth_themes": [],
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database enrichment data"
+    }
+  },
+  "phenotype_clusters": {
+    "1": {
+      "name": "Cluster 1",
+      "ground_truth_pending": true,
+      "ground_truth_phenotypes_enriched": [],
+      "ground_truth_phenotypes_depleted": [],
+      "expected_clinical_pattern": null,
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database v.test data"
+    },
+    "2": {
+      "name": "Cluster 2",
+      "ground_truth_pending": true,
+      "ground_truth_phenotypes_enriched": [],
+      "ground_truth_phenotypes_depleted": [],
+      "expected_clinical_pattern": null,
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database v.test data"
+    },
+    "3": {
+      "name": "Progressive/Metabolic",
+      "ground_truth_phenotypes_enriched": [
+        "Progressive",
+        "early mortality",
+        "mitochondrial",
+        "metabolic",
+        "regression"
+      ],
+      "ground_truth_phenotypes_depleted": [],
+      "expected_clinical_pattern": "progressive metabolic/degenerative",
+      "expected_confidence": "high",
+      "phase_63_score": 10,
+      "notes": "From Phase 63 benchmark - strictly clinical terms only. Agent reasoning: 'Every phenotype mentioned appears exactly in the ground truth table. Strictly adhered to only the phenotypes listed.'"
+    },
+    "4": {
+      "name": "Syndromic Malformations",
+      "ground_truth_phenotypes_enriched": [
+        "genitourinary",
+        "kidney",
+        "skeletal",
+        "oral cleft",
+        "heart abnormalities"
+      ],
+      "ground_truth_phenotypes_depleted": [],
+      "expected_clinical_pattern": "syndromic malformation",
+      "expected_confidence": "high",
+      "phase_63_score": 9,
+      "notes": "From Phase 63 benchmark. Agent reasoning: 'Every single phenotype mentioned appears EXACTLY as listed in the source data tables. No fabricated or inferred phenotypes were added.'"
+    },
+    "5": {
+      "name": "Cluster 5",
+      "ground_truth_pending": true,
+      "ground_truth_phenotypes_enriched": [],
+      "ground_truth_phenotypes_depleted": [],
+      "expected_clinical_pattern": null,
+      "expected_confidence": null,
+      "phase_63_score": null,
+      "notes": "Ground truth to be extracted from database v.test data"
+    }
+  },
+  "scoring_criteria": {
+    "description": "1-10 scale rating summaries against ground truth",
+    "methodology": "Phase 63 v2 prompt scoring methodology",
+    "thresholds": {
+      "excellent": {
+        "min": 9,
+        "max": 10,
+        "description": "All terms verbatim, no hallucinations, perfect grounding"
+      },
+      "good": {
+        "min": 7,
+        "max": 8,
+        "description": "Minor generalizations, no fabrications, well-grounded"
+      },
+      "acceptable": {
+        "min": 5,
+        "max": 6,
+        "description": "Some inaccuracies but core themes correct"
+      },
+      "poor": {
+        "min": 1,
+        "max": 4,
+        "description": "Significant hallucinations or missing themes"
+      }
+    },
+    "scoring_dimensions": {
+      "functional": {
+        "pathway_accuracy": "Do pathways match KEGG/GO terms verbatim?",
+        "theme_grounding": "Are themes derived from enrichment data?",
+        "no_hallucinations": "No invented terms or pathways?",
+        "confidence_calibration": "Does confidence match FDR values?"
+      },
+      "phenotype": {
+        "phenotype_accuracy": "Do phenotypes match v.test terms?",
+        "no_molecular_terms": "No genes, proteins, or pathways mentioned?",
+        "direction_correct": "Enriched/depleted correctly identified?",
+        "clinical_pattern_match": "Pattern matches expected syndrome?"
+      }
+    }
+  },
+  "metadata": {
+    "created": "2026-02-01",
+    "source": ".planning/PHASE_63_LLM_PIPELINE_FINAL.md",
+    "version": "1.0",
+    "notes": "Ground truth data extracted from Phase 63 LLM prompt benchmark results"
+  }
+}

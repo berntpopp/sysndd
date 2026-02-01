@@ -164,6 +164,55 @@ test_that("generate_filter_expressions throws error for unsupported operations",
   )
 })
 
+test_that("generate_filter_expressions handles greaterThan with numeric values", {
+  result <- generate_filter_expressions("greaterThan(score,'0.5')")
+
+  # Should produce comparison expression with numeric value (no quotes around 0.5)
+  expect_true(grepl("score", result))
+  expect_true(grepl(">", result))
+  expect_true(grepl("0\\.5", result))
+  # Numeric values should not be wrapped in quotes in the output
+  expect_false(grepl("'0\\.5'", result))
+})
+
+test_that("generate_filter_expressions handles lessThan with numeric values", {
+  result <- generate_filter_expressions("lessThan(count,'100')")
+
+  expect_true(grepl("count", result))
+  expect_true(grepl("<", result))
+  expect_true(grepl("100", result))
+})
+
+test_that("generate_filter_expressions handles greaterThanOrEqual with numeric values", {
+  # Note: Operation name is "greaterThanOrEqual" not "greaterThanOrEquals"
+  result <- generate_filter_expressions("greaterThanOrEqual(value,'10')")
+
+  expect_true(grepl("value", result))
+  expect_true(grepl(">=", result))
+  expect_true(grepl("10", result))
+})
+
+test_that("generate_filter_expressions handles lessThanOrEqual with numeric values", {
+  # Note: Operation name is "lessThanOrEqual" not "lessThanOrEquals"
+  result <- generate_filter_expressions("lessThanOrEqual(rank,'50')")
+
+  expect_true(grepl("rank", result))
+  expect_true(grepl("<=", result))
+  expect_true(grepl("50", result))
+})
+
+test_that("generate_filter_expressions handles combined numeric filters", {
+  # Test that multiple numeric filters work together (vectorized context)
+  result <- generate_filter_expressions("and(greaterThan(score,'0.3'),lessThan(score,'0.9'))")
+
+  expect_true(grepl("score", result))
+  expect_true(grepl("&", result))  # and uses &
+  expect_true(grepl(">", result))
+  expect_true(grepl("<", result))
+  expect_true(grepl("0\\.3", result))
+  expect_true(grepl("0\\.9", result))
+})
+
 
 # =============================================================================
 # select_tibble_fields() tests

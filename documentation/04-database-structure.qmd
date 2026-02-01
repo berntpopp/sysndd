@@ -1,0 +1,48 @@
+---
+title: "Database and data sources"
+---
+
+---
+
+## Database software
+
+SysNDD currently uses the open-source [MySQL 8.0](https://dev.mysql.com/doc/relnotes/mysql/8.0/en/) relational database management system (RDBMS).
+The database runs in a docker container using the [official mysql docker image](https://hub.docker.com/_/mysql) (version 8.0.29).
+
+## Database schema
+
+The design of our DB schema can be viewed in [DB DESIGNER](https://www.dbdesigner.net/):
+
+::: {style="max-width:1000px;"}
+[SysNDD DB schema](https://dbdesigner.page.link/3Morx9HZxzqt4R379)
+:::
+
+As of 2022-06-07 the database schema looks like this:
+
+::: {style="max-width:1000px;"}
+![SysNDD MysQL database](./static/img/04_01-design-db-schema.png)
+:::
+
+
+## Variant ontology
+
+We use the "Variation Ontology" as ontology for the annotation of variation effects and mechanisms.
+Currently active terms include variant ontology terms for our curation. The list was extended to include additional terms for non-coding RNA variation.
+
+The complete list of variation ontology terms can be accessed via:
+
+- The SysNDD API endpoint for variation ontology lists
+- The [Variation Ontology (VariO)](https://variationontology.org/) website
+- The [EBI OLS Vario terms](https://www.ebi.ac.uk/ols/ontologies/vario)
+
+
+## Mode of Inheritance ontology
+
+We use the "Human Phenotype Ontology" as ontology for the mode of inheritance.
+
+The inheritance terms used in SysNDD follow the HPO standard and can be accessed via:
+
+- The SysNDD API endpoint for inheritance lists
+- The [Human Phenotype Ontology](https://hpo.jax.org/) website
+
+For the complete and up-to-date list of ontology terms used in SysNDD, please refer to the [SysNDD API documentation](https://sysndd.dbmr.unibe.ch/API).

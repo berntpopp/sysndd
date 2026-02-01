@@ -101,35 +101,35 @@ if (length(syntax_errors) > 0) {
 # Check 3: Critical linting (fast mode) or full linting
 if (fast_mode) {
   cat("✓ Running critical lint checks...\n")
-  
+
   # Only check for critical issues
   critical_linters <- list(
     assignment_linter = lintr::assignment_linter(),
     line_length_linter = lintr::line_length_linter(100L),
     absolute_path_linter = lintr::absolute_path_linter()
   )
-  
+
   critical_issues <- 0
-  
+
   for (file in head(r_files, 5)) {  # Check only first 5 files in fast mode
     file_lints <- lintr::lint(file, linters = critical_linters)
     critical_issues <- critical_issues + length(file_lints)
-    
+
     if (length(file_lints) > 0) {
       cat("  ⚠ Critical issues in:", basename(file), "(", length(file_lints), ")\n")
     }
   }
-  
+
   if (critical_issues > 0) {
     cat("⚠ Found", critical_issues, "critical issues. Consider running full check.\n")
   }
-  
+
 } else {
   cat("✓ Running comprehensive lint checks...\n")
-  
+
   # Run standard linting
   lint_result <- system("Rscript scripts/lint-check.R", intern = FALSE, ignore.stdout = TRUE)
-  
+
   if (lint_result != 0) {
     cat("⚠ Linting issues found. Run 'Rscript scripts/lint-check.R' for details.\n")
   }
@@ -154,10 +154,10 @@ if (file.exists("config.yml")) {
 # Check 5: Git status (if in git repo)
 if (dir.exists(".git") || dir.exists("../.git")) {
   cat("✓ Checking git status...\n")
-  
+
   # Check for large files
   git_status <- system("git status --porcelain", intern = TRUE, ignore.stderr = TRUE)
-  
+
   if (length(git_status) > 0) {
     large_files <- character(0)
     for (line in git_status) {
@@ -166,7 +166,7 @@ if (dir.exists(".git") || dir.exists("../.git")) {
         large_files <- c(large_files, file_path)
       }
     }
-    
+
     if (length(large_files) > 0) {
       cat("⚠ Large files detected:", paste(large_files, collapse = ", "), "\n")
       cat("  Consider using git LFS for files > 10MB\n")

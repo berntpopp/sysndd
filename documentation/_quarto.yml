@@ -1,0 +1,102 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "The SysNDD Documentation"
+  author:
+    - name: "Bernt Popp"
+      orcid: "0000-0002-3679-1081"
+    - name: "Melek Firat Altay"
+    - name: "Simon Früh"
+    - name: "Christiane Zweier"
+      orcid: "0000-0001-8002-2020"
+  date: last-modified
+  date-format: "YYYY-MM-DD"
+
+  repo-url: https://github.com/berntpopp/sysndd
+  repo-branch: master
+  repo-subdir: documentation
+  repo-actions: [edit, source, issue]
+
+  favicon: static/img/android-chrome-192x192.png
+  cover-image: static/img/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp
+
+  # Download buttons for PDF and EPUB
+  downloads: [pdf, epub]
+
+  # Social sharing
+  sharing: [twitter, facebook, linkedin]
+
+  # Search enabled
+  search: true
+
+  # Chapter structure
+  chapters:
+    - index.qmd
+    - part: "Overview"
+      chapters:
+        - 01-intro.qmd
+    - part: "Using SysNDD"
+      chapters:
+        - 02-web-tool.qmd
+        - 03-api.qmd
+        - 04-database-structure.qmd
+    - part: "Curation"
+      chapters:
+        - 05-curation-criteria.qmd
+        - 06-re-review-instructions.qmd
+        - 07-tutorial-videos.qmd
+    - references.qmd
+
+  # Page navigation at bottom
+  page-navigation: true
+
+  # Page footer
+  page-footer:
+    center: |
+      SysNDD - Systematic Neurodevelopmental Disorder Gene Database
+      <br>
+      <a href="https://sysndd.dbmr.unibe.ch/">sysndd.dbmr.unibe.ch</a>
+
+# Bibliography configuration
+bibliography: sysndd.bib
+csl: apa.csl
+
+# HTML format options
+format:
+  html:
+    theme:
+      light: cosmo
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    number-sections: true
+    number-depth: 2
+
+  # PDF format for download
+  pdf:
+    documentclass: scrreprt
+    papersize: a4
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    link-citations: true
+    keep-tex: false
+    include-in-header:
+      - text: |
+          \usepackage{fvextra}
+          \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+
+  # EPUB format for e-readers
+  epub:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    cover-image: static/img/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp
+
+# Language setting for proper encoding
+lang: en

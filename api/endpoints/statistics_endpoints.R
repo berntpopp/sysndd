@@ -69,13 +69,13 @@ function(n = 5) {
 #* @param aggregate Aggregation level (either 'entity_id' or 'symbol').
 #* @param group     Group by 'category', 'inheritance_filter', or 'inheritance_multiple'.
 #* @param summarize Time summarization level (e.g. 'month').
-#* @param filter    Filters to apply, e.g. "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)". # nolint: line_length_linter
+#* @param filter    Filters to apply, e.g. "contains(ndd_phenotype_word,Yes)" for NDD entities.
 #* @get /entities_over_time
 function(res,
          aggregate = "entity_id",
          group = "category",
          summarize = "month",
-         filter = "contains(ndd_phenotype_word,Yes),any(inheritance_filter,Autosomal dominant,Autosomal recessive,X-linked)") { # nolint: line_length_linter
+         filter = "contains(ndd_phenotype_word,Yes)") {
   start_time <- Sys.time()
 
   # Validate input for 'aggregate' and 'group'
@@ -111,6 +111,10 @@ function(res,
   entity_view_coll <- pool %>%
     tbl("ndd_entity_view") %>%
     collect()
+
+  # Log initial count for diagnostics
+  initial_count <- nrow(entity_view_coll)
+  log_debug("Entities over time: Initial entity_view count = {initial_count}")
 
   entity_view_filtered <- entity_view_coll %>%
     dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
@@ -155,7 +159,12 @@ function(res,
       }
     }
 
+  # Log filtered count for diagnostics
+  filtered_count <- nrow(entity_view_filtered)
+  log_debug("Entities over time: After filtering count = {filtered_count}")
+
   # Summarize by time
+  # Note: Using .type = "floor" instead of "ceiling" to avoid shifting dates forward
   entity_view_summarized <- entity_view_filtered %>%
     mutate(count = 1) %>%
     arrange(entry_date) %>%
@@ -163,7 +172,7 @@ function(res,
     summarize_by_time(
       .date_var = entry_date,
       .by       = rlang::sym(summarize),
-      .type     = "ceiling",
+      .type     = "floor",
       count     = sum(count)
     ) %>%
     mutate(cumulative_count = cumsum(count)) %>%
@@ -179,6 +188,13 @@ function(res,
   end_time <- Sys.time()
   execution_time <- as.character(paste0(round(end_time - start_time, 2), " secs"))
 
+  # Log final cumulative count for diagnostics
+  max_cumulative <- max(entity_view_summarized$cumulative_count)
+  log_debug(
+    "Entities over time: Final max cumulative count = {max_cumulative}, ",
+    "filtered count = {filtered_count}"
+  )
+
   # Meta info
   meta <- tibble::as_tibble(
     list(
@@ -187,7 +203,7 @@ function(res,
       summarize            = summarize,
       filter               = filter,
       max_count            = max(entity_view_summarized$count),
-      max_cumulative_count = max(entity_view_summarized$cumulative_count),
+      max_cumulative_count = max_cumulative,
       executionTime        = execution_time
     )
   )
@@ -416,6 +432,11 @@ function(req,
          min_journal_count = 1,
          min_lastname_count = 1,
          min_keyword_count = 1) {
+  # Convert min count parameters to integers (Plumber passes query params as strings)
+  min_journal_count <- as.integer(min_journal_count)
+  min_lastname_count <- as.integer(min_lastname_count)
+  min_keyword_count <- as.integer(min_keyword_count)
+
   # 1) Generate filter expressions from the user-provided 'filter' string
   filter_exprs <- generate_filter_expressions(filter)
 

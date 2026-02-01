@@ -237,7 +237,7 @@ for (delay in delays_to_test) {
   cat(sprintf("\n  Testing with %dms delay between requests:\n", delay))
 
   for (batch_size in batch_sizes) {
-    test_mims <- sample_mims[1:min(batch_size, length(sample_mims))]
+    test_mims <- sample_mims[seq_len(min(batch_size, length(sample_mims)))]
     cat(sprintf("    Batch size %d: ", batch_size))
 
     batch_results <- list()

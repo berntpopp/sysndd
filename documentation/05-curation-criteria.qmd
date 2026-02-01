@@ -1,0 +1,169 @@
+---
+title: "Curation criteria"
+---
+
+---
+
+## Definitions
+
+Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined in the scope of SysNDD as follows:
+
+-	Early onset neurodevelopmental delay and cognitive impairment (severe ID to learning difficulties)
+-	Regression/ neurodegeneration in the first years of life with or without prior developmental delay
+-	Disorders with cognitive impairment in a significant (ca. >10%) fraction of individuals
+
+
+## NDD Definitive entities
+
+Inclusion criteria for Category 1 ("Definitive"):
+
+**1.**	Publication required (no grey literature like conference abstracts or personal communication; manuscripts on preprint servers can be considered individually but only entered through their DOI in the comment field until published with PMID, when they should be updated)
+
+<p style="text-align: center;">
+**AND**
+</p>
+
+**2.**	Clear-cut frequency  (no further criteria needed)
+
+- \>= 10 cases with *de novo* variants
+- \>= 5 autosomal-recessive families
+- \>= 3 families with X-chromosomal variants
+
+<p style="text-align: center;">
+**OR**
+</p>
+
+**3.**	Cumulative evidence
+
+- 1 strong frequency criterium
+
+<p style="text-align: center;">
+**PLUS**
+</p>
+
+- 1 strong genetic or 1 strong clinical criterium
+
+<p style="text-align: center;">
+**OR**
+</p>
+
+- 2 further strong (genetic and/or clinical) criteria in case of only 2 families with recessive inheritance
+
+<p style="text-align: center;">
+**OR**
+</p>
+
+- \>= two moderate criteria
+
+
+### Strong criteria
+
+Strong frequency criteria:
+
+- \>= 3 patients with *de novo* variant
+- \>= 2 families with bi-allelic truncating variants
+- \>= (2-)3 families with bi-allelic missense variants
+- \>= 2 families with X-chromosomal variants
+
+
+Strong genetic criteria:
+
+-	recurrence of a variant
+-	clustering of variants
+-	*de novo* truncating variants in a gene intolerant to loss-of-function variants (gnomAD constraint score)
+
+
+Strong clinical criteria:
+
+-	Homogeneous phenotype
+-	Presence of specific/distinct clinical aspects (e.g., recognizable facial gestalt; rare specific malformations; pattern of multiple malformation; characteristic MRI anomalies; specific metabolic/enzymatic anomalies)
+
+
+
+### Moderate criteria
+-	Multigenerational segregation of variants
+-	Functional tests
+-	Gene involved in a pathway/complex where variants in other subunits are associated with a similar phenotype
+-	*De novo* missense variants in a gene intolerant to missense variants (gnomAD constraint scores)
+
+
+
+### Possible negative criteria
+These should be included into consideration in borderline cases.
+
+-	Age of first publication(s) without further confirmatory reports in the meantime
+-	Publication quality and journal or genetics expertise "doubtful"
+-	New evidence against gene and/or variants: e.g., constraint scores, frequencies in gnomAD
+
+
+
+## NDD Moderate and Limited entities
+These categories include the previous category of "candidate genes" and are now split into criteria for entity categories 2 ("Moderate") and 3 ("Limited"):
+
+
+**1.**	Must be published (no private, in-house candidate lists)
+
+<p style="text-align: center;">
+**AND**
+</p>
+
+**2.**	ID indicated, but criteria not sufficient for category 1, examples:
+
+**a.** Limited genetic evidence
+
+- < 3 cases with *de novo*, different variants and non-specific NDD phenotype
+- 1 recessive family with truncating variant or <= 2 recessive families with missense variants (category 2 or 3 depending on number of affected and tested individuals per family, functional evidence and homogeneity of phenotype etc.)
+- candidate gene from translocation or larger deletion
+- reports of enzymatically confirmed patients with specific metabolic disorders but without genetic mutation confirmed
+
+**b.** Limited clinical evidence
+
+- not much evidence for ID, e.g. reported as ADHD or ASD or neurological disorder without clearly reported low IQ and ID
+- known disorder, but only single patients reported with ID
+- motor developmental delay without evidence for cognitive impairment
+- clear neurodegenerative course without ID or cognitive delay present in the first years
+- lethal before ID might be evident, although e.g. brain malformations or metabolic abnormalities might point to ID
+- ID reported in other, similar disorders caused by mutations in the same pathway/complex but not (yet) in association with this particular gene (e.g. Fanconi anemia)
+
+**c.** Limited combined genetic and clinical evidence
+
+-	Gene enriched for *de novo* or rare deleterious variants in large NDD cohorts or meta-studies, no further details
+
+
+
+### Exclusion criteria
+
+1.	Published as candidate gene only based on function or experimental results but without variants reported in humans
+
+<p style="text-align: center;">
+**AND/OR**
+</p>
+
+
+2.	Only 1 *de novo* case from longer ago without further evidence and gene tolerant towards missense and/or loss-of-function variants according to gnomAD constraint scores
+
+<p style="text-align: center;">
+**AND/OR**
+</p>
+
+3.	Only 1 sporadic case with bi-allelic variants and without any further supporting evidence such as segregation in other family members, functional tests, similar phenotypes in other patients with variants in genes from the same pathway, etc.
+
+
+
+
+### When to choose category 2 ("Moderate")?
+Too good for category 3 ("Limited") but not good enough for category 1 ("Definitive")
+
+Examples:
+
+-	Recurrent de novo variant in 2 individuals with a similar phenotype
+
+-	Bi-allelic or X-chromosomal truncating variant segregating in >= two generations of a large family
+
+-	Convincing functional evidence
+
+-	1-2 patients with convincing variants in a gene which is in the same complex/pathway with other known disease genes and phenotype fits (e.g. CDG syndrome)
+
+
+### Special case: non-NDD entities
+Some genes are associated with multiple entities. Among these entities there might be some without ID as a clinical feature. These non-NDD entities will be included in SysNDD but they will not be classified to any of the categories. Instead, they are tagged with "n.a." (not applicable).

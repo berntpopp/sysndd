@@ -138,17 +138,21 @@ export default {
 
       svg.append('g').call(d3.axisLeft(y));
 
-      // Create a tooltip
+      // Create a tooltip with proper positioning
       const tooltip = d3
         .select('#count_dataviz')
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
         .style('background-color', 'white')
         .style('border', 'solid')
         .style('border-width', '1px')
         .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('padding', '5px')
+        .style('font-size', '12px')
+        .style('z-index', '10');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -160,16 +164,24 @@ export default {
         d3.select(this).style('stroke', 'black').style('opacity', 1);
       };
 
+      // Get the container for relative positioning
+      const container = document.getElementById('count_dataviz');
+
       /**
        * Mousemove event handler to move the tooltip with the mouse.
+       * Uses pageX/pageY for reliable cross-browser positioning.
        * @param {Event} event - The event object.
        * @param {Object} d - The data point.
        */
       const mousemove = function mousemove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
         tooltip
           .html(`Count: ${d.count}<br>(${d.variant_name})`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.pageX - containerRect.left - scrollLeft + 15}px`)
+          .style('top', `${event.pageY - containerRect.top - scrollTop + 15}px`);
       };
 
       /**
@@ -191,9 +203,9 @@ export default {
         .attr(
           'xlink:href',
           (d) =>
-            `/Variants/?sort=entity_id&filter=any(category,Definitive),all(modifier_variant_id,${d.vario_id})&page_after=0&page_size=10`
-        ) // Add links for filtering the table
-        .attr('aria-label', (d) => `Link to variants table for ${d.vario_id}`)
+            `/Entities/?sort=entity_id&filter=any(category,Definitive),any(vario_id,${d.vario_id})&page_after=0&page_size=10`
+        ) // Link to entities filtered by vario_id
+        .attr('aria-label', (d) => `Link to entities table for variant ${d.vario_id}`)
         .append('rect')
         .attr('x', (d) => x(d.variant_name))
         .attr('y', (d) => y(d.count))

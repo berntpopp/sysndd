@@ -684,5 +684,233 @@ function(req, res) {
 }
 
 
+#* Refresh publication metadata from PubMed
+#*
+#* Returns immediately with job_id. Poll GET /api/jobs/{job_id} for status.
+#* Rate limited to 3 requests/second (NCBI limit without API key).
+#*
+#* Supports two modes:
+#* 1. Explicit PMIDs: Provide a list of PMIDs to refresh
+#* 2. Date filter: Provide not_updated_since to refresh all publications not updated since that date
+#*
+#* # `Request Body`
+#* {
+#*   "pmids": ["PMID:12345678", "PMID:87654321"],
+#*   "not_updated_since": "2024-01-01"
+#* }
+#*
+#* If not_updated_since is provided without pmids, fetches all publications not updated since that date.
+#* If both are provided, filters the pmids list to only those not updated since that date.
+#*
+#* # `Response (202 Accepted)`
+#* {
+#*   "job_id": "550e8400-e29b-41d4-a716-446655440000",
+#*   "status": "accepted",
+#*   "estimated_seconds": 30
+#* }
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @post /publications/refresh
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  # CRITICAL: Extract request body BEFORE mirai call
+  # Request object cannot cross process boundaries
+  body <- req$body
+  pmids <- body$pmids
+  not_updated_since <- body$not_updated_since
+
+  # Handle date-based filtering
+  if (!is.null(not_updated_since) && nzchar(not_updated_since)) {
+    # Validate date format
+    filter_date <- tryCatch(
+      as.Date(not_updated_since),
+      error = function(e) NULL
+    )
+
+    if (is.null(filter_date) || is.na(filter_date)) {
+      res$status <- 400
+      return(list(error = "Invalid date format for not_updated_since. Use YYYY-MM-DD."))
+    }
+
+    # Fetch PMIDs of publications not updated since the filter date
+    filtered_pubs <- db_execute_query(
+      "SELECT publication_id FROM publication WHERE update_date < ?",
+      list(as.character(filter_date))
+    )
+
+    if (nrow(filtered_pubs) == 0) {
+      res$status <- 200
+      return(list(
+        message = "No publications need refreshing",
+        filter_date = as.character(filter_date),
+        count = 0
+      ))
+    }
+
+    filtered_pmids <- filtered_pubs$publication_id
+
+    if (is.null(pmids) || length(pmids) == 0) {
+      # No PMIDs provided - use all filtered publications
+      pmids <- filtered_pmids
+    } else {
+      # Intersect provided PMIDs with filtered publications
+      pmids <- intersect(pmids, filtered_pmids)
+      if (length(pmids) == 0) {
+        res$status <- 200
+        return(list(
+          message = "No matching publications need refreshing",
+          filter_date = as.character(filter_date),
+          count = 0
+        ))
+      }
+    }
+  }
+
+  # Validate input - at least one PMID required
+  if (is.null(pmids) || length(pmids) == 0) {
+    res$status <- 400
+    return(list(error = "No PMIDs provided and no date filter specified"))
+  }
+
+  # Check for duplicate job
+  dup_check <- check_duplicate_job("publication_refresh", list(pmids = pmids))
+  if (dup_check$duplicate) {
+    return(list(
+      job_id = dup_check$existing_job_id,
+      status = "already_running",
+      message = "A publication refresh job is already running with these PMIDs"
+    ))
+  }
+
+  # Calculate estimated time: 350ms per PMID + overhead
+  estimated_seconds <- ceiling(length(pmids) * 0.4)
+
+  # Create async job
+  result <- create_job(
+    operation = "publication_refresh",
+    params = list(
+      pmids = pmids,
+      db_config = list(
+        dbname = dw$dbname,
+        user = dw$user,
+        password = dw$password,
+        server = dw$server,
+        host = dw$host,
+        port = dw$port
+      )
+    ),
+    executor_fn = function(params) {
+      # Source required functions in mirai daemon
+      source("functions/publication-functions.R")
+      source("functions/job-progress.R")
+      source("functions/db-helpers.R")
+
+      # Create progress reporter
+      reporter <- create_progress_reporter(params$.__job_id__)
+
+      pmids <- params$pmids
+      total <- length(pmids)
+      results <- list()
+
+      # Connect to database (daemon needs its own connection)
+      sysndd_db <- DBI::dbConnect(
+        RMariaDB::MariaDB(),
+        dbname = params$db_config$dbname,
+        user = params$db_config$user,
+        password = params$db_config$password,
+        host = params$db_config$host,
+        port = params$db_config$port
+      )
+      on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
+
+      # Process each PMID with rate limiting
+      for (i in seq_along(pmids)) {
+        pmid <- pmids[i]
+        reporter(
+          "fetch",
+          sprintf("Fetching %s (%d/%d)", pmid, i, total),
+          current = i,
+          total = total
+        )
+
+        result_item <- tryCatch({
+          # Fetch metadata from PubMed
+          info <- info_from_pmid(pmid)
+
+          # Update database - note info is a tibble so we access columns
+          rows_affected <- db_execute_statement(
+            "UPDATE publication SET
+              Title = ?,
+              Abstract = ?,
+              Publication_date = ?,
+              Journal = ?,
+              Keywords = ?,
+              Lastname = ?,
+              Firstname = ?,
+              update_date = NOW()
+            WHERE publication_id = ?",
+            list(
+              info$Title[1],
+              info$Abstract[1],
+              info$Publication_date[1],
+              info$Journal[1],
+              info$Keywords[1],
+              info$Lastname[1],
+              info$Firstname[1],
+              pmid
+            ),
+            conn = sysndd_db
+          )
+
+          list(
+            pmid = pmid,
+            status = if (rows_affected > 0) "updated" else "not_found",
+            title = info$Title[1]
+          )
+        }, error = function(e) {
+          list(
+            pmid = pmid,
+            status = "error",
+            error = e$message
+          )
+        })
+
+        results[[i]] <- result_item
+
+        # Rate limit: 350ms delay = 2.86 req/sec (safe for NCBI 3 req/sec limit)
+        if (i < total) Sys.sleep(0.35)
+      }
+
+      # Return summary
+      list(
+        total = total,
+        success = sum(vapply(results, function(r) r$status == "updated", logical(1))),
+        failed = sum(vapply(results, function(r) r$status == "error", logical(1))),
+        not_found = sum(vapply(results, function(r) r$status == "not_found", logical(1))),
+        results = results
+      )
+    },
+    timeout_ms = 7200000  # 2 hours timeout for large batches (4547 pubs ~27 min)
+  )
+
+  # Check for capacity error
+  if (!is.null(result$error)) {
+    res$status <- 503
+    return(result)
+  }
+
+  # Add estimated time to response
+  result$estimated_seconds <- estimated_seconds
+
+  res$status <- 202
+  return(result)
+}
+
+
 ## Administration section
 ## -------------------------------------------------------------------##

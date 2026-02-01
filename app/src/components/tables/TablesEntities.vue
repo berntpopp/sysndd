@@ -734,4 +734,15 @@ export default {
 :deep(.vue-treeselect__control) {
   color: #6c757d !important;
 }
+
+/* Card styling improvements */
+:deep(.card) {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+:deep(.card-header) {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
 </style>

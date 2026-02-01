@@ -4,27 +4,37 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current Milestone: v10.0 Data Quality & AI Insights
+## Current Milestone: v10.1 Production Deployment Fixes
 
-**Goal:** Stabilize data quality with major bug fixes, enhance literature research tools (Publications, Pubtator), and add AI-generated cluster summaries for reproducible biological interpretation.
+**Goal:** Fix critical production deployment issues discovered on VPS — permission mismatch blocking data directory writes, migration lock timeout blocking multi-container scaling, and missing favicon image.
 
-**Target features:**
-- Fix 8-9 major GitHub issues (EIF2AK2, GAP43, MEF2C, viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
-- Fix Variant Correlations broken links
-- Publications view improvements: table UX, API metadata fetching, TimePlot/Stats enhancements
-- Pubtator overhaul: fix Stats, curator gene prioritization lists, user research tools, better concept documentation
-- LLM cluster summaries: Gemini API with batch pre-generation, structured output, LLM-as-judge validation
-- Admin comparisons update
-- GitHub Pages: migrate from gh-pages branch to GitHub Actions workflow
+**Target fixes:**
+- #138: API container cannot write to /app/data directory (UID mismatch)
+- #136: Multi-container scaling fails due to migration lock timeout
+- #137: Missing favicon image (brain-neurodevelopmental-disorders-sysndd.png)
+
+## Previous State (v10.0 shipped 2026-02-01)
+
+**Recent Milestone:** v10.0 Data Quality & AI Insights
+
+**Delivered:**
+- Fixed 8 major bugs (EIF2AK2, GAP43, MEF2C, viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
+- Variant navigation links from correlation matrix/counts to filtered entity table
+- Publications view: TimePlot aggregation, Stats cards, row details, admin bulk refresh
+- Pubtator: gene prioritization with novel alerts, PMID chips, Excel export
+- LLM cluster summaries: Gemini API with ellmer, batch pre-generation, LLM-as-judge validation
+- LLM admin dashboard: ManageLLM.vue with 5 tabs (Overview, Config, Prompts, Cache, Logs)
+- Comparisons data refresh async job with 7 external database parsers
+- Documentation migrated to Quarto with GitHub Actions deployment
 
 ## Core Value
 
 A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## Current State (v9.0 shipped 2026-01-31)
+## Technical Stack (v10.0)
 
 **Backend Stack:** 10/10
-- R 4.4.3 with 281 packages in renv.lock
+- R 4.4.3 with 285 packages in renv.lock (added ellmer, coro for LLM)
 - Argon2id password hashing with progressive migration
 - 66 SQL injection vulnerabilities fixed (parameterized queries)
 - 8 domain repositories with 131 parameterized DB calls
@@ -36,25 +46,25 @@ A new developer can clone the repo and be productive within minutes, with confid
 - 0 lintr issues, 0 TODO comments
 - External API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD) with disk caching
 
-**Backend Testing:** 634 tests passing, 20.3% coverage, 24 integration tests
+**Backend Testing:** 687 tests + 11 E2E passing, 20.3% coverage, 24 integration tests
 
 **Frontend Stack:** 10/10
 - Vue 3.5.25 with Composition API (pure, no compat layer)
 - TypeScript 5.9.3 with branded domain types
 - Bootstrap-Vue-Next 0.42.0 with Bootstrap 5.3.8
 - Vite 7.3.1 (164ms dev startup, ~600 KB gzipped bundle)
-- 28 Vue 3 composables (added 5 gene page composables in v8)
+- 31 Vue 3 composables (added useLlmAdmin, useExcelExport, usePubtatorAdmin in v10)
 - WCAG 2.2 AA compliance with vitest-axe accessibility tests
 - Chart.js + vue-chartjs for statistics visualizations
 - Cytoscape.js for network and phenotype cluster visualizations
 - D3.js for protein domain lollipop plots and gene structure visualization
 - NGL Viewer for 3D AlphaFold structure with variant highlighting
 - Custom TreeMultiSelect component (replaced vue3-treeselect)
-- 17 gene page components (GeneHero, IdentifierCard, GeneConstraintCard, GeneClinVarCard, ProteinDomainLollipopPlot, GeneStructurePlot, ProteinStructure3D, ModelOrganismsCard, etc.)
+- 17 gene page components + 5 LLM components (LlmSummaryCard, LlmConfigPanel, LlmPromptEditor, LlmCacheManager, LlmLogViewer)
 - Module-level caching pattern for admin tables
 - URL-synced filter state with VueUse
 
-**Frontend Testing:** 144 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
+**Frontend Testing:** 190 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
 
 **Docker Infrastructure:** 9/10
 - Traefik v3.6 reverse proxy with Docker auto-discovery
@@ -268,35 +278,42 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Batch assignment email notification — v9
 - ✓ Self-service profile editing (email/ORCID) — v9
 
+<!-- Shipped in v10 -->
+
+- ✓ Fix EIF2AK2 publication update incomplete (#122) — v10
+- ✓ Fix GAP43 entity not visible (#115) — v10
+- ✓ Fix MEF2C entity updating issues (#114) — v10
+- ✓ Fix viewer profile / auto-logout bug — v10
+- ✓ Fix PMID deletion when adding new PMID during re-review — v10
+- ✓ Fix entities over time by gene counts (#44) — v10
+- ✓ Fix disease renaming requiring no approval (#41) — v10 (WONTFIX)
+- ✓ Fix re-reviewer identity preservation (#41) — v10
+- ✓ Fix Variant Correlations broken links (VariantCounts, VariantCorrelations) — v10
+- ✓ Publications table UX improvements — v10
+- ✓ Publications API metadata fetching view — v10
+- ✓ Publications TimePlot improvements — v10
+- ✓ Publications Stats improvements — v10
+- ✓ Pubtator Stats fix — v10
+- ✓ Pubtator curator gene prioritization lists — v10
+- ✓ Pubtator user research tools — v10
+- ✓ Pubtator concept documentation — v10
+- ✓ LLM cluster summary backend (Gemini API with ellmer) — v10
+- ✓ LLM batch pre-generation job via mirai — v10
+- ✓ LLM structured output prompts — v10
+- ✓ LLM-as-judge validation pipeline — v10
+- ✓ Phenotype cluster summaries with LlmSummaryCard — v10
+- ✓ Functional cluster summaries with LlmSummaryCard — v10
+- ✓ Admin comparisons data refresh async job — v10
+- ✓ GitHub Pages Actions workflow deployment — v10
+- ✓ LLM admin dashboard (ManageLLM.vue with 5 tabs) — v10
+
 ### Active
 
-<!-- v10.0 Data Quality & AI Insights -->
+<!-- v10.1 Production Deployment Fixes -->
 
-- [ ] Fix EIF2AK2 publication update incomplete (#122)
-- [ ] Fix GAP43 entity not visible (#115)
-- [ ] Fix MEF2C entity updating issues (#114)
-- [ ] Fix viewer profile / auto-logout bug
-- [ ] Fix PMID deletion when adding new PMID during re-review
-- [ ] Fix entities over time by gene counts (#44)
-- [ ] Fix disease renaming requiring no approval (#41)
-- [ ] Fix re-reviewer identity preservation (#41)
-- [ ] Fix Variant Correlations broken links (VariantCounts, VariantCorrelations)
-- [ ] Publications table UX improvements
-- [ ] Publications API metadata fetching view
-- [ ] Publications TimePlot improvements
-- [ ] Publications Stats improvements
-- [ ] Pubtator Stats fix
-- [ ] Pubtator curator gene prioritization lists
-- [ ] Pubtator user research tools
-- [ ] Pubtator concept documentation
-- [ ] LLM cluster summary backend (Gemini API)
-- [ ] LLM batch pre-generation job
-- [ ] LLM structured output prompts
-- [ ] LLM-as-judge validation
-- [ ] Phenotype cluster summaries
-- [ ] Functional cluster summaries
-- [ ] Admin comparisons update
-- [ ] GitHub Pages Actions workflow deployment
+- [ ] **DEPLOY-01**: API container can write to /app/data directory without permission errors
+- [ ] **DEPLOY-02**: Multiple API containers can start simultaneously without migration lock timeout
+- [ ] **DEPLOY-03**: Favicon image loads without 404 errors
 
 ### Out of Scope
 
@@ -316,30 +333,26 @@ A new developer can clone the repo and be productive within minutes, with confid
 ## Context
 
 **After v10:**
-- Planned: Data quality stabilization, literature tools enhancement, AI cluster interpretation
+- Complete LLM cluster summary pipeline with Gemini API integration
+- LLM admin dashboard for model management, cache control, and log viewing
+- All 8 major bugs fixed, literature tools enhanced
+- 1,381 tests passing across R API and Vue frontend
+- 31 Vue 3 composables total
 
 **After v9:**
 - Production-ready with automated database migrations, backup management, and E2E tested user workflows
 - Migration runner with schema_version tracking and idempotent execution
 - Backup management API and admin UI with type-to-confirm safety for restore
-- Mailpit container for development email capture and E2E testing
-- /api/health/ready endpoint with database connectivity and migration status checks
-- `make preflight` target validates production Docker builds
-- Docker hardening: security_opt, CPU limits, log rotation, Brotli compression
-- Post-milestone enhancements: batch assignment email and self-service profile editing
-- 29 Vue 3 composables total (7 original + 6 admin + 10 curation + 5 gene page + useAsyncJob)
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
 - ScoreSlider presets need domain-specific values
 - Correlation heatmap → cluster navigation (architectural limitation)
 - ModifyEntity review modal not yet refactored to useReviewForm
-- useModelOrganismData not in composables barrel export (direct import works)
-- console.log in ProteinDomainLollipopCard.vue:249 (placeholder for zoom reset feature)
+- Clustering determinism via set.seed(42) — fragile if algorithm parameters change
 
 **GitHub Issues:**
-- See `.planning/ISSUE-TRIAGE-REPORT.md` for triage of open issues
-- #115 (GAP43 orphaned entity) remains open
+- #115 (GAP43 orphaned entity) — fixed with atomic entity creation
 
 **Codebase map:** See `.planning/codebase/` for detailed analysis
 
@@ -417,6 +430,14 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Non-reactive NGL Stage | let stage (not ref()) prevents Vue proxy issues with WebGL | ✓ Good |
 | ResizeObserver for lazy tab init | Detects valid container dimensions for WebGL in hidden tabs | ✓ Good |
 | Error isolation in aggregation | tryCatch per source returns partial data on failures | ✓ Good |
+| ellmer >= 0.4.0 for Gemini API | More features than gemini.R, better maintained | ✓ Good |
+| Entity validation mandatory for LLM | LLMs invent plausible gene names | ✓ Good |
+| LLM-as-judge in batch pipeline | Validates summary accuracy before caching | ✓ Good |
+| Hash-based cache invalidation | Cluster composition changes invalidate old summaries | ✓ Good |
+| set.seed(42) for clustering | Ensures hash consistency between batch and API | ⚠️ Fragile |
+| noble P3M URL for Docker | rocker/r-ver:4.4.3 uses Ubuntu 24.04 with ICU 74 | ✓ Good |
+| DBI NULL to NA conversion | DBI::dbBind requires length 1 for parameters | ✓ Good |
+| Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-01-31 after v10.0 milestone started*
+*Last updated: 2026-02-01 after v10.1 milestone started*

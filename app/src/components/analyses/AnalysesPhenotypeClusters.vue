@@ -100,6 +100,34 @@
 
         <!-- RIGHT COLUMN (Table) -->
         <BCol md="8">
+          <!-- LLM Summary Card (above table) -->
+          <LlmSummaryCard
+            v-if="currentSummary && !summaryLoading"
+            class="my-3 mx-2"
+            :summary="currentSummary.summary_json"
+            :model-name="
+              Array.isArray(currentSummary.model_name)
+                ? currentSummary.model_name[0]
+                : currentSummary.model_name
+            "
+            :created-at="
+              Array.isArray(currentSummary.created_at)
+                ? currentSummary.created_at[0]
+                : currentSummary.created_at
+            "
+            :validation-status="
+              Array.isArray(currentSummary.validation_status)
+                ? currentSummary.validation_status[0]
+                : currentSummary.validation_status
+            "
+            :cluster-number="Number(selectedCluster?.cluster)"
+          />
+          <div v-else-if="summaryLoading" class="my-3 mx-2">
+            <BSpinner small class="me-2" />
+            <span class="text-muted">Loading AI summary...</span>
+          </div>
+          <!-- No placeholder when summary doesn't exist -->
+
           <BCard
             header-tag="header"
             class="my-3 mx-2 text-start"
@@ -218,12 +246,16 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 
+// Import LLM Summary Card for AI-generated cluster summaries
+import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
+
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
     GenericTable,
     TableSearchInput,
     TablePaginationControls,
+    LlmSummaryCard,
   },
   props: {
     /**
@@ -334,6 +366,10 @@ export default {
         'p.value': { content: null, join_char: null, operator: 'contains' },
         'v.test': { content: null, join_char: null, operator: 'contains' },
       },
+
+      // LLM Summary data
+      currentSummary: null,
+      summaryLoading: false,
     };
   },
   computed: {
@@ -413,6 +449,13 @@ export default {
       if (this.cytoscape?.isInitialized.value) {
         this.cytoscape.selectCluster(newCluster);
       }
+      // Fetch LLM summary for the selected cluster
+      const clusterData = this.itemsCluster.find((item) => item.cluster === newCluster);
+      if (clusterData?.hash_filter) {
+        this.fetchClusterSummary(clusterData.hash_filter, newCluster);
+      } else {
+        this.currentSummary = null;
+      }
     },
     // Watch the tableType so we can update totalRows based on new array
     tableType() {
@@ -436,6 +479,11 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data;
         this.setActiveCluster();
+        // Fetch LLM summary for initial cluster
+        const clusterData = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
+        if (clusterData?.hash_filter) {
+          this.fetchClusterSummary(clusterData.hash_filter, this.activeCluster);
+        }
         this.$nextTick(() => {
           this.updateClusterGraph();
         });
@@ -463,6 +511,51 @@ export default {
       // Update total rows
       const arr = this.selectedCluster[this.tableType] || [];
       this.totalRows = arr.length;
+    },
+
+    /**
+     * Fetch LLM-generated summary for a specific phenotype cluster
+     * Uses cluster's hash_filter as the cluster_hash parameter
+     */
+    async fetchClusterSummary(clusterHash, clusterNumber) {
+      if (!clusterHash) {
+        this.currentSummary = null;
+        return;
+      }
+
+      this.summaryLoading = true;
+      try {
+        const response = await this.axios.get(
+          `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_cluster_summary`,
+          {
+            params: {
+              cluster_hash: clusterHash,
+              cluster_number: clusterNumber,
+            },
+            // 404 is expected when summary doesn't exist yet - don't treat as error
+            // This prevents browser console error logging for expected 404s
+            validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
+          }
+        );
+
+        // Handle 404 as a normal response (no summary available yet)
+        if (response.status === 404) {
+          this.currentSummary = null;
+          return;
+        }
+
+        this.currentSummary = response.data;
+      } catch (_error) {
+        // Only reaches here for actual errors (network, 500, etc.)
+        this.makeToast(
+          'Unable to load AI summary. The summary may still be generating.',
+          'Info',
+          'info'
+        );
+        this.currentSummary = null;
+      } finally {
+        this.summaryLoading = false;
+      }
     },
 
     /* --------------------------------------

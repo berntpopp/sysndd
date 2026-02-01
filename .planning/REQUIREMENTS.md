@@ -1,104 +1,49 @@
-# Requirements: SysNDD v10.0 Data Quality & AI Insights
+# Requirements: SysNDD v10.1 Production Deployment Fixes
 
-**Defined:** 2026-01-31
+**Defined:** 2026-02-01
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-## v10.0 Requirements
+## v10.1 Requirements
 
-Requirements for data quality stabilization, literature research tools, and AI-assisted cluster interpretation. Each maps to roadmap phases.
+Requirements for fixing production deployment issues discovered on VPS. Each maps to roadmap phases.
+
+### Deployment Infrastructure
+
+- [ ] **DEPLOY-01**: API container can write to bind-mounted /app/data directory without permission errors
+- [ ] **DEPLOY-02**: Dockerfile UID is configurable via build-arg (default 1000)
+- [ ] **DEPLOY-03**: Multiple API containers can start in parallel without migration lock timeout
+- [ ] **DEPLOY-04**: container_name directive removed from API service to enable scaling
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: EIF2AK2 entity (sysndd:4375) - Publication 33236446 update completes correctly (#122)
-- [ ] **BUG-02**: GAP43 newly created entity is visible in entity list (#115)
-- [ ] **BUG-03**: MEF2C entity (sysndd:4512) updates save correctly (#114)
-- [ ] **BUG-04**: Viewer status users can view profile without auto-logout
-- [ ] **BUG-05**: Adding new PMID during re-review preserves existing PMIDs
-- [ ] **BUG-06**: Entities over time by gene displays correct counts (#44)
-- [ ] **BUG-07**: Disease renaming requires approval per review concept (#41)
-- [ ] **BUG-08**: Re-reviewer identity preserved when changing reviews
+- [ ] **BUG-01**: Favicon image (brain-neurodevelopmental-disorders-sysndd.png) loads without 404 errors
 
-### Variant Correlations
+### Migration Coordination
 
-- [ ] **VCOR-01**: VariantCorrelations view navigation links work correctly
-- [ ] **VCOR-02**: VariantCounts view navigation links work correctly
+- [ ] **MIGRATE-01**: Migration check happens before lock acquisition (fast path for up-to-date schema)
+- [ ] **MIGRATE-02**: Double-check after lock handles race condition (another container migrated)
+- [ ] **MIGRATE-03**: Health endpoint shows migration status (lock acquired, migrations applied)
 
-### Publications
+### Local Production Testing
 
-- [ ] **PUB-01**: Publications table has improved UX (pagination, search, filters)
-- [ ] **PUB-02**: Publication metadata fetched from PubMed API (title, journal, abstract)
-- [ ] **PUB-03**: PublicationsNDD TimePlot has improved visualization
-- [ ] **PUB-04**: PublicationsNDD Stats view displays correctly
-
-### Pubtator
-
-- [ ] **PUBT-01**: PubtatorNDD Stats page displays correctly (fix broken)
-- [ ] **PUBT-02**: Gene prioritization list ranks genes by publication count, recency, coverage gap
-- [ ] **PUBT-03**: Novel gene alerts highlight Pubtator genes not in SysNDD entities
-- [ ] **PUBT-04**: User can explore gene-literature connections for research
-- [ ] **PUBT-05**: Curator can export prioritized gene list for offline planning
-- [ ] **PUBT-06**: Pubtator concept and purpose documented in views
-
-### LLM Cluster Summaries
-
-- [ ] **LLM-01**: Gemini API client integrated using ellmer package
-- [ ] **LLM-02**: API key stored securely in environment variable (GEMINI_API_KEY)
-- [ ] **LLM-03**: Cluster summaries use structured JSON output schema
-- [ ] **LLM-04**: Entity validation checks all gene names exist in database
-- [ ] **LLM-05**: Batch pre-generation job runs via mirai async system
-- [ ] **LLM-06**: Summaries cached in database with hash-based invalidation
-- [ ] **LLM-07**: Phenotype cluster summaries generated and displayed
-- [ ] **LLM-08**: Functional cluster summaries generated and displayed
-- [ ] **LLM-09**: LLM-as-judge validates summary accuracy
-- [ ] **LLM-10**: Confidence scoring flags low-confidence summaries
-- [ ] **LLM-11**: Admin panel for summary review and approval
-- [ ] **LLM-12**: Summaries show "AI-generated" badge with validation status
-
-### Admin
-
-- [ ] **ADMIN-01**: Admin comparisons functionality updated
-
-### Infrastructure
-
-- [ ] **INFRA-01**: GitHub Pages deployed via GitHub Actions workflow (not gh-pages branch)
+- [ ] **TEST-01**: Production-like multi-container setup (4 API replicas) runs locally
+- [ ] **TEST-02**: Parallel API container startup verified via container logs
+- [ ] **TEST-03**: Data directory write operations work across all containers
+- [ ] **TEST-04**: Migration coordination verified with fresh database startup
 
 ## Future Requirements
 
-Deferred to v10.1+. Tracked but not in current roadmap.
-
-### Publications Enhancements
-
-- **PUB-05**: Citation count display (pmidcite/iCite integration)
-- **PUB-06**: Author affiliation display from PubMed XML
-- **PUB-07**: Related publications sidebar (semantic search)
-- **PUB-08**: Full-text availability indicator (PMC badge)
-
-### Pubtator Enhancements
-
-- **PUBT-07**: Entity co-occurrence visualization (network view)
-- **PUBT-08**: Curation queue integration (add to re-review batch button)
-
-### LLM Enhancements
-
-- **LLM-13**: Multi-language summary support
-- **LLM-14**: Summary version history with comparison
-- **LLM-15**: Cross-cluster comparison mode
-- **LLM-16**: Domain-specific ontology fact-checking (HPO, GO term validation)
+None - this is a focused bug fix milestone.
 
 ## Out of Scope
 
-Explicitly excluded. Documented to prevent scope creep.
-
 | Feature | Reason |
 |---------|--------|
-| Real-time LLM generation on page load | API latency (2-5s) ruins UX; batch pre-generate instead |
-| Frontend Gemini API calls | Exposes API key; backend-only |
-| LLM-computed statistics | LLMs cannot reliably compute p-values; use existing enrichment |
-| Custom LLM fine-tuning | Expensive, hard to maintain; use foundation model with prompts |
-| Multiple LLM provider fallbacks | Prompt compatibility issues; single provider (Gemini) |
-| User-facing prompt editing | Security risk; fixed validated templates only |
-| Embedding-based semantic search | Infrastructure complexity; simple search sufficient for v10 |
-| gemini.R package | Limited features; use ellmer instead |
+| Init container for migrations | Double-checked locking is simpler and sufficient |
+| Redis for shared cache | Named volume sufficient for current scale |
+| User namespace remapping | Overkill - build-time UID fix is simpler |
+| Entrypoint script with gosu | Build-time UID fix doesn't require runtime permission fixing |
+| Kubernetes deployment | Docker Compose is current deployment target |
 
 ## Traceability
 
@@ -106,46 +51,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUG-01 | 55 | Pending |
-| BUG-02 | 55 | Pending |
-| BUG-03 | 55 | Pending |
-| BUG-04 | 55 | Pending |
-| BUG-05 | 55 | Pending |
-| BUG-06 | 55 | Pending |
-| BUG-07 | 55 | Pending |
-| BUG-08 | 55 | Pending |
-| VCOR-01 | 56 | Pending |
-| VCOR-02 | 56 | Pending |
-| PUB-01 | 56 | Pending |
-| PUB-02 | 56 | Pending |
-| PUB-03 | 56 | Pending |
-| PUB-04 | 56 | Pending |
-| PUBT-01 | 57 | Pending |
-| PUBT-02 | 57 | Pending |
-| PUBT-03 | 57 | Pending |
-| PUBT-04 | 57 | Pending |
-| PUBT-05 | 57 | Pending |
-| PUBT-06 | 57 | Pending |
-| LLM-01 | 58 | Pending |
-| LLM-02 | 58 | Pending |
-| LLM-03 | 58 | Pending |
-| LLM-04 | 58 | Pending |
-| LLM-05 | 59 | Pending |
-| LLM-06 | 59 | Pending |
-| LLM-07 | 60 | Pending |
-| LLM-08 | 60 | Pending |
-| LLM-09 | 61 | Pending |
-| LLM-10 | 61 | Pending |
-| LLM-11 | 61 | Pending |
-| LLM-12 | 60 | Pending |
-| ADMIN-01 | 62 | Pending |
-| INFRA-01 | 62 | Pending |
+| DEPLOY-01 | Phase 66 | Pending |
+| DEPLOY-02 | Phase 66 | Pending |
+| DEPLOY-03 | Phase 67 | Pending |
+| DEPLOY-04 | Phase 66 | Pending |
+| BUG-01 | Phase 66 | Pending |
+| MIGRATE-01 | Phase 67 | Pending |
+| MIGRATE-02 | Phase 67 | Pending |
+| MIGRATE-03 | Phase 67 | Pending |
+| TEST-01 | Phase 68 | Pending |
+| TEST-02 | Phase 68 | Pending |
+| TEST-03 | Phase 68 | Pending |
+| TEST-04 | Phase 68 | Pending |
 
 **Coverage:**
-- v10.0 requirements: 34 total
-- Mapped to phases: 34 (100%)
+- v10.1 requirements: 12 total
+- Mapped to phases: 12
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after roadmap creation*
+*Requirements defined: 2026-02-01*
+*Last updated: 2026-02-01 after roadmap creation*

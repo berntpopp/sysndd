@@ -12,9 +12,89 @@
 
 library(DBI)
 library(pool)
+library(RMariaDB)
 library(logger)
 library(rlang)
 library(tibble)
+
+#' Get database connection (pool or fallback to direct connection for daemons)
+#'
+#' In main process, returns the global pool. In mirai daemons (where pool
+#' doesn't exist), uses daemon_db_conn if available, otherwise creates a new connection.
+#'
+#' @return Pool object or direct DBI connection
+#' @keywords internal
+get_db_connection <- function() {
+  message("[get_db_connection] ENTRY")
+  # If pool exists in global environment, use it (main process)
+  if (base::exists("pool", envir = .GlobalEnv) && !is.null(base::get("pool", envir = .GlobalEnv))) {
+    return(base::get("pool", envir = .GlobalEnv))
+  }
+
+  # If daemon_db_conn exists in global environment, validate and use it
+  if (base::exists("daemon_db_conn", envir = .GlobalEnv) && !is.null(base::get("daemon_db_conn", envir = .GlobalEnv))) {
+    conn <- base::get("daemon_db_conn", envir = .GlobalEnv)
+
+    # Validate connection is still alive (fixes "bad_weak_ptr" errors)
+    conn_valid <- tryCatch({
+      DBI::dbIsValid(conn)
+    }, error = function(e) {
+      message("[get_db_connection] Connection validation failed: ", e$message)
+      FALSE
+    })
+
+    if (conn_valid) {
+      return(conn)
+    } else {
+      message("[get_db_connection] daemon_db_conn invalid, will create new connection")
+      # Remove invalid connection
+      base::rm("daemon_db_conn", envir = .GlobalEnv)
+    }
+  }
+
+  # Fallback for mirai daemons: create direct connection from config.yml
+  # This is needed because mirai daemons run in separate R processes without
+  # access to the main process's pool object
+
+  # First try environment variables (for CI and explicit config)
+  host <- Sys.getenv("MYSQL_HOST", "")
+  port <- as.integer(Sys.getenv("MYSQL_PORT", "3306"))
+  dbname <- Sys.getenv("MYSQL_DATABASE", "")
+  user <- Sys.getenv("MYSQL_USER", "")
+  password <- Sys.getenv("MYSQL_PASSWORD", "")
+
+  # If env vars not set, read from config.yml (primary config for Docker)
+  if (user == "" || dbname == "") {
+    config_path <- if (file.exists("/app/config.yml")) "/app/config.yml" else "config.yml"
+    if (file.exists(config_path) && requireNamespace("config", quietly = TRUE)) {
+      cfg <- config::get(file = config_path)
+      # Read sysndd_db section if it exists
+      db_config <- cfg$sysndd_db %||% cfg
+      host <- db_config$host %||% host %||% "mysql"
+      port <- as.integer(db_config$port %||% port %||% 3306)
+      dbname <- db_config$dbname %||% dbname %||% "sysndd_db"
+      user <- db_config$user %||% user
+      password <- db_config$password %||% password
+    }
+  }
+
+  # Create direct connection
+  message("[get_db_connection] Creating new daemon connection to ", host, ":", port, "/", dbname)
+  conn <- DBI::dbConnect(
+    RMariaDB::MariaDB(),
+    host = host,
+    port = port,
+    dbname = dbname,
+    user = user,
+    password = password
+  )
+
+  # Store in global environment for reuse within this daemon
+  base::assign("daemon_db_conn", conn, envir = .GlobalEnv)
+  message("[get_db_connection] New daemon connection created and stored")
+
+  return(conn)
+}
 
 #' Execute a SELECT query and return results as a tibble
 #'
@@ -56,6 +136,7 @@ library(tibble)
 #'
 #' @export
 db_execute_query <- function(sql, params = list(), conn = NULL) {
+  message("[db_execute_query] ENTRY - sql: ", substr(sql, 1, 50))
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -74,15 +155,24 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
   tryCatch(
     {
       # Determine if we have a pool or a direct connection
-      use_pool <- if (is.null(conn)) pool else conn
+      use_pool <- if (is.null(conn)) get_db_connection() else conn
       is_pool_obj <- inherits(use_pool, "Pool")
+      is_direct_conn <- inherits(use_pool, "MariaDBConnection") || inherits(use_pool, "DBIConnection")
+
+      # Check if this is the daemon_db_conn (managed externally, don't disconnect)
+      is_daemon_conn <- base::exists("daemon_db_conn", envir = .GlobalEnv) &&
+                        identical(use_pool, base::get("daemon_db_conn", envir = .GlobalEnv))
 
       if (is_pool_obj) {
         # For pool objects: checkout connection, use it, return it
         use_conn <- pool::poolCheckout(use_pool)
         on.exit(pool::poolReturn(use_conn), add = TRUE)
+      } else if (is_direct_conn && !is_daemon_conn && is.null(conn)) {
+        # Direct connection created by get_db_connection() fallback - disconnect after use
+        use_conn <- use_pool
+        on.exit(DBI::dbDisconnect(use_conn), add = TRUE)
       } else {
-        # Direct connection provided
+        # Direct connection provided by caller or daemon_db_conn (managed externally)
         use_conn <- use_pool
       }
 
@@ -166,6 +256,7 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
 #'
 #' @export
 db_execute_statement <- function(sql, params = list(), conn = NULL) {
+  message("[db_execute_statement] ENTRY - sql: ", substr(sql, 1, 50))
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.null(p) || (length(p) == 1 && is.na(p))) {
@@ -184,15 +275,24 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
   tryCatch(
     {
       # Determine if we have a pool or a direct connection
-      use_pool <- if (is.null(conn)) pool else conn
+      use_pool <- if (is.null(conn)) get_db_connection() else conn
       is_pool_obj <- inherits(use_pool, "Pool")
+      is_direct_conn <- inherits(use_pool, "MariaDBConnection") || inherits(use_pool, "DBIConnection")
+
+      # Check if this is the daemon_db_conn (managed externally, don't disconnect)
+      is_daemon_conn <- base::exists("daemon_db_conn", envir = .GlobalEnv) &&
+                        identical(use_pool, base::get("daemon_db_conn", envir = .GlobalEnv))
 
       if (is_pool_obj) {
         # For pool objects: checkout connection, use it, return it
         use_conn <- pool::poolCheckout(use_pool)
         on.exit(pool::poolReturn(use_conn), add = TRUE)
+      } else if (is_direct_conn && !is_daemon_conn && is.null(conn)) {
+        # Direct connection created by get_db_connection() fallback - disconnect after use
+        use_conn <- use_pool
+        on.exit(DBI::dbDisconnect(use_conn), add = TRUE)
       } else {
-        # Direct connection provided
+        # Direct connection provided by caller or daemon_db_conn (managed externally)
         use_conn <- use_pool
       }
 
@@ -276,16 +376,28 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
 #'
 #' @export
 db_with_transaction <- function(code, pool_obj = NULL) {
-  # Use provided pool or fallback to global pool
-  use_pool <- if (is.null(pool_obj)) pool else pool_obj
+  # Use provided pool or fallback to global pool or create direct connection
+  use_pool <- if (!is.null(pool_obj)) pool_obj else get_db_connection()
+  is_pool_obj <- inherits(use_pool, "Pool")
+  is_direct_conn <- inherits(use_pool, "MariaDBConnection") || inherits(use_pool, "DBIConnection")
+  created_direct_conn <- FALSE
 
   log_debug("Starting database transaction")
 
-  # Check out a connection from the pool
-  conn <- pool::poolCheckout(use_pool)
-
-  # Register return on exit (even if error occurs)
-  on.exit(pool::poolReturn(conn), add = TRUE)
+  if (is_pool_obj) {
+    # Check out a connection from the pool
+    conn <- pool::poolCheckout(use_pool)
+    # Register return on exit (even if error occurs)
+    on.exit(pool::poolReturn(conn), add = TRUE)
+  } else if (is_direct_conn && is.null(pool_obj)) {
+    # Direct connection created by get_db_connection() - we need to disconnect later
+    conn <- use_pool
+    created_direct_conn <- TRUE
+    on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  } else {
+    # Direct connection provided by caller
+    conn <- use_pool
+  }
 
   tryCatch(
     {

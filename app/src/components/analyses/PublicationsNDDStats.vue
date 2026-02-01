@@ -28,9 +28,31 @@
         </div>
       </template>
 
-      <!-- User Interface controls: category selection, minJournalCount, etc. -->
+      <!-- Metrics Cards Row - Loading skeleton -->
+      <BRow v-if="loadingCount" class="mb-3 px-2">
+        <BCol v-for="n in 4" :key="n" sm="6" md="3" class="mb-2">
+          <BCard class="h-100 text-center">
+            <BSpinner small label="Loading..." />
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Metrics Cards Row - Loaded -->
+      <BRow v-if="!loadingCount && statsData" class="mb-3 px-2">
+        <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
+          <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
+            <div class="d-flex flex-column align-items-center">
+              <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" />
+              <h6 class="mt-2 mb-1 text-muted">{{ card.title }}</h6>
+              <h4 class="mb-0">{{ card.value }}</h4>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- User Interface controls: category selection and min count filter -->
       <BRow>
-        <BCol class="my-1" sm="3">
+        <BCol class="my-1" sm="4">
           <BInputGroup prepend="Category" class="mb-1" size="sm">
             <BFormSelect
               v-model="selectedCategory"
@@ -41,43 +63,26 @@
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Journal" class="mb-1" size="sm">
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
             <BFormInput
-              v-model="min_journal_count"
+              v-model.number="minCount"
               type="number"
               min="1"
               step="1"
               debounce="500"
-              @change="fetchStats"
+              @update:model-value="fetchStats"
             />
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Author" class="mb-1" size="sm">
-            <BFormInput
-              v-model="min_lastname_count"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @change="fetchStats"
-            />
-          </BInputGroup>
-        </BCol>
-
-        <BCol class="my-1" sm="3">
-          <BInputGroup prepend="Min Keyword" class="mb-1" size="sm">
-            <BFormInput
-              v-model="min_keyword_count"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @change="fetchStats"
-            />
-          </BInputGroup>
+        <BCol class="my-1" sm="4">
+          <small class="text-muted">
+            Showing {{ filteredItemCount }} items ({{
+              filteredPublicationCount.toLocaleString()
+            }}
+            pubs)
+          </small>
         </BCol>
       </BRow>
 
@@ -110,21 +115,112 @@ export default {
         { value: 'keyword', text: 'Keywords' },
       ],
 
-      // set defaults for min counts
-      min_journal_count: 20,
-      min_lastname_count: 5,
-      min_keyword_count: 100,
+      // Minimum count filter (sent to API for all category filters)
+      minCount: 20,
 
       // data from the stats endpoint
       statsData: null,
+
+      // actual newest publication date (fetched separately)
+      newestPublicationDate: null,
 
       // chart loading state
       loadingCount: true,
     };
   },
+  computed: {
+    /**
+     * metricsCards
+     * Computes summary metrics for display in cards above the chart
+     * @returns {Array} - Array of card configuration objects
+     */
+    metricsCards() {
+      if (!this.statsData) return [];
+
+      const pubDates = this.statsData.publication_date_aggregated || [];
+      const currentYear = new Date().getFullYear();
+
+      // Publications this year (YTD)
+      const thisYearPubs = pubDates
+        .filter((d) => d.Publication_date && d.Publication_date.startsWith(String(currentYear)))
+        .reduce((sum, d) => sum + d.count, 0);
+
+      // 5-Year Average (last 5 complete years: currentYear-6 to currentYear-2)
+      // More meaningful than YoY which shows -100% at start of year
+      // Excludes current year AND previous year (which may be incomplete if early in year)
+      const lastCompleteYear = currentYear - 1;
+      const fiveYearData = pubDates.filter((d) => {
+        if (!d.Publication_date) return false;
+        const year = parseInt(d.Publication_date.substring(0, 4), 10);
+        return year >= lastCompleteYear - 4 && year <= lastCompleteYear;
+      });
+      const yearsWithData = fiveYearData.length;
+      const fiveYearTotal = fiveYearData.reduce((sum, d) => sum + d.count, 0);
+      const fiveYearAvg = yearsWithData > 0 ? Math.round(fiveYearTotal / yearsWithData) : 0;
+
+      // Total publications
+      const totalPubs = pubDates.reduce((sum, d) => sum + d.count, 0);
+
+      // Newest publication date (from separate API call, not aggregated data)
+      const newestDate = this.newestPublicationDate || 'N/A';
+
+      return [
+        {
+          title: 'Total Publications',
+          value: totalPubs.toLocaleString(),
+          icon: 'bi-journal-text',
+          variant: 'primary',
+        },
+        {
+          title: `Publications ${currentYear} (YTD)`,
+          value: thisYearPubs.toLocaleString(),
+          icon: 'bi-calendar-event',
+          variant: 'success',
+        },
+        {
+          title: '5-Year Avg',
+          value: fiveYearAvg > 0 ? `${fiveYearAvg}/yr` : 'N/A',
+          icon: 'bi-bar-chart-line',
+          variant: 'secondary',
+        },
+        {
+          title: 'Newest Publication',
+          value: newestDate,
+          icon: 'bi-clock-history',
+          variant: 'info',
+        },
+      ];
+    },
+    /**
+     * Get the raw data array for the currently selected category
+     */
+    currentCategoryData() {
+      if (!this.statsData) return [];
+      if (this.selectedCategory === 'journal') {
+        return this.statsData.journal_counts || [];
+      } else if (this.selectedCategory === 'author') {
+        return this.statsData.last_name_counts || [];
+      } else if (this.selectedCategory === 'keyword') {
+        return this.statsData.keyword_counts || [];
+      }
+      return [];
+    },
+    /**
+     * Number of items shown (already filtered by API)
+     */
+    filteredItemCount() {
+      return this.currentCategoryData.length;
+    },
+    /**
+     * Total publications in displayed items (already filtered by API)
+     */
+    filteredPublicationCount() {
+      return this.currentCategoryData.reduce((sum, d) => sum + d.count, 0);
+    },
+  },
   async mounted() {
-    // fetch stats on mount
-    await this.fetchStats();
+    // fetch stats and newest publication date on mount
+    await Promise.all([this.fetchStats(), this.fetchNewestPublicationDate()]);
   },
   methods: {
     /**
@@ -134,13 +230,13 @@ export default {
     async fetchStats() {
       this.loadingCount = true;
 
-      // build query string
+      // build query string - use minCount for ALL category filters (API-side filtering only)
       const baseUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       const params = new URLSearchParams();
-      params.set('min_journal_count', this.min_journal_count);
-      params.set('min_lastname_count', this.min_lastname_count);
-      params.set('min_keyword_count', this.min_keyword_count);
-      params.set('time_aggregate', 'year'); // or let them pick 'month' in future
+      params.set('min_journal_count', this.minCount);
+      params.set('min_lastname_count', this.minCount);
+      params.set('min_keyword_count', this.minCount);
+      params.set('time_aggregate', 'year');
 
       const apiUrl = `${baseUrl}?${params.toString()}`;
 
@@ -158,6 +254,32 @@ export default {
     },
 
     /**
+     * fetchNewestPublicationDate
+     * Fetches the actual newest publication date by querying publications sorted by date descending
+     */
+    async fetchNewestPublicationDate() {
+      const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication`;
+      const params = new URLSearchParams();
+      params.set('sort', '-Publication_date');
+      params.set('page_size', '1');
+      params.set('fields', 'publication_id,Publication_date');
+
+      const apiUrl = `${baseUrl}?${params.toString()}`;
+
+      try {
+        const response = await this.axios.get(apiUrl);
+        if (response.data?.data?.length > 0) {
+          const pubDate = response.data.data[0].Publication_date;
+          // Format the date for display (YYYY-MM-DD)
+          this.newestPublicationDate = pubDate || 'N/A';
+        }
+      } catch (error) {
+        // Silently fail - the card will show 'N/A'
+        console.warn('Failed to fetch newest publication date:', error);
+      }
+    },
+
+    /**
      * generateBarPlot
      * Builds a bar chart from either journal_counts, last_name_counts, or keyword_counts
      * depending on selectedCategory.
@@ -166,8 +288,10 @@ export default {
       // guard if statsData not loaded
       if (!this.statsData) return;
 
-      // remove old svg
+      // remove old svg, tooltips, and empty messages to prevent duplicates
       d3.select('#stats_dataviz').select('svg').remove();
+      d3.select('#stats_dataviz').selectAll('.tooltip').remove();
+      d3.select('#stats_dataviz').selectAll('div').remove();
 
       let data = [];
       let xKey = ''; // 'Journal', 'Lastname', or 'Keywords'
@@ -181,6 +305,19 @@ export default {
       } else if (this.selectedCategory === 'keyword') {
         data = this.statsData.keyword_counts || [];
         xKey = 'Keywords';
+      }
+
+      // Data is already filtered by API (min_*_count parameters)
+
+      // Handle empty data
+      if (data.length === 0) {
+        d3.select('#stats_dataviz')
+          .append('div')
+          .attr('class', 'text-center text-muted py-5')
+          .html(
+            `<i class="bi bi-info-circle me-2"></i>No items with count ≥ ${this.minCount}. Try lowering the minimum.`
+          );
+        return;
       }
 
       // set dimensions
@@ -227,19 +364,20 @@ export default {
         .range([height, 0]);
       svg.append('g').call(d3.axisLeft(y));
 
-      // Create a tooltip element
+      // Create a tooltip element with improved styling
       const tooltip = d3
         .select('#stats_dataviz')
         .append('div')
         .style('opacity', 0)
         .attr('class', 'tooltip')
         .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
+        .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '2px')
-        .style('position', 'absolute') // matching your "AnalysesPhenotypeCounts" approach
-        .style('pointer-events', 'none'); // let mouse events go through
+        .style('padding', '8px')
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
 
       /**
        * Mouseover event handler to display tooltip.
@@ -251,14 +389,42 @@ export default {
 
       /**
        * Mousemove event handler to move the tooltip with the mouse.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        */
       const mousemove = function mousemove(event, d) {
-        // Using event.layerX and event.layerY to position near the cursor
-        // offset by +20 so it doesn't overlap the cursor
+        const container = document.getElementById('stats_dataviz');
+        const containerRect = container.getBoundingClientRect();
+        const tooltipWidth = 200; // approximate tooltip width
+        const tooltipHeight = 60; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
         tooltip
-          .html(`Count: ${d.count}<br>(${d[xKey]})`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .html(
+            `<strong>${d[xKey]}</strong><br/>` +
+              `Count: <strong>${d.count.toLocaleString()}</strong>`
+          )
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       };
 
       /**
@@ -295,7 +461,7 @@ export default {
   width: 100%;
   max-width: 900px;
   vertical-align: top;
-  overflow: hidden;
+  overflow: visible;
 }
 .svg-container svg {
   display: inline-block;
@@ -320,5 +486,12 @@ mark {
   padding-bottom: 0.5em;
   font-weight: bold;
   background-color: #eaadba;
+}
+/* Metrics card styling */
+.metrics-card {
+  transition: transform 0.2s ease;
+}
+.metrics-card:hover {
+  transform: translateY(-2px);
 }
 </style>

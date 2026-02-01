@@ -32,6 +32,29 @@
             <BFormSelect v-model="plotMode" :options="plotModeOptions" @change="generateGraph" />
           </BInputGroup>
         </BCol>
+
+        <BCol class="my-1" sm="4">
+          <BInputGroup prepend="Aggregate" size="sm" class="mb-1">
+            <BFormSelect
+              v-model="timeAggregation"
+              :options="timeAggregationOptions"
+              :disabled="plotMode === 'type_counts'"
+              @change="loadData"
+            />
+          </BInputGroup>
+        </BCol>
+
+        <BCol class="my-1" sm="4">
+          <BFormCheckbox
+            v-model="showCumulative"
+            :disabled="plotMode === 'type_counts'"
+            switch
+            class="mt-1"
+            @change="generateGraph"
+          >
+            Cumulative View
+          </BFormCheckbox>
+        </BCol>
       </BRow>
 
       <!-- Overlay spinner & SVG container -->
@@ -68,6 +91,17 @@ export default {
       ],
       plotMode: 'publication_date', // default selection
 
+      // Time aggregation options (year/month/quarter)
+      timeAggregation: 'year',
+      timeAggregationOptions: [
+        { value: 'year', text: 'Year' },
+        { value: 'month', text: 'Month' },
+        { value: 'quarter', text: 'Quarter' },
+      ],
+
+      // Cumulative view toggle
+      showCumulative: false,
+
       statsData: null, // Will store the entire object from publication_stats
       loading: true,
     };
@@ -79,10 +113,14 @@ export default {
     async loadData() {
       this.loading = true;
 
-      // Example: GET /api/statistics/publication_stats
+      // GET /api/statistics/publication_stats with time_aggregate parameter
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       try {
-        const response = await this.axios.get(apiUrl);
+        const response = await this.axios.get(apiUrl, {
+          params: {
+            time_aggregate: this.timeAggregation,
+          },
+        });
         this.statsData = response.data;
         // Now we generate the graph
         this.generateGraph();
@@ -94,8 +132,9 @@ export default {
     },
 
     generateGraph() {
-      // remove old svg
+      // Remove old svg and tooltips to prevent duplicates
       d3.select('#pubs_dataviz').select('svg').remove();
+      d3.select('#pubs_dataviz').selectAll('.tooltip').remove();
 
       if (!this.statsData) return;
 
@@ -109,9 +148,26 @@ export default {
     },
 
     /**
+     * formatDateForTooltip
+     * Formats date based on aggregation level
+     * @param {Date} date - Date object
+     * @returns {String} - Formatted date string
+     */
+    formatDateForTooltip(date) {
+      if (this.timeAggregation === 'year') {
+        return d3.timeFormat('%Y')(date);
+      } else if (this.timeAggregation === 'quarter') {
+        return `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
+      } else {
+        return d3.timeFormat('%b %Y')(date);
+      }
+    },
+
+    /**
      * generateLinePlot
      * Renders a line plot for an array of objects with shape:
      *   { Publication_date or update_date: 'YYYY-MM-DD', count: number }
+     * Uses data already aggregated by the API and optionally applies cumulative view.
      * @param {Array} dataArr
      * @param {String} dateKey e.g. 'Publication_date' or 'update_date'
      */
@@ -121,7 +177,7 @@ export default {
         top: 30,
         right: 30,
         bottom: 50,
-        left: 60,
+        left: 70,
       };
       const width = 600 - margin.left - margin.right;
       const height = 400 - margin.top - margin.bottom;
@@ -135,21 +191,63 @@ export default {
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      // parse the data
+      // Parse dates from API data (already aggregated by server)
       const parseDate = d3.timeParse('%Y-%m-%d');
-      const data = dataArr.map((d) => ({
-        dateVal: parseDate(d[dateKey]),
-        count: d.count,
-        label: d[dateKey], // store the original string date
-      }));
+      let data = dataArr
+        .map((d) => ({
+          dateVal: parseDate(d[dateKey]),
+          count: d.count,
+        }))
+        .filter((d) => d.dateVal !== null)
+        .sort((a, b) => a.dateVal - b.dateVal);
+
+      // Apply cumulative view if enabled
+      if (this.showCumulative) {
+        let cumulative = 0;
+        data = data.map((d) => {
+          cumulative += d.count;
+          return { ...d, count: cumulative };
+        });
+      }
+
+      if (data.length === 0) return;
 
       // x scale
       const x = d3
         .scaleTime()
         .domain(d3.extent(data, (d) => d.dateVal))
+        .nice()
         .range([0, width]);
 
-      svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x));
+      // Calculate time span to determine appropriate tick intervals
+      const [minDate, maxDate] = d3.extent(data, (d) => d.dateVal);
+      const yearsSpan = (maxDate - minDate) / (1000 * 60 * 60 * 24 * 365);
+
+      // Configure axis with smart tick selection based on time span
+      // Goal: Keep ~8-12 readable ticks regardless of aggregation level
+      const xAxis = d3.axisBottom(x);
+
+      if (this.timeAggregation === 'year') {
+        // For yearly data, show every N years based on span
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      } else if (this.timeAggregation === 'month') {
+        // For monthly data, show year ticks only (data points are still monthly)
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      } else if (this.timeAggregation === 'quarter') {
+        // For quarterly data, show year ticks only (data points are still quarterly)
+        const yearInterval = yearsSpan > 30 ? 5 : yearsSpan > 15 ? 3 : yearsSpan > 8 ? 2 : 1;
+        xAxis.ticks(d3.timeYear.every(yearInterval)).tickFormat(d3.timeFormat('%Y'));
+      }
+
+      svg
+        .append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('text-anchor', 'middle')
+        .style('font-size', '11px');
 
       // y scale
       const maxCount = d3.max(data, (d) => d.count);
@@ -175,7 +273,7 @@ export default {
         .attr('stroke-width', 2)
         .attr('d', line);
 
-      // tooltip
+      // tooltip with improved styling
       const tooltip = d3
         .select('#pubs_dataviz')
         .append('div')
@@ -184,28 +282,65 @@ export default {
         .style('background-color', 'white')
         .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '4px')
+        .style('padding', '8px')
         .style('position', 'absolute')
-        .style('pointer-events', 'none');
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+
+      // Store references for tooltip content formatting
+      const formatDate = this.formatDateForTooltip.bind(this);
+      const isCumulative = this.showCumulative;
+      const container = document.getElementById('pubs_dataviz');
 
       /**
        * Handle mouse over for line points.
        */
       function handleLineMouseOver() {
         tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
+        d3.select(this).style('stroke', 'black').attr('r', 6);
       }
 
       /**
        * Handle mouse move for line points.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        * @param {Event} event
        * @param {Object} d
        */
       function handleLineMouseMove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const tooltipWidth = 150; // approximate tooltip width
+        const tooltipHeight = 50; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
+        const label = isCumulative ? 'Total' : 'Count';
         tooltip
-          .html(`Date: <strong>${d.label}</strong><br>Count: <strong>${d.count}</strong>`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .html(
+            `<strong>${formatDate(d.dateVal)}</strong><br/>` +
+              `${label}: <strong>${d.count.toLocaleString()}</strong>`
+          )
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       }
 
       /**
@@ -213,7 +348,7 @@ export default {
        */
       function handleLineMouseLeave() {
         tooltip.style('opacity', 0);
-        d3.select(this).style('stroke', 'none');
+        d3.select(this).style('stroke', 'white').attr('r', 4);
       }
 
       // points
@@ -283,7 +418,7 @@ export default {
 
       svg.append('g').call(d3.axisLeft(y));
 
-      // tooltip
+      // tooltip with improved styling
       const tooltip = d3
         .select('#pubs_dataviz')
         .append('div')
@@ -292,30 +427,62 @@ export default {
         .style('background-color', 'white')
         .style('border', 'solid 1px #ccc')
         .style('border-radius', '5px')
-        .style('padding', '4px')
+        .style('padding', '8px')
         .style('position', 'absolute')
-        .style('pointer-events', 'none');
+        .style('pointer-events', 'none')
+        .style('font-size', '0.85rem')
+        .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)');
+
+      // Get the container for relative positioning
+      const container = document.getElementById('pubs_dataviz');
 
       /**
        * Handle mouse over for bar chart bars.
        */
       function handleBarMouseOver() {
         tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black');
+        d3.select(this).style('stroke', 'black').style('stroke-width', '2px');
       }
 
       /**
        * Handle mouse move for bar chart bars.
+       * Uses smart positioning to prevent tooltip from being cut off at edges.
        * @param {Event} event
        * @param {Object} d
        */
       function handleBarMouseMove(event, d) {
+        const containerRect = container.getBoundingClientRect();
+        const tooltipWidth = 180; // approximate tooltip width
+        const tooltipHeight = 50; // approximate tooltip height
+        const offset = 15;
+
+        // Calculate position relative to container
+        const mouseX = event.clientX - containerRect.left;
+        const mouseY = event.clientY - containerRect.top;
+
+        // Smart positioning: flip to left if too close to right edge
+        let left = mouseX + offset;
+        if (mouseX + tooltipWidth + offset > containerRect.width) {
+          left = mouseX - tooltipWidth - offset;
+        }
+
+        // Smart positioning: flip to top if too close to bottom edge
+        let top = mouseY + offset;
+        if (mouseY + tooltipHeight + offset > containerRect.height) {
+          top = mouseY - tooltipHeight - offset;
+        }
+
+        // Ensure tooltip doesn't go negative
+        left = Math.max(0, left);
+        top = Math.max(0, top);
+
         tooltip
           .html(
-            `Type: <strong>${d.publication_type}</strong><br>Count: <strong>${d.count}</strong>`
+            `<strong>${d.publication_type}</strong><br/>` +
+              `Count: <strong>${d.count.toLocaleString()}</strong>`
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${left}px`)
+          .style('top', `${top}px`);
       }
 
       /**
@@ -353,7 +520,7 @@ export default {
   width: 100%;
   max-width: 800px;
   vertical-align: top;
-  overflow: hidden;
+  overflow: visible;
 }
 .spinner {
   width: 2rem;

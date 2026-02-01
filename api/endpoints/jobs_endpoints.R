@@ -160,6 +160,21 @@ function(req, res) {
       completed_at = Sys.time()
     )
 
+    # Chain LLM generation for cache hits (same as job completion path)
+    if (exists("trigger_llm_batch_generation", mode = "function")) {
+      message("[jobs_endpoints] Triggering LLM batch generation for functional clusters (cache hit)")
+      tryCatch(
+        trigger_llm_batch_generation(
+          clusters = cached_clusters,
+          cluster_type = "functional",
+          parent_job_id = job_id
+        ),
+        error = function(e) message("[jobs_endpoints] LLM trigger error: ", e$message)
+      )
+    } else {
+      message("[jobs_endpoints] trigger_llm_batch_generation not found")
+    }
+
     res$status <- 202
     res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
     res$setHeader("Retry-After", "0")
@@ -299,7 +314,106 @@ function(req, res) {
     ))
   }
 
-  # Create job with pre-fetched data
+  # Build the data frame for clustering (same as regular API endpoint)
+  sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
+    left_join(ndd_review_phenotype_connect_tbl, by = "entity_id") %>%
+    left_join(modifier_list_tbl, by = "modifier_id") %>%
+    left_join(phenotype_list_tbl, by = "phenotype_id") %>%
+    mutate(ndd_phenotype = case_when(
+      ndd_phenotype == 1 ~ "Yes",
+      ndd_phenotype == 0 ~ "No"
+    )) %>%
+    filter(ndd_phenotype == "Yes") %>%
+    filter(category %in% categories) %>%
+    filter(modifier_name == "present") %>%
+    filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
+    select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
+    group_by(entity_id) %>%
+    mutate(
+      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
+      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
+    ) %>%
+    ungroup() %>%
+    unique()
+
+  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
+    mutate(present = "yes") %>%
+    select(-phenotype_id) %>%
+    pivot_wider(names_from = HPO_term, values_from = present) %>%
+    group_by(hgnc_id) %>%
+    mutate(gene_entity_count = n()) %>%
+    ungroup() %>%
+    relocate(gene_entity_count, .after = phenotype_id_count) %>%
+    select(-hgnc_id)
+
+  sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
+    select(-entity_id) %>%
+    as.data.frame()
+  row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # Cache-first: if the memoized function already has a cached result,
+  # return it immediately without spawning an async daemon job.
+  # This ensures the LLM batch uses the same hashes as the API endpoint.
+  cache_hit <- tryCatch(
+    memoise::has_cache(gen_mca_clust_obj_mem)(sysndd_db_phenotypes_wider_df),
+    error = function(e) FALSE
+  )
+
+  if (cache_hit) {
+    cached_clusters <- gen_mca_clust_obj_mem(sysndd_db_phenotypes_wider_df)
+
+    # Add back gene identifiers
+    ndd_entity_view_tbl_sub <- ndd_entity_view_tbl %>%
+      select(entity_id, hgnc_id, symbol)
+
+    cached_clusters_with_ids <- cached_clusters %>%
+      unnest(identifiers) %>%
+      mutate(entity_id = as.integer(entity_id)) %>%
+      left_join(ndd_entity_view_tbl_sub, by = "entity_id") %>%
+      nest(identifiers = c(entity_id, hgnc_id, symbol))
+
+    # Create pre-completed job for tracking consistency
+    job_id <- uuid::UUIDgenerate()
+    jobs_env[[job_id]] <- list(
+      job_id = job_id,
+      operation = "phenotype_clustering",
+      status = "completed",
+      mirai_obj = NULL,
+      submitted_at = Sys.time(),
+      params_hash = digest::digest(params_hash_input),
+      result = cached_clusters_with_ids,
+      error = NULL,
+      completed_at = Sys.time()
+    )
+
+    # Chain LLM generation for cache hits (same as job completion path)
+    if (exists("trigger_llm_batch_generation", mode = "function")) {
+      message("[jobs_endpoints] Triggering LLM batch generation for phenotype clusters (cache hit)")
+      tryCatch(
+        trigger_llm_batch_generation(
+          clusters = cached_clusters_with_ids,
+          cluster_type = "phenotype",
+          parent_job_id = job_id
+        ),
+        error = function(e) message("[jobs_endpoints] LLM trigger error: ", e$message)
+      )
+    } else {
+      message("[jobs_endpoints] trigger_llm_batch_generation not found")
+    }
+
+    res$status <- 202
+    res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
+    res$setHeader("Retry-After", "0")
+
+    return(list(
+      job_id = job_id,
+      status = "accepted",
+      estimated_seconds = 0,
+      status_url = paste0("/api/jobs/", job_id, "/status")
+    ))
+  }
+
+  # Cache miss - create async job with pre-built data frame
   result <- create_job(
     operation = "phenotype_clustering",
     params = list(
@@ -679,6 +793,83 @@ function(req, res) {
 }
 
 ## -------------------------------------------------------------------##
+## Comparisons Data Update Submission
+## -------------------------------------------------------------------##
+
+#* Submit Comparisons Data Update Job
+#*
+#* Submits an async job to refresh the comparisons data from all external
+#* NDD databases (Radboud, Gene2Phenotype, PanelApp, SFARI, Geisinger,
+#* OMIM NDD, Orphanet).
+#*
+#* Requires Administrator role.
+#* Returns immediately with job ID for status polling.
+#*
+#* @tag jobs
+#* @serializer json list(na="string")
+#* @post /comparisons_update/submit
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  # CRITICAL: Extract database config BEFORE mirai
+  # Database connections cannot cross process boundaries, so the daemon
+  # must create its own connection using the config values.
+  db_config <- list(
+    dbname   = dw$dbname,
+    host     = dw$host,
+    user     = dw$user,
+    password = dw$password,
+    port     = dw$port
+  )
+
+  # Check for duplicate running job
+  # Use a stable identifier (operation name only) — db_config contains credentials
+  # and should NOT be included in the hash or stored longer than necessary.
+  dup_check <- check_duplicate_job("comparisons_update", list(operation = "comparisons_update"))
+  if (dup_check$duplicate) {
+    res$status <- 409
+    res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
+    return(list(
+      error = "DUPLICATE_JOB",
+      message = "Comparisons update job already running",
+      existing_job_id = dup_check$existing_job_id,
+      status_url = paste0("/api/jobs/", dup_check$existing_job_id, "/status")
+    ))
+  }
+
+  # Create async job for comparisons update
+  # Downloads from 7+ sources can take 5-30 minutes depending on network
+  result <- create_job(
+    operation = "comparisons_update",
+    params = list(db_config = db_config),
+    timeout_ms = 1800000, # 30 minutes
+    executor_fn = function(params) {
+      # This runs in mirai daemon
+      comparisons_update_async(params)
+    }
+  )
+
+  # Check capacity
+  if (!is.null(result$error)) {
+    res$status <- 503
+    res$setHeader("Retry-After", as.character(result$retry_after))
+    return(result)
+  }
+
+  # Success - return HTTP 202 Accepted
+  res$status <- 202
+  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Retry-After", "30") # Long-running job: poll every 30 seconds
+
+  list(
+    job_id = result$job_id,
+    status = result$status,
+    estimated_seconds = 300, # ~5 min typical
+    status_url = paste0("/api/jobs/", result$job_id, "/status")
+  )
+}
+
+## -------------------------------------------------------------------##
 ## Job History
 ## -------------------------------------------------------------------##
 
@@ -740,7 +931,7 @@ function(req, res, limit = 20) {
 #* Returns Retry-After header for running jobs.
 #*
 #* @tag jobs
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #* @get /<job_id>/status
 function(job_id, res) {
   status <- get_job_status(job_id)

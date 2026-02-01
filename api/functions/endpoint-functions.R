@@ -16,6 +16,8 @@
 #' @param page_after Character string indicating the cursor position.
 #' @param page_size Character string specifying the number of items per page.
 #' @param fspec Character string specifying fields to generate from a tibble.
+#' @param definitive_only Character string ("true"/"false") to filter each source
+#'   to only show Definitive entries.
 #'
 #' @return A list containing links, meta, and data related to the comparisons
 #' list generated.
@@ -27,7 +29,8 @@ generate_comparisons_list <- function(
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id"
+  fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id",
+  definitive_only = "false"
 ) {
   # set start time
   start_time <- Sys.time()
@@ -42,13 +45,17 @@ generate_comparisons_list <- function(
   ndd_database_comparison_view <- pool %>%
     tbl("ndd_database_comparison_view")
 
+  # Get canonical symbols from HGNC table
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
-    select(hgnc_id, symbol)
+    select(hgnc_id, canonical_symbol = symbol)  # Rename to avoid conflict
 
   ndd_database_comparison_table_col <- ndd_database_comparison_view %>%
     left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
-    collect()
+    collect() %>%
+    # Prefer canonical symbol from HGNC, fall back to imported symbol
+    mutate(symbol = coalesce(canonical_symbol, symbol)) %>%
+    select(-canonical_symbol)
 
   # get the category table to compute the max category term
   status_categories_list <- pool %>%
@@ -56,22 +63,32 @@ generate_comparisons_list <- function(
     collect() %>%
     select(category_id, max_category = category)
 
-  # normalize categories
+  # normalize categories - map source-specific values to standard categories
+  # Standard categories: Definitive, Moderate, Limited, Refuted, not applicable
   ndd_database_comparison_table_norm <- ndd_database_comparison_table_col %>%
     mutate(category = case_when(
-      list == "gene2phenotype" & category == "strong" ~ "Definitive",
-      list == "gene2phenotype" & category == "definitive" ~ "Definitive",
-      list == "gene2phenotype" & category == "limited" ~ "Limited",
-      list == "gene2phenotype" & category == "moderate" ~ "Moderate",
-      list == "gene2phenotype" & category == "both RD and IF" ~ "Definitive",
+      # gene2phenotype mappings (new 2026 format uses lowercase)
+      list == "gene2phenotype" & tolower(category) == "strong" ~ "Definitive",
+      list == "gene2phenotype" & tolower(category) == "definitive" ~ "Definitive",
+      list == "gene2phenotype" & tolower(category) == "limited" ~ "Limited",
+      list == "gene2phenotype" & tolower(category) == "moderate" ~ "Moderate",
+      list == "gene2phenotype" & tolower(category) == "refuted" ~ "Refuted",
+      list == "gene2phenotype" & tolower(category) == "disputed" ~ "Refuted",
+      list == "gene2phenotype" & tolower(category) == "both rd and if" ~ "Definitive",
+      # panelapp mappings (confidence levels 1-3)
       list == "panelapp" & category == "3" ~ "Definitive",
       list == "panelapp" & category == "2" ~ "Limited",
       list == "panelapp" & category == "1" ~ "Refuted",
+      # sfari mappings (gene scores 1-3)
       list == "sfari" & category == "1" ~ "Definitive",
       list == "sfari" & category == "2" ~ "Moderate",
       list == "sfari" & category == "3" ~ "Limited",
       list == "sfari" & is.na(category) ~ "Definitive",
+      # geisinger_DBD - all entries are high confidence
       list == "geisinger_DBD" ~ "Definitive",
+      # radboudumc_ID - all entries are high confidence
+      list == "radboudumc_ID" ~ "Definitive",
+      # omim_ndd and orphanet_id already have "Definitive" set
       TRUE ~ category
     )) %>%
     left_join(status_categories_list, by = c("category" = "max_category")) %>%
@@ -82,9 +99,22 @@ generate_comparisons_list <- function(
     select(-category) %>%
     left_join(status_categories_list, by = c("category_id"))
 
-  ndd_database_comparison_table <- ndd_database_comparison_table_norm %>%
+  # Parse definitive_only parameter
+  definitive_only_bool <- tolower(definitive_only) %in% c("true", "1", "yes")
+
+  # Prepare data for pivoting
+  table_data <- ndd_database_comparison_table_norm %>%
     select(symbol, hgnc_id, list, category = max_category) %>%
-    unique() %>%
+    unique()
+
+  # If definitive_only is TRUE, filter to only Definitive entries BEFORE pivoting
+  # This means each source column will only show genes that are Definitive in that source
+  if (definitive_only_bool) {
+    table_data <- table_data %>%
+      filter(category == "Definitive")
+  }
+
+  ndd_database_comparison_table <- table_data %>%
     pivot_wider(
       names_from = list,
       values_from = category,

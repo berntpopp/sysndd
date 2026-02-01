@@ -6,9 +6,11 @@
         <BCol col md="12">
           <div>
             <BCard title="Curation comparisons" no-body>
-              <BCardHeader header-tag="nav">
+              <BCardHeader
+                header-tag="nav"
+                class="d-flex justify-content-between align-items-center flex-wrap"
+              >
                 <BNav card-header tabs>
-                  <!-- <BNavItem>'s with child routes. Note the trailing slash on the first <BNavItem> -->
                   <BNavItem to="/CurationComparisons" exact exact-active-class="active">
                     Overlap
                   </BNavItem>
@@ -19,6 +21,19 @@
                     Table
                   </BNavItem>
                 </BNav>
+                <div class="d-flex align-items-center">
+                  <span
+                    v-if="metadata.last_full_refresh"
+                    v-b-tooltip.hover.bottom
+                    class="badge bg-secondary"
+                    :title="`Last refresh: ${formatDateTime(metadata.last_full_refresh)} - ${metadata.sources_count} sources, ${metadata.rows_imported?.toLocaleString()} rows`"
+                  >
+                    Data: {{ formatDate(metadata.last_full_refresh) }}
+                  </span>
+                  <span v-else-if="!loadingMetadata" class="badge bg-warning text-dark">
+                    No refresh data
+                  </span>
+                </div>
               </BCardHeader>
 
               <BCardBody>
@@ -32,49 +47,92 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useHead } from '@unhead/vue';
-import useToast from '@/composables/useToast';
+import axios from 'axios';
 
-export default {
-  name: 'CurationComparisons',
-  props: {
-    sort: { type: String, default: '+symbol' },
-    filter: { type: String, default: 'filter=' },
-    fields: { type: String, default: null },
-    pageAfter: { type: String, default: '0' },
-    pageSize: { type: String, default: '10' },
-    fspec: {
-      type: String,
-      default:
-        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+// Types
+interface ComparisonsMetadata {
+  last_full_refresh: string | null;
+  last_refresh_status: string;
+  last_refresh_error: string | null;
+  sources_count: number;
+  rows_imported: number;
+}
+
+// State
+const metadata = ref<ComparisonsMetadata>({
+  last_full_refresh: null,
+  last_refresh_status: 'never',
+  last_refresh_error: null,
+  sources_count: 0,
+  rows_imported: 0,
+});
+const loadingMetadata = ref(false);
+
+// SEO
+useHead({
+  title: 'Curation comparisons',
+  meta: [
+    {
+      name: 'description',
+      content:
+        'The Comparisons analysis can be used to compare different curation efforts for neurodevelopmental disorders (including attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.',
     },
-  },
-  setup() {
-    const { makeToast } = useToast();
-    useHead({
-      title: 'Curation comparisons',
-      meta: [
-        {
-          name: 'description',
-          content:
-            'The Comparisons analysis can be used to compare different curation efforts for neurodevelopmental disorders (including attention-deficit/hyperactivity disorder (ADHD), autism spectrum disorders (ASD), learning disabilities and intellectual disability) based on UpSet plots, similarity matrix or tabular views.',
-        },
-      ],
-    });
+  ],
+});
 
-    return { makeToast };
-  },
-  data() {
-    return {
-      tabIndex: 0,
+// Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
+function unwrapValue<T>(val: T | T[]): T {
+  return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
+}
+
+// Format date for display (date only)
+function formatDate(dateString: string | null): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString();
+}
+
+// Format datetime for tooltip
+function formatDateTime(dateString: string | null): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return date.toLocaleString();
+}
+
+// Fetch comparisons metadata on mount
+async function fetchMetadata() {
+  loadingMetadata.value = true;
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
+    metadata.value = {
+      last_full_refresh: unwrapValue(response.data.last_full_refresh),
+      last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
+      last_refresh_error: unwrapValue(response.data.last_refresh_error),
+      sources_count: unwrapValue(response.data.sources_count) ?? 0,
+      rows_imported: unwrapValue(response.data.rows_imported) ?? 0,
     };
-  },
-  computed: {},
-  watch: {},
-  mounted() {},
-  methods: {},
-};
+  } catch (error) {
+    console.warn('Failed to fetch comparisons metadata:', error);
+    // Silent fail - metadata is optional enhancement
+  } finally {
+    loadingMetadata.value = false;
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  fetchMetadata();
+});
 </script>
 
-<style scoped></style>
+<style scoped>
+/* Ensure nav tabs align properly with header content */
+.card-header .nav-tabs {
+  margin-bottom: -1px;
+}
+</style>

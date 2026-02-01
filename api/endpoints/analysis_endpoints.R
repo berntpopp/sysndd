@@ -652,5 +652,129 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
   network_data
 }
 
+
+#* Get LLM Summary for Functional Cluster
+#*
+#* Retrieves a cached LLM-generated summary for a functional gene cluster.
+#* Returns 404 if no summary exists for the given cluster hash.
+#*
+#* # `Details`
+#* - Looks up cached summary by cluster_hash (SHA256 hash of cluster composition)
+#* - Only returns current summaries (is_current = TRUE)
+#* - Excludes rejected summaries (validation_status != 'rejected')
+#* - Returns summary_json with structured content (summary, key_themes, pathways, etc.)
+#*
+#* @tag analysis
+#* @serializer json list(na="string")
+#* @param cluster_hash:str SHA256 hash of cluster composition
+#* @param cluster_number:str Cluster number (integer as string)
+#*
+#* @response 200 OK. Returns cached summary with metadata
+#* @response 404 Not Found. No summary exists for this cluster
+#*
+#* @get functional_cluster_summary
+function(cluster_hash, cluster_number, res) {
+  source("functions/llm-cache-repository.R", local = TRUE)
+
+  # Extract raw hash from equals(hash,...) format if present
+  raw_hash <- if (grepl("^equals\\(hash,", cluster_hash)) {
+    sub("^equals\\(hash,(.*)\\)$", "\\1", cluster_hash)
+  } else {
+    cluster_hash
+  }
+
+  cached <- get_cached_summary(raw_hash, require_validated = FALSE)
+
+  if (is.null(cached) || nrow(cached) == 0) {
+    res$status <- 404
+    return(list(message = "Summary not found for this cluster"))
+  }
+
+  # Filter out rejected summaries (per CONTEXT.md - hide rejected from users)
+  if (cached$validation_status[1] == "rejected") {
+    res$status <- 404
+    return(list(message = "Summary not found for this cluster"))
+  }
+
+  # Parse JSON if it's a string (MySQL JSON column behavior)
+  summary_json <- if (is.character(cached$summary_json[1])) {
+    jsonlite::fromJSON(cached$summary_json[1])
+  } else {
+    cached$summary_json[[1]]
+  }
+
+  list(
+    cache_id = cached$cache_id[1],
+    cluster_type = cached$cluster_type[1],
+    cluster_number = as.integer(cluster_number),
+    model_name = cached$model_name[1],
+    created_at = as.character(cached$created_at[1]),
+    validation_status = cached$validation_status[1],
+    summary_json = summary_json
+  )
+}
+
+
+#* Get LLM Summary for Phenotype Cluster
+#*
+#* Retrieves a cached LLM-generated summary for a phenotype cluster.
+#* Returns 404 if no summary exists for the given cluster hash.
+#*
+#* # `Details`
+#* - Looks up cached summary by cluster_hash (SHA256 hash of cluster composition)
+#* - Only returns current summaries (is_current = TRUE)
+#* - Excludes rejected summaries (validation_status != 'rejected')
+#* - Returns summary_json with structured content (summary, key_themes, pathways, etc.)
+#*
+#* @tag analysis
+#* @serializer json list(na="string")
+#* @param cluster_hash:str SHA256 hash of cluster composition
+#* @param cluster_number:str Cluster number (integer as string)
+#*
+#* @response 200 OK. Returns cached summary with metadata
+#* @response 404 Not Found. No summary exists for this cluster
+#*
+#* @get phenotype_cluster_summary
+function(cluster_hash, cluster_number, res) {
+  source("functions/llm-cache-repository.R", local = TRUE)
+
+  # Extract raw hash from equals(hash,...) format if present
+  raw_hash <- if (grepl("^equals\\(hash,", cluster_hash)) {
+    sub("^equals\\(hash,(.*)\\)$", "\\1", cluster_hash)
+  } else {
+    cluster_hash
+  }
+
+  cached <- get_cached_summary(raw_hash, require_validated = FALSE)
+
+  if (is.null(cached) || nrow(cached) == 0) {
+    res$status <- 404
+    return(list(message = "Summary not found for this cluster"))
+  }
+
+  # Filter out rejected summaries (per CONTEXT.md - hide rejected from users)
+  if (cached$validation_status[1] == "rejected") {
+    res$status <- 404
+    return(list(message = "Summary not found for this cluster"))
+  }
+
+  # Parse JSON if it's a string (MySQL JSON column behavior)
+  summary_json <- if (is.character(cached$summary_json[1])) {
+    jsonlite::fromJSON(cached$summary_json[1])
+  } else {
+    cached$summary_json[[1]]
+  }
+
+  list(
+    cache_id = cached$cache_id[1],
+    cluster_type = cached$cluster_type[1],
+    cluster_number = as.integer(cluster_number),
+    model_name = cached$model_name[1],
+    created_at = as.character(cached$created_at[1]),
+    validation_status = cached$validation_status[1],
+    summary_json = summary_json
+  )
+}
+
 ## Analyses endpoints
 ## -------------------------------------------------------------------##

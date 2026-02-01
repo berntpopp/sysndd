@@ -123,6 +123,11 @@ export default function useReviewForm(entityId?: string | number) {
   const reviewId = ref<number | null>(null);
   const entityIdRef = ref<number | null>(null);
 
+  // BUG-05 fix: Store originally loaded publications to ensure they're never accidentally deleted
+  // When submitting, we merge original publications with any user additions
+  const originalPublications = ref<string[]>([]);
+  const originalGenereviews = ref<string[]>([]);
+
   // Draft persistence (key includes entity ID for entity-specific drafts)
   const draftKey = entityId ? `review-form-${entityId}` : 'review-form-new';
   const formDraft = useFormDraft<ReviewFormData>(draftKey);
@@ -247,6 +252,12 @@ export default function useReviewForm(entityId?: string | number) {
         .filter((item) => item.publication_type === 'additional_references')
         .map((item) => item.publication_id);
 
+      // BUG-05 fix: Store original publications to preserve them during submission
+      // This ensures existing publications are never accidentally deleted even if
+      // there are reactivity issues with the form bindings
+      originalPublications.value = [...formData.publications];
+      originalGenereviews.value = [...formData.genereviews];
+
       loading.value = false;
     } catch (error) {
       loading.value = false;
@@ -268,9 +279,17 @@ export default function useReviewForm(entityId?: string | number) {
       throw new Error('Form validation failed');
     }
 
+    // BUG-05 fix: Merge original publications with current form data
+    // This ensures existing publications are preserved even if there are reactivity issues
+    // Use Set to deduplicate and preserve both original and newly added publications
+    const mergedPublications = [
+      ...new Set([...originalPublications.value, ...formData.publications]),
+    ];
+    const mergedGenereviews = [...new Set([...originalGenereviews.value, ...formData.genereviews])];
+
     // Sanitize PMIDs
-    const cleanPublications = formData.publications.map(sanitizePMID);
-    const cleanGenereviews = formData.genereviews.map(sanitizePMID);
+    const cleanPublications = mergedPublications.map(sanitizePMID);
+    const cleanGenereviews = mergedGenereviews.map(sanitizePMID);
 
     // Transform form data to API format
     const literature = new Literature(cleanPublications, cleanGenereviews);
@@ -337,6 +356,10 @@ export default function useReviewForm(entityId?: string | number) {
     // Reset internal state
     reviewId.value = null;
     entityIdRef.value = null;
+
+    // BUG-05 fix: Clear original publications on form reset
+    originalPublications.value = [];
+    originalGenereviews.value = [];
   };
 
   /**

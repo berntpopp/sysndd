@@ -148,6 +148,442 @@
         </BCol>
       </BRow>
 
+      <!-- Pubtator Cache Management Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-1"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold">
+                Pubtator Cache Management
+                <span
+                  v-if="pubtatorStats.publication_count !== null"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ pubtatorStats.publication_count?.toLocaleString() }} publications
+                </span>
+                <span v-if="pubtatorStats.gene_count !== null" class="badge bg-info ms-2 fw-normal">
+                  {{ pubtatorStats.gene_count?.toLocaleString() }} genes
+                </span>
+                <span
+                  v-if="pubtatorStats.novel_count !== null && pubtatorStats.novel_count > 0"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ pubtatorStats.novel_count?.toLocaleString() }} literature only
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-2">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingPubtatorStats"
+                @click="fetchPubtatorStats"
+              >
+                <BSpinner v-if="loadingPubtatorStats" small type="grow" class="me-1" />
+                <i v-else class="bi bi-arrow-clockwise me-1" />
+                {{ loadingPubtatorStats ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <small class="text-muted ms-2">
+                Shows cached Pubtator gene-publication data for NDD literature
+              </small>
+            </div>
+
+            <div v-if="pubtatorStats.gene_count !== null" class="mt-2">
+              <p class="text-muted small mb-2">
+                The Pubtator cache contains gene-publication associations from NCBI's PubTator
+                text-mining service. "Literature Only" genes are those mentioned in NDD publications
+                but not yet curated in SysNDD.
+              </p>
+              <div class="d-flex flex-wrap gap-2">
+                <router-link
+                  :to="{ name: 'PubtatorNDDStats' }"
+                  class="btn btn-sm btn-outline-primary"
+                >
+                  <i class="bi bi-bar-chart me-1" />
+                  View Pubtator Analysis
+                </router-link>
+                <router-link
+                  :to="{ name: 'ManagePubtator' }"
+                  class="btn btn-sm btn-outline-secondary"
+                >
+                  <i class="bi bi-gear me-1" />
+                  Manage Cache
+                </router-link>
+              </div>
+            </div>
+
+            <BAlert v-if="pubtatorStats.gene_count === 0" variant="warning" show class="mt-2 mb-0">
+              No Pubtator data cached.
+              <router-link :to="{ name: 'ManagePubtator' }"> Manage Cache </router-link>
+              to fetch publications.
+            </BAlert>
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Comparisons Data Refresh Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Comparisons Data Refresh
+                <span
+                  v-if="comparisonsMetadata.last_full_refresh"
+                  class="badge bg-secondary ms-2 fw-normal"
+                >
+                  Last: {{ formatDate(comparisonsMetadata.last_full_refresh) }}
+                </span>
+                <span
+                  v-if="comparisonsMetadata.sources_count > 0"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ comparisonsMetadata.sources_count }} sources
+                </span>
+                <span
+                  v-if="comparisonsMetadata.rows_imported > 0"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ comparisonsMetadata.rows_imported.toLocaleString() }} rows
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-3">
+              <p class="text-muted small mb-2">
+                Refresh comparisons data from 7 external NDD databases: Radboudumc, Gene2Phenotype,
+                PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads
+                fresh data and updates the database. Any failure aborts the entire refresh.
+              </p>
+            </div>
+
+            <div class="d-flex gap-2 mb-3">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingComparisonsMetadata"
+                @click="fetchComparisonsMetadata"
+              >
+                <BSpinner v-if="loadingComparisonsMetadata" small type="grow" class="me-1" />
+                {{ loadingComparisonsMetadata ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <BButton
+                variant="primary"
+                :disabled="comparisonsJob.isLoading.value"
+                @click="refreshComparisons"
+              >
+                <BSpinner v-if="comparisonsJob.isLoading.value" small type="grow" class="me-2" />
+                {{ comparisonsJob.isLoading.value ? 'Updating...' : 'Refresh Comparisons Data' }}
+              </BButton>
+            </div>
+
+            <!-- Progress display -->
+            <div
+              v-if="comparisonsJob.isLoading.value || comparisonsJob.status.value !== 'idle'"
+              class="mt-3"
+            >
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge me-2" :class="comparisonsJob.statusBadgeClass.value">
+                  {{ comparisonsJob.status.value }}
+                </span>
+                <span class="text-muted">{{ comparisonsJob.step.value }}</span>
+              </div>
+
+              <BProgress
+                v-if="comparisonsJob.isLoading.value"
+                :value="
+                  comparisonsJob.hasRealProgress.value ? comparisonsJob.progressPercent.value : 100
+                "
+                :max="100"
+                :animated="true"
+                :striped="!comparisonsJob.hasRealProgress.value"
+                :variant="comparisonsJob.progressVariant.value"
+                height="1.5rem"
+              >
+                <template #default>
+                  <span v-if="comparisonsJob.hasRealProgress.value">
+                    {{ comparisonsJob.progressPercent.value }}% - {{ comparisonsStepLabel }}
+                  </span>
+                  <span v-else>
+                    {{ comparisonsStepLabel }} ({{ comparisonsJob.elapsedTimeDisplay.value }})
+                  </span>
+                </template>
+              </BProgress>
+
+              <div
+                v-if="comparisonsJob.progress.value.current && comparisonsJob.progress.value.total"
+                class="small text-muted mt-1"
+              >
+                {{ comparisonsJob.progress.value.current.toLocaleString() }} /
+                {{ comparisonsJob.progress.value.total.toLocaleString() }} ({{
+                  comparisonsJob.elapsedTimeDisplay.value
+                }})
+              </div>
+              <div v-else-if="comparisonsJob.isLoading.value" class="small text-muted mt-1">
+                Elapsed: {{ comparisonsJob.elapsedTimeDisplay.value }} - Downloading and processing
+                external databases (this may take several minutes)...
+              </div>
+            </div>
+
+            <BAlert
+              v-if="comparisonsJob.status.value === 'completed'"
+              variant="success"
+              show
+              class="mt-2 mb-0"
+            >
+              Comparisons data refreshed successfully. Check job history for details.
+            </BAlert>
+
+            <BAlert
+              v-if="comparisonsJob.status.value === 'failed'"
+              variant="danger"
+              show
+              class="mt-2 mb-0"
+            >
+              {{
+                comparisonsJob.error.value ||
+                'Comparisons refresh failed. Check job history for details.'
+              }}
+            </BAlert>
+          </BCard>
+        </BCol>
+      </BRow>
+
+      <!-- Publication Metadata Refresh Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Publication Metadata Refresh
+                <span v-if="publicationStats.total !== null" class="badge bg-info ms-2 fw-normal">
+                  {{ publicationStats.total?.toLocaleString() }} publications
+                </span>
+                <span
+                  v-if="publicationStats.oldest_update"
+                  class="badge bg-warning text-dark ms-2 fw-normal"
+                >
+                  Oldest: {{ formatDate(publicationStats.oldest_update) }}
+                </span>
+                <span
+                  v-if="publicationStats.outdated_count && publicationStats.outdated_count > 0"
+                  class="badge bg-danger ms-2 fw-normal"
+                >
+                  {{ publicationStats.outdated_count.toLocaleString() }} outdated
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-3">
+              <p class="text-muted small mb-2">
+                Refresh publication metadata from PubMed. Publications are updated in place (no
+                deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
+              </p>
+            </div>
+
+            <!-- Filter controls -->
+            <div class="mb-3">
+              <label class="form-label small text-muted mb-1">Filter by last update:</label>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <BButtonGroup size="sm">
+                  <BButton
+                    :variant="selectedPreset === 'all' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('all')"
+                  >
+                    All
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '1year' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('1year')"
+                  >
+                    &gt;1 year
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '6months' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('6months')"
+                  >
+                    &gt;6 months
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '3months' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('3months')"
+                  >
+                    &gt;3 months
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === 'custom' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('custom')"
+                  >
+                    Custom
+                  </BButton>
+                </BButtonGroup>
+
+                <!-- Custom date picker -->
+                <input
+                  v-if="selectedPreset === 'custom'"
+                  v-model="customDate"
+                  type="date"
+                  class="form-control form-control-sm"
+                  style="max-width: 160px"
+                  :max="todayDate"
+                />
+
+                <!-- Filtered count badge -->
+                <span
+                  v-if="selectedPreset !== 'all' && filteredCount !== null"
+                  class="badge bg-info"
+                >
+                  <BSpinner v-if="loadingFilteredCount" small class="me-1" />
+                  {{ filteredCount?.toLocaleString() }} publications match filter
+                </span>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="d-flex gap-2 mb-3">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingPublicationStats"
+                @click="fetchPublicationStats"
+              >
+                <BSpinner v-if="loadingPublicationStats" small type="grow" class="me-1" />
+                {{ loadingPublicationStats ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <BButton
+                v-if="selectedPreset !== 'all' && filteredCount !== null && filteredCount > 0"
+                variant="success"
+                :disabled="publicationRefreshJob.isLoading.value || filteredCount === 0"
+                @click="refreshFilteredPublications"
+              >
+                <BSpinner
+                  v-if="publicationRefreshJob.isLoading.value"
+                  small
+                  type="grow"
+                  class="me-2"
+                />
+                {{
+                  publicationRefreshJob.isLoading.value
+                    ? 'Refreshing...'
+                    : `Refresh ${filteredCount?.toLocaleString()} Publications`
+                }}
+              </BButton>
+              <BButton
+                variant="primary"
+                :disabled="publicationRefreshJob.isLoading.value || publicationStats.total === null"
+                @click="refreshAllPublications"
+              >
+                <BSpinner
+                  v-if="publicationRefreshJob.isLoading.value"
+                  small
+                  type="grow"
+                  class="me-2"
+                />
+                {{
+                  publicationRefreshJob.isLoading.value
+                    ? 'Refreshing...'
+                    : 'Refresh All Publications'
+                }}
+              </BButton>
+            </div>
+
+            <!-- Progress display -->
+            <div
+              v-if="
+                publicationRefreshJob.isLoading.value ||
+                publicationRefreshJob.status.value !== 'idle'
+              "
+              class="mt-3"
+            >
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge me-2" :class="publicationRefreshJob.statusBadgeClass.value">
+                  {{ publicationRefreshJob.status.value }}
+                </span>
+                <span class="text-muted">{{ publicationRefreshJob.step.value }}</span>
+              </div>
+
+              <BProgress
+                v-if="publicationRefreshJob.isLoading.value"
+                :value="
+                  publicationRefreshJob.hasRealProgress.value
+                    ? publicationRefreshJob.progressPercent.value
+                    : 100
+                "
+                :max="100"
+                :animated="true"
+                :striped="!publicationRefreshJob.hasRealProgress.value"
+                :variant="publicationRefreshJob.progressVariant.value"
+                height="1.5rem"
+              >
+                <template #default>
+                  <span v-if="publicationRefreshJob.hasRealProgress.value">
+                    {{ publicationRefreshJob.progressPercent.value }}% -
+                    {{ publicationRefreshJob.step.value }}
+                  </span>
+                  <span v-else>
+                    {{ publicationRefreshJob.step.value }}
+                    ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
+                  </span>
+                </template>
+              </BProgress>
+
+              <div
+                v-if="
+                  publicationRefreshJob.progress.value.current &&
+                  publicationRefreshJob.progress.value.total
+                "
+                class="small text-muted mt-1"
+              >
+                {{ publicationRefreshJob.progress.value.current.toLocaleString() }} /
+                {{ publicationRefreshJob.progress.value.total.toLocaleString() }}
+                ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
+              </div>
+
+              <!-- Show result summary on completion -->
+              <BAlert
+                v-if="publicationRefreshJob.status.value === 'completed'"
+                variant="success"
+                show
+                class="mt-2 mb-0"
+              >
+                Refresh complete. Check job history for details.
+              </BAlert>
+
+              <BAlert
+                v-if="publicationRefreshJob.status.value === 'failed'"
+                variant="danger"
+                show
+                class="mt-2 mb-0"
+              >
+                {{
+                  publicationRefreshJob.error.value ||
+                  'Refresh failed. Check job history for details.'
+                }}
+              </BAlert>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- Deprecated OMIM Entities Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -484,11 +920,17 @@ const searchFilter = ref('');
 // Page size options for dropdown
 const pageSizeOptions = [10, 25, 50, 100];
 
-// Create job instances for ontology and HGNC updates
+// Create job instances for ontology, HGNC, publication refresh, and comparisons
 const ontologyJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const hgncJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+);
+const comparisonsJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+);
+const publicationRefreshJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 
@@ -507,6 +949,67 @@ const deprecatedData = ref({
   affected_entities: [] as Array<Record<string, unknown>>,
   mim2gene_date: null as string | null,
   message: null as string | null,
+});
+
+// Pubtator stats state
+const pubtatorStats = ref({
+  publication_count: null as number | null,
+  gene_count: null as number | null,
+  novel_count: null as number | null,
+});
+const loadingPubtatorStats = ref(false);
+
+// Publication refresh stats state
+const publicationStats = ref({
+  total: null as number | null,
+  oldest_update: null as string | null,
+  outdated_count: null as number | null,
+});
+const loadingPublicationStats = ref(false);
+
+// Comparisons metadata state
+const comparisonsMetadata = ref({
+  last_full_refresh: null as string | null,
+  last_refresh_status: 'never' as string,
+  last_refresh_error: null as string | null,
+  sources_count: 0,
+  rows_imported: 0,
+});
+const loadingComparisonsMetadata = ref(false);
+
+// Publication filter state
+type FilterPreset = 'all' | '1year' | '6months' | '3months' | 'custom';
+const selectedPreset = ref<FilterPreset>('all');
+const customDate = ref<string>('');
+const filteredCount = ref<number | null>(null);
+const loadingFilteredCount = ref(false);
+
+// Compute today's date for max attribute on date input
+const todayDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+});
+
+// Compute the not_updated_since date based on selected preset
+const notUpdatedSince = computed<string | null>(() => {
+  const now = new Date();
+  switch (selectedPreset.value) {
+    case 'all':
+      return null;
+    case '1year':
+      now.setFullYear(now.getFullYear() - 1);
+      return now.toISOString().split('T')[0];
+    case '6months':
+      now.setMonth(now.getMonth() - 6);
+      return now.toISOString().split('T')[0];
+    case '3months':
+      now.setMonth(now.getMonth() - 3);
+      return now.toISOString().split('T')[0];
+    case 'custom':
+      return customDate.value || null;
+    default:
+      return null;
+  }
 });
 
 const deprecatedTableFields = [
@@ -577,6 +1080,14 @@ const hgncStepLabel = computed(() => {
   return hgncJob.step.value;
 });
 
+const comparisonsStepLabel = computed(() => {
+  if (!comparisonsJob.step.value) return 'Initializing...';
+  if (comparisonsJob.step.value.length > 40) {
+    return comparisonsJob.step.value.substring(0, 37) + '...';
+  }
+  return comparisonsJob.step.value;
+});
+
 // Watch for job completion/failure
 watch(
   () => ontologyJob.status.value,
@@ -604,6 +1115,49 @@ watch(
       const errorMsg = hgncJob.error.value || 'HGNC update failed';
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
+    }
+  }
+);
+
+watch(
+  () => publicationRefreshJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('Publications refreshed successfully', 'Success', 'success');
+      fetchPublicationStats();
+      fetchFilteredCount();
+      fetchJobHistory();
+    } else if (newStatus === 'failed') {
+      const errorMsg = publicationRefreshJob.error.value || 'Publication refresh failed';
+      makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
+    }
+  }
+);
+
+watch(
+  () => comparisonsJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('Comparisons data refreshed successfully', 'Success', 'success');
+      fetchComparisonsMetadata();
+      fetchJobHistory();
+    } else if (newStatus === 'failed') {
+      const errorMsg = comparisonsJob.error.value || 'Comparisons refresh failed';
+      makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
+    }
+  }
+);
+
+// Watch for filter changes to update filtered count
+watch(
+  () => notUpdatedSince.value,
+  () => {
+    if (notUpdatedSince.value) {
+      fetchFilteredCount();
+    } else {
+      filteredCount.value = null;
     }
   }
 );
@@ -809,6 +1363,9 @@ function formatOperationType(operation: string): string {
     phenotype_clustering: 'Phenotype Clustering',
     ontology_update: 'Ontology Update',
     hgnc_update: 'HGNC Update',
+    pubtator_update: 'Pubtator Update',
+    publication_refresh: 'Publication Refresh',
+    comparisons_update: 'Comparisons Update',
   };
   return labels[operation] || operation;
 }
@@ -981,11 +1538,295 @@ async function updateHgncData() {
   }
 }
 
+async function fetchPubtatorStats() {
+  loadingPubtatorStats.value = true;
+  try {
+    // Fetch gene count and novel count from pubtator/genes endpoint
+    const genesResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
+      {
+        params: {
+          page_size: 1,
+          fields: 'gene_symbol',
+        },
+      }
+    );
+
+    // Get total gene count from meta (meta is array-wrapped by R/plumber)
+    const geneMeta = Array.isArray(genesResponse.data?.meta)
+      ? genesResponse.data.meta[0]
+      : genesResponse.data?.meta;
+    const geneCount = geneMeta?.totalItems ?? null;
+
+    // Fetch publication count from pubtator/table endpoint
+    const pubsResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table`,
+      {
+        params: {
+          page_size: 1,
+          fields: 'search_id',
+        },
+      }
+    );
+
+    // Get total publication count from meta (meta is array-wrapped by R/plumber)
+    const pubMeta = Array.isArray(pubsResponse.data?.meta)
+      ? pubsResponse.data.meta[0]
+      : pubsResponse.data?.meta;
+    const pubCount = pubMeta?.totalItems ?? null;
+
+    // Fetch novel gene count (is_novel=1)
+    const novelResponse = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
+      {
+        params: {
+          page_size: 1,
+          filter: 'is_novel==1',
+          fields: 'gene_symbol',
+        },
+      }
+    );
+
+    // meta is array-wrapped by R/plumber
+    const novelMeta = Array.isArray(novelResponse.data?.meta)
+      ? novelResponse.data.meta[0]
+      : novelResponse.data?.meta;
+    const novelCount = novelMeta?.totalItems ?? null;
+
+    pubtatorStats.value = {
+      publication_count: pubCount,
+      gene_count: geneCount,
+      novel_count: novelCount,
+    };
+  } catch (error) {
+    console.warn('Failed to fetch Pubtator stats:', error);
+    // Don't show toast - stats are optional enhancement
+    pubtatorStats.value = {
+      publication_count: null,
+      gene_count: null,
+      novel_count: null,
+    };
+  } finally {
+    loadingPubtatorStats.value = false;
+  }
+}
+
+async function fetchPublicationStats() {
+  loadingPublicationStats.value = true;
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    publicationStats.value = {
+      total: unwrapValue(response.data.total),
+      oldest_update: unwrapValue(response.data.oldest_update),
+      outdated_count: unwrapValue(response.data.outdated_count),
+    };
+  } catch (error) {
+    console.warn('Failed to fetch publication stats:', error);
+  } finally {
+    loadingPublicationStats.value = false;
+  }
+}
+
+async function fetchComparisonsMetadata() {
+  loadingComparisonsMetadata.value = true;
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
+    comparisonsMetadata.value = {
+      last_full_refresh: unwrapValue(response.data.last_full_refresh),
+      last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
+      last_refresh_error: unwrapValue(response.data.last_refresh_error),
+      sources_count: unwrapValue(response.data.sources_count) ?? 0,
+      rows_imported: unwrapValue(response.data.rows_imported) ?? 0,
+    };
+  } catch (error) {
+    console.warn('Failed to fetch comparisons metadata:', error);
+    // Don't show toast - metadata is optional enhancement
+  } finally {
+    loadingComparisonsMetadata.value = false;
+  }
+}
+
+async function refreshComparisons() {
+  comparisonsJob.reset();
+
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/jobs/comparisons_update/submit`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (response.data.error) {
+      if (response.data.error === 'DUPLICATE_JOB') {
+        makeToast('A comparisons update job is already running', 'Info', 'info');
+        // Track the existing job
+        comparisonsJob.startJob(response.data.existing_job_id);
+      } else {
+        makeToast(response.data.message || 'Failed to start comparisons update', 'Error', 'danger');
+      }
+      return;
+    }
+
+    // Start tracking the job
+    comparisonsJob.startJob(response.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start comparisons update', 'Error', 'danger');
+    console.error('Comparisons refresh error:', error);
+  }
+}
+
+function setPreset(preset: FilterPreset) {
+  selectedPreset.value = preset;
+  if (preset !== 'custom') {
+    customDate.value = '';
+  }
+}
+
+async function fetchFilteredCount() {
+  if (!notUpdatedSince.value) {
+    filteredCount.value = null;
+    return;
+  }
+
+  loadingFilteredCount.value = true;
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      params: {
+        not_updated_since: notUpdatedSince.value,
+      },
+    });
+    filteredCount.value = unwrapValue(response.data.filtered_count) ?? null;
+  } catch (error) {
+    console.warn('Failed to fetch filtered count:', error);
+    filteredCount.value = null;
+  } finally {
+    loadingFilteredCount.value = false;
+  }
+}
+
+async function refreshFilteredPublications() {
+  if (!notUpdatedSince.value) {
+    makeToast('No filter selected', 'Info', 'info');
+    return;
+  }
+
+  publicationRefreshJob.reset();
+
+  try {
+    // Start refresh job with date filter
+    const jobResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
+      { not_updated_since: notUpdatedSince.value },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (jobResponse.data.error) {
+      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
+      return;
+    }
+
+    // Handle no publications to refresh
+    if (jobResponse.data.count === 0) {
+      makeToast(jobResponse.data.message || 'No publications need refreshing', 'Info', 'info');
+      return;
+    }
+
+    // Handle already running job
+    if (jobResponse.data.status === 'already_running') {
+      makeToast('A refresh job is already running', 'Info', 'info');
+      publicationRefreshJob.startJob(jobResponse.data.job_id);
+      return;
+    }
+
+    // Start tracking the new job
+    publicationRefreshJob.startJob(jobResponse.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    console.error('Publication refresh error:', error);
+  }
+}
+
+async function refreshAllPublications() {
+  publicationRefreshJob.reset();
+
+  try {
+    // Get all publication PMIDs via the publications endpoint
+    const pubResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      params: {
+        fields: 'publication_id',
+        page_size: 10000, // Get all publications
+      },
+    });
+
+    // Extract PMIDs from the cursor-paginated response
+    const publications = pubResponse.data?.data || [];
+
+    const pmids = publications.map((p: { publication_id: string | string[] }) =>
+      unwrapValue(p.publication_id)
+    );
+
+    if (pmids.length === 0) {
+      makeToast('No publications to refresh', 'Info', 'info');
+      return;
+    }
+
+    // Start refresh job
+    const jobResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
+      { pmids },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (jobResponse.data.error) {
+      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
+      return;
+    }
+
+    // Handle already running job
+    if (jobResponse.data.status === 'already_running') {
+      makeToast('A refresh job is already running', 'Info', 'info');
+      publicationRefreshJob.startJob(jobResponse.data.job_id);
+      return;
+    }
+
+    // Start tracking the new job
+    publicationRefreshJob.startJob(jobResponse.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    console.error('Publication refresh error:', error);
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   initFromUrl();
   fetchAnnotationDates();
   fetchJobHistory();
+  fetchPubtatorStats();
+  fetchPublicationStats();
+  fetchComparisonsMetadata();
 });
 </script>
 

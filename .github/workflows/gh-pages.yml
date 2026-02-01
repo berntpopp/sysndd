@@ -1,14 +1,15 @@
 # GitHub Pages Documentation Build
-# Renders bookdown documentation and deploys to gh-pages branch
+# Renders Quarto book documentation (HTML, PDF, EPUB) and deploys to GitHub Pages environment
 #
-# Optimizations:
-# - Only triggers on documentation content changes (not workflow changes on PRs)
-# - R package caching via actions/cache
-# - Cancel in-progress runs
+# Triggers:
+# - Push to master (documentation changes only) - builds and deploys
+# - Pull requests to master (documentation changes only) - builds only (validates)
+# - Manual dispatch - builds and optionally deploys
 #
 # References:
-# - https://github.com/r-lib/actions
-# - https://bookdown.org/yihui/bookdown/github.html
+# - https://quarto.org/docs/publishing/github-pages.html
+# - https://quarto.org/docs/books/book-output.html
+# - https://github.com/quarto-dev/quarto-actions
 
 name: Documentation
 
@@ -21,107 +22,68 @@ on:
   pull_request:
     branches: [master]
     paths:
-      # Only documentation content changes, not workflow changes
-      # Workflow changes are tested on push to master
       - 'documentation/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Required permissions for Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 # Cancel in-progress runs for the same branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  DRAWIO_DISABLE_UPDATE: true
-  DISPLAY: :99.0
-  CONFIG_FILE: config.yml
-  R_ENVIRONMENT: github
-  # R package library path for caching
-  R_LIBS_USER: /home/runner/work/_temp/Library
-
 jobs:
-  bookdown:
-    name: Render-Book
+  build:
+    name: Build Documentation
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./documentation
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: r-lib/actions/setup-r@v2
+      - name: Setup Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
         with:
-          r-version: 'release'
-          use-public-rspm: true
+          # Install TinyTeX for PDF generation
+          tinytex: true
 
-      - uses: r-lib/actions/setup-pandoc@v2
-
-      - name: Install TinyTeX
-        uses: r-lib/actions/setup-tinytex@v2
-        env:
-          TINYTEX_INSTALLER: TinyTeX
-
-      # Cache R packages for faster builds
-      - name: Cache R packages
-        uses: actions/cache@v5
+      - name: Render Quarto Book
+        uses: quarto-dev/quarto-actions/render@v2
         with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-r-docs-v2-${{ hashFiles('documentation/DESCRIPTION') }}
-          restore-keys: |
-            ${{ runner.os }}-r-docs-v2-
-            ${{ runner.os }}-r-docs-
+          path: documentation
+          # Render all formats: html, pdf, epub
+          to: all
 
-      - name: Install Chrome (for webshot2)
-        uses: browser-actions/setup-chrome@v2
+      - name: Setup Pages
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
+        uses: actions/upload-pages-artifact@v3
         with:
-          chrome-version: stable
-
-      - name: Install packages
-        run: |
-          Rscript -e '
-            # Install only if not cached
-            required_pkgs <- c("tidyverse", "rmarkdown", "bookdown", "config",
-                               "webshot2", "readr", "DT", "knitr", "ggplot2",
-                               "readxl", "chromote")
-            missing <- required_pkgs[!required_pkgs %in% installed.packages()[,"Package"]]
-            if (length(missing) > 0) {
-              install.packages(missing)
-            }
-          '
-
-      - name: Render Book
-        run: |
-          Rscript -e '
-            # Use webshot2 for HTML widget screenshots (more reliable than phantomjs)
-            options(knitr.screenshot.force = TRUE)
-            bookdown::render_book("index.Rmd", "all")
-          '
-
-      - uses: actions/upload-artifact@v6
-        with:
-          name: build
-          path: ./documentation/build
-          if-no-files-found: error
+          # Book outputs to _book directory
+          path: documentation/_book
 
   deploy:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: bookdown
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    permissions:
-      contents: write
+    needs: build
+    # Only deploy on push to master or manual dispatch with deploy=true
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Download artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: build
-          path: docs
-
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: docs
-          branch: gh-pages
-          clean: true
+        id: deployment
+        uses: actions/deploy-pages@v4

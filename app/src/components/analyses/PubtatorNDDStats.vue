@@ -10,56 +10,108 @@
               v-b-tooltip.hover.leftbottom
               title="Shows aggregated statistics from PubTator gene-publication associations."
             >
-              (Bar Plots)
+              (Summary &amp; Bar Plots)
             </mark>
             <BBadge id="popover-badge-help-pubtator-stats" pill href="#" variant="info">
               <i class="bi bi-question-circle-fill" />
             </BBadge>
             <BPopover target="popover-badge-help-pubtator-stats" variant="info" triggers="focus">
-              <template #title> PubTator Statistics </template>
-              This section displays statistics from PubTator gene-publication associations, showing
-              the distribution of publications per gene and other metrics.
+              <template #title> About PubTator NDD Statistics </template>
+              <p>
+                <strong>PubTator</strong> is NCBI's text mining service that identifies genes
+                mentioned in biomedical literature. These statistics show the distribution of
+                NDD-related publications per gene from our cached PubTator searches.
+              </p>
+              <p class="mb-0">
+                <strong>How to use:</strong><br />
+                - <em>Summary cards</em>: Quick overview of gene coverage<br />
+                - <em>Top Genes</em>: Shows genes with most publication mentions<br />
+                - <em>Publications by Gene Count</em>: Histogram of how many publications mention N
+                genes<br />
+                - Adjust <em>Min Count</em> to filter genes with few mentions<br />
+                - Adjust <em>Top N</em> to show more/fewer bars
+              </p>
             </BPopover>
           </h6>
         </div>
       </template>
 
+      <!-- Summary Stats Cards -->
+      <BRow class="p-3">
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="primary">
+            <template #header>
+              <small class="text-muted">Total Genes</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <h3 v-else class="mb-0 text-primary">{{ totalGenes }}</h3>
+            </BCardBody>
+          </BCard>
+        </BCol>
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="info">
+            <template #header>
+              <small class="text-muted">Literature Only</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <template v-else>
+                <h3 class="mb-0 text-info">{{ novelGenes }}</h3>
+                <small class="text-muted">(not yet curated)</small>
+              </template>
+            </BCardBody>
+          </BCard>
+        </BCol>
+        <BCol md="4">
+          <BCard class="text-center h-100" border-variant="success">
+            <template #header>
+              <small class="text-muted">Curated</small>
+            </template>
+            <BCardBody class="py-3">
+              <BSpinner v-if="loadingStats" small />
+              <template v-else>
+                <h3 class="mb-0 text-success">{{ inSysnddGenes }}</h3>
+                <small class="text-muted">(in SysNDD)</small>
+              </template>
+            </BCardBody>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- User Interface controls -->
       <BRow class="p-2">
-        <BCol class="my-1" sm="4">
+        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
           <BInputGroup prepend="Category" class="mb-1" size="sm">
             <BFormSelect
               v-model="selectedCategory"
               :options="categoryOptions"
               size="sm"
-              @change="generateBarPlot"
+              @change="processAndPlot"
             />
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="4">
+        <!-- Min Count only applies to gene category (filters genes by publication count) -->
+        <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
           <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-            <BFormInput
-              v-model="minCount"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @change="fetchStats"
-            />
+            <BFormInput v-model.number="minCount" type="number" min="1" step="1" debounce="500" />
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Top N" class="mb-1" size="sm">
+        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
+          <BInputGroup
+            :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'"
+            class="mb-1"
+            size="sm"
+          >
             <BFormInput
-              v-model="topN"
+              v-model.number="topN"
               type="number"
               min="5"
               max="100"
               step="5"
               debounce="500"
-              @change="generateBarPlot"
             />
           </BInputGroup>
         </BCol>
@@ -74,221 +126,265 @@
   </BContainer>
 </template>
 
-<script>
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue';
 import * as d3 from 'd3';
+import axios from 'axios';
 import useToast from '@/composables/useToast';
 
-export default {
-  name: 'PubtatorNDDStats',
-  setup() {
-    const { makeToast } = useToast();
-    return { makeToast };
-  },
-  data() {
-    return {
-      // user selections
-      selectedCategory: 'gene',
-      categoryOptions: [
-        { value: 'gene', text: 'Top Genes by Publication Count' },
-        { value: 'publication', text: 'Publications by Gene Count' },
-      ],
+// Types
+interface GeneData {
+  gene_symbol: string;
+  publication_count: number;
+  is_novel?: number;
+}
 
-      // minimum count filter
-      minCount: 5,
-      topN: 30,
+interface StatsDataItem {
+  name: string;
+  count: number;
+}
 
-      // data from the stats endpoint
-      statsData: [],
+// Composables
+const { makeToast } = useToast();
 
-      // chart loading state
-      loading: true,
-    };
-  },
-  async mounted() {
-    await this.fetchStats();
-  },
-  methods: {
-    /**
-     * fetchStats
-     * Fetches PubTator statistics from the API
-     */
-    async fetchStats() {
-      this.loading = true;
+// User selections
+const selectedCategory = ref('gene');
+const categoryOptions = [
+  { value: 'gene', text: 'Top Genes by Publication Count' },
+  { value: 'publication', text: 'Publications by Gene Count' },
+];
 
-      const baseUrl = `${import.meta.env.VITE_API_URL}/api/pubtator`;
-      const params = new URLSearchParams();
-      params.set('page_size', '1000'); // Get enough data for stats
+// Filters
+const minCount = ref(5);
+const topN = ref(30);
 
-      const apiUrl = `${baseUrl}?${params.toString()}`;
+// Data from the API
+const rawGeneData = ref<GeneData[]>([]);
+const statsData = ref<StatsDataItem[]>([]);
 
-      try {
-        const response = await this.axios.get(apiUrl);
-        // Process the data to get statistics
-        this.processStatsData(response.data.data || []);
-        this.generateBarPlot();
-      } catch (error) {
-        this.makeToast(error, 'Error fetching PubTator stats', 'danger');
-      } finally {
-        this.loading = false;
-      }
-    },
+// Loading states
+const loading = ref(true);
+const loadingStats = ref(true);
 
-    /**
-     * processStatsData
-     * Processes raw PubTator data into statistics
-     */
-    processStatsData(rawData) {
-      if (this.selectedCategory === 'gene') {
-        // Group by gene symbol and count publications
-        const geneCounts = {};
-        rawData.forEach((item) => {
-          const symbol = item.symbol || 'Unknown';
-          geneCounts[symbol] = (geneCounts[symbol] || 0) + 1;
-        });
+// Computed stats for summary cards
+const totalGenes = computed(() => rawGeneData.value.length);
+const novelGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 1).length);
+const inSysnddGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 0).length);
 
-        this.statsData = Object.entries(geneCounts)
-          .map(([name, count]) => ({ name, count }))
-          .filter((d) => d.count >= this.minCount)
-          .sort((a, b) => b.count - a.count);
-      } else {
-        // Group by PMID and count genes
-        const pmidCounts = {};
-        rawData.forEach((item) => {
-          const pmid = item.pmid || 'Unknown';
-          pmidCounts[pmid] = (pmidCounts[pmid] || 0) + 1;
-        });
+// Watch minCount changes - needs to re-process data and re-plot
+watch(minCount, () => {
+  if (rawGeneData.value.length > 0) {
+    processAndPlot();
+  }
+});
 
-        // Create histogram of gene counts per publication
-        const histogram = {};
-        Object.values(pmidCounts).forEach((count) => {
-          histogram[count] = (histogram[count] || 0) + 1;
-        });
+// Watch topN changes - only needs to re-plot (data slice changes)
+watch(topN, () => {
+  if (statsData.value.length > 0) {
+    generateBarPlot();
+  }
+});
 
-        this.statsData = Object.entries(histogram)
-          .map(([geneCount, pubCount]) => ({
-            name: `${geneCount} genes`,
-            count: pubCount,
-          }))
-          .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10));
-      }
-    },
+/**
+ * Fetches PubTator gene statistics from the API
+ */
+async function fetchStats() {
+  loading.value = true;
+  loadingStats.value = true;
 
-    /**
-     * generateBarPlot
-     * Builds a bar chart from the processed statistics
-     */
-    generateBarPlot() {
-      if (!this.statsData || this.statsData.length === 0) return;
+  const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`;
+  const params = new URLSearchParams();
+  params.set('page_size', '2000'); // Get enough data for stats
+  params.set('fields', 'gene_symbol,publication_count,is_novel'); // Include is_novel for stats cards
 
-      // remove old svg and tooltip
-      d3.select('#pubtator_stats_dataviz').select('svg').remove();
-      d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
+  const apiUrl = `${baseUrl}?${params.toString()}`;
 
-      // Limit to top N entries
-      const data = this.statsData.slice(0, this.topN);
+  try {
+    const response = await axios.get(apiUrl);
+    // Store the raw gene data - each item has gene_symbol, publication_count, and is_novel
+    rawGeneData.value = (response.data.data || []).map((item: Record<string, unknown>) => ({
+      gene_symbol: String(item.gene_symbol || 'Unknown'),
+      publication_count: Number(item.publication_count) || 0,
+      is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
+    }));
+    loadingStats.value = false;
+    processAndPlot();
+  } catch (error) {
+    makeToast(error, 'Error fetching PubTator stats', 'danger');
+  } finally {
+    loading.value = false;
+  }
+}
 
-      // set dimensions
-      const margin = {
-        top: 30,
-        right: 30,
-        bottom: 150,
-        left: 60,
-      };
-      const width = 760 - margin.left - margin.right;
-      const height = 450 - margin.top - margin.bottom;
+/**
+ * Process the raw data and generate the plot
+ */
+function processAndPlot() {
+  processStatsData();
+  generateBarPlot();
+}
 
-      // append the SVG
-      const svg = d3
-        .select('#pubtator_stats_dataviz')
-        .append('svg')
-        .attr('id', 'pubtator-stats-svg')
-        .attr('viewBox', '0 0 760 450')
-        .attr('preserveAspectRatio', 'xMinYMin meet')
-        .append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
+/**
+ * Processes raw gene data into statistics based on selected category
+ */
+function processStatsData() {
+  if (selectedCategory.value === 'gene') {
+    // Gene category: each gene with its publication count
+    statsData.value = rawGeneData.value
+      .filter((item) => item.publication_count >= minCount.value)
+      .map((item) => ({
+        name: item.gene_symbol,
+        count: item.publication_count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  } else {
+    // Publication category: histogram of publication counts
+    // Group genes by their publication_count value
+    const histogram: Record<number, number> = {};
+    rawGeneData.value.forEach((item) => {
+      const count = item.publication_count;
+      histogram[count] = (histogram[count] || 0) + 1;
+    });
 
-      // X axis
-      const x = d3
-        .scaleBand()
-        .range([0, width])
-        .domain(data.map((d) => d.name))
-        .padding(0.2);
+    statsData.value = Object.entries(histogram)
+      .map(([pubCount, geneCount]) => ({
+        name: `${pubCount} pubs`,
+        count: geneCount,
+      }))
+      .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10));
+  }
+}
 
-      svg
-        .append('g')
-        .attr('transform', `translate(0,${height})`)
-        .call(d3.axisBottom(x))
-        .selectAll('text')
-        .attr('transform', 'translate(-10,0)rotate(-45)')
-        .style('text-anchor', 'end')
-        .style('font-size', '10px');
+/**
+ * Builds a bar chart from the processed statistics
+ */
+function generateBarPlot() {
+  // Always remove old svg and tooltip first
+  d3.select('#pubtator_stats_dataviz').select('svg').remove();
+  d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
+  d3.select('#pubtator_stats_dataviz').select('.no-data-message').remove();
 
-      // Y axis
-      const maxY = d3.max(data, (d) => d.count);
-      const y = d3
-        .scaleLinear()
-        .domain([0, maxY * 1.1])
-        .range([height, 0]);
-      svg.append('g').call(d3.axisLeft(y));
+  // Handle empty data case - show message instead of stale chart
+  if (!statsData.value || statsData.value.length === 0) {
+    d3.select('#pubtator_stats_dataviz')
+      .append('div')
+      .attr('class', 'no-data-message text-center text-muted py-5')
+      .html(
+        `<i class="bi bi-inbox" style="font-size: 3rem;"></i><br/>
+        <strong>No data matches current filters</strong><br/>
+        <small>Try lowering the Min Count value</small>`
+      );
+    return;
+  }
 
-      // Y axis label
-      svg
-        .append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 0 - margin.left)
-        .attr('x', 0 - height / 2)
-        .attr('dy', '1em')
-        .style('text-anchor', 'middle')
-        .style('font-size', '12px')
-        .text(this.selectedCategory === 'gene' ? 'Publication Count' : 'Number of Publications');
+  // Limit to top N entries
+  const data = statsData.value.slice(0, topN.value);
 
-      // Create a tooltip element
-      const tooltip = d3
-        .select('#pubtator_stats_dataviz')
-        .append('div')
-        .attr('class', 'tooltip')
-        .style('opacity', 0)
-        .style('background-color', 'white')
-        .style('border', 'solid 1px')
-        .style('border-radius', '5px')
-        .style('padding', '5px')
-        .style('position', 'absolute')
-        .style('pointer-events', 'none');
+  // set dimensions
+  const margin = {
+    top: 30,
+    right: 30,
+    bottom: 150,
+    left: 60,
+  };
+  const width = 760 - margin.left - margin.right;
+  const height = 450 - margin.top - margin.bottom;
 
-      const mouseover = function mouseover() {
-        tooltip.style('opacity', 1);
-        d3.select(this).style('stroke', 'black').style('opacity', 1);
-      };
+  // append the SVG
+  const svg = d3
+    .select('#pubtator_stats_dataviz')
+    .append('svg')
+    .attr('id', 'pubtator-stats-svg')
+    .attr('viewBox', '0 0 760 450')
+    .attr('preserveAspectRatio', 'xMinYMin meet')
+    .append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      const mousemove = function mousemove(event, d) {
-        tooltip
-          .html(`<strong>${d.name}</strong><br>Count: ${d.count}`)
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
-      };
+  // X axis
+  const x = d3
+    .scaleBand()
+    .range([0, width])
+    .domain(data.map((d) => d.name))
+    .padding(0.2);
 
-      const mouseleave = function mouseleave() {
-        tooltip.style('opacity', 0);
-        d3.select(this).style('stroke', 'none');
-      };
+  svg
+    .append('g')
+    .attr('transform', `translate(0,${height})`)
+    .call(d3.axisBottom(x))
+    .selectAll('text')
+    .attr('transform', 'translate(-10,0)rotate(-45)')
+    .style('text-anchor', 'end')
+    .style('font-size', '10px');
 
-      // bars
-      svg
-        .selectAll('mybar')
-        .data(data)
-        .enter()
-        .append('rect')
-        .attr('x', (d) => x(d.name))
-        .attr('y', (d) => y(d.count))
-        .attr('width', x.bandwidth())
-        .attr('height', (d) => height - y(d.count))
-        .attr('fill', '#5470c6')
-        .on('mouseover', mouseover)
-        .on('mousemove', mousemove)
-        .on('mouseleave', mouseleave);
-    },
-  },
-};
+  // Y axis
+  const maxY = d3.max(data, (d) => d.count) || 0;
+  const y = d3
+    .scaleLinear()
+    .domain([0, maxY * 1.1])
+    .range([height, 0]);
+  svg.append('g').call(d3.axisLeft(y));
+
+  // Y axis label
+  svg
+    .append('text')
+    .attr('transform', 'rotate(-90)')
+    .attr('y', 0 - margin.left)
+    .attr('x', 0 - height / 2)
+    .attr('dy', '1em')
+    .style('text-anchor', 'middle')
+    .style('font-size', '12px')
+    .text(selectedCategory.value === 'gene' ? 'Publication Count' : 'Number of Genes');
+
+  // Create a tooltip element
+  const tooltip = d3
+    .select('#pubtator_stats_dataviz')
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('opacity', 0)
+    .style('background-color', 'white')
+    .style('border', 'solid 1px')
+    .style('border-radius', '5px')
+    .style('padding', '5px')
+    .style('position', 'absolute')
+    .style('pointer-events', 'none');
+
+  const mouseover = function (this: SVGRectElement) {
+    tooltip.style('opacity', 1);
+    d3.select(this).style('stroke', 'black').style('opacity', 1);
+  };
+
+  const mousemove = function (this: SVGRectElement, event: MouseEvent, d: StatsDataItem) {
+    tooltip
+      .html(`<strong>${d.name}</strong><br>Count: ${d.count}`)
+      .style('left', `${event.layerX + 20}px`)
+      .style('top', `${event.layerY + 20}px`);
+  };
+
+  const mouseleave = function (this: SVGRectElement) {
+    tooltip.style('opacity', 0);
+    d3.select(this).style('stroke', 'none');
+  };
+
+  // bars
+  svg
+    .selectAll('mybar')
+    .data(data)
+    .enter()
+    .append('rect')
+    .attr('x', (d) => x(d.name) || 0)
+    .attr('y', (d) => y(d.count))
+    .attr('width', x.bandwidth())
+    .attr('height', (d) => height - y(d.count))
+    .attr('fill', '#5470c6')
+    .on('mouseover', mouseover)
+    .on('mousemove', mousemove)
+    .on('mouseleave', mouseleave);
+}
+
+// Lifecycle
+onMounted(async () => {
+  await fetchStats();
+});
 </script>
 
 <style scoped>
@@ -316,6 +412,13 @@ export default {
 .tooltip {
   pointer-events: none;
   font-size: 0.9rem;
+}
+.no-data-message {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 mark {
   display: inline-block;

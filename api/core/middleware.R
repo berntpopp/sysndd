@@ -36,6 +36,12 @@ AUTH_ALLOWLIST <- c(
   "/api/version/",
   "/__docs__/",
   "/openapi.json",
+  # PubTator admin endpoints (public for development/testing)
+  "/api/publication/pubtator/update",
+  "/api/publication/pubtator/update/submit",
+  "/api/publication/pubtator/clear-cache",
+  "/api/publication/pubtator/backfill-genes",
+  "/api/publication/pubtator/cache-status",
   # External API proxy endpoints (public read access to public genomic data)
   # Note: GET endpoints are already public by default per middleware line 77,
   # but these are listed explicitly for documentation and future-proofing

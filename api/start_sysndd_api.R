@@ -343,6 +343,15 @@ everywhere({
   library(stringr)
   library(purrr)
   library(readr)
+  library(logger)
+  # Load ellmer for LLM functionality (optional - graceful degradation if not available)
+  if (requireNamespace("ellmer", quietly = TRUE)) {
+    library(ellmer)
+  }
+  # Load pdftools for PDF parsing in comparisons update (optional)
+  if (requireNamespace("pdftools", quietly = TRUE)) {
+    library(pdftools)
+  }
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)
@@ -361,6 +370,19 @@ everywhere({
   source("/app/functions/ensembl-functions.R", local = FALSE)
   # Source file-based job progress reporting
   source("/app/functions/job-progress.R", local = FALSE)
+  # Source db-helpers for parameterized queries
+  source("/app/functions/db-helpers.R", local = FALSE)
+  # Source PubTator functions for async update jobs
+  source("/app/functions/pubtator-functions.R", local = FALSE)
+  # Source comparisons functions for async comparisons update jobs
+  source("/app/functions/comparisons-sources.R", local = FALSE)
+  source("/app/functions/comparisons-functions.R", local = FALSE)
+  # Source LLM-related functions for async LLM batch generation jobs
+  source("/app/functions/llm-cache-repository.R", local = FALSE)
+  source("/app/functions/llm-validation.R", local = FALSE)
+  source("/app/functions/llm-service.R", local = FALSE)
+  source("/app/functions/llm-judge.R", local = FALSE)
+  source("/app/functions/llm-batch-generator.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
@@ -596,6 +618,7 @@ root <- pr() %>%
   pr_mount("/api/auth", pr("endpoints/authentication_endpoints.R")) %>%
   pr_mount("/api/about", pr("endpoints/about_endpoints.R")) %>%
   pr_mount("/api/admin", pr("endpoints/admin_endpoints.R")) %>%
+  pr_mount("/api/llm", pr("endpoints/llm_admin_endpoints.R")) %>%
   pr_mount("/api/backup", pr("endpoints/backup_endpoints.R")) %>%
   pr_mount("/api/external", pr("endpoints/external_endpoints.R")) %>%
   pr_mount("/api/statistics", pr("endpoints/statistics_endpoints.R")) %>%

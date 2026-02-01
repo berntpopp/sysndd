@@ -72,6 +72,12 @@ gen_string_clust_obj <- function(
   # Run clustering algorithm based on parameter
   # Leiden: 2-3x faster, good for large networks
   # Walktrap: Classic algorithm, uses random walks to detect communities
+  #
+  # IMPORTANT: Set seed for reproducible clustering results
+  # This ensures cluster hashes remain consistent across API calls,
+  # which is critical for LLM summary cache matching.
+  set.seed(42)
+
   if (algorithm == "walktrap") {
     # Walktrap clustering using random walks
     # steps=4 is default and works well for PPI networks
@@ -107,11 +113,11 @@ gen_string_clust_obj <- function(
     unnest_longer(col = "STRING_id") %>%
     left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
     tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-    mutate(hash_filter = list(
-      post_db_hash(identifiers %>% purrr::pluck("symbol"))
-    )) %>%
-    mutate(hash_filter = purrr::pluck(hash_filter, 1, 1, "hash")) %>%
-    ungroup() %>%
+    mutate(hash_filter = purrr::map(identifiers, function(ids) {
+      # Pass identifiers tibble with symbol column (post_db_hash expects named column)
+      post_db_hash(tibble::tibble(symbol = ids$symbol))
+    })) %>%
+    mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
     rowwise() %>%
     mutate(cluster_size = nrow(identifiers)) %>%
     filter(cluster_size >= min_size) %>%
@@ -201,6 +207,11 @@ gen_mca_clust_obj <- function(
   # Caching is handled by the memoise wrapper (gen_mca_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
+  # IMPORTANT: Set seed for reproducible clustering results
+  # This ensures cluster hashes remain consistent across API calls,
+  # which is critical for LLM summary cache matching.
+  set.seed(42)
+
   # Compute Multiple Correspondence Analysis (MCA)
   # ncp=8 captures >70% of variance for typical phenotype data
   # Reduced from ncp=15 for 20-30% MCA speedup
@@ -237,12 +248,11 @@ gen_mca_clust_obj <- function(
   clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
     select(entity_id, cluster = clust) %>%
     tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-    mutate(hash_filter = list(
-      post_db_hash(identifiers %>%
-        purrr::pluck("entity_id"), "entity_id", "/api/entity")
-    )) %>%
-    mutate(hash_filter = hash_filter$links$hash) %>%
-    ungroup() %>%
+    mutate(hash_filter = purrr::map(identifiers, function(ids) {
+      # Pass identifiers tibble with entity_id column (post_db_hash expects named column)
+      post_db_hash(tibble::tibble(entity_id = ids$entity_id), "entity_id", "/api/entity")
+    })) %>%
+    mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
     rowwise() %>%
     mutate(cluster_size = nrow(identifiers)) %>%
     mutate(quali_inp_var = list(tibble::as_tibble(

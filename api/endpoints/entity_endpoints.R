@@ -53,14 +53,18 @@ function(req,
   # Set serializers
   res$serializer <- serializers[[format]]
 
+
   # Start time calculation
   start_time <- Sys.time()
 
   # Generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
 
-  # Generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
+  # Extract vario_id filter (handled separately due to join table)
+  vario_filter_result <- extract_vario_filter(filter)
+
+  # Generate filter expression for non-vario filters
+  filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario)
 
   # Get review data from database
   ndd_entity_review <- pool %>%
@@ -73,6 +77,13 @@ function(req,
     tbl("ndd_entity_view") %>%
     left_join(ndd_entity_review, by = c("entity_id")) %>%
     collect()
+
+  # Apply vario_id filter if present (filter by entity_ids that have the variants)
+  if (vario_filter_result$has_vario_filter) {
+    matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
+    ndd_entity_view <- ndd_entity_view %>%
+      filter(entity_id %in% matching_entity_ids)
+  }
 
   sysndd_db_disease_table <- ndd_entity_view %>%
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
@@ -217,8 +228,24 @@ function(req, res, direct_approval = FALSE) {
 
   create_data$entity$entry_user_id <- entry_user_id
 
+  logger::log_info(
+    "Entity creation started",
+    hgnc_id = create_data$entity$hgnc_id,
+    user_id = entry_user_id
+  )
+
   # Block to post new entity
   response_entity <- post_db_entity(create_data$entity)
+
+  logger::log_debug(
+    "Entity creation response",
+    status = response_entity$status,
+    entity_id = if (!is.null(response_entity$entry) && !is.null(response_entity$entry$entity_id)) {
+      response_entity$entry$entity_id
+    } else {
+      NA
+    }
+  )
 
   if (response_entity$status == 200) {
     # Prepare data for review
@@ -290,6 +317,16 @@ function(req, res, direct_approval = FALSE) {
     # Use put_post_db_review to add the review
     response_review <- put_post_db_review("POST", sysnopsis_received)
 
+    logger::log_debug(
+      "Review creation response",
+      status = response_review$status,
+      review_id = if (!is.null(response_review$entry) && !is.null(response_review$entry$review_id)) {
+        response_review$entry$review_id
+      } else {
+        NA
+      }
+    )
+
     # Submit publications if not empty
     if (length(compact(create_data$review$literature)) > 0) {
       response_publication <- new_publication(publications_received)
@@ -346,6 +383,11 @@ function(req, res, direct_approval = FALSE) {
       mutate(message = str_c(message, collapse = "; ")) %>%
       unique()
   } else {
+    logger::log_error(
+      "Entity creation failed",
+      status = response_entity$status,
+      error = response_entity$error
+    )
     res$status <- response_entity$status
     return(list(
       status = response_entity$status,
@@ -369,6 +411,16 @@ function(req, res, direct_approval = FALSE) {
     create_data$status$status_user_id <- status_user_id
     response_status_post <- put_post_db_status("POST", create_data$status)
 
+    logger::log_debug(
+      "Status creation response",
+      status = response_status_post$status,
+      status_id = if (!is.null(response_status_post$entry)) {
+        response_status_post$entry
+      } else {
+        NA
+      }
+    )
+
     if (direct_approval) {
       response_status_approve <- put_db_status_approve(
         response_status_post$entry,
@@ -377,6 +429,11 @@ function(req, res, direct_approval = FALSE) {
       )
     }
   } else {
+    logger::log_error(
+      "Entity created but review creation failed - PARTIAL CREATION",
+      entity_id = response_entity$entry$entity_id,
+      review_status = response_review_post$status
+    )
     response_entity_review_post <- tibble::as_tibble(response_entity) %>%
       bind_rows(tibble::as_tibble(response_review_post)) %>%
       dplyr::select(status, message) %>%
@@ -394,9 +451,20 @@ function(req, res, direct_approval = FALSE) {
   if (response_entity$status == 200 &&
     response_review_post$status == 200 &&
     response_status_post$status == 200) {
+    logger::log_info(
+      "Entity creation completed successfully",
+      entity_id = response_entity$entry$entity_id,
+      user_id = entry_user_id
+    )
     res$status <- response_entity$status
     return(response_entity)
   } else {
+    logger::log_error(
+      "Entity+review created but status creation failed - PARTIAL CREATION",
+      entity_id = response_entity$entry$entity_id,
+      review_status = response_review_post$status,
+      status_status = response_status_post$status
+    )
     response <- tibble::as_tibble(response_entity) %>%
       bind_rows(tibble::as_tibble(response_review_post)) %>%
       bind_rows(tibble::as_tibble(response_status_post)) %>%
@@ -452,6 +520,12 @@ function(req, res) {
   new_entry_user_id <- req$user_id
   rename_data <- req$argsBody$rename_json
 
+  logger::log_info(
+    "Entity rename started",
+    entity_id = rename_data$entity$entity_id,
+    user_id = new_entry_user_id
+  )
+
   ndd_entity_original <- pool %>%
     tbl("ndd_entity") %>%
     collect() %>%
@@ -471,6 +545,19 @@ function(req, res) {
       rename_data$entity$disease_ontology_id_version !=
         ndd_entity_original$disease_ontology_id_version
   ) {
+    # TODO: Implement approval workflow for disease renaming (BUG-07)
+    # Currently disease renaming bypasses approval:
+    # - New entity is immediately active
+    # - Old entity is immediately deactivated
+    # - Review/status are copied without re-approval
+    # Should follow pattern: create inactive entity, mark review/status unapproved,
+    # keep old active until approval, then swap on approval
+    log_warn(
+      "Disease rename for entity {rename_data$entity$entity_id} bypassing approval workflow. ",
+      "Old disease: {ndd_entity_original$disease_ontology_id_version}, ",
+      "New disease: {rename_data$entity$disease_ontology_id_version}"
+    )
+
     response_new_entity <- post_db_entity(ndd_entity_replaced)
     response_deactivate <- put_db_entity_deactivation(
       ndd_entity_original$entity_id,
@@ -571,9 +658,22 @@ function(req, res) {
         response_review_post$status == 200 &&
         response_status_post$status == 200
     ) {
+      logger::log_info(
+        "Entity rename completed successfully",
+        old_entity_id = rename_data$entity$entity_id,
+        new_entity_id = response_new_entity$entry$entity_id,
+        user_id = new_entry_user_id
+      )
       res$status <- response_new_entity$status
       return(response_new_entity)
     } else {
+      logger::log_error(
+        "Entity rename failed - PARTIAL RENAME POSSIBLE",
+        old_entity_id = rename_data$entity$entity_id,
+        new_entity_status = response_new_entity$status,
+        review_status = response_review_post$status,
+        status_status = response_status_post$status
+      )
       response <- tibble::as_tibble(response_new_entity) %>%
         bind_rows(tibble::as_tibble(response_review_post)) %>%
         bind_rows(tibble::as_tibble(response_status_post)) %>%

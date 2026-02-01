@@ -205,6 +205,7 @@ publication_connect_to_review <- function(review_id, entity_id, publications) {
 #' - First deletes all existing publications for the review
 #' - Then inserts new publications
 #' - Validates publication IDs and entity_id before operation
+#' - Logs warning if publication count decreases (potential data loss)
 #'
 #' @examples
 #' \dontrun{
@@ -217,6 +218,24 @@ publication_connect_to_review <- function(review_id, entity_id, publications) {
 #'
 #' @export
 publication_replace_for_review <- function(review_id, entity_id, publications) {
+  # Check existing publication count for validation
+  existing_count <- pool %>%
+    tbl("ndd_review_publication_join") %>%
+    filter(review_id == !!review_id) %>%
+    dplyr::select(publication_id) %>%
+    collect() %>%
+    nrow()
+
+  new_count <- nrow(publications)
+
+  # Log warning if publications are being removed (potential data loss)
+  if (existing_count > 0 && new_count < existing_count) {
+    log_warn(
+      "Publication count decreasing for review {review_id}: {existing_count} -> {new_count}. ",
+      "Ensure all existing publications are included in the update to prevent data loss."
+    )
+  }
+
   # Validate publication IDs
   publication_validate_ids(publications$publication_id)
 

@@ -58,7 +58,22 @@
             </h6>
           </BCol>
           <BCol>
-            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+            <h5
+              v-if="showFilterControls"
+              class="mb-1 text-end font-weight-bold d-flex align-items-center justify-content-end gap-2"
+            >
+              <!-- Definitive Only toggle -->
+              <BFormCheckbox
+                v-model="definitiveOnly"
+                v-b-tooltip.hover.bottom
+                switch
+                size="sm"
+                class="definitive-toggle me-2"
+                title="Show only Definitive entries for each source"
+              >
+                <span class="small fw-semibold">Definitive Only</span>
+              </BFormCheckbox>
+
               <BButton
                 v-b-tooltip.hover.bottom
                 class="me-1"
@@ -237,10 +252,6 @@
             <CategoryIcon :category="row.geisinger_DBD" size="sm" />
           </template>
 
-          <template #cell-omim_ndd="{ row }">
-            <CategoryIcon :category="row.omim_ndd" size="sm" />
-          </template>
-
           <template #cell-orphanet_id="{ row }">
             <CategoryIcon :category="row.orphanet_id" size="sm" />
           </template>
@@ -287,7 +298,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id',
     },
   },
   setup() {
@@ -322,15 +333,8 @@ export default {
           class: 'text-start',
         },
         {
-          key: 'radboudumc_ID',
-          label: 'Radboud UMC ID',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
           key: 'gene2phenotype',
-          label: 'gene2phenotype',
+          label: 'Gene2Phenotype',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -338,6 +342,13 @@ export default {
         {
           key: 'panelapp',
           label: 'PanelApp',
+          sortable: true,
+          filterable: true,
+          class: 'text-start',
+        },
+        {
+          key: 'radboudumc_ID',
+          label: 'Radboudumc',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -357,15 +368,8 @@ export default {
           class: 'text-start',
         },
         {
-          key: 'omim_ndd',
-          label: 'OMIM NDD',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
           key: 'orphanet_id',
-          label: 'Orphanet ID',
+          label: 'Orphanet',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -387,12 +391,11 @@ export default {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
         SysNDD: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         gene2phenotype: { content: null, join_char: ',', operator: 'any' },
         panelapp: { content: null, join_char: ',', operator: 'any' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
       },
       filter_string: '',
@@ -400,6 +403,7 @@ export default {
       loadingTable: true,
       isBusy: true,
       downloading: false,
+      definitiveOnly: false,
     };
   },
   watch: {
@@ -408,6 +412,26 @@ export default {
         this.filtered();
       },
       deep: true, // Vue 3 requires deep:true for object mutation watching
+    },
+    definitiveOnly(newValue) {
+      // Define source columns (exclude symbol which is a text search input)
+      const sourceColumns = [
+        'SysNDD',
+        'gene2phenotype',
+        'panelapp',
+        'radboudumc_ID',
+        'sfari',
+        'geisinger_DBD',
+        'orphanet_id',
+      ];
+
+      // Set all source column filters to "Definitive" when enabled, or null when disabled
+      sourceColumns.forEach((col) => {
+        this.filter[col].content = newValue ? 'Definitive' : null;
+      });
+
+      // Reset to first page - the filter watcher will trigger loadTableData via filtered()
+      this.currentItemID = '0';
     },
     sortBy() {
       this.handleSortByOrDescChange();
@@ -444,7 +468,7 @@ export default {
 
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${this.perPage}`;
+      }&page_size=${this.perPage}&definitive_only=${this.definitiveOnly}`;
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
@@ -554,12 +578,11 @@ export default {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
         SysNDD: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         gene2phenotype: { content: null, join_char: ',', operator: 'any' },
         panelapp: { content: null, join_char: ',', operator: 'any' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
       };
     },
@@ -625,5 +648,19 @@ mark {
   font-size: 0.875rem;
   color: #495057;
   border-color: #ced4da;
+}
+
+/* Definitive toggle styles */
+.definitive-toggle {
+  margin-bottom: 0;
+}
+
+.definitive-toggle :deep(.form-check-input) {
+  cursor: pointer;
+}
+
+.definitive-toggle :deep(.form-check-input:checked) {
+  background-color: #198754;
+  border-color: #198754;
 }
 </style>
