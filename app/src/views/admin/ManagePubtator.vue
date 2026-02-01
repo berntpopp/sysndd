@@ -63,20 +63,20 @@
                   <dl class="row mb-0">
                     <dt class="col-6">Status:</dt>
                     <dd class="col-6">
-                      <BBadge :variant="lastStatus.cached[0] ? 'success' : 'warning'">
-                        {{ lastStatus.cached[0] ? 'Cached' : 'Not Cached' }}
+                      <BBadge :variant="lastStatus.cached ? 'success' : 'warning'">
+                        {{ lastStatus.cached ? 'Cached' : 'Not Cached' }}
                       </BBadge>
                     </dd>
 
                     <dt class="col-6">Pages Cached:</dt>
-                    <dd class="col-6">{{ lastStatus.pages_cached[0] || 0 }}</dd>
+                    <dd class="col-6">{{ lastStatus.pages_cached || 0 }}</dd>
 
                     <dt class="col-6">Publications:</dt>
-                    <dd class="col-6">{{ lastStatus.publications_cached[0] || 0 }}</dd>
+                    <dd class="col-6">{{ lastStatus.publications_cached || 0 }}</dd>
 
-                    <dt v-if="lastStatus.cache_date[0]" class="col-6">Last Updated:</dt>
-                    <dd v-if="lastStatus.cache_date[0]" class="col-6">
-                      {{ formatDate(lastStatus.cache_date[0]) }}
+                    <dt v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'" class="col-6">Last Updated:</dt>
+                    <dd v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'" class="col-6">
+                      {{ formatDate(lastStatus.cache_date) }}
                     </dd>
                   </dl>
                 </BCol>
@@ -84,24 +84,24 @@
                   <h6><i class="bi bi-cloud-download me-1" /> Available from API</h6>
                   <dl class="row mb-0">
                     <dt class="col-6">Total Pages:</dt>
-                    <dd class="col-6">{{ lastStatus.total_pages_available[0] || 0 }}</dd>
+                    <dd class="col-6">{{ lastStatus.total_pages_available || 0 }}</dd>
 
                     <dt class="col-6">Total Results:</dt>
                     <dd class="col-6">
-                      {{ (lastStatus.total_results_available[0] || 0).toLocaleString() }}
+                      {{ (lastStatus.total_results_available || 0).toLocaleString() }}
                     </dd>
 
                     <dt class="col-6">Pages Remaining:</dt>
-                    <dd class="col-6">{{ lastStatus.pages_remaining[0] || 0 }}</dd>
+                    <dd class="col-6">{{ lastStatus.pages_remaining || 0 }}</dd>
 
                     <dt class="col-6">Est. Fetch Time:</dt>
-                    <dd class="col-6">~{{ lastStatus.estimated_fetch_time_minutes[0] || 0 }} min</dd>
+                    <dd class="col-6">~{{ lastStatus.estimated_fetch_time_minutes || 0 }} min</dd>
                   </dl>
                 </BCol>
               </BRow>
 
               <!-- Cache Progress Bar -->
-              <BRow v-if="lastStatus.cached[0]" class="mt-3">
+              <BRow v-if="lastStatus.cached" class="mt-3">
                 <BCol>
                   <BProgress :max="100" height="1.5rem" show-value>
                     <BProgressBar :value="cacheProgress" variant="success">
@@ -164,7 +164,7 @@
                 </BButton>
                 <BButton
                   variant="outline-secondary"
-                  :disabled="!lastStatus?.cached[0] || isJobLoading || isBackfilling"
+                  :disabled="!lastStatus?.cached || isJobLoading || isBackfilling"
                   @click="backfillGenes"
                 >
                   <BSpinner v-if="isBackfilling" small class="me-1" />
@@ -387,12 +387,12 @@ async function submitFetch() {
 }
 
 async function backfillGenes() {
-  if (!lastStatus.value?.query_id[0]) return;
+  if (!lastStatus.value?.query_id) return;
   feedbackMessage.value = '';
 
   try {
-    const backfillResult = await backfillGeneSymbols(lastStatus.value.query_id[0]);
-    feedbackMessage.value = backfillResult.message[0];
+    const backfillResult = await backfillGeneSymbols(lastStatus.value.query_id);
+    feedbackMessage.value = backfillResult.message;
     feedbackVariant.value = 'success';
   } catch (_err) {
     feedbackMessage.value = `Error backfilling: ${error.value}`;
@@ -405,7 +405,7 @@ async function clearAllCache() {
 
   try {
     const clearResult = await clearCache();
-    feedbackMessage.value = clearResult.message[0];
+    feedbackMessage.value = clearResult.message;
     feedbackVariant.value = 'success';
     lastStatus.value = null;
   } catch (_err) {

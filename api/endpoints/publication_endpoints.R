@@ -709,7 +709,7 @@ function(req,
 #* JSON object with count of rows updated.
 #*
 #* @tag publication
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @response 200 OK - returns count of updated rows
 #*
@@ -784,7 +784,7 @@ function(req, res) {
 #* and whether an update would fetch new data or hit cache.
 #*
 #* @tag publication
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @param query:str The search query for PubTator
 #*
@@ -870,7 +870,7 @@ function(req, res, query = "") {
 #* JSON object with query_id, cache info, and statistics.
 #*
 #* @tag publication
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @param query:str The search query for PubTator (e.g., "epilepsy gene variant")
 #* @param max_pages:int Maximum pages to fetch (default 10, each page has 10 results)
@@ -1004,7 +1004,7 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #* Use `/pubtator/cache-status` to check what's cached before submitting.
 #*
 #* @tag publication
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @param query:str The search query for PubTator (e.g., "epilepsy gene variant")
 #* @param max_pages:int Maximum pages to fetch (default 10, each page has 10 results)
@@ -1138,7 +1138,7 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #* Use with caution - this will remove all cached search results and annotations.
 #*
 #* @tag publication
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @response 200 OK - returns count of deleted rows
 #*

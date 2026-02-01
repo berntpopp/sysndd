@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 **Status:** Plan 64-03 complete (Frontend Foundation)
 **Progress:** v10.0 [██████████████████░░] 11/12 phases (92%)
 
-**Last completed:** 64-03 - Frontend Foundation (Types, Composable, Route)
-**Last activity:** 2026-02-01 — Completed 64-03-PLAN.md (frontend foundation)
+**Last completed:** Quick Task 002 - PubTator Admin Fix
+**Last activity:** 2026-02-01 — Fixed PubTator admin API serialization (auto_unbox) + frontend array access
 **Next plan:** 64-04 - UI Components (LlmConfigPanel, LlmCacheManager, etc.)
 
 ---
@@ -35,6 +35,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | ID | Name | Status | Summary |
 |----|------|--------|---------|
 | 001 | LLM Benchmark Test Scripts | Complete | test-llm-benchmark.R with Phase 63 ground truth |
+| 002 | PubTator Admin API Fix | Complete | Fix auto_unbox serialization and frontend array access |
 
 ---
 
@@ -364,7 +365,7 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed 64-03-PLAN.md (Frontend Foundation)
+**Stopped at:** Quick Task 002 (PubTator Admin Fix) complete
 **Next action:** Execute 64-04-PLAN.md (UI Components)
 **Resume file:** None
 
@@ -373,6 +374,7 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Create reusable LLM prompt benchmark test scripts | 2026-02-01 | 0da5e633 | [001-llm-benchmark-test-scripts](./quick/001-llm-benchmark-test-scripts/) |
+| 002 | PubTator Admin API serialization + frontend fix | 2026-02-01 | 6541e8cf | [002-pubtator-admin-fix](./quick/002-pubtator-admin-fix/) |
 
 ### Roadmap Evolution
 - Phase 63 added: LLM Pipeline Overhaul (fix cascading failures from Phases 58-60)
@@ -473,5 +475,44 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 
 ---
 
+### Quick Task 002: PubTator Admin Fix
+
+**Date:** 2026-02-01
+**Issue:** PubTator admin page crashed with JavaScript errors when using Check Status or Submit Fetch Job buttons
+
+**Root Cause:** R/plumber API endpoints returned array-wrapped values (`["value"]`) instead of scalars (`"value"`), causing:
+1. `jobId.substring(0, 8)` to fail (array has no substring method)
+2. `lastStatus.cached[0]` to fail when API returned scalars after partial fix
+
+**Decisions:**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Add `auto_unbox=TRUE` to all PubTator endpoints | Standard JSON serialization; arrays for single values is R quirk | API returns proper JSON scalars |
+| 2026-02-01 | Add `auto_unbox=TRUE` to job status endpoint | Job polling endpoint had same issue | Job progress tracking works |
+| 2026-02-01 | Remove `[0]` array accesses in frontend | Frontend was inconsistent - some places expected arrays, others scalars | Consistent scalar access throughout |
+| 2026-02-01 | Add type check for `cache_date` | Empty object `{}` is truthy but not a valid date string | "Invalid Date" no longer displayed |
+
+**Files Changed:**
+
+| File | Changes |
+|------|---------|
+| `api/endpoints/publication_endpoints.R` | Added `auto_unbox=TRUE` to 5 endpoints (lines 712, 787, 873, 1007, 1141) |
+| `api/endpoints/jobs_endpoints.R` | Added `auto_unbox=TRUE` to job status endpoint (line 934) |
+| `app/src/views/admin/ManagePubtator.vue` | Removed 13 `[0]` array accesses, added cache_date type check |
+| `app/src/composables/usePubtatorAdmin.ts` | Removed 2 `[0]` array accesses in cacheProgress computed |
+
+**Verification:**
+- ✅ Check Status button shows cache status correctly
+- ✅ Submit Fetch Job creates and tracks jobs (tested with MECP2, 2 pages → 20 publications cached)
+- ✅ Job progress displays correctly (status, progress bar, elapsed time)
+- ✅ Clear Cache confirmation dialog works
+- ✅ Backfill Gene Symbols button enables when cache exists
+- ✅ No JavaScript console errors
+
+**Report:** `.planning/LLM_ADMIN_TESTING_REPORT.md` (updated with fix status)
+
+---
+
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Completed 64-03 (Frontend Foundation)*
+*Last updated: 2026-02-01 — Quick Task 002 (PubTator Admin Fix)*

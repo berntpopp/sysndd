@@ -931,7 +931,7 @@ function(req, res, limit = 20) {
 #* Returns Retry-After header for running jobs.
 #*
 #* @tag jobs
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #* @get /<job_id>/status
 function(job_id, res) {
   status <- get_job_status(job_id)

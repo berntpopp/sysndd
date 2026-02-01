@@ -215,8 +215,8 @@ export function usePubtatorAdmin() {
    */
   const cacheProgress = computed(() => {
     if (!lastStatus.value) return 0;
-    const cached = lastStatus.value.pages_cached[0] || 0;
-    const total = lastStatus.value.total_pages_available[0] || 1;
+    const cached = lastStatus.value.pages_cached || 0;
+    const total = lastStatus.value.total_pages_available || 1;
     return Math.round((cached / total) * 100);
   });
 
