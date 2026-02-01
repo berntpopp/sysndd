@@ -1,11 +1,12 @@
 # GitHub Pages Documentation Build
-# Renders Quarto documentation and deploys to GitHub Pages environment
+# Renders Quarto book documentation (HTML, PDF, EPUB) and deploys to GitHub Pages environment
 #
 # Triggers:
 # - Push to master (documentation changes only)
 #
 # References:
 # - https://quarto.org/docs/publishing/github-pages.html
+# - https://quarto.org/docs/books/book-output.html
 # - https://github.com/quarto-dev/quarto-actions
 
 name: Documentation
@@ -38,11 +39,16 @@ jobs:
 
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          # Install TinyTeX for PDF generation
+          tinytex: true
 
-      - name: Render Quarto Project
+      - name: Render Quarto Book
         uses: quarto-dev/quarto-actions/render@v2
         with:
           path: documentation
+          # Render all formats: html, pdf, epub
+          to: all
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -50,7 +56,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: documentation/_site
+          # Book outputs to _book directory
+          path: documentation/_book
 
   deploy:
     name: Deploy to GitHub Pages

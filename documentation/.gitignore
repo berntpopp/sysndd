@@ -12,6 +12,7 @@ nul
 
 # Quarto output and cache
 _site/
+_book/
 .quarto/
 **/*.quarto_ipynb
 
