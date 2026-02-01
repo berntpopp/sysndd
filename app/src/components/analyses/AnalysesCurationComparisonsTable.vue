@@ -410,10 +410,25 @@ export default {
       },
       deep: true, // Vue 3 requires deep:true for object mutation watching
     },
-    definitiveOnly() {
-      // Reset to first page and reload when toggling definitive filter
+    definitiveOnly(newValue) {
+      // Define source columns (exclude symbol which is a text search input)
+      const sourceColumns = [
+        'SysNDD',
+        'gene2phenotype',
+        'panelapp',
+        'radboudumc_ID',
+        'sfari',
+        'geisinger_DBD',
+        'orphanet_id',
+      ];
+
+      // Set all source column filters to "Definitive" when enabled, or null when disabled
+      sourceColumns.forEach((col) => {
+        this.filter[col].content = newValue ? 'Definitive' : null;
+      });
+
+      // Reset to first page - the filter watcher will trigger loadTableData via filtered()
       this.currentItemID = '0';
-      this.loadTableData();
     },
     sortBy() {
       this.handleSortByOrDescChange();

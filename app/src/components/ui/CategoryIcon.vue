@@ -1,5 +1,7 @@
 <!-- components/ui/CategoryIcon.vue -->
-<!-- Professional stoplight-style category indicator for medical data visualization -->
+<!-- Accessible category indicator with distinct icons and color-blind friendly colors -->
+<!-- Icons and colors follow WCAG guidelines: never rely on color alone -->
+<!-- Color palette: Wong/Okabe-Ito (Nature Methods 8:441, 2011) -->
 <template>
   <span
     class="category-icon"
@@ -8,7 +10,7 @@
     role="img"
     :aria-label="ariaLabel"
   >
-    <i class="bi bi-stoplights-fill category-icon__symbol" />
+    <i :class="iconClass" class="category-icon__symbol" />
   </span>
 </template>
 
@@ -51,9 +53,24 @@ export default {
         Limited: 'limited',
         Refuted: 'refuted',
         'not applicable': 'na',
-        'not listed': 'na',
+        'not listed': 'notlisted',
       };
       return variants[this.category] || 'na';
+    },
+    /**
+     * Different icons for each category - accessibility best practice
+     * Ensures categories are distinguishable without relying on color alone
+     */
+    iconClass() {
+      const icons = {
+        Definitive: 'bi bi-check-circle-fill', // Checkmark = confirmed/validated
+        Moderate: 'bi bi-dash-circle-fill', // Dash = moderate/partial
+        Limited: 'bi bi-exclamation-circle-fill', // Exclamation = caution/limited
+        Refuted: 'bi bi-x-circle-fill', // X = rejected/refuted
+        'not applicable': 'bi bi-slash-circle', // Slash = not applicable
+        'not listed': 'bi bi-circle', // Empty circle = not listed/absent
+      };
+      return icons[this.category] || 'bi bi-circle';
     },
     title() {
       return this.showTitle ? this.category : '';
@@ -66,77 +83,88 @@ export default {
 </script>
 
 <style scoped>
+/*
+ * Color palette: Wong/Okabe-Ito (Nature Methods 8:441, 2011)
+ * Optimized for color blindness accessibility
+ * Each category also has a distinct icon shape for redundant encoding
+ */
+
 .category-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 50%;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    inset 0 1px 2px rgba(255, 255, 255, 0.3);
   position: relative;
 }
 
 .category-icon__symbol {
-  color: white;
-  font-size: 0.7rem;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* Size variants */
-.category-icon--sm {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 .category-icon--sm .category-icon__symbol {
-  font-size: 0.6rem;
+  font-size: 1.1rem;
 }
 
-.category-icon--lg {
-  width: 2rem;
-  height: 2rem;
+.category-icon--md .category-icon__symbol {
+  font-size: 1.4rem;
 }
 
 .category-icon--lg .category-icon__symbol {
-  font-size: 1rem;
+  font-size: 1.8rem;
 }
 
-/* Definitive - Green (success) */
-.category-icon--definitive {
-  background: linear-gradient(145deg, #4caf50 0%, #2e7d32 100%);
-  border: 2px solid #1b5e20;
+/*
+ * Definitive - Okabe-Ito Bluish Green (#009E73)
+ * Icon: check-circle-fill (✓)
+ * High confidence, validated
+ */
+.category-icon--definitive .category-icon__symbol {
+  color: #009E73;
 }
 
-/* Moderate - Blue (primary) */
-.category-icon--moderate {
-  background: linear-gradient(145deg, #2196f3 0%, #1565c0 100%);
-  border: 2px solid #0d47a1;
+/*
+ * Moderate - Okabe-Ito Blue (#0072B2)
+ * Icon: dash-circle-fill (-)
+ * Medium confidence
+ */
+.category-icon--moderate .category-icon__symbol {
+  color: #0072B2;
 }
 
-/* Limited - Amber/Yellow (warning) */
-.category-icon--limited {
-  background: linear-gradient(145deg, #ff9800 0%, #f57c00 100%);
-  border: 2px solid #e65100;
+/*
+ * Limited - Okabe-Ito Orange (#E69F00)
+ * Icon: exclamation-circle-fill (!)
+ * Low confidence, needs more evidence
+ */
+.category-icon--limited .category-icon__symbol {
+  color: #E69F00;
 }
 
-/* Refuted - Red (danger) */
-.category-icon--refuted {
-  background: linear-gradient(145deg, #f44336 0%, #c62828 100%);
-  border: 2px solid #b71c1c;
+/*
+ * Refuted - Okabe-Ito Vermilion (#D55E00)
+ * Icon: x-circle-fill (✗)
+ * Rejected/disproven
+ */
+.category-icon--refuted .category-icon__symbol {
+  color: #D55E00;
 }
 
-/* Not applicable - Gray */
-.category-icon--na {
-  background: linear-gradient(145deg, #9e9e9e 0%, #616161 100%);
-  border: 2px solid #424242;
+/*
+ * Not applicable - Gray (#757575)
+ * Icon: slash-circle (∅)
+ * Category doesn't apply
+ */
+.category-icon--na .category-icon__symbol {
+  color: #757575;
 }
 
-/* Small size border adjustment */
-.category-icon--sm {
-  border-width: 1.5px;
+/*
+ * Not listed - Light Gray (#BDBDBD)
+ * Icon: circle (○) - empty/outline
+ * Gene not present in this source
+ */
+.category-icon--notlisted .category-icon__symbol {
+  color: #BDBDBD;
 }
 
 /* Accessibility - respect reduced motion */
@@ -150,24 +178,6 @@ export default {
 @media (max-width: 767px) {
   .category-icon {
     flex: 0 0 auto !important;
-    width: 1.5rem !important;
-    height: 1.5rem !important;
-    min-width: 1.5rem !important;
-    max-width: 1.5rem !important;
-  }
-
-  .category-icon--sm {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-    min-width: 1.25rem !important;
-    max-width: 1.25rem !important;
-  }
-
-  .category-icon--lg {
-    width: 2rem !important;
-    height: 2rem !important;
-    min-width: 2rem !important;
-    max-width: 2rem !important;
   }
 }
 </style>
