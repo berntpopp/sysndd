@@ -260,6 +260,36 @@ a {
   background-image: linear-gradient(to right, #434343 0%, black 100%);
 }
 
+/* Navbar toggler (hamburger menu) - WCAG 1.4.11 Non-text Contrast (3:1 minimum)
+ * The toggler icon must be clearly visible against the dark navbar background.
+ * Using bright white (#ffffff) provides excellent contrast against the dark gradient.
+ */
+:deep(.navbar-toggler) {
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  padding: 0.5rem;
+  border-radius: 4px;
+
+  &:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+    outline: none;
+  }
+
+  &:hover {
+    border-color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Override Bootstrap's navbar-toggler-icon for better visibility
+ * The default SVG uses rgba(255,255,255,0.55) which fails WCAG contrast.
+ * Using solid white (#ffffff) ensures 3:1+ contrast against dark backgrounds.
+ */
+:deep(.navbar-toggler-icon) {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+  width: 1.5em;
+  height: 1.5em;
+}
+
 /* Styles specific to the brand container in the navbar */
 .brand-container {
   display: flex;

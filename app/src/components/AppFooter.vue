@@ -122,4 +122,30 @@ export default {
     transition: none;
   }
 }
+
+/* Footer navbar toggler - WCAG 1.4.11 Non-text Contrast (3:1 minimum)
+ * Using dark color for good visibility against light footer background.
+ */
+:deep(.navbar-toggler) {
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  padding: 0.5rem;
+  border-radius: 4px;
+
+  &:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.15);
+    outline: none;
+  }
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Ensure dark toggler icon for light navbar */
+:deep(.navbar-toggler-icon) {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+  width: 1.5em;
+  height: 1.5em;
+}
 </style>
