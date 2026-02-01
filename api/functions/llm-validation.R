@@ -41,7 +41,13 @@ COMMON_WORDS <- c(
   # Clinical terms often in caps
   "ID", "ASD", "ADHD", "OCD", "MRI", "EEG", "CT", "PET",
   # Other common caps words
-  "USA", "UK", "EU", "WHO", "NIH", "CDC"
+  "USA", "UK", "EU", "WHO", "NIH", "CDC",
+  # Signaling pathway/protein family abbreviations (not gene symbols)
+  "MAPK", "PI3K", "AKT", "JAK", "STAT", "NOTCH", "WNT", "TGF", "BMP",
+  "ERK", "JNK", "MEK", "RAF", "RAS", "SRC", "NF-KB", "MTOR", "AMPK",
+  "CDK", "CYP", "ABC", "SLC", "HMG", "LDL", "HDL", "GABA", "NMDA", "AMPA",
+  # Truncated pathway names (from "PI3K-Akt", "DNA-PK", etc.)
+  "PI3K-", "DNA-", "HMG-", "TGF-", "NF-"
 )
 
 
