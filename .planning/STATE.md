@@ -19,14 +19,14 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-**Phase:** 66 of 68 (Infrastructure Fixes)
+**Phase:** 67 of 68 (Migration Coordination)
 **Plan:** 1 of 1 in current phase (complete)
-**Status:** Phase complete, ready for Phase 67
-**Progress:** v10.1 [███████░░░░░░░░░░░░░] 33%
+**Status:** Phase complete, ready for Phase 68
+**Progress:** v10.1 [██████████░░░░░░░░░░] 50%
 
-**Last completed:** 66-01-PLAN.md (Infrastructure Fixes)
-**Last activity:** 2026-02-01 — Completed 66-01-PLAN.md
-**Next action:** /gsd:plan-phase 67
+**Last completed:** 67-01-PLAN.md (Migration Coordination)
+**Last activity:** 2026-02-01 — Completed 67-01-PLAN.md
+**Next action:** /gsd:plan-phase 68
 
 ---
 
@@ -34,8 +34,8 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **v10.1 Phases:**
 - Phase 66: Infrastructure Fixes (COMPLETE) - DEPLOY-01, DEPLOY-02, DEPLOY-04, BUG-01
-- Phase 67: Migration Coordination (NEXT) - DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03
-- Phase 68: Local Production Testing - TEST-01, TEST-02, TEST-03, TEST-04
+- Phase 67: Migration Coordination (COMPLETE) - DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03
+- Phase 68: Local Production Testing (NEXT) - TEST-01, TEST-02, TEST-03, TEST-04
 
 **Research Decisions:**
 - UID 1000 with build-arg flexibility (maximum host compatibility)
@@ -47,14 +47,20 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 - Selective container_name removal: only api service for scaling
 - Favicon restored from _old directory to public root
 
+**Phase 67 Decisions:**
+- Check pending migrations BEFORE acquiring lock (fast path when up-to-date)
+- Re-check pending migrations AFTER acquiring lock (handles race condition)
+- Track fast_path and lock_acquired in migration_status for observability
+- Health endpoint reports current lock status via IS_USED_LOCK() query
+
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 291
+- Total plans completed: 292
 - Milestones shipped: 11 (v1-v10.0)
-- Phases completed: 72
+- Phases completed: 73
 
 **Current Stats:**
 
@@ -74,11 +80,11 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed 66-01-PLAN.md
-**Next action:** /gsd:plan-phase 67
+**Stopped at:** Completed 67-01-PLAN.md
+**Next action:** /gsd:plan-phase 68
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Completed Phase 66 Infrastructure Fixes*
+*Last updated: 2026-02-01 — Completed Phase 67 Migration Coordination*
