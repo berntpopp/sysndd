@@ -49,10 +49,10 @@ See previous milestone documentation. v10.0 delivered:
   2. Dockerfile UID is configurable via build-arg (default 1000)
   3. `docker compose --scale api=4` succeeds without container naming conflict
   4. Favicon image loads without 404 errors in browser
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 66-01: Infrastructure fixes (UID, container_name, favicon)
+- [ ] 66-01-PLAN.md — Infrastructure fixes (UID, container_name, favicon)
 
 ### Phase 67: Migration Coordination
 **Goal**: Multiple API containers start in parallel without migration lock timeout
@@ -86,11 +86,11 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 66 → 67 → 68
+Phases execute in numeric order: 66 -> 67 -> 68
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 66. Infrastructure Fixes | v10.1 | 0/1 | Not started | - |
+| 66. Infrastructure Fixes | v10.1 | 0/1 | Planned | - |
 | 67. Migration Coordination | v10.1 | 0/1 | Not started | - |
 | 68. Local Production Testing | v10.1 | 0/1 | Not started | - |
 
