@@ -108,7 +108,7 @@
             :model-name="Array.isArray(currentSummary.model_name) ? currentSummary.model_name[0] : currentSummary.model_name"
             :created-at="Array.isArray(currentSummary.created_at) ? currentSummary.created_at[0] : currentSummary.created_at"
             :validation-status="Array.isArray(currentSummary.validation_status) ? currentSummary.validation_status[0] : currentSummary.validation_status"
-            :cluster-number="selectedCluster?.cluster"
+            :cluster-number="Number(selectedCluster?.cluster)"
           />
           <div v-else-if="summaryLoading" class="my-3 mx-2">
             <BSpinner small class="me-2" />
