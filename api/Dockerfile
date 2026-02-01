@@ -3,10 +3,10 @@
 # SysNDD API - Multi-Stage Optimized R Plumber Docker Image
 # =============================================================================
 #
-# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.5.2)
+# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.4.3)
 # Key optimizations:
 # - Multi-stage build (base -> packages -> production)
-# - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 24.04 (noble)
+# - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 22.04 (jammy)
 # - Complete renv.lock with all dependencies (no manual installs needed)
 # - Debug symbol stripping
 # - Non-root user (uid 1001)
@@ -18,11 +18,11 @@
 # =============================================================================
 # Stage 1: Base - System dependencies and R configuration
 # =============================================================================
-FROM rocker/r-ver:4.5.2 AS base
+FROM rocker/r-ver:4.4.3 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
-# rocker/r-ver:4.5.2 uses Ubuntu 24.04 (noble), so we use noble binaries
-ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/latest"
+# rocker/r-ver:4.4.3 uses Ubuntu 22.04 (jammy), so we use jammy binaries
+ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/jammy/latest"
 
 # Disable pak to avoid version conflicts
 ENV RENV_CONFIG_PAK_ENABLED=FALSE
@@ -176,8 +176,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 # Image metadata
 LABEL maintainer="SysNDD Team" \
-      version="3.0" \
-      description="SysNDD R Plumber API (R 4.4.3, Multi-Stage Optimized)"
+      version="3.1" \
+      description="SysNDD R Plumber API (R 4.4.3, Multi-Stage Optimized, ellmer compatible)"
 
 # Switch to non-root user for security
 USER apiuser
