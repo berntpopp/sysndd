@@ -48,6 +48,7 @@ export function useCmsContent() {
       const response = await axios.get<AboutContent>(`${API_URL}/api/about/draft`, {
         headers: getAuthHeader(),
         timeout: 5000,
+        withCredentials: true,
       });
 
       if (response.data && response.data.sections) {
@@ -98,7 +99,7 @@ export function useCmsContent() {
       await axios.put(
         `${API_URL}/api/about/draft`,
         { sections: sections.value },
-        { headers: getAuthHeader() }
+        { headers: getAuthHeader(), withCredentials: true }
       );
 
       lastSavedAt.value = new Date();
@@ -129,7 +130,7 @@ export function useCmsContent() {
       const response = await axios.post<{ message: string; version: number }>(
         `${API_URL}/api/about/publish`,
         { sections: sections.value },
-        { headers: getAuthHeader() }
+        { headers: getAuthHeader(), withCredentials: true }
       );
 
       currentVersion.value = response.data.version;
@@ -154,7 +155,8 @@ export function useCmsContent() {
 
     try {
       const response = await axios.get<{ sections: AboutSection[] }>(
-        `${API_URL}/api/about/published`
+        `${API_URL}/api/about/published`,
+        { withCredentials: true }
       );
 
       return response.data?.sections || [];

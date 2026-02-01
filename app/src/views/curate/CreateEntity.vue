@@ -222,7 +222,8 @@ export default defineComponent({
     const loadFlatOptions = async (endpoint: string, targetRef: typeof inheritanceOptions) => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`
+          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
+          { withCredentials: true }
         );
         targetRef.value = flattenTreeOptions(response.data);
       } catch (e) {
@@ -234,7 +235,8 @@ export default defineComponent({
     const loadGroupedOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`
+          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
+          { withCredentials: true }
         );
         targetRef.value = createGroupedOptions(response.data);
       } catch (e) {
@@ -325,7 +327,8 @@ export default defineComponent({
     ) => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/gene/${query}?tree=true`
+          `${import.meta.env.VITE_API_URL}/api/search/gene/${query}?tree=true`,
+          { withCredentials: true }
         );
         callback(response.data);
       } catch (e) {
@@ -341,7 +344,8 @@ export default defineComponent({
     ) => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/ontology/${query}?tree=true`
+          `${import.meta.env.VITE_API_URL}/api/search/ontology/${query}?tree=true`,
+          { withCredentials: true }
         );
         callback(response.data);
       } catch (e) {
@@ -438,6 +442,7 @@ export default defineComponent({
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
             },
+            withCredentials: true,
           }
         );
 

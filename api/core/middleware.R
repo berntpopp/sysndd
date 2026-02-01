@@ -178,7 +178,12 @@ require_role <- function(req, res, min_role) {
   )
 
   # Get user's role level (default to 0 if missing or invalid)
-  user_level <- role_levels[[req$user_role]] %||% 0
+  # Use single bracket indexing to safely handle NULL/missing roles (returns NA instead of error)
+  user_level <- if (is.null(req$user_role) || !req$user_role %in% names(role_levels)) {
+    0
+  } else {
+    role_levels[[req$user_role]]
+  }
   required_level <- role_levels[[min_role]] %||% 1
 
   if (user_level < required_level) {

@@ -9,7 +9,7 @@ axios.defaults.headers.common.Authorization = `Bearer ${localStorage.getItem('to
 const config = {
   // baseURL: process.env.baseURL || process.env.apiUrl || ""
   // timeout: 60 * 1000, // Timeout
-  // withCredentials: true, // Check cross-site Access-Control
+  withCredentials: true, // Required for sticky session cookies with load balancer
 };
 
 const _axios = axios.create(config);

@@ -211,6 +211,7 @@ export function useAsyncJob(
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true, // Required for sticky session cookies with load balancer
       });
 
       const data = response.data;

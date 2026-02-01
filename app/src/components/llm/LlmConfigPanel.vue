@@ -94,6 +94,17 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import {
+  BCard,
+  BAlert,
+  BForm,
+  BFormGroup,
+  BFormSelect,
+  BFormText,
+  BFormInput,
+  BRow,
+  BCol,
+} from 'bootstrap-vue-next';
 import type { LlmConfig } from '@/types/llm';
 
 const props = defineProps<{

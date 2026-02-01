@@ -229,7 +229,9 @@ async function fetchUniprotData(): Promise<void> {
 
   try {
     const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(`${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`);
+    const response = await axios.get(`${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`, {
+      withCredentials: true,
+    });
 
     // Check for valid response with domains
     if (response.data && response.data.domains) {
@@ -278,8 +280,8 @@ async function loadGeneInfo() {
   try {
     // Parallel fetch: both gene API calls run concurrently
     const [responseGene, responseSymbol] = await Promise.all([
-      axios.get(apiGeneURL),
-      axios.get(apiGeneSymbolURL),
+      axios.get(apiGeneURL, { withCredentials: true }),
+      axios.get(apiGeneSymbolURL, { withCredentials: true }),
     ]);
 
     if (responseGene.data.length === 0 && responseSymbol.data.length === 0) {

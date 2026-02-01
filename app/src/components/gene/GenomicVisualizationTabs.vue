@@ -479,7 +479,8 @@ async function fetchGeneStructureData(): Promise<void> {
   try {
     const apiBase = import.meta.env.VITE_API_URL;
     const response = await axios.get(
-      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`
+      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`,
+      { withCredentials: true }
     );
 
     if (response.data?.found === false) {

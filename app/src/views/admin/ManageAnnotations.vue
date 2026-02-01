@@ -1261,6 +1261,7 @@ async function downloadJobHistory() {
       params: {
         limit: 1000,
       },
+      withCredentials: true,
     });
     const data = response.data?.data || [];
     if (data.length === 0) {
@@ -1316,6 +1317,7 @@ async function fetchAnnotationDates() {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      withCredentials: true,
     });
     const data = response.data;
     annotationDates.value = {
@@ -1390,6 +1392,7 @@ async function fetchJobHistory() {
       params: {
         limit: 20,
       },
+      withCredentials: true,
     });
     // Handle R/Plumber response structure
     const data = response.data;
@@ -1445,6 +1448,7 @@ async function fetchDeprecatedEntities() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
     const data = response.data;
@@ -1495,6 +1499,7 @@ async function updateOntologyAnnotations() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 
@@ -1523,6 +1528,7 @@ async function updateHgncData() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 
@@ -1549,6 +1555,7 @@ async function fetchPubtatorStats() {
           page_size: 1,
           fields: 'gene_symbol',
         },
+        withCredentials: true,
       }
     );
 
@@ -1566,6 +1573,7 @@ async function fetchPubtatorStats() {
           page_size: 1,
           fields: 'search_id',
         },
+        withCredentials: true,
       }
     );
 
@@ -1584,6 +1592,7 @@ async function fetchPubtatorStats() {
           filter: 'is_novel==1',
           fields: 'gene_symbol',
         },
+        withCredentials: true,
       }
     );
 
@@ -1618,6 +1627,7 @@ async function fetchPublicationStats() {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      withCredentials: true,
     });
     publicationStats.value = {
       total: unwrapValue(response.data.total),
@@ -1634,7 +1644,9 @@ async function fetchPublicationStats() {
 async function fetchComparisonsMetadata() {
   loadingComparisonsMetadata.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`, {
+      withCredentials: true,
+    });
     comparisonsMetadata.value = {
       last_full_refresh: unwrapValue(response.data.last_full_refresh),
       last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
@@ -1661,6 +1673,7 @@ async function refreshComparisons() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 
@@ -1705,6 +1718,7 @@ async function fetchFilteredCount() {
       params: {
         not_updated_since: notUpdatedSince.value,
       },
+      withCredentials: true,
     });
     filteredCount.value = unwrapValue(response.data.filtered_count) ?? null;
   } catch (error) {
@@ -1732,6 +1746,7 @@ async function refreshFilteredPublications() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 
@@ -1774,6 +1789,7 @@ async function refreshAllPublications() {
         fields: 'publication_id',
         page_size: 10000, // Get all publications
       },
+      withCredentials: true,
     });
 
     // Extract PMIDs from the cursor-paginated response
@@ -1796,6 +1812,7 @@ async function refreshAllPublications() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 

@@ -131,6 +131,7 @@ export function useBatchForm() {
           page_size: 15,
         },
         headers: token ? { Authorization: `Bearer ${token}` } : {},
+        withCredentials: true,
       });
       const data = response.data?.data || response.data || [];
       entitySearchResults.value = Array.isArray(data) ? data : [];
@@ -208,6 +209,7 @@ export function useBatchForm() {
       // Load users (Curators and Reviewers)
       const usersResponse = await axios.get(`${apiUrl}/api/user/list?roles=Curator,Reviewer`, {
         headers,
+        withCredentials: true,
       });
       const usersData = usersResponse.data;
       userOptions.value = Array.isArray(usersData)
@@ -218,7 +220,7 @@ export function useBatchForm() {
         : [];
 
       // Load status categories from /api/list/status
-      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, { headers });
+      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, { headers, withCredentials: true });
       const statusData = statusResponse.data;
       // Handle paginated response format
       const statusArray = statusData?.data || statusData;
@@ -232,7 +234,7 @@ export function useBatchForm() {
       // Load genes from /api/gene/ (get all genes for selection)
       const genesResponse = await axios.get(
         `${apiUrl}/api/gene/?page_size=all&fields=symbol,hgnc_id`,
-        { headers }
+        { headers, withCredentials: true }
       );
       const genesData = genesResponse.data;
       // Handle paginated response format
@@ -263,6 +265,7 @@ export function useBatchForm() {
     try {
       const response = await axios.post(`${apiUrl}/api/re_review/batch/preview`, buildCriteria(), {
         headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
 
       previewEntities.value = response.data.data || [];
@@ -297,6 +300,7 @@ export function useBatchForm() {
 
       const response = await axios.post(`${apiUrl}/api/re_review/batch/create`, payload, {
         headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
       });
 
       const result = response.data.entry;

@@ -142,6 +142,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     try {
       const response = await axios.get<LlmConfig>(`${API_BASE}/config`, {
         headers: authHeaders(token),
+        withCredentials: true,
       });
       // Unwrap Plumber's array-wrapped scalar values
       config.value = unwrapPlumberValue(response.data);
@@ -160,6 +161,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       const response = await axios.put<ModelUpdateResponse>(`${API_BASE}/config`, null, {
         headers: authHeaders(token),
         params: { model },
+        withCredentials: true,
       });
       if (config.value) {
         config.value.current_model = model;
@@ -183,6 +185,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     try {
       const response = await axios.get<PromptTemplates>(`${API_BASE}/prompts`, {
         headers: authHeaders(token),
+        withCredentials: true,
       });
       prompts.value = response.data;
     } catch (e) {
@@ -206,7 +209,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       const response = await axios.put<PromptUpdateResponse>(
         `${API_BASE}/prompts/${type}`,
         { template, version, description },
-        { headers: authHeaders(token) }
+        { headers: authHeaders(token), withCredentials: true }
       );
       return response.data;
     } catch (e) {
@@ -227,6 +230,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     try {
       const response = await axios.get<CacheStats>(`${API_BASE}/cache/stats`, {
         headers: authHeaders(token),
+        withCredentials: true,
       });
       cacheStats.value = response.data;
     } catch (e) {
@@ -249,6 +253,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     const response = await axios.get<PaginatedCacheSummaries>(`${API_BASE}/cache/summaries`, {
       headers: authHeaders(token),
       params,
+      withCredentials: true,
     });
     return response.data;
   }
@@ -260,6 +265,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     const response = await axios.delete<CacheClearResponse>(`${API_BASE}/cache`, {
       headers: authHeaders(token),
       params: { cluster_type: clusterType },
+      withCredentials: true,
     });
     return response.data;
   }
@@ -275,6 +281,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       {
         headers: authHeaders(token),
         params: { action },
+        withCredentials: true,
       }
     );
     return response.data;
@@ -292,6 +299,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     const response = await axios.post<RegenerationJobResponse>(`${API_BASE}/regenerate`, null, {
       headers: authHeaders(token),
       params: { cluster_type: clusterType, force },
+      withCredentials: true,
     });
     return response.data;
   }
@@ -314,6 +322,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     const response = await axios.get<PaginatedLogs>(`${API_BASE}/logs`, {
       headers: authHeaders(token),
       params,
+      withCredentials: true,
     });
     return response.data;
   }

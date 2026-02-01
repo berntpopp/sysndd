@@ -214,10 +214,10 @@ export default function useReviewForm(entityId?: string | number) {
     try {
       const [responseReview, responsePhenotypes, responseVariation, responsePublications] =
         await Promise.all([
-          axios.get(apiGetReviewURL),
-          axios.get(apiGetPhenotypesURL),
-          axios.get(apiGetVariationURL),
-          axios.get(apiGetPublicationsURL),
+          axios.get(apiGetReviewURL, { withCredentials: true }),
+          axios.get(apiGetPhenotypesURL, { withCredentials: true }),
+          axios.get(apiGetVariationURL, { withCredentials: true }),
+          axios.get(apiGetPublicationsURL, { withCredentials: true }),
         ]);
 
       // Load synopsis and comment
@@ -330,6 +330,7 @@ export default function useReviewForm(entityId?: string | number) {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 

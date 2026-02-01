@@ -104,6 +104,7 @@ export function useNetworkData(): NetworkDataState {
           cluster_type: clusterType,
           max_edges: maxEdges,
         },
+        withCredentials: true,
       });
       networkData.value = response.data;
 

@@ -91,7 +91,8 @@ async function fetchEnsemblData() {
   try {
     const apiBase = import.meta.env.VITE_API_URL;
     const response = await axios.get(
-      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`
+      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`,
+      { withCredentials: true }
     );
 
     // Check for API-level not-found or error

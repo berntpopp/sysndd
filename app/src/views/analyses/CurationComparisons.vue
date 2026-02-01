@@ -108,7 +108,9 @@ function formatDateTime(dateString: string | null): string {
 async function fetchMetadata() {
   loadingMetadata.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`, {
+      withCredentials: true,
+    });
     metadata.value = {
       last_full_refresh: unwrapValue(response.data.last_full_refresh),
       last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',

@@ -108,7 +108,8 @@ export function useGeneExternalData(geneSymbol: Ref<string> | string): UseGeneEx
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/gnomad/variants/${symbol.value}`
+            `${import.meta.env.VITE_API_URL}/api/external/gnomad/variants/${symbol.value}`,
+            { withCredentials: true }
           );
 
           const result = response.data;
@@ -141,7 +142,8 @@ export function useGeneExternalData(geneSymbol: Ref<string> | string): UseGeneEx
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/alphafold/structure/${symbol.value}`
+            `${import.meta.env.VITE_API_URL}/api/external/alphafold/structure/${symbol.value}`,
+            { withCredentials: true }
           );
 
           const result = response.data;

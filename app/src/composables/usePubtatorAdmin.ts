@@ -96,6 +96,7 @@ export function usePubtatorAdmin() {
     try {
       const response = await axios.get<CacheStatus>(`${baseUrl}/cache-status`, {
         params: { query },
+        withCredentials: true,
       });
       lastStatus.value = response.data;
       return response.data;
@@ -125,6 +126,7 @@ export function usePubtatorAdmin() {
     try {
       const response = await axios.post<JobSubmitResponse>(`${baseUrl}/update/submit`, null, {
         params: { query, max_pages: maxPages, clear_old: clearOld },
+        withCredentials: true,
       });
 
       // Start tracking the job with useAsyncJob
@@ -160,7 +162,9 @@ export function usePubtatorAdmin() {
     error.value = null;
 
     try {
-      const response = await axios.post<ClearResponse>(`${baseUrl}/clear-cache`);
+      const response = await axios.post<ClearResponse>(`${baseUrl}/clear-cache`, null, {
+        withCredentials: true,
+      });
       return response.data;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to clear cache';
@@ -185,6 +189,7 @@ export function usePubtatorAdmin() {
       const response = await axios.post<BackfillResponse>(`${baseUrl}/backfill-genes`, null, {
         params,
         timeout: 120000, // 2 minutes for potentially large backfill
+        withCredentials: true,
       });
       return response.data;
     } catch (err) {

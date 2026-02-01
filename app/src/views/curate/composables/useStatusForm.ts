@@ -139,7 +139,7 @@ export default function useStatusForm(entityId?: string | number) {
     const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/${statusId}`;
 
     try {
-      const response = await axios.get(apiUrl);
+      const response = await axios.get(apiUrl, { withCredentials: true });
 
       if (!response.data || response.data.length === 0) {
         throw new Error('Status not found');
@@ -175,7 +175,7 @@ export default function useStatusForm(entityId?: string | number) {
     const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/${entityId}/status`;
 
     try {
-      const response = await axios.get(apiUrl);
+      const response = await axios.get(apiUrl, { withCredentials: true });
 
       if (!response.data || response.data.length === 0) {
         throw new Error('Status not found for entity');
@@ -252,6 +252,7 @@ export default function useStatusForm(entityId?: string | number) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            withCredentials: true,
           }
         );
       } else {
@@ -262,6 +263,7 @@ export default function useStatusForm(entityId?: string | number) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            withCredentials: true,
           }
         );
       }

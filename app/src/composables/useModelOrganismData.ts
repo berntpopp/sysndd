@@ -110,7 +110,8 @@ export function useModelOrganismData(geneSymbol: Ref<string> | string): UseModel
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/mgi/phenotypes/${symbol.value}`
+            `${import.meta.env.VITE_API_URL}/api/external/mgi/phenotypes/${symbol.value}`,
+            { withCredentials: true }
           );
 
           const result = response.data;
@@ -144,7 +145,8 @@ export function useModelOrganismData(geneSymbol: Ref<string> | string): UseModel
       (async () => {
         try {
           const response = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/external/rgd/phenotypes/${symbol.value}`
+            `${import.meta.env.VITE_API_URL}/api/external/rgd/phenotypes/${symbol.value}`,
+            { withCredentials: true }
           );
 
           const result = response.data;

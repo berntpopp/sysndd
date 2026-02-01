@@ -604,6 +604,7 @@ async function fetchBackupList() {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      withCredentials: true,
     });
 
     const data = response.data;
@@ -644,6 +645,7 @@ async function downloadBackup(filename: string) {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
+      withCredentials: true,
     });
 
     const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -690,6 +692,7 @@ async function confirmRestore() {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
+        withCredentials: true,
       }
     );
 
@@ -721,6 +724,7 @@ async function confirmDelete() {
           'Content-Type': 'application/json',
         },
         data: { confirm: 'DELETE' },
+        withCredentials: true,
       }
     );
 
@@ -749,6 +753,7 @@ async function triggerBackup() {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
+        withCredentials: true,
       }
     );
 

@@ -30,7 +30,9 @@ class ApiService {
    */
   async fetchStatistics(type: string): Promise<StatisticsResponse> {
     const url = `${URLS.API_URL}/api/statistics/category_count?type=${type}`;
-    const response: AxiosResponse<StatisticsResponse> = await axios.get(url);
+    const response: AxiosResponse<StatisticsResponse> = await axios.get(url, {
+      withCredentials: true,
+    });
     return response.data;
   }
 
@@ -42,7 +44,9 @@ class ApiService {
    */
   async fetchNews(n: number): Promise<NewsResponse> {
     const url = `${URLS.API_URL}/api/statistics/news?n=${n}`;
-    const response: AxiosResponse<NewsResponse> = await axios.get(url);
+    const response: AxiosResponse<NewsResponse> = await axios.get(url, {
+      withCredentials: true,
+    });
     return response.data;
   }
 
@@ -54,7 +58,9 @@ class ApiService {
    */
   async fetchSearchInfo(searchInput: string): Promise<SearchResponse> {
     const url = `${URLS.API_URL}/api/search/${searchInput}?helper=true`;
-    const response: AxiosResponse<SearchResponse> = await axios.get(url);
+    const response: AxiosResponse<SearchResponse> = await axios.get(url, {
+      withCredentials: true,
+    });
     return response.data;
   }
 }

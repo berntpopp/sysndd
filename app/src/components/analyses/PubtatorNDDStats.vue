@@ -200,7 +200,7 @@ async function fetchStats() {
   const apiUrl = `${baseUrl}?${params.toString()}`;
 
   try {
-    const response = await axios.get(apiUrl);
+    const response = await axios.get(apiUrl, { withCredentials: true });
     // Store the raw gene data - each item has gene_symbol, publication_count, and is_novel
     rawGeneData.value = (response.data.data || []).map((item: Record<string, unknown>) => ({
       gene_symbol: String(item.gene_symbol || 'Unknown'),

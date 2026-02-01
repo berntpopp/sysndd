@@ -360,7 +360,7 @@ onMounted(async () => {
     // Try to load CMS content from API
     const response = await axios.get<{ sections: AboutSection[] } | AboutSection[]>(
       `${API_URL}/api/about/published`,
-      { timeout: 5000 }
+      { timeout: 5000, withCredentials: true }
     );
 
     // Handle different response formats
