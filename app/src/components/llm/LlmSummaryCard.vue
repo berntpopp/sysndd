@@ -7,30 +7,19 @@
           <i class="bi bi-stars me-2 text-warning" />
           AI-Generated Summary
         </h6>
-        <div class="d-flex gap-2 align-items-center">
-          <!-- Judge verdict badge (primary) -->
-          <BBadge
-            v-if="judgeVerdict"
-            v-b-tooltip.hover.left="judgeVerdictTooltip"
-            :variant="judgeVerdictVariant"
-            class="d-flex align-items-center"
-          >
-            <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
-            <i v-else-if="judgeVerdict === 'accept_with_corrections'" class="bi bi-check-circle me-1" />
-            <i v-else-if="judgeVerdict === 'low_confidence'" class="bi bi-exclamation-triangle-fill me-1" />
-            <i v-else-if="judgeVerdict === 'reject'" class="bi bi-x-circle-fill me-1" />
-            {{ judgeVerdictLabel }}
-          </BBadge>
-          <!-- FDR confidence badge (secondary, only for functional clusters) -->
-          <BBadge
-            v-if="derivedConfidence"
-            v-b-tooltip.hover.left="confidenceTooltip"
-            :variant="confidenceVariant"
-            pill
-          >
-            FDR: {{ confidenceLabel }}
-          </BBadge>
-        </div>
+        <!-- Judge verdict badge -->
+        <BBadge
+          v-if="judgeVerdict"
+          v-b-tooltip.hover.left="judgeVerdictTooltip"
+          :variant="judgeVerdictVariant"
+          class="d-flex align-items-center"
+        >
+          <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
+          <i v-else-if="judgeVerdict === 'accept_with_corrections'" class="bi bi-check-circle me-1" />
+          <i v-else-if="judgeVerdict === 'low_confidence'" class="bi bi-exclamation-triangle-fill me-1" />
+          <i v-else-if="judgeVerdict === 'reject'" class="bi bi-x-circle-fill me-1" />
+          {{ judgeVerdictLabel }}
+        </BBadge>
       </div>
     </template>
 
