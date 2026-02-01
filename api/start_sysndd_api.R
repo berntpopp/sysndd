@@ -348,6 +348,10 @@ everywhere({
   if (requireNamespace("ellmer", quietly = TRUE)) {
     library(ellmer)
   }
+  # Load pdftools for PDF parsing in comparisons update (optional)
+  if (requireNamespace("pdftools", quietly = TRUE)) {
+    library(pdftools)
+  }
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)
@@ -614,6 +618,7 @@ root <- pr() %>%
   pr_mount("/api/auth", pr("endpoints/authentication_endpoints.R")) %>%
   pr_mount("/api/about", pr("endpoints/about_endpoints.R")) %>%
   pr_mount("/api/admin", pr("endpoints/admin_endpoints.R")) %>%
+  pr_mount("/api/llm", pr("endpoints/llm_admin_endpoints.R")) %>%
   pr_mount("/api/backup", pr("endpoints/backup_endpoints.R")) %>%
   pr_mount("/api/external", pr("endpoints/external_endpoints.R")) %>%
   pr_mount("/api/statistics", pr("endpoints/statistics_endpoints.R")) %>%

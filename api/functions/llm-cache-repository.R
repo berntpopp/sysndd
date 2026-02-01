@@ -572,7 +572,7 @@ get_cached_summaries_paginated <- function(
   page = 1L,
   per_page = 20L
 ) {
-  log_info("Fetching cached summaries: type={cluster_type %||% 'all'}, status={validation_status %||% 'all'}, page={page}")
+  log_info("Fetching summaries: type={cluster_type %||% 'all'}, status={validation_status %||% 'all'}, page={page}")
 
   # Coerce to integer
   page <- as.integer(page)
