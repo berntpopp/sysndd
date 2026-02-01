@@ -77,6 +77,7 @@ Deferred to v10.1+. Tracked but not in current roadmap.
 
 - **PUBT-07**: Entity co-occurrence visualization (network view)
 - **PUBT-08**: Curation queue integration (add to re-review batch button)
+- **PUBT-09**: PubTator Cache Management improvements (ManageAnnotations) - page range selection, hard vs soft update controls
 
 ### LLM Enhancements
 
