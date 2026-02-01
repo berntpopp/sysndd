@@ -365,6 +365,9 @@ everywhere({
   source("/app/functions/db-helpers.R", local = FALSE)
   # Source PubTator functions for async update jobs
   source("/app/functions/pubtator-functions.R", local = FALSE)
+  # Source comparisons functions for async comparisons update jobs
+  source("/app/functions/comparisons-sources.R", local = FALSE)
+  source("/app/functions/comparisons-functions.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 
