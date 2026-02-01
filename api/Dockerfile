@@ -9,7 +9,7 @@
 # - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 24.04 (noble)
 # - Complete renv.lock with all dependencies (no manual installs needed)
 # - Debug symbol stripping
-# - Non-root user (uid 1001)
+# - Non-root user (default uid 1000, configurable via --build-arg)
 # - HEALTHCHECK instruction
 #
 # Build command:
@@ -157,9 +157,14 @@ FROM base AS production
 ARG GIT_COMMIT=unknown
 ENV GIT_COMMIT=${GIT_COMMIT}
 
-# Create non-root user with specific UID/GID for security
-RUN groupadd -g 1001 api && \
-    useradd -u 1001 -g api -m -s /bin/bash apiuser
+# Build-time UID/GID configuration for host bind mount compatibility
+# Default 1000 matches most Linux host users; override with --build-arg UID=1001
+ARG UID=1000
+ARG GID=1000
+
+# Create non-root user with configurable UID/GID for security
+RUN groupadd -g ${GID} api && \
+    useradd -u ${UID} -g api -m -s /bin/bash apiuser
 
 WORKDIR /app
 
