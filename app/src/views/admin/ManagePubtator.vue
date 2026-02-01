@@ -365,7 +365,7 @@ async function checkStatus() {
 
   try {
     await getCacheStatus(query.value);
-  } catch (err) {
+  } catch (_err) {
     feedbackMessage.value = `Error checking status: ${error.value}`;
     feedbackVariant.value = 'danger';
   }
@@ -377,10 +377,10 @@ async function submitFetch() {
   resetJob(); // Clear any previous job state
 
   try {
-    const result = await submitFetchJob(query.value, maxPages.value, clearOld.value);
+    await submitFetchJob(query.value, maxPages.value, clearOld.value);
     feedbackMessage.value = `Job submitted! Fetching ${maxPages.value} pages (~${Math.round((maxPages.value * 2.5) / 60)} min)`;
     feedbackVariant.value = 'info';
-  } catch (err) {
+  } catch (_err) {
     feedbackMessage.value = `Error submitting job: ${error.value}`;
     feedbackVariant.value = 'danger';
   }
@@ -391,10 +391,10 @@ async function backfillGenes() {
   feedbackMessage.value = '';
 
   try {
-    const result = await backfillGeneSymbols(lastStatus.value.query_id[0]);
-    feedbackMessage.value = result.message[0];
+    const backfillResult = await backfillGeneSymbols(lastStatus.value.query_id[0]);
+    feedbackMessage.value = backfillResult.message[0];
     feedbackVariant.value = 'success';
-  } catch (err) {
+  } catch (_err) {
     feedbackMessage.value = `Error backfilling: ${error.value}`;
     feedbackVariant.value = 'danger';
   }
@@ -404,11 +404,11 @@ async function clearAllCache() {
   feedbackMessage.value = '';
 
   try {
-    const result = await clearCache();
-    feedbackMessage.value = result.message[0];
+    const clearResult = await clearCache();
+    feedbackMessage.value = clearResult.message[0];
     feedbackVariant.value = 'success';
     lastStatus.value = null;
-  } catch (err) {
+  } catch (_err) {
     feedbackMessage.value = `Error clearing cache: ${error.value}`;
     feedbackVariant.value = 'danger';
   } finally {

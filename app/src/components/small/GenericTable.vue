@@ -421,9 +421,9 @@ export default {
      * so we handle head-clicked directly to ensure sorting works.
      * @param {string} key - The field key that was clicked
      * @param {Object} field - The field definition object
-     * @param {Event} event - The click event
+     * @param {Event} _event - The click event (unused but required by event signature)
      */
-    handleHeadClicked(key, field, event) {
+    handleHeadClicked(key, field, _event) {
       // Only handle sortable columns
       if (!field || field.sortable === false) {
         return;

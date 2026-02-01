@@ -533,7 +533,7 @@ export default {
         }
 
         this.currentSummary = response.data;
-      } catch (error) {
+      } catch (_error) {
         // Only reaches here for actual errors (network, 500, etc.)
         this.makeToast(
           'Unable to load AI summary. The summary may still be generating.',

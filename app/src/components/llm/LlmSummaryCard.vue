@@ -305,7 +305,8 @@ export default defineComponent({
     /**
      * Syndromicity badge variant
      */
-    const syndromicityVariant = computed<string>(() => {
+    type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
+    const syndromicityVariant = computed<BadgeVariant>(() => {
       const syndromicity = normalize(props.summary?.syndromicity);
       switch (syndromicity) {
         case 'predominantly_syndromic':
@@ -385,7 +386,6 @@ export default defineComponent({
     /**
      * Judge verdict label for display
      */
-    type BadgeVariant = 'success' | 'warning' | 'danger' | 'secondary';
     const judgeVerdictLabel = computed<string>(() => {
       const verdict = judgeVerdict.value;
       if (!verdict) return '';
