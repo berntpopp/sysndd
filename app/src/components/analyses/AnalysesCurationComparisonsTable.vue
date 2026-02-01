@@ -237,10 +237,6 @@
             <CategoryIcon :category="row.geisinger_DBD" size="sm" />
           </template>
 
-          <template #cell-omim_ndd="{ row }">
-            <CategoryIcon :category="row.omim_ndd" size="sm" />
-          </template>
-
           <template #cell-orphanet_id="{ row }">
             <CategoryIcon :category="row.orphanet_id" size="sm" />
           </template>
@@ -287,7 +283,7 @@ export default {
     fspecInput: {
       type: String,
       default:
-        'symbol,SysNDD,radboudumc_ID,gene2phenotype,panelapp,sfari,geisinger_DBD,omim_ndd,orphanet_id',
+        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id',
     },
   },
   setup() {
@@ -322,15 +318,8 @@ export default {
           class: 'text-start',
         },
         {
-          key: 'radboudumc_ID',
-          label: 'Radboud UMC ID',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
           key: 'gene2phenotype',
-          label: 'gene2phenotype',
+          label: 'Gene2Phenotype',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -338,6 +327,13 @@ export default {
         {
           key: 'panelapp',
           label: 'PanelApp',
+          sortable: true,
+          filterable: true,
+          class: 'text-start',
+        },
+        {
+          key: 'radboudumc_ID',
+          label: 'Radboudumc',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -357,15 +353,8 @@ export default {
           class: 'text-start',
         },
         {
-          key: 'omim_ndd',
-          label: 'OMIM NDD',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
           key: 'orphanet_id',
-          label: 'Orphanet ID',
+          label: 'Orphanet',
           sortable: true,
           filterable: true,
           class: 'text-start',
@@ -387,12 +376,11 @@ export default {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
         SysNDD: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         gene2phenotype: { content: null, join_char: ',', operator: 'any' },
         panelapp: { content: null, join_char: ',', operator: 'any' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
       },
       filter_string: '',
@@ -554,12 +542,11 @@ export default {
         any: { content: null, join_char: null, operator: 'contains' },
         symbol: { content: null, join_char: null, operator: 'contains' },
         SysNDD: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         gene2phenotype: { content: null, join_char: ',', operator: 'any' },
         panelapp: { content: null, join_char: ',', operator: 'any' },
+        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
       };
     },

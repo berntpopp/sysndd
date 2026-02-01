@@ -5,10 +5,20 @@
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
           <div>
-            <BCard no-body>
+            <BCard title="Curation comparisons" no-body>
               <BCardHeader header-tag="nav" class="d-flex justify-content-between align-items-center flex-wrap">
+                <BNav card-header tabs>
+                  <BNavItem to="/CurationComparisons" exact exact-active-class="active">
+                    Overlap
+                  </BNavItem>
+                  <BNavItem to="/CurationComparisons/Similarity" exact exact-active-class="active">
+                    Similarity
+                  </BNavItem>
+                  <BNavItem to="/CurationComparisons/Table" exact exact-active-class="active">
+                    Table
+                  </BNavItem>
+                </BNav>
                 <div class="d-flex align-items-center">
-                  <h5 class="mb-0 me-3">Curation comparisons</h5>
                   <span
                     v-if="metadata.last_full_refresh"
                     v-b-tooltip.hover.bottom
@@ -24,17 +34,6 @@
                     No refresh data
                   </span>
                 </div>
-                <BNav card-header tabs class="border-0">
-                  <BNavItem to="/CurationComparisons" exact exact-active-class="active">
-                    Overlap
-                  </BNavItem>
-                  <BNavItem to="/CurationComparisons/Similarity" exact exact-active-class="active">
-                    Similarity
-                  </BNavItem>
-                  <BNavItem to="/CurationComparisons/Table" exact exact-active-class="active">
-                    Table
-                  </BNavItem>
-                </BNav>
               </BCardHeader>
 
               <BCardBody>

@@ -119,10 +119,16 @@ parse_radboudumc_pdf <- function(file_path) {
              fill = "right",
              extra = "drop") %>%
     filter(!is.na(gene_symbol)) %>%
+    # Filter out PDF header/footer text and non-gene entries
     filter(!(gene_symbol %in% c(
       "", "%", "OMIM", "Gene", "Genes", "Median", "Ad",
-      "Coverage", "Covered", "Non", "EAS.GenProductCoverage.pdf.footer.ad01"
-    )))
+      "Coverage", "Covered", "Non", "EAS.GenProductCoverage.pdf.footer.ad01",
+      "PHENOTYPE", "DESCRIPTION", "ALACRIMIA", "ADDISONIANISM-"
+    ))) %>%
+    # Valid gene symbols are uppercase, 1-12 chars, alphanumeric with optional dash/number
+    # Filter out entries that look like descriptions (contain lowercase, end with dash, etc.)
+    filter(str_detect(gene_symbol, "^[A-Z0-9][A-Z0-9-]*[A-Z0-9]$|^[A-Z0-9]$")) %>%
+    filter(nchar(gene_symbol) <= 15)
 
   # Clean up OMIM IDs
   result <- radboudumc_pdf_list %>%
@@ -538,7 +544,8 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
     "unknown"
   )
 
-  # Handle radboudumc-specific OMIM ID formatting
+  # Handle radboudumc-specific OMIM ID formatting and set category
+  # Original script sets category = "Definitive" for all radboudumc entries
   if (source_name == "radboudumc_ID" && "OMIMdiseaseID" %in% colnames(result)) {
     result <- result %>%
       dplyr::select(-any_of("disease_ontology_id")) %>%
@@ -548,8 +555,15 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
         disease_ontology_id = case_when(
           is.na(disease_ontology_id) ~ disease_ontology_id,
           !is.na(disease_ontology_id) ~ paste0("OMIM:", disease_ontology_id)
-        )
+        ),
+        category = "Definitive"  # All radboudumc entries are considered Definitive
       )
+  }
+
+  # Geisinger DBD also sets category = "Definitive" per original script
+  if (source_name == "geisinger_DBD") {
+    result <- result %>%
+      mutate(category = "Definitive")
   }
 
   # Handle gene2phenotype OMIM ID formatting
@@ -877,26 +891,31 @@ comparisons_update_async <- function(params) {
 
     message(sprintf("[%s] [job:%s] Merged %d total rows", Sys.time(), job_id, nrow(merged_data)))
 
-    # Resolve HGNC symbols
-    symbols_to_resolve <- merged_data$symbol[!is.na(merged_data$symbol)]
+    # Resolve HGNC symbols - use unique symbols only to avoid duplication
+    symbols_to_resolve <- unique(toupper(merged_data$symbol[!is.na(merged_data$symbol)]))
     resolved <- resolve_hgnc_symbols(symbols_to_resolve, conn)
 
+    # Create unique lookup table (one hgnc_id per symbol)
+    resolved_unique <- resolved %>%
+      dplyr::select(symbol, resolved_hgnc = hgnc_id) %>%
+      dplyr::distinct(symbol, .keep_all = TRUE)
+
     # Join resolved HGNC IDs back to data
+    # Note: resolved$hgnc_id and non_alt_loci_set.hgnc_id already have "HGNC:" prefix
     merged_data <- merged_data %>%
       mutate(symbol = toupper(symbol)) %>%
-      left_join(resolved %>% dplyr::select(symbol, resolved_hgnc = hgnc_id), by = "symbol") %>%
+      left_join(resolved_unique, by = "symbol") %>%
       mutate(
         hgnc_id = case_when(
-          !is.na(resolved_hgnc) ~ paste0("HGNC:", resolved_hgnc),
+          !is.na(resolved_hgnc) ~ resolved_hgnc,  # Already has "HGNC:" prefix
           TRUE ~ hgnc_id
         )
       ) %>%
       dplyr::select(-resolved_hgnc) %>%
       # Get symbol from HGNC table for resolved genes
       left_join(
-        DBI::dbGetQuery(conn, "SELECT hgnc_id, symbol AS resolved_symbol FROM non_alt_loci_set") %>%
-          mutate(hgnc_id = paste0("HGNC:", hgnc_id)),
-        by = "hgnc_id"
+        DBI::dbGetQuery(conn, "SELECT hgnc_id, symbol AS resolved_symbol FROM non_alt_loci_set"),
+        by = "hgnc_id"  # Both already have "HGNC:" prefix
       ) %>%
       mutate(symbol = coalesce(resolved_symbol, symbol)) %>%
       dplyr::select(-resolved_symbol) %>%
