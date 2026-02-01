@@ -107,10 +107,8 @@ test_that("llm_batch_executor handles empty cluster list", {
     }
   }
 
-  # Use local_mocked_bindings for proper mocking (not assignInNamespace)
-  local_mocked_bindings(
-    create_progress_reporter = mock_reporter
-  )
+  # Use mockery::stub() for mocking in non-package code
+  mockery::stub(llm_batch_executor, "create_progress_reporter", mock_reporter)
 
   result <- llm_batch_executor(params)
 
@@ -143,12 +141,10 @@ test_that("llm_batch_executor returns correct summary structure", {
     }
   }
 
-  # Use local_mocked_bindings for proper mocking
-  local_mocked_bindings(
-    create_progress_reporter = mock_reporter,
-    get_cached_summary = mock_get_cached_summary_hit,
-    generate_cluster_hash = function(...) "mock-hash-123"
-  )
+  # Use mockery::stub() for mocking in non-package code
+  mockery::stub(llm_batch_executor, "create_progress_reporter", mock_reporter)
+  mockery::stub(llm_batch_executor, "get_cached_summary", mock_get_cached_summary_hit)
+  mockery::stub(llm_batch_executor, "generate_cluster_hash", function(...) "mock-hash-123")
 
   result <- llm_batch_executor(params)
 
@@ -185,12 +181,10 @@ test_that("llm_batch_executor skips cached clusters correctly", {
     }
   }
 
-  # Use local_mocked_bindings for proper mocking
-  local_mocked_bindings(
-    create_progress_reporter = mock_reporter,
-    get_cached_summary = mock_get_cached_summary_hit,
-    generate_cluster_hash = function(...) "mock-hash-456"
-  )
+  # Use mockery::stub() for mocking in non-package code
+  mockery::stub(llm_batch_executor, "create_progress_reporter", mock_reporter)
+  mockery::stub(llm_batch_executor, "get_cached_summary", mock_get_cached_summary_hit)
+  mockery::stub(llm_batch_executor, "generate_cluster_hash", function(...) "mock-hash-456")
 
   result <- llm_batch_executor(params)
 
@@ -227,11 +221,9 @@ test_that("llm_batch_executor handles NULL cluster_hash gracefully", {
     stop("Hash generation failed")
   }
 
-  # Use local_mocked_bindings for proper mocking
-  local_mocked_bindings(
-    create_progress_reporter = mock_reporter,
-    generate_cluster_hash = mock_generate_hash_fail
-  )
+  # Use mockery::stub() for mocking in non-package code
+  mockery::stub(llm_batch_executor, "create_progress_reporter", mock_reporter)
+  mockery::stub(llm_batch_executor, "generate_cluster_hash", mock_generate_hash_fail)
 
   # Should not error - should handle gracefully and count as failed
   result <- llm_batch_executor(params)
