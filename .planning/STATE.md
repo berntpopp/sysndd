@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 63 (LLM Pipeline Overhaul) - IN PROGRESS
-**Plan:** 1/3 complete
-**Status:** Plan 63-01 complete, Plan 63-02 next
+**Plan:** 2/3 complete
+**Status:** Plan 63-02 complete, Plan 63-03 next
 **Progress:** v10.0 [██████████████████░░] 10/11 phases (91%)
 
-**Last completed:** 63-01 - Foundation Layer Fixes
-**Last activity:** 2026-02-01 — Completed Plan 63-01 (Docker ICU fix, debug logging, model name)
-**Next phase:** 63-02 - LLM Pipeline Verification
+**Last completed:** 63-02 - LLM Pipeline Verification
+**Last activity:** 2026-02-01 — Completed Plan 63-02 (DBI NULL fix, ellmer API fix, pipeline verified)
+**Next phase:** 63-03 - LLM Fine-tuning & Optimization
 
 ---
 
@@ -44,7 +44,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | ✓ Complete |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | ✓ Complete |
-| 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | In Progress (1/3) |
+| 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | In Progress (2/3) |
 
 **Phases:** 8 active (55-63, Phase 61 merged into 59)
 **Requirements:** 43 mapped (100% coverage)
@@ -355,13 +355,25 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed Plan 63-01 (Foundation Layer Fixes)
-**Next action:** Execute Plan 63-02 (LLM Pipeline Verification)
+**Stopped at:** Completed Plan 63-02 (LLM Pipeline Verification)
+**Next action:** Execute Plan 63-03 (LLM Fine-tuning & Optimization)
 **Resume file:** None
 
 ### Roadmap Evolution
 - Phase 63 added: LLM Pipeline Overhaul (fix cascading failures from Phases 58-60)
 - Plan 63-01 complete: Docker ICU fix, debug logging, Gemini model name correction
+- Plan 63-02 complete: DBI NULL to NA fix, ellmer API fix, pipeline verified working
+
+### Decisions from Phase 63 Plan 02
+
+**Plan 02 (LLM Pipeline Verification):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Convert NULL to NA for DBI params | DBI::dbBind requires length 1; NULL has length 0, NA has length 1 | All optional params now bind correctly |
+| 2026-02-01 | Pass prompt as unnamed arg to ellmer | ellmer chat_structured uses `...` which must be unnamed | LLM calls succeed |
+| 2026-02-01 | Load llm-batch-generator at end of job-manager | trigger_llm_batch_generation calls create_job; must define create_job first | Function resolution works |
+| 2026-02-01 | Build db_config for daemon | Mirai daemons lack main process pool access | Daemon can connect to database |
 
 ### Decisions from Phase 63
 
