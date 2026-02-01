@@ -212,6 +212,13 @@
                   <i class="bi bi-bar-chart me-1" />
                   View Pubtator Analysis
                 </router-link>
+                <router-link
+                  :to="{ name: 'ManagePubtator' }"
+                  class="btn btn-sm btn-outline-secondary"
+                >
+                  <i class="bi bi-gear me-1" />
+                  Manage Cache
+                </router-link>
               </div>
             </div>
 
@@ -221,8 +228,11 @@
               show
               class="mt-2 mb-0"
             >
-              No Pubtator data cached. The cache will be populated when the Pubtator search is
-              first run.
+              No Pubtator data cached.
+              <router-link :to="{ name: 'ManagePubtator' }">
+                Manage Cache
+              </router-link>
+              to fetch publications.
             </BAlert>
           </BCard>
         </BCol>
