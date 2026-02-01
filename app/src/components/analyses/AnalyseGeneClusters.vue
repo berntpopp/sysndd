@@ -1119,17 +1119,27 @@ export default {
               cluster_hash: clusterHash,
               cluster_number: clusterNumber,
             },
+            // 404 is expected when summary doesn't exist yet - don't treat as error
+            // This prevents browser console error logging for expected 404s
+            validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
           }
         );
+
+        // Handle 404 as a normal response (no summary available yet)
+        if (response.status === 404) {
+          this.currentSummary = null;
+          return;
+        }
+
         this.currentSummary = response.data;
       } catch (error) {
-        if (error.response?.status === 404) {
-          // No summary yet - silently handle (this is expected)
-          this.currentSummary = null;
-        } else {
-          console.warn('Failed to fetch cluster summary:', error);
-          this.currentSummary = null;
-        }
+        // Only reaches here for actual errors (network, 500, etc.)
+        this.makeToast(
+          'Unable to load AI summary. The summary may still be generating.',
+          'Info',
+          'info'
+        );
+        this.currentSummary = null;
       } finally {
         this.summaryLoading = false;
       }

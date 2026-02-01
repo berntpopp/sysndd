@@ -84,6 +84,30 @@
         </div>
       </div>
 
+      <!-- Inheritance patterns (if present) -->
+      <div v-if="hasInheritancePatterns" class="inheritance-section">
+        <span class="section-label">Inheritance</span>
+        <div class="inheritance-container">
+          <BBadge
+            v-for="pattern in summary.inheritance_patterns"
+            :key="pattern"
+            v-b-tooltip.hover.top="getInheritanceTooltip(pattern)"
+            variant="primary"
+            class="inheritance-badge"
+          >
+            {{ pattern }}
+          </BBadge>
+        </div>
+      </div>
+
+      <!-- Syndromicity (if present) -->
+      <div v-if="hasSyndromicity" class="syndromicity-section">
+        <span class="section-label">Pattern</span>
+        <BBadge :variant="syndromicityVariant" class="syndromicity-badge">
+          {{ syndromicityLabel }}
+        </BBadge>
+      </div>
+
       <!-- Clinical relevance (if present) -->
       <div v-if="normalizedSummary?.clinical_relevance" class="clinical-section">
         <span class="section-label">Clinical relevance</span>
@@ -137,6 +161,9 @@ interface SummaryJson {
   clinical_relevance?: string;
   confidence?: string;
   derived_confidence?: DerivedConfidence;
+  // Phenotype cluster specific fields
+  inheritance_patterns?: string[];
+  syndromicity?: 'predominantly_syndromic' | 'predominantly_id' | 'mixed' | 'unknown';
   // Judge metadata (if present)
   llm_judge_verdict?: 'accept' | 'accept_with_corrections' | 'low_confidence' | 'reject';
   llm_judge_reasoning?: string;
@@ -261,6 +288,71 @@ export default defineComponent({
     });
 
     /**
+     * Check if inheritance patterns are present and non-empty
+     */
+    const hasInheritancePatterns = computed<boolean>(() => {
+      return Array.isArray(props.summary?.inheritance_patterns) && props.summary.inheritance_patterns.length > 0;
+    });
+
+    /**
+     * Check if syndromicity data is present
+     */
+    const hasSyndromicity = computed<boolean>(() => {
+      const syndromicity = normalize(props.summary?.syndromicity);
+      return syndromicity !== undefined && syndromicity !== null && syndromicity !== 'unknown';
+    });
+
+    /**
+     * Syndromicity badge variant
+     */
+    const syndromicityVariant = computed<string>(() => {
+      const syndromicity = normalize(props.summary?.syndromicity);
+      switch (syndromicity) {
+        case 'predominantly_syndromic':
+          return 'warning';
+        case 'predominantly_id':
+          return 'info';
+        case 'mixed':
+          return 'secondary';
+        default:
+          return 'light';
+      }
+    });
+
+    /**
+     * Syndromicity label for display
+     */
+    const syndromicityLabel = computed<string>(() => {
+      const syndromicity = normalize(props.summary?.syndromicity);
+      switch (syndromicity) {
+        case 'predominantly_syndromic':
+          return 'Syndromic';
+        case 'predominantly_id':
+          return 'ID-focused';
+        case 'mixed':
+          return 'Mixed';
+        default:
+          return 'Unknown';
+      }
+    });
+
+    /**
+     * Get tooltip for inheritance pattern abbreviation
+     */
+    const getInheritanceTooltip = (pattern: string): string => {
+      const tooltips: Record<string, string> = {
+        'AD': 'Autosomal dominant inheritance',
+        'AR': 'Autosomal recessive inheritance',
+        'XL': 'X-linked inheritance',
+        'XLR': 'X-linked recessive inheritance',
+        'XLD': 'X-linked dominant inheritance',
+        'MT': 'Mitochondrial inheritance',
+        'SP': 'Sporadic occurrence',
+      };
+      return tooltips[pattern.toUpperCase()] || pattern;
+    };
+
+    /**
      * Judge verdict from LLM judge validation
      */
     const judgeVerdict = computed<string | null>(() => {
@@ -381,6 +473,11 @@ export default defineComponent({
       hasKeyThemes,
       hasPathways,
       hasTags,
+      hasInheritancePatterns,
+      hasSyndromicity,
+      syndromicityVariant,
+      syndromicityLabel,
+      getInheritanceTooltip,
       judgeVerdict,
       judgePoints,
       hasCorrections,
@@ -523,6 +620,36 @@ export default defineComponent({
 }
 
 .pathway-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Inheritance section */
+.inheritance-section {
+  margin-bottom: 0.75rem;
+}
+
+.inheritance-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.inheritance-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+/* Syndromicity section */
+.syndromicity-section {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.syndromicity-badge {
   font-size: 0.8rem;
   font-weight: 500;
 }

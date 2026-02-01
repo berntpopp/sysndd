@@ -47,6 +47,20 @@ GEMINI_RATE_LIMIT <- list(
 )
 
 #------------------------------------------------------------------------------
+# Default Gemini model configuration
+# Can be overridden via GEMINI_MODEL environment variable
+# Options:
+#   - gemini-3-flash-preview: Fast, high quality, good balance (default)
+#   - gemini-3-pro-preview: Best quality, 250 RPD limit
+#   - gemini-2.0-flash: Fast, unlimited RPD, good for high-volume
+#------------------------------------------------------------------------------
+get_default_gemini_model <- function() {
+  model <- Sys.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+  log_info("Using Gemini model: {model}")
+  return(model)
+}
+
+#------------------------------------------------------------------------------
 # Type specifications for structured output
 # Uses ellmer's type_object() for guaranteed JSON structure
 #------------------------------------------------------------------------------
@@ -135,6 +149,25 @@ phenotype_cluster_summary_type <- ellmer::type_object(
   tags = ellmer::type_array(
     ellmer::type_string("Searchable clinical keyword"),
     "3-7 short tags derived from the phenotype data (e.g., 'cardiac', 'renal', 'skeletal')"
+  ),
+
+  inheritance_patterns = ellmer::type_array(
+    ellmer::type_string("Inheritance mode abbreviation"),
+    "1-3 inheritance patterns significantly associated with this cluster (e.g., 'AD', 'AR', 'XL').
+     Derived from quali_sup_var data. Use standard abbreviations: AD=Autosomal dominant,
+     AR=Autosomal recessive, XL=X-linked, MT=Mitochondrial, SP=Sporadic.",
+    required = FALSE
+  ),
+
+  syndromicity = ellmer::type_enum(
+    c("predominantly_syndromic", "predominantly_id", "mixed", "unknown"),
+    "Overall syndromicity pattern based on phenotype counts:
+     'predominantly_syndromic' = more non-ID phenotypes,
+     'predominantly_id' = more ID phenotypes,
+     'mixed' = balanced,
+     'unknown' = insufficient data.
+     Derived from quanti_sup_var (phenotype_id_count vs phenotype_non_id_count).",
+    required = FALSE
   ),
 
   confidence = ellmer::type_enum(
@@ -398,27 +431,133 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
     "(No significantly depleted phenotypes)"
   }
 
+  # ============================================================================
+  # SUPPLEMENTARY VARIABLES (don't affect clustering, but describe cluster characteristics)
+  # ============================================================================
+
+  # Process qualitative supplementary variables (inheritance patterns from HPO)
+  inheritance_text <- "(No inheritance data available)"
+  if ("quali_sup_var" %in% names(cluster_data) && length(cluster_data$quali_sup_var) > 0) {
+    inheritance_df <- if (is.data.frame(cluster_data$quali_sup_var)) {
+      cluster_data$quali_sup_var
+    } else if (is.list(cluster_data$quali_sup_var)) {
+      dplyr::bind_rows(cluster_data$quali_sup_var)
+    } else {
+      NULL
+    }
+
+    if (!is.null(inheritance_df) && nrow(inheritance_df) > 0 &&
+        all(c("variable", "v.test", "p.value") %in% names(inheritance_df))) {
+      # Filter to significant associations
+      inheritance_sig <- inheritance_df %>%
+        dplyr::filter(abs(`v.test`) > vtest_threshold) %>%
+        dplyr::arrange(dplyr::desc(`v.test`))
+
+      if (nrow(inheritance_sig) > 0) {
+        inheritance_lines <- inheritance_sig %>%
+          dplyr::mutate(
+            sign = ifelse(`v.test` > 0, "+", ""),
+            line = glue::glue("| {variable} | {sign}{round(`v.test`, 2)} | {signif(`p.value`, 2)} |")
+          ) %>%
+          dplyr::pull(line) %>%
+          paste(collapse = "\n")
+        inheritance_text <- paste0(
+          "| Inheritance Pattern | v.test | p-value |\n",
+          "|---------------------|--------|--------|\n",
+          inheritance_lines
+        )
+      }
+    }
+  }
+
+  # Process quantitative supplementary variables (phenotype counts)
+  syndromicity_text <- "(No syndromicity data available)"
+  if ("quanti_sup_var" %in% names(cluster_data) && length(cluster_data$quanti_sup_var) > 0) {
+    quanti_df <- if (is.data.frame(cluster_data$quanti_sup_var)) {
+      cluster_data$quanti_sup_var
+    } else if (is.list(cluster_data$quanti_sup_var)) {
+      dplyr::bind_rows(cluster_data$quanti_sup_var)
+    } else {
+      NULL
+    }
+
+    if (!is.null(quanti_df) && nrow(quanti_df) > 0 &&
+        all(c("variable", "v.test", "p.value") %in% names(quanti_df))) {
+      # Filter to significant associations
+      quanti_sig <- quanti_df %>%
+        dplyr::filter(abs(`v.test`) > vtest_threshold) %>%
+        dplyr::arrange(dplyr::desc(abs(`v.test`)))
+
+      if (nrow(quanti_sig) > 0) {
+        quanti_lines <- quanti_sig %>%
+          dplyr::mutate(
+            sign = ifelse(`v.test` > 0, "+", ""),
+            # Add interpretation hint for each variable
+            interpretation = dplyr::case_when(
+              grepl("phenotype_id_count", variable) & `v.test` > 0 ~
+                "(more ID phenotypes than average)",
+              grepl("phenotype_id_count", variable) & `v.test` < 0 ~
+                "(fewer ID phenotypes than average)",
+              grepl("phenotype_non_id_count", variable) & `v.test` > 0 ~
+                "(more syndromic features than average)",
+              grepl("phenotype_non_id_count", variable) & `v.test` < 0 ~
+                "(fewer syndromic features than average)",
+              grepl("gene_entity_count", variable) & `v.test` > 0 ~
+                "(genes with more disease associations)",
+              grepl("gene_entity_count", variable) & `v.test` < 0 ~
+                "(genes with fewer disease associations)",
+              TRUE ~ ""
+            ),
+            line = glue::glue(
+              "| {variable} | {sign}{round(`v.test`, 2)} | {signif(`p.value`, 2)} | {interpretation} |"
+            )
+          ) %>%
+          dplyr::pull(line) %>%
+          paste(collapse = "\n")
+        syndromicity_text <- paste0(
+          "| Variable | v.test | p-value | Interpretation |\n",
+          "|----------|--------|---------|----------------|\n",
+          quanti_lines
+        )
+      }
+    }
+  }
+
   prompt <- glue::glue("
 You are a clinical geneticist analyzing phenotype clusters from a neurodevelopmental disorder database.
 
 ## Task
-Analyze this phenotype cluster and describe its clinical pattern using ONLY the phenotypes listed below.
+Analyze this phenotype cluster and describe its clinical pattern using ONLY the data listed below.
 
 ## Important Context
 - This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT individual genes
-- Entities were clustered based on their phenotype (clinical feature) annotations
-- v.test score indicates enrichment:
-  - POSITIVE v.test = phenotype is MORE COMMON in this cluster than average
-  - NEGATIVE v.test = phenotype is LESS COMMON in this cluster than average
-  - Larger |v.test| = stronger association (>2 = significant, >5 = strong, >10 = very strong)
+- Entities were clustered based on their phenotype (clinical feature) annotations using Multiple Correspondence Analysis (MCA)
+- v.test score indicates statistical enrichment/depletion:
+  - POSITIVE v.test = MORE COMMON in this cluster than database average
+  - NEGATIVE v.test = LESS COMMON in this cluster than database average
+  - |v.test| > 2 = significant, > 5 = strong, > 10 = very strong
 
 ## SOURCE DATA (Your Only Source of Truth)
 
-### ENRICHED Phenotypes (overrepresented in this cluster)
+### SECTION 1: PRIMARY PHENOTYPES (Used for clustering)
+These phenotype terms directly determined cluster membership.
+
+#### ENRICHED Phenotypes (overrepresented in this cluster)
 {enriched_text}
 
-### DEPLETED Phenotypes (underrepresented in this cluster)
+#### DEPLETED Phenotypes (underrepresented in this cluster)
 {depleted_text}
+
+### SECTION 2: SUPPLEMENTARY DATA (Describes cluster characteristics)
+These variables did NOT affect clustering but are statistically associated with this cluster.
+Positive v.test = over-represented; Negative v.test = under-represented.
+
+#### Inheritance Patterns (from HPO)
+{inheritance_text}
+
+#### Syndromicity Metrics
+(phenotype_id_count = intellectual disability phenotypes; phenotype_non_id_count = other syndromic features)
+{syndromicity_text}
 
 ---
 
@@ -435,16 +574,18 @@ Analyze this phenotype cluster and describe its clinical pattern using ONLY the 
 ### ALLOWED:
 - Grouping phenotypes into categories (e.g., 'genitourinary and renal phenotypes')
 - Describing the clinical significance of specific phenotypes
+- Using inheritance pattern data to characterize the cluster
 - Stating uncertainty with phrases like 'The data suggests...'
 - Leaving optional fields empty if the data doesn't support them
 
 ---
 
 ## Instructions
-Based ONLY on the phenotype data above:
+Based ONLY on the data above:
 
 1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern. Reference specific phenotype names from the data.
    - If uncertain, say 'The data suggests...' rather than stating definitively
+   - May mention inheritance patterns if significantly associated
 
 2. **Key phenotype themes (3-5):** Group the ENRICHED phenotypes into clinical categories.
    - Each theme MUST be derived directly from one or more phenotypes in the ENRICHED table
@@ -462,12 +603,24 @@ Based ONLY on the phenotype data above:
 6. **Tags (3-7):** Short keywords EXTRACTED DIRECTLY from the phenotype names above.
    - Example: if 'Abnormality of the kidney' is enriched, use 'renal' or 'kidney'
 
+7. **Inheritance patterns (1-3):** Based on the inheritance data in SECTION 2:
+   - Use standard abbreviations: AD (Autosomal dominant), AR (Autosomal recessive), XL (X-linked), MT (Mitochondrial), SP (Sporadic)
+   - Only include patterns with significant v.test (>2)
+   - Leave empty if no significant inheritance associations
+
+8. **Syndromicity:** Based on the syndromicity metrics in SECTION 2:
+   - 'predominantly_syndromic' = positive v.test for phenotype_non_id_count
+   - 'predominantly_id' = positive v.test for phenotype_id_count
+   - 'mixed' = both or neither significant
+   - 'unknown' = no syndromicity data
+
 ## Self-Verification Checklist
 Before finalizing, verify that:
 - [ ] Every phenotype mentioned appears EXACTLY in the tables above
 - [ ] No clinical terms were added that aren't in the source data
 - [ ] The 'notably absent' section uses exact names from DEPLETED table
 - [ ] Tags are derived from actual phenotype names, not inferred categories
+- [ ] Inheritance patterns match the data in SECTION 2
 - [ ] NO molecular/gene terms appear anywhere in your response
 
 CRITICAL: Mentioning genes, pathways, or molecular mechanisms will cause IMMEDIATE REJECTION.
@@ -520,10 +673,14 @@ CRITICAL: Mentioning genes, pathways, or molecular mechanisms will cause IMMEDIA
 generate_cluster_summary <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-3-pro-preview",
+  model = NULL,
   max_retries = 3,
   top_n_terms = 20
 ) {
+  # Use default model if not specified
+  if (is.null(model)) {
+    model <- get_default_gemini_model()
+  }
   # Debug logging for daemon execution
   message("[LLM-Service] generate_cluster_summary called for ", cluster_type, " cluster")
 
