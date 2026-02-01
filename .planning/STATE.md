@@ -19,13 +19,14 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 62 (Admin & Infrastructure) - COMPLETE
-**Plan:** 2/2 complete
-**Status:** Phase complete
-**Progress:** v10.0 [████████████████████] 10/10 phases (100%)
+**Phase:** 63 (LLM Pipeline Overhaul) - IN PROGRESS
+**Plan:** 1/3 complete
+**Status:** Plan 63-01 complete, Plan 63-02 next
+**Progress:** v10.0 [██████████████████░░] 10/11 phases (91%)
 
-**Last completed:** 62-02 - Documentation Migration to Quarto
-**Last activity:** 2026-02-01 — Phase 62 Plan 02 complete (v10.0 MILESTONE COMPLETE)
+**Last completed:** 63-01 - Foundation Layer Fixes
+**Last activity:** 2026-02-01 — Completed Plan 63-01 (Docker ICU fix, debug logging, model name)
+**Next phase:** 63-02 - LLM Pipeline Verification
 
 ---
 
@@ -43,9 +44,10 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | ✓ Complete |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | ✓ Complete |
+| 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | In Progress (1/3) |
 
-**Phases:** 7 active (55-62, Phase 61 merged into 59)
-**Requirements:** 36 mapped (100% coverage)
+**Phases:** 8 active (55-63, Phase 61 merged into 59)
+**Requirements:** 43 mapped (100% coverage)
 
 ---
 
@@ -353,11 +355,25 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** v10.0 MILESTONE COMPLETE
-**Next action:** Start v11.0 planning or tag v10.0 release
+**Stopped at:** Completed Plan 63-01 (Foundation Layer Fixes)
+**Next action:** Execute Plan 63-02 (LLM Pipeline Verification)
 **Resume file:** None
+
+### Roadmap Evolution
+- Phase 63 added: LLM Pipeline Overhaul (fix cascading failures from Phases 58-60)
+- Plan 63-01 complete: Docker ICU fix, debug logging, Gemini model name correction
+
+### Decisions from Phase 63
+
+**Plan 01 (Foundation Layer Fixes):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Use noble P3M URL instead of jammy | rocker/r-ver:4.4.3 uses Ubuntu 24.04 with ICU 74, not jammy with ICU 70 | Docker builds complete without ICU errors |
+| 2026-02-01 | Add message() logging to db-helpers.R | message() writes immediately to stdout; helps debug daemon issues | Entry-point tracing available in container logs |
+| 2026-02-01 | Change default model to gemini-2.0-flash | gemini-3-pro-preview is not a valid Gemini model name | Gemini API calls should succeed |
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — v10.0 MILESTONE COMPLETE*
+*Last updated: 2026-02-01 — Completed Plan 63-01*
