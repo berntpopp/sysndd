@@ -1,86 +1,111 @@
 <!-- src/components/llm/LlmSummaryCard.vue -->
 <template>
-  <BCard v-if="summary" class="llm-summary-card mb-3" bg-variant="light">
+  <BCard v-if="summary" class="llm-summary-card mb-3">
+    <!-- Header: AI disclosure with inline verification status -->
     <template #header>
-      <h6 class="mb-0">
-        <i class="bi bi-stars me-2 text-warning" />
-        AI-Generated Summary<span v-if="clusterNumber"> for Cluster {{ clusterNumber }}</span>
-      </h6>
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <span class="ai-indicator me-2">
+            <i class="bi bi-stars text-warning" />
+            <span class="ai-label">AI</span>
+          </span>
+          <span class="header-title">
+            Summary<span v-if="clusterNumber" class="text-muted fw-normal"> — Cluster {{ clusterNumber }}</span>
+          </span>
+        </div>
+        <!-- Verification badge inline with header -->
+        <div class="d-flex align-items-center gap-2">
+          <BBadge
+            v-if="judgeVerdict"
+            v-b-tooltip.hover.left="validatedTooltip"
+            :variant="judgeVerdictVariant"
+            class="verification-badge"
+            pill
+          >
+            <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
+            <i v-else-if="judgeVerdict === 'accept_with_corrections'" class="bi bi-check2-circle me-1" />
+            <i v-else-if="judgeVerdict === 'low_confidence'" class="bi bi-exclamation-triangle me-1" />
+            <i v-else-if="judgeVerdict === 'reject'" class="bi bi-x-circle me-1" />
+            {{ judgeVerdictLabel }}
+          </BBadge>
+          <span v-else-if="validationStatus === 'pending'" class="pending-badge">
+            <i class="bi bi-hourglass-split text-warning" />
+          </span>
+        </div>
+      </div>
     </template>
 
-    <!-- Summary text -->
-    <p class="summary-text mb-3">{{ normalizedSummary?.summary }}</p>
+    <!-- Body: Left-aligned content with clear sections -->
+    <div class="card-body-content">
+      <!-- Summary text -->
+      <p class="summary-text">{{ normalizedSummary?.summary }}</p>
 
-    <!-- Key themes -->
-    <div v-if="hasKeyThemes" class="mb-2">
-      <strong class="me-2">Key themes:</strong>
-      <BBadge
-        v-for="theme in summary.key_themes"
-        :key="theme"
-        variant="secondary"
-        class="me-1 mb-1"
-      >
-        {{ theme }}
-      </BBadge>
+      <!-- Tags section -->
+      <div v-if="hasTags" class="tags-section">
+        <div class="tags-container">
+          <BBadge
+            v-for="tag in summary.tags"
+            :key="tag"
+            variant="light"
+            class="tag-badge"
+          >
+            {{ tag }}
+          </BBadge>
+        </div>
+      </div>
+
+      <!-- Key themes (if present) -->
+      <div v-if="hasKeyThemes" class="themes-section">
+        <span class="section-label">Key themes</span>
+        <div class="themes-container">
+          <BBadge
+            v-for="theme in summary.key_themes"
+            :key="theme"
+            variant="secondary"
+            class="theme-badge"
+          >
+            {{ theme }}
+          </BBadge>
+        </div>
+      </div>
+
+      <!-- Pathways (if present) -->
+      <div v-if="hasPathways" class="pathways-section">
+        <span class="section-label">Pathways</span>
+        <div class="pathways-container">
+          <BBadge
+            v-for="pathway in summary.pathways"
+            :key="pathway"
+            variant="info"
+            class="pathway-badge"
+          >
+            {{ pathway }}
+          </BBadge>
+        </div>
+      </div>
+
+      <!-- Clinical relevance (if present) -->
+      <div v-if="normalizedSummary?.clinical_relevance" class="clinical-section">
+        <span class="section-label">Clinical relevance</span>
+        <p class="clinical-text">{{ normalizedSummary.clinical_relevance }}</p>
+      </div>
     </div>
 
-    <!-- Pathways -->
-    <div v-if="hasPathways" class="mb-2">
-      <strong class="me-2">Pathways:</strong>
-      <BBadge
-        v-for="pathway in summary.pathways"
-        :key="pathway"
-        variant="info"
-        class="me-1 mb-1"
-      >
-        {{ pathway }}
-      </BBadge>
-    </div>
-
-    <!-- Tags -->
-    <div v-if="hasTags" class="mb-2">
-      <strong class="me-2">Tags:</strong>
-      <BBadge
-        v-for="tag in summary.tags"
-        :key="tag"
-        variant="light"
-        class="me-1 mb-1 border"
-      >
-        {{ tag }}
-      </BBadge>
-    </div>
-
-    <!-- Clinical relevance (if present) -->
-    <p v-if="normalizedSummary?.clinical_relevance" class="text-muted small mb-0 mt-3">
-      <strong>Clinical relevance:</strong> {{ normalizedSummary.clinical_relevance }}
-    </p>
-
+    <!-- Footer: Clean provenance line -->
     <template #footer>
-      <div class="d-flex justify-content-between align-items-center">
-        <small class="text-muted">
-          <i
-            v-b-tooltip.hover.top="provenanceTooltip"
-            class="bi bi-info-circle me-1"
-          />
-          Generated by {{ modelName }} on {{ formattedDate }}
-        </small>
-        <!-- Validation status -->
-        <BBadge
-          v-if="judgeVerdict"
-          v-b-tooltip.hover.left="validatedTooltip"
-          :variant="judgeVerdictVariant"
-          class="d-flex align-items-center"
-        >
-          <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
-          <i v-else-if="judgeVerdict === 'accept_with_corrections'" class="bi bi-check-circle me-1" />
-          <i v-else-if="judgeVerdict === 'low_confidence'" class="bi bi-exclamation-triangle-fill me-1" />
-          <i v-else-if="judgeVerdict === 'reject'" class="bi bi-x-circle-fill me-1" />
-          {{ judgeVerdictLabel }}
-          <i v-if="hasCorrections" class="bi bi-pencil-fill ms-1" />
-        </BBadge>
-        <span v-else-if="validationStatus === 'pending'" class="text-muted">
-          <i class="bi bi-hourglass-split text-warning me-1" />
-          <small>Pending review</small>
+      <div class="footer-content">
+        <span class="provenance-text">
+          <i class="bi bi-robot me-1" />
+          {{ modelName }}
+          <span class="separator">·</span>
+          {{ formattedDate }}
+          <span v-if="hasCorrections" class="corrections-indicator">
+            <span class="separator">·</span>
+            <i
+              v-b-tooltip.hover.top="correctionsTooltip"
+              class="bi bi-pencil-square text-info cursor-pointer"
+            />
+          </span>
         </span>
       </div>
     </template>
@@ -182,9 +207,6 @@ export default defineComponent({
 
     /**
      * Get derived confidence (objective, based on enrichment terms)
-     * This is preferred over LLM self-assessment
-     * Normalizes array values from R API (e.g., [0.001] -> 0.001)
-     * Returns null if any required field is missing or invalid
      */
     const derivedConfidence = computed<DerivedConfidence | null>(() => {
       const dc = props.summary?.derived_confidence;
@@ -194,7 +216,6 @@ export default defineComponent({
       const avgFdr = normalize(dc.avg_fdr);
       const termCount = normalize(dc.term_count);
 
-      // Validate all required fields are present and have valid types
       if (!score || typeof avgFdr !== 'number' || typeof termCount !== 'number') {
         return null;
       }
@@ -207,48 +228,6 @@ export default defineComponent({
     });
 
     /**
-     * Confidence label (capitalized)
-     */
-    const confidenceLabel = computed<string>(() => {
-      const score = derivedConfidence.value?.score;
-      if (!score) return '';
-      return score.charAt(0).toUpperCase() + score.slice(1);
-    });
-
-    /**
-     * Bootstrap variant for confidence badge
-     * High = success (green), Medium = warning (yellow), Low = danger (red)
-     */
-    type BadgeVariant = 'success' | 'warning' | 'danger' | 'secondary';
-    const confidenceVariant = computed<BadgeVariant>(() => {
-      const score = derivedConfidence.value?.score;
-      switch (score) {
-        case 'high':
-          return 'success';
-        case 'medium':
-          return 'warning';
-        case 'low':
-          return 'danger';
-        default:
-          return 'secondary';
-      }
-    });
-
-    /**
-     * Tooltip explaining confidence score
-     */
-    const confidenceTooltip = computed<string>(() => {
-      const dc = derivedConfidence.value;
-      if (!dc) return '';
-
-      const fdrFormatted = dc.avg_fdr < 0.001
-        ? dc.avg_fdr.toExponential(2)
-        : dc.avg_fdr.toFixed(4);
-
-      return `${dc.score.toUpperCase()} confidence based on ${dc.term_count} significant terms (avg FDR: ${fdrFormatted})`;
-    });
-
-    /**
      * Format the creation date for display
      */
     const formattedDate = computed<string>(() => {
@@ -258,18 +237,6 @@ export default defineComponent({
       } catch {
         return props.createdAt;
       }
-    });
-
-    /**
-     * Tooltip with AI provenance information
-     */
-    const provenanceTooltip = computed<string>(() => {
-      const dc = derivedConfidence.value;
-      let tooltip = `AI-generated summary from ${props.modelName}`;
-      if (dc) {
-        tooltip += `\nConfidence based on ${dc.term_count} enrichment terms`;
-      }
-      return tooltip;
     });
 
     /**
@@ -324,26 +291,20 @@ export default defineComponent({
     });
 
     /**
-     * Judge verdict label for display - shows points/score only
+     * Judge verdict label for display
      */
+    type BadgeVariant = 'success' | 'warning' | 'danger' | 'secondary';
     const judgeVerdictLabel = computed<string>(() => {
       const verdict = judgeVerdict.value;
-      const points = judgePoints.value;
-
       if (!verdict) return '';
 
-      // Show points as score if available
-      if (points !== null) {
-        return `${points}/8`;
-      }
-
-      // Fallback to simple labels if no points
       switch (verdict) {
         case 'accept':
+          return 'Verified';
         case 'accept_with_corrections':
           return 'Verified';
         case 'low_confidence':
-          return 'Low';
+          return 'Review';
         case 'reject':
           return 'Rejected';
         default:
@@ -360,7 +321,7 @@ export default defineComponent({
         case 'accept':
           return 'success';
         case 'accept_with_corrections':
-          return 'success'; // Still green, but with corrections indicator
+          return 'success';
         case 'low_confidence':
           return 'warning';
         case 'reject':
@@ -371,46 +332,52 @@ export default defineComponent({
     });
 
     /**
-     * Tooltip for judge verdict badge (shows points and reasoning)
+     * Tooltip for validation badge
      */
-    const judgeVerdictTooltip = computed<string>(() => {
+    const validatedTooltip = computed<string>(() => {
       const verdict = judgeVerdict.value;
       const reasoning = normalize(props.summary?.llm_judge_reasoning);
-      const points = judgePoints.value;
-
-      if (!verdict) return '';
 
       let tooltip = '';
 
-      if (points !== null) {
-        tooltip += `Score: ${points}/8 points\n`;
+      switch (verdict) {
+        case 'accept':
+          tooltip = 'Content verified by AI judge';
+          break;
+        case 'accept_with_corrections':
+          tooltip = 'Verified with minor corrections applied';
+          break;
+        case 'low_confidence':
+          tooltip = 'Low confidence - manual review recommended';
+          break;
+        case 'reject':
+          tooltip = 'Content rejected by AI judge';
+          break;
+        default:
+          tooltip = 'Validation status';
       }
 
       if (reasoning) {
-        tooltip += `Reasoning: ${reasoning}`;
+        tooltip += `\n\n${reasoning}`;
       }
 
-      return tooltip.trim() || `Judge verdict: ${verdict}`;
+      return tooltip;
     });
 
     /**
-     * Tooltip for "Validated" status (shows corrections if any)
+     * Tooltip for corrections indicator
      */
-    const validatedTooltip = computed<string>(() => {
-      if (!hasCorrections.value || correctionsList.value.length === 0) {
-        return 'Summary validated by LLM judge';
+    const correctionsTooltip = computed<string>(() => {
+      if (correctionsList.value.length === 0) {
+        return 'Minor corrections applied';
       }
-      return `Validated with corrections:\n${correctionsList.value.join('\n')}`;
+      return `Corrections:\n${correctionsList.value.join('\n')}`;
     });
 
     return {
       normalizedSummary,
       derivedConfidence,
-      confidenceLabel,
-      confidenceVariant,
-      confidenceTooltip,
       formattedDate,
-      provenanceTooltip,
       hasKeyThemes,
       hasPathways,
       hasTags,
@@ -420,8 +387,8 @@ export default defineComponent({
       correctionsList,
       judgeVerdictLabel,
       judgeVerdictVariant,
-      judgeVerdictTooltip,
       validatedTooltip,
+      correctionsTooltip,
     };
   },
 });
@@ -429,12 +396,167 @@ export default defineComponent({
 
 <style scoped>
 .llm-summary-card {
+  border: 1px solid var(--bs-border-color);
   border-left: 4px solid var(--bs-warning);
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #fffbf0 0%, #ffffff 100%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.llm-summary-card :deep(.card-header) {
+  background: transparent;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+  padding: 0.75rem 1rem;
+}
+
+.llm-summary-card :deep(.card-body) {
+  padding: 1rem;
+}
+
+.llm-summary-card :deep(.card-footer) {
+  background: transparent;
+  border-top: 1px solid var(--bs-border-color-translucent);
+  padding: 0.5rem 1rem;
+}
+
+/* Header styles */
+.ai-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  background: rgba(255, 193, 7, 0.15);
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.ai-label {
+  font-weight: 600;
+  color: var(--bs-warning);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--bs-body-color);
+}
+
+.verification-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.pending-badge {
+  font-size: 0.875rem;
+}
+
+/* Body content styles */
+.card-body-content {
+  text-align: left;
 }
 
 .summary-text {
-  line-height: 1.6;
+  font-size: 0.925rem;
+  line-height: 1.65;
   color: var(--bs-body-color);
+  margin-bottom: 1rem;
+}
+
+/* Tags section */
+.tags-section {
+  margin-bottom: 0.75rem;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tag-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-white);
+  color: var(--bs-body-color);
+}
+
+/* Section labels */
+.section-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bs-secondary);
+  margin-bottom: 0.375rem;
+}
+
+/* Themes section */
+.themes-section {
+  margin-bottom: 0.75rem;
+}
+
+.themes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.theme-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Pathways section */
+.pathways-section {
+  margin-bottom: 0.75rem;
+}
+
+.pathways-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.pathway-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Clinical section */
+.clinical-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.clinical-text {
+  font-size: 0.875rem;
+  color: var(--bs-secondary);
+  margin-bottom: 0;
+}
+
+/* Footer styles */
+.footer-content {
+  text-align: left;
+}
+
+.provenance-text {
+  font-size: 0.8rem;
+  color: var(--bs-secondary);
+}
+
+.separator {
+  margin: 0 0.375rem;
+  color: var(--bs-border-color);
+}
+
+.corrections-indicator {
+  display: inline;
 }
 
 .cursor-pointer {
