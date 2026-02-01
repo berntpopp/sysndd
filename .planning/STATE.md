@@ -1,7 +1,7 @@
 # Project State: SysNDD
 
 **Last updated:** 2026-02-01
-**Current milestone:** None — v10.0 shipped, planning next milestone
+**Current milestone:** v10.1 Production Deployment Fixes
 
 ---
 
@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Planning next milestone
+**Current focus:** Fix production deployment issues (#136, #137, #138)
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,14 +19,33 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-**Phase:** Milestone complete
-**Plan:** N/A
-**Status:** v10.0 shipped, ready for next milestone
-**Progress:** v10.0 [████████████████████] 12/12 phases (100%)
+**Phase:** Not started (defining requirements)
+**Plan:** —
+**Status:** Defining requirements
+**Progress:** v10.1 [░░░░░░░░░░░░░░░░░░░░] 0%
 
 **Last completed:** v10.0 Data Quality & AI Insights
-**Last activity:** 2026-02-01 — Milestone completed, archived, tagged
-**Next action:** /gsd:new-milestone
+**Last activity:** 2026-02-01 — Milestone v10.1 started
+**Next action:** /gsd:plan-phase [N]
+
+---
+
+## Milestone Context
+
+**Issues to fix:**
+- #138: API container cannot write to /app/data directory (UID 1001 vs host UID 1000)
+- #136: Multi-container scaling fails due to migration lock timeout (30s)
+- #137: Missing favicon image (404 on brain-neurodevelopmental-disorders-sysndd.png)
+
+**Root causes:**
+1. Dockerfile creates apiuser with UID 1001, but bind-mounted data dir owned by host UID 1000
+2. Migration lock acquired even when schema is up-to-date, blocking parallel container starts
+3. Favicon moved to _old/ directory but still referenced in index.html
+
+**Approaches decided:**
+- Migration lock: Skip lock if schema already up-to-date (fast path)
+- Permission fix: Research best practices for Docker volume permissions
+- Missing image: Restore or update reference
 
 ---
 
@@ -36,21 +55,6 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 - Total plans completed: 290
 - Milestones shipped: 11 (v1-v10.0)
 - Phases completed: 71
-
-**By Milestone:**
-
-| Milestone | Phases | Plans | Shipped |
-|-----------|--------|-------|---------|
-| v1 Developer Experience | 1-5 | 19 | 2026-01-21 |
-| v2 Docker Infrastructure | 6-9 | 8 | 2026-01-22 |
-| v3 Frontend Modernization | 10-17 | 53 | 2026-01-23 |
-| v4 Backend Overhaul | 18-24 | 42 | 2026-01-24 |
-| v5 Analysis Modernization | 25-27 | 16 | 2026-01-25 |
-| v6 Admin Panel Modernization | 28-33 | 20 | 2026-01-26 |
-| v7 Curation Workflow Modernization | 34-39 | 21 | 2026-01-27 |
-| v8 Gene Page & Genomic Data | 40-46 | 25 | 2026-01-29 |
-| v9 Production Readiness | 47-54 | 16 | 2026-01-31 |
-| v10 Data Quality & AI Insights | 55-65 | 25 | 2026-02-01 |
 
 **Current Stats:**
 
@@ -70,11 +74,11 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** v10.0 milestone complete
-**Next action:** /gsd:new-milestone
+**Stopped at:** Milestone v10.1 initialization
+**Next action:** Research Docker permission best practices, then create roadmap
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — v10.0 shipped, archived, tagged*
+*Last updated: 2026-02-01 — v10.1 milestone started*

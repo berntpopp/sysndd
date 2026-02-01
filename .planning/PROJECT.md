@@ -4,7 +4,16 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current State (v10.0 shipped 2026-02-01)
+## Current Milestone: v10.1 Production Deployment Fixes
+
+**Goal:** Fix critical production deployment issues discovered on VPS — permission mismatch blocking data directory writes, migration lock timeout blocking multi-container scaling, and missing favicon image.
+
+**Target fixes:**
+- #138: API container cannot write to /app/data directory (UID mismatch)
+- #136: Multi-container scaling fails due to migration lock timeout
+- #137: Missing favicon image (brain-neurodevelopmental-disorders-sysndd.png)
+
+## Previous State (v10.0 shipped 2026-02-01)
 
 **Recent Milestone:** v10.0 Data Quality & AI Insights
 
@@ -300,7 +309,11 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-(No active requirements — planning next milestone)
+<!-- v10.1 Production Deployment Fixes -->
+
+- [ ] **DEPLOY-01**: API container can write to /app/data directory without permission errors
+- [ ] **DEPLOY-02**: Multiple API containers can start simultaneously without migration lock timeout
+- [ ] **DEPLOY-03**: Favicon image loads without 404 errors
 
 ### Out of Scope
 
@@ -427,4 +440,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-01 after v10.0 milestone shipped*
+*Last updated: 2026-02-01 after v10.1 milestone started*
