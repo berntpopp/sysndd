@@ -2,7 +2,9 @@
 # Renders Quarto book documentation (HTML, PDF, EPUB) and deploys to GitHub Pages environment
 #
 # Triggers:
-# - Push to master (documentation changes only)
+# - Push to master (documentation changes only) - builds and deploys
+# - Pull requests to master (documentation changes only) - builds only (validates)
+# - Manual dispatch - builds and optionally deploys
 #
 # References:
 # - https://quarto.org/docs/publishing/github-pages.html
@@ -17,6 +19,17 @@ on:
     paths:
       - 'documentation/**'
       - '.github/workflows/gh-pages.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'documentation/**'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages'
+        required: false
+        default: 'true'
+        type: boolean
 
 # Required permissions for Pages deployment
 permissions:
@@ -26,8 +39,8 @@ permissions:
 
 # Cancel in-progress runs for the same branch
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -51,9 +64,11 @@ jobs:
           to: all
 
       - name: Setup Pages
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
         uses: actions/configure-pages@v4
 
       - name: Upload artifact
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
         uses: actions/upload-pages-artifact@v3
         with:
           # Book outputs to _book directory
@@ -63,6 +78,8 @@ jobs:
     name: Deploy to GitHub Pages
     runs-on: ubuntu-latest
     needs: build
+    # Only deploy on push to master or manual dispatch with deploy=true
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy == 'true')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
