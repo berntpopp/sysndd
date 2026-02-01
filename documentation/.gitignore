@@ -14,3 +14,5 @@ nul
 _site/
 .quarto/
 **/*.quarto_ipynb
+
+/.quarto/

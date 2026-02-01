@@ -11,8 +11,8 @@ website:
   favicon: static/img/android-chrome-192x192.png
 
   navbar:
-    background: primary
-    logo: static/img/android-chrome-192x192.png
+    background: dark
+    logo: static/img/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp
     left:
       - href: index.qmd
         text: Home

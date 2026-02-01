@@ -1,15 +1,37 @@
 /* SysNDD Documentation Styles */
 
-/* Match SysNDD primary color scheme */
+/* Match SysNDD color scheme */
 :root {
-  --bs-primary: #0d6efd;
   --sysndd-header-bg: #343a40;
+  --sysndd-header-text: #ffffff;
+  --sysndd-link-color: #17a2b8;
+  --sysndd-footer-bg: #343a40;
+}
+
+/* Dark navbar styling to match SysNDD app */
+.navbar {
+  background-color: var(--sysndd-header-bg) !important;
+}
+
+.navbar-brand, .navbar-nav .nav-link {
+  color: var(--sysndd-header-text) !important;
+}
+
+.navbar-nav .nav-link:hover {
+  color: var(--sysndd-link-color) !important;
 }
 
 /* Logo sizing in navbar */
 .navbar-brand img {
-  height: 40px;
+  height: 36px;
   width: auto;
+  margin-right: 8px;
+}
+
+/* Navbar title styling */
+.navbar-title {
+  font-weight: 600;
+  font-size: 1.1rem;
 }
 
 /* Sidebar styling */
@@ -17,15 +39,23 @@
   border-right: 1px solid #dee2e6;
 }
 
-/* Footer styling */
+.sidebar-title {
+  font-weight: 600;
+}
+
+/* Footer styling to match SysNDD */
 .page-footer {
-  background-color: var(--sysndd-header-bg);
+  background-color: var(--sysndd-footer-bg) !important;
   color: white;
   padding: 1rem;
 }
 
 .page-footer a {
   color: #adb5bd;
+}
+
+.page-footer a:hover {
+  color: var(--sysndd-link-color);
 }
 
 /* Code block styling */
@@ -51,7 +81,7 @@ table th {
   background-color: #f8f9fa;
 }
 
-/* Caption styling (from original style.css) */
+/* Caption styling */
 p.caption {
   color: #777;
   margin-top: 10px;
@@ -65,7 +95,7 @@ pre code {
   white-space: inherit;
 }
 
-/* Highlight mark styling (from original style.css) */
+/* Highlight mark styling */
 mark {
   display: inline-block;
   line-height: 0em;
@@ -78,4 +108,12 @@ mark {
 div[style*="max-width"] img {
   max-width: 100%;
   height: auto;
+}
+
+/* Figure captions */
+figcaption {
+  font-style: italic;
+  color: #666;
+  margin-top: 0.5rem;
+  text-align: center;
 }
