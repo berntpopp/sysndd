@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 64 (LLM Admin Dashboard) - IN PROGRESS
-**Plan:** 1/4 complete
-**Status:** Plan 64-01 complete (Backend API endpoints)
+**Plan:** 2/4 complete
+**Status:** Plan 64-02 complete (Prompt Template Database)
 **Progress:** v10.0 [██████████████████░░] 11/12 phases (92%)
 
-**Last completed:** 64-01 - LLM Admin Backend API
-**Last activity:** 2026-02-01 — Completed 64-01-PLAN.md (LLM admin endpoints)
-**Next plan:** 64-02 - Frontend Dashboard Components
+**Last completed:** 64-02 - Prompt Template Database Functions
+**Last activity:** 2026-02-01 — Completed 64-02-PLAN.md (prompt templates)
+**Next plan:** 64-03 - Frontend Dashboard Components
 
 ---
 
@@ -53,7 +53,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | ✓ Complete |
 | 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | ✓ Complete |
-| 64 | LLM Admin Dashboard | LLM-ADMIN-01 to LLM-ADMIN-10 | In Progress (1/4) |
+| 64 | LLM Admin Dashboard | LLM-ADMIN-01 to LLM-ADMIN-10 | In Progress (2/4) |
 
 **Phases:** 10 active (55-64, Phase 61 merged into 59)
 **Requirements:** 53 mapped (100% coverage)
@@ -89,7 +89,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | **Backend Tests** | 687 + 11 E2E | 20.3% coverage, 24 integration + 53 migration + 11 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
-| **Migrations** | 7 files + runner | api/functions/migration-runner.R ready, comparisons config tables added |
+| **Migrations** | 8 files + runner | api/functions/migration-runner.R ready, llm_prompt_templates added |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
 | **Bundle Size** | ~600 KB gzipped | Vite 7.3.1, 164ms dev startup |
@@ -364,8 +364,8 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed 64-01-PLAN.md (LLM admin backend API)
-**Next action:** Execute 64-02-PLAN.md (Frontend Dashboard Components)
+**Stopped at:** Completed 64-02-PLAN.md (Prompt Template Database)
+**Next action:** Execute 64-03-PLAN.md (Frontend Dashboard Components)
 **Resume file:** None
 
 ### Quick Tasks Completed
@@ -442,8 +442,23 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
   - api/endpoints/llm_admin_endpoints.R: 10 admin endpoints
   - api/functions/llm-cache-repository.R: 4 new admin query functions
   - api/start_sysndd_api.R: /api/llm mount added
+- ✓ Plan 02: Prompt Template Database Functions
+  - db/migrations/008_add_llm_prompt_templates.sql: table + 4 seeded prompts
+  - api/functions/llm-service.R: 4 new functions (get/save/default/all)
+
+### Decisions from Phase 64 Plan 02
+
+**Plan 02 (Prompt Template Database Functions):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | ENUM for prompt_type | Constrains to 4 valid types at database level | Invalid types rejected by DB |
+| 2026-02-01 | Unique (prompt_type, version) | Prevents duplicate versions for same prompt type | Version history integrity |
+| 2026-02-01 | is_active flag for versioning | Enables soft versioning - deactivate old, activate new | Version switching without data loss |
+| 2026-02-01 | Seed defaults in migration | Prompts available immediately after migration | Zero-config startup |
+| 2026-02-01 | Hardcoded fallback | Backward compatibility if migration hasn't run | Graceful degradation |
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Completed 64-01 (LLM Admin Backend API)*
+*Last updated: 2026-02-01 — Completed 64-02 (Prompt Template Database Functions)*
