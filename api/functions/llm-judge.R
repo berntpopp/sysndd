@@ -70,6 +70,199 @@ llm_judge_verdict_type <- ellmer::type_object(
 )
 
 
+#' Build judge prompt for FUNCTIONAL cluster validation
+#'
+#' Creates validation prompt for functional clusters which group genes by function.
+#'
+#' @param summary List, the generated summary to validate
+#' @param cluster_data List, the original cluster data
+#'
+#' @return Character string, the formatted judge prompt
+#'
+#' @keywords internal
+build_functional_judge_prompt <- function(summary, cluster_data) {
+  # Extract context for judge
+  genes <- if ("identifiers" %in% names(cluster_data) && "symbol" %in% names(cluster_data$identifiers)) {
+    gene_list <- cluster_data$identifiers$symbol
+    if (length(gene_list) > 20) {
+      paste0(paste(head(gene_list, 15), collapse = ", "), "... (", length(gene_list), " total)")
+    } else {
+      paste(gene_list, collapse = ", ")
+    }
+  } else {
+    "(genes not available)"
+  }
+
+  # Extract top 15 enrichment terms for validation
+  enrichment_terms <- if ("term_enrichment" %in% names(cluster_data) && nrow(cluster_data$term_enrichment) > 0) {
+    cluster_data$term_enrichment %>%
+      dplyr::arrange(fdr) %>%
+      dplyr::slice_head(n = 15) %>%
+      dplyr::mutate(
+        display_name = dplyr::if_else(!is.na(description) & description != "", description, term),
+        term_line = glue::glue("- {category}: {display_name} (FDR: {signif(fdr, 3)})")
+      ) %>%
+      dplyr::pull(term_line) %>%
+      paste(collapse = "\n")
+  } else {
+    "(no enrichment data)"
+  }
+
+  # Extract summary components
+  summary_text <- summary$summary %||% ""
+  key_themes <- if (!is.null(summary$key_themes) && length(summary$key_themes) > 0) {
+    paste(summary$key_themes, collapse = ", ")
+  } else {
+    "(none)"
+  }
+  pathways <- if (!is.null(summary$pathways) && length(summary$pathways) > 0) {
+    paste(summary$pathways, collapse = ", ")
+  } else {
+    "(none)"
+  }
+  self_confidence <- summary$confidence %||% "unknown"
+
+  glue::glue("
+You are a scientific accuracy validator for AI-generated gene cluster summaries.
+Evaluate the following summary for accuracy and grounding.
+
+## Original Cluster Data
+**Genes:** {genes}
+
+**Top 15 Enrichment Terms:**
+{enrichment_terms}
+
+## Generated Summary to Validate
+**Summary text:** {summary_text}
+
+**Key themes:** {key_themes}
+
+**Pathways listed:** {pathways}
+
+**Self-assessed confidence:** {self_confidence}
+
+## Validation Criteria
+1. **Factual accuracy:** Does the summary accurately describe biological functions of these genes?
+2. **Grounding:** Are all claims supported by the enrichment data above? Are there invented terms?
+3. **Pathway validity:** Are the listed pathways exact matches from the enrichment terms (no invented pathways)?
+4. **Confidence appropriate:** Does the self-assessed confidence match the evidence strength?
+
+## Instructions
+Evaluate each criterion and provide a final verdict:
+- **accept:** Summary is accurate and well-grounded in the enrichment data
+- **low_confidence:** Summary is mostly accurate but has minor issues or unverifiable claims
+- **reject:** Summary has significant errors, invented information, or hallucinated terms
+")
+}
+
+
+#' Build judge prompt for PHENOTYPE cluster validation
+#'
+#' Creates validation prompt for phenotype clusters which group disease entities
+#' by phenotype patterns using v.test scores.
+#'
+#' @param summary List, the generated summary to validate
+#' @param cluster_data List, the original cluster data
+#'
+#' @return Character string, the formatted judge prompt
+#'
+#' @keywords internal
+build_phenotype_judge_prompt <- function(summary, cluster_data) {
+  # Extract phenotype data from quali_inp_var
+  phenotype_terms <- if ("quali_inp_var" %in% names(cluster_data)) {
+    phenotypes_df <- if (is.data.frame(cluster_data$quali_inp_var)) {
+      cluster_data$quali_inp_var
+    } else if (is.list(cluster_data$quali_inp_var)) {
+      dplyr::bind_rows(cluster_data$quali_inp_var)
+    } else {
+      NULL
+    }
+
+    if (!is.null(phenotypes_df) && nrow(phenotypes_df) > 0 &&
+        all(c("variable", "v.test") %in% names(phenotypes_df))) {
+      phenotypes_df %>%
+        dplyr::arrange(dplyr::desc(abs(`v.test`))) %>%
+        dplyr::slice_head(n = 15) %>%
+        dplyr::mutate(
+          direction = dplyr::if_else(`v.test` > 0, "ENRICHED", "DEPLETED"),
+          term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction}]")
+        ) %>%
+        dplyr::pull(term_line) %>%
+        paste(collapse = "\n")
+    } else {
+      "(no phenotype data)"
+    }
+  } else {
+    "(no phenotype data)"
+  }
+
+  # Get entity count
+  entity_count <- if ("identifiers" %in% names(cluster_data)) {
+    nrow(cluster_data$identifiers)
+  } else {
+    "unknown"
+  }
+
+  # Extract summary components (phenotype-specific fields)
+  summary_text <- summary$summary %||% ""
+
+  # Handle both old (key_themes) and new (key_phenotype_themes) field names
+  key_themes <- if (!is.null(summary$key_phenotype_themes) && length(summary$key_phenotype_themes) > 0) {
+    paste(summary$key_phenotype_themes, collapse = ", ")
+  } else if (!is.null(summary$key_themes) && length(summary$key_themes) > 0) {
+    paste(summary$key_themes, collapse = ", ")
+  } else {
+    "(none)"
+  }
+
+  notably_absent <- if (!is.null(summary$notably_absent) && length(summary$notably_absent) > 0) {
+    paste(summary$notably_absent, collapse = ", ")
+  } else {
+    "(not specified)"
+  }
+
+  clinical_pattern <- summary$clinical_pattern %||% "(not specified)"
+  self_confidence <- summary$confidence %||% "unknown"
+
+  glue::glue("
+You are validating an AI-generated phenotype cluster summary for accuracy.
+
+## Important Context
+- This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT genes
+- Entities were clustered based on their phenotype annotations
+- v.test interpretation: POSITIVE = phenotype ENRICHED, NEGATIVE = phenotype DEPLETED
+
+## Original Phenotype Data
+The cluster has these top phenotypes by effect size:
+{phenotype_terms}
+
+## Generated Summary to Validate
+**Summary:** {summary_text}
+
+**Key phenotype themes:** {key_themes}
+
+**Notably absent phenotypes:** {notably_absent}
+
+**Clinical pattern:** {clinical_pattern}
+
+**Self-assessed confidence:** {self_confidence}
+
+## Validation Criteria
+1. **Phenotype accuracy:** Does the summary ONLY reference phenotypes from the input data?
+2. **No hallucination:** Are there any invented phenotype terms not in the input?
+3. **v.test interpretation:** Does it correctly identify enriched (positive) vs depleted (negative) phenotypes?
+4. **No gene/pathway speculation:** Does the summary avoid inventing molecular mechanisms?
+5. **Both directions:** Does the summary mention BOTH enriched AND depleted phenotypes where applicable?
+
+## Instructions
+Evaluate each criterion and provide a final verdict:
+- **accept:** Summary accurately describes the phenotype pattern using only input data
+- **low_confidence:** Minor issues but generally accurate
+- **reject:** Contains hallucinated phenotypes, invents molecular mechanisms, or fundamentally misinterprets the data
+")
+}
+
+
 #' Validate cluster summary using LLM-as-judge
 #'
 #' Evaluates a generated summary for accuracy and grounding using Gemini.
@@ -103,7 +296,7 @@ llm_judge_verdict_type <- ellmer::type_object(
 #' }
 #'
 #' @export
-validate_with_llm_judge <- function(summary, cluster_data, model = "gemini-2.0-flash") {
+validate_with_llm_judge <- function(summary, cluster_data, model = "gemini-3-pro-preview", cluster_type = "functional") {
   # Handle NULL inputs
   if (is.null(summary)) {
     log_warn("Judge received NULL summary, returning reject verdict")
@@ -129,73 +322,14 @@ validate_with_llm_judge <- function(summary, cluster_data, model = "gemini-2.0-f
     ))
   }
 
-  log_info("Validating summary with LLM-as-judge (model={model})")
+  log_info("Validating summary with LLM-as-judge (model={model}, type={cluster_type})")
 
-  # Extract context for judge
-  genes <- if ("identifiers" %in% names(cluster_data) && "symbol" %in% names(cluster_data$identifiers)) {
-    paste(cluster_data$identifiers$symbol, collapse = ", ")
+  # Build appropriate judge prompt based on cluster type
+  judge_prompt <- if (cluster_type == "phenotype") {
+    build_phenotype_judge_prompt(summary, cluster_data)
   } else {
-    "(genes not available)"
+    build_functional_judge_prompt(summary, cluster_data)
   }
-
-  # Extract top 15 enrichment terms for validation
-  enrichment_terms <- if ("term_enrichment" %in% names(cluster_data) && nrow(cluster_data$term_enrichment) > 0) {
-    cluster_data$term_enrichment %>%
-      dplyr::arrange(fdr) %>%
-      dplyr::slice_head(n = 15) %>%
-      dplyr::mutate(term_line = glue::glue("- {category}: {term} (FDR: {signif(fdr, 3)})")) %>%
-      dplyr::pull(term_line) %>%
-      paste(collapse = "\n")
-  } else {
-    "(no enrichment data)"
-  }
-
-  # Extract summary components for evaluation
-  summary_text <- summary$summary %||% ""
-  key_themes <- if (!is.null(summary$key_themes) && length(summary$key_themes) > 0) {
-    paste(summary$key_themes, collapse = ", ")
-  } else {
-    "(none)"
-  }
-  pathways <- if (!is.null(summary$pathways) && length(summary$pathways) > 0) {
-    paste(summary$pathways, collapse = ", ")
-  } else {
-    "(none)"
-  }
-  self_confidence <- summary$confidence %||% "unknown"
-
-  # Build judge prompt
-  judge_prompt <- glue::glue("
-You are a scientific accuracy validator for AI-generated gene cluster summaries.
-Evaluate the following summary for accuracy and grounding.
-
-## Original Cluster Data
-**Genes:** {genes}
-
-**Top 15 Enrichment Terms:**
-{enrichment_terms}
-
-## Generated Summary to Validate
-**Summary text:** {summary_text}
-
-**Key themes:** {key_themes}
-
-**Pathways listed:** {pathways}
-
-**Self-assessed confidence:** {self_confidence}
-
-## Validation Criteria
-1. **Factual accuracy:** Does the summary accurately describe biological functions?
-2. **Grounding:** Are all claims supported by the enrichment data above?
-3. **Pathway validity:** Are the listed pathways exact matches from the enrichment terms (or reasonable generalizations)?
-4. **Confidence appropriate:** Does the self-assessed confidence match the evidence strength?
-
-## Instructions
-Evaluate each criterion and provide a final verdict:
-- **accept:** Summary is accurate and well-grounded, cache as validated
-- **low_confidence:** Summary is mostly accurate but has minor issues, cache but flag for review
-- **reject:** Summary has significant errors or invented information, trigger regeneration
-")
 
   # Call judge LLM
   tryCatch(
@@ -271,7 +405,7 @@ Evaluate each criterion and provide a final verdict:
 generate_and_validate_with_judge <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-2.0-flash",
+  model = "gemini-3-pro-preview",
   cluster_hash = NULL
 ) {
   log_info("Starting generation + validation pipeline for {cluster_type} cluster")
@@ -302,7 +436,8 @@ generate_and_validate_with_judge <- function(
   judge_result <- validate_with_llm_judge(
     summary = gen_result$summary,
     cluster_data = cluster_data,
-    model = model
+    model = model,
+    cluster_type = cluster_type
   )
 
   # Step 3: Map verdict to validation_status
@@ -328,7 +463,13 @@ generate_and_validate_with_judge <- function(
 
   # Add derived confidence if not already present
   if (is.null(summary_with_metadata$derived_confidence)) {
-    summary_with_metadata$derived_confidence <- calculate_derived_confidence(cluster_data$term_enrichment)
+    # Use appropriate data source for confidence calculation based on cluster type
+    confidence_data <- if (cluster_type == "phenotype") {
+      cluster_data$quali_inp_var
+    } else {
+      cluster_data$term_enrichment
+    }
+    summary_with_metadata$derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
   }
 
   # Step 5: Save to cache with validation_status

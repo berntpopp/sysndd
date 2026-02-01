@@ -96,67 +96,69 @@ functional_cluster_summary_type <- ellmer::type_object(
 
 #' Type specification for phenotype cluster summary
 #'
-#' Extends functional cluster summary with phenotype-specific fields.
+#' Defines structure for phenotype clusters which group disease entities
+#' (gene-disease associations) by phenotype patterns, NOT by gene function.
+#' Uses v.test scores to identify enriched/depleted phenotypes.
 #'
 #' @export
 phenotype_cluster_summary_type <- ellmer::type_object(
-  "AI-generated summary of a phenotype cluster",
+  "AI-generated summary of a phenotype cluster based on v.test enrichment",
 
   summary = ellmer::type_string(
-    "2-3 sentence prose summary describing the cluster's phenotype patterns
-     and relevance to neurodevelopmental disorders.
-     Target audience: clinical researchers and database curators."
+    "2-3 sentence description of the clinical phenotype pattern.
+     Focus on what phenotypes define this cluster (both enriched AND depleted).
+     Target audience: clinical geneticists and syndrome researchers."
   ),
 
-  key_themes = ellmer::type_array(
-    ellmer::type_string("Phenotype theme or pattern"),
-    "3-5 key phenotypic themes that characterize this cluster"
+  key_phenotype_themes = ellmer::type_array(
+    ellmer::type_string("Clinical phenotype category"),
+    "3-5 main phenotypic themes that are ENRICHED in this cluster (positive v.test)"
   ),
 
-  pathways = ellmer::type_array(
-    ellmer::type_string("Pathway or term from enrichment analysis"),
-    "Top pathways or terms from the enrichment data that define this cluster.
-     Must be exact matches from the provided enrichment terms."
+  notably_absent = ellmer::type_array(
+    ellmer::type_string("Phenotype that is rare in this cluster"),
+    "2-3 phenotypes that are DEPLETED in this cluster (negative v.test)",
+    required = FALSE
+  ),
+
+  clinical_pattern = ellmer::type_string(
+    "Syndrome category suggested by the phenotype pattern (e.g., 'syndromic malformations',
+     'progressive metabolic disorders', 'overgrowth syndromes', 'pure neurodevelopmental')"
+  ),
+
+  syndrome_hints = ellmer::type_array(
+    ellmer::type_string("Recognized syndrome name or category"),
+    "Known syndrome categories this phenotype pattern might represent",
+    required = FALSE
   ),
 
   tags = ellmer::type_array(
-    ellmer::type_string("Searchable keyword for filtering"),
-    "3-7 short, searchable tags (e.g., 'hypotonia', 'epilepsy', 'ataxia')"
-  ),
-
-  clinical_relevance = ellmer::type_string(
-    "Brief note on clinical implications for NDD diagnosis or research",
-    required = FALSE
+    ellmer::type_string("Searchable clinical keyword"),
+    "3-7 short tags derived from the phenotype data (e.g., 'cardiac', 'renal', 'skeletal')"
   ),
 
   confidence = ellmer::type_enum(
     c("high", "medium", "low"),
-    "Self-assessed confidence: high if enrichment data strongly supports themes,
-     medium if moderate support, low if sparse data or ambiguous patterns"
+    "Confidence based on phenotype data strength: high if many significant phenotypes,
+     medium if moderate signal, low if sparse or conflicting data"
   ),
 
-  # Phenotype-specific fields
-  syndrome_hints = ellmer::type_array(
-    ellmer::type_string("Recognized syndrome name"),
-    "Potential syndrome associations suggested by phenotype pattern",
-    required = FALSE
-  ),
-
-  curation_notes = ellmer::type_string(
-    "Notes for curators on phenotype patterns or potential gene associations",
+  data_quality_note = ellmer::type_string(
+    "Note any data quality issues or caveats about the phenotype interpretation",
     required = FALSE
   )
 )
 
 
-#' Build prompt for cluster summary generation
+#' Build prompt for FUNCTIONAL cluster summary generation
 #'
 #' Constructs a prompt for the LLM using cluster data and enrichment terms.
+#' Used for functional clusters which group GENES by functional similarity.
 #' Does NOT include JSON schema in prompt (ellmer handles via type spec).
 #'
 #' @param cluster_data List containing:
 #'   - identifiers: tibble with symbol column (gene symbols)
-#'   - term_enrichment: tibble with category, term, fdr columns
+#'   - term_enrichment: tibble with category, term, description, fdr, number_of_genes columns
 #' @param top_n_terms Integer, number of enrichment terms per category (default: 20)
 #'
 #' @return Character string, the formatted prompt
@@ -177,25 +179,46 @@ build_cluster_prompt <- function(cluster_data, top_n_terms = 20) {
     rlang::abort("cluster_data must contain 'identifiers' element", class = "llm_service_error")
   }
 
-  # Extract gene symbols
+  # Extract gene symbols (show sample for large clusters)
   if ("symbol" %in% names(cluster_data$identifiers)) {
-    genes <- paste(cluster_data$identifiers$symbol, collapse = ", ")
     gene_count <- nrow(cluster_data$identifiers)
+    if (gene_count > 20) {
+      sample_genes <- paste(head(cluster_data$identifiers$symbol, 15), collapse = ", ")
+      genes <- paste0(sample_genes, "... (", gene_count, " total)")
+    } else {
+      genes <- paste(cluster_data$identifiers$symbol, collapse = ", ")
+    }
   } else {
     genes <- "(gene symbols not provided)"
     gene_count <- nrow(cluster_data$identifiers)
   }
 
   # Extract and format enrichment terms by category
+  # Now includes description (human-readable) and number_of_genes
   enrichment_text <- ""
   if ("term_enrichment" %in% names(cluster_data) && nrow(cluster_data$term_enrichment) > 0) {
     enrichment <- cluster_data$term_enrichment %>%
       dplyr::group_by(category) %>%
+      dplyr::arrange(fdr) %>%
       dplyr::slice_head(n = top_n_terms) %>%
       dplyr::ungroup()
 
+    # Use description if available, otherwise fall back to term
+    # Include gene count if available
     enrichment_text <- enrichment %>%
-      dplyr::mutate(term_line = glue::glue("- {term} (FDR: {signif(fdr, 3)})")) %>%
+      dplyr::mutate(
+        display_name = dplyr::if_else(
+          !is.na(description) & description != "",
+          description,
+          term
+        ),
+        gene_info = dplyr::if_else(
+          !is.na(number_of_genes) & number_of_genes > 0,
+          glue::glue(", {number_of_genes}/{gene_count} genes"),
+          ""
+        ),
+        term_line = glue::glue("- {display_name} (FDR: {signif(fdr, 3)}{gene_info})")
+      ) %>%
       dplyr::group_by(category) %>%
       dplyr::summarise(terms = paste(term_line, collapse = "\n"), .groups = "drop") %>%
       dplyr::mutate(section = glue::glue("### {category}\n{terms}")) %>%
@@ -206,23 +229,189 @@ build_cluster_prompt <- function(cluster_data, top_n_terms = 20) {
   }
 
   prompt <- glue::glue("
-You are an expert in neurodevelopmental disorders and genomics.
-Analyze this gene cluster and provide a summary.
+You are a genomics expert analyzing gene clusters associated with neurodevelopmental disorders.
+
+## Task
+Analyze this functional gene cluster and summarize its biological significance.
 
 ## Cluster Information
 - **Cluster Size:** {gene_count} genes
-- **Genes:** {genes}
+- **Sample genes:** {genes}
 
-## Enrichment Analysis Results
+## Functional Enrichment Results
+The following terms are statistically enriched in this gene cluster:
+
 {enrichment_text}
 
 ## Instructions
-1. Summarize what biological functions unite these genes
-2. Identify 3-5 key themes based on the enrichment data
-3. List the most significant pathways (use exact names from enrichment above)
-4. Suggest 3-7 searchable tags (lowercase, single words)
-5. Note any clinical relevance for neurodevelopmental disorder research
-6. Assess your confidence based on enrichment data strength
+Based on the enrichment data above:
+
+1. **Summary (2-3 sentences):** What biological functions unite these genes? Focus on the GO terms and pathways.
+
+2. **Key biological themes (3-5):** List the main functional categories from the enrichment data.
+
+3. **Pathways:** List ONLY pathways that appear in the enrichment data above. Do NOT invent pathway names.
+
+4. **Disease relevance:** Based on the HPO/disease terms, what types of disorders involve these genes?
+
+5. **Tags (3-7):** Short keywords derived from the enrichment terms.
+
+6. **Confidence:** High if strong enrichment (many terms with FDR < 1E-50), Medium if moderate, Low if weak.
+
+IMPORTANT: Only mention terms that appear in the data above. Do not invent or generalize.
+")
+
+  return(prompt)
+}
+
+
+#' Build prompt for PHENOTYPE cluster summary generation
+#'
+#' Constructs a prompt for phenotype clusters which group DISEASE ENTITIES
+#' (gene-disease associations) by phenotype similarity, NOT by gene function.
+#' Uses v.test scores to identify enriched/depleted phenotypes.
+#'
+#' Unlike functional clusters which have many categories, phenotype clusters
+#' typically have fewer significant terms, so we include ALL significant
+#' phenotypes (|v.test| > 2) rather than limiting to top N.
+#'
+#' @param cluster_data List containing:
+#'   - identifiers: tibble with entity_id column
+#'   - quali_inp_var: tibble with variable, p.value, v.test columns
+#' @param vtest_threshold Numeric, minimum |v.test| to include (default: 2)
+#'
+#' @return Character string, the formatted prompt
+#'
+#' @examples
+#' \dontrun{
+#' prompt <- build_phenotype_cluster_prompt(cluster_data, vtest_threshold = 2)
+#' }
+#'
+#' @export
+build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
+  # Validate input
+  if (!is.list(cluster_data)) {
+    rlang::abort("cluster_data must be a list", class = "llm_service_error")
+  }
+
+  # Check for phenotype data (quali_inp_var)
+  if (!"quali_inp_var" %in% names(cluster_data) || length(cluster_data$quali_inp_var) == 0) {
+    log_warn("No phenotype data (quali_inp_var) found, falling back to generic prompt")
+    return(build_cluster_prompt(cluster_data))
+  }
+
+  # Convert to data frame if needed
+  phenotypes_df <- if (is.data.frame(cluster_data$quali_inp_var)) {
+    cluster_data$quali_inp_var
+  } else if (is.list(cluster_data$quali_inp_var)) {
+    dplyr::bind_rows(cluster_data$quali_inp_var)
+  } else {
+    log_warn("Unable to process quali_inp_var, falling back to generic prompt")
+    return(build_cluster_prompt(cluster_data))
+  }
+
+  # Validate required columns
+  if (!all(c("variable", "v.test", "p.value") %in% names(phenotypes_df))) {
+    log_warn("quali_inp_var missing required columns, falling back to generic prompt")
+    return(build_cluster_prompt(cluster_data))
+  }
+
+  # Get entity count
+  entity_count <- if ("identifiers" %in% names(cluster_data)) {
+    nrow(cluster_data$identifiers)
+  } else {
+    cluster_data$cluster_size %||% "unknown"
+  }
+
+  # Include ALL significant phenotypes (|v.test| > threshold)
+  # For phenotype clusters, we want comprehensive data rather than top N
+  phenotypes_significant <- phenotypes_df %>%
+    dplyr::filter(abs(`v.test`) > vtest_threshold)
+
+  # Separate enriched (positive v.test) and depleted (negative v.test)
+  enriched <- phenotypes_significant %>%
+    dplyr::filter(`v.test` > 0) %>%
+    dplyr::arrange(dplyr::desc(`v.test`))
+
+  depleted <- phenotypes_significant %>%
+    dplyr::filter(`v.test` < 0) %>%
+    dplyr::arrange(`v.test`)
+
+  # Format enriched phenotypes as table
+  enriched_text <- if (nrow(enriched) > 0) {
+    enriched_lines <- enriched %>%
+      dplyr::mutate(
+        line = glue::glue("| {variable} | +{round(`v.test`, 2)} | {signif(`p.value`, 2)} |")
+      ) %>%
+      dplyr::pull(line) %>%
+      paste(collapse = "\n")
+    paste0(
+      "| Phenotype | v.test | p-value |\n",
+      "|-----------|--------|--------|\n",
+      enriched_lines
+    )
+  } else {
+    "(No significantly enriched phenotypes)"
+  }
+
+  # Format depleted phenotypes as table
+  depleted_text <- if (nrow(depleted) > 0) {
+    depleted_lines <- depleted %>%
+      dplyr::mutate(
+        line = glue::glue("| {variable} | {round(`v.test`, 2)} | {signif(`p.value`, 2)} |")
+      ) %>%
+      dplyr::pull(line) %>%
+      paste(collapse = "\n")
+    paste0(
+      "| Phenotype | v.test | p-value |\n",
+      "|-----------|--------|--------|\n",
+      depleted_lines
+    )
+  } else {
+    "(No significantly depleted phenotypes)"
+  }
+
+  prompt <- glue::glue("
+You are a clinical geneticist analyzing phenotype clusters from a neurodevelopmental disorder database.
+
+## Task
+Analyze this phenotype cluster and describe its clinical pattern.
+
+## Important Context
+- This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT individual genes
+- Entities were clustered based on their phenotype (clinical feature) annotations
+- v.test score indicates enrichment:
+  - POSITIVE v.test = phenotype is MORE COMMON in this cluster than average
+  - NEGATIVE v.test = phenotype is LESS COMMON in this cluster than average
+  - Larger |v.test| = stronger association (>2 = significant, >5 = strong, >10 = very strong)
+
+## Phenotype Data
+
+### ENRICHED Phenotypes (overrepresented in this cluster)
+{enriched_text}
+
+### DEPLETED Phenotypes (underrepresented in this cluster)
+{depleted_text}
+
+## Instructions
+Based ONLY on the phenotype data above:
+
+1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern. What types of conditions are in this cluster? Note both enriched AND depleted phenotypes.
+
+2. **Key phenotype themes (3-5):** The main clinical feature categories that are ENRICHED.
+
+3. **Notably absent (2-3):** What phenotypes are significantly DEPLETED? This is clinically meaningful.
+
+4. **Clinical pattern:** What syndrome category does this suggest? (e.g., 'syndromic malformation disorders', 'pure neurodevelopmental', 'metabolic/degenerative')
+
+5. **Syndrome hints:** Based on the phenotype combination, what known syndrome categories might this represent?
+
+6. **Tags (3-7):** Short clinical keywords from the phenotypes (e.g., 'cardiac', 'renal', 'skeletal')
+
+CRITICAL:
+- Only describe phenotypes from the data above
+- Do NOT mention genes or molecular pathways - this is purely phenotype-based
+- Both enriched AND depleted phenotypes are important for characterization
 ")
 
   return(prompt)
@@ -272,7 +461,7 @@ Analyze this gene cluster and provide a summary.
 generate_cluster_summary <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-2.0-flash",
+  model = "gemini-3-pro-preview",
   max_retries = 3,
   top_n_terms = 20
 ) {
@@ -321,8 +510,14 @@ generate_cluster_summary <- function(
     phenotype_cluster_summary_type
   }
 
-  # Build prompt
-  prompt <- build_cluster_prompt(cluster_data, top_n_terms = top_n_terms)
+  # Build prompt using the appropriate builder for cluster type
+  # For phenotype clusters: include all significant phenotypes (|v.test| > 2)
+  # For functional clusters: use top N terms per category
+  prompt <- if (cluster_type == "phenotype") {
+    build_phenotype_cluster_prompt(cluster_data, vtest_threshold = 2)
+  } else {
+    build_cluster_prompt(cluster_data, top_n_terms = top_n_terms)
+  }
 
   message("[LLM-Service] Generating ", cluster_type, " cluster summary with model=", model)
   log_info("Generating {cluster_type} cluster summary with model={model}")
@@ -504,7 +699,7 @@ generate_cluster_summary <- function(
 get_or_generate_summary <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-2.0-flash",
+  model = "gemini-3-pro-preview",
   require_validated = FALSE
 ) {
   # Validate cluster_type
@@ -572,7 +767,13 @@ get_or_generate_summary <- function(
 
       # Add derived confidence even for rejected summaries
       summary_with_confidence <- result$last_result
-      summary_with_confidence$derived_confidence <- calculate_derived_confidence(cluster_data$term_enrichment)
+      # Use appropriate data source for confidence calculation based on cluster type
+      confidence_data <- if (cluster_type == "phenotype") {
+        cluster_data$quali_inp_var
+      } else {
+        cluster_data$term_enrichment
+      }
+      summary_with_confidence$derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
 
       cache_id <- save_summary_to_cache(
         cluster_type = cluster_type,
@@ -604,8 +805,13 @@ get_or_generate_summary <- function(
     ))
   }
 
-  # Calculate derived confidence from enrichment data
-  derived_confidence <- calculate_derived_confidence(cluster_data$term_enrichment)
+  # Calculate derived confidence from appropriate data source
+  confidence_data <- if (cluster_type == "phenotype") {
+    cluster_data$quali_inp_var
+  } else {
+    cluster_data$term_enrichment
+  }
+  derived_confidence <- calculate_derived_confidence(confidence_data, cluster_type)
 
   # Add derived_confidence to summary
   summary_with_confidence <- result$summary
@@ -651,22 +857,31 @@ is_gemini_configured <- function() {
 }
 
 
-#' Calculate derived confidence from enrichment data
+#' Calculate derived confidence from cluster data
 #'
-#' Computes a confidence score based on enrichment data strength.
+#' Computes a confidence score based on data strength.
 #' Provides an objective measure independent of LLM self-assessment.
+#' Handles both functional (enrichment/FDR) and phenotype (v.test/p.value) clusters.
 #'
-#' @param enrichment_data Tibble with term enrichment data containing 'fdr' column
+#' @param data Tibble with either:
+#'   - term_enrichment: containing 'fdr' column (for functional clusters)
+#'   - quali_inp_var: containing 'p.value' and 'v.test' columns (for phenotype clusters)
+#' @param cluster_type Character, "functional" or "phenotype" (default: auto-detect)
 #'
 #' @return List with:
-#'   - avg_fdr: Average FDR across top terms
-#'   - term_count: Number of significant terms (FDR < 0.05)
+#'   - avg_fdr: Average FDR/p-value across top terms (numeric)
+#'   - term_count: Number of significant terms (integer)
 #'   - score: Derived confidence score ("high", "medium", or "low")
 #'
 #' @details
-#' Confidence scoring:
+#' For functional clusters (FDR-based):
 #' - high: avg_fdr < 1e-10 AND term_count > 20
 #' - medium: avg_fdr < 1e-5 AND term_count > 10
+#' - low: otherwise
+#'
+#' For phenotype clusters (v.test-based):
+#' - high: many terms with |v.test| > 5 AND p.value < 1e-10
+#' - medium: some terms with |v.test| > 3 AND p.value < 1e-5
 #' - low: otherwise
 #'
 #' @examples
@@ -677,9 +892,9 @@ is_gemini_configured <- function() {
 #' }
 #'
 #' @export
-calculate_derived_confidence <- function(enrichment_data) {
-  # Handle NULL or empty enrichment data
-  if (is.null(enrichment_data) || nrow(enrichment_data) == 0) {
+calculate_derived_confidence <- function(data, cluster_type = NULL) {
+  # Handle NULL or empty data
+  if (is.null(data)) {
     return(list(
       avg_fdr = NA_real_,
       term_count = 0L,
@@ -687,59 +902,135 @@ calculate_derived_confidence <- function(enrichment_data) {
     ))
   }
 
-  # Ensure fdr column exists
-  if (!"fdr" %in% names(enrichment_data)) {
-    log_warn("Enrichment data missing 'fdr' column, returning low confidence")
+  # Convert list to data frame if needed
+  if (is.list(data) && !is.data.frame(data)) {
+    data <- tryCatch(
+      dplyr::bind_rows(data),
+      error = function(e) NULL
+    )
+  }
+
+  if (is.null(data) || !is.data.frame(data) || nrow(data) == 0) {
     return(list(
       avg_fdr = NA_real_,
-      term_count = nrow(enrichment_data),
+      term_count = 0L,
       score = "low"
     ))
   }
 
-  # Count significant terms (FDR < 0.05)
-  significant_terms <- enrichment_data %>%
-    dplyr::filter(fdr < 0.05)
-
-  term_count <- nrow(significant_terms)
-
-  # Calculate average FDR across significant terms
-  avg_fdr <- if (term_count > 0) {
-    mean(significant_terms$fdr, na.rm = TRUE)
-  } else {
-    NA_real_
+  # Auto-detect cluster type based on column presence
+  if (is.null(cluster_type)) {
+    cluster_type <- if ("fdr" %in% names(data)) {
+      "functional"
+    } else if (all(c("p.value", "v.test") %in% names(data))) {
+      "phenotype"
+    } else {
+      "unknown"
+    }
   }
 
-  # Determine confidence score
-  score <- if (!is.na(avg_fdr) && avg_fdr < 1e-10 && term_count > 20) {
-    "high"
-  } else if (!is.na(avg_fdr) && avg_fdr < 1e-5 && term_count > 10) {
-    "medium"
+  if (cluster_type == "phenotype") {
+    # Phenotype cluster: use p.value and v.test
+    if (!all(c("p.value", "v.test") %in% names(data))) {
+      log_warn("Phenotype data missing required columns, returning low confidence")
+      return(list(
+        avg_fdr = NA_real_,
+        term_count = nrow(data),
+        score = "low"
+      ))
+    }
+
+    # Count significant terms (p.value < 0.05 AND |v.test| > 2)
+    significant_terms <- data %>%
+      dplyr::filter(`p.value` < 0.05 & abs(`v.test`) > 2)
+
+    term_count <- nrow(significant_terms)
+
+    # Use p.value as the equivalent of FDR for display
+    avg_pvalue <- if (term_count > 0) {
+      mean(significant_terms$`p.value`, na.rm = TRUE)
+    } else {
+      NA_real_
+    }
+
+    # Count strong effects
+    strong_effects <- sum(abs(significant_terms$`v.test`) > 5, na.rm = TRUE)
+    very_strong <- sum(abs(significant_terms$`v.test`) > 10, na.rm = TRUE)
+
+    # Determine confidence score based on v.test magnitudes and p-values
+    score <- if (!is.na(avg_pvalue) && avg_pvalue < 1e-10 && strong_effects > 10) {
+      "high"
+    } else if (!is.na(avg_pvalue) && avg_pvalue < 1e-5 && term_count > 5) {
+      "medium"
+    } else {
+      "low"
+    }
+
+    log_debug("Derived confidence (phenotype): avg_pvalue={signif(avg_pvalue, 3)}, term_count={term_count}, strong_effects={strong_effects}, score={score}")
+
+    return(list(
+      avg_fdr = avg_pvalue,  # Use p.value for consistency with frontend
+      term_count = as.integer(term_count),
+      score = score
+    ))
   } else {
-    "low"
+    # Functional cluster: use FDR
+    if (!"fdr" %in% names(data)) {
+      log_warn("Enrichment data missing 'fdr' column, returning low confidence")
+      return(list(
+        avg_fdr = NA_real_,
+        term_count = nrow(data),
+        score = "low"
+      ))
+    }
+
+    # Count significant terms (FDR < 0.05)
+    significant_terms <- data %>%
+      dplyr::filter(fdr < 0.05)
+
+    term_count <- nrow(significant_terms)
+
+    # Calculate average FDR across significant terms
+    avg_fdr <- if (term_count > 0) {
+      mean(significant_terms$fdr, na.rm = TRUE)
+    } else {
+      NA_real_
+    }
+
+    # Determine confidence score
+    score <- if (!is.na(avg_fdr) && avg_fdr < 1e-10 && term_count > 20) {
+      "high"
+    } else if (!is.na(avg_fdr) && avg_fdr < 1e-5 && term_count > 10) {
+      "medium"
+    } else {
+      "low"
+    }
+
+    log_debug("Derived confidence (functional): avg_fdr={signif(avg_fdr, 3)}, term_count={term_count}, score={score}")
+
+    return(list(
+      avg_fdr = avg_fdr,
+      term_count = as.integer(term_count),
+      score = score
+    ))
   }
-
-  log_debug("Derived confidence: avg_fdr={signif(avg_fdr, 3)}, term_count={term_count}, score={score}")
-
-  list(
-    avg_fdr = avg_fdr,
-    term_count = as.integer(term_count),
-    score = score
-  )
 }
 
 
 #' List available Gemini models
 #'
-#' Returns a list of commonly used Gemini models for cluster summary generation.
+#' Returns a list of recommended Gemini models for cluster summary generation.
+#' Updated February 2026 - gemini-2.0-flash deprecated March 31, 2026.
 #'
 #' @return Character vector of model names
 #'
 #' @export
 list_gemini_models <- function() {
   c(
-    "gemini-2.0-flash",           # Fast, cost-effective (default)
-    "gemini-1.5-pro",             # High quality
-    "gemini-1.5-flash"            # Fast alternative
+    "gemini-3-pro-preview",       # Best quality, complex reasoning (default)
+    "gemini-3-flash-preview",     # Fast + capable
+    "gemini-2.5-flash",           # Best price-performance
+    "gemini-2.5-pro",             # Complex reasoning (stable)
+    "gemini-2.5-flash-lite"       # Budget option
   )
 }
