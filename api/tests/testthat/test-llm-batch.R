@@ -107,14 +107,12 @@ test_that("llm_batch_executor handles empty cluster list", {
     }
   }
 
-  # Replace create_progress_reporter temporarily
-  original_reporter <- create_progress_reporter
-  assignInNamespace("create_progress_reporter", mock_reporter, ns = asNamespace("sysndd"))
+  # Use local_mocked_bindings for proper mocking (not assignInNamespace)
+  local_mocked_bindings(
+    create_progress_reporter = mock_reporter
+  )
 
   result <- llm_batch_executor(params)
-
-  # Restore original function
-  assignInNamespace("create_progress_reporter", original_reporter, ns = asNamespace("sysndd"))
 
   expect_equal(result$total, 0L)
   expect_equal(result$succeeded, 0L)
@@ -145,21 +143,14 @@ test_that("llm_batch_executor returns correct summary structure", {
     }
   }
 
-  # Replace functions temporarily
-  original_reporter <- create_progress_reporter
-  original_get_cached <- get_cached_summary
-  original_generate_hash <- generate_cluster_hash
-
-  assignInNamespace("create_progress_reporter", mock_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("get_cached_summary", mock_get_cached_summary_hit, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", function(...) "mock-hash-123", ns = asNamespace("sysndd"))
+  # Use local_mocked_bindings for proper mocking
+  local_mocked_bindings(
+    create_progress_reporter = mock_reporter,
+    get_cached_summary = mock_get_cached_summary_hit,
+    generate_cluster_hash = function(...) "mock-hash-123"
+  )
 
   result <- llm_batch_executor(params)
-
-  # Restore original functions
-  assignInNamespace("create_progress_reporter", original_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("get_cached_summary", original_get_cached, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", original_generate_hash, ns = asNamespace("sysndd"))
 
   # Verify result structure
   expect_true("total" %in% names(result))
@@ -194,21 +185,14 @@ test_that("llm_batch_executor skips cached clusters correctly", {
     }
   }
 
-  # Replace functions temporarily
-  original_reporter <- create_progress_reporter
-  original_get_cached <- get_cached_summary
-  original_generate_hash <- generate_cluster_hash
-
-  assignInNamespace("create_progress_reporter", mock_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("get_cached_summary", mock_get_cached_summary_hit, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", function(...) "mock-hash-456", ns = asNamespace("sysndd"))
+  # Use local_mocked_bindings for proper mocking
+  local_mocked_bindings(
+    create_progress_reporter = mock_reporter,
+    get_cached_summary = mock_get_cached_summary_hit,
+    generate_cluster_hash = function(...) "mock-hash-456"
+  )
 
   result <- llm_batch_executor(params)
-
-  # Restore original functions
-  assignInNamespace("create_progress_reporter", original_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("get_cached_summary", original_get_cached, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", original_generate_hash, ns = asNamespace("sysndd"))
 
   # Verify that cluster was skipped (found in cache)
   expect_equal(result$skipped, 1L)
@@ -243,19 +227,14 @@ test_that("llm_batch_executor handles NULL cluster_hash gracefully", {
     stop("Hash generation failed")
   }
 
-  # Replace functions temporarily
-  original_reporter <- create_progress_reporter
-  original_generate_hash <- generate_cluster_hash
-
-  assignInNamespace("create_progress_reporter", mock_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", mock_generate_hash_fail, ns = asNamespace("sysndd"))
+  # Use local_mocked_bindings for proper mocking
+  local_mocked_bindings(
+    create_progress_reporter = mock_reporter,
+    generate_cluster_hash = mock_generate_hash_fail
+  )
 
   # Should not error - should handle gracefully and count as failed
   result <- llm_batch_executor(params)
-
-  # Restore original functions
-  assignInNamespace("create_progress_reporter", original_reporter, ns = asNamespace("sysndd"))
-  assignInNamespace("generate_cluster_hash", original_generate_hash, ns = asNamespace("sysndd"))
 
   # Verify that cluster was counted as failed
   expect_equal(result$failed, 1L)
