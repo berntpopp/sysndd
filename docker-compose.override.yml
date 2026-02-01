@@ -9,10 +9,16 @@
 # For production (skip overrides):
 #   docker compose -f docker-compose.yml up
 #
+# SCALING NOTE: This override exposes fixed host ports which conflict when
+# scaling API containers. Use production mode for scaling tests:
+#   docker compose -f docker-compose.yml up -d --scale api=4
+# The production compose uses Traefik for load balancing without port conflicts.
+#
 # What this enables:
 # - Hot-reload development for frontend (Dockerfile.dev + Compose Watch)
 # - MySQL port exposed at localhost:7654 for database tools
 # - Development environment settings
+# - Direct API access at localhost:7778 (single container only)
 
 services:
   # DEVELOPMENT: Enable Traefik dashboard for debugging routing issues
