@@ -447,15 +447,25 @@ export default {
   },
   watch: {
     // Re-run data load when filter changes
-    filter() {
-      this.filtered();
+    filter: {
+      handler() {
+        this.filtered();
+      },
+      deep: true,
     },
-    // Re-run data load when sorting changes
-    sortBy() {
-      this.handleSortByOrDescChange();
-    },
-    sortDesc() {
-      this.handleSortByOrDescChange();
+    // Watch for sortBy changes (deep watch for array format)
+    sortBy: {
+      handler(newVal) {
+        // Build new sort string from sortBy array
+        const newSortColumn = newVal && newVal.length > 0 ? newVal[0].key : 'search_id';
+        const newSortOrder = newVal && newVal.length > 0 ? newVal[0].order : 'asc';
+        const newSortString = (newSortOrder === 'desc' ? '-' : '+') + newSortColumn;
+        // Only trigger if sort actually changed
+        if (newSortString !== this.sort) {
+          this.handleSortByOrDescChange();
+        }
+      },
+      deep: true,
     },
   },
   mounted() {
@@ -578,17 +588,31 @@ export default {
       this.filter.any.content = null;
     },
 
+    /**
+     * Handle sort update from GenericTable.
+     * ctx.sortBy is the column key string, ctx.sortDesc is boolean.
+     * Convert to Bootstrap-Vue-Next array format for consistency.
+     */
     handleSortUpdate(ctx) {
-      this.sortBy = ctx.sortBy;
-      this.sortDesc = ctx.sortDesc;
+      this.sortBy = [{ key: ctx.sortBy, order: ctx.sortDesc ? 'desc' : 'asc' }];
     },
 
+    /**
+     * Handle sort changes - extract column and order from array-based sortBy
+     * and trigger data reload with new sort parameter.
+     */
     handleSortByOrDescChange() {
       this.currentItemID = 0;
-      // Ensure sortBy is a string for the API URL
-      const sortColumn =
-        typeof this.sortBy === 'string' ? this.sortBy : this.sortBy[0]?.key || 'search_id';
-      this.sort = (!this.sortDesc ? '+' : '-') + sortColumn;
+      // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
+      const sortColumn = Array.isArray(this.sortBy) && this.sortBy.length > 0
+        ? this.sortBy[0].key
+        : 'search_id';
+      const sortOrder = Array.isArray(this.sortBy) && this.sortBy.length > 0
+        ? this.sortBy[0].order
+        : 'asc';
+      const isDesc = sortOrder === 'desc';
+      // Build sort string for API: +column for asc, -column for desc
+      this.sort = (isDesc ? '-' : '+') + sortColumn;
       this.filtered();
     },
 
