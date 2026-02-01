@@ -6,7 +6,7 @@
 # Build time target: 3-5 minutes (pre-built P3M binaries for R 4.4.3)
 # Key optimizations:
 # - Multi-stage build (base -> packages -> production)
-# - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 22.04 (jammy)
+# - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 24.04 (noble)
 # - Complete renv.lock with all dependencies (no manual installs needed)
 # - Debug symbol stripping
 # - Non-root user (uid 1001)
@@ -21,8 +21,8 @@
 FROM rocker/r-ver:4.4.3 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
-# rocker/r-ver:4.4.3 uses Ubuntu 22.04 (jammy), so we use jammy binaries
-ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/jammy/latest"
+# rocker/r-ver:4.4.3 uses Ubuntu 24.04 (noble) with ICU 74, so we use noble binaries
+ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/latest"
 
 # Disable pak to avoid version conflicts
 ENV RENV_CONFIG_PAK_ENABLED=FALSE
@@ -126,9 +126,9 @@ COPY renv.lock renv.lock
 COPY renv/activate.R renv/activate.R
 COPY renv/settings.json renv/settings.json
 
-# Disable RSPM for packages with ICU dependencies to force source compilation
-# This ensures stringi links against the container's ICU 70 libraries
-# Fixes "libicui18n.so.70: cannot open shared object file" errors on --no-cache builds
+# Disable RSPM auto-detection to use our explicit repos override
+# The repos override above uses noble (Ubuntu 24.04) binaries with correct ICU 74
+# This prevents renv from auto-detecting and using incorrect binary versions
 ENV RENV_CONFIG_RSPM_ENABLED=FALSE
 
 # Restore all packages from lockfile with BuildKit cache

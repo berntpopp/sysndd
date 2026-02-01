@@ -77,7 +77,7 @@ llm_judge_verdict_type <- ellmer::type_object(
 #'
 #' @param summary List, the generated summary to validate
 #' @param cluster_data List, the original cluster data (identifiers and enrichment)
-#' @param model Character, Gemini model name (default: "gemini-2.0-flash")
+#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
 #'
 #' @return List with verdict structure:
 #'   - is_factually_accurate: Logical
@@ -98,7 +98,7 @@ llm_judge_verdict_type <- ellmer::type_object(
 #' verdict <- validate_with_llm_judge(
 #'   summary = generated_summary,
 #'   cluster_data = cluster_data,
-#'   model = "gemini-2.0-flash"
+#'   model = "gemini-3-pro-preview"
 #' )
 #' }
 #'
@@ -235,7 +235,7 @@ Evaluate each criterion and provide a final verdict:
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-2.0-flash")
+#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
 #'
 #' @return List with:
 #'   - success: Logical, TRUE if accepted or low_confidence, FALSE if rejected

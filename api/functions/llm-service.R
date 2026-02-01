@@ -36,7 +36,7 @@ if (!exists("validate_summary_entities", mode = "function")) {
 
 #------------------------------------------------------------------------------
 # Rate limit configuration for Gemini API
-# Based on Paid Tier 1: 60 RPM for gemini-3-pro-preview
+# Based on Paid Tier 1: 60 RPM for gemini-2.0-flash
 # Using conservative limit to avoid rate limiting issues
 #------------------------------------------------------------------------------
 GEMINI_RATE_LIMIT <- list(
@@ -236,7 +236,7 @@ Analyze this gene cluster and provide a summary.
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-2.0-flash")
+#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
 #' @param max_retries Integer, maximum retry attempts (default: 3)
 #' @param top_n_terms Integer, number of enrichment terms per category (default: 20)
 #'
@@ -264,7 +264,7 @@ Analyze this gene cluster and provide a summary.
 #'     term_enrichment = tibble(category = "GO", term = "pathway", fdr = 0.001)
 #'   ),
 #'   cluster_type = "functional",
-#'   model = "gemini-2.0-flash"
+#'   model = "gemini-3-pro-preview"
 #' )
 #' }
 #'
@@ -276,9 +276,15 @@ generate_cluster_summary <- function(
   max_retries = 3,
   top_n_terms = 20
 ) {
+  # Debug logging for daemon execution
+  message("[LLM-Service] generate_cluster_summary called for ", cluster_type, " cluster")
+
   # Check for API key
   api_key <- Sys.getenv("GEMINI_API_KEY")
+  message("[LLM-Service] GEMINI_API_KEY present: ", nchar(api_key) > 0, " (length=", nchar(api_key), ")")
+
   if (api_key == "" || is.na(api_key)) {
+    message("[LLM-Service] ERROR: GEMINI_API_KEY not set!")
     rlang::abort(
       "GEMINI_API_KEY environment variable is not set. Please set it to your Gemini API key.",
       class = "llm_service_error"
@@ -318,6 +324,7 @@ generate_cluster_summary <- function(
   # Build prompt
   prompt <- build_cluster_prompt(cluster_data, top_n_terms = top_n_terms)
 
+  message("[LLM-Service] Generating ", cluster_type, " cluster summary with model=", model)
   log_info("Generating {cluster_type} cluster summary with model={model}")
 
   retries <- 0
@@ -327,24 +334,29 @@ generate_cluster_summary <- function(
 
   while (retries < max_retries) {
     start_time <- Sys.time()
+    message("[LLM-Service] Attempt ", retries + 1, "/", max_retries)
 
     tryCatch(
       {
         # Apply exponential backoff with jitter for retries
         if (retries > 0) {
           backoff_time <- (GEMINI_RATE_LIMIT$backoff_base^retries) + runif(1, 0, 1)
+          message("[LLM-Service] Retry backoff: ", round(backoff_time, 1), "s")
           log_info("Retry {retries}/{max_retries}, backing off {round(backoff_time, 1)}s...")
           Sys.sleep(backoff_time)
         }
 
         # Create chat instance
+        message("[LLM-Service] Creating chat instance with model: ", model)
         chat <- ellmer::chat_google_gemini(model = model)
+        message("[LLM-Service] Chat instance created, calling chat_structured...")
 
         # Generate structured response
         result <- chat$chat_structured(
           prompt = prompt,
           type = type_spec
         )
+        message("[LLM-Service] chat_structured returned successfully")
 
         # Calculate latency
         end_time <- Sys.time()
@@ -464,7 +476,7 @@ generate_cluster_summary <- function(
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-2.0-flash")
+#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
 #' @param require_validated Logical, if TRUE only returns validated summaries (default: FALSE)
 #'
 #' @return List with:
@@ -728,8 +740,8 @@ calculate_derived_confidence <- function(enrichment_data) {
 #' @export
 list_gemini_models <- function() {
   c(
-    "gemini-2.0-flash",       # Fast, cost-effective
-    "gemini-2.5-flash",       # Newer flash model
-    "gemini-3-pro-preview"    # Best quality (preview)
+    "gemini-2.0-flash",           # Fast, cost-effective (default)
+    "gemini-1.5-pro",             # High quality
+    "gemini-1.5-flash"            # Fast alternative
   )
 }
