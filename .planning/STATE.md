@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Fix production deployment issues (#136, #137, #138)
+**Current focus:** Phase 66 - Infrastructure Fixes
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,33 +19,28 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 ## Current Position
 
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
+**Phase:** 66 of 68 (Infrastructure Fixes)
+**Plan:** 0 of 1 in current phase
+**Status:** Ready to plan
 **Progress:** v10.1 [░░░░░░░░░░░░░░░░░░░░] 0%
 
-**Last completed:** v10.0 Data Quality & AI Insights
-**Last activity:** 2026-02-01 — Milestone v10.1 started
-**Next action:** /gsd:plan-phase [N]
+**Last completed:** v10.0 Data Quality & AI Insights (phase 65)
+**Last activity:** 2026-02-01 — Roadmap created for v10.1
+**Next action:** /gsd:plan-phase 66
 
 ---
 
 ## Milestone Context
 
-**Issues to fix:**
-- #138: API container cannot write to /app/data directory (UID 1001 vs host UID 1000)
-- #136: Multi-container scaling fails due to migration lock timeout (30s)
-- #137: Missing favicon image (404 on brain-neurodevelopmental-disorders-sysndd.png)
+**v10.1 Phases:**
+- Phase 66: Infrastructure Fixes (DEPLOY-01, DEPLOY-02, DEPLOY-04, BUG-01)
+- Phase 67: Migration Coordination (DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03)
+- Phase 68: Local Production Testing (TEST-01, TEST-02, TEST-03, TEST-04)
 
-**Root causes:**
-1. Dockerfile creates apiuser with UID 1001, but bind-mounted data dir owned by host UID 1000
-2. Migration lock acquired even when schema is up-to-date, blocking parallel container starts
-3. Favicon moved to _old/ directory but still referenced in index.html
-
-**Approaches decided:**
-- Migration lock: Skip lock if schema already up-to-date (fast path)
-- Permission fix: Research best practices for Docker volume permissions
-- Missing image: Restore or update reference
+**Research Decisions:**
+- UID 1000 with build-arg flexibility (maximum host compatibility)
+- Double-checked locking pattern for migrations (fast path when up-to-date)
+- Remove container_name directive for scaling
 
 ---
 
@@ -74,11 +69,11 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Milestone v10.1 initialization
-**Next action:** Research Docker permission best practices, then create roadmap
+**Stopped at:** Roadmap created, ready to plan Phase 66
+**Next action:** /gsd:plan-phase 66
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — v10.1 milestone started*
+*Last updated: 2026-02-01 — v10.1 roadmap created*

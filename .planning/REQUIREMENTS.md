@@ -51,24 +51,24 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | TBD | Pending |
-| DEPLOY-02 | TBD | Pending |
-| DEPLOY-03 | TBD | Pending |
-| DEPLOY-04 | TBD | Pending |
-| BUG-01 | TBD | Pending |
-| MIGRATE-01 | TBD | Pending |
-| MIGRATE-02 | TBD | Pending |
-| MIGRATE-03 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
+| DEPLOY-01 | Phase 66 | Pending |
+| DEPLOY-02 | Phase 66 | Pending |
+| DEPLOY-03 | Phase 67 | Pending |
+| DEPLOY-04 | Phase 66 | Pending |
+| BUG-01 | Phase 66 | Pending |
+| MIGRATE-01 | Phase 67 | Pending |
+| MIGRATE-02 | Phase 67 | Pending |
+| MIGRATE-03 | Phase 67 | Pending |
+| TEST-01 | Phase 68 | Pending |
+| TEST-02 | Phase 68 | Pending |
+| TEST-03 | Phase 68 | Pending |
+| TEST-04 | Phase 68 | Pending |
 
 **Coverage:**
 - v10.1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12 (pending roadmap creation)
+- Mapped to phases: 12
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after initial definition*
+*Last updated: 2026-02-01 after roadmap creation*
