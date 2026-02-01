@@ -343,6 +343,11 @@ everywhere({
   library(stringr)
   library(purrr)
   library(readr)
+  library(logger)
+  # Load ellmer for LLM functionality (optional - graceful degradation if not available)
+  if (requireNamespace("ellmer", quietly = TRUE)) {
+    library(ellmer)
+  }
   # Source helper functions first (generate_panel_hash, generate_function_hash)
   source("/app/functions/helper-functions.R", local = FALSE)
   # Source file functions (check_file_age, get_newest_file)
@@ -368,6 +373,12 @@ everywhere({
   # Source comparisons functions for async comparisons update jobs
   source("/app/functions/comparisons-sources.R", local = FALSE)
   source("/app/functions/comparisons-functions.R", local = FALSE)
+  # Source LLM-related functions for async LLM batch generation jobs
+  source("/app/functions/llm-cache-repository.R", local = FALSE)
+  source("/app/functions/llm-validation.R", local = FALSE)
+  source("/app/functions/llm-service.R", local = FALSE)
+  source("/app/functions/llm-judge.R", local = FALSE)
+  source("/app/functions/llm-batch-generator.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 

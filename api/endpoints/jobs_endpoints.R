@@ -160,6 +160,21 @@ function(req, res) {
       completed_at = Sys.time()
     )
 
+    # Chain LLM generation for cache hits (same as job completion path)
+    if (exists("trigger_llm_batch_generation", mode = "function")) {
+      message("[jobs_endpoints] Triggering LLM batch generation for functional clusters (cache hit)")
+      tryCatch(
+        trigger_llm_batch_generation(
+          clusters = cached_clusters,
+          cluster_type = "functional",
+          parent_job_id = job_id
+        ),
+        error = function(e) message("[jobs_endpoints] LLM trigger error: ", e$message)
+      )
+    } else {
+      message("[jobs_endpoints] trigger_llm_batch_generation not found")
+    }
+
     res$status <- 202
     res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
     res$setHeader("Retry-After", "0")

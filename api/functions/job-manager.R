@@ -10,10 +10,7 @@
 # Load required packages for this module
 # Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
 
-# Load LLM batch generator if available
-if (file.exists("functions/llm-batch-generator.R")) {
-  source("functions/llm-batch-generator.R", local = FALSE)
-}
+# NOTE: LLM batch generator loaded at END of file (after create_job is defined)
 
 ## -------------------------------------------------------------------##
 # Global State
@@ -134,6 +131,8 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
 
       # Chain LLM generation after clustering jobs
       if (jobs_env[[job_id]]$operation %in% c("clustering", "phenotype_clustering")) {
+        message("[job-manager] Chaining LLM generation for ", jobs_env[[job_id]]$operation, " job=", job_id)
+
         # Determine cluster type from operation
         chain_cluster_type <- if (jobs_env[[job_id]]$operation == "clustering") {
           "functional"
@@ -150,14 +149,26 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
           NULL
         }
 
+        message("[job-manager] chain_clusters is ", if (is.null(chain_clusters)) "NULL" else paste0("data.frame with ", nrow(chain_clusters), " rows"))
+
         if (!is.null(chain_clusters) && nrow(chain_clusters) > 0) {
           # Check if LLM batch generator is available
           if (exists("trigger_llm_batch_generation", mode = "function")) {
-            trigger_llm_batch_generation(
-              clusters = chain_clusters,
-              cluster_type = chain_cluster_type,
-              parent_job_id = job_id
+            message("[job-manager] Calling trigger_llm_batch_generation for ", nrow(chain_clusters), " ", chain_cluster_type, " clusters")
+            tryCatch(
+              {
+                trigger_llm_batch_generation(
+                  clusters = chain_clusters,
+                  cluster_type = chain_cluster_type,
+                  parent_job_id = job_id
+                )
+              },
+              error = function(e) {
+                message("[job-manager] LLM trigger error: ", conditionMessage(e))
+              }
             )
+          } else {
+            message("[job-manager] trigger_llm_batch_generation function not found!")
           }
         }
       }
@@ -535,4 +546,27 @@ get_job_history <- function(limit = 20) {
   rownames(result) <- NULL
 
   return(result)
+}
+
+## -------------------------------------------------------------------##
+# Load LLM Batch Generator (AFTER create_job is defined)
+## -------------------------------------------------------------------##
+
+# Load LLM batch generator - must be AFTER create_job definition
+# because trigger_llm_batch_generation() calls create_job()
+if (file.exists("functions/llm-batch-generator.R")) {
+  message("[job-manager] Loading llm-batch-generator.R...")
+  tryCatch(
+    {
+      source("functions/llm-batch-generator.R", local = FALSE)
+      message("[job-manager] llm-batch-generator.R loaded successfully")
+      message("[job-manager] trigger_llm_batch_generation exists: ", exists("trigger_llm_batch_generation", mode = "function"))
+      message("[job-manager] llm_batch_executor exists: ", exists("llm_batch_executor", mode = "function"))
+    },
+    error = function(e) {
+      message("[job-manager] ERROR loading llm-batch-generator.R: ", conditionMessage(e))
+    }
+  )
+} else {
+  message("[job-manager] llm-batch-generator.R NOT FOUND")
 }
