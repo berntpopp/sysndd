@@ -251,17 +251,20 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 62-01-PLAN.md - Admin comparisons update
-- [ ] 62-02-PLAN.md - GitHub Pages Actions deployment
+- [ ] 62-01-PLAN.md — Async comparisons refresh job with admin UI (refactor 639-line import script into mirai job pattern)
+- [ ] 62-02-PLAN.md — Quarto documentation with GitHub Pages environment deployment (bookdown migration)
 
 **Requirements:**
 - ADMIN-01: Admin comparisons functionality updated
 - INFRA-01: GitHub Pages deployed via GitHub Actions workflow (not gh-pages branch)
 
 **Success Criteria:**
-1. Admin comparisons functionality works correctly
-2. GitHub Pages site deploys via GitHub Actions workflow
-3. Deployment triggers on push to main and manual dispatch
+1. Admin can trigger comparisons data refresh from ManageAnnotations
+2. Refresh downloads from all 7 external NDD databases with progress tracking
+3. CurationComparisons shows dynamic last-updated date
+4. Documentation renders with Quarto
+5. GitHub Pages deploys via actions/deploy-pages environment
+6. Workflow triggers on push to master only
 
 ---
 
@@ -360,4 +363,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-02-01 — Phase 60 complete*
+*Last updated: 2026-02-01 — Phase 62 planned*
