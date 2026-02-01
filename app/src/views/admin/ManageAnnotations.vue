@@ -206,7 +206,7 @@
               </p>
               <div class="d-flex flex-wrap gap-2">
                 <router-link
-                  :to="{ name: 'PubtatorNDD' }"
+                  :to="{ name: 'PubtatorNDDStats' }"
                   class="btn btn-sm btn-outline-primary"
                 >
                   <i class="bi bi-bar-chart me-1" />
