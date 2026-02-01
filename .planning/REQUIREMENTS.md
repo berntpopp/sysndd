@@ -11,7 +11,7 @@ Requirements for fixing production deployment issues discovered on VPS. Each map
 
 - [x] **DEPLOY-01**: API container can write to bind-mounted /app/data directory without permission errors ✓
 - [x] **DEPLOY-02**: Dockerfile UID is configurable via build-arg (default 1000) ✓
-- [ ] **DEPLOY-03**: Multiple API containers can start in parallel without migration lock timeout
+- [x] **DEPLOY-03**: Multiple API containers can start in parallel without migration lock timeout ✓
 - [x] **DEPLOY-04**: container_name directive removed from API service to enable scaling ✓
 
 ### Bug Fixes
@@ -20,9 +20,9 @@ Requirements for fixing production deployment issues discovered on VPS. Each map
 
 ### Migration Coordination
 
-- [ ] **MIGRATE-01**: Migration check happens before lock acquisition (fast path for up-to-date schema)
-- [ ] **MIGRATE-02**: Double-check after lock handles race condition (another container migrated)
-- [ ] **MIGRATE-03**: Health endpoint shows migration status (lock acquired, migrations applied)
+- [x] **MIGRATE-01**: Migration check happens before lock acquisition (fast path for up-to-date schema) ✓
+- [x] **MIGRATE-02**: Double-check after lock handles race condition (another container migrated) ✓
+- [x] **MIGRATE-03**: Health endpoint shows migration status (lock acquired, migrations applied) ✓
 
 ### Local Production Testing
 
@@ -53,12 +53,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | DEPLOY-01 | Phase 66 | Complete |
 | DEPLOY-02 | Phase 66 | Complete |
-| DEPLOY-03 | Phase 67 | Pending |
+| DEPLOY-03 | Phase 67 | Complete |
 | DEPLOY-04 | Phase 66 | Complete |
 | BUG-01 | Phase 66 | Complete |
-| MIGRATE-01 | Phase 67 | Pending |
-| MIGRATE-02 | Phase 67 | Pending |
-| MIGRATE-03 | Phase 67 | Pending |
+| MIGRATE-01 | Phase 67 | Complete |
+| MIGRATE-02 | Phase 67 | Complete |
+| MIGRATE-03 | Phase 67 | Complete |
 | TEST-01 | Phase 68 | Pending |
 | TEST-02 | Phase 68 | Pending |
 | TEST-03 | Phase 68 | Pending |
@@ -71,4 +71,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 — Phase 66 requirements complete*
+*Last updated: 2026-02-01 — Phase 67 requirements complete*
