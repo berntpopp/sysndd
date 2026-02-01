@@ -251,8 +251,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 62-01-PLAN.md — Async comparisons refresh job with admin UI (refactor 639-line import script into mirai job pattern)
-- [ ] 62-02-PLAN.md — Quarto documentation with GitHub Pages environment deployment (bookdown migration)
+- [x] 62-01-PLAN.md — Async comparisons refresh job with admin UI (refactor 639-line import script into mirai job pattern)
+- [x] 62-02-PLAN.md — Quarto documentation with GitHub Pages environment deployment (bookdown migration)
 
 **Requirements:**
 - ADMIN-01: Admin comparisons functionality updated
@@ -281,7 +281,7 @@ Plans:
 | 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | Complete |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Complete |
 | 61 | ~~LLM Validation~~ | ~~LLM-09 to LLM-11~~ | Merged into 59 |
-| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
+| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Complete |
 
 **Coverage:** 36/36 requirements mapped (100%) — LLM-11 dropped (no admin approval needed)
 
@@ -363,4 +363,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-02-01 — Phase 62 planned*
+*Last updated: 2026-02-01 — Phase 62 complete, v10.0 milestone complete*

@@ -56,11 +56,11 @@ Requirements for data quality stabilization, literature research tools, and AI-a
 
 ### Admin
 
-- [ ] **ADMIN-01**: Admin comparisons functionality updated
+- [x] **ADMIN-01**: Admin comparisons functionality updated
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: GitHub Pages deployed via GitHub Actions workflow (not gh-pages branch)
+- [x] **INFRA-01**: GitHub Pages deployed via GitHub Actions workflow (not gh-pages branch)
 
 ## Future Requirements
 
@@ -139,8 +139,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LLM-10 | 61 | Pending |
 | LLM-11 | 61 | Pending |
 | LLM-12 | 60 | Pending |
-| ADMIN-01 | 62 | Pending |
-| INFRA-01 | 62 | Pending |
+| ADMIN-01 | 62 | Complete |
+| INFRA-01 | 62 | Complete |
 
 **Coverage:**
 - v10.0 requirements: 34 total
