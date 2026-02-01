@@ -352,10 +352,8 @@ generate_cluster_summary <- function(
         message("[LLM-Service] Chat instance created, calling chat_structured...")
 
         # Generate structured response
-        result <- chat$chat_structured(
-          prompt = prompt,
-          type = type_spec
-        )
+        # Note: chat_structured expects prompt as unnamed argument (part of ...)
+        result <- chat$chat_structured(prompt, type = type_spec)
         message("[LLM-Service] chat_structured returned successfully")
 
         # Calculate latency

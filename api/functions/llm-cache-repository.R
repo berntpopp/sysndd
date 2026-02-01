@@ -197,19 +197,20 @@ save_summary_to_cache <- function(
     validation_status <- "pending"
   }
 
-  # Serialize to JSON if needed
-  summary_json_str <- if (is.character(summary_json)) {
+  # Serialize to JSON if needed - ensure plain character string for DBI binding
+  summary_json_str <- if (is.character(summary_json) && length(summary_json) == 1) {
     summary_json
   } else {
-    jsonlite::toJSON(summary_json, auto_unbox = TRUE)
+    as.character(jsonlite::toJSON(summary_json, auto_unbox = TRUE))
   }
 
+  # Convert NULL to NA_character_ for DBI binding (NULL has length 0, NA has length 1)
   tags_json_str <- if (is.null(tags)) {
-    NULL
+    NA_character_
   } else if (is.character(tags) && length(tags) == 1 && startsWith(tags, "[")) {
     tags  # Already JSON
   } else {
-    jsonlite::toJSON(tags, auto_unbox = FALSE)
+    as.character(jsonlite::toJSON(tags, auto_unbox = FALSE))
   }
 
   result <- db_with_transaction({
@@ -315,14 +316,23 @@ log_generation_attempt <- function(
 ) {
   log_debug("Logging generation attempt: status={status}, cluster={cluster_type}/{cluster_number}")
 
-  # Serialize response_json if needed
+  # Serialize response_json if needed - ensure plain character string for DBI binding
+  # Convert NULL to NA_character_ for DBI binding (NULL has length 0, NA has length 1)
   response_json_str <- if (is.null(response_json)) {
-    NULL
-  } else if (is.character(response_json)) {
+    NA_character_
+  } else if (is.character(response_json) && length(response_json) == 1) {
     response_json
   } else {
-    jsonlite::toJSON(response_json, auto_unbox = TRUE)
+    as.character(jsonlite::toJSON(response_json, auto_unbox = TRUE))
   }
+
+  # Convert NULL to NA for DBI binding (NULL has length 0, NA has length 1)
+  # DBI::dbBind requires all parameters to have length 1
+  validation_errors_val <- if (is.null(validation_errors)) NA_character_ else validation_errors
+  tokens_input_val <- if (is.null(tokens_input)) NA_integer_ else as.integer(tokens_input)
+  tokens_output_val <- if (is.null(tokens_output)) NA_integer_ else as.integer(tokens_output)
+  latency_ms_val <- if (is.null(latency_ms)) NA_integer_ else as.integer(latency_ms)
+  error_message_val <- if (is.null(error_message)) NA_character_ else error_message
 
   db_execute_statement(
     "INSERT INTO llm_generation_log
@@ -332,8 +342,8 @@ log_generation_attempt <- function(
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     list(
       cluster_type, cluster_number, cluster_hash, model_name, prompt_text,
-      response_json_str, validation_errors, tokens_input, tokens_output,
-      latency_ms, status, error_message
+      response_json_str, validation_errors_val, tokens_input_val, tokens_output_val,
+      latency_ms_val, status, error_message_val
     )
   )
 

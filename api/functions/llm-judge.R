@@ -204,10 +204,8 @@ Evaluate each criterion and provide a final verdict:
       chat <- ellmer::chat_google_gemini(model = model)
 
       # Get structured verdict
-      verdict <- chat$chat_structured(
-        prompt = judge_prompt,
-        type = llm_judge_verdict_type
-      )
+      # Note: chat_structured expects prompt as unnamed argument (part of ...)
+      verdict <- chat$chat_structured(judge_prompt, type = llm_judge_verdict_type)
 
       log_info("Judge verdict: {verdict$verdict} (reasoning: {substr(verdict$reasoning, 1, 80)}...)")
 
