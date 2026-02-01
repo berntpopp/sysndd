@@ -1,0 +1,81 @@
+/* SysNDD Documentation Styles */
+
+/* Match SysNDD primary color scheme */
+:root {
+  --bs-primary: #0d6efd;
+  --sysndd-header-bg: #343a40;
+}
+
+/* Logo sizing in navbar */
+.navbar-brand img {
+  height: 40px;
+  width: auto;
+}
+
+/* Sidebar styling */
+.sidebar {
+  border-right: 1px solid #dee2e6;
+}
+
+/* Footer styling */
+.page-footer {
+  background-color: var(--sysndd-header-bg);
+  color: white;
+  padding: 1rem;
+}
+
+.page-footer a {
+  color: #adb5bd;
+}
+
+/* Code block styling */
+pre {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+}
+
+/* Table styling */
+table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+table th, table td {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+}
+
+table th {
+  background-color: #f8f9fa;
+}
+
+/* Caption styling (from original style.css) */
+p.caption {
+  color: #777;
+  margin-top: 10px;
+}
+
+p code {
+  white-space: inherit;
+}
+
+pre code {
+  white-space: inherit;
+}
+
+/* Highlight mark styling (from original style.css) */
+mark {
+  display: inline-block;
+  line-height: 0em;
+  padding-bottom: 0.5em;
+  font-weight: bold;
+  background-color: #EAADBA;
+}
+
+/* Image container styling */
+div[style*="max-width"] img {
+  max-width: 100%;
+  height: auto;
+}

@@ -1,37 +1,39 @@
-# Re-review instructions
+---
+title: "Re-review instructions"
+---
 
 ---
 
-The goal of the SysNDD “Re-Review” effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
+The goal of the SysNDD "Re-Review" effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
 
 
 
 ## Re-review tool usage
-We created Reviewer status accounts for participating scientists. 
+We created Reviewer status accounts for participating scientists.
 
 
 
 ### Login
-You can log into your account by pointing your browser to https://sysndd.dbmr.unibe.ch/ and then clicking the “Login“ link on the right side of the menu:
+You can log into your account by pointing your browser to https://sysndd.dbmr.unibe.ch/ and then clicking the "Login" link on the right side of the menu:
 
-<div style="max-width:800px;">
+::: {style="max-width:800px;"}
 ![Login menu](./static/img/sysndd_login.png)
-</div>
+:::
 
 <br/>
 On the Login page enter your credentials and press the Login button:
 
-<div style="max-width:400px;">
+::: {style="max-width:400px;"}
 ![Login page](./static/img/sysndd_login_page.png)
-</div>
+:::
 
 
 <br/>
 After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:
 
-<div style="max-width:300px;">
+::: {style="max-width:300px;"}
 ![Login token menu](./static/img/sysndd_refresh_token.png)
-</div>
+:::
 
 Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.
 
@@ -39,24 +41,24 @@ Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will
 
 ### Review page
 
-Click the “Review” link to your personal “Re-Review” site:
+Click the "Review" link to your personal "Re-Review" site:
 
-<div style="max-width:1000px;">
+::: {style="max-width:1000px;"}
 ![Review page menu](./static/img/sysndd_review_page_menu.png)
-</div>
+:::
 
 <br/>
-The “Re-Review” page is structured as a table enriched with information and controls.
+The "Re-Review" page is structured as a table enriched with information and controls.
 
-<div style="max-width:1000px;">
+::: {style="max-width:1000px;"}
 ![Review page](./static/img/sysndd_review_page.png)
-</div>
+:::
 
 
 <br/>
 These show you the number of entities assigned to your account
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** your account information status specific controls (e.g. switching to “Curator” mode, applying for a new batch of entities)
+&nbsp;&nbsp;&nbsp;&nbsp; **(1)** your account information status specific controls (e.g. switching to "Curator" mode, applying for a new batch of entities)
 
 &nbsp;&nbsp;&nbsp;&nbsp; **(2)** menu items to filter/ navigate the table
 
@@ -68,11 +70,11 @@ These show you the number of entities assigned to your account
 <br/>
 By clicking the action buttons, you can open 3 different windows to change the entities review:
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (<span style="display:inline-block; width:50px;">![Edit review menu](./static/img/edit_review_button.png)</span>)
+&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (![Edit review menu](./static/img/edit_review_button.png){width="50px"})
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (<span style="display:inline-block; width:50px;">![Edit status menu](./static/img/edit_status_button.png)</span>)
+&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){width="50px"})
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (<span style="display:inline-block; width:50px;">![Submit re-review status menu](./static/img/submit_re-review_button.png)</span>)
+&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (![Submit re-review status menu](./static/img/submit_re-review_button.png){width="50px"})
 
 
 
@@ -85,20 +87,20 @@ In this window you have:
 - add or remove publications from the review by PMID **(3)**
 - and add/ edit fitting GeneReviews articles by PMID **(4)**.
 - Finally, you can add a comment to your review for the Curator later approving this entities changes **(5)** and
-- save your review **(6)**. 
+- save your review **(6)**.
 
 By clicking on the little question marks you can show help messages for each item:
 
-<div style="max-width:1000px;">
+::: {style="max-width:1000px;"}
 ![Review page](./static/img/modal_modify_review.png)
-</div>
+:::
 
 <br/>
-These help instructions are: 
+These help instructions are:
 
 **Synopsis**: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, b) severity of intellectual disability, c) further phenotypic aspects (if possible with frequencies) d) any valuable further information (e.g. genotype-phenotype correlations).
 
-&nbsp;&nbsp;&nbsp;&nbsp; Examples: 
+&nbsp;&nbsp;&nbsp;&nbsp; Examples:
 
 > *de novo* truncating or missense variants in > 20 individuals: variable ID (mild to severe), 50% short stature and microcephaly, 30% seizures, non-specific facial dysmorphism, variable cardiac and renal anomalies in some
 
@@ -127,9 +129,9 @@ In this window you can propose
 - add a comment for your change suggestions for the curators to better understand the proposal **(3)** and
 - save your work **(4)**:
 
-<div style="max-width:800px;">
+::: {style="max-width:800px;"}
 ![Submit re-review modal](./static/img/modal_modify_status.png)
-</div>
+:::
 
 
 
@@ -137,9 +139,9 @@ In this window you can propose
 
 The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:
 
-<div style="max-width:600px;">
+::: {style="max-width:600px;"}
 ![Submit re-review modal](./static/img/modal_submit_re-review.png)
-</div>
+:::
 
 After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.
 
@@ -150,21 +152,21 @@ After clicking this button, the entity will disappear from your list. And you ca
 
 ### Definitive association status
 
-1.	Check if category 1 (“Definitive”) is correct or shift status to category 2 (“Moderate”) or 3 (“Limited”), where appropriate
+1.	Check if category 1 ("Definitive") is correct or shift status to category 2 ("Moderate") or 3 ("Limited"), where appropriate
 2.	Check and revise gene-related entities regarding diseases/inheritance patterns (ID and non-ID disorders) --> non-ID disorders will not go into any of the categories but will be tagged with "n.a." (not applicable)
 3.	Check and revise associated phenotypes: select HPO terms from the list, only use HPO term if this specific aspect is present in approximately >= 20% of patients. Please also check and revise severity of ID using HPO terms. If ID is very variable, select all appropriate ID terms (e.g. severe, moderate, mild, borderline)
 4.	Check references (OMIM, PMID, GeneReviews). References do not have to be complete but should be sufficient to give a good impression on the mutational and clinical spectrum. Add references where it would add to the picture.
 5.	Check and revise clinical synopsis: it does not have to contain everything that is known but should give a short and comprehensive picture on:
-- which data the gene and disease category were chosen on and 
-- the molecular and clinical picture. 
+- which data the gene and disease category were chosen on and
+- the molecular and clinical picture.
 
 Please include information on:
 
-a) approximate number of patients described in literature, 
+a) approximate number of patients described in literature,
 b) nature of reported variants,
-c) severity of intellectual disability, 
-d) further phenotypic aspects (if possible with frequencies), 
-e) any valuable further information (e.g. genotype-phenotype correlations) 
+c) severity of intellectual disability,
+d) further phenotypic aspects (if possible with frequencies),
+e) any valuable further information (e.g. genotype-phenotype correlations)
 
 
 Examples:
@@ -177,8 +179,8 @@ Examples:
 
 ### Moderate and Limited association status
 
--	Check if inclusion criteria for candidate genes are still fulfilled or if it should be deleted from the list (“Refuted”)
--	Check if candidate status is still correct and sort it into Category 2 (“Moderate”) and 3 (“Limited”) (or reclassify to 1 (“Definitive”), if applicable)
+-	Check if inclusion criteria for candidate genes are still fulfilled or if it should be deleted from the list ("Refuted")
+-	Check if candidate status is still correct and sort it into Category 2 ("Moderate") and 3 ("Limited") (or reclassify to 1 ("Definitive"), if applicable)
 -	Check, if associated phenotype still fits
 -	Check, if references are correct, if there is any new published information and modify clinical synopsis where appropriate
 -	Clinical synopsis can be very short for candidate genes

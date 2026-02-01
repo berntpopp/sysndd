@@ -1,4 +1,6 @@
-# Curation criteria
+---
+title: "Curation criteria"
+---
 
 ---
 
@@ -13,7 +15,7 @@ Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined
 
 ## NDD Definitive entities
 
-Inclusion criteria for Category 1 (“Definitive”): 
+Inclusion criteria for Category 1 ("Definitive"):
 
 **1.**	Publication required (no grey literature like conference abstracts or personal communication; manuscripts on preprint servers can be considered individually but only entered through their DOI in the comment field until published with PMID, when they should be updated)
 
@@ -82,7 +84,7 @@ Strong clinical criteria:
 -	Multigenerational segregation of variants
 -	Functional tests
 -	Gene involved in a pathway/complex where variants in other subunits are associated with a similar phenotype
--	*De novo* missense variants in a gene intolerant to missense variants (gnomAD constraint scores) 
+-	*De novo* missense variants in a gene intolerant to missense variants (gnomAD constraint scores)
 
 
 
@@ -90,13 +92,13 @@ Strong clinical criteria:
 These should be included into consideration in borderline cases.
 
 -	Age of first publication(s) without further confirmatory reports in the meantime
--	Publication quality and journal or genetics expertise “doubtful”
+-	Publication quality and journal or genetics expertise "doubtful"
 -	New evidence against gene and/or variants: e.g., constraint scores, frequencies in gnomAD
 
 
 
 ## NDD Moderate and Limited entities
-These categories include the previous category of "candidate genes" and are now split into criteria for entity categories 2 (“Moderate”) and 3 (“Limited”):
+These categories include the previous category of "candidate genes" and are now split into criteria for entity categories 2 ("Moderate") and 3 ("Limited"):
 
 
 **1.**	Must be published (no private, in-house candidate lists)
@@ -149,8 +151,8 @@ These categories include the previous category of "candidate genes" and are now 
 
 
 
-### When to choose category 2 (“Moderate”)?
-Too good for category 3 (“Limited”) but not good enough for category 1 (“Definitive”)
+### When to choose category 2 ("Moderate")?
+Too good for category 3 ("Limited") but not good enough for category 1 ("Definitive")
 
 Examples:
 
@@ -164,6 +166,4 @@ Examples:
 
 
 ### Special case: non-NDD entities
-Some genes are associated with multiple entities. Among these entities there might be some without ID as a clinical feature. These non-NDD entities will be included in SysNDD but they will not be classified to any of the categories. Instead, they are tagged with “n.a.” (not applicable).
-
-
+Some genes are associated with multiple entities. Among these entities there might be some without ID as a clinical feature. These non-NDD entities will be included in SysNDD but they will not be classified to any of the categories. Instead, they are tagged with "n.a." (not applicable).

@@ -1,0 +1,68 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "SysNDD Documentation"
+  description: "Documentation for SysNDD - Systematic Neurodevelopmental Disorder Gene Database"
+  repo-url: https://github.com/berntpopp/sysndd
+  repo-branch: master
+  repo-subdir: documentation
+  favicon: static/img/android-chrome-192x192.png
+
+  navbar:
+    background: primary
+    logo: static/img/android-chrome-192x192.png
+    left:
+      - href: index.qmd
+        text: Home
+      - href: 02-web-tool.qmd
+        text: Web Tool
+      - href: 03-api.qmd
+        text: API
+      - href: 04-database-structure.qmd
+        text: Database
+    right:
+      - icon: github
+        href: https://github.com/berntpopp/sysndd
+
+  sidebar:
+    style: docked
+    search: true
+    contents:
+      - section: "Overview"
+        contents:
+          - index.qmd
+          - 01-intro.qmd
+      - section: "Using SysNDD"
+        contents:
+          - 02-web-tool.qmd
+          - 03-api.qmd
+          - 04-database-structure.qmd
+      - section: "Curation"
+        contents:
+          - 05-curation-criteria.qmd
+          - 06-re-review-instructions.qmd
+          - 07-tutorial-videos.qmd
+      - section: "References"
+        contents:
+          - references.qmd
+
+  page-footer:
+    center: |
+      SysNDD - Systematic Neurodevelopmental Disorder Gene Database
+      <br>
+      <a href="https://sysndd.dbmr.unibe.ch/">sysndd.dbmr.unibe.ch</a>
+
+format:
+  html:
+    theme:
+      light: cosmo
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+
+bibliography: sysndd.bib
+csl: apa.csl

@@ -3,17 +3,14 @@
 .Rproj.user
 .Rhistory
 .RData
-_bookdown_files
 .DS_Store
 .Rapp.history
-_book
-_main.*
-*.html
 *.pdf
 *.utf8.md
 !ga.html
-libs/
 nul
 
-# the build directory of bookdown
-build/
+# Quarto output and cache
+_site/
+.quarto/
+**/*.quarto_ipynb

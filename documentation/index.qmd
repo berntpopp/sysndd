@@ -1,20 +1,9 @@
---- 
+---
 title: "The SysNDD Documentation"
-author: "Bernt Popp, Melek Firat Altay, Simon Früh, Christiane Zweier"
-date: "`r Sys.Date()`"
-site: bookdown::bookdown_site
-output: bookdown::gitbook
-bibliography: [sysndd.bib]
-csl: apa.csl
-link-citations: yes
-colorlinks: yes
-description: "This documentation is intended to describe the SysNDD project and provide instructions for regular users how to use the tool and for curator status users how to perform reviews and how to enter data"
-graphics: yes
-github-repo: berntpopp/sysndd
-url: https://berntpopp.github.io/sysndd/
+author: "Bernt Popp, Melek Firat Altay, Simon Fruh, Christiane Zweier"
 ---
 
-# Preface {-}
+# Preface {.unnumbered}
 
 ---------------------------------------
 
@@ -22,7 +11,7 @@ This documentation is intended to describe the [SysNDD](https://sysndd.dbmr.unib
 
 
 
-## History of SysID and SysNDD {-}
+## History of SysID and SysNDD {.unnumbered}
 
 SysNDD is based on its predecessor SysID, conceived by Annette Schenck and Christiane Zweier in 2009 and published in 2016 [@kochinke_systematic_2016]. Christiane Zweier has been involved in establishing and updating SysID from its start. She has since performed and coordinated curation and regular updates.
 
@@ -32,11 +21,11 @@ In 2019 the chance arose to integrate the SysID curation effort with the Orphane
 
 
 
-## The SysNDD concept {-}
+## The SysNDD concept {.unnumbered}
 
 SysNDD contains our latest update of the manually curated catalog of published gene-disease-associations implicated in neurodevelopmental disorders (NDD).
 
-To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: “Definitive”, “Moderate”, “Limited”, “Refuted”) according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.
+To allow interoperability and mapping between gene-, phenotype- or disease-oriented databases, we center our approach around curated gene-inheritance-disease units, so called entities. These entities are classified into different confidence status (categories: "Definitive", "Moderate", "Limited", "Refuted") according to the degree of underlying scientific evidence. Furthermore, manually curated information on associated phenotypes is provided.
 
 The entries in SysNDD are currently updated every 3-4 months and can be utilized for a broad spectrum of tasks from both research and diagnostics.
 
@@ -46,7 +35,7 @@ Bernt Popp (scientist at the Institute of Human Genetics at the University Hospi
 
 
 
-## Support and Funding {-}
+## Support and Funding {.unnumbered}
 The current SysNDD database development is supported by:
 
 - DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to [Bernt Popp](https://orcid.org/0000-0002-3679-1081).
@@ -56,8 +45,8 @@ The current SysNDD database development is supported by:
 
 The previous SysID database and data curation was supported by:
 
-- The European Union’s FP7 large scale integrated network GenCoDys (HEALTH-241995) to [Martijn A Huynen](https://orcid.org/0000-0001-6189-5491) and [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
+- The European Union's FP7 large scale integrated network GenCoDys (HEALTH-241995) to [Martijn A Huynen](https://orcid.org/0000-0001-6189-5491) and [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
 - VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to [Annette Schenck](https://orcid.org/0000-0002-6918-3314).
 - DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
-- the IZKF (Interdisziplinäres Zentrum für Klinische Forschung) Erlangen to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
+- the IZKF (Interdisziplinares Zentrum fur Klinische Forschung) Erlangen to [Christiane Zweier](https://orcid.org/0000-0001-8002-2020).
 - ZonMw grant (NWO, 907-00-365) to Tjitske Kleefstra.
