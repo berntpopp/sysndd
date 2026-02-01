@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 59 (LLM Batch, Caching & Validation) - COMPLETE
-**Plan:** 2/2 complete
+**Phase:** 60 (LLM Display) - COMPLETE
+**Plan:** 1/1 complete
 **Status:** Phase complete
-**Progress:** v10.0 [██████████░░        ] 7/8 phases (88%)
+**Progress:** v10.0 [████████████████░░░░] 8/9 phases (89%)
 
-**Last completed:** 59-02 - LLM-as-judge Validation Pipeline
-**Last activity:** 2026-02-01 — Phase 59 complete
+**Last completed:** 60-01 - LLM Display (summaries on cluster pages)
+**Last activity:** 2026-02-01 — Phase 60 Plan 01 complete
 
 ---
 
@@ -40,7 +40,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 58 | LLM Foundation | LLM-01 to LLM-04 | ✓ Complete |
 | 57.1 | PubTator Async Repository Refactor | SQL injection fix | ✓ Complete |
 | 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | ✓ Complete |
-| 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Not started |
+| 60 | LLM Display | LLM-07, LLM-08, LLM-12 | ✓ Complete |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
 
@@ -294,16 +294,35 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-01-31 | Judge function handles caching | Simplify batch executor logic | Reduced duplicate cache save logic in batch executor |
 | 2026-01-31 | Store judge metadata in summary JSON | Enable judge calibration analysis | llm_judge_verdict and llm_judge_reasoning available for debugging |
 
+### Decisions from Phase 60
+
+**Plan 01 (LLM Display):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Dockerfile R version 4.4.3 | renv.lock specifies 4.4.3; P3M binaries must match | ellmer/S7 packages load correctly |
+| 2026-02-01 | Use derived_confidence for display | LLM self-assessment unreliable; FDR-based scoring is objective | More trustworthy confidence indicators |
+| 2026-02-01 | Hide summary for multi-cluster | Summaries are per-cluster; combined view would be confusing | Clean UX when viewing all clusters |
+| 2026-02-01 | 404 responses handled silently | No summary is expected for new clusters; error toast annoying | Better UX for clusters without summaries |
+
+**Phase 60 Complete (LLM Display):**
+- ✅ Plan 01: LLM summary display infrastructure
+  - Dockerfile R version fixed for ellmer compatibility
+  - GET /api/analysis/functional_cluster_summary endpoint
+  - GET /api/analysis/phenotype_cluster_summary endpoint
+  - LlmSummaryCard.vue reusable component (271 lines)
+  - Integration in AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
+
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed Phase 59 (LLM Batch, Caching & Validation)
-**Next action:** Phase 60 (LLM Display) - display summaries on cluster pages
+**Stopped at:** Completed Phase 60 (LLM Display)
+**Next action:** Phase 62 (Admin & Infrastructure) - admin management UI
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Phase 59 complete*
+*Last updated: 2026-02-01 — Phase 60 complete*
