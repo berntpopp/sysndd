@@ -120,7 +120,13 @@ services:
           cpus: '0.5'
 
   api:
-    build: ./api/
+    build:
+      context: ./api/
+      args:
+        # UID/GID for non-root user - matches most Linux hosts (uid 1000)
+        # Override with HOST_UID/HOST_GID env vars for different host users
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
