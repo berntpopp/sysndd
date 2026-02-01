@@ -34,7 +34,7 @@ See previous milestone documentation. v10.0 delivered:
 - #136: Multi-container scaling fails due to migration lock timeout
 - #137: Missing favicon image (brain-neurodevelopmental-disorders-sysndd.png)
 
-- [ ] **Phase 66: Infrastructure Fixes** - UID fix, container_name removal, favicon restoration
+- [x] **Phase 66: Infrastructure Fixes** - UID fix, container_name removal, favicon restoration ✓
 - [ ] **Phase 67: Migration Coordination** - Double-checked locking for parallel startup
 - [ ] **Phase 68: Local Production Testing** - Multi-container validation with 4 API replicas
 
@@ -52,7 +52,7 @@ See previous milestone documentation. v10.0 delivered:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 66-01-PLAN.md — Infrastructure fixes (UID, container_name, favicon)
+- [x] 66-01-PLAN.md — Infrastructure fixes (UID, container_name, favicon) ✓
 
 ### Phase 67: Migration Coordination
 **Goal**: Multiple API containers start in parallel without migration lock timeout
@@ -90,10 +90,10 @@ Phases execute in numeric order: 66 -> 67 -> 68
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 66. Infrastructure Fixes | v10.1 | 0/1 | Planned | - |
+| 66. Infrastructure Fixes | v10.1 | 1/1 | ✓ Complete | 2026-02-01 |
 | 67. Migration Coordination | v10.1 | 0/1 | Not started | - |
 | 68. Local Production Testing | v10.1 | 0/1 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01*
+*Last updated: 2026-02-01 — Phase 66 complete*

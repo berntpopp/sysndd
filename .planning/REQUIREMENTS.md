@@ -9,14 +9,14 @@ Requirements for fixing production deployment issues discovered on VPS. Each map
 
 ### Deployment Infrastructure
 
-- [ ] **DEPLOY-01**: API container can write to bind-mounted /app/data directory without permission errors
-- [ ] **DEPLOY-02**: Dockerfile UID is configurable via build-arg (default 1000)
+- [x] **DEPLOY-01**: API container can write to bind-mounted /app/data directory without permission errors ✓
+- [x] **DEPLOY-02**: Dockerfile UID is configurable via build-arg (default 1000) ✓
 - [ ] **DEPLOY-03**: Multiple API containers can start in parallel without migration lock timeout
-- [ ] **DEPLOY-04**: container_name directive removed from API service to enable scaling
+- [x] **DEPLOY-04**: container_name directive removed from API service to enable scaling ✓
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Favicon image (brain-neurodevelopmental-disorders-sysndd.png) loads without 404 errors
+- [x] **BUG-01**: Favicon image (brain-neurodevelopmental-disorders-sysndd.png) loads without 404 errors ✓
 
 ### Migration Coordination
 
@@ -51,11 +51,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | Phase 66 | Pending |
-| DEPLOY-02 | Phase 66 | Pending |
+| DEPLOY-01 | Phase 66 | Complete |
+| DEPLOY-02 | Phase 66 | Complete |
 | DEPLOY-03 | Phase 67 | Pending |
-| DEPLOY-04 | Phase 66 | Pending |
-| BUG-01 | Phase 66 | Pending |
+| DEPLOY-04 | Phase 66 | Complete |
+| BUG-01 | Phase 66 | Complete |
 | MIGRATE-01 | Phase 67 | Pending |
 | MIGRATE-02 | Phase 67 | Pending |
 | MIGRATE-03 | Phase 67 | Pending |
@@ -71,4 +71,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after roadmap creation*
+*Last updated: 2026-02-01 — Phase 66 requirements complete*
