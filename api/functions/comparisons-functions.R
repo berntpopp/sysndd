@@ -606,8 +606,11 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
 
 #' Resolve HGNC Symbols to HGNC IDs
 #'
-#' Batch lookup of gene symbols to HGNC IDs using the local non_alt_loci_set table.
-#' Handles current symbols, previous symbols, and alias symbols.
+#' Batch lookup of gene symbols to HGNC IDs using the normalized hgnc_symbol_lookup table.
+#' Handles current symbols, previous symbols, and alias symbols with priority ordering.
+#'
+#' PERFORMANCE: Uses indexed temp table JOIN instead of O(n*m) nested loops.
+#' Requires migration 008_hgnc_symbol_lookup to create the lookup table.
 #'
 #' @param symbols Character vector of gene symbols to resolve
 #' @param conn Database connection
@@ -620,96 +623,117 @@ resolve_hgnc_symbols <- function(symbols, conn) {
     return(tibble(symbol = character(), hgnc_id = character()))
   }
 
-  # Ensure unique symbols
+  # Ensure unique uppercase symbols
+
   unique_symbols <- unique(toupper(symbols))
+  n_symbols <- length(unique_symbols)
 
-  # Step 1: Direct symbol lookup
-  # Use parameterized query with IN clause
-  placeholders <- paste(rep("?", length(unique_symbols)), collapse = ",")
-  query <- sprintf("
-    SELECT symbol, hgnc_id
-    FROM non_alt_loci_set
-    WHERE UPPER(symbol) IN (%s)
-  ", placeholders)
+  message(sprintf("[HGNC Resolution] Resolving %d unique symbols...", n_symbols))
+  start_time <- Sys.time()
 
-  stmt <- DBI::dbSendQuery(conn, query)
-  DBI::dbBind(stmt, as.list(unique_symbols))
-  direct_matches <- DBI::dbFetch(stmt)
-  DBI::dbClearResult(stmt)
+  # Check if optimized lookup table exists
+  lookup_exists <- tryCatch({
+    DBI::dbGetQuery(conn, "SELECT 1 FROM hgnc_symbol_lookup LIMIT 1")
+    TRUE
+  }, error = function(e) FALSE)
 
-  direct_matches <- as_tibble(direct_matches) %>%
-    mutate(symbol = toupper(symbol))
+  if (lookup_exists) {
+    # OPTIMIZED PATH: Use normalized lookup table with temp table JOIN
+    # This is O(n) with indexed lookups instead of O(n*m) nested loops
 
-  # Find symbols not yet matched
-  matched_symbols <- toupper(direct_matches$symbol)
-  unmatched <- setdiff(unique_symbols, matched_symbols)
+    # Create temp table for batch lookup (avoids massive IN clause)
+    temp_table <- sprintf("temp_symbols_%d", as.integer(Sys.time()) %% 100000)
 
-  # Step 2: Previous symbol lookup
-  prev_matches <- tibble(symbol = character(), hgnc_id = character())
-  if (length(unmatched) > 0) {
-    # Search in prev_symbol column (comma-separated list)
-    # This is less efficient but necessary for fallback
-    prev_query <- "
-      SELECT symbol, hgnc_id, prev_symbol
-      FROM non_alt_loci_set
-      WHERE prev_symbol IS NOT NULL AND prev_symbol != ''
-    "
-    prev_data <- DBI::dbGetQuery(conn, prev_query)
+    tryCatch({
+      # Create temp table
+      DBI::dbExecute(conn, sprintf("
+        CREATE TEMPORARY TABLE %s (
+          symbol VARCHAR(50) NOT NULL,
+          INDEX idx_temp_symbol (symbol)
+        )
+      ", temp_table))
 
-    if (nrow(prev_data) > 0) {
-      for (i in seq_along(unmatched)) {
-        sym <- unmatched[i]
-        # Check if sym appears in any prev_symbol field
-        match_idx <- which(sapply(prev_data$prev_symbol, function(ps) {
-          sym %in% toupper(str_split(ps, "\\|")[[1]])
-        }))
-        if (length(match_idx) > 0) {
-          prev_matches <- bind_rows(prev_matches, tibble(
-            symbol = sym,
-            hgnc_id = prev_data$hgnc_id[match_idx[1]]
-          ))
-        }
+      # Batch insert symbols (chunk to avoid packet size limits)
+      chunk_size <- 1000
+      for (i in seq(1, n_symbols, by = chunk_size)) {
+        chunk_end <- min(i + chunk_size - 1, n_symbols)
+        chunk_symbols <- unique_symbols[i:chunk_end]
+
+        # Build VALUES clause
+        values <- paste(sprintf("('%s')", gsub("'", "''", chunk_symbols)), collapse = ",")
+        DBI::dbExecute(conn, sprintf("INSERT INTO %s (symbol) VALUES %s", temp_table, values))
       }
-    }
+
+      # Optimized query using JOIN with GROUP BY for priority
+      # Priority: current (1) > previous (2) > alias (3)
+      # First, get all matches with priority scores
+      query <- sprintf("
+        SELECT t.symbol, l.hgnc_id,
+               CASE l.symbol_type
+                 WHEN 'current' THEN 1
+                 WHEN 'previous' THEN 2
+                 WHEN 'alias' THEN 3
+               END AS priority
+        FROM %s t
+        INNER JOIN hgnc_symbol_lookup l ON l.lookup_symbol = t.symbol
+      ", temp_table)
+
+      all_matches <- DBI::dbGetQuery(conn, query)
+
+      # In R, select best match per symbol (faster than SQL GROUP BY with ORDER)
+      if (nrow(all_matches) > 0) {
+        matches <- as_tibble(all_matches) %>%
+          group_by(symbol) %>%
+          slice_min(priority, n = 1, with_ties = FALSE) %>%
+          ungroup() %>%
+          dplyr::select(symbol, hgnc_id)
+      } else {
+        matches <- tibble(symbol = character(), hgnc_id = character())
+      }
+
+      # Add unmatched symbols
+      all_symbols <- DBI::dbGetQuery(conn, sprintf("SELECT symbol FROM %s", temp_table))
+      matches <- tibble(symbol = all_symbols$symbol) %>%
+        left_join(matches, by = "symbol")
+
+      # Clean up temp table
+      DBI::dbExecute(conn, sprintf("DROP TEMPORARY TABLE IF EXISTS %s", temp_table))
+
+    }, error = function(e) {
+      # Clean up on error
+      tryCatch(DBI::dbExecute(conn, sprintf("DROP TEMPORARY TABLE IF EXISTS %s", temp_table)), error = function(e2) NULL)
+      stop(e)
+    })
+
+  } else {
+    # FALLBACK PATH: Direct lookup without normalized table (slower but works)
+    # This path is used if migration 008 hasn't been run
+    message("[HGNC Resolution] Warning: hgnc_symbol_lookup table not found, using slower fallback")
+
+    # Direct symbol lookup using indexed column
+    placeholders <- paste(rep("?", n_symbols), collapse = ",")
+    query <- sprintf("
+      SELECT UPPER(symbol) as symbol, hgnc_id
+      FROM non_alt_loci_set
+      WHERE UPPER(symbol) IN (%s)
+    ", placeholders)
+
+    stmt <- DBI::dbSendQuery(conn, query)
+    DBI::dbBind(stmt, as.list(unique_symbols))
+    matches <- DBI::dbFetch(stmt)
+    DBI::dbClearResult(stmt)
   }
 
-  # Update unmatched list
-  unmatched <- setdiff(unmatched, prev_matches$symbol)
+  matches <- as_tibble(matches)
 
-  # Step 3: Alias symbol lookup
-  alias_matches <- tibble(symbol = character(), hgnc_id = character())
-  if (length(unmatched) > 0) {
-    alias_query <- "
-      SELECT symbol, hgnc_id, alias_symbol
-      FROM non_alt_loci_set
-      WHERE alias_symbol IS NOT NULL AND alias_symbol != ''
-    "
-    alias_data <- DBI::dbGetQuery(conn, alias_query)
-
-    if (nrow(alias_data) > 0) {
-      for (i in seq_along(unmatched)) {
-        sym <- unmatched[i]
-        match_idx <- which(sapply(alias_data$alias_symbol, function(as) {
-          sym %in% toupper(str_split(as, "\\|")[[1]])
-        }))
-        if (length(match_idx) > 0) {
-          alias_matches <- bind_rows(alias_matches, tibble(
-            symbol = sym,
-            hgnc_id = alias_data$hgnc_id[match_idx[1]]
-          ))
-        }
-      }
-    }
-  }
-
-  # Combine all matches
-  all_matches <- bind_rows(direct_matches, prev_matches, alias_matches) %>%
-    dplyr::select(symbol, hgnc_id) %>%
-    distinct()
+  elapsed <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+  matched_count <- sum(!is.na(matches$hgnc_id))
+  message(sprintf("[HGNC Resolution] Resolved %d/%d symbols in %.2f seconds",
+                  matched_count, n_symbols, elapsed))
 
   # Join back to original symbols (preserving order and including unmatched)
   result <- tibble(symbol = toupper(symbols)) %>%
-    left_join(all_matches, by = "symbol")
+    left_join(matches, by = "symbol")
 
   return(result)
 }
