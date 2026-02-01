@@ -63,6 +63,7 @@
               :model-name="Array.isArray(currentSummary.model_name) ? currentSummary.model_name[0] : currentSummary.model_name"
               :created-at="Array.isArray(currentSummary.created_at) ? currentSummary.created_at[0] : currentSummary.created_at"
               :validation-status="Array.isArray(currentSummary.validation_status) ? currentSummary.validation_status[0] : currentSummary.validation_status"
+              :cluster-number="activeParentCluster"
             />
             <div v-else-if="summaryLoading && !showAllClustersInTable" class="mb-3">
               <BSpinner small class="me-2" />
