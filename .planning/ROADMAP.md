@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-31
 **Milestone:** v10.0 Data Quality & AI Insights
-**Phases:** 55-62 + 56.1 (8 active phases, Phase 61 merged)
-**Requirements:** 36 mapped
+**Phases:** 55-63 + 56.1, 57.1 (9 active phases, Phase 61 merged)
+**Requirements:** 43 mapped
 
 ---
 
@@ -268,6 +268,45 @@ Plans:
 
 ---
 
+## Phase 63: LLM Pipeline Overhaul
+
+**Goal:** Fix cascading failures in LLM batch generation pipeline; ensure Phases 58-60 work end-to-end
+
+**Dependencies:** Phase 60
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 63-01-PLAN.md — Docker ICU fix, database operations debug, JSON serialization, model name update
+- [ ] 63-02-PLAN.md — LLM pipeline verification, test suite, linting
+- [ ] 63-03-PLAN.md — End-to-end browser verification with Playwright MCP
+
+**Requirements:**
+- LLM-FIX-01: Docker build succeeds with ICU library compatibility (stringi package)
+- LLM-FIX-02: Database operations work without "unused argument (envir = .GlobalEnv)" error
+- LLM-FIX-03: JSON serialization produces scalar strings for SQL parameter binding
+- LLM-FIX-04: Mirai daemon database connections work reliably
+- LLM-FIX-05: LLM batch generation pipeline completes successfully
+- LLM-FIX-06: Summaries stored in llm_cluster_summary_cache table
+- LLM-FIX-07: Frontend displays AI-generated summaries (200 response, not 404)
+
+**Success Criteria:**
+1. `docker compose build api --no-cache` succeeds without ICU/stringi errors
+2. `db_execute_query()` works in both main process and mirai daemons
+3. Clustering job triggers LLM batch generation successfully
+4. Summaries appear in database cache table after clustering completes
+5. GET /api/analysis/functional_cluster_summary returns 200 with summary data
+6. GET /api/analysis/phenotype_cluster_summary returns 200 with summary data
+7. LlmSummaryCard component displays summary content in AnalyseGeneClusters.vue
+8. All existing R tests pass (687 + 11 E2E)
+
+**Context:**
+- Debug reports: `.planning/LLM_BATCH_DEBUG_STATUS.md`, `.planning/LLM_PIPELINE_DEBUG_REPORT.md`
+- Root cause chain: Docker ICU → db_execute_query error → no cache saves → 404 frontend
+- Files needing review: `db-helpers.R`, `llm-cache-repository.R`, `llm-batch-generator.R`, `llm-service.R`, `api/Dockerfile`
+
+---
+
 ## Progress
 
 | Phase | Name | Requirements | Status |
@@ -282,8 +321,9 @@ Plans:
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | Complete |
 | 61 | ~~LLM Validation~~ | ~~LLM-09 to LLM-11~~ | Merged into 59 |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Complete |
+| 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | Not Started |
 
-**Coverage:** 36/36 requirements mapped (100%) — LLM-11 dropped (no admin approval needed)
+**Coverage:** 43/43 requirements mapped (100%) — LLM-11 dropped, 7 fix requirements added
 
 ---
 
@@ -302,6 +342,9 @@ Phase 56.1 (Pub Admin)     Phase 59 (LLM Batch, Caching & Validation)
     |                           |
     v                           v
 Phase 57 (Pubtator)        Phase 60 (LLM Display)
+                                |
+                                v
+                           Phase 63 (LLM Pipeline Overhaul)
 
 Phase 61 merged into Phase 59
 Phase 62 (Admin & Infra) can run parallel after Phase 55
@@ -363,4 +406,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-02-01 — Phase 62 complete, v10.0 milestone complete*
+*Last updated: 2026-02-01 — Phase 63 plans created (3 plans in 3 waves)*
