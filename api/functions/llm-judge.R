@@ -8,9 +8,13 @@
 # - Same model as generation for consistency
 # - Stores verdict and reasoning in summary metadata
 
-require(ellmer)
 require(logger)
 require(glue)
+
+# Make ellmer optional - LLM features require it but basic API functions don't
+if (!requireNamespace("ellmer", quietly = TRUE)) {
+  log_warn("ellmer package not available - LLM judge disabled")
+}
 
 log_threshold(INFO)
 

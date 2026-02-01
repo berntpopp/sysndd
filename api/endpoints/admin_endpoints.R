@@ -689,10 +689,18 @@ function(req, res) {
 #* Returns immediately with job_id. Poll GET /api/jobs/{job_id} for status.
 #* Rate limited to 3 requests/second (NCBI limit without API key).
 #*
+#* Supports two modes:
+#* 1. Explicit PMIDs: Provide a list of PMIDs to refresh
+#* 2. Date filter: Provide not_updated_since to refresh all publications not updated since that date
+#*
 #* # `Request Body`
 #* {
-#*   "pmids": ["PMID:12345678", "PMID:87654321"]
+#*   "pmids": ["PMID:12345678", "PMID:87654321"],
+#*   "not_updated_since": "2024-01-01"
 #* }
+#*
+#* If not_updated_since is provided without pmids, fetches all publications not updated since that date.
+#* If both are provided, filters the pmids list to only those not updated since that date.
 #*
 #* # `Response (202 Accepted)`
 #* {
@@ -714,11 +722,59 @@ function(req, res) {
   # Request object cannot cross process boundaries
   body <- req$body
   pmids <- body$pmids
+  not_updated_since <- body$not_updated_since
 
-  # Validate input
+  # Handle date-based filtering
+  if (!is.null(not_updated_since) && nzchar(not_updated_since)) {
+    # Validate date format
+    filter_date <- tryCatch(
+      as.Date(not_updated_since),
+      error = function(e) NULL
+    )
+
+    if (is.null(filter_date) || is.na(filter_date)) {
+      res$status <- 400
+      return(list(error = "Invalid date format for not_updated_since. Use YYYY-MM-DD."))
+    }
+
+    # Fetch PMIDs of publications not updated since the filter date
+    filtered_pubs <- db_execute_query(
+      "SELECT publication_id FROM publication WHERE update_date < ?",
+      list(as.character(filter_date))
+    )
+
+    if (nrow(filtered_pubs) == 0) {
+      res$status <- 200
+      return(list(
+        message = "No publications need refreshing",
+        filter_date = as.character(filter_date),
+        count = 0
+      ))
+    }
+
+    filtered_pmids <- filtered_pubs$publication_id
+
+    if (is.null(pmids) || length(pmids) == 0) {
+      # No PMIDs provided - use all filtered publications
+      pmids <- filtered_pmids
+    } else {
+      # Intersect provided PMIDs with filtered publications
+      pmids <- intersect(pmids, filtered_pmids)
+      if (length(pmids) == 0) {
+        res$status <- 200
+        return(list(
+          message = "No matching publications need refreshing",
+          filter_date = as.character(filter_date),
+          count = 0
+        ))
+      }
+    }
+  }
+
+  # Validate input - at least one PMID required
   if (is.null(pmids) || length(pmids) == 0) {
     res$status <- 400
-    return(list(error = "No PMIDs provided"))
+    return(list(error = "No PMIDs provided and no date filter specified"))
   }
 
   # Check for duplicate job

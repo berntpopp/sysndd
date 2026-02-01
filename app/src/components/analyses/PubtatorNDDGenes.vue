@@ -31,15 +31,15 @@
                     >
                       <template #title>Gene Prioritization for Curation</template>
                       <p>
-                        <strong>Novel genes</strong> (marked with
-                        <BBadge variant="warning" pill class="me-1">Novel</BBadge>) are genes
-                        mentioned in NDD literature but not yet in SysNDD - potential curation
-                        targets.
+                        <strong>Literature Only</strong> genes (marked with
+                        <BBadge variant="info" pill class="me-1">Literature Only</BBadge>) are genes
+                        mentioned in NDD publications but not yet curated in SysNDD - potential
+                        curation candidates.
                       </p>
                       <p><strong>Prioritization criteria:</strong></p>
                       <ul class="mb-2">
                         <li>
-                          <em>Novel first:</em> Coverage gaps surface at the top
+                          <em>Literature first:</em> Uncurated genes surface at the top
                         </li>
                         <li>
                           <em>Oldest publication:</em> Long-overlooked genes prioritized
@@ -196,14 +196,15 @@
                 <strong>{{ (data.item as GeneItem).gene_symbol }}</strong>
               </template>
 
-              <!-- Novel badge column -->
+              <!-- Source badge column -->
               <template #cell(is_novel)="data">
-                <BBadge v-if="(data.item as GeneItem).is_novel === 1" variant="warning" pill>
-                  <i class="bi bi-star-fill me-1" />
-                  Novel
+                <BBadge v-if="(data.item as GeneItem).is_novel === 1" variant="info" pill>
+                  <i class="bi bi-journal-text me-1" />
+                  Literature Only
                 </BBadge>
                 <BBadge v-else variant="success" pill>
-                  In SysNDD
+                  <i class="bi bi-check-circle me-1" />
+                  Curated
                 </BBadge>
               </template>
 
@@ -493,7 +494,7 @@ const fields = ref<FieldDefinition[]>([
   },
   {
     key: 'is_novel',
-    label: 'Status',
+    label: 'Source',
     sortable: true,
     class: 'text-center',
     filterable: false,
@@ -805,7 +806,7 @@ const handleExcelExport = async () => {
     gene_name: gene.gene_name,
     publication_count: gene.publication_count,
     oldest_pub_date: gene.oldest_pub_date || '',
-    in_sysndd: gene.is_novel === 1 ? 'No' : 'Yes',
+    source: gene.is_novel === 1 ? 'Literature Only' : 'Curated',
     pmids: gene.pmids || '',
   }));
 
@@ -818,7 +819,7 @@ const handleExcelExport = async () => {
         gene_name: 'Gene Name',
         publication_count: 'Publication Count',
         oldest_pub_date: 'Oldest Publication',
-        in_sysndd: 'In SysNDD',
+        source: 'Source',
         pmids: 'PMIDs',
       },
     });

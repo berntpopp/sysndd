@@ -41,11 +41,11 @@
                   Table
                 </BNavItem>
 
-                <!-- Genes tab with novel count badge -->
+                <!-- Genes tab with literature-only count badge -->
                 <BNavItem :to="{ name: 'PubtatorNDDGenes' }" exact exact-active-class="active">
                   Genes
-                  <BBadge v-if="novelGeneCount > 0" variant="warning" pill class="ms-1">
-                    {{ novelGeneCount }} novel
+                  <BBadge v-if="novelGeneCount > 0" variant="info" pill class="ms-1">
+                    {{ novelGeneCount }} literature only
                   </BBadge>
                 </BNavItem>
 

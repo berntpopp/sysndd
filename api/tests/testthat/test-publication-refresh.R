@@ -221,3 +221,165 @@ test_that("refresh uses create_progress_reporter", {
     info = "Executor should use create_progress_reporter"
   )
 })
+
+# ============================================================================
+# Date Filter Validation Tests
+# ============================================================================
+
+validate_date_filter <- function(not_updated_since) {
+  if (is.null(not_updated_since) || !nzchar(not_updated_since)) {
+    return(list(error = NULL, valid = TRUE, date = NULL))
+  }
+
+  filter_date <- tryCatch(
+    as.Date(not_updated_since),
+    error = function(e) NULL
+  )
+
+  if (is.null(filter_date) || is.na(filter_date)) {
+    return(list(
+      error = "Invalid date format for not_updated_since. Use YYYY-MM-DD.",
+      valid = FALSE,
+      date = NULL
+    ))
+  }
+
+  return(list(error = NULL, valid = TRUE, date = as.character(filter_date)))
+}
+
+test_that("validate_date_filter accepts valid ISO date", {
+  result <- validate_date_filter("2024-01-15")
+  expect_null(result$error)
+  expect_true(result$valid)
+  expect_equal(result$date, "2024-01-15")
+})
+
+test_that("validate_date_filter accepts NULL date", {
+  result <- validate_date_filter(NULL)
+  expect_null(result$error)
+  expect_true(result$valid)
+  expect_null(result$date)
+})
+test_that("validate_date_filter accepts empty string", {
+  result <- validate_date_filter("")
+  expect_null(result$error)
+  expect_true(result$valid)
+  expect_null(result$date)
+})
+
+test_that("validate_date_filter rejects invalid date format", {
+  result <- validate_date_filter("01-15-2024")
+  expect_false(result$valid)
+  expect_true(grepl("Invalid date format", result$error))
+})
+
+test_that("validate_date_filter rejects non-date string", {
+  result <- validate_date_filter("not-a-date")
+  expect_false(result$valid)
+  expect_true(grepl("Invalid date format", result$error))
+})
+
+test_that("validate_date_filter rejects partial date", {
+  result <- validate_date_filter("2024-01")
+  expect_false(result$valid)
+  expect_true(grepl("Invalid date format", result$error))
+})
+
+# ============================================================================
+# Stats Endpoint Date Filter Tests (require database)
+# ============================================================================
+
+test_that("publications/stats filtered_count query works", {
+  skip_if(!exists("pool") || is.null(pool), "Database not available")
+
+  # Test with a date in the past that should return all publications
+  filter_date <- "2000-01-01"
+  filtered_result <- db_execute_query(
+    "SELECT COUNT(*) as filtered_count FROM publication WHERE update_date < ?",
+    list(filter_date)
+  )
+
+  expect_true("filtered_count" %in% names(filtered_result))
+  expect_type(as.integer(filtered_result$filtered_count[1]), "integer")
+  expect_gte(as.integer(filtered_result$filtered_count[1]), 0)
+})
+
+test_that("publications/stats filtered_count is less than or equal to total", {
+  skip_if(!exists("pool") || is.null(pool), "Database not available")
+
+  # Get total
+  total_result <- db_execute_query(
+    "SELECT COUNT(*) as total FROM publication"
+  )
+  total <- as.integer(total_result$total[1])
+
+  # Get filtered count with today's date (should be <= total)
+  today <- Sys.Date()
+  filtered_result <- db_execute_query(
+    "SELECT COUNT(*) as filtered_count FROM publication WHERE update_date < ?",
+    list(as.character(today))
+  )
+  filtered <- as.integer(filtered_result$filtered_count[1])
+
+  expect_lte(filtered, total)
+})
+
+test_that("publications/stats filtered_count with future date equals total", {
+  skip_if(!exists("pool") || is.null(pool), "Database not available")
+
+  # Get total
+  total_result <- db_execute_query(
+    "SELECT COUNT(*) as total FROM publication"
+  )
+  total <- as.integer(total_result$total[1])
+
+  # Get filtered count with future date (should equal total)
+  future_date <- as.character(Sys.Date() + 365)
+  filtered_result <- db_execute_query(
+    "SELECT COUNT(*) as filtered_count FROM publication WHERE update_date < ?",
+    list(future_date)
+  )
+  filtered <- as.integer(filtered_result$filtered_count[1])
+
+  expect_equal(filtered, total)
+})
+
+# ============================================================================
+# Refresh Endpoint Date Filter Tests (design verification)
+# ============================================================================
+
+test_that("refresh endpoint accepts not_updated_since parameter", {
+  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+
+  expect_true(
+    any(grepl("not_updated_since", admin_code)),
+    info = "Endpoint should accept not_updated_since parameter"
+  )
+})
+
+test_that("refresh endpoint handles date filter query", {
+  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+
+  expect_true(
+    any(grepl("WHERE update_date <", admin_code)),
+    info = "Endpoint should query publications by update_date"
+  )
+})
+
+test_that("refresh endpoint validates date format", {
+  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+
+  expect_true(
+    any(grepl("as\\.Date", admin_code)),
+    info = "Endpoint should validate date format with as.Date"
+  )
+})
+
+test_that("refresh endpoint returns message when no publications match filter", {
+  admin_code <- readLines(file.path(api_dir, "endpoints", "admin_endpoints.R"))
+
+  expect_true(
+    any(grepl("No publications need refreshing", admin_code)),
+    info = "Endpoint should handle case when no publications match filter"
+  )
+})

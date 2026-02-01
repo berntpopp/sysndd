@@ -50,15 +50,15 @@
           </BCard>
         </BCol>
         <BCol md="4">
-          <BCard class="text-center h-100" border-variant="warning">
+          <BCard class="text-center h-100" border-variant="info">
             <template #header>
-              <small class="text-muted">Novel Genes</small>
+              <small class="text-muted">Literature Only</small>
             </template>
             <BCardBody class="py-3">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
-                <h3 class="mb-0 text-warning">{{ novelGenes }}</h3>
-                <small class="text-muted">(not in SysNDD)</small>
+                <h3 class="mb-0 text-info">{{ novelGenes }}</h3>
+                <small class="text-muted">(not yet curated)</small>
               </template>
             </BCardBody>
           </BCard>
@@ -66,13 +66,13 @@
         <BCol md="4">
           <BCard class="text-center h-100" border-variant="success">
             <template #header>
-              <small class="text-muted">In SysNDD</small>
+              <small class="text-muted">Curated</small>
             </template>
             <BCardBody class="py-3">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
                 <h3 class="mb-0 text-success">{{ inSysnddGenes }}</h3>
-                <small class="text-muted">(already curated)</small>
+                <small class="text-muted">(in SysNDD)</small>
               </template>
             </BCardBody>
           </BCard>
@@ -81,40 +81,39 @@
 
       <!-- User Interface controls -->
       <BRow class="p-2">
-        <BCol class="my-1" sm="4">
+        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
           <BInputGroup prepend="Category" class="mb-1" size="sm">
             <BFormSelect
               v-model="selectedCategory"
               :options="categoryOptions"
               size="sm"
-              @change="generateBarPlot"
-            />
-          </BInputGroup>
-        </BCol>
-
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-            <BFormInput
-              v-model="minCount"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
               @change="processAndPlot"
             />
           </BInputGroup>
         </BCol>
 
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Top N" class="mb-1" size="sm">
+        <!-- Min Count only applies to gene category (filters genes by publication count) -->
+        <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
+          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
             <BFormInput
-              v-model="topN"
+              v-model.number="minCount"
+              type="number"
+              min="1"
+              step="1"
+              debounce="500"
+            />
+          </BInputGroup>
+        </BCol>
+
+        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
+          <BInputGroup :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'" class="mb-1" size="sm">
+            <BFormInput
+              v-model.number="topN"
               type="number"
               min="5"
               max="100"
               step="5"
               debounce="500"
-              @change="generateBarPlot"
             />
           </BInputGroup>
         </BCol>
@@ -130,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import * as d3 from 'd3';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
@@ -173,6 +172,20 @@ const loadingStats = ref(true);
 const totalGenes = computed(() => rawGeneData.value.length);
 const novelGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 1).length);
 const inSysnddGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 0).length);
+
+// Watch minCount changes - needs to re-process data and re-plot
+watch(minCount, () => {
+  if (rawGeneData.value.length > 0) {
+    processAndPlot();
+  }
+});
+
+// Watch topN changes - only needs to re-plot (data slice changes)
+watch(topN, () => {
+  if (statsData.value.length > 0) {
+    generateBarPlot();
+  }
+});
 
 /**
  * Fetches PubTator gene statistics from the API
@@ -248,11 +261,23 @@ function processStatsData() {
  * Builds a bar chart from the processed statistics
  */
 function generateBarPlot() {
-  if (!statsData.value || statsData.value.length === 0) return;
-
-  // remove old svg and tooltip
+  // Always remove old svg and tooltip first
   d3.select('#pubtator_stats_dataviz').select('svg').remove();
   d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
+  d3.select('#pubtator_stats_dataviz').select('.no-data-message').remove();
+
+  // Handle empty data case - show message instead of stale chart
+  if (!statsData.value || statsData.value.length === 0) {
+    d3.select('#pubtator_stats_dataviz')
+      .append('div')
+      .attr('class', 'no-data-message text-center text-muted py-5')
+      .html(
+        `<i class="bi bi-inbox" style="font-size: 3rem;"></i><br/>
+        <strong>No data matches current filters</strong><br/>
+        <small>Try lowering the Min Count value</small>`
+      );
+    return;
+  }
 
   // Limit to top N entries
   const data = statsData.value.slice(0, topN.value);
@@ -389,6 +414,13 @@ onMounted(async () => {
 .tooltip {
   pointer-events: none;
   font-size: 0.9rem;
+}
+.no-data-message {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 mark {
   display: inline-block;

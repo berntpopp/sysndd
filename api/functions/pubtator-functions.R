@@ -49,10 +49,14 @@ pubtator_rate_limited_call <- function(api_func, ..., max_retries = PUBTATOR_MAX
       error = function(e) {
         retries <<- retries + 1
         if (retries > max_retries) {
-          log_error("API call failed after {max_retries} retries: {e$message}")
+          log_error(skip_formatter(paste(
+            "API call failed after", max_retries, "retries:", e$message
+          )))
           return(NULL)
         }
-        log_warn("API call failed (attempt {retries}): {e$message}")
+        log_warn(skip_formatter(paste(
+          "API call failed (attempt", retries, "):", e$message
+        )))
       }
     )
   }
@@ -376,7 +380,7 @@ pubtator_db_update <- function(
     },
     error = function(e) {
       # Transaction auto-rolled back by db_with_transaction
-      log_error("pubtator_db_update: Error => {e$message}")
+      log_error(skip_formatter(paste("pubtator_db_update: Error =>", e$message)))
       return(NULL)
     }
   )
@@ -443,7 +447,7 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
       port = db_config$db_port
     ),
     error = function(e) {
-      log_error("Failed to connect to database: {e$message}")
+      log_error(skip_formatter(paste("Failed to connect to database:", e$message)))
       return(NULL)
     }
   )
@@ -669,12 +673,12 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
       pages_cached = final_stats$queried_page_number[1],
       pages_total = final_stats$total_page_number[1],
       publications_count = pub_count,
-      message = sprintf("Fetched %d pages (%d publications)", final_stats$queried_page_number[1], pub_count)
+      message = sprintf("Fetched %d pages (%d publications)", as.integer(final_stats$queried_page_number[1]), as.integer(pub_count))
     ))
 
   }, error = function(e) {
     tryCatch(DBI::dbRollback(conn), error = function(e2) NULL)
-    log_error("PubTator async update failed: {e$message}")
+    log_error(skip_formatter(paste("PubTator async update failed:", e$message)))
     return(list(success = FALSE, query_id = NULL, message = paste("Error:", e$message)))
   })
 }
@@ -796,7 +800,7 @@ pubtator_v3_pmids_from_request <- function(query,
             "Attempt:", retries, "/", max_retries,
             "Error:", e$message
           )
-          log_warn(warning_msg)
+          log_warn(skip_formatter(warning_msg))
 
           if (retries > max_retries) {
             final_warning <- paste(
@@ -901,7 +905,7 @@ pubtator_v3_data_from_pmids <- function(pmids,
             "Attempt:", retries, "/", max_retries,
             "Error:", e$message
           )
-          log_warn(warning_msg)
+          log_warn(skip_formatter(warning_msg))
 
           if (retries > max_retries) {
             final_warn <- paste(

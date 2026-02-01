@@ -336,12 +336,13 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 generate_filter_expressions <- function(
   filter_string,
   operations_allowed =
-    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual"
+    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual,lessThanOrEqual,greaterThanOrEqual"
 ) {
   # define supported operations
   operations_supported <- paste0(
     "equals,contains,any,all,",
-    "lessThan,greaterThan,lessOrEqual,greaterOrEqual,and,or,not"
+    "lessThan,greaterThan,lessOrEqual,greaterOrEqual,",
+    "lessThanOrEqual,greaterThanOrEqual,and,or,not"
   ) %>%
     str_split(pattern = ",", simplify = TRUE) %>%
     str_replace_all(" ", "") %>%
@@ -526,34 +527,48 @@ generate_filter_expressions <- function(
                   replacement = ")(?=.*"
                 )
               ),
-            ## logic for Less than
+            ## logic for Less than (numeric-aware)
             column == "any" & logic == "lessThan" ~
-              paste0("if_any(everything(), .x < '", filter_value, "'"),
+              paste0("if_any(everything(), .x < ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             column == "all" & logic == "lessThan" ~
-              paste0("if_any(everything(), .x < '", filter_value, "'"),
+              paste0("if_any(everything(), .x < ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             !(column %in% c("all", "any")) & logic == "lessThan" ~
-              paste0(column, " < '", filter_value, "'"),
-            ## logic for Greater than
+              paste0(column, " < ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
+            ## logic for Greater than (numeric-aware)
             column == "any" & logic == "greaterThan" ~
-              paste0("if_any(everything(), .x > '", filter_value, "'"),
+              paste0("if_any(everything(), .x > ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             column == "all" & logic == "greaterThan" ~
-              paste0("if_any(everything(), .x > '", filter_value, "'"),
+              paste0("if_any(everything(), .x > ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             !(column %in% c("all", "any")) & logic == "greaterThan" ~
-              paste0(column, " > '", filter_value, "'"),
-            ## logic for Less than or equal to
+              paste0(column, " > ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
+            ## logic for Less than or equal to (numeric-aware)
             column == "any" & logic == "lessOrEqual" ~
-              paste0("if_any(everything(), .x <= '", filter_value, "'"),
+              paste0("if_any(everything(), .x <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             column == "all" & logic == "lessOrEqual" ~
-              paste0("if_any(everything(), .x <= '", filter_value, "'"),
+              paste0("if_any(everything(), .x <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             !(column %in% c("all", "any")) & logic == "lessOrEqual" ~
-              paste0(column, " <= '", filter_value, "'"),
-            ## logic for Greater than or equal to
+              paste0(column, " <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
+            ## alias: lessThanOrEqual -> lessOrEqual (numeric-aware)
+            column == "any" & logic == "lessThanOrEqual" ~
+              paste0("if_any(everything(), .x <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
+            column == "all" & logic == "lessThanOrEqual" ~
+              paste0("if_any(everything(), .x <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
+            !(column %in% c("all", "any")) & logic == "lessThanOrEqual" ~
+              paste0(column, " <= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
+            ## logic for Greater than or equal to (numeric-aware)
             column == "any" & logic == "greaterOrEqual" ~
-              paste0("if_any(everything(), .x >= '", filter_value, "'"),
+              paste0("if_any(everything(), .x >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             column == "all" & logic == "greaterOrEqual" ~
-              paste0("if_any(everything(), .x >= '", filter_value, "'"),
+              paste0("if_any(everything(), .x >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
             !(column %in% c("all", "any")) & logic == "greaterOrEqual" ~
-              paste0(column, " >= '", filter_value, "'"),
+              paste0(column, " >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
+            ## alias: greaterThanOrEqual -> greaterOrEqual (numeric-aware)
+            column == "any" & logic == "greaterThanOrEqual" ~
+              paste0("if_any(everything(), .x >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
+            column == "all" & logic == "greaterThanOrEqual" ~
+              paste0("if_any(everything(), .x >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'"), ")"),
+            !(column %in% c("all", "any")) & logic == "greaterThanOrEqual" ~
+              paste0(column, " >= ", if (grepl("^-?[0-9.]+$", filter_value)) filter_value else paste0("'", filter_value, "'")),
           )) %>%
           ## remove non fitting values
           filter(logic %in% operations_allowed) %>%

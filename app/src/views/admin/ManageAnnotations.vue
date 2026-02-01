@@ -175,9 +175,9 @@
                 </span>
                 <span
                   v-if="pubtatorStats.novel_count !== null && pubtatorStats.novel_count > 0"
-                  class="badge bg-warning text-dark ms-2 fw-normal"
+                  class="badge bg-info ms-2 fw-normal"
                 >
-                  {{ pubtatorStats.novel_count?.toLocaleString() }} novel
+                  {{ pubtatorStats.novel_count?.toLocaleString() }} literature only
                 </span>
               </h5>
             </template>
@@ -201,8 +201,8 @@
             <div v-if="pubtatorStats.gene_count !== null" class="mt-2">
               <p class="text-muted small mb-2">
                 The Pubtator cache contains gene-publication associations from NCBI's PubTator
-                text-mining service. Novel genes are those mentioned in NDD literature but not yet
-                in SysNDD.
+                text-mining service. "Literature Only" genes are those mentioned in NDD publications
+                but not yet curated in SysNDD.
               </p>
               <div class="d-flex flex-wrap gap-2">
                 <router-link
@@ -269,6 +269,64 @@
               </p>
             </div>
 
+            <!-- Filter controls -->
+            <div class="mb-3">
+              <label class="form-label small text-muted mb-1">Filter by last update:</label>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <BButtonGroup size="sm">
+                  <BButton
+                    :variant="selectedPreset === 'all' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('all')"
+                  >
+                    All
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '1year' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('1year')"
+                  >
+                    &gt;1 year
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '6months' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('6months')"
+                  >
+                    &gt;6 months
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === '3months' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('3months')"
+                  >
+                    &gt;3 months
+                  </BButton>
+                  <BButton
+                    :variant="selectedPreset === 'custom' ? 'primary' : 'outline-secondary'"
+                    @click="setPreset('custom')"
+                  >
+                    Custom
+                  </BButton>
+                </BButtonGroup>
+
+                <!-- Custom date picker -->
+                <input
+                  v-if="selectedPreset === 'custom'"
+                  v-model="customDate"
+                  type="date"
+                  class="form-control form-control-sm"
+                  style="max-width: 160px"
+                  :max="todayDate"
+                />
+
+                <!-- Filtered count badge -->
+                <span
+                  v-if="selectedPreset !== 'all' && filteredCount !== null"
+                  class="badge bg-info"
+                >
+                  <BSpinner v-if="loadingFilteredCount" small class="me-1" />
+                  {{ filteredCount?.toLocaleString() }} publications match filter
+                </span>
+              </div>
+            </div>
+
             <!-- Action buttons -->
             <div class="d-flex gap-2 mb-3">
               <BButton
@@ -279,6 +337,15 @@
               >
                 <BSpinner v-if="loadingPublicationStats" small type="grow" class="me-1" />
                 {{ loadingPublicationStats ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <BButton
+                v-if="selectedPreset !== 'all' && filteredCount !== null && filteredCount > 0"
+                variant="success"
+                :disabled="publicationRefreshJob.isLoading.value || filteredCount === 0"
+                @click="refreshFilteredPublications"
+              >
+                <BSpinner v-if="publicationRefreshJob.isLoading.value" small type="grow" class="me-2" />
+                {{ publicationRefreshJob.isLoading.value ? 'Refreshing...' : `Refresh ${filteredCount?.toLocaleString()} Publications` }}
               </BButton>
               <BButton
                 variant="primary"
@@ -738,6 +805,41 @@ const publicationStats = ref({
 });
 const loadingPublicationStats = ref(false);
 
+// Publication filter state
+type FilterPreset = 'all' | '1year' | '6months' | '3months' | 'custom';
+const selectedPreset = ref<FilterPreset>('all');
+const customDate = ref<string>('');
+const filteredCount = ref<number | null>(null);
+const loadingFilteredCount = ref(false);
+
+// Compute today's date for max attribute on date input
+const todayDate = computed(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0];
+});
+
+// Compute the not_updated_since date based on selected preset
+const notUpdatedSince = computed<string | null>(() => {
+  const now = new Date();
+  switch (selectedPreset.value) {
+    case 'all':
+      return null;
+    case '1year':
+      now.setFullYear(now.getFullYear() - 1);
+      return now.toISOString().split('T')[0];
+    case '6months':
+      now.setMonth(now.getMonth() - 6);
+      return now.toISOString().split('T')[0];
+    case '3months':
+      now.setMonth(now.getMonth() - 3);
+      return now.toISOString().split('T')[0];
+    case 'custom':
+      return customDate.value || null;
+    default:
+      return null;
+  }
+});
+
 const deprecatedTableFields = [
   { key: 'entity_id', label: 'Entity', sortable: true },
   { key: 'symbol', label: 'Gene', sortable: true },
@@ -843,11 +945,24 @@ watch(
     if (newStatus === 'completed') {
       makeToast('Publications refreshed successfully', 'Success', 'success');
       fetchPublicationStats();
+      fetchFilteredCount();
       fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = publicationRefreshJob.error.value || 'Publication refresh failed';
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
+    }
+  }
+);
+
+// Watch for filter changes to update filtered count
+watch(
+  () => notUpdatedSince.value,
+  () => {
+    if (notUpdatedSince.value) {
+      fetchFilteredCount();
+    } else {
+      filteredCount.value = null;
     }
   }
 );
@@ -1310,6 +1425,91 @@ async function fetchPublicationStats() {
     console.warn('Failed to fetch publication stats:', error);
   } finally {
     loadingPublicationStats.value = false;
+  }
+}
+
+function setPreset(preset: FilterPreset) {
+  selectedPreset.value = preset;
+  if (preset !== 'custom') {
+    customDate.value = '';
+  }
+}
+
+async function fetchFilteredCount() {
+  if (!notUpdatedSince.value) {
+    filteredCount.value = null;
+    return;
+  }
+
+  loadingFilteredCount.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/publication/stats`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        params: {
+          not_updated_since: notUpdatedSince.value,
+        },
+      }
+    );
+    filteredCount.value = unwrapValue(response.data.filtered_count) ?? null;
+  } catch (error) {
+    console.warn('Failed to fetch filtered count:', error);
+    filteredCount.value = null;
+  } finally {
+    loadingFilteredCount.value = false;
+  }
+}
+
+async function refreshFilteredPublications() {
+  if (!notUpdatedSince.value) {
+    makeToast('No filter selected', 'Info', 'info');
+    return;
+  }
+
+  publicationRefreshJob.reset();
+
+  try {
+    // Start refresh job with date filter
+    const jobResponse = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
+      { not_updated_since: notUpdatedSince.value },
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (jobResponse.data.error) {
+      makeToast(
+        jobResponse.data.message || 'Failed to start refresh',
+        'Error',
+        'danger'
+      );
+      return;
+    }
+
+    // Handle no publications to refresh
+    if (jobResponse.data.count === 0) {
+      makeToast(jobResponse.data.message || 'No publications need refreshing', 'Info', 'info');
+      return;
+    }
+
+    // Handle already running job
+    if (jobResponse.data.status === 'already_running') {
+      makeToast('A refresh job is already running', 'Info', 'info');
+      publicationRefreshJob.startJob(jobResponse.data.job_id);
+      return;
+    }
+
+    // Start tracking the new job
+    publicationRefreshJob.startJob(jobResponse.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    console.error('Publication refresh error:', error);
   }
 }
 

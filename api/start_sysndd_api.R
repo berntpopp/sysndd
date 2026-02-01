@@ -361,6 +361,10 @@ everywhere({
   source("/app/functions/ensembl-functions.R", local = FALSE)
   # Source file-based job progress reporting
   source("/app/functions/job-progress.R", local = FALSE)
+  # Source db-helpers for parameterized queries
+  source("/app/functions/db-helpers.R", local = FALSE)
+  # Source PubTator functions for async update jobs
+  source("/app/functions/pubtator-functions.R", local = FALSE)
 })
 message(sprintf("[%s] Exported packages and functions to mirai daemons", Sys.time()))
 

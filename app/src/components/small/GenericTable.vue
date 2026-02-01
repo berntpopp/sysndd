@@ -266,6 +266,62 @@
       </slot>
     </template>
 
+    <!-- Title column (lowercase - for PubTator table) -->
+    <template #cell(title)="data">
+      <slot name="cell-title" :row="data.item" :index="data.index">
+        {{ data.item.title }}
+      </slot>
+    </template>
+
+    <!-- DOI column -->
+    <template #cell(doi)="data">
+      <slot name="cell-doi" :row="data.item" :index="data.index">
+        {{ data.item.doi }}
+      </slot>
+    </template>
+
+    <!-- Journal column (lowercase) -->
+    <template #cell(journal)="data">
+      <slot name="cell-journal" :row="data.item" :index="data.index">
+        {{ data.item.journal }}
+      </slot>
+    </template>
+
+    <!-- Date column -->
+    <template #cell(date)="data">
+      <slot name="cell-date" :row="data.item" :index="data.index">
+        {{ data.item.date }}
+      </slot>
+    </template>
+
+    <!-- Score column -->
+    <template #cell(score)="data">
+      <slot name="cell-score" :row="data.item" :index="data.index">
+        {{ data.item.score }}
+      </slot>
+    </template>
+
+    <!-- Gene symbols column -->
+    <template #cell(gene_symbols)="data">
+      <slot name="cell-gene_symbols" :row="data.item" :index="data.index">
+        {{ data.item.gene_symbols }}
+      </slot>
+    </template>
+
+    <!-- PMID column -->
+    <template #cell(pmid)="data">
+      <slot name="cell-pmid" :row="data.item" :index="data.index">
+        {{ data.item.pmid }}
+      </slot>
+    </template>
+
+    <!-- Search ID column -->
+    <template #cell(search_id)="data">
+      <slot name="cell-search_id" :row="data.item" :index="data.index">
+        {{ data.item.search_id }}
+      </slot>
+    </template>
+
     <!-- Details column -->
     <template #cell(details)="row">
       <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">

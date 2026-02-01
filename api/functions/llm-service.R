@@ -9,10 +9,14 @@
 # - Complete logging of all generation attempts
 # - Cache integration for efficient summary retrieval
 
-require(ellmer)
 require(glue)
 require(logger)
 require(jsonlite)
+
+# Make ellmer optional - LLM features require it but basic API functions don't
+if (!requireNamespace("ellmer", quietly = TRUE)) {
+  log_warn("ellmer package not available - LLM service disabled")
+}
 
 log_threshold(INFO)
 

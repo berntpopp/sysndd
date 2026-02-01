@@ -11,7 +11,10 @@
 # - Integration with job-manager via create_job()
 
 require(logger)
-require(ellmer)
+# Make ellmer optional - LLM features require it but basic API functions don't
+if (!requireNamespace("ellmer", quietly = TRUE)) {
+  log_warn("ellmer package not available - LLM batch generation disabled")
+}
 
 log_threshold(INFO)
 
@@ -36,12 +39,8 @@ if (!exists("create_progress_reporter", mode = "function")) {
   }
 }
 
-# Load job manager for create_job (if not already loaded)
-if (!exists("create_job", mode = "function")) {
-  if (file.exists("functions/job-manager.R")) {
-    source("functions/job-manager.R", local = TRUE)
-  }
-}
+# Note: create_job is provided by job-manager.R which sources this file
+# Do NOT source job-manager.R from here - it creates a circular dependency
 
 # Load LLM judge module (if not already loaded)
 if (!exists("generate_and_validate_with_judge", mode = "function")) {

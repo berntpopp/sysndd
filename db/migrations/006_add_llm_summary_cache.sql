@@ -77,25 +77,9 @@ CALL migrate_006_llm_summary_cache() //
 
 DROP PROCEDURE IF EXISTS migrate_006_llm_summary_cache //
 
-DELIMITER ;
-
--- Add multi-valued index on tags JSON array for search (MySQL 8.0.17+)
--- This enables efficient searching of tags via MEMBER OF or JSON_CONTAINS
--- NOTE: CAST(... AS ... ARRAY) cannot be used inside stored procedures,
--- so this must be done outside with direct CREATE INDEX IF NOT EXISTS pattern
--- Using a workaround: DROP INDEX IF EXISTS then CREATE, or check and skip
-SET @idx_exists = (
-    SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'llm_cluster_summary_cache'
-      AND INDEX_NAME = 'idx_tags'
-);
-
--- Only create index if it doesn't exist (using prepared statement)
-SET @create_idx_sql = IF(@idx_exists = 0,
-    'CREATE INDEX idx_tags ON llm_cluster_summary_cache((CAST(tags AS CHAR(100) ARRAY)))',
-    'SELECT 1'
-);
-PREPARE stmt FROM @create_idx_sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+-- NOTE: Multi-valued index on tags JSON array (MySQL 8.0.17+) removed from migration
+-- because CAST(... AS ... ARRAY) cannot be used inside stored procedures,
+-- and the migration runner doesn't support statements after DELIMITER ;
+-- To add this optimization manually, run:
+-- CREATE INDEX idx_tags ON llm_cluster_summary_cache((CAST(tags AS CHAR(100) ARRAY)));
+-- This enables efficient searching via MEMBER OF or JSON_CONTAINS
