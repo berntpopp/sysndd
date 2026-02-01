@@ -26,7 +26,7 @@ export default {
   },
   methods: {
     handleImageError(e) {
-      e.target.src = '/brain-neurodevelopmental-disorders-sysndd-logo.png';
+      e.target.src = '/img/icons/android-chrome-192x192.png';
     },
   },
 };
