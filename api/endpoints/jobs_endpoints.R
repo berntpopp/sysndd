@@ -679,6 +679,83 @@ function(req, res) {
 }
 
 ## -------------------------------------------------------------------##
+## Comparisons Data Update Submission
+## -------------------------------------------------------------------##
+
+#* Submit Comparisons Data Update Job
+#*
+#* Submits an async job to refresh the comparisons data from all external
+#* NDD databases (Radboud, Gene2Phenotype, PanelApp, SFARI, Geisinger,
+#* OMIM NDD, Orphanet).
+#*
+#* Requires Administrator role.
+#* Returns immediately with job ID for status polling.
+#*
+#* @tag jobs
+#* @serializer json list(na="string")
+#* @post /comparisons_update/submit
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  # CRITICAL: Extract database config BEFORE mirai
+  # Database connections cannot cross process boundaries, so the daemon
+  # must create its own connection using the config values.
+  db_config <- list(
+    dbname   = dw$dbname,
+    host     = dw$host,
+    user     = dw$user,
+    password = dw$password,
+    port     = dw$port
+  )
+
+  # Check for duplicate running job
+  # Use a stable identifier (operation name only) — db_config contains credentials
+  # and should NOT be included in the hash or stored longer than necessary.
+  dup_check <- check_duplicate_job("comparisons_update", list(operation = "comparisons_update"))
+  if (dup_check$duplicate) {
+    res$status <- 409
+    res$setHeader("Location", paste0("/api/jobs/", dup_check$existing_job_id, "/status"))
+    return(list(
+      error = "DUPLICATE_JOB",
+      message = "Comparisons update job already running",
+      existing_job_id = dup_check$existing_job_id,
+      status_url = paste0("/api/jobs/", dup_check$existing_job_id, "/status")
+    ))
+  }
+
+  # Create async job for comparisons update
+  # Downloads from 7+ sources can take 5-30 minutes depending on network
+  result <- create_job(
+    operation = "comparisons_update",
+    params = list(db_config = db_config),
+    timeout_ms = 1800000, # 30 minutes
+    executor_fn = function(params) {
+      # This runs in mirai daemon
+      comparisons_update_async(params)
+    }
+  )
+
+  # Check capacity
+  if (!is.null(result$error)) {
+    res$status <- 503
+    res$setHeader("Retry-After", as.character(result$retry_after))
+    return(result)
+  }
+
+  # Success - return HTTP 202 Accepted
+  res$status <- 202
+  res$setHeader("Location", paste0("/api/jobs/", result$job_id, "/status"))
+  res$setHeader("Retry-After", "30") # Long-running job: poll every 30 seconds
+
+  list(
+    job_id = result$job_id,
+    status = result$status,
+    estimated_seconds = 300, # ~5 min typical
+    status_url = paste0("/api/jobs/", result$job_id, "/status")
+  )
+}
+
+## -------------------------------------------------------------------##
 ## Job History
 ## -------------------------------------------------------------------##
 

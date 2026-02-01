@@ -303,7 +303,8 @@ get_progress_message <- function(operation) {
     backup_create = "Creating database backup...",
     backup_restore = "Restoring database from backup...",
     pubtator_update = "Fetching publications from PubTator API...",
-    llm_generation = "Generating LLM summaries for clusters..."
+    llm_generation = "Generating LLM summaries for clusters...",
+    comparisons_update = "Refreshing comparisons data from external NDD databases..."
   )
 
   messages[[operation]] %||% "Processing request..."

@@ -228,6 +228,135 @@
         </BCol>
       </BRow>
 
+      <!-- Comparisons Data Refresh Section -->
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-2"
+            header-class="p-1"
+            border-variant="dark"
+            class="mb-3 text-start"
+          >
+            <template #header>
+              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
+                Comparisons Data Refresh
+                <span
+                  v-if="comparisonsMetadata.last_full_refresh"
+                  class="badge bg-secondary ms-2 fw-normal"
+                >
+                  Last: {{ formatDate(comparisonsMetadata.last_full_refresh) }}
+                </span>
+                <span
+                  v-if="comparisonsMetadata.sources_count > 0"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ comparisonsMetadata.sources_count }} sources
+                </span>
+                <span
+                  v-if="comparisonsMetadata.rows_imported > 0"
+                  class="badge bg-info ms-2 fw-normal"
+                >
+                  {{ comparisonsMetadata.rows_imported.toLocaleString() }} rows
+                </span>
+              </h5>
+            </template>
+
+            <div class="mb-3">
+              <p class="text-muted small mb-2">
+                Refresh comparisons data from 7 external NDD databases: Radboudumc, Gene2Phenotype,
+                PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads
+                fresh data and updates the database. Any failure aborts the entire refresh.
+              </p>
+            </div>
+
+            <div class="d-flex gap-2 mb-3">
+              <BButton
+                variant="outline-secondary"
+                size="sm"
+                :disabled="loadingComparisonsMetadata"
+                @click="fetchComparisonsMetadata"
+              >
+                <BSpinner v-if="loadingComparisonsMetadata" small type="grow" class="me-1" />
+                {{ loadingComparisonsMetadata ? 'Loading...' : 'Refresh Stats' }}
+              </BButton>
+              <BButton
+                variant="primary"
+                :disabled="comparisonsJob.isLoading.value"
+                @click="refreshComparisons"
+              >
+                <BSpinner v-if="comparisonsJob.isLoading.value" small type="grow" class="me-2" />
+                {{ comparisonsJob.isLoading.value ? 'Updating...' : 'Refresh Comparisons Data' }}
+              </BButton>
+            </div>
+
+            <!-- Progress display -->
+            <div
+              v-if="comparisonsJob.isLoading.value || comparisonsJob.status.value !== 'idle'"
+              class="mt-3"
+            >
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge me-2" :class="comparisonsJob.statusBadgeClass.value">
+                  {{ comparisonsJob.status.value }}
+                </span>
+                <span class="text-muted">{{ comparisonsJob.step.value }}</span>
+              </div>
+
+              <BProgress
+                v-if="comparisonsJob.isLoading.value"
+                :value="comparisonsJob.hasRealProgress.value ? comparisonsJob.progressPercent.value : 100"
+                :max="100"
+                :animated="true"
+                :striped="!comparisonsJob.hasRealProgress.value"
+                :variant="comparisonsJob.progressVariant.value"
+                height="1.5rem"
+              >
+                <template #default>
+                  <span v-if="comparisonsJob.hasRealProgress.value">
+                    {{ comparisonsJob.progressPercent.value }}% - {{ comparisonsStepLabel }}
+                  </span>
+                  <span v-else>
+                    {{ comparisonsStepLabel }} ({{ comparisonsJob.elapsedTimeDisplay.value }})
+                  </span>
+                </template>
+              </BProgress>
+
+              <div
+                v-if="comparisonsJob.progress.value.current && comparisonsJob.progress.value.total"
+                class="small text-muted mt-1"
+              >
+                {{ comparisonsJob.progress.value.current.toLocaleString() }} /
+                {{ comparisonsJob.progress.value.total.toLocaleString() }} ({{
+                  comparisonsJob.elapsedTimeDisplay.value
+                }})
+              </div>
+              <div v-else-if="comparisonsJob.isLoading.value" class="small text-muted mt-1">
+                Elapsed: {{ comparisonsJob.elapsedTimeDisplay.value }} - Downloading and processing
+                external databases (this may take several minutes)...
+              </div>
+            </div>
+
+            <BAlert
+              v-if="comparisonsJob.status.value === 'completed'"
+              variant="success"
+              show
+              class="mt-2 mb-0"
+            >
+              Comparisons data refreshed successfully. Check job history for details.
+            </BAlert>
+
+            <BAlert
+              v-if="comparisonsJob.status.value === 'failed'"
+              variant="danger"
+              show
+              class="mt-2 mb-0"
+            >
+              {{ comparisonsJob.error.value || 'Comparisons refresh failed. Check job history for details.' }}
+            </BAlert>
+          </BCard>
+        </BCol>
+      </BRow>
+
       <!-- Publication Metadata Refresh Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -761,11 +890,14 @@ const searchFilter = ref('');
 // Page size options for dropdown
 const pageSizeOptions = [10, 25, 50, 100];
 
-// Create job instances for ontology, HGNC, and publication refresh
+// Create job instances for ontology, HGNC, publication refresh, and comparisons
 const ontologyJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const hgncJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+);
+const comparisonsJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const publicationRefreshJob = useAsyncJob(
@@ -804,6 +936,16 @@ const publicationStats = ref({
   outdated_count: null as number | null,
 });
 const loadingPublicationStats = ref(false);
+
+// Comparisons metadata state
+const comparisonsMetadata = ref({
+  last_full_refresh: null as string | null,
+  last_refresh_status: 'never' as string,
+  last_refresh_error: null as string | null,
+  sources_count: 0,
+  rows_imported: 0,
+});
+const loadingComparisonsMetadata = ref(false);
 
 // Publication filter state
 type FilterPreset = 'all' | '1year' | '6months' | '3months' | 'custom';
@@ -908,6 +1050,14 @@ const hgncStepLabel = computed(() => {
   return hgncJob.step.value;
 });
 
+const comparisonsStepLabel = computed(() => {
+  if (!comparisonsJob.step.value) return 'Initializing...';
+  if (comparisonsJob.step.value.length > 40) {
+    return comparisonsJob.step.value.substring(0, 37) + '...';
+  }
+  return comparisonsJob.step.value;
+});
+
 // Watch for job completion/failure
 watch(
   () => ontologyJob.status.value,
@@ -949,6 +1099,21 @@ watch(
       fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = publicationRefreshJob.error.value || 'Publication refresh failed';
+      makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
+    }
+  }
+);
+
+watch(
+  () => comparisonsJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast('Comparisons data refreshed successfully', 'Success', 'success');
+      fetchComparisonsMetadata();
+      fetchJobHistory();
+    } else if (newStatus === 'failed') {
+      const errorMsg = comparisonsJob.error.value || 'Comparisons refresh failed';
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
     }
@@ -1170,6 +1335,7 @@ function formatOperationType(operation: string): string {
     hgnc_update: 'HGNC Update',
     pubtator_update: 'Pubtator Update',
     publication_refresh: 'Publication Refresh',
+    comparisons_update: 'Comparisons Update',
   };
   return labels[operation] || operation;
 }
@@ -1428,6 +1594,60 @@ async function fetchPublicationStats() {
   }
 }
 
+async function fetchComparisonsMetadata() {
+  loadingComparisonsMetadata.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/comparisons/metadata`
+    );
+    comparisonsMetadata.value = {
+      last_full_refresh: unwrapValue(response.data.last_full_refresh),
+      last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
+      last_refresh_error: unwrapValue(response.data.last_refresh_error),
+      sources_count: unwrapValue(response.data.sources_count) ?? 0,
+      rows_imported: unwrapValue(response.data.rows_imported) ?? 0,
+    };
+  } catch (error) {
+    console.warn('Failed to fetch comparisons metadata:', error);
+    // Don't show toast - metadata is optional enhancement
+  } finally {
+    loadingComparisonsMetadata.value = false;
+  }
+}
+
+async function refreshComparisons() {
+  comparisonsJob.reset();
+
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_API_URL}/api/jobs/comparisons_update/submit`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (response.data.error) {
+      if (response.data.error === 'DUPLICATE_JOB') {
+        makeToast('A comparisons update job is already running', 'Info', 'info');
+        // Track the existing job
+        comparisonsJob.startJob(response.data.existing_job_id);
+      } else {
+        makeToast(response.data.message || 'Failed to start comparisons update', 'Error', 'danger');
+      }
+      return;
+    }
+
+    // Start tracking the job
+    comparisonsJob.startJob(response.data.job_id);
+  } catch (error) {
+    makeToast('Failed to start comparisons update', 'Error', 'danger');
+    console.error('Comparisons refresh error:', error);
+  }
+}
+
 function setPreset(preset: FilterPreset) {
   selectedPreset.value = preset;
   if (preset !== 'custom') {
@@ -1585,6 +1805,7 @@ onMounted(() => {
   fetchJobHistory();
   fetchPubtatorStats();
   fetchPublicationStats();
+  fetchComparisonsMetadata();
 });
 </script>
 

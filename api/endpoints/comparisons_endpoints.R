@@ -227,5 +227,67 @@ function(req,
   }
 }
 
+
+#* Get Comparisons Metadata
+#*
+#* Returns metadata about the last comparisons data refresh.
+#* Used by the admin UI to display last-updated date and statistics.
+#*
+#* # `Details`
+#* Fetches the single row from comparisons_metadata table containing
+#* last refresh timestamp, status, error message (if any), and statistics.
+#*
+#* # `Return`
+#* Returns a list with metadata fields.
+#*
+#* @tag comparisons
+#* @serializer json list(na="string")
+#*
+#* @get /metadata
+function() {
+  # Check if table exists (migration may not have run yet)
+  table_exists <- tryCatch({
+    pool %>%
+      tbl("comparisons_metadata") %>%
+      head(1) %>%
+      collect()
+    TRUE
+  }, error = function(e) FALSE)
+
+  if (!table_exists) {
+    return(list(
+      last_full_refresh = NULL,
+      last_refresh_status = "never",
+      last_refresh_error = NULL,
+      sources_count = 0,
+      rows_imported = 0,
+      message = "Comparisons metadata table not yet created"
+    ))
+  }
+
+  metadata <- pool %>%
+    tbl("comparisons_metadata") %>%
+    collect() %>%
+    dplyr::slice(1)
+
+  if (nrow(metadata) == 0) {
+    return(list(
+      last_full_refresh = NULL,
+      last_refresh_status = "never",
+      last_refresh_error = NULL,
+      sources_count = 0,
+      rows_imported = 0
+    ))
+  }
+
+  list(
+    last_full_refresh = metadata$last_full_refresh,
+    last_refresh_status = metadata$last_refresh_status,
+    last_refresh_error = metadata$last_refresh_error,
+    sources_count = metadata$sources_count,
+    rows_imported = metadata$rows_imported
+  )
+}
+
 ## Comparisons endpoints
 ## -------------------------------------------------------------------##
