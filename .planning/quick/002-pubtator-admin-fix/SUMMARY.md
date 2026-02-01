@@ -104,6 +104,23 @@ const cached = lastStatus.value.pages_cached || 0;
 const total = lastStatus.value.total_pages_available || 1;
 ```
 
+**File:** `app/src/views/admin/ManageAnnotations.vue`
+
+The `fetchPubtatorStats()` function was also affected - the paginated endpoints return `meta` as an array:
+
+```typescript
+// Before
+const geneCount = genesResponse.data?.meta?.totalItems ?? null;
+
+// After (handle array-wrapped meta from R/plumber)
+const geneMeta = Array.isArray(genesResponse.data?.meta)
+  ? genesResponse.data.meta[0]
+  : genesResponse.data?.meta;
+const geneCount = geneMeta?.totalItems ?? null;
+```
+
+Fixed 3 similar meta accesses for gene_count, publication_count, and novel_count.
+
 ## Verification
 
 Tested with Playwright browser automation:
@@ -117,16 +134,20 @@ Tested with Playwright browser automation:
 | Clear Cache | ✅ Pass | Confirmation dialog works |
 | Backfill Gene Symbols | ✅ Pass | Button enabled when cache exists |
 | Console Errors | ✅ None | No JavaScript errors |
+| ManageAnnotations Stats | ✅ Pass | Shows 580 publications, 180 genes, 180 literature only |
 
-**Screenshot:** `.playwright-mcp/pubtator-admin-fully-working.png`
+**Screenshots:**
+- `.playwright-mcp/pubtator-admin-fully-working.png`
+- `.playwright-mcp/manage-annotations-pubtator-stats-fixed.png`
 
 ## Files Changed
 
 ```
-api/endpoints/publication_endpoints.R  (5 serializer annotations)
-api/endpoints/jobs_endpoints.R         (1 serializer annotation)
-app/src/views/admin/ManagePubtator.vue (17 array access removals)
-app/src/composables/usePubtatorAdmin.ts (2 array access removals)
+api/endpoints/publication_endpoints.R    (5 serializer annotations)
+api/endpoints/jobs_endpoints.R           (1 serializer annotation)
+app/src/views/admin/ManagePubtator.vue   (17 array access removals)
+app/src/composables/usePubtatorAdmin.ts  (2 array access removals)
+app/src/views/admin/ManageAnnotations.vue (3 meta array unwraps)
 ```
 
 ## Commit Message
@@ -137,6 +158,7 @@ fix(pubtator): resolve admin page crashes from API serialization
 - Add auto_unbox=TRUE to 6 API endpoints for proper JSON scalars
 - Remove [0] array accesses in ManagePubtator.vue and usePubtatorAdmin.ts
 - Add type check for cache_date to prevent "Invalid Date" display
+- Fix ManageAnnotations fetchPubtatorStats to unwrap meta array
 
 Closes: BUG-0 from LLM_ADMIN_TESTING_REPORT.md
 ```

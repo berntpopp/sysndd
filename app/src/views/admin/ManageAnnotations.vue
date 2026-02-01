@@ -1532,8 +1532,11 @@ async function fetchPubtatorStats() {
       }
     );
 
-    // Get total gene count from meta
-    const geneCount = genesResponse.data?.meta?.totalItems ?? null;
+    // Get total gene count from meta (meta is array-wrapped by R/plumber)
+    const geneMeta = Array.isArray(genesResponse.data?.meta)
+      ? genesResponse.data.meta[0]
+      : genesResponse.data?.meta;
+    const geneCount = geneMeta?.totalItems ?? null;
 
     // Fetch publication count from pubtator/table endpoint
     const pubsResponse = await axios.get(
@@ -1546,8 +1549,11 @@ async function fetchPubtatorStats() {
       }
     );
 
-    // Get total publication count from meta
-    const pubCount = pubsResponse.data?.meta?.totalItems ?? null;
+    // Get total publication count from meta (meta is array-wrapped by R/plumber)
+    const pubMeta = Array.isArray(pubsResponse.data?.meta)
+      ? pubsResponse.data.meta[0]
+      : pubsResponse.data?.meta;
+    const pubCount = pubMeta?.totalItems ?? null;
 
     // Fetch novel gene count (is_novel=1)
     const novelResponse = await axios.get(
@@ -1561,7 +1567,11 @@ async function fetchPubtatorStats() {
       }
     );
 
-    const novelCount = novelResponse.data?.meta?.totalItems ?? null;
+    // meta is array-wrapped by R/plumber
+    const novelMeta = Array.isArray(novelResponse.data?.meta)
+      ? novelResponse.data.meta[0]
+      : novelResponse.data?.meta;
+    const novelCount = novelMeta?.totalItems ?? null;
 
     pubtatorStats.value = {
       publication_count: pubCount,
