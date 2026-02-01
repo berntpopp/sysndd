@@ -58,7 +58,19 @@
             </h6>
           </BCol>
           <BCol>
-            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold d-flex align-items-center justify-content-end gap-2">
+              <!-- Definitive Only toggle -->
+              <BFormCheckbox
+                v-model="definitiveOnly"
+                v-b-tooltip.hover.bottom
+                switch
+                size="sm"
+                class="definitive-toggle me-2"
+                title="Show only Definitive entries for each source"
+              >
+                <span class="small fw-semibold">Definitive Only</span>
+              </BFormCheckbox>
+
               <BButton
                 v-b-tooltip.hover.bottom
                 class="me-1"
@@ -388,6 +400,7 @@ export default {
       loadingTable: true,
       isBusy: true,
       downloading: false,
+      definitiveOnly: false,
     };
   },
   watch: {
@@ -396,6 +409,11 @@ export default {
         this.filtered();
       },
       deep: true, // Vue 3 requires deep:true for object mutation watching
+    },
+    definitiveOnly() {
+      // Reset to first page and reload when toggling definitive filter
+      this.currentItemID = '0';
+      this.loadTableData();
     },
     sortBy() {
       this.handleSortByOrDescChange();
@@ -432,7 +450,7 @@ export default {
 
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${this.perPage}`;
+      }&page_size=${this.perPage}&definitive_only=${this.definitiveOnly}`;
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
 
@@ -612,5 +630,19 @@ mark {
   font-size: 0.875rem;
   color: #495057;
   border-color: #ced4da;
+}
+
+/* Definitive toggle styles */
+.definitive-toggle {
+  margin-bottom: 0;
+}
+
+.definitive-toggle :deep(.form-check-input) {
+  cursor: pointer;
+}
+
+.definitive-toggle :deep(.form-check-input:checked) {
+  background-color: #198754;
+  border-color: #198754;
 }
 </style>

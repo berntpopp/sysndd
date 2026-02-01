@@ -107,6 +107,48 @@
           >
             <i class="bi bi-arrow-counterclockwise" />
           </BButton>
+
+          <!-- Separator -->
+          <span class="border-start mx-2" style="height: 24px;" />
+
+          <!-- Definitive Only toggle -->
+          <BFormCheckbox
+            v-model="definitiveOnly"
+            switch
+            size="sm"
+            class="definitive-toggle"
+          >
+            <span class="small fw-semibold">Definitive Only</span>
+          </BFormCheckbox>
+
+          <!-- Separator -->
+          <span class="border-start mx-2" style="height: 24px;" />
+
+          <!-- Highlight SysNDD toggle -->
+          <BFormCheckbox
+            v-model="highlightSysNDD"
+            switch
+            size="sm"
+            class="highlight-toggle"
+          >
+            <span class="small fw-semibold">
+              <span class="highlight-indicator sysndd-indicator" />
+              Highlight SysNDD
+            </span>
+          </BFormCheckbox>
+
+          <!-- Highlight Core Overlap toggle -->
+          <BFormCheckbox
+            v-model="highlightCoreOverlap"
+            switch
+            size="sm"
+            class="highlight-toggle"
+          >
+            <span class="small fw-semibold">
+              <span class="highlight-indicator overlap-indicator" />
+              Core Overlap
+            </span>
+          </BFormCheckbox>
         </div>
 
         <!-- Helper text -->
@@ -115,6 +157,10 @@
           {{ selected_columns.length }} of {{ columns_list.length }} sources selected
           <span v-if="selected_columns.length < 2" class="text-danger ms-1">
             (minimum 2 required)
+          </span>
+          <span v-if="definitiveOnly" class="text-success ms-2">
+            <i class="bi bi-check-circle me-1" />
+            Showing only Definitive entries for each source
           </span>
         </small>
       </div>
@@ -160,6 +206,25 @@ export default {
       selected_columns: ['SysNDD', 'panelapp', 'gene2phenotype'],
       selection: null,
       loadingUpset: true,
+      definitiveOnly: false,
+      highlightSysNDD: true,
+      highlightCoreOverlap: true,
+      // Color palette - Wong/Okabe-Ito color blind friendly palette
+      // Reference: Wong, B. (2011) Nature Methods 8:441
+      // https://www.nature.com/articles/nmeth.1618
+      sourceColors: {
+        SysNDD: '#0072B2', // Blue - our main source, highly visible
+        panelapp: '#009E73', // Bluish Green
+        gene2phenotype: '#56B4E9', // Sky Blue
+        orphanet_id: '#F0E442', // Yellow
+        radboudumc_ID: '#CC79A7', // Reddish Purple
+        sfari: '#E69F00', // Orange
+        geisinger_DBD: '#D55E00', // Vermilion
+        omim_ndd: '#000000', // Black
+      },
+      // Highlight colors for queries - also from Okabe-Ito palette
+      sysnddHighlightColor: '#0072B2', // Blue - matches SysNDD source
+      coreOverlapColor: '#D55E00', // Vermilion - high contrast with blue
     };
   },
   computed: {
@@ -177,6 +242,21 @@ export default {
       setTimeout(() => {
         this.loadComparisonsUpsetData();
       }, 0);
+    },
+    definitiveOnly() {
+      setTimeout(() => {
+        this.loadComparisonsUpsetData();
+      }, 0);
+    },
+    highlightSysNDD() {
+      this.$nextTick(() => {
+        this.renderUpset();
+      });
+    },
+    highlightCoreOverlap() {
+      this.$nextTick(() => {
+        this.renderUpset();
+      });
     },
     sets: {
       handler() {
@@ -203,7 +283,11 @@ export default {
     },
     async loadComparisonsUpsetData() {
       this.loadingUpset = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/upset?fields=${this.selected_columns.join()}`;
+      const params = new URLSearchParams({
+        fields: this.selected_columns.join(),
+        definitive_only: this.definitiveOnly.toString(),
+      });
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/upset?${params.toString()}`;
       try {
         const response = await this.axios.get(apiUrl);
         this.elems = response.data;
@@ -223,12 +307,58 @@ export default {
 
       const sets = extractSets(this.elems);
 
+      // Build setColors map for coloring individual sets
+      const setColors = {};
+      sets.forEach((set) => {
+        if (this.sourceColors[set.name]) {
+          setColors[set.name] = this.sourceColors[set.name];
+        }
+      });
+
+      // Build queries for highlighting
+      const queries = [];
+
+      // Highlight SysNDD set if enabled and present
+      if (this.highlightSysNDD) {
+        const sysnddSet = sets.find((s) => s.name === 'SysNDD');
+        if (sysnddSet) {
+          queries.push({
+            name: 'SysNDD (This Database)',
+            color: this.sysnddHighlightColor,
+            set: sysnddSet,
+          });
+        }
+      }
+
+      // Highlight core overlap (intersection of all selected sources) if enabled
+      if (this.highlightCoreOverlap && sets.length >= 2) {
+        // Find genes that appear in ALL selected sources
+        const coreOverlapGenes = this.elems.filter((elem) => {
+          // Check if this gene has all selected sources
+          const elemSets = elem.sets || [];
+          return this.selected_columns.every((source) => elemSets.includes(source));
+        });
+
+        if (coreOverlapGenes.length > 0) {
+          queries.push({
+            name: `Core Overlap (${this.selected_columns.length} sources)`,
+            color: this.coreOverlapColor,
+            elems: coreOverlapGenes,
+          });
+        }
+      }
+
       render(this.upsetContainer, {
         sets,
         width: this.width,
         height: this.height,
         selection: this.selection,
         theme: 'vega',
+        setColors,
+        queries: queries.length > 0 ? queries : undefined,
+        // Enhanced styling
+        barPadding: 0.3,
+        dotPadding: 0.7,
         onHover: (s) => {
           this.selection = s;
         },
@@ -374,6 +504,53 @@ mark {
 .source-chip:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Definitive toggle styles */
+.definitive-toggle {
+  margin-bottom: 0;
+}
+
+.definitive-toggle :deep(.form-check-input) {
+  cursor: pointer;
+}
+
+.definitive-toggle :deep(.form-check-input:checked) {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+/* Highlight toggle styles */
+.highlight-toggle {
+  margin-bottom: 0;
+}
+
+.highlight-toggle :deep(.form-check-input) {
+  cursor: pointer;
+}
+
+.highlight-toggle :deep(.form-check-input:checked) {
+  background-color: #0072B2; /* Okabe-Ito Blue */
+  border-color: #0072B2;
+}
+
+/* Color indicator dots next to toggle labels */
+.highlight-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.sysndd-indicator {
+  background-color: #0072B2; /* Okabe-Ito Blue */
+}
+
+.overlap-indicator {
+  background-color: #D55E00; /* Okabe-Ito Vermilion */
 }
 
 /* Chip animation */

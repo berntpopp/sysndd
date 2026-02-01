@@ -16,6 +16,8 @@
 #' @param page_after Character string indicating the cursor position.
 #' @param page_size Character string specifying the number of items per page.
 #' @param fspec Character string specifying fields to generate from a tibble.
+#' @param definitive_only Character string ("true"/"false") to filter each source
+#'   to only show Definitive entries.
 #'
 #' @return A list containing links, meta, and data related to the comparisons
 #' list generated.
@@ -27,7 +29,8 @@ generate_comparisons_list <- function(
   fields = "",
   `page_after` = "0",
   `page_size` = "10",
-  fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id"
+  fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id",
+  definitive_only = "false"
 ) {
   # set start time
   start_time <- Sys.time()
@@ -96,9 +99,22 @@ generate_comparisons_list <- function(
     select(-category) %>%
     left_join(status_categories_list, by = c("category_id"))
 
-  ndd_database_comparison_table <- ndd_database_comparison_table_norm %>%
+  # Parse definitive_only parameter
+  definitive_only_bool <- tolower(definitive_only) %in% c("true", "1", "yes")
+
+  # Prepare data for pivoting
+  table_data <- ndd_database_comparison_table_norm %>%
     select(symbol, hgnc_id, list, category = max_category) %>%
-    unique() %>%
+    unique()
+
+  # If definitive_only is TRUE, filter to only Definitive entries BEFORE pivoting
+  # This means each source column will only show genes that are Definitive in that source
+  if (definitive_only_bool) {
+    table_data <- table_data %>%
+      filter(category == "Definitive")
+  }
+
+  ndd_database_comparison_table <- table_data %>%
     pivot_wider(
       names_from = list,
       values_from = category,
