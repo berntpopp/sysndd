@@ -1,5 +1,46 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v10.0 Data Quality & AI Insights (Shipped: 2026-02-01)
+
+**Delivered:** Stabilize data quality with 8 major bug fixes, enhance literature research tools (Publications, Pubtator), and add AI-generated cluster summaries using Gemini API with LLM-as-judge validation and full admin dashboard.
+
+**Phases completed:** 55-65 (25 plans total, 12 phases including decimal phases)
+
+**Key accomplishments:**
+
+- Fixed 8 critical bugs blocking entity updates, viewer profile access, PMID preservation, and chart accuracy
+- Built variant navigation links from correlation matrix/counts to filtered entity table
+- Enhanced Publications with TimePlot aggregation, Stats cards, row details, and admin bulk refresh
+- Created Pubtator gene prioritization with novel alerts, PMID chips, and Excel export
+- Integrated Gemini API via ellmer package with structured JSON output and entity validation
+- Built LLM-as-judge validation pipeline with accept/low_confidence/reject verdicts
+- Implemented hash-based cache invalidation for cluster summary freshness
+- Created LlmSummaryCard component with AI provenance badge and confidence indicator
+- Built complete LLM admin dashboard (ManageLLM.vue) with 5 tabs: Overview, Config, Prompts, Cache, Logs
+- Migrated documentation to Quarto with GitHub Actions deployment
+- Created comparisons data refresh async job with 7 external database parsers
+
+**Stats:**
+
+- 83,622 lines R code, 72,092 lines Vue/TS
+- 12 phases (including decimal), 25 plans
+- 163 commits
+- 2 days (2026-01-31 → 2026-02-01)
+
+**Git range:** `5e674728` → `320719b9`
+
+**Patterns established:**
+- LLM batch generation chained after clustering job (mirai promise callback)
+- LLM-as-judge validation integrated into summary pipeline
+- Hash-based cache invalidation for cluster composition changes
+- set.seed(42) for clustering determinism (hash consistency)
+- Plumber array unwrapping helper for R/Vue integration
+- Tab-based admin dashboard with child component emit patterns
+
+**What's next:** Planning next milestone
+
+---
+
 ## v9.0 Production Readiness (Shipped: 2026-01-31)
 
 **Delivered:** Make SysNDD production-ready with automated database migrations, backup management with admin UI, verified user lifecycle workflows with real SMTP testing, and production Docker validation with security hardening.
