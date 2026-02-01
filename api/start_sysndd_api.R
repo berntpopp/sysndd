@@ -454,9 +454,50 @@ schedule_cleanup(3600) # 3600 seconds = 1 hour
 ## -------------------------------------------------------------------##
 #* @filter cors
 corsFilter <- function(req, res) {
-  res$setHeader("Access-Control-Allow-Origin", "*")
+  # CORS configuration for credentialed requests (sticky session cookies)
+  #
+  # IMPORTANT: When using withCredentials:true on the frontend, browsers require:
+  # 1. Access-Control-Allow-Origin to be the SPECIFIC origin (not "*")
+  # 2. Access-Control-Allow-Credentials: true
+  #
+  # Without this, sticky session cookies are silently dropped by the browser,
+
+  # causing job status polling to hit random containers and return 404 errors.
+
+  # Get the request origin
+  origin <- req$HTTP_ORIGIN
+
+  # Define allowed origins based on environment
+  # In production, you may want to restrict this to specific domains
+  allowed_origins <- c(
+    "http://localhost",
+    "http://localhost:80",
+    "http://localhost:5173",  # Vite dev server
+    "http://127.0.0.1",
+    "http://127.0.0.1:80",
+    "http://127.0.0.1:5173"
+  )
+
+  # Check if origin is allowed (or allow all in development)
+  # For production, add your domain to allowed_origins
+
+  if (!is.null(origin) && (origin %in% allowed_origins || Sys.getenv("ENVIRONMENT") == "development")) {
+    res$setHeader("Access-Control-Allow-Origin", origin)
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+  } else if (is.null(origin)) {
+    # No origin header (same-origin request or non-browser client like curl)
+    # Use a safe default that still allows cookies
+    res$setHeader("Access-Control-Allow-Origin", "http://localhost")
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+  } else {
+    # Unknown origin - still set CORS but log warning
+    log_warn("CORS: Unknown origin", origin = origin)
+    res$setHeader("Access-Control-Allow-Origin", origin)
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+  }
+
   if (req$REQUEST_METHOD == "OPTIONS") {
-    res$setHeader("Access-Control-Allow-Methods", "*")
+    res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
     res$setHeader(
       "Access-Control-Allow-Headers",
       req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
