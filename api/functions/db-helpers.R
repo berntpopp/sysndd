@@ -31,9 +31,25 @@ get_db_connection <- function() {
     return(base::get("pool", envir = .GlobalEnv))
   }
 
-  # If daemon_db_conn exists in global environment, use it (mirai daemon with pre-created conn)
+  # If daemon_db_conn exists in global environment, validate and use it
   if (base::exists("daemon_db_conn", envir = .GlobalEnv) && !is.null(base::get("daemon_db_conn", envir = .GlobalEnv))) {
-    return(base::get("daemon_db_conn", envir = .GlobalEnv))
+    conn <- base::get("daemon_db_conn", envir = .GlobalEnv)
+
+    # Validate connection is still alive (fixes "bad_weak_ptr" errors)
+    conn_valid <- tryCatch({
+      DBI::dbIsValid(conn)
+    }, error = function(e) {
+      message("[get_db_connection] Connection validation failed: ", e$message)
+      FALSE
+    })
+
+    if (conn_valid) {
+      return(conn)
+    } else {
+      message("[get_db_connection] daemon_db_conn invalid, will create new connection")
+      # Remove invalid connection
+      base::rm("daemon_db_conn", envir = .GlobalEnv)
+    }
   }
 
   # Fallback for mirai daemons: create direct connection from config.yml
@@ -63,6 +79,7 @@ get_db_connection <- function() {
   }
 
   # Create direct connection
+  message("[get_db_connection] Creating new daemon connection to ", host, ":", port, "/", dbname)
   conn <- DBI::dbConnect(
     RMariaDB::MariaDB(),
     host = host,
@@ -71,6 +88,10 @@ get_db_connection <- function() {
     user = user,
     password = password
   )
+
+  # Store in global environment for reuse within this daemon
+  base::assign("daemon_db_conn", conn, envir = .GlobalEnv)
+  message("[get_db_connection] New daemon connection created and stored")
 
   return(conn)
 }

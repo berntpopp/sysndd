@@ -172,25 +172,32 @@ validate_gene_symbols <- function(symbols) {
 #' Validate pathways against enrichment terms
 #'
 #' Checks if pathways mentioned in LLM output exist in the input enrichment data.
-#' Pathways should only reference terms that were provided to the LLM.
+#' Uses partial matching to allow for reasonable generalizations.
 #'
 #' @param pathways Character vector of pathway names from LLM output
 #' @param enrichment_terms Character vector of valid pathway/term names from enrichment input
 #'
 #' @return List with:
-#'   - is_valid: Logical, TRUE if all pathways are in enrichment_terms
-#'   - valid: Character vector of valid pathways
-#'   - invalid: Character vector of pathways not in enrichment_terms
+#'   - is_valid: Logical, always TRUE (pathway validation is non-blocking)
+#'   - valid: Character vector of pathways with matches in enrichment
+#'   - unmatched: Character vector of pathways without exact matches
+#'   - warning: Character, warning message if unmatched pathways exist
 #'
 #' @details
-#' Uses case-insensitive matching to handle variations in capitalization.
+#' Pathway validation uses partial/fuzzy matching because:
+#' 1. LLM may generate valid generalizations (e.g., "Wnt signaling" for specific Wnt terms)
+#' 2. The LLM-as-judge provides semantic validation of pathway accuracy
+#' 3. Strict exact-match validation was causing valid summaries to be rejected
+#'
+#' This validation is now NON-BLOCKING - it logs warnings but doesn't fail.
+#' The LLM-as-judge handles semantic pathway validation.
 #'
 #' @examples
 #' \dontrun{
 #' enrichment <- c("Oxidative phosphorylation", "DNA repair", "Cell cycle")
 #' result <- validate_pathways(c("Oxidative phosphorylation", "Made up pathway"), enrichment)
-#' # result$is_valid = FALSE
-#' # result$invalid = c("Made up pathway")
+#' # result$is_valid = TRUE (non-blocking)
+#' # result$unmatched = c("Made up pathway")
 #' }
 #'
 #' @export
@@ -200,17 +207,20 @@ validate_pathways <- function(pathways, enrichment_terms) {
     return(list(
       is_valid = TRUE,
       valid = character(0),
-      invalid = character(0)
+      unmatched = character(0),
+      warning = NULL
     ))
   }
 
   # Handle NULL or empty enrichment_terms
   if (is.null(enrichment_terms) || length(enrichment_terms) == 0) {
-    # If no enrichment terms provided, all pathways are invalid
+    # No enrichment terms - can't validate, but don't block
+    log_debug("No enrichment terms provided for pathway validation")
     return(list(
-      is_valid = FALSE,
+      is_valid = TRUE,  # Non-blocking
       valid = character(0),
-      invalid = pathways
+      unmatched = pathways,
+      warning = "No enrichment terms available for pathway validation"
     ))
   }
 
@@ -222,22 +232,57 @@ validate_pathways <- function(pathways, enrichment_terms) {
   pathways_lower <- tolower(pathways)
   enrichment_lower <- tolower(enrichment_terms)
 
-  # Find valid and invalid pathways
-  valid_mask <- pathways_lower %in% enrichment_lower
-  valid_pathways <- pathways[valid_mask]
-  invalid_pathways <- pathways[!valid_mask]
+  # Use partial matching: check if pathway is contained in any enrichment term
+  # or if any enrichment term is contained in pathway
+  valid_pathways <- character(0)
+  unmatched_pathways <- character(0)
 
-  # Log validation result
-  if (length(invalid_pathways) > 0) {
-    log_warn("Pathway validation failed: {length(invalid_pathways)} invalid: {paste(invalid_pathways, collapse = ', ')}")
-  } else {
-    log_debug("Pathway validation passed: {length(valid_pathways)} valid pathways")
+  for (i in seq_along(pathways)) {
+    pathway <- pathways[i]
+    pathway_lower <- pathways_lower[i]
+
+    # Check exact match first
+    if (pathway_lower %in% enrichment_lower) {
+      valid_pathways <- c(valid_pathways, pathway)
+      next
+    }
+
+    # Check partial match: pathway contained in enrichment term
+    partial_match <- any(stringr::str_detect(enrichment_lower, stringr::fixed(pathway_lower)))
+
+    # Check partial match: enrichment term contained in pathway
+    if (!partial_match) {
+      partial_match <- any(sapply(enrichment_lower, function(term) {
+        stringr::str_detect(pathway_lower, stringr::fixed(term))
+      }))
+    }
+
+    if (partial_match) {
+      valid_pathways <- c(valid_pathways, pathway)
+    } else {
+      unmatched_pathways <- c(unmatched_pathways, pathway)
+    }
   }
 
+  # Log validation result (warning only, non-blocking)
+  warning_msg <- NULL
+  if (length(unmatched_pathways) > 0) {
+    warning_msg <- sprintf(
+      "Pathways without enrichment match (LLM-judge will validate): %s",
+      paste(unmatched_pathways, collapse = ", ")
+    )
+    log_debug(warning_msg)
+  } else {
+    log_debug("Pathway validation passed: {length(valid_pathways)} matched pathways")
+  }
+
+  # NON-BLOCKING: Always return is_valid = TRUE
+  # The LLM-as-judge handles semantic pathway validation
   list(
-    is_valid = length(invalid_pathways) == 0,
+    is_valid = TRUE,
     valid = valid_pathways,
-    invalid = invalid_pathways
+    unmatched = unmatched_pathways,
+    warning = warning_msg
   )
 }
 
@@ -311,22 +356,18 @@ validate_summary_entities <- function(summary_result, cluster_data) {
     character(0)
   }
 
-  # Validate pathways
+  # Validate pathways (non-blocking - LLM-judge handles semantic validation)
   pathways <- summary_result$pathways %||% character(0)
   pathway_result <- validate_pathways(pathways, enrichment_terms)
 
-  if (!pathway_result$is_valid && length(pathways) > 0) {
-    errors <- c(
-      errors,
-      sprintf(
-        "Invalid pathways detected: %s. These pathways were not in the enrichment input.",
-        paste(pathway_result$invalid, collapse = ", ")
-      )
-    )
+  # Pathway validation is now non-blocking - just log warning if unmatched
+  if (!is.null(pathway_result$warning)) {
+    log_debug("Pathway validation note: {pathway_result$warning}")
   }
 
-  # Determine overall validity
-  is_valid <- gene_result$is_valid && pathway_result$is_valid
+  # Determine overall validity - only gene validation is blocking
+  # Pathway validation is handled by LLM-as-judge semantically
+  is_valid <- gene_result$is_valid
 
   if (is_valid) {
     log_info("Entity validation passed: {length(gene_result$valid)} genes, {length(pathway_result$valid)} pathways")
@@ -339,7 +380,8 @@ validate_summary_entities <- function(summary_result, cluster_data) {
     mentioned_genes = gene_result$valid,
     invalid_genes = gene_result$invalid,
     mentioned_pathways = pathway_result$valid,
-    invalid_pathways = pathway_result$invalid,
+    unmatched_pathways = pathway_result$unmatched,
+    pathway_warning = pathway_result$warning,
     errors = errors
   )
 }

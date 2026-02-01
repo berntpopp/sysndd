@@ -271,7 +271,8 @@ Evaluate each criterion and provide a final verdict:
 generate_and_validate_with_judge <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-2.0-flash"
+  model = "gemini-2.0-flash",
+  cluster_hash = NULL
 ) {
   log_info("Starting generation + validation pipeline for {cluster_type} cluster")
 
@@ -332,25 +333,34 @@ generate_and_validate_with_judge <- function(
 
   # Step 5: Save to cache with validation_status
   cluster_number <- cluster_data$cluster_number %||% 0L
-  cluster_hash <- tryCatch(
-    {
-      id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"
-      if (id_col %in% names(cluster_data$identifiers)) {
-        generate_cluster_hash(cluster_data$identifiers, cluster_type)
-      } else {
+
+  # Use passed-in cluster_hash if provided (from batch generator extracting hash_filter),
+  # otherwise fallback to generating from identifiers
+  final_hash <- if (!is.null(cluster_hash) && nzchar(cluster_hash)) {
+    message("[llm-judge] Using passed cluster_hash: ", substr(cluster_hash, 1, 16), "...")
+    cluster_hash
+  } else {
+    message("[llm-judge] No cluster_hash passed, generating from identifiers")
+    tryCatch(
+      {
+        id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"
+        if (id_col %in% names(cluster_data$identifiers)) {
+          generate_cluster_hash(cluster_data$identifiers, cluster_type)
+        } else {
+          digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
+        }
+      },
+      error = function(e) {
         digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
       }
-    },
-    error = function(e) {
-      digest::digest(as.character(cluster_data), algo = "sha256", serialize = FALSE)
-    }
-  )
+    )
+  }
 
   cache_id <- tryCatch(
     save_summary_to_cache(
       cluster_type = cluster_type,
       cluster_number = as.integer(cluster_number),
-      cluster_hash = cluster_hash,
+      cluster_hash = final_hash,
       model_name = model,
       prompt_version = "1.0",
       summary_json = summary_with_metadata,

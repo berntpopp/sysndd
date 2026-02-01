@@ -413,14 +413,35 @@ llm_batch_executor <- function(params) {
       )
     }
 
-    # Generate cluster hash
-    cluster_hash <- tryCatch(
-      generate_cluster_hash(cluster_data$identifiers, cluster_type),
-      error = function(e) {
-        log_warn("Failed to generate hash for cluster {cluster_row$cluster_number}: {e$message}")
-        return(NULL)
+    # Extract cluster hash from clustering result's hash_filter column
+    # The hash_filter is pre-computed during clustering in format: equals(hash,XXX)
+    # Using this hash ensures consistency between what the API queries and what we store
+    cluster_hash <- tryCatch({
+      if ("hash_filter" %in% names(cluster_row)) {
+        hash_str <- as.character(cluster_row$hash_filter)
+        log_debug("Cluster ", cluster_num, " raw hash_filter: ", hash_str)
+        message("[LLM-Executor] Cluster ", cluster_num, " raw hash_filter: ", hash_str)
+
+        # Extract hash from equals(hash,XXX) format
+        if (grepl("^equals\\(hash,", hash_str)) {
+          extracted_hash <- sub("^equals\\(hash,(.*)\\)$", "\\1", hash_str)
+          log_debug("Cluster ", cluster_num, " extracted hash: ", substr(extracted_hash, 1, 16), "...")
+          message("[LLM-Executor] Cluster ", cluster_num, " extracted hash: ", substr(extracted_hash, 1, 16), "...")
+          extracted_hash
+        } else {
+          # hash_filter is already a plain hash
+          hash_str
+        }
+      } else {
+        # Fallback: generate hash from identifiers (for backwards compatibility)
+        log_debug("Cluster ", cluster_num, " has no hash_filter, generating from identifiers")
+        message("[LLM-Executor] Cluster ", cluster_num, " has no hash_filter, generating from identifiers")
+        generate_cluster_hash(cluster_data$identifiers, cluster_type)
       }
-    )
+    }, error = function(e) {
+      log_warn("Failed to extract/generate hash for cluster {cluster_row$cluster_number}: {e$message}")
+      return(NULL)
+    })
 
     if (is.null(cluster_hash)) {
       log_debug("ERROR: Cluster ", cluster_num, " hash generation returned NULL")
@@ -469,10 +490,13 @@ llm_batch_executor <- function(params) {
       }
 
       # Attempt generation and validation
+      # Pass the pre-computed cluster_hash (extracted from hash_filter) to ensure
+      # the cached summary uses the same hash that the API will query
       result <- tryCatch(
         generate_and_validate_with_judge(
           cluster_data = cluster_data,
-          cluster_type = cluster_type
+          cluster_type = cluster_type,
+          cluster_hash = cluster_hash
         ),
         error = function(e) {
           log_debug("Cluster ", cluster_num, " attempt ", attempt, " ERROR: ", conditionMessage(e))

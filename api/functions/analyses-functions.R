@@ -72,6 +72,12 @@ gen_string_clust_obj <- function(
   # Run clustering algorithm based on parameter
   # Leiden: 2-3x faster, good for large networks
   # Walktrap: Classic algorithm, uses random walks to detect communities
+  #
+  # IMPORTANT: Set seed for reproducible clustering results
+  # This ensures cluster hashes remain consistent across API calls,
+  # which is critical for LLM summary cache matching.
+  set.seed(42)
+
   if (algorithm == "walktrap") {
     # Walktrap clustering using random walks
     # steps=4 is default and works well for PPI networks
@@ -200,6 +206,11 @@ gen_mca_clust_obj <- function(
 ) {
   # Caching is handled by the memoise wrapper (gen_mca_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
+
+  # IMPORTANT: Set seed for reproducible clustering results
+  # This ensures cluster hashes remain consistent across API calls,
+  # which is critical for LLM summary cache matching.
+  set.seed(42)
 
   # Compute Multiple Correspondence Analysis (MCA)
   # ncp=8 captures >70% of variance for typical phenotype data

@@ -171,15 +171,25 @@ export default defineComponent({
      * Get derived confidence (objective, based on enrichment terms)
      * This is preferred over LLM self-assessment
      * Normalizes array values from R API (e.g., [0.001] -> 0.001)
+     * Returns null if any required field is missing or invalid
      */
     const derivedConfidence = computed<DerivedConfidence | null>(() => {
       const dc = props.summary?.derived_confidence;
       if (!dc) return null;
 
+      const score = normalize(dc.score);
+      const avgFdr = normalize(dc.avg_fdr);
+      const termCount = normalize(dc.term_count);
+
+      // Validate all required fields are present and have valid types
+      if (!score || typeof avgFdr !== 'number' || typeof termCount !== 'number') {
+        return null;
+      }
+
       return {
-        score: normalize(dc.score) as 'high' | 'medium' | 'low',
-        avg_fdr: normalize(dc.avg_fdr),
-        term_count: normalize(dc.term_count),
+        score: score as 'high' | 'medium' | 'low',
+        avg_fdr: avgFdr,
+        term_count: termCount,
       };
     });
 
