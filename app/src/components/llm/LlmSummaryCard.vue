@@ -18,7 +18,7 @@
     </template>
 
     <!-- Summary text -->
-    <p class="summary-text mb-3">{{ summary.summary }}</p>
+    <p class="summary-text mb-3">{{ normalizedSummary?.summary }}</p>
 
     <!-- Key themes -->
     <div v-if="hasKeyThemes" class="mb-2">
@@ -60,8 +60,8 @@
     </div>
 
     <!-- Clinical relevance (if present) -->
-    <p v-if="summary.clinical_relevance" class="text-muted small mb-0 mt-3">
-      <strong>Clinical relevance:</strong> {{ summary.clinical_relevance }}
+    <p v-if="normalizedSummary?.clinical_relevance" class="text-muted small mb-0 mt-3">
+      <strong>Clinical relevance:</strong> {{ normalizedSummary.clinical_relevance }}
     </p>
 
     <template #footer>
@@ -149,12 +149,38 @@ export default defineComponent({
   },
 
   setup(props) {
+    // Helper to normalize R JSON values (single values come as arrays)
+    const normalize = <T,>(val: T | T[] | undefined): T | undefined => {
+      if (val === undefined) return undefined;
+      return Array.isArray(val) ? val[0] : val;
+    };
+
+    /**
+     * Normalized summary with scalar fields extracted from R's array format
+     */
+    const normalizedSummary = computed<SummaryJson | null>(() => {
+      if (!props.summary) return null;
+      return {
+        ...props.summary,
+        summary: normalize(props.summary.summary) ?? '',
+        clinical_relevance: normalize(props.summary.clinical_relevance),
+      };
+    });
+
     /**
      * Get derived confidence (objective, based on enrichment terms)
      * This is preferred over LLM self-assessment
+     * Normalizes array values from R API (e.g., [0.001] -> 0.001)
      */
     const derivedConfidence = computed<DerivedConfidence | null>(() => {
-      return props.summary?.derived_confidence ?? null;
+      const dc = props.summary?.derived_confidence;
+      if (!dc) return null;
+
+      return {
+        score: normalize(dc.score) as 'high' | 'medium' | 'low',
+        avg_fdr: normalize(dc.avg_fdr),
+        term_count: normalize(dc.term_count),
+      };
     });
 
     /**
@@ -245,6 +271,7 @@ export default defineComponent({
     });
 
     return {
+      normalizedSummary,
       derivedConfidence,
       confidenceLabel,
       confidenceVariant,

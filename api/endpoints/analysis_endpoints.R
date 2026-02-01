@@ -676,7 +676,14 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
 function(cluster_hash, cluster_number, res) {
   source("functions/llm-cache-repository.R", local = TRUE)
 
-  cached <- get_cached_summary(cluster_hash, require_validated = FALSE)
+  # Extract raw hash from equals(hash,...) format if present
+  raw_hash <- if (grepl("^equals\\(hash,", cluster_hash)) {
+    sub("^equals\\(hash,(.*)\\)$", "\\1", cluster_hash)
+  } else {
+    cluster_hash
+  }
+
+  cached <- get_cached_summary(raw_hash, require_validated = FALSE)
 
   if (is.null(cached) || nrow(cached) == 0) {
     res$status <- 404
@@ -731,7 +738,14 @@ function(cluster_hash, cluster_number, res) {
 function(cluster_hash, cluster_number, res) {
   source("functions/llm-cache-repository.R", local = TRUE)
 
-  cached <- get_cached_summary(cluster_hash, require_validated = FALSE)
+  # Extract raw hash from equals(hash,...) format if present
+  raw_hash <- if (grepl("^equals\\(hash,", cluster_hash)) {
+    sub("^equals\\(hash,(.*)\\)$", "\\1", cluster_hash)
+  } else {
+    cluster_hash
+  }
+
+  cached <- get_cached_summary(raw_hash, require_validated = FALSE)
 
   if (is.null(cached) || nrow(cached) == 0) {
     res$status <- 404

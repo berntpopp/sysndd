@@ -107,11 +107,11 @@ gen_string_clust_obj <- function(
     unnest_longer(col = "STRING_id") %>%
     left_join(sysndd_db_string_id_table, by = c("STRING_id")) %>%
     tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-    mutate(hash_filter = list(
-      post_db_hash(identifiers %>% purrr::pluck("symbol"))
-    )) %>%
-    mutate(hash_filter = purrr::pluck(hash_filter, 1, 1, "hash")) %>%
-    ungroup() %>%
+    mutate(hash_filter = purrr::map(identifiers, function(ids) {
+      # Pass identifiers tibble with symbol column (post_db_hash expects named column)
+      post_db_hash(tibble::tibble(symbol = ids$symbol))
+    })) %>%
+    mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
     rowwise() %>%
     mutate(cluster_size = nrow(identifiers)) %>%
     filter(cluster_size >= min_size) %>%
@@ -237,12 +237,11 @@ gen_mca_clust_obj <- function(
   clusters_tibble <- tibble(mca_hcpc$data.clust) %>%
     select(entity_id, cluster = clust) %>%
     tidyr::nest(.by = c(cluster), .key = "identifiers") %>%
-    mutate(hash_filter = list(
-      post_db_hash(identifiers %>%
-        purrr::pluck("entity_id"), "entity_id", "/api/entity")
-    )) %>%
-    mutate(hash_filter = hash_filter$links$hash) %>%
-    ungroup() %>%
+    mutate(hash_filter = purrr::map(identifiers, function(ids) {
+      # Pass identifiers tibble with entity_id column (post_db_hash expects named column)
+      post_db_hash(tibble::tibble(entity_id = ids$entity_id), "entity_id", "/api/entity")
+    })) %>%
+    mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
     rowwise() %>%
     mutate(cluster_size = nrow(identifiers)) %>%
     mutate(quali_inp_var = list(tibble::as_tibble(

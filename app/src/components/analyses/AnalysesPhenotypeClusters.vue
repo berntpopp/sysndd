@@ -105,9 +105,9 @@
             v-if="currentSummary && !summaryLoading"
             class="my-3 mx-2"
             :summary="currentSummary.summary_json"
-            :model-name="currentSummary.model_name"
-            :created-at="currentSummary.created_at"
-            :validation-status="currentSummary.validation_status"
+            :model-name="Array.isArray(currentSummary.model_name) ? currentSummary.model_name[0] : currentSummary.model_name"
+            :created-at="Array.isArray(currentSummary.created_at) ? currentSummary.created_at[0] : currentSummary.created_at"
+            :validation-status="Array.isArray(currentSummary.validation_status) ? currentSummary.validation_status[0] : currentSummary.validation_status"
           />
           <div v-else-if="summaryLoading" class="my-3 mx-2">
             <BSpinner small class="me-2" />
@@ -466,6 +466,11 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data;
         this.setActiveCluster();
+        // Fetch LLM summary for initial cluster
+        const clusterData = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
+        if (clusterData?.hash_filter) {
+          this.fetchClusterSummary(clusterData.hash_filter, this.activeCluster);
+        }
         this.$nextTick(() => {
           this.updateClusterGraph();
         });
