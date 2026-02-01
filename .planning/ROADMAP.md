@@ -63,10 +63,10 @@ Plans:
   2. Double-check after lock prevents race condition (handles concurrent migration)
   3. Health endpoint reports migration status accurately
   4. Four API containers start simultaneously without timeout errors
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 67-01: Migration double-checked locking implementation
+- [ ] 67-01-PLAN.md — Double-checked locking for migration coordination
 
 ### Phase 68: Local Production Testing
 **Goal**: Verified multi-container scaling works correctly in production-like environment
@@ -96,4 +96,4 @@ Phases execute in numeric order: 66 -> 67 -> 68
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01 — Phase 66 complete*
+*Last updated: 2026-02-01 — Phase 67 planned*
