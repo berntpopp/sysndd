@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 66 - Infrastructure Fixes
+**Current focus:** Phase 66 - Infrastructure Fixes (complete)
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -20,36 +20,41 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 **Phase:** 66 of 68 (Infrastructure Fixes)
-**Plan:** 0 of 1 in current phase
-**Status:** Ready to plan
-**Progress:** v10.1 [░░░░░░░░░░░░░░░░░░░░] 0%
+**Plan:** 1 of 1 in current phase (complete)
+**Status:** Phase complete, ready for Phase 67
+**Progress:** v10.1 [███████░░░░░░░░░░░░░] 33%
 
-**Last completed:** v10.0 Data Quality & AI Insights (phase 65)
-**Last activity:** 2026-02-01 — Roadmap created for v10.1
-**Next action:** /gsd:plan-phase 66
+**Last completed:** 66-01-PLAN.md (Infrastructure Fixes)
+**Last activity:** 2026-02-01 — Completed 66-01-PLAN.md
+**Next action:** /gsd:plan-phase 67
 
 ---
 
 ## Milestone Context
 
 **v10.1 Phases:**
-- Phase 66: Infrastructure Fixes (DEPLOY-01, DEPLOY-02, DEPLOY-04, BUG-01)
-- Phase 67: Migration Coordination (DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03)
-- Phase 68: Local Production Testing (TEST-01, TEST-02, TEST-03, TEST-04)
+- Phase 66: Infrastructure Fixes (COMPLETE) - DEPLOY-01, DEPLOY-02, DEPLOY-04, BUG-01
+- Phase 67: Migration Coordination (NEXT) - DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03
+- Phase 68: Local Production Testing - TEST-01, TEST-02, TEST-03, TEST-04
 
 **Research Decisions:**
 - UID 1000 with build-arg flexibility (maximum host compatibility)
 - Double-checked locking pattern for migrations (fast path when up-to-date)
 - Remove container_name directive for scaling
 
+**Phase 66 Decisions:**
+- UID default 1000 matches most Linux users; override with --build-arg UID=1001
+- Selective container_name removal: only api service for scaling
+- Favicon restored from _old directory to public root
+
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 290
+- Total plans completed: 291
 - Milestones shipped: 11 (v1-v10.0)
-- Phases completed: 71
+- Phases completed: 72
 
 **Current Stats:**
 
@@ -69,11 +74,11 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Roadmap created, ready to plan Phase 66
-**Next action:** /gsd:plan-phase 66
+**Stopped at:** Completed 66-01-PLAN.md
+**Next action:** /gsd:plan-phase 67
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — v10.1 roadmap created*
+*Last updated: 2026-02-01 — Completed Phase 66 Infrastructure Fixes*
