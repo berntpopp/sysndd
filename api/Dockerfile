@@ -126,12 +126,20 @@ COPY renv.lock renv.lock
 COPY renv/activate.R renv/activate.R
 COPY renv/settings.json renv/settings.json
 
+# Disable RSPM for packages with ICU dependencies to force source compilation
+# This ensures stringi links against the container's ICU 70 libraries
+# Fixes "libicui18n.so.70: cannot open shared object file" errors on --no-cache builds
+ENV RENV_CONFIG_RSPM_ENABLED=FALSE
+
 # Restore all packages from lockfile with BuildKit cache
 # The renv.lock now contains ALL dependencies including Bioconductor packages
 # No manual install.packages() calls needed - everything is in the lockfile
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
     R -e 'renv::restore(library = "/usr/local/lib/R/site-library")'
+
+# Verify stringi loads correctly (links against correct ICU version)
+RUN R -e 'library(stringi); cat("stringi ICU:", stri_info()$ICU.version, "\n")'
 
 # Strip debug symbols from compiled libraries to reduce image size
 # This can reduce .so file sizes by 20-30%
