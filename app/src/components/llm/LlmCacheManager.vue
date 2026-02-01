@@ -108,7 +108,7 @@
           </BBadge>
         </template>
         <template #cell(validation_status)="data">
-          <BBadge :variant="statusVariant(data.value)">
+          <BBadge :variant="statusVariant(String(data.value))">
             {{ data.value }}
           </BBadge>
         </template>
@@ -117,7 +117,7 @@
           <BBadge v-else variant="secondary">Stale</BBadge>
         </template>
         <template #cell(created_at)="data">
-          <small>{{ formatDateTime(data.value) }}</small>
+          <small>{{ formatDateTime(String(data.value)) }}</small>
         </template>
         <template #cell(actions)="data">
           <BButtonGroup size="sm">
@@ -223,7 +223,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { useAuth } from '@/composables/useAuth';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import type { CacheStats, CachedSummary, ClusterType, ValidationStatus } from '@/types/llm';
 
@@ -237,8 +236,12 @@ defineEmits<{
   (e: 'regenerate', type: ClusterType): void;
 }>();
 
-const { getToken } = useAuth();
 const { fetchCachedSummaries } = useLlmAdmin();
+
+// Helper to get auth token from localStorage
+function getToken(): string | null {
+  return localStorage.getItem('token');
+}
 
 const summaries = ref<CachedSummary[]>([]);
 const loading = ref(false);
@@ -303,7 +306,7 @@ function viewDetails(summary: CachedSummary) {
 }
 
 async function loadSummaries() {
-  const token = await getToken();
+  const token = getToken();
   if (!token) return;
 
   loading.value = true;

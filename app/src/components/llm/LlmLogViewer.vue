@@ -62,8 +62,8 @@
         </BBadge>
       </template>
       <template #cell(status)="data">
-        <BBadge :variant="statusVariant(data.value)">
-          {{ formatStatus(data.value) }}
+        <BBadge :variant="statusVariant(String(data.value))">
+          {{ formatStatus(String(data.value)) }}
         </BBadge>
       </template>
       <template #cell(tokens)="data">
@@ -83,14 +83,14 @@
           v-if="data.value"
           class="text-danger text-truncate d-inline-block"
           style="max-width: 200px; cursor: help;"
-          :title="data.value"
+          :title="String(data.value)"
         >
-          {{ truncateText(data.value, 30) }}
+          {{ truncateText(String(data.value), 30) }}
         </span>
         <span v-else class="text-muted">-</span>
       </template>
       <template #cell(created_at)="data">
-        <small>{{ formatDateTime(data.value) }}</small>
+        <small>{{ formatDateTime(String(data.value)) }}</small>
       </template>
       <template #cell(actions)="data">
         <BButton
@@ -221,12 +221,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { useAuth } from '@/composables/useAuth';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import type { GenerationLog, ClusterType, LogStatus } from '@/types/llm';
 
-const { getToken } = useAuth();
 const { fetchLogs: fetchLogsApi } = useLlmAdmin();
+
+// Helper to get auth token from localStorage
+function getToken(): string | null {
+  return localStorage.getItem('token');
+}
 
 const logs = ref<GenerationLog[]>([]);
 const loading = ref(false);
@@ -307,7 +310,7 @@ function viewDetails(log: GenerationLog) {
 }
 
 async function loadLogs() {
-  const token = await getToken();
+  const token = getToken();
   if (!token) return;
 
   loading.value = true;

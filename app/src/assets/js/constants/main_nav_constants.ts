@@ -102,6 +102,7 @@ const MAIN_NAV = {
         { text: 'View logs', path: '/ViewLogs', icons: ['eye', 'clipboard-plus'] },
         { text: 'Manage backups', path: '/ManageBackups', icons: ['gear', 'database'] },
         { text: 'Manage PubTator', path: '/ManagePubtator', icons: ['gear', 'journal-medical'] },
+        { text: 'LLM Management', path: '/ManageLLM', icons: ['gear', 'robot'] },
       ],
     },
     {
