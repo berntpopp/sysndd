@@ -19,13 +19,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-**Phase:** 60 (LLM Display) - COMPLETE
-**Plan:** 1/1 complete
-**Status:** Phase complete
-**Progress:** v10.0 [████████████████░░░░] 8/9 phases (89%)
+**Phase:** 62 (Admin & Infrastructure) - IN PROGRESS
+**Plan:** 1/2 complete
+**Status:** In progress
+**Progress:** v10.0 [██████████████████░░] 9/10 phases (90%)
 
-**Last completed:** 60-01 - LLM Display (summaries on cluster pages)
-**Last activity:** 2026-02-01 — Phase 60 Plan 01 complete
+**Last completed:** 62-01 - Comparisons Data Refresh Infrastructure
+**Last activity:** 2026-02-01 — Phase 62 Plan 01 complete
 
 ---
 
@@ -42,7 +42,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 59 | LLM Batch, Caching & Validation | LLM-05, LLM-06, LLM-09, LLM-10 | ✓ Complete |
 | 60 | LLM Display | LLM-07, LLM-08, LLM-12 | ✓ Complete |
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
-| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Not started |
+| 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | In progress (01/02) |
 
 **Phases:** 7 active (55-62, Phase 61 merged into 59)
 **Requirements:** 36 mapped (100% coverage)
@@ -78,7 +78,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | **Backend Tests** | 687 + 11 E2E | 20.3% coverage, 24 integration + 53 migration + 11 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
-| **Migrations** | 4 files + runner | api/functions/migration-runner.R ready, LLM cache tables added |
+| **Migrations** | 7 files + runner | api/functions/migration-runner.R ready, comparisons config tables added |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
 | **Bundle Size** | ~600 KB gzipped | Vite 7.3.1, 164ms dev startup |
@@ -315,14 +315,37 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 
 ---
 
+### Decisions from Phase 62
+
+**Plan 01 (Comparisons Data Refresh):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Store source URLs in database config table | Admin can edit URLs without code deployment when external sources change | comparisons_config table holds all source URLs |
+| 2026-02-01 | Local HGNC symbol lookup only (no API calls in daemon) | Rate limiting and reliability - use existing non_alt_loci_set table | Faster refresh, no network dependency |
+| 2026-02-01 | All-or-nothing refresh pattern | Partial updates would leave inconsistent data state | Database transaction ensures atomic updates |
+
+**Phase 62 Progress (Admin & Infrastructure):**
+- ✅ Plan 01: Comparisons Data Refresh Infrastructure
+  - Migration 007: comparisons_config and comparisons_metadata tables
+  - api/functions/comparisons-functions.R: 944 lines of parsing logic
+  - api/functions/comparisons-sources.R: source config management
+  - POST /api/jobs/comparisons_update/submit endpoint
+  - GET /api/comparisons/metadata endpoint
+  - ManageAnnotations.vue: Comparisons Data Refresh section
+  - CurationComparisons.vue: Dynamic metadata display
+- [ ] Plan 02: Documentation migration to Quarto (if planned)
+
+---
+
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed Phase 60 (LLM Display)
-**Next action:** Phase 62 (Admin & Infrastructure) - admin management UI
+**Stopped at:** Completed Phase 62 Plan 01 (Comparisons Data Refresh)
+**Next action:** Phase 62 Plan 02 or milestone completion
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Phase 60 complete*
+*Last updated: 2026-02-01 — Phase 62 Plan 01 complete*
