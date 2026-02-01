@@ -74,7 +74,23 @@ llm_judge_verdict_type <- ellmer::type_object(
 
   corrected_notably_absent = ellmer::type_array(
     ellmer::type_string("Phenotype that IS in source data as depleted"),
-    "Notably absent list after removing items not in source data (only if corrections needed)"
+    "Notably absent list after removing items not in source data (only if corrections needed).
+     Only applicable for phenotype clusters.",
+    required = FALSE
+  ),
+
+  corrected_inheritance_patterns = ellmer::type_array(
+    ellmer::type_string("Inheritance mode abbreviation from source data"),
+    "Inheritance patterns after correction (only include patterns from quali_sup_var with |v.test| > 2).
+     Only applicable for phenotype clusters - leave empty for functional clusters.",
+    required = FALSE
+  ),
+
+  corrected_syndromicity = ellmer::type_enum(
+    c("predominantly_syndromic", "predominantly_id", "mixed", "unknown"),
+    "Syndromicity corrected based on quanti_sup_var data.
+     Only applicable for phenotype clusters - leave NULL for functional clusters.",
+    required = FALSE
   ),
 
   reasoning = ellmer::type_string(
@@ -112,11 +128,17 @@ build_functional_judge_prompt <- function(summary, cluster_data) {
     "(genes not available)"
   }
 
-  # Extract top 15 enrichment terms for validation
+  # Extract top 20 enrichment terms PER CATEGORY for validation
+
+  # CRITICAL: Must match the generation prompt which uses top_n_terms = 20 per category
+  # Previous bug: used slice_head(n=15) globally, so judge only saw 15 terms total
+  # while generator showed 20 per category (potentially 80+ terms)
   enrichment_terms <- if ("term_enrichment" %in% names(cluster_data) && nrow(cluster_data$term_enrichment) > 0) {
     cluster_data$term_enrichment %>%
+      dplyr::group_by(category) %>%
       dplyr::arrange(fdr) %>%
-      dplyr::slice_head(n = 15) %>%
+      dplyr::slice_head(n = 20) %>%
+      dplyr::ungroup() %>%
       dplyr::mutate(
         display_name = dplyr::if_else(!is.na(description) & description != "", description, term),
         term_line = glue::glue("- {category}: {display_name} (FDR: {signif(fdr, 3)})")
@@ -148,7 +170,7 @@ Your task is to DETECT HALLUCINATIONS and verify the summary is accurately groun
 ## Original Cluster Data
 **Genes:** {genes}
 
-**Top 15 Enrichment Terms (AUTHORITATIVE SOURCE):**
+**Top 20 Enrichment Terms per Category (AUTHORITATIVE SOURCE):**
 {enrichment_terms}
 
 ## Generated Summary to Validate
@@ -315,6 +337,64 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
     "(no phenotype data)"
   }
 
+  # Extract inheritance patterns from quali_sup_var
+  inheritance_terms <- "(no inheritance data)"
+  if ("quali_sup_var" %in% names(cluster_data) && length(cluster_data$quali_sup_var) > 0) {
+    inheritance_df <- if (is.data.frame(cluster_data$quali_sup_var)) {
+      cluster_data$quali_sup_var
+    } else if (is.list(cluster_data$quali_sup_var)) {
+      dplyr::bind_rows(cluster_data$quali_sup_var)
+    } else {
+      NULL
+    }
+
+    if (!is.null(inheritance_df) && nrow(inheritance_df) > 0 &&
+        all(c("variable", "v.test") %in% names(inheritance_df))) {
+      sig_inheritance <- inheritance_df %>%
+        dplyr::filter(abs(`v.test`) > 2) %>%
+        dplyr::arrange(dplyr::desc(`v.test`))
+
+      if (nrow(sig_inheritance) > 0) {
+        inheritance_terms <- sig_inheritance %>%
+          dplyr::mutate(
+            direction = dplyr::if_else(`v.test` > 0, "ENRICHED", "DEPLETED"),
+            term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction}]")
+          ) %>%
+          dplyr::pull(term_line) %>%
+          paste(collapse = "\n")
+      }
+    }
+  }
+
+  # Extract syndromicity metrics from quanti_sup_var
+  syndromicity_terms <- "(no syndromicity data)"
+  if ("quanti_sup_var" %in% names(cluster_data) && length(cluster_data$quanti_sup_var) > 0) {
+    quanti_df <- if (is.data.frame(cluster_data$quanti_sup_var)) {
+      cluster_data$quanti_sup_var
+    } else if (is.list(cluster_data$quanti_sup_var)) {
+      dplyr::bind_rows(cluster_data$quanti_sup_var)
+    } else {
+      NULL
+    }
+
+    if (!is.null(quanti_df) && nrow(quanti_df) > 0 &&
+        all(c("variable", "v.test") %in% names(quanti_df))) {
+      sig_quanti <- quanti_df %>%
+        dplyr::filter(abs(`v.test`) > 2) %>%
+        dplyr::arrange(dplyr::desc(abs(`v.test`)))
+
+      if (nrow(sig_quanti) > 0) {
+        syndromicity_terms <- sig_quanti %>%
+          dplyr::mutate(
+            direction = dplyr::if_else(`v.test` > 0, "HIGHER", "LOWER"),
+            term_line = glue::glue("- {variable}: v.test={round(`v.test`, 2)} [{direction} than average]")
+          ) %>%
+          dplyr::pull(term_line) %>%
+          paste(collapse = "\n")
+      }
+    }
+  }
+
   # Get entity count
   entity_count <- if ("identifiers" %in% names(cluster_data)) {
     nrow(cluster_data$identifiers)
@@ -342,6 +422,15 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
 
   clinical_pattern <- summary$clinical_pattern %||% "(not specified)"
   self_confidence <- summary$confidence %||% "unknown"
+
+  # Extract new supplementary fields
+  inheritance_patterns <- if (!is.null(summary$inheritance_patterns) && length(summary$inheritance_patterns) > 0) {
+    paste(summary$inheritance_patterns, collapse = ", ")
+  } else {
+    "(not specified)"
+  }
+
+  syndromicity <- summary$syndromicity %||% "(not specified)"
 
   glue::glue("
 You are a STRICT validator for AI-generated phenotype cluster summaries.
@@ -386,8 +475,19 @@ enzyme, receptor, kinase, mTOR, MAPK, DNA repair, RNA processing, cell cycle,
 
 ---
 
-## INPUT PHENOTYPE DATA (Ground Truth)
+## INPUT DATA (Ground Truth)
+
+### Primary Phenotypes (used for clustering)
 {phenotype_terms}
+
+### Supplementary Data (describes cluster characteristics)
+**Inheritance patterns (from HPO):**
+{inheritance_terms}
+
+**Syndromicity metrics:**
+{syndromicity_terms}
+
+---
 
 ## SUMMARY TO VALIDATE
 **Summary text:** {summary_text}
@@ -397,6 +497,10 @@ enzyme, receptor, kinase, mTOR, MAPK, DNA repair, RNA processing, cell cycle,
 **Notably absent phenotypes:** {notably_absent}
 
 **Clinical pattern:** {clinical_pattern}
+
+**Inheritance patterns:** {inheritance_patterns}
+
+**Syndromicity:** {syndromicity}
 
 **Self-assessed confidence:** {self_confidence}
 
@@ -422,6 +526,20 @@ Mark mismatches as DIRECTION_ERROR.
 
 **Step 5 - Calculate Grounding Score:**
 Grounding % = (number of grounded claims / total claims) x 100
+
+**Step 6 - Inheritance Pattern Check:**
+For each inheritance pattern in the summary:
+- Verify it appears in the inheritance data (quali_sup_var) with |v.test| > 2
+- Standard abbreviations: AD=Autosomal dominant, AR=Autosomal recessive, XL=X-linked, MT=Mitochondrial
+- Mark as INVALID if pattern not in source data
+
+**Step 7 - Syndromicity Check:**
+Compare summary's syndromicity claim against quanti_sup_var data:
+- 'predominantly_syndromic' should match positive v.test for phenotype_non_id_count
+- 'predominantly_id' should match positive v.test for phenotype_id_count
+- 'mixed' is valid if both or neither significant
+- 'unknown' is valid if no syndromicity data
+- Mark as INVALID if mismatch
 
 ---
 
@@ -462,11 +580,16 @@ If issues are correctable:
 2. List each correction in corrections_made array
 3. Provide corrected_tags with ONLY items that appear in the input phenotype data
 4. Provide corrected_notably_absent with ONLY depleted phenotypes (v.test < 0) from input
-5. Use verdict = 'accept_with_corrections'
+5. Provide corrected_inheritance_patterns with ONLY patterns from quali_sup_var with |v.test| > 2
+   - Use standard abbreviations: AD, AR, XL, XLR, XLD, MT, SP
+6. Provide corrected_syndromicity based on quanti_sup_var data
+7. Use verdict = 'accept_with_corrections'
 
 Example correction:
-- corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data']
+- corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data', 'Corrected inheritance from XL to AR based on source data']
 - corrected_notably_absent: ['Progressive', 'Developmental regression'] (only items with v.test < 0)
+- corrected_inheritance_patterns: ['AR', 'AD'] (only from source data)
+- corrected_syndromicity: 'predominantly_id' (based on positive v.test for phenotype_id_count)
 
 ---
 
@@ -510,7 +633,11 @@ REMEMBER: If ANY forbidden molecular terms appear, verdict MUST be 'reject'.
 #' }
 #'
 #' @export
-validate_with_llm_judge <- function(summary, cluster_data, model = "gemini-3-pro-preview", cluster_type = "functional") {
+validate_with_llm_judge <- function(summary, cluster_data, model = NULL, cluster_type = "functional") {
+  # Use default model if not specified
+  if (is.null(model)) {
+    model <- get_default_gemini_model()
+  }
   # Handle NULL inputs
   if (is.null(summary)) {
     log_warn("Judge received NULL summary, returning reject verdict")
@@ -619,10 +746,14 @@ validate_with_llm_judge <- function(summary, cluster_data, model = "gemini-3-pro
 generate_and_validate_with_judge <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-3-pro-preview",
+  model = NULL,
   cluster_hash = NULL
 ) {
-  log_info("Starting generation + validation pipeline for {cluster_type} cluster")
+  # Use default model if not specified
+  if (is.null(model)) {
+    model <- get_default_gemini_model()
+  }
+  log_info("Starting generation + validation pipeline for {cluster_type} cluster with model={model}")
 
   # Step 1: Generate summary (includes entity validation)
   gen_result <- tryCatch(
@@ -686,6 +817,18 @@ generate_and_validate_with_judge <- function(
     if (!is.null(judge_result$corrected_notably_absent)) {
       summary_with_metadata$notably_absent <- judge_result$corrected_notably_absent
       log_debug("Applied corrected notably_absent: {paste(judge_result$corrected_notably_absent, collapse=', ')}")
+    }
+
+    # Apply corrected inheritance_patterns if provided
+    if (!is.null(judge_result$corrected_inheritance_patterns) && length(judge_result$corrected_inheritance_patterns) > 0) {
+      summary_with_metadata$inheritance_patterns <- judge_result$corrected_inheritance_patterns
+      log_debug("Applied corrected inheritance_patterns: {paste(judge_result$corrected_inheritance_patterns, collapse=', ')}")
+    }
+
+    # Apply corrected syndromicity if provided
+    if (!is.null(judge_result$corrected_syndromicity) && nzchar(judge_result$corrected_syndromicity)) {
+      summary_with_metadata$syndromicity <- judge_result$corrected_syndromicity
+      log_debug("Applied corrected syndromicity: {judge_result$corrected_syndromicity}")
     }
 
     # Add corrections metadata
