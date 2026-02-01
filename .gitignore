@@ -23,3 +23,6 @@ coverage/
 .env.local
 .env.*.local
 .playwright-mcp/
+
+# Local plan data (database backups)
+.plan/
