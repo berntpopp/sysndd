@@ -148,16 +148,20 @@ parse_radboudumc_pdf <- function(file_path) {
 parse_gene2phenotype_csv <- function(file_path) {
   data <- read_csv(file_path, show_col_types = FALSE)
 
+  # G2P changed their column names in 2026:
+  #   "confidence category" -> "confidence"
+  #   "mutation consequence" -> "variant consequence"
+  #   "pmids" -> "publications"
   result <- data %>%
     dplyr::select(
       gene_symbol = `gene symbol`,
       disease_ontology_name = `disease name`,
       disease_ontology_id = `disease mim`,
-      category = `confidence category`,
+      category = confidence,
       inheritance = `allelic requirement`,
-      pathogenicity_mode = `mutation consequence`,
+      pathogenicity_mode = `variant consequence`,
       phenotype = phenotypes,
-      publication_id = pmids
+      publication_id = publications
     ) %>%
     mutate(
       list = "gene2phenotype",
@@ -552,10 +556,13 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
   if (source_name == "gene2phenotype") {
     result <- result %>%
       mutate(
+        # Convert to character first (new G2P format has numeric disease_mim column)
+        disease_ontology_id = as.character(disease_ontology_id),
+        # Handle both old format ("No disease mim" text) and new format (NA)
         disease_ontology_id = na_if(disease_ontology_id, "No disease mim"),
         disease_ontology_id = case_when(
-          is.na(disease_ontology_id) ~ disease_ontology_id,
-          !is.na(disease_ontology_id) ~ paste0("OMIM:", disease_ontology_id)
+          is.na(disease_ontology_id) ~ NA_character_,
+          TRUE ~ paste0("OMIM:", disease_ontology_id)
         ),
         phenotype = str_replace_all(phenotype, ";", ","),
         publication_id = str_replace_all(publication_id, ";", ",")

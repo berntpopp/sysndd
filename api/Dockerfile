@@ -92,6 +92,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfribidi-dev \
     # Git library for gert/usethis
     libgit2-dev \
+    # Poppler for pdftools (PDF parsing)
+    libpoppler-cpp-dev \
     && rm -rf /var/lib/apt/lists/* \
     && R CMD javareconf
 
