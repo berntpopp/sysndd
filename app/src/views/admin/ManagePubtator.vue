@@ -29,7 +29,7 @@ ManagePubtator */
                     <BFormInput
                       id="query-input"
                       v-model="query"
-                      placeholder="e.g., epilepsy gene variant"
+                      placeholder="PubTator search query"
                       :disabled="isJobLoading"
                       @keyup.enter="checkStatus"
                     />
@@ -322,7 +322,9 @@ const {
 } = usePubtatorAdmin();
 
 // Form state
-const query = ref('epilepsy gene variant');
+const query = ref(
+  '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
+);
 const maxPages = ref(50);
 const clearOld = ref(false);
 

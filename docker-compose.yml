@@ -196,6 +196,11 @@ services:
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.routers.api.priority=100"
       - "traefik.http.services.api.loadbalancer.server.port=7777"
+      # Sticky sessions for job state consistency across scaled API containers
+      - "traefik.http.services.api.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.api.loadbalancer.sticky.cookie.name=sysndd_api_sticky"
+      - "traefik.http.services.api.loadbalancer.sticky.cookie.httponly=true"
+      - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
 
   app:
     build: ./app/

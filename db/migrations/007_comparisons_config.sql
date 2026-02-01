@@ -38,7 +38,7 @@ BEGIN
 
         -- Insert initial source configuration from ndd_databases_links.txt
         INSERT INTO comparisons_config (source_name, source_url, file_format) VALUES
-            ('radboudumc_ID', 'https://order.radboudumc.nl/en/LabProduct/Pdf/30240', 'pdf'),
+            ('radboudumc_ID', 'https://order.radboudumc.nl/en/labproduct/pdf/10817820', 'pdf'),
             ('gene2phenotype', 'https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz', 'csv.gz'),
             ('panelapp', 'https://panelapp.genomicsengland.co.uk/panels/285/download/01234/', 'tsv'),
             ('sfari', 'https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes', 'csv'),

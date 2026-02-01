@@ -246,8 +246,17 @@ export function useAsyncJob(
           error.value = data.error?.message || data.error || 'Job failed';
         }
       }
-    } catch (_err) {
+    } catch (err) {
       stopPolling();
+      // Handle 404 JOB_NOT_FOUND errors from the API
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        const data = err.response.data;
+        if (data?.error === 'JOB_NOT_FOUND') {
+          error.value = data.message || 'Job not found or expired';
+          status.value = 'failed';
+          return;
+        }
+      }
       error.value = 'Failed to check job status';
       status.value = 'failed';
     }

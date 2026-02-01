@@ -1,5 +1,5 @@
 name	link	format	list_output	deprecated
-radboudumc_ID	https://order.radboudumc.nl/en/LabProduct/Pdf/30240	pdf	radboudumc_list	no
+radboudumc_ID	https://order.radboudumc.nl/en/labproduct/pdf/10817820	pdf	radboudumc_list	no
 gene2phenotype_ID	https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz	csv	gene2phenotype_list	no
 panelapp_ID	https://panelapp.genomicsengland.co.uk/panels/285/download/01234/	tsv	panelappID_list	no
 sfari	https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes	csv	sfari_list	no
