@@ -133,5 +133,29 @@ All four ROADMAP requirements (LLM-01 through LLM-04) are satisfied.
 
 ---
 
+## Phase 63 Fixes (2026-02-01)
+
+The following issues were discovered during Phase 63 integration testing and have been resolved:
+
+### 1. ellmer API Call Fix (llm-service.R)
+**Problem:** `ellmer::chat_structured()` was being called with named `prompt` parameter, causing API errors.
+**Fix:** Changed to unnamed parameter: `chat$chat_structured(prompt, type_spec)` → `chat$chat_structured(prompt, type = type_spec)`
+**File:** `api/functions/llm-service.R` line ~340
+
+### 2. DBI NULL Binding Fix (llm-cache-repository.R)
+**Problem:** DBI's dbBind() fails with R's NULL values, causing "Parameter X does not have length 1" errors.
+**Fix:** Changed all `NULL` values to `NA` before SQL binding in `save_summary_to_cache()` and `log_generation_attempt()`.
+**File:** `api/functions/llm-cache-repository.R` lines 201-213, 318-325
+
+### 3. base:: Function Prefixes (db-helpers.R)
+**Problem:** Functions `exists()`, `get()`, `assign()` were being masked by other packages in daemon context, causing "unused argument (envir = .GlobalEnv)" errors.
+**Fix:** Added explicit `base::` prefix to all core R functions.
+**File:** `api/functions/db-helpers.R` multiple locations
+
+These fixes ensure the LLM foundation works correctly when called from mirai daemon processes during batch generation.
+
+---
+
 _Verified: 2026-01-31T22:08:11Z_
 _Verifier: Claude (gsd-verifier)_
+_Updated: 2026-02-01 with Phase 63 fixes_

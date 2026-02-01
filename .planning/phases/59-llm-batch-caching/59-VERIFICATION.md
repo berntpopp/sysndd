@@ -226,5 +226,43 @@ None - all verification completed programmatically.
 
 ---
 
+## Phase 63 Fixes (2026-02-01)
+
+The following issues were discovered during Phase 63 integration testing and have been resolved:
+
+### 1. Hash Mismatch Fix (llm-batch-generator.R, llm-judge.R)
+**Problem:** Batch generator extracted `hash_filter` correctly but didn't pass it to the judge function. The judge regenerated the hash from identifiers, producing a different hash than the one used for cache lookup.
+**Root Cause:** Hash was regenerated using `generate_cluster_hash()` in judge instead of using pre-computed hash.
+**Fix:**
+- Extract hash from `hash_filter` column in batch generator (llm-batch-generator.R lines 416-443)
+- Pass `cluster_hash` parameter to `generate_and_validate_with_judge()` (llm-batch-generator.R line 497)
+- Accept and use `cluster_hash` parameter in judge function (llm-judge.R lines 271-275, 336-357)
+**Files:** `api/functions/llm-batch-generator.R`, `api/functions/llm-judge.R`
+
+### 2. Database Connection Validation (db-helpers.R)
+**Problem:** `bad_weak_ptr` error when mirai daemon database connection becomes invalid but is still cached.
+**Fix:** Added `DBI::dbIsValid()` check before using cached connection, auto-recreate if invalid.
+**File:** `api/functions/db-helpers.R`
+
+### 3. Clustering Determinism (analyses-functions.R)
+**Problem:** MCA/HCPC clustering algorithms have inherent randomness, causing different hashes between API calls and batch generation.
+**Fix:** Added `set.seed(42)` before clustering algorithms in `gen_mca_clust_obj()` function.
+**File:** `api/functions/analyses-functions.R` (around line 210)
+
+### 4. Pathway Validation Strictness (llm-validation.R)
+**Problem:** LLM generates valid pathways (e.g., "Wnt signaling", "Hippo pathway") that don't exactly match enrichment terms due to naming variations.
+**Fix:** Made pathway validation non-blocking with partial matching. Validation failures log warnings but don't reject summaries.
+**File:** `api/functions/llm-validation.R`
+
+### 5. Cache-First Logic for Phenotype Clustering (jobs_endpoints.R)
+**Problem:** Phenotype clustering job used `gen_mca_clust_obj` (non-memoised) in daemon while API used `gen_mca_clust_obj_mem` (memoised), producing different hashes.
+**Fix:** Added cache-first logic to phenotype_clustering/submit endpoint - check memoise cache before spawning job, return cached result immediately with LLM batch trigger.
+**File:** `api/endpoints/jobs_endpoints.R`
+
+These fixes ensure hash consistency between batch generation and API cache lookups, enabling correct LLM summary retrieval.
+
+---
+
 _Verified: 2026-02-01T12:00:00Z_
 _Verifier: Claude (gsd-verifier)_
+_Updated: 2026-02-01 with Phase 63 fixes_

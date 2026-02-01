@@ -99,5 +99,54 @@ Phase 60 goal achieved. All must-haves verified:
 4. **Integration** - Both analysis views import, register, and wire the component correctly with API calls on cluster selection
 
 ---
+
+## Phase 63 Fixes (2026-02-01)
+
+The following issues were discovered during Phase 63 integration testing and have been resolved:
+
+### 1. Vue TypeError Fix (LlmSummaryCard.vue)
+**Problem:** `TypeError: dc.avg_fdr.toFixed is not a function` when phenotype cluster summaries don't have `derived_confidence` data with numeric values.
+**Root Cause:** The `derivedConfidence` computed property could return an object with `undefined` values for `avg_fdr` and `term_count`, but the `confidenceTooltip` computed property called `.toFixed()` without type checking.
+**Fix:** Added type validation in `derivedConfidence` computed property to return `null` if any required field is missing or not a number:
+```typescript
+// Validate all required fields are present and have valid types
+if (!score || typeof avgFdr !== 'number' || typeof termCount !== 'number') {
+  return null;
+}
+```
+**File:** `app/src/components/llm/LlmSummaryCard.vue` lines 175-191
+
+### 2. API Hash Extraction Already Implemented
+The API endpoints (`functional_cluster_summary` and `phenotype_cluster_summary`) correctly extract the raw hash from `equals(hash,...)` format before cache lookup. This was verified working during Phase 63 testing.
+```r
+raw_hash <- if (grepl("^equals\\(hash,", cluster_hash)) {
+  sub("^equals\\(hash,(.*)\\)$", "\\1", cluster_hash)
+} else {
+  cluster_hash
+}
+```
+**File:** `api/endpoints/analysis_endpoints.R` lines 741-746 (phenotype) and similar for functional
+
+### Verification Results
+
+Both analysis pages now display LLM summaries correctly:
+
+**GeneNetworks (Functional Clusters):**
+- ✅ AI-Generated Summary heading with sparkles icon
+- ✅ Confidence badge with color coding (when derived_confidence available)
+- ✅ Summary text, key themes, pathways, tags
+- ✅ Clinical relevance section
+- ✅ Model attribution and validation status
+
+**PhenotypeClusters:**
+- ✅ AI-Generated Summary heading with sparkles icon
+- ✅ No confidence badge (gracefully hidden when derived_confidence unavailable)
+- ✅ Summary text, key themes, tags
+- ✅ Clinical relevance section
+- ✅ Model attribution and validation status
+- ✅ No console errors
+
+---
 *Verified: 2026-02-01T01:45:00Z*
 *Verifier: Claude (gsd-verifier)*
+*Updated: 2026-02-01 with Phase 63 fixes*
