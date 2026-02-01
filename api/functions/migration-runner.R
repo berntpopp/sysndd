@@ -457,6 +457,34 @@ execute_migration <- function(filepath, migrations_dir = "db/migrations", conn =
   invisible(NULL)
 }
 
+#' Get list of pending migrations
+#'
+#' Compares available migration files against applied migrations
+#' to determine what needs to be run.
+#'
+#' @param migrations_dir Path to migrations directory. Default: "db/migrations"
+#' @param conn Optional database connection or pool object. If NULL, uses global pool.
+#'
+#' @return Character vector of pending migration filenames (empty if up-to-date)
+#'
+#' @export
+get_pending_migrations <- function(migrations_dir = "db/migrations", conn = NULL) {
+  # Ensure tracking table exists (creates if needed, idempotent)
+  ensure_schema_version_table(conn)
+
+  # Get all migration files
+  all_files <- list_migration_files(migrations_dir)
+  if (length(all_files) == 0) {
+    return(character(0))
+  }
+
+  # Get applied migrations
+  applied <- get_applied_migrations(conn)
+
+  # Return pending (those not yet applied)
+  setdiff(all_files, applied)
+}
+
 #' Run all pending database migrations
 #'
 #' Main entry point for the migration system. Checks for pending migrations

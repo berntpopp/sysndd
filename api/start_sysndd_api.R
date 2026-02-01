@@ -203,50 +203,110 @@ pool <<- dbPool(
 message(sprintf("[%s] Database pool created (minSize=1, maxSize=%d)", Sys.time(), pool_size))
 
 ## -------------------------------------------------------------------##
-# 7.5) Run database migrations with lock coordination
+# 7.5) Run database migrations with double-checked locking
 ## -------------------------------------------------------------------##
 source("functions/migration-runner.R", local = TRUE)
 
 tryCatch(
   {
-    # Checkout connection for lock duration (separate from pool operations)
-    migration_conn <- pool::poolCheckout(pool)
-    on.exit(pool::poolReturn(migration_conn), add = TRUE)
+    # Step 1: Fast path check (no lock needed if schema current)
+    pending_before_lock <- get_pending_migrations(migrations_dir = "db/migrations", conn = pool)
 
-    # Acquire advisory lock (blocks until available or 30s timeout)
-    acquire_migration_lock(migration_conn, timeout = 30)
-    on.exit(release_migration_lock(migration_conn), add = TRUE)
+    if (length(pending_before_lock) == 0) {
+      # Fast path: schema up to date, skip lock entirely
+      message(sprintf("[%s] Fast path: schema up to date, no lock needed", Sys.time()))
 
-    # Run migrations
-    start_time <- Sys.time()
-    result <- run_migrations(migrations_dir = "db/migrations", conn = pool)
-    duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+      # Get total applied count for status
+      applied_count <- length(get_applied_migrations(pool))
 
-    # Log summary based on what happened
-    if (result$newly_applied > 0) {
-      message(sprintf(
-        "[%s] Migrations complete (%d applied in %.2fs): %s",
-        Sys.time(), result$newly_applied, duration,
-        paste(result$filenames, collapse = ", ")
-      ))
+      migration_status <<- list(
+        pending_migrations = 0,
+        total_migrations = applied_count,
+        last_run = Sys.time(),
+        newly_applied = 0,
+        filenames = character(0),
+        fast_path = TRUE,
+        lock_acquired = FALSE
+      )
     } else {
+      # Step 2: Migrations needed - acquire lock
       message(sprintf(
-        "[%s] Schema up to date (%d migrations applied)",
-        Sys.time(), result$total_applied
+        "[%s] Pending migrations detected (%d): %s - acquiring lock",
+        Sys.time(), length(pending_before_lock), paste(pending_before_lock, collapse = ", ")
       ))
-    }
 
-    # Store result for health endpoint access (global variable)
-    migration_status <<- list(
-      pending_migrations = 0,
-      total_migrations = result$total_applied,
-      last_run = Sys.time(),
-      newly_applied = result$newly_applied,
-      filenames = result$filenames
-    )
+      # Checkout connection for lock duration
+      migration_conn <- pool::poolCheckout(pool)
+      on.exit(pool::poolReturn(migration_conn), add = TRUE)
+
+      # Acquire advisory lock (blocks until available or 30s timeout)
+      acquire_migration_lock(migration_conn, timeout = 30)
+      on.exit(release_migration_lock(migration_conn), add = TRUE)
+
+      # Step 3: Re-check after lock (another container may have migrated)
+      pending_after_lock <- get_pending_migrations(migrations_dir = "db/migrations", conn = pool)
+
+      if (length(pending_after_lock) == 0) {
+        # Race condition: another container applied migrations while we waited
+        message(sprintf("[%s] Another container completed migrations while we waited", Sys.time()))
+
+        applied_count <- length(get_applied_migrations(pool))
+
+        migration_status <<- list(
+          pending_migrations = 0,
+          total_migrations = applied_count,
+          last_run = Sys.time(),
+          newly_applied = 0,
+          filenames = character(0),
+          fast_path = FALSE,
+          lock_acquired = TRUE
+        )
+      } else {
+        # Step 4: Apply migrations (we hold lock, migrations still needed)
+        start_time <- Sys.time()
+        result <- run_migrations(migrations_dir = "db/migrations", conn = pool)
+        duration <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+
+        if (result$newly_applied > 0) {
+          message(sprintf(
+            "[%s] Migrations complete (%d applied in %.2fs): %s",
+            Sys.time(), result$newly_applied, duration,
+            paste(result$filenames, collapse = ", ")
+          ))
+        } else {
+          message(sprintf(
+            "[%s] Schema up to date (%d migrations applied)",
+            Sys.time(), result$total_applied
+          ))
+        }
+
+        migration_status <<- list(
+          pending_migrations = 0,
+          total_migrations = result$total_applied,
+          last_run = Sys.time(),
+          newly_applied = result$newly_applied,
+          filenames = result$filenames,
+          fast_path = FALSE,
+          lock_acquired = TRUE
+        )
+      }
+    }
   },
   error = function(e) {
     message(sprintf("[%s] FATAL: Migration failed - %s", Sys.time(), e$message))
+
+    # Record failure state for health endpoint
+    migration_status <<- list(
+      pending_migrations = NA,
+      total_migrations = NA,
+      last_run = Sys.time(),
+      newly_applied = 0,
+      filenames = character(0),
+      fast_path = FALSE,
+      lock_acquired = FALSE,
+      error = e$message
+    )
+
     # Crash API - forces fix before deploy
     stop(paste("API startup aborted: migration failure -", e$message))
   }
