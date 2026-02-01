@@ -1,9 +1,5 @@
 ---
 title: "References"
-nocite: '@*'
 ---
 
-This page lists all references cited in the SysNDD documentation.
-
-::: {#refs}
-:::
+# References {.unnumbered}
