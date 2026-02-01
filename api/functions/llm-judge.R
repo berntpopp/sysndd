@@ -123,13 +123,13 @@ build_functional_judge_prompt <- function(summary, cluster_data) {
   self_confidence <- summary$confidence %||% "unknown"
 
   glue::glue("
-You are a scientific accuracy validator for AI-generated gene cluster summaries.
-Evaluate the following summary for accuracy and grounding.
+You are a STRICT scientific accuracy validator for AI-generated gene cluster summaries.
+Your task is to DETECT HALLUCINATIONS and verify the summary is accurately grounded in the provided data.
 
 ## Original Cluster Data
 **Genes:** {genes}
 
-**Top 15 Enrichment Terms:**
+**Top 15 Enrichment Terms (AUTHORITATIVE SOURCE):**
 {enrichment_terms}
 
 ## Generated Summary to Validate
@@ -141,17 +141,92 @@ Evaluate the following summary for accuracy and grounding.
 
 **Self-assessed confidence:** {self_confidence}
 
-## Validation Criteria
-1. **Factual accuracy:** Does the summary accurately describe biological functions of these genes?
-2. **Grounding:** Are all claims supported by the enrichment data above? Are there invented terms?
-3. **Pathway validity:** Are the listed pathways exact matches from the enrichment terms (no invented pathways)?
-4. **Confidence appropriate:** Does the self-assessed confidence match the evidence strength?
+---
 
-## Instructions
-Evaluate each criterion and provide a final verdict:
-- **accept:** Summary is accurate and well-grounded in the enrichment data
-- **low_confidence:** Summary is mostly accurate but has minor issues or unverifiable claims
-- **reject:** Summary has significant errors, invented information, or hallucinated terms
+## MANDATORY VERIFICATION CHECKLIST
+
+Complete each verification step before rendering your verdict.
+
+### Step 1: Pathway String Matching (CRITICAL)
+For EACH pathway listed in the summary:
+- Does it appear VERBATIM in the enrichment terms? (YES/NO)
+- If NO, is it a reasonable synonym of an existing term? (YES/NO)
+- If neither, mark as INVENTED
+
+**Scoring:**
+- All pathways appear verbatim = +2 points
+- Minor generalizations only = +1 point
+- Any completely invented pathway = 0 points
+
+### Step 2: Theme Grounding Check
+For EACH key theme, identify which enrichment terms support it.
+- Theme with supporting term(s) = GROUNDED
+- Theme with NO supporting terms = UNGROUNDED
+
+**Scoring:**
+- All themes grounded = +2 points
+- 1-2 ungrounded but reasonable = +1 point
+- 3+ ungrounded themes = 0 points
+
+### Step 3: Invented Term Detection
+List ANY terms, pathways, or mechanisms in the summary that:
+- Do NOT appear in the enrichment terms AND
+- Cannot be directly inferred from the enrichment data
+
+**Scoring:**
+- No invented terms = +2 points
+- 1-2 minor invented terms = +1 point
+- Any significant hallucination = 0 points
+
+### Step 4: Confidence Calibration
+Compare self-assessed confidence to evidence strength:
+- High appropriate if: Multiple terms with FDR < 1E-50
+- Medium appropriate if: Terms with FDR between 1E-10 and 1E-50
+- Low appropriate if: Terms with FDR > 1E-10 or few terms
+
+**Scoring:**
+- Confidence matches evidence = +2 points
+- Off by one level = +1 point
+- Significantly mismatched = 0 points
+
+---
+
+## VERDICT CALCULATION
+
+**Total your points from Steps 1-4 (maximum 8 points):**
+
+| Points | Verdict | Action |
+|--------|---------|--------|
+| 7-8 | **accept** | Cache as 'validated' |
+| 4-6 | **low_confidence** | Cache as 'pending' for review |
+| 0-3 | **reject** | Do not cache, trigger regeneration |
+
+---
+
+## EXAMPLES
+
+### Example: ACCEPT (8 points)
+- 'PI3K-Akt signaling pathway' appears verbatim in KEGG terms (+2)
+- All themes map to specific enrichment terms (+2)
+- No invented terms found (+2)
+- Medium confidence for FDR ~1E-30 terms (+2)
+
+### Example: LOW_CONFIDENCE (5 points)
+- 'Ras/MAPK cascade' but data shows 'Ras signaling pathway' separately (+1)
+- Most themes grounded, one reasonable inference (+1)
+- One term not in enrichment data (+1)
+- Confidence matches evidence (+2)
+
+### Example: REJECT (2 points)
+- 'Wnt signaling pathway' NOT in enrichment data (+0)
+- 'epigenetic regulation' but no epigenetic terms in data (+0)
+- Multiple invented mechanisms (+0)
+- High confidence despite weak enrichment (+2)
+
+---
+
+## YOUR RESPONSE
+Complete the verification steps, calculate total points, then provide your verdict.
 ")
 }
 
@@ -225,19 +300,53 @@ build_phenotype_judge_prompt <- function(summary, cluster_data) {
   self_confidence <- summary$confidence %||% "unknown"
 
   glue::glue("
-You are validating an AI-generated phenotype cluster summary for accuracy.
+You are a STRICT validator for AI-generated phenotype cluster summaries.
+Your job is to DETECT HALLUCINATIONS and REJECT inaccurate summaries.
 
-## Important Context
-- This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT genes
-- Entities were clustered based on their phenotype annotations
+## CRITICAL CONTEXT
+- This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations)
+- Entities were clustered by PHENOTYPE PATTERNS, NOT by gene function
+- The summary MUST describe CLINICAL PHENOTYPES, not molecular mechanisms
 - v.test interpretation: POSITIVE = phenotype ENRICHED, NEGATIVE = phenotype DEPLETED
 
-## Original Phenotype Data
-The cluster has these top phenotypes by effect size:
+---
+
+## AUTOMATIC REJECTION TRIGGERS
+ANY of these errors = immediate verdict of 'reject':
+
+1. **MOLECULAR HALLUCINATION**: Summary mentions genes, proteins, pathways, molecular mechanisms,
+   chromatin, transcription, signaling, enzymes, or any biological mechanism terms
+   - REJECT if: 'genes involved in synaptic function'
+   - REJECT if: 'chromatin remodeling and transcriptional regulation'
+   - REJECT if: 'mitochondrial respiratory chain', 'DNA repair pathways'
+
+2. **FABRICATED PHENOTYPES**: Summary references phenotypes NOT in the input data
+   - REJECT if: summary says 'autism' but input only has 'intellectual disability'
+   - REJECT if: summary says 'epilepsy' but no seizure term in input
+   - REJECT if: summary says 'cardiac defects' but no heart-related term in input
+
+3. **DIRECTION INVERSION**: Summary describes enriched phenotypes as depleted or vice versa
+   - REJECT if: v.test is NEGATIVE but summary says 'strongly associated with' or 'enriched'
+   - REJECT if: v.test is POSITIVE but summary says 'absent' or 'depleted'
+
+4. **SCOPE ERROR**: Summary discusses gene functions when data is about disease phenotypes
+   - REJECT if: mentions what genes 'do' or their 'functions'
+   - ACCEPT if: describes what clinical features patients present with
+
+---
+
+## FORBIDDEN TERMS (if present = automatic reject)
+gene, protein, pathway, signaling, transcription, chromatin, histone, methylation,
+enzyme, receptor, kinase, mTOR, MAPK, DNA repair, RNA processing, cell cycle,
+'plays a role in', 'involved in', 'functions in', 'regulates', 'modulates'
+
+---
+
+## INPUT PHENOTYPE DATA (Ground Truth)
 {phenotype_terms}
 
-## Generated Summary to Validate
-**Summary:** {summary_text}
+## SUMMARY TO VALIDATE
+**Summary text:** {summary_text}
 
 **Key phenotype themes:** {key_themes}
 
@@ -247,18 +356,57 @@ The cluster has these top phenotypes by effect size:
 
 **Self-assessed confidence:** {self_confidence}
 
-## Validation Criteria
-1. **Phenotype accuracy:** Does the summary ONLY reference phenotypes from the input data?
-2. **No hallucination:** Are there any invented phenotype terms not in the input?
-3. **v.test interpretation:** Does it correctly identify enriched (positive) vs depleted (negative) phenotypes?
-4. **No gene/pathway speculation:** Does the summary avoid inventing molecular mechanisms?
-5. **Both directions:** Does the summary mention BOTH enriched AND depleted phenotypes where applicable?
+---
 
-## Instructions
-Evaluate each criterion and provide a final verdict:
-- **accept:** Summary accurately describes the phenotype pattern using only input data
-- **low_confidence:** Minor issues but generally accurate
-- **reject:** Contains hallucinated phenotypes, invents molecular mechanisms, or fundamentally misinterprets the data
+## STEP-BY-STEP VERIFICATION (Complete ALL steps before verdict)
+
+**Step 1 - Forbidden Term Scan (FIRST!):**
+Check for ANY molecular/gene/pathway terms in the summary.
+If found: Mark as MOLECULAR_HALLUCINATION = automatic reject
+
+**Step 2 - Extract Claims:**
+List every phenotype or clinical term mentioned in the summary.
+
+**Step 3 - Ground Each Claim:**
+For EACH term from Step 2, verify it exists in the input phenotype data (exact or semantically equivalent).
+Mark ungrounded terms as FABRICATED.
+
+**Step 4 - Direction Check:**
+For phenotypes described as enriched, verify v.test > 0.
+For phenotypes described as depleted, verify v.test < 0.
+Mark mismatches as DIRECTION_ERROR.
+
+**Step 5 - Calculate Grounding Score:**
+Grounding % = (number of grounded claims / total claims) x 100
+
+---
+
+## VERDICT CRITERIA
+
+**REJECT (any of these):**
+- ANY molecular/gene term found (Step 1)
+- ANY fabricated phenotype (Step 3)
+- ANY direction inversion (Step 4)
+- Grounding score < 70%
+
+**LOW_CONFIDENCE (moderate issues):**
+- Grounding score 70-89%
+- Uses overly broad syndrome terms
+- Missing significant phenotypes from top 5 by |v.test|
+- Minor semantic drift but no fabrication
+
+**ACCEPT (all must be true):**
+- Grounding score >= 90%
+- No molecular/gene content
+- No fabricated phenotypes
+- Direction interpretation correct
+- Mentions both enriched AND depleted phenotypes where applicable
+
+---
+
+## YOUR RESPONSE
+Complete the verification steps, then provide your verdict.
+REMEMBER: If ANY forbidden molecular terms appear, verdict MUST be 'reject'.
 ")
 }
 

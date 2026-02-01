@@ -232,33 +232,60 @@ build_cluster_prompt <- function(cluster_data, top_n_terms = 20) {
 You are a genomics expert analyzing gene clusters associated with neurodevelopmental disorders.
 
 ## Task
-Analyze this functional gene cluster and summarize its biological significance.
+Analyze this functional gene cluster and summarize its biological significance based STRICTLY on the enrichment data provided.
 
 ## Cluster Information
 - **Cluster Size:** {gene_count} genes
 - **Sample genes:** {genes}
 
-## Functional Enrichment Results
-The following terms are statistically enriched in this gene cluster:
+## Functional Enrichment Results (YOUR ONLY SOURCE OF TRUTH)
+The following terms are statistically enriched in this gene cluster. You may ONLY reference terms from this section.
 
 {enrichment_text}
 
 ## Instructions
-Based on the enrichment data above:
+Based EXCLUSIVELY on the enrichment data above:
 
-1. **Summary (2-3 sentences):** What biological functions unite these genes? Focus on the GO terms and pathways.
+1. **Summary (2-3 sentences):** What biological functions unite these genes?
+   - Every function you mention must be traceable to a specific term listed above
+   - Do NOT introduce concepts not explicitly present in the enrichment data
 
-2. **Key biological themes (3-5):** List the main functional categories from the enrichment data.
+2. **Key biological themes (3-5):** List the main functional categories.
+   - Derive these directly from the enrichment term descriptions
+   - Use wording that closely matches the source terms
 
-3. **Pathways:** List ONLY pathways that appear in the enrichment data above. Do NOT invent pathway names.
+3. **Pathways:** List pathways VERBATIM from the KEGG section above.
+   - Copy exact pathway names as written (e.g., 'PI3K-Akt signaling pathway' not 'PI3K pathway')
+   - Do NOT paraphrase, abbreviate, or generalize pathway names
+   - If no KEGG pathways appear above, write 'No KEGG pathways in enrichment data'
 
-4. **Disease relevance:** Based on the HPO/disease terms, what types of disorders involve these genes?
+4. **Disease relevance:** Based EXCLUSIVELY on the 'HPO' or disease phenotype section:
+   - Only mention phenotypes that appear in that section
+   - Do NOT infer additional disease associations
+   - If no HPO terms are provided, write 'No HPO terms in enrichment data'
 
-5. **Tags (3-7):** Short keywords derived from the enrichment terms.
+5. **Tags (3-7):** Short keywords derived ONLY from the enrichment terms above.
+   - Each tag must correspond to a concept in the data
+   - Avoid generic terms not grounded in the specific enrichment results
 
-6. **Confidence:** High if strong enrichment (many terms with FDR < 1E-50), Medium if moderate, Low if weak.
+6. **Confidence:**
+   - High: Many terms with FDR < 1E-50, strong consistent signal
+   - Medium: Moderate enrichment, some strong terms
+   - Low: Sparse data, weak enrichment, or ambiguous patterns
 
-IMPORTANT: Only mention terms that appear in the data above. Do not invent or generalize.
+## Uncertainty Handling
+- If a category has no enriched terms, state 'No significant [category] terms' rather than inferring
+- If the data does not clearly support a theme, write 'Unable to determine from provided data'
+- It is acceptable to omit optional fields rather than guess
+
+## Self-Verification Checklist
+Before finalizing, verify:
+- [ ] Every pathway in your response appears EXACTLY in the KEGG section above
+- [ ] Every theme can be traced to a specific enrichment term description
+- [ ] Disease relevance only mentions terms from the HPO section
+- [ ] No terms were invented, paraphrased beyond recognition, or generalized
+
+CRITICAL: Only reference terms that appear in the enrichment data above. Invented or generalized terms will cause rejection.
 ")
 
   return(prompt)
@@ -375,7 +402,7 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
 You are a clinical geneticist analyzing phenotype clusters from a neurodevelopmental disorder database.
 
 ## Task
-Analyze this phenotype cluster and describe its clinical pattern.
+Analyze this phenotype cluster and describe its clinical pattern using ONLY the phenotypes listed below.
 
 ## Important Context
 - This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT individual genes
@@ -385,7 +412,7 @@ Analyze this phenotype cluster and describe its clinical pattern.
   - NEGATIVE v.test = phenotype is LESS COMMON in this cluster than average
   - Larger |v.test| = stronger association (>2 = significant, >5 = strong, >10 = very strong)
 
-## Phenotype Data
+## SOURCE DATA (Your Only Source of Truth)
 
 ### ENRICHED Phenotypes (overrepresented in this cluster)
 {enriched_text}
@@ -393,25 +420,57 @@ Analyze this phenotype cluster and describe its clinical pattern.
 ### DEPLETED Phenotypes (underrepresented in this cluster)
 {depleted_text}
 
+---
+
+## CRITICAL CONSTRAINTS
+
+### FORBIDDEN - You MUST NOT:
+- Mention ANY phenotype not explicitly listed in the tables above
+- Infer related phenotypes (e.g., do NOT add 'seizures' if only 'Abnormal nervous system physiology' is listed)
+- Use clinical synonyms not in the data (e.g., do NOT say 'ataxia' if only 'Movement disorder' is listed)
+- Mention genes, proteins, or molecular pathways - this is PURELY phenotype-based
+- Generalize beyond the specific phenotype names (e.g., do NOT say 'neurological features' when specific phenotypes are listed)
+- Use terms like: gene, protein, pathway, signaling, transcription, chromatin, enzyme, receptor, kinase, DNA, RNA
+
+### ALLOWED:
+- Grouping phenotypes into categories (e.g., 'genitourinary and renal phenotypes')
+- Describing the clinical significance of specific phenotypes
+- Stating uncertainty with phrases like 'The data suggests...'
+- Leaving optional fields empty if the data doesn't support them
+
+---
+
 ## Instructions
 Based ONLY on the phenotype data above:
 
-1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern. What types of conditions are in this cluster? Note both enriched AND depleted phenotypes.
+1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern. Reference specific phenotype names from the data.
+   - If uncertain, say 'The data suggests...' rather than stating definitively
 
-2. **Key phenotype themes (3-5):** The main clinical feature categories that are ENRICHED.
+2. **Key phenotype themes (3-5):** Group the ENRICHED phenotypes into clinical categories.
+   - Each theme MUST be derived directly from one or more phenotypes in the ENRICHED table
+   - Use wording that closely matches the source phenotypes
 
-3. **Notably absent (2-3):** What phenotypes are significantly DEPLETED? This is clinically meaningful.
+3. **Notably absent (2-3):** Copy the exact phenotype names from the DEPLETED table.
+   - Do NOT paraphrase or interpret - use the exact names
 
-4. **Clinical pattern:** What syndrome category does this suggest? (e.g., 'syndromic malformation disorders', 'pure neurodevelopmental', 'metabolic/degenerative')
+4. **Clinical pattern:** What syndrome category does this suggest?
+   - Choose from: 'syndromic malformation', 'pure neurodevelopmental', 'progressive metabolic/degenerative', 'overgrowth syndrome', 'other'
 
-5. **Syndrome hints:** Based on the phenotype combination, what known syndrome categories might this represent?
+5. **Syndrome hints (optional):** If the phenotype pattern strongly suggests known syndrome categories, list them.
+   - If uncertain, state 'No specific syndrome pattern identified' rather than guessing
 
-6. **Tags (3-7):** Short clinical keywords from the phenotypes (e.g., 'cardiac', 'renal', 'skeletal')
+6. **Tags (3-7):** Short keywords EXTRACTED DIRECTLY from the phenotype names above.
+   - Example: if 'Abnormality of the kidney' is enriched, use 'renal' or 'kidney'
 
-CRITICAL:
-- Only describe phenotypes from the data above
-- Do NOT mention genes or molecular pathways - this is purely phenotype-based
-- Both enriched AND depleted phenotypes are important for characterization
+## Self-Verification Checklist
+Before finalizing, verify that:
+- [ ] Every phenotype mentioned appears EXACTLY in the tables above
+- [ ] No clinical terms were added that aren't in the source data
+- [ ] The 'notably absent' section uses exact names from DEPLETED table
+- [ ] Tags are derived from actual phenotype names, not inferred categories
+- [ ] NO molecular/gene terms appear anywhere in your response
+
+CRITICAL: Mentioning genes, pathways, or molecular mechanisms will cause IMMEDIATE REJECTION.
 ")
 
   return(prompt)
