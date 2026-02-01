@@ -78,9 +78,7 @@
 
         <BCol class="my-1" sm="4">
           <small class="text-muted">
-            Showing {{ filteredItemCount }} items ({{
-              filteredPublicationCount.toLocaleString()
-            }}
+            Showing {{ filteredItemCount }} items ({{ filteredPublicationCount.toLocaleString() }}
             pubs)
           </small>
         </BCol>
