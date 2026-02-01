@@ -121,7 +121,6 @@ services:
 
   api:
     build: ./api/
-    container_name: sysndd_api
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
