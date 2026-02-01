@@ -413,6 +413,35 @@ llm_batch_executor <- function(params) {
       )
     }
 
+    # Add phenotype-specific data for phenotype clusters
+    # These are the enriched/depleted HPO phenotypes from MCA analysis
+    if (cluster_type == "phenotype") {
+      # quali_inp_var contains HPO phenotype enrichment data (main phenotype data)
+      if ("quali_inp_var" %in% names(cluster_row)) {
+        quali_data <- cluster_row$quali_inp_var[[1]]
+        if (is.data.frame(quali_data) && nrow(quali_data) > 0) {
+          cluster_data$quali_inp_var <- quali_data
+          message("[LLM-Executor] Cluster ", cluster_num, " has ", nrow(quali_data), " phenotype variables")
+        }
+      }
+
+      # quali_sup_var contains supplementary categorical variables (e.g., inheritance)
+      if ("quali_sup_var" %in% names(cluster_row)) {
+        sup_data <- cluster_row$quali_sup_var[[1]]
+        if (is.data.frame(sup_data) && nrow(sup_data) > 0) {
+          cluster_data$quali_sup_var <- sup_data
+        }
+      }
+
+      # quanti_sup_var contains supplementary quantitative variables
+      if ("quanti_sup_var" %in% names(cluster_row)) {
+        quanti_data <- cluster_row$quanti_sup_var[[1]]
+        if (is.data.frame(quanti_data) && nrow(quanti_data) > 0) {
+          cluster_data$quanti_sup_var <- quanti_data
+        }
+      }
+    }
+
     # Extract cluster hash from clustering result's hash_filter column
     # The hash_filter is pre-computed during clustering in format: equals(hash,XXX)
     # Using this hash ensures consistency between what the API queries and what we store

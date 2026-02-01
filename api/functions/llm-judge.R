@@ -40,7 +40,7 @@ if (!exists("save_summary_to_cache", mode = "function")) {
 #'
 #' @export
 llm_judge_verdict_type <- ellmer::type_object(
-  "Validation verdict for a cluster summary",
+  "Validation verdict for a cluster summary with optional corrections",
 
   is_factually_accurate = ellmer::type_boolean(
     "Summary accurately describes biological function of the genes"
@@ -58,14 +58,33 @@ llm_judge_verdict_type <- ellmer::type_object(
     "Self-assessed confidence matches the evidence strength"
   ),
 
+  corrections_needed = ellmer::type_boolean(
+    "TRUE if minor corrections were made to the summary"
+  ),
+
+  corrections_made = ellmer::type_array(
+    ellmer::type_string("Description of each correction made"),
+    "List of corrections applied (empty if none needed)"
+  ),
+
+  corrected_tags = ellmer::type_array(
+    ellmer::type_string("Corrected tag"),
+    "Tags after removing any that don't appear in source data (only if corrections needed)"
+  ),
+
+  corrected_notably_absent = ellmer::type_array(
+    ellmer::type_string("Phenotype that IS in source data as depleted"),
+    "Notably absent list after removing items not in source data (only if corrections needed)"
+  ),
+
   reasoning = ellmer::type_string(
-    "Brief explanation of assessment (2-3 sentences)"
+    "Brief explanation of assessment including any corrections (2-3 sentences)"
   ),
 
   verdict = ellmer::type_enum(
-    c("accept", "low_confidence", "reject"),
-    "Final verdict: accept (cache as validated), low_confidence (cache but flag),
-     reject (do not cache, trigger regeneration)"
+    c("accept", "accept_with_corrections", "low_confidence", "reject"),
+    "Final verdict: accept (perfect), accept_with_corrections (minor fixes applied),
+     low_confidence (concerns but usable), reject (severe hallucinations only)"
   )
 )
 
@@ -191,15 +210,33 @@ Compare self-assessed confidence to evidence strength:
 
 ---
 
-## VERDICT CALCULATION
+## VERDICT CALCULATION (with Corrections)
 
 **Total your points from Steps 1-4 (maximum 8 points):**
 
 | Points | Verdict | Action |
 |--------|---------|--------|
 | 7-8 | **accept** | Cache as 'validated' |
-| 4-6 | **low_confidence** | Cache as 'pending' for review |
-| 0-3 | **reject** | Do not cache, trigger regeneration |
+| 5-6 | **accept_with_corrections** | Apply corrections, cache as 'validated' |
+| 3-4 | **low_confidence** | Cache as 'pending' for review |
+| 0-2 | **reject** | Do not cache, trigger regeneration |
+
+**IMPORTANT: Prefer accept_with_corrections over reject when possible**
+
+---
+
+## CORRECTION INSTRUCTIONS
+
+For scores 5-6, if issues are correctable:
+1. Set corrections_needed = true
+2. List corrections in corrections_made array
+3. Provide corrected_tags with ONLY valid pathway/functional terms from input
+4. Use verdict = 'accept_with_corrections'
+
+Only REJECT (score 0-2) if:
+- Summary fundamentally misrepresents the cluster
+- Multiple severe hallucinations that can't be corrected
+- Core summary text is inaccurate (not just tags/metadata)
 
 ---
 
@@ -211,10 +248,17 @@ Compare self-assessed confidence to evidence strength:
 - No invented terms found (+2)
 - Medium confidence for FDR ~1E-30 terms (+2)
 
-### Example: LOW_CONFIDENCE (5 points)
+### Example: ACCEPT_WITH_CORRECTIONS (6 points)
+- Pathway name slightly paraphrased but correct meaning (+1)
+- Most themes grounded, one tag not in data - CORRECT IT (+2)
+- One invented term in tags - REMOVE IT (+1)
+- Confidence matches evidence (+2)
+- corrections_made: ['Removed \"axon guidance\" from tags - not in KEGG data']
+
+### Example: LOW_CONFIDENCE (4 points)
 - 'Ras/MAPK cascade' but data shows 'Ras signaling pathway' separately (+1)
 - Most themes grounded, one reasonable inference (+1)
-- One term not in enrichment data (+1)
+- One term not in enrichment data (+0)
 - Confidence matches evidence (+2)
 
 ### Example: REJECT (2 points)
@@ -381,26 +425,48 @@ Grounding % = (number of grounded claims / total claims) x 100
 
 ---
 
-## VERDICT CRITERIA
+## VERDICT CRITERIA (with Corrections)
 
-**REJECT (any of these):**
-- ANY molecular/gene term found (Step 1)
-- ANY fabricated phenotype (Step 3)
-- ANY direction inversion (Step 4)
-- Grounding score < 70%
+**IMPORTANT: Prefer CORRECTING minor issues over REJECTING**
 
-**LOW_CONFIDENCE (moderate issues):**
-- Grounding score 70-89%
-- Uses overly broad syndrome terms
+**REJECT (only for SEVERE issues):**
+- ANY molecular/gene/pathway term found in main summary text (Step 1)
+- Direction inversion in main summary description (Step 4)
+- Grounding score < 50% in main summary
+- Multiple fabricated claims that fundamentally misrepresent the cluster
+
+**ACCEPT_WITH_CORRECTIONS (correctable issues):**
+- Tags array contains items not in input data → Remove them, list in corrections_made
+- Notably_absent array contains items not in input data → Remove them, list in corrections_made
+- One or two phenotype terms need adjustment → Provide corrected list
+- Main summary is accurate but supporting fields have minor issues
+
+**LOW_CONFIDENCE (moderate issues, no correction possible):**
+- Grounding score 50-79%
+- Uses overly broad syndrome terms that can't be corrected
 - Missing significant phenotypes from top 5 by |v.test|
-- Minor semantic drift but no fabrication
 
 **ACCEPT (all must be true):**
-- Grounding score >= 90%
+- Grounding score >= 80%
 - No molecular/gene content
-- No fabricated phenotypes
+- No fabricated phenotypes in main summary
 - Direction interpretation correct
-- Mentions both enriched AND depleted phenotypes where applicable
+- All tags and notably_absent items verified in input data
+
+---
+
+## CORRECTION INSTRUCTIONS
+
+If issues are correctable:
+1. Set corrections_needed = true
+2. List each correction in corrections_made array
+3. Provide corrected_tags with ONLY items that appear in the input phenotype data
+4. Provide corrected_notably_absent with ONLY depleted phenotypes (v.test < 0) from input
+5. Use verdict = 'accept_with_corrections'
+
+Example correction:
+- corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data']
+- corrected_notably_absent: ['Progressive', 'Developmental regression'] (only items with v.test < 0)
 
 ---
 
@@ -592,6 +658,7 @@ generate_and_validate_with_judge <- function(
   validation_status <- switch(
     judge_result$verdict,
     "accept" = "validated",
+    "accept_with_corrections" = "validated",  # Corrected summaries are validated
     "low_confidence" = "pending",
     "reject" = "rejected",
     "pending"  # Fallback
@@ -604,6 +671,27 @@ generate_and_validate_with_judge <- function(
 
   # Step 4: Add judge metadata to summary
   summary_with_metadata <- gen_result$summary
+
+  # Apply corrections if judge provided them
+  if (isTRUE(judge_result$corrections_needed)) {
+    log_info("Applying judge corrections to summary")
+
+    # Apply corrected tags if provided
+    if (!is.null(judge_result$corrected_tags) && length(judge_result$corrected_tags) > 0) {
+      summary_with_metadata$tags <- judge_result$corrected_tags
+      log_debug("Applied corrected tags: {paste(judge_result$corrected_tags, collapse=', ')}")
+    }
+
+    # Apply corrected notably_absent if provided
+    if (!is.null(judge_result$corrected_notably_absent)) {
+      summary_with_metadata$notably_absent <- judge_result$corrected_notably_absent
+      log_debug("Applied corrected notably_absent: {paste(judge_result$corrected_notably_absent, collapse=', ')}")
+    }
+
+    # Add corrections metadata
+    summary_with_metadata$corrections_applied <- TRUE
+    summary_with_metadata$corrections_made <- judge_result$corrections_made
+  }
 
   # Add judge verdict and reasoning
   summary_with_metadata$llm_judge_verdict <- judge_result$verdict
