@@ -78,10 +78,10 @@ Plans:
   3. All 4 containers can write to shared /app/data directory
   4. Fresh database startup triggers migration from exactly one container
   5. Any issues discovered during testing are fixed and re-validated
-**Plans**: TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 68-01: Local production multi-container testing and validation
+- [ ] 68-01-PLAN.md — Create test-scaling Makefile target and validate multi-container scaling
 
 ## Progress
 
@@ -92,8 +92,8 @@ Phases execute in numeric order: 66 -> 67 -> 68
 |-------|-----------|----------------|--------|-----------|
 | 66. Infrastructure Fixes | v10.1 | 1/1 | ✓ Complete | 2026-02-01 |
 | 67. Migration Coordination | v10.1 | 1/1 | ✓ Complete | 2026-02-01 |
-| 68. Local Production Testing | v10.1 | 0/1 | Not started | - |
+| 68. Local Production Testing | v10.1 | 0/1 | Planned | - |
 
 ---
 *Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01 — Phase 67 complete*
+*Last updated: 2026-02-01 — Phase 68 planned*
