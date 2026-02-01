@@ -592,58 +592,89 @@ cleanupHook <- function(pr) {
 ## -------------------------------------------------------------------##
 #* @plumber
 errorHandler <- function(req, res, err) {
-  # Log all errors with sanitized request info (internal - full details)
-  log_error(
-    "API error",
-    error_class = class(err)[1],
-    error_message = conditionMessage(err),
-    endpoint = req$PATH_INFO,
-    request = sanitize_request(req)
+  # Get error message safely
+  err_msg <- tryCatch(
+    conditionMessage(err),
+    error = function(e) "An error occurred"
   )
 
-  # Handle HTTP problem errors (from httpproblems package)
-  if (inherits(err, "http_problem_error")) {
-    res$status <- err$status
+  # Log all errors with sanitized request info (internal - full details)
+  tryCatch({
+    log_error(
+      "API error",
+      error_class = class(err)[1],
+      error_message = err_msg,
+      endpoint = req$PATH_INFO,
+      request = sanitize_request(req)
+    )
+  }, error = function(e) {
+    # Fallback logging if structured logging fails
+    cat(sprintf("[ERROR] %s: %s\n", class(err)[1], err_msg), file = stderr())
+  })
+
+  # Set content type for all error responses
+  res$setHeader("Content-Type", "application/problem+json")
+
+  # Get request path for 'instance' field (RFC 9457)
+  instance <- tryCatch(req$PATH_INFO, error = function(e) NULL)
+
+  # Helper to create RFC 9457 problem response
+  # Uses unbox() wrapper for proper scalar serialization
+  make_problem_response <- function(type_suffix, title, status_code, detail_msg) {
+    res$status <- status_code
+    # Use serializer_unboxed_json for proper scalar values
     res$serializer <- plumber::serializer_unboxed_json()
-    res$setHeader("Content-Type", "application/problem+json")
-    return(err)
+    list(
+      type = paste0("https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/", status_code),
+      title = title,
+      status = status_code,
+      detail = detail_msg,
+      instance = instance
+    )
   }
 
   # Handle custom classed errors from core/errors.R
+  # Create RFC 9457 problem details directly based on error class
   if (inherits(err, "error_400")) {
-    res$status <- 400
-    res$serializer <- plumber::serializer_unboxed_json()
-    res$setHeader("Content-Type", "application/problem+json")
-    return(bad_request(detail = conditionMessage(err)))
+    return(make_problem_response(400, "Bad Request", 400, err_msg))
   }
 
   if (inherits(err, "error_401")) {
-    res$status <- 401
-    res$serializer <- plumber::serializer_unboxed_json()
-    res$setHeader("Content-Type", "application/problem+json")
-    return(unauthorized(detail = conditionMessage(err)))
+    return(make_problem_response(401, "Unauthorized", 401, err_msg))
   }
 
   if (inherits(err, "error_403")) {
-    res$status <- 403
-    res$serializer <- plumber::serializer_unboxed_json()
-    res$setHeader("Content-Type", "application/problem+json")
-    return(forbidden(detail = conditionMessage(err)))
+    return(make_problem_response(403, "Forbidden", 403, err_msg))
   }
 
   if (inherits(err, "error_404")) {
-    res$status <- 404
-    res$serializer <- plumber::serializer_unboxed_json()
-    res$setHeader("Content-Type", "application/problem+json")
-    return(not_found(detail = conditionMessage(err)))
+    return(make_problem_response(404, "Not Found", 404, err_msg))
   }
 
   # Unhandled exception = 500 Internal Server Error
   # Don't expose internal details to client
-  res$status <- 500
-  res$serializer <- plumber::serializer_unboxed_json()
+  return(make_problem_response(500, "Internal Server Error", 500, "An unexpected error occurred"))
+}
+
+#' Route-level 404 Not Found Handler (RFC 9457 compliant)
+#'
+#' Handles requests to non-existent routes/endpoints.
+#' This is separate from resource-level 404s handled by error_404.
+#'
+#' @param req Plumber request object
+#' @param res Plumber response object
+#' @return RFC 9457 problem details response
+notFoundHandler <- function(req, res) {
+  res$status <- 404
   res$setHeader("Content-Type", "application/problem+json")
-  return(internal_server_error(detail = "An unexpected error occurred"))
+  res$serializer <- plumber::serializer_unboxed_json()
+  list(
+    type = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+    title = "Not Found",
+    status = 404,
+    detail = sprintf("The requested endpoint '%s' does not exist", req$PATH_INFO),
+    instance = req$PATH_INFO
+  )
 }
 
 ## -------------------------------------------------------------------##
@@ -652,6 +683,8 @@ errorHandler <- function(req, res, err) {
 root <- pr() %>%
   # Install error handler middleware
   pr_set_error(errorHandler) %>%
+  # Install 404 handler for non-existent routes (RFC 9457 compliant)
+  pr_set_404(notFoundHandler) %>%
   # Insert doc info in pr_set_api_spec
   pr_set_api_spec(function(spec) {
     # -----------------------------------------------------------------

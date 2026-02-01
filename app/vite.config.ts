@@ -128,12 +128,12 @@ export default defineConfig({
     hmr: {
       clientPort: 5173,
     },
-    // API Proxy - routes /api requests to the backend
-    // In Docker: uses internal hostname 'api:7777'
-    // On host: set VITE_API_URL=http://localhost:7778
+    // API Proxy - routes /api requests to the backend via Traefik
+    // In Docker: uses Traefik for load balancing with sticky sessions
+    // On host: set VITE_API_URL=http://localhost (through Traefik)
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://api:7777',
+        target: process.env.VITE_API_URL || 'http://traefik:80',
         changeOrigin: true,
         // Keep /api prefix since backend expects it
       },

@@ -20,8 +20,12 @@ library(httpproblems)
 #' error_bad_request("Missing required parameter: user_name")
 error_bad_request <- function(message, detail = NULL) {
   err <- bad_request(detail = detail %||% message)
-  class(err) <- c("error_400", "http_problem_error", class(err))
-  err
+  # Create a proper condition so class is preserved through stop()
+  cond <- simpleError(message)
+  cond$http_problem <- err
+  cond$status <- 400
+  class(cond) <- c("error_400", "http_problem_error", class(cond))
+  cond
 }
 
 #' Create a 401 Unauthorized error condition
@@ -35,8 +39,12 @@ error_bad_request <- function(message, detail = NULL) {
 #' error_unauthorized("Invalid username or password")
 error_unauthorized <- function(message = "Authentication required", detail = NULL) {
   err <- unauthorized(detail = detail %||% message)
-  class(err) <- c("error_401", "http_problem_error", class(err))
-  err
+  # Create a proper condition so class is preserved through stop()
+  cond <- simpleError(message)
+  cond$http_problem <- err
+  cond$status <- 401
+  class(cond) <- c("error_401", "http_problem_error", class(cond))
+  cond
 }
 
 #' Create a 403 Forbidden error condition
@@ -51,8 +59,12 @@ error_unauthorized <- function(message = "Authentication required", detail = NUL
 #' error_forbidden("You do not have permission to modify this resource")
 error_forbidden <- function(message = "Insufficient permissions", detail = NULL) {
   err <- forbidden(detail = detail %||% message)
-  class(err) <- c("error_403", "http_problem_error", class(err))
-  err
+  # Create a proper condition so class is preserved through stop()
+  cond <- simpleError(message)
+  cond$http_problem <- err
+  cond$status <- 403
+  class(cond) <- c("error_403", "http_problem_error", class(cond))
+  cond
 }
 
 #' Create a 404 Not Found error condition
@@ -66,8 +78,12 @@ error_forbidden <- function(message = "Insufficient permissions", detail = NULL)
 #' error_not_found("User with ID 123 not found")
 error_not_found <- function(message, detail = NULL) {
   err <- not_found(detail = detail %||% message)
-  class(err) <- c("error_404", "http_problem_error", class(err))
-  err
+  # Create a proper condition so class is preserved through stop()
+  cond <- simpleError(message)
+  cond$http_problem <- err
+  cond$status <- 404
+  class(cond) <- c("error_404", "http_problem_error", class(cond))
+  cond
 }
 
 #' Create a 500 Internal Server Error condition
@@ -82,8 +98,12 @@ error_not_found <- function(message, detail = NULL) {
 #' error_internal("An unexpected error occurred")
 error_internal <- function(message = "An unexpected error occurred", detail = NULL) {
   err <- internal_server_error(detail = detail %||% message)
-  class(err) <- c("error_500", "http_problem_error", class(err))
-  err
+  # Create a proper condition so class is preserved through stop()
+  cond <- simpleError(message)
+  cond$http_problem <- err
+  cond$status <- 500
+  class(cond) <- c("error_500", "http_problem_error", class(cond))
+  cond
 }
 
 # Convenience stop functions for signaling errors in endpoints
