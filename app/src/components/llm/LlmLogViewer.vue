@@ -68,21 +68,20 @@
       </template>
       <template #cell(tokens)="data">
         <span v-if="data.item.tokens_input">
-          {{ data.item.tokens_input?.toLocaleString() }} / {{ data.item.tokens_output?.toLocaleString() }}
+          {{ data.item.tokens_input?.toLocaleString() }} /
+          {{ data.item.tokens_output?.toLocaleString() }}
         </span>
         <span v-else class="text-muted">-</span>
       </template>
       <template #cell(latency)="data">
-        <span v-if="data.item.latency_ms">
-          {{ (data.item.latency_ms / 1000).toFixed(2) }}s
-        </span>
+        <span v-if="data.item.latency_ms"> {{ (data.item.latency_ms / 1000).toFixed(2) }}s </span>
         <span v-else class="text-muted">-</span>
       </template>
       <template #cell(error_message)="data">
         <span
           v-if="data.value"
           class="text-danger text-truncate d-inline-block"
-          style="max-width: 200px; cursor: help;"
+          style="max-width: 200px; cursor: help"
           :title="String(data.value)"
         >
           {{ truncateText(String(data.value), 30) }}
@@ -150,7 +149,8 @@
           <BCol md="3">
             <small class="text-muted">Tokens (In/Out):</small>
             <div v-if="selectedLog.tokens_input">
-              {{ selectedLog.tokens_input?.toLocaleString() }} / {{ selectedLog.tokens_output?.toLocaleString() }}
+              {{ selectedLog.tokens_input?.toLocaleString() }} /
+              {{ selectedLog.tokens_output?.toLocaleString() }}
             </div>
             <div v-else class="text-muted">N/A</div>
           </BCol>
@@ -175,12 +175,7 @@
         </BRow>
 
         <!-- Error Message -->
-        <BAlert
-          v-if="selectedLog.error_message"
-          variant="danger"
-          :model-value="true"
-          class="mb-3"
-        >
+        <BAlert v-if="selectedLog.error_message" variant="danger" :model-value="true" class="mb-3">
           <strong>Error:</strong> {{ selectedLog.error_message }}
         </BAlert>
 
@@ -192,7 +187,7 @@
           class="mb-3"
         >
           <strong>Validation Errors:</strong>
-          <pre class="mb-0 mt-2" style="font-size: 0.8rem;">{{ selectedLog.validation_errors }}</pre>
+          <pre class="mb-0 mt-2" style="font-size: 0.8rem">{{ selectedLog.validation_errors }}</pre>
         </BAlert>
 
         <!-- Prompt Text -->
@@ -200,9 +195,11 @@
           <template #header>
             <small class="fw-bold">Prompt Text</small>
           </template>
-          <pre class="mb-0 overflow-auto" style="max-height: 30vh; font-size: 0.75rem; white-space: pre-wrap;">{{
-            selectedLog.prompt_text
-          }}</pre>
+          <pre
+            class="mb-0 overflow-auto"
+            style="max-height: 30vh; font-size: 0.75rem; white-space: pre-wrap"
+            >{{ selectedLog.prompt_text }}</pre
+          >
         </BCard>
 
         <!-- Response JSON -->
@@ -210,7 +207,7 @@
           <template #header>
             <small class="fw-bold">Response JSON</small>
           </template>
-          <pre class="mb-0 overflow-auto" style="max-height: 30vh; font-size: 0.8rem;">{{
+          <pre class="mb-0 overflow-auto" style="max-height: 30vh; font-size: 0.8rem">{{
             JSON.stringify(selectedLog.response_json, null, 2)
           }}</pre>
         </BCard>

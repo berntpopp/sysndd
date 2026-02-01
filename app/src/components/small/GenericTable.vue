@@ -451,12 +451,12 @@ export default {
      */
     handleSorted(ctx) {
       if (ctx && ctx.sortBy) {
-        const sortKey = Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
-          ? ctx.sortBy[0].key
-          : ctx.sortBy;
-        const sortDesc = Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
-          ? ctx.sortBy[0].order === 'desc'
-          : ctx.sortDesc || false;
+        const sortKey =
+          Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0 ? ctx.sortBy[0].key : ctx.sortBy;
+        const sortDesc =
+          Array.isArray(ctx.sortBy) && ctx.sortBy.length > 0
+            ? ctx.sortBy[0].order === 'desc'
+            : ctx.sortDesc || false;
         this.$emit('update-sort', { sortBy: sortKey, sortDesc });
       }
     },

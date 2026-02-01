@@ -82,10 +82,9 @@ export function usePubtatorAdmin() {
   const baseUrl = `${URLS.API_URL}/api/publication/pubtator`;
 
   // Use the async job composable for fetch operations
-  const asyncJob = useAsyncJob(
-    (jobId: string) => `${URLS.API_URL}/api/jobs/${jobId}/status`,
-    { pollingInterval: 3000 }
-  );
+  const asyncJob = useAsyncJob((jobId: string) => `${URLS.API_URL}/api/jobs/${jobId}/status`, {
+    pollingInterval: 3000,
+  });
 
   /**
    * Get cache status for a query
@@ -124,13 +123,9 @@ export function usePubtatorAdmin() {
     error.value = null;
 
     try {
-      const response = await axios.post<JobSubmitResponse>(
-        `${baseUrl}/update/submit`,
-        null,
-        {
-          params: { query, max_pages: maxPages, clear_old: clearOld },
-        }
-      );
+      const response = await axios.post<JobSubmitResponse>(`${baseUrl}/update/submit`, null, {
+        params: { query, max_pages: maxPages, clear_old: clearOld },
+      });
 
       // Start tracking the job with useAsyncJob
       asyncJob.startJob(response.data.job_id);

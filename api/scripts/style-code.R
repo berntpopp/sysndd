@@ -40,10 +40,10 @@ setwd(api_root)
 style_files <- c(
   # Main entry point
   "start_sysndd_api.R",
-  
+
   # All endpoint files
   list.files("endpoints", pattern = "\\.R$", full.names = TRUE, recursive = TRUE),
-  
+
   # All function files
   list.files("functions", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
 )
@@ -56,7 +56,7 @@ api_style <- function() {
   styler::tidyverse_style(
     # Use 2-space indentation (consistent with current codebase)
     indent_by = 2,
-    
+
     # Keep function arguments aligned (good for API documentation)
     reindention = styler::specify_reindention(
       regex_pattern = "^#'",
@@ -78,12 +78,12 @@ cat("Styling", length(style_files), "R files...\n\n")
 # Function to style a single file
 style_single_file <- function(file_path) {
   cat("Processing:", file_path, "\n")
-  
+
   if (dry_run) {
     # In dry run mode, check what would be changed
     original_code <- readLines(file_path, warn = FALSE)
     styled_code <- styler::style_text(original_code, transformers = api_style())
-    
+
     # Compare original and styled
     if (!identical(original_code, as.character(styled_code))) {
       cat("  → Would be modified\n")
@@ -95,7 +95,7 @@ style_single_file <- function(file_path) {
   } else {
     # Actually style the file
     result <- styler::style_file(file_path, transformers = api_style())
-    
+
     if (any(result$changed)) {
       cat("  ✓ Formatted\n")
       return(1)

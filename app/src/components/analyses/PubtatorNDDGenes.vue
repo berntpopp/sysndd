@@ -38,24 +38,14 @@
                       </p>
                       <p><strong>Prioritization criteria:</strong></p>
                       <ul class="mb-2">
-                        <li>
-                          <em>Literature first:</em> Uncurated genes surface at the top
-                        </li>
-                        <li>
-                          <em>Oldest publication:</em> Long-overlooked genes prioritized
-                        </li>
-                        <li>
-                          <em>Publication count:</em> More mentions = more evidence
-                        </li>
+                        <li><em>Literature first:</em> Uncurated genes surface at the top</li>
+                        <li><em>Oldest publication:</em> Long-overlooked genes prioritized</li>
+                        <li><em>Publication count:</em> More mentions = more evidence</li>
                       </ul>
                       <p><strong>Filtering:</strong></p>
                       <ul class="mb-2">
-                        <li>
-                          <em>Min Publications:</em> Focus on well-cited genes (2+, 5+, 10+)
-                        </li>
-                        <li>
-                          <em>Date Range:</em> Filter by oldest publication date
-                        </li>
+                        <li><em>Min Publications:</em> Focus on well-cited genes (2+, 5+, 10+)</li>
+                        <li><em>Date Range:</em> Filter by oldest publication date</li>
                       </ul>
                       <p class="mb-0">
                         <strong>Export:</strong> Download filtered list to Excel for offline review.

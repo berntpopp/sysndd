@@ -168,7 +168,10 @@ validate_gene_symbols <- function(symbols) {
 
   # Log validation result
   if (length(invalid_symbols) > 0) {
-    log_warn("Gene validation failed: {length(invalid_symbols)} invalid symbols: {paste(invalid_symbols, collapse = ', ')}")
+    log_warn(
+      "Gene validation failed: {length(invalid_symbols)} invalid symbols: ",
+      "{paste(invalid_symbols, collapse = ', ')}"
+    )
   } else {
     log_debug("Gene validation passed: {length(valid_symbols)} valid symbols")
   }

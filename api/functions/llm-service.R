@@ -265,7 +265,8 @@ build_cluster_prompt <- function(cluster_data, top_n_terms = 20) {
 You are a genomics expert analyzing gene clusters associated with neurodevelopmental disorders.
 
 ## Task
-Analyze this functional gene cluster and summarize its biological significance based STRICTLY on the enrichment data provided.
+Analyze this functional gene cluster and summarize its biological significance
+based STRICTLY on the enrichment data provided.
 
 ## Cluster Information
 - **Cluster Size:** {gene_count} genes
@@ -318,7 +319,8 @@ Before finalizing, verify:
 - [ ] Disease relevance only mentions terms from the HPO section
 - [ ] No terms were invented, paraphrased beyond recognition, or generalized
 
-CRITICAL: Only reference terms that appear in the enrichment data above. Invented or generalized terms will cause rejection.
+CRITICAL: Only reference terms that appear in the enrichment data above.
+Invented or generalized terms will cause rejection.
 ")
 
   return(prompt)
@@ -531,7 +533,8 @@ Analyze this phenotype cluster and describe its clinical pattern using ONLY the 
 
 ## Important Context
 - This cluster contains {entity_count} DISEASE ENTITIES (gene-disease associations), NOT individual genes
-- Entities were clustered based on their phenotype (clinical feature) annotations using Multiple Correspondence Analysis (MCA)
+- Entities were clustered based on their phenotype (clinical feature) annotations
+  using Multiple Correspondence Analysis (MCA)
 - v.test score indicates statistical enrichment/depletion:
   - POSITIVE v.test = MORE COMMON in this cluster than database average
   - NEGATIVE v.test = LESS COMMON in this cluster than database average
@@ -568,7 +571,8 @@ Positive v.test = over-represented; Negative v.test = under-represented.
 - Infer related phenotypes (e.g., do NOT add 'seizures' if only 'Abnormal nervous system physiology' is listed)
 - Use clinical synonyms not in the data (e.g., do NOT say 'ataxia' if only 'Movement disorder' is listed)
 - Mention genes, proteins, or molecular pathways - this is PURELY phenotype-based
-- Generalize beyond the specific phenotype names (e.g., do NOT say 'neurological features' when specific phenotypes are listed)
+- Generalize beyond the specific phenotype names (e.g., do NOT say
+  'neurological features' when specific phenotypes are listed)
 - Use terms like: gene, protein, pathway, signaling, transcription, chromatin, enzyme, receptor, kinase, DNA, RNA
 
 ### ALLOWED:
@@ -583,7 +587,8 @@ Positive v.test = over-represented; Negative v.test = under-represented.
 ## Instructions
 Based ONLY on the data above:
 
-1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern. Reference specific phenotype names from the data.
+1. **Summary (2-3 sentences):** Describe the clinical phenotype pattern.
+   Reference specific phenotype names from the data.
    - If uncertain, say 'The data suggests...' rather than stating definitively
    - May mention inheritance patterns if significantly associated
 
@@ -595,7 +600,8 @@ Based ONLY on the data above:
    - Do NOT paraphrase or interpret - use the exact names
 
 4. **Clinical pattern:** What syndrome category does this suggest?
-   - Choose from: 'syndromic malformation', 'pure neurodevelopmental', 'progressive metabolic/degenerative', 'overgrowth syndrome', 'other'
+   - Choose from: 'syndromic malformation', 'pure neurodevelopmental',
+     'progressive metabolic/degenerative', 'overgrowth syndrome', 'other'
 
 5. **Syndrome hints (optional):** If the phenotype pattern strongly suggests known syndrome categories, list them.
    - If uncertain, state 'No specific syndrome pattern identified' rather than guessing
@@ -604,7 +610,8 @@ Based ONLY on the data above:
    - Example: if 'Abnormality of the kidney' is enriched, use 'renal' or 'kidney'
 
 7. **Inheritance patterns (1-3):** Based on the inheritance data in SECTION 2:
-   - Use standard abbreviations: AD (Autosomal dominant), AR (Autosomal recessive), XL (X-linked), MT (Mitochondrial), SP (Sporadic)
+   - Use standard abbreviations: AD (Autosomal dominant), AR (Autosomal recessive),
+     XL (X-linked), MT (Mitochondrial), SP (Sporadic)
    - Only include patterns with significant v.test (>2)
    - Leave empty if no significant inheritance associations
 
@@ -1182,7 +1189,10 @@ calculate_derived_confidence <- function(data, cluster_type = NULL) {
       "low"
     }
 
-    log_debug("Derived confidence (phenotype): avg_pvalue={signif(avg_pvalue, 3)}, term_count={term_count}, strong_effects={strong_effects}, score={score}")
+    log_debug(
+      "Derived confidence (phenotype): avg_pvalue={signif(avg_pvalue, 3)}, ",
+      "term_count={term_count}, strong_effects={strong_effects}, score={score}"
+    )
 
     return(list(
       avg_fdr = avg_pvalue,  # Use p.value for consistency with frontend

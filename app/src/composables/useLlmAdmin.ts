@@ -34,7 +34,12 @@ function unwrapPlumberValue<T>(value: T): T {
 
   // If it's an array with exactly one element that is a primitive, unwrap it
   if (Array.isArray(value)) {
-    if (value.length === 1 && (typeof value[0] === 'string' || typeof value[0] === 'number' || typeof value[0] === 'boolean')) {
+    if (
+      value.length === 1 &&
+      (typeof value[0] === 'string' ||
+        typeof value[0] === 'number' ||
+        typeof value[0] === 'boolean')
+    ) {
       return value[0] as T;
     }
     // If array has multiple elements or contains objects, process each element
@@ -86,10 +91,7 @@ export interface UseLlmAdminReturn {
       per_page?: number;
     }
   ) => Promise<PaginatedCacheSummaries>;
-  clearCache: (
-    token: string,
-    clusterType: ClusterType | 'all'
-  ) => Promise<CacheClearResponse>;
+  clearCache: (token: string, clusterType: ClusterType | 'all') => Promise<CacheClearResponse>;
   updateValidationStatus: (
     token: string,
     cacheId: number,
@@ -155,14 +157,10 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put<ModelUpdateResponse>(
-        `${API_BASE}/config`,
-        null,
-        {
-          headers: authHeaders(token),
-          params: { model },
-        }
-      );
+      const response = await axios.put<ModelUpdateResponse>(`${API_BASE}/config`, null, {
+        headers: authHeaders(token),
+        params: { model },
+      });
       if (config.value) {
         config.value.current_model = model;
       }
@@ -248,13 +246,10 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       per_page?: number;
     } = {}
   ): Promise<PaginatedCacheSummaries> {
-    const response = await axios.get<PaginatedCacheSummaries>(
-      `${API_BASE}/cache/summaries`,
-      {
-        headers: authHeaders(token),
-        params,
-      }
-    );
+    const response = await axios.get<PaginatedCacheSummaries>(`${API_BASE}/cache/summaries`, {
+      headers: authHeaders(token),
+      params,
+    });
     return response.data;
   }
 
@@ -294,14 +289,10 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     clusterType: ClusterType | 'all',
     force = false
   ): Promise<RegenerationJobResponse> {
-    const response = await axios.post<RegenerationJobResponse>(
-      `${API_BASE}/regenerate`,
-      null,
-      {
-        headers: authHeaders(token),
-        params: { cluster_type: clusterType, force },
-      }
-    );
+    const response = await axios.post<RegenerationJobResponse>(`${API_BASE}/regenerate`, null, {
+      headers: authHeaders(token),
+      params: { cluster_type: clusterType, force },
+    });
     return response.data;
   }
 

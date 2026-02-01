@@ -40,10 +40,10 @@ setwd(api_root)
 lint_files <- c(
   # Main entry point
   "start_sysndd_api.R",
-  
+
   # All endpoint files
   list.files("endpoints", pattern = "\\.R$", full.names = TRUE, recursive = TRUE),
-  
+
   # All function files
   list.files("functions", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
 )
@@ -58,21 +58,21 @@ cat("Checking", length(lint_files), "R files...\n\n")
 # Function to run lintr on a single file
 lint_single_file <- function(file_path) {
   cat("Checking:", file_path, "\n")
-  
+
   # Run lintr
   lint_results <- lintr::lint(file_path)
-  
+
   if (length(lint_results) == 0) {
     cat("  ✓ No issues found\n")
     return(0)
   } else {
     cat("  ⚠", length(lint_results), "issue(s) found:\n")
-    
+
     # Print lint results
     for (lint_item in lint_results) {
       cat("    Line", lint_item$line_number, ":", lint_item$message, "\n")
     }
-    
+
     return(length(lint_results))
   }
 }
@@ -84,11 +84,11 @@ files_with_issues <- 0
 for (file_path in lint_files) {
   issues_in_file <- lint_single_file(file_path)
   total_issues <- total_issues + issues_in_file
-  
+
   if (issues_in_file > 0) {
     files_with_issues <- files_with_issues + 1
   }
-  
+
   cat("\n")
 }
 
@@ -107,15 +107,15 @@ if (fix_issues) {
     install.packages("styler", repos = "https://cran.r-project.org")
     library(styler)
   }
-  
+
   cat("Running styler to fix formatting issues...\n")
-  
+
   # Style all files
   for (file_path in lint_files) {
     cat("Styling:", file_path, "\n")
     styler::style_file(file_path, transformers = styler::tidyverse_style())
   }
-  
+
   cat("✓ Code formatting completed\n")
   cat("Re-run without --fix flag to check for remaining issues\n")
 }

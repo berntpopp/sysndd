@@ -119,5 +119,10 @@ export { use3DStructure } from './use3DStructure';
 export type { Use3DStructureReturn } from './use3DStructure';
 
 // PubTator annotation parser
-export { usePubtatorParser, parsePubtatorText, extractEntities, extractGeneSymbols } from './usePubtatorParser';
+export {
+  usePubtatorParser,
+  parsePubtatorText,
+  extractEntities,
+  extractGeneSymbols,
+} from './usePubtatorParser';
 export type { ParsedSegment, ExtractedEntity } from './usePubtatorParser';

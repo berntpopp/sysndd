@@ -1,6 +1,11 @@
 # Test file: test-llm-judge.R
 # Unit tests for LLM-as-judge validation functions
 
+# Source the required functions
+source_api_file("functions/llm-service.R", local = FALSE)
+source_api_file("functions/llm-judge.R", local = FALSE)
+source_api_file("functions/llm-cache-repository.R", local = FALSE)
+
 # Test setup helpers
 skip_if_no_gemini <- function() {
   skip_if(!exists("is_gemini_configured", mode = "function") || !is_gemini_configured(),
@@ -15,7 +20,9 @@ skip_if_no_db <- function() {
 # Tests for llm_judge_verdict_type
 test_that("llm_judge_verdict_type has required fields", {
   expect_true(exists("llm_judge_verdict_type"))
-  expect_s3_class(llm_judge_verdict_type, "type_object")
+  # ellmer uses S7 classes - check for ellmer::TypeObject or similar
+  expect_true(inherits(llm_judge_verdict_type, "ellmer::TypeObject") ||
+              inherits(llm_judge_verdict_type, "S7_object"))
 
   # Verify structure contains key fields
   type_str <- capture.output(print(llm_judge_verdict_type))
@@ -27,7 +34,9 @@ test_that("verdict enum contains exactly accept, low_confidence, reject", {
   # This is verified by the type specification in llm-judge.R
   # We can check that the function exists and is properly typed
   expect_true(exists("llm_judge_verdict_type"))
-  expect_s3_class(llm_judge_verdict_type, "type_object")
+  # ellmer uses S7 classes - check for ellmer::TypeObject or similar
+  expect_true(inherits(llm_judge_verdict_type, "ellmer::TypeObject") ||
+              inherits(llm_judge_verdict_type, "S7_object"))
 })
 
 

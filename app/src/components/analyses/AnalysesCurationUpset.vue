@@ -34,7 +34,10 @@
       </template>
 
       <!-- Source Selection: Dropdown + Chips -->
-      <div v-if="!loadingUpset && columns_list && columns_list.length > 0" class="source-selector p-2">
+      <div
+        v-if="!loadingUpset && columns_list && columns_list.length > 0"
+        class="source-selector p-2"
+      >
         <div class="d-flex flex-wrap align-items-center gap-2">
           <!-- Dropdown for adding sources -->
           <BDropdown
@@ -89,7 +92,11 @@
               :variant="getSourceVariant(source)"
               class="source-chip"
               :disabled="selected_columns.length <= 2"
-              :title="selected_columns.length <= 2 ? 'Minimum 2 sources required' : `Remove ${formatSourceName(source)}`"
+              :title="
+                selected_columns.length <= 2
+                  ? 'Minimum 2 sources required'
+                  : `Remove ${formatSourceName(source)}`
+              "
               @remove="removeSource(source)"
             >
               {{ formatSourceName(source) }}
@@ -109,28 +116,18 @@
           </BButton>
 
           <!-- Separator -->
-          <span class="border-start mx-2" style="height: 24px;" />
+          <span class="border-start mx-2" style="height: 24px" />
 
           <!-- Definitive Only toggle -->
-          <BFormCheckbox
-            v-model="definitiveOnly"
-            switch
-            size="sm"
-            class="definitive-toggle"
-          >
+          <BFormCheckbox v-model="definitiveOnly" switch size="sm" class="definitive-toggle">
             <span class="small fw-semibold">Definitive Only</span>
           </BFormCheckbox>
 
           <!-- Separator -->
-          <span class="border-start mx-2" style="height: 24px;" />
+          <span class="border-start mx-2" style="height: 24px" />
 
           <!-- Highlight SysNDD toggle -->
-          <BFormCheckbox
-            v-model="highlightSysNDD"
-            switch
-            size="sm"
-            class="highlight-toggle"
-          >
+          <BFormCheckbox v-model="highlightSysNDD" switch size="sm" class="highlight-toggle">
             <span class="small fw-semibold">
               <span class="highlight-indicator sysndd-indicator" />
               Highlight SysNDD
@@ -138,12 +135,7 @@
           </BFormCheckbox>
 
           <!-- Highlight Core Overlap toggle -->
-          <BFormCheckbox
-            v-model="highlightCoreOverlap"
-            switch
-            size="sm"
-            class="highlight-toggle"
-          >
+          <BFormCheckbox v-model="highlightCoreOverlap" switch size="sm" class="highlight-toggle">
             <span class="small fw-semibold">
               <span class="highlight-indicator overlap-indicator" />
               Core Overlap
@@ -233,8 +225,9 @@ export default {
     },
     availableSources() {
       if (!this.columns_list) return [];
-      return this.normalizeSelectOptions(this.columns_list)
-        .filter((opt) => !this.selected_columns.includes(opt.value));
+      return this.normalizeSelectOptions(this.columns_list).filter(
+        (opt) => !this.selected_columns.includes(opt.value)
+      );
     },
   },
   watch: {
@@ -405,7 +398,9 @@ export default {
     },
     // Select all sources
     selectAllSources() {
-      this.selected_columns = this.normalizeSelectOptions(this.columns_list).map((opt) => opt.value);
+      this.selected_columns = this.normalizeSelectOptions(this.columns_list).map(
+        (opt) => opt.value
+      );
     },
     // Reset to default selection
     resetToDefault() {
@@ -530,8 +525,8 @@ mark {
 }
 
 .highlight-toggle :deep(.form-check-input:checked) {
-  background-color: #0072B2; /* Okabe-Ito Blue */
-  border-color: #0072B2;
+  background-color: #0072b2; /* Okabe-Ito Blue */
+  border-color: #0072b2;
 }
 
 /* Color indicator dots next to toggle labels */
@@ -546,11 +541,11 @@ mark {
 }
 
 .sysndd-indicator {
-  background-color: #0072B2; /* Okabe-Ito Blue */
+  background-color: #0072b2; /* Okabe-Ito Blue */
 }
 
 .overlap-indicator {
-  background-color: #D55E00; /* Okabe-Ito Vermilion */
+  background-color: #d55e00; /* Okabe-Ito Vermilion */
 }
 
 /* Chip animation */

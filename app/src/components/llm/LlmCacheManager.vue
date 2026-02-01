@@ -197,12 +197,7 @@
         <!-- Tags -->
         <div v-if="selectedSummary.tags?.length" class="mb-3">
           <small class="text-muted d-block mb-1">Tags:</small>
-          <BBadge
-            v-for="tag in selectedSummary.tags"
-            :key="tag"
-            variant="secondary"
-            class="me-1"
-          >
+          <BBadge v-for="tag in selectedSummary.tags" :key="tag" variant="secondary" class="me-1">
             {{ tag }}
           </BBadge>
         </div>
@@ -212,7 +207,7 @@
           <template #header>
             <small class="fw-bold">Summary Content</small>
           </template>
-          <pre class="mb-0 overflow-auto" style="max-height: 50vh; font-size: 0.8rem;">{{
+          <pre class="mb-0 overflow-auto" style="max-height: 50vh; font-size: 0.8rem">{{
             JSON.stringify(selectedSummary.summary_json, null, 2)
           }}</pre>
         </BCard>

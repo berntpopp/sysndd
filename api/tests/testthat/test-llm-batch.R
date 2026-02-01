@@ -1,6 +1,12 @@
 # Test file: test-llm-batch.R
 # Unit tests for LLM batch generator functions
 
+# Source the required functions
+source_api_file("functions/llm-service.R", local = FALSE)
+source_api_file("functions/llm-batch-generator.R", local = FALSE)
+source_api_file("functions/llm-cache-repository.R", local = FALSE)
+source_api_file("functions/job-progress.R", local = FALSE)
+
 # Skip if database not available (integration tests)
 skip_if_no_db <- function() {
   skip_if(!exists("db_execute_query", mode = "function"), "Database helpers not loaded")

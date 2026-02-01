@@ -24,7 +24,11 @@
           <br />
           <small class="text-muted">
             Rate limit: {{ selectedModelInfo.rpm_limit?.toLocaleString() ?? 'N/A' }} RPM
-            <span v-if="typeof selectedModelInfo.rpd_limit === 'number' && selectedModelInfo.rpd_limit > 0">
+            <span
+              v-if="
+                typeof selectedModelInfo.rpd_limit === 'number' && selectedModelInfo.rpd_limit > 0
+              "
+            >
               , {{ selectedModelInfo.rpd_limit.toLocaleString() }} RPD
             </span>
           </small>
@@ -110,11 +114,12 @@ watch(
   }
 );
 
-const modelOptions = computed(() =>
-  props.config?.available_models?.map((m) => ({
-    value: m.model_id,
-    text: `${m.display_name} - ${m.recommended_for}`,
-  })) ?? []
+const modelOptions = computed(
+  () =>
+    props.config?.available_models?.map((m) => ({
+      value: m.model_id,
+      text: `${m.display_name} - ${m.recommended_for}`,
+    })) ?? []
 );
 
 const selectedModelInfo = computed(() =>

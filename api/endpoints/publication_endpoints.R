@@ -946,14 +946,14 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
         collect() %>%
         pull(n)
 
+      search_ids_tbl <- pool %>%
+        tbl("pubtator_search_cache") %>%
+        dplyr::filter(query_id == !!query_id) %>%
+        dplyr::select(search_id)
+
       annotation_count <- pool %>%
         tbl("pubtator_annotation_cache") %>%
-        dplyr::inner_join(
-          pool %>% tbl("pubtator_search_cache") %>%
-            dplyr::filter(query_id == !!query_id) %>%
-            dplyr::select(search_id),
-          by = "search_id"
-        ) %>%
+        dplyr::inner_join(search_ids_tbl, by = "search_id") %>%
         dplyr::count() %>%
         collect() %>%
         pull(n)

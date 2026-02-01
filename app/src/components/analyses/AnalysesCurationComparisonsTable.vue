@@ -58,7 +58,10 @@
             </h6>
           </BCol>
           <BCol>
-            <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold d-flex align-items-center justify-content-end gap-2">
+            <h5
+              v-if="showFilterControls"
+              class="mb-1 text-end font-weight-bold d-flex align-items-center justify-content-end gap-2"
+            >
               <!-- Definitive Only toggle -->
               <BFormCheckbox
                 v-model="definitiveOnly"

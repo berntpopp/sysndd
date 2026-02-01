@@ -10,7 +10,9 @@
             <span class="ai-label">AI</span>
           </span>
           <span class="header-title">
-            Summary<span v-if="clusterNumber" class="text-muted fw-normal"> — Cluster {{ clusterNumber }}</span>
+            Summary<span v-if="clusterNumber" class="text-muted fw-normal">
+              — Cluster {{ clusterNumber }}</span
+            >
           </span>
         </div>
         <!-- Verification badge inline with header -->
@@ -23,8 +25,14 @@
             pill
           >
             <i v-if="judgeVerdict === 'accept'" class="bi bi-check-circle-fill me-1" />
-            <i v-else-if="judgeVerdict === 'accept_with_corrections'" class="bi bi-check2-circle me-1" />
-            <i v-else-if="judgeVerdict === 'low_confidence'" class="bi bi-exclamation-triangle me-1" />
+            <i
+              v-else-if="judgeVerdict === 'accept_with_corrections'"
+              class="bi bi-check2-circle me-1"
+            />
+            <i
+              v-else-if="judgeVerdict === 'low_confidence'"
+              class="bi bi-exclamation-triangle me-1"
+            />
             <i v-else-if="judgeVerdict === 'reject'" class="bi bi-x-circle me-1" />
             {{ judgeVerdictLabel }}
           </BBadge>
@@ -43,12 +51,7 @@
       <!-- Tags section -->
       <div v-if="hasTags" class="tags-section">
         <div class="tags-container">
-          <BBadge
-            v-for="tag in summary.tags"
-            :key="tag"
-            variant="light"
-            class="tag-badge"
-          >
+          <BBadge v-for="tag in summary.tags" :key="tag" variant="light" class="tag-badge">
             {{ tag }}
           </BBadge>
         </div>
@@ -291,7 +294,10 @@ export default defineComponent({
      * Check if inheritance patterns are present and non-empty
      */
     const hasInheritancePatterns = computed<boolean>(() => {
-      return Array.isArray(props.summary?.inheritance_patterns) && props.summary.inheritance_patterns.length > 0;
+      return (
+        Array.isArray(props.summary?.inheritance_patterns) &&
+        props.summary.inheritance_patterns.length > 0
+      );
     });
 
     /**
@@ -305,7 +311,15 @@ export default defineComponent({
     /**
      * Syndromicity badge variant
      */
-    type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
+    type BadgeVariant =
+      | 'primary'
+      | 'secondary'
+      | 'success'
+      | 'danger'
+      | 'warning'
+      | 'info'
+      | 'light'
+      | 'dark';
     const syndromicityVariant = computed<BadgeVariant>(() => {
       const syndromicity = normalize(props.summary?.syndromicity);
       switch (syndromicity) {
@@ -342,13 +356,13 @@ export default defineComponent({
      */
     const getInheritanceTooltip = (pattern: string): string => {
       const tooltips: Record<string, string> = {
-        'AD': 'Autosomal dominant inheritance',
-        'AR': 'Autosomal recessive inheritance',
-        'XL': 'X-linked inheritance',
-        'XLR': 'X-linked recessive inheritance',
-        'XLD': 'X-linked dominant inheritance',
-        'MT': 'Mitochondrial inheritance',
-        'SP': 'Sporadic occurrence',
+        AD: 'Autosomal dominant inheritance',
+        AR: 'Autosomal recessive inheritance',
+        XL: 'X-linked inheritance',
+        XLR: 'X-linked recessive inheritance',
+        XLD: 'X-linked dominant inheritance',
+        MT: 'Mitochondrial inheritance',
+        SP: 'Sporadic occurrence',
       };
       return tooltips[pattern.toUpperCase()] || pattern;
     };

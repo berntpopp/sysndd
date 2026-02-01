@@ -380,14 +380,18 @@ describe("db_with_transaction", {
   })
 
   it("returns connection to pool even on error", {
-    mock_pool <- structure(list(), class = "MockPool")
+    # Must use "Pool" class for inherits() check in db_with_transaction
+    mock_pool <- structure(list(), class = "Pool")
     mock_conn <- structure(list(), class = "MockConnection")
-    pool_returned <- FALSE
+
+    # Use a list to track state since <<- in mocked functions may have scope issues
+    state <- new.env()
+    state$pool_returned <- FALSE
 
     local_mocked_bindings(
       poolCheckout = function(pool) mock_conn,
       poolReturn = function(conn) {
-        pool_returned <<- TRUE
+        state$pool_returned <- TRUE
         invisible(NULL)
       },
       .package = "pool"
@@ -406,7 +410,7 @@ describe("db_with_transaction", {
     )
 
     # Connection should be returned to pool even though error occurred
-    expect_true(pool_returned)
+    expect_true(state$pool_returned)
   })
 
   it("logs transaction lifecycle", {

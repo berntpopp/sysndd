@@ -167,10 +167,7 @@
                 >
                   {{ pubtatorStats.publication_count?.toLocaleString() }} publications
                 </span>
-                <span
-                  v-if="pubtatorStats.gene_count !== null"
-                  class="badge bg-info ms-2 fw-normal"
-                >
+                <span v-if="pubtatorStats.gene_count !== null" class="badge bg-info ms-2 fw-normal">
                   {{ pubtatorStats.gene_count?.toLocaleString() }} genes
                 </span>
                 <span
@@ -222,16 +219,9 @@
               </div>
             </div>
 
-            <BAlert
-              v-if="pubtatorStats.gene_count === 0"
-              variant="warning"
-              show
-              class="mt-2 mb-0"
-            >
+            <BAlert v-if="pubtatorStats.gene_count === 0" variant="warning" show class="mt-2 mb-0">
               No Pubtator data cached.
-              <router-link :to="{ name: 'ManagePubtator' }">
-                Manage Cache
-              </router-link>
+              <router-link :to="{ name: 'ManagePubtator' }"> Manage Cache </router-link>
               to fetch publications.
             </BAlert>
           </BCard>
@@ -314,7 +304,9 @@
 
               <BProgress
                 v-if="comparisonsJob.isLoading.value"
-                :value="comparisonsJob.hasRealProgress.value ? comparisonsJob.progressPercent.value : 100"
+                :value="
+                  comparisonsJob.hasRealProgress.value ? comparisonsJob.progressPercent.value : 100
+                "
                 :max="100"
                 :animated="true"
                 :striped="!comparisonsJob.hasRealProgress.value"
@@ -361,7 +353,10 @@
               show
               class="mt-2 mb-0"
             >
-              {{ comparisonsJob.error.value || 'Comparisons refresh failed. Check job history for details.' }}
+              {{
+                comparisonsJob.error.value ||
+                'Comparisons refresh failed. Check job history for details.'
+              }}
             </BAlert>
           </BCard>
         </BCol>
@@ -380,10 +375,7 @@
             <template #header>
               <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
                 Publication Metadata Refresh
-                <span
-                  v-if="publicationStats.total !== null"
-                  class="badge bg-info ms-2 fw-normal"
-                >
+                <span v-if="publicationStats.total !== null" class="badge bg-info ms-2 fw-normal">
                   {{ publicationStats.total?.toLocaleString() }} publications
                 </span>
                 <span
@@ -403,8 +395,8 @@
 
             <div class="mb-3">
               <p class="text-muted small mb-2">
-                Refresh publication metadata from PubMed. Publications are updated in place
-                (no deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
+                Refresh publication metadata from PubMed. Publications are updated in place (no
+                deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
               </p>
             </div>
 
@@ -483,29 +475,47 @@
                 :disabled="publicationRefreshJob.isLoading.value || filteredCount === 0"
                 @click="refreshFilteredPublications"
               >
-                <BSpinner v-if="publicationRefreshJob.isLoading.value" small type="grow" class="me-2" />
-                {{ publicationRefreshJob.isLoading.value ? 'Refreshing...' : `Refresh ${filteredCount?.toLocaleString()} Publications` }}
+                <BSpinner
+                  v-if="publicationRefreshJob.isLoading.value"
+                  small
+                  type="grow"
+                  class="me-2"
+                />
+                {{
+                  publicationRefreshJob.isLoading.value
+                    ? 'Refreshing...'
+                    : `Refresh ${filteredCount?.toLocaleString()} Publications`
+                }}
               </BButton>
               <BButton
                 variant="primary"
                 :disabled="publicationRefreshJob.isLoading.value || publicationStats.total === null"
                 @click="refreshAllPublications"
               >
-                <BSpinner v-if="publicationRefreshJob.isLoading.value" small type="grow" class="me-2" />
-                {{ publicationRefreshJob.isLoading.value ? 'Refreshing...' : 'Refresh All Publications' }}
+                <BSpinner
+                  v-if="publicationRefreshJob.isLoading.value"
+                  small
+                  type="grow"
+                  class="me-2"
+                />
+                {{
+                  publicationRefreshJob.isLoading.value
+                    ? 'Refreshing...'
+                    : 'Refresh All Publications'
+                }}
               </BButton>
             </div>
 
             <!-- Progress display -->
             <div
-              v-if="publicationRefreshJob.isLoading.value || publicationRefreshJob.status.value !== 'idle'"
+              v-if="
+                publicationRefreshJob.isLoading.value ||
+                publicationRefreshJob.status.value !== 'idle'
+              "
               class="mt-3"
             >
               <div class="d-flex align-items-center mb-2">
-                <span
-                  class="badge me-2"
-                  :class="publicationRefreshJob.statusBadgeClass.value"
-                >
+                <span class="badge me-2" :class="publicationRefreshJob.statusBadgeClass.value">
                   {{ publicationRefreshJob.status.value }}
                 </span>
                 <span class="text-muted">{{ publicationRefreshJob.step.value }}</span>
@@ -513,7 +523,11 @@
 
               <BProgress
                 v-if="publicationRefreshJob.isLoading.value"
-                :value="publicationRefreshJob.hasRealProgress.value ? publicationRefreshJob.progressPercent.value : 100"
+                :value="
+                  publicationRefreshJob.hasRealProgress.value
+                    ? publicationRefreshJob.progressPercent.value
+                    : 100
+                "
                 :max="100"
                 :animated="true"
                 :striped="!publicationRefreshJob.hasRealProgress.value"
@@ -533,7 +547,10 @@
               </BProgress>
 
               <div
-                v-if="publicationRefreshJob.progress.value.current && publicationRefreshJob.progress.value.total"
+                v-if="
+                  publicationRefreshJob.progress.value.current &&
+                  publicationRefreshJob.progress.value.total
+                "
                 class="small text-muted mt-1"
               >
                 {{ publicationRefreshJob.progress.value.current.toLocaleString() }} /
@@ -557,7 +574,10 @@
                 show
                 class="mt-2 mb-0"
               >
-                {{ publicationRefreshJob.error.value || 'Refresh failed. Check job history for details.' }}
+                {{
+                  publicationRefreshJob.error.value ||
+                  'Refresh failed. Check job history for details.'
+                }}
               </BAlert>
             </div>
           </BCard>
@@ -1561,7 +1581,7 @@ async function fetchPubtatorStats() {
       {
         params: {
           page_size: 1,
-          filter: "is_novel==1",
+          filter: 'is_novel==1',
           fields: 'gene_symbol',
         },
       }
@@ -1594,14 +1614,11 @@ async function fetchPubtatorStats() {
 async function fetchPublicationStats() {
   loadingPublicationStats.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication/stats`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      }
-    );
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
     publicationStats.value = {
       total: unwrapValue(response.data.total),
       oldest_update: unwrapValue(response.data.oldest_update),
@@ -1617,9 +1634,7 @@ async function fetchPublicationStats() {
 async function fetchComparisonsMetadata() {
   loadingComparisonsMetadata.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/comparisons/metadata`
-    );
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
     comparisonsMetadata.value = {
       last_full_refresh: unwrapValue(response.data.last_full_refresh),
       last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
@@ -1683,17 +1698,14 @@ async function fetchFilteredCount() {
 
   loadingFilteredCount.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication/stats`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        params: {
-          not_updated_since: notUpdatedSince.value,
-        },
-      }
-    );
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      params: {
+        not_updated_since: notUpdatedSince.value,
+      },
+    });
     filteredCount.value = unwrapValue(response.data.filtered_count) ?? null;
   } catch (error) {
     console.warn('Failed to fetch filtered count:', error);
@@ -1724,11 +1736,7 @@ async function refreshFilteredPublications() {
     );
 
     if (jobResponse.data.error) {
-      makeToast(
-        jobResponse.data.message || 'Failed to start refresh',
-        'Error',
-        'danger'
-      );
+      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
       return;
     }
 
@@ -1758,18 +1766,15 @@ async function refreshAllPublications() {
 
   try {
     // Get all publication PMIDs via the publications endpoint
-    const pubResponse = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        params: {
-          fields: 'publication_id',
-          page_size: 10000, // Get all publications
-        },
-      }
-    );
+    const pubResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      params: {
+        fields: 'publication_id',
+        page_size: 10000, // Get all publications
+      },
+    });
 
     // Extract PMIDs from the cursor-paginated response
     const publications = pubResponse.data?.data || [];
@@ -1795,11 +1800,7 @@ async function refreshAllPublications() {
     );
 
     if (jobResponse.data.error) {
-      makeToast(
-        jobResponse.data.message || 'Failed to start refresh',
-        'Error',
-        'danger'
-      );
+      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
       return;
     }
 

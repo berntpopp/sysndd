@@ -586,7 +586,8 @@ If issues are correctable:
 7. Use verdict = 'accept_with_corrections'
 
 Example correction:
-- corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data', 'Corrected inheritance from XL to AR based on source data']
+- corrections_made: ['Removed \"Seizures\" from notably_absent - not in input data',
+  'Corrected inheritance from XL to AR based on source data']
 - corrected_notably_absent: ['Progressive', 'Developmental regression'] (only items with v.test < 0)
 - corrected_inheritance_patterns: ['AR', 'AD'] (only from source data)
 - corrected_syndromicity: 'predominantly_id' (based on positive v.test for phenotype_id_count)
@@ -820,9 +821,10 @@ generate_and_validate_with_judge <- function(
     }
 
     # Apply corrected inheritance_patterns if provided
-    if (!is.null(judge_result$corrected_inheritance_patterns) && length(judge_result$corrected_inheritance_patterns) > 0) {
-      summary_with_metadata$inheritance_patterns <- judge_result$corrected_inheritance_patterns
-      log_debug("Applied corrected inheritance_patterns: {paste(judge_result$corrected_inheritance_patterns, collapse=', ')}")
+    corrected_inh <- judge_result$corrected_inheritance_patterns
+    if (!is.null(corrected_inh) && length(corrected_inh) > 0) {
+      summary_with_metadata$inheritance_patterns <- corrected_inh
+      log_debug("Applied corrected inheritance_patterns: {paste(corrected_inh, collapse=', ')}")
     }
 
     # Apply corrected syndromicity if provided

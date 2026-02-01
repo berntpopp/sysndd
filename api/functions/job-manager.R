@@ -149,12 +149,20 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
           NULL
         }
 
-        message("[job-manager] chain_clusters is ", if (is.null(chain_clusters)) "NULL" else paste0("data.frame with ", nrow(chain_clusters), " rows"))
+        chain_msg <- if (is.null(chain_clusters)) {
+          "NULL"
+        } else {
+          paste0("data.frame with ", nrow(chain_clusters), " rows")
+        }
+        message("[job-manager] chain_clusters is ", chain_msg)
 
         if (!is.null(chain_clusters) && nrow(chain_clusters) > 0) {
           # Check if LLM batch generator is available
           if (exists("trigger_llm_batch_generation", mode = "function")) {
-            message("[job-manager] Calling trigger_llm_batch_generation for ", nrow(chain_clusters), " ", chain_cluster_type, " clusters")
+            message(
+              "[job-manager] Calling trigger_llm_batch_generation for ",
+              nrow(chain_clusters), " ", chain_cluster_type, " clusters"
+            )
             tryCatch(
               {
                 trigger_llm_batch_generation(
@@ -560,7 +568,10 @@ if (file.exists("functions/llm-batch-generator.R")) {
     {
       source("functions/llm-batch-generator.R", local = FALSE)
       message("[job-manager] llm-batch-generator.R loaded successfully")
-      message("[job-manager] trigger_llm_batch_generation exists: ", exists("trigger_llm_batch_generation", mode = "function"))
+      message(
+        "[job-manager] trigger_llm_batch_generation exists: ",
+        exists("trigger_llm_batch_generation", mode = "function")
+      )
       message("[job-manager] llm_batch_executor exists: ", exists("llm_batch_executor", mode = "function"))
     },
     error = function(e) {

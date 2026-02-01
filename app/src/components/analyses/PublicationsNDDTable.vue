@@ -155,11 +155,7 @@
 
               <!-- Custom slot for 'Title' -->
               <template #cell-Title="{ row }">
-                <div
-                  v-b-tooltip.hover.top
-                  class="title-cell"
-                  :title="row.Title"
-                >
+                <div v-b-tooltip.hover.top class="title-cell" :title="row.Title">
                   <span class="title-text">{{ truncate(row.Title, 60) }}</span>
                 </div>
               </template>
@@ -187,26 +183,23 @@
                 <div class="publication-details">
                   <!-- Abstract -->
                   <div v-if="row.Abstract" class="details-section">
-                    <h6 class="details-label">
-                      <i class="bi bi-file-text me-2" />Abstract
-                    </h6>
+                    <h6 class="details-label"><i class="bi bi-file-text me-2" />Abstract</h6>
                     <p class="details-abstract">{{ row.Abstract }}</p>
                   </div>
 
                   <div class="details-row">
                     <!-- Authors -->
-                    <div v-if="row.Lastname || row.Firstname" class="details-section details-authors">
-                      <h6 class="details-label">
-                        <i class="bi bi-people me-2" />Authors
-                      </h6>
+                    <div
+                      v-if="row.Lastname || row.Firstname"
+                      class="details-section details-authors"
+                    >
+                      <h6 class="details-label"><i class="bi bi-people me-2" />Authors</h6>
                       <p class="details-text">{{ formatAuthors(row.Lastname, row.Firstname) }}</p>
                     </div>
 
                     <!-- Keywords -->
                     <div v-if="row.Keywords" class="details-section details-keywords">
-                      <h6 class="details-label">
-                        <i class="bi bi-tags me-2" />Keywords
-                      </h6>
+                      <h6 class="details-label"><i class="bi bi-tags me-2" />Keywords</h6>
                       <div class="keywords-container">
                         <span
                           v-for="(keyword, idx) in parseKeywords(row.Keywords)"
@@ -598,7 +591,12 @@ export default {
             .filter((f) => visibleKeys.includes(f.key))
             .map((f) => ({ ...f, label: shortLabels[f.key] || f.label, class: 'text-start' }));
           // Add details column
-          filtered.push({ key: 'details', label: 'Details', class: 'text-center', sortable: false });
+          filtered.push({
+            key: 'details',
+            label: 'Details',
+            class: 'text-center',
+            sortable: false,
+          });
           this.fields = filtered;
         }
       }

@@ -348,7 +348,10 @@ llm_batch_executor <- function(params) {
       # identifiers is a nested tibble (list-column)
       identifiers_tbl <- cluster_row$identifiers[[1]]
       log_debug("Cluster ", cluster_num, " identifiers columns: ", paste(names(identifiers_tbl), collapse = ", "))
-      message("[LLM-Executor] Cluster ", cluster_num, " identifiers columns: ", paste(names(identifiers_tbl), collapse = ", "))
+      message(
+        "[LLM-Executor] Cluster ", cluster_num, " identifiers columns: ",
+        paste(names(identifiers_tbl), collapse = ", ")
+      )
 
       if (cluster_type == "functional") {
         # Functional clusters have symbol and hgnc_id columns
@@ -514,7 +517,10 @@ llm_batch_executor <- function(params) {
       if (attempt > 1) {
         backoff_time <- (2^attempt) + runif(1, 0, 1)
         message("[LLM-Executor] Retry backoff: ", round(backoff_time, 1), "s")
-        log_debug("Retry {attempt}/{max_retries} for cluster {cluster_row$cluster_number}, backing off {round(backoff_time, 1)}s")
+        log_debug(
+          "Retry {attempt}/{max_retries} for cluster {cluster_row$cluster_number}, ",
+          "backing off {round(backoff_time, 1)}s"
+        )
         Sys.sleep(backoff_time)
       }
 
@@ -539,7 +545,10 @@ llm_batch_executor <- function(params) {
         # Success - already cached by generate_and_validate_with_judge
         log_debug("Cluster ", cluster_num, " SUCCESS: ", result$validation_status)
         message("[LLM-Executor] Cluster ", cluster_num, " SUCCESS: ", result$validation_status)
-        log_info("Cluster {cluster_row$cluster_number}: {result$validation_status} (judge: {result$judge_result$verdict}, cache_id={result$cache_id})")
+        log_info(
+          "Cluster {cluster_row$cluster_number}: {result$validation_status} ",
+          "(judge: {result$judge_result$verdict}, cache_id={result$cache_id})"
+        )
         succeeded <- succeeded + 1
         generation_success <- TRUE
       } else {

@@ -7,12 +7,7 @@
           <h6 class="mb-0">Prompt Templates</h6>
         </BCol>
         <BCol class="text-end">
-          <BFormSelect
-            v-model="selectedPrompt"
-            :options="promptOptions"
-            size="sm"
-            class="w-auto"
-          />
+          <BFormSelect v-model="selectedPrompt" :options="promptOptions" size="sm" class="w-auto" />
         </BCol>
       </BRow>
     </template>
@@ -23,7 +18,7 @@
           v-model="editedTemplate"
           rows="20"
           class="font-monospace"
-          style="font-size: 0.85rem; line-height: 1.4;"
+          style="font-size: 0.85rem; line-height: 1.4"
           :disabled="loading"
         />
       </BFormGroup>
@@ -31,12 +26,7 @@
       <BRow class="align-items-center mt-3">
         <BCol>
           <BFormGroup label="Version" label-cols="auto" class="mb-0">
-            <BFormInput
-              v-model="editedVersion"
-              size="sm"
-              class="w-auto"
-              style="max-width: 120px;"
-            />
+            <BFormInput v-model="editedVersion" size="sm" class="w-auto" style="max-width: 120px" />
           </BFormGroup>
         </BCol>
         <BCol class="text-end">
@@ -78,9 +68,7 @@
           <small class="fw-bold">Available Template Variables</small>
         </template>
         <div class="small text-muted">
-          <p class="mb-2">
-            The following placeholders are replaced at generation time:
-          </p>
+          <p class="mb-2">The following placeholders are replaced at generation time:</p>
           <ul class="mb-0 ps-3">
             <li v-if="selectedPrompt.includes('functional')">
               <code>{cluster_genes}</code> - Comma-separated list of gene symbols in the cluster

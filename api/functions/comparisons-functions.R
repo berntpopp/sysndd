@@ -715,7 +715,10 @@ resolve_hgnc_symbols <- function(symbols, conn) {
 
     }, error = function(e) {
       # Clean up on error
-      tryCatch(DBI::dbExecute(conn, sprintf("DROP TEMPORARY TABLE IF EXISTS %s", temp_table)), error = function(e2) NULL)
+      tryCatch(
+        DBI::dbExecute(conn, sprintf("DROP TEMPORARY TABLE IF EXISTS %s", temp_table)),
+        error = function(e2) NULL
+      )
       stop(e)
     })
 

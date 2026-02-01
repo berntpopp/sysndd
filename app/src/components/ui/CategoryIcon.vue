@@ -119,7 +119,7 @@ export default {
  * High confidence, validated
  */
 .category-icon--definitive .category-icon__symbol {
-  color: #009E73;
+  color: #009e73;
 }
 
 /*
@@ -128,7 +128,7 @@ export default {
  * Medium confidence
  */
 .category-icon--moderate .category-icon__symbol {
-  color: #0072B2;
+  color: #0072b2;
 }
 
 /*
@@ -137,7 +137,7 @@ export default {
  * Low confidence, needs more evidence
  */
 .category-icon--limited .category-icon__symbol {
-  color: #E69F00;
+  color: #e69f00;
 }
 
 /*
@@ -146,7 +146,7 @@ export default {
  * Rejected/disproven
  */
 .category-icon--refuted .category-icon__symbol {
-  color: #D55E00;
+  color: #d55e00;
 }
 
 /*
@@ -164,7 +164,7 @@ export default {
  * Gene not present in this source
  */
 .category-icon--notlisted .category-icon__symbol {
-  color: #BDBDBD;
+  color: #bdbdbd;
 }
 
 /* Accessibility - respect reduced motion */

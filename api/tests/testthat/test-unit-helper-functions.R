@@ -183,16 +183,18 @@ test_that("generate_filter_expressions handles lessThan with numeric values", {
   expect_true(grepl("100", result))
 })
 
-test_that("generate_filter_expressions handles greaterThanOrEquals with numeric values", {
-  result <- generate_filter_expressions("greaterThanOrEquals(value,'10')")
+test_that("generate_filter_expressions handles greaterThanOrEqual with numeric values", {
+  # Note: Operation name is "greaterThanOrEqual" not "greaterThanOrEquals"
+  result <- generate_filter_expressions("greaterThanOrEqual(value,'10')")
 
   expect_true(grepl("value", result))
   expect_true(grepl(">=", result))
   expect_true(grepl("10", result))
 })
 
-test_that("generate_filter_expressions handles lessThanOrEquals with numeric values", {
-  result <- generate_filter_expressions("lessThanOrEquals(rank,'50')")
+test_that("generate_filter_expressions handles lessThanOrEqual with numeric values", {
+  # Note: Operation name is "lessThanOrEqual" not "lessThanOrEquals"
+  result <- generate_filter_expressions("lessThanOrEqual(rank,'50')")
 
   expect_true(grepl("rank", result))
   expect_true(grepl("<=", result))

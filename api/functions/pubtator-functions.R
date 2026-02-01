@@ -673,7 +673,11 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
       pages_cached = final_stats$queried_page_number[1],
       pages_total = final_stats$total_page_number[1],
       publications_count = pub_count,
-      message = sprintf("Fetched %d pages (%d publications)", as.integer(final_stats$queried_page_number[1]), as.integer(pub_count))
+      message = sprintf(
+        "Fetched %d pages (%d publications)",
+        as.integer(final_stats$queried_page_number[1]),
+        as.integer(pub_count)
+      )
     ))
 
   }, error = function(e) {

@@ -166,13 +166,20 @@
 
               <!-- text_hl - truncated preview -->
               <template #cell-text_hl="{ row }">
-                <div v-if="row.text_hl" class="overflow-hidden text-truncate" style="max-width: 300px">
+                <div
+                  v-if="row.text_hl"
+                  class="overflow-hidden text-truncate"
+                  style="max-width: 300px"
+                >
                   <span
                     v-for="(segment, idx) in parseAnnotations(row.text_hl).slice(0, 5)"
                     :key="idx"
                     :class="getSegmentClass(segment)"
-                  >{{ segment.text }}</span>
-                  <span v-if="parseAnnotations(row.text_hl).length > 5" class="text-muted">...</span>
+                    >{{ segment.text }}</span
+                  >
+                  <span v-if="parseAnnotations(row.text_hl).length > 5" class="text-muted"
+                    >...</span
+                  >
                 </div>
                 <div v-else>
                   <span class="text-muted">No highlight text</span>
@@ -223,7 +230,8 @@
                           :key="idx"
                           :class="getSegmentClass(segment)"
                           :title="getSegmentTooltip(segment)"
-                        >{{ segment.text }}</span>
+                          >{{ segment.text }}</span
+                        >
                       </div>
                       <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
                         <span><span class="pubtator-gene px-1">Gene</span></span>
@@ -476,7 +484,16 @@ export default {
 
     // Initialize filters from input
     if (this.filterInput && this.filterInput !== 'null') {
-      Object.assign(this.filter, this.filterStrToObj(this.filterInput, this.filter as Record<string, { content: string | string[] | null; operator: string; join_char: string | null }>));
+      Object.assign(
+        this.filter,
+        this.filterStrToObj(
+          this.filterInput,
+          this.filter as Record<
+            string,
+            { content: string | string[] | null; operator: string; join_char: string | null }
+          >
+        )
+      );
     }
 
     setTimeout(() => {
@@ -604,12 +621,10 @@ export default {
     handleSortByOrDescChange() {
       this.currentItemID = 0;
       // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
-      const sortColumn = Array.isArray(this.sortBy) && this.sortBy.length > 0
-        ? this.sortBy[0].key
-        : 'search_id';
-      const sortOrder = Array.isArray(this.sortBy) && this.sortBy.length > 0
-        ? this.sortBy[0].order
-        : 'asc';
+      const sortColumn =
+        Array.isArray(this.sortBy) && this.sortBy.length > 0 ? this.sortBy[0].key : 'search_id';
+      const sortOrder =
+        Array.isArray(this.sortBy) && this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
       const isDesc = sortOrder === 'desc';
       // Build sort string for API: +column for asc, -column for desc
       this.sort = (isDesc ? '-' : '+') + sortColumn;

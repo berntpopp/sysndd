@@ -6,7 +6,10 @@
         <BCol col md="12">
           <div>
             <BCard title="Curation comparisons" no-body>
-              <BCardHeader header-tag="nav" class="d-flex justify-content-between align-items-center flex-wrap">
+              <BCardHeader
+                header-tag="nav"
+                class="d-flex justify-content-between align-items-center flex-wrap"
+              >
                 <BNav card-header tabs>
                   <BNavItem to="/CurationComparisons" exact exact-active-class="active">
                     Overlap
@@ -27,10 +30,7 @@
                   >
                     Data: {{ formatDate(metadata.last_full_refresh) }}
                   </span>
-                  <span
-                    v-else-if="!loadingMetadata"
-                    class="badge bg-warning text-dark"
-                  >
+                  <span v-else-if="!loadingMetadata" class="badge bg-warning text-dark">
                     No refresh data
                   </span>
                 </div>
@@ -108,9 +108,7 @@ function formatDateTime(dateString: string | null): string {
 async function fetchMetadata() {
   loadingMetadata.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/comparisons/metadata`
-    );
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`);
     metadata.value = {
       last_full_refresh: unwrapValue(response.data.last_full_refresh),
       last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',

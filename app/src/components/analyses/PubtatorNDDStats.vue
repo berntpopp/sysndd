@@ -95,18 +95,16 @@
         <!-- Min Count only applies to gene category (filters genes by publication count) -->
         <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
           <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-            <BFormInput
-              v-model.number="minCount"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-            />
+            <BFormInput v-model.number="minCount" type="number" min="1" step="1" debounce="500" />
           </BInputGroup>
         </BCol>
 
         <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
-          <BInputGroup :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'" class="mb-1" size="sm">
+          <BInputGroup
+            :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'"
+            class="mb-1"
+            size="sm"
+          >
             <BFormInput
               v-model.number="topN"
               type="number"

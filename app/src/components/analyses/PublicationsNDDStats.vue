@@ -78,7 +78,10 @@
 
         <BCol class="my-1" sm="4">
           <small class="text-muted">
-            Showing {{ filteredItemCount }} items ({{ filteredPublicationCount.toLocaleString() }} pubs)
+            Showing {{ filteredItemCount }} items ({{
+              filteredPublicationCount.toLocaleString()
+            }}
+            pubs)
           </small>
         </BCol>
       </BRow>
@@ -311,7 +314,9 @@ export default {
         d3.select('#stats_dataviz')
           .append('div')
           .attr('class', 'text-center text-muted py-5')
-          .html(`<i class="bi bi-info-circle me-2"></i>No items with count ≥ ${this.minCount}. Try lowering the minimum.`);
+          .html(
+            `<i class="bi bi-info-circle me-2"></i>No items with count ≥ ${this.minCount}. Try lowering the minimum.`
+          );
         return;
       }
 

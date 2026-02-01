@@ -24,11 +24,7 @@
                     >
                       Not Configured
                     </BBadge>
-                    <BBadge
-                      v-else-if="config"
-                      variant="success"
-                      class="ms-2"
-                    >
+                    <BBadge v-else-if="config" variant="success" class="ms-2">
                       {{ config.current_model }}
                     </BBadge>
                   </h5>
@@ -129,7 +125,11 @@
                     <h6 class="mb-0">Regeneration in Progress</h6>
                   </template>
                   <BProgress
-                    :value="regenerationJob.hasRealProgress.value ? regenerationJob.progressPercent.value ?? 0 : 100"
+                    :value="
+                      regenerationJob.hasRealProgress.value
+                        ? (regenerationJob.progressPercent.value ?? 0)
+                        : 100
+                    "
                     :max="100"
                     show-progress
                     animated
@@ -152,11 +152,7 @@
 
               <!-- Prompts Tab -->
               <BTab title="Prompts">
-                <LlmPromptEditor
-                  :prompts="prompts"
-                  :loading="loading"
-                  @save="handlePromptSave"
-                />
+                <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
               </BTab>
 
               <!-- Cache Tab -->
@@ -193,9 +189,7 @@
         </template>
         <template #footer>
           <BButton variant="secondary" @click="showClearModal = false">Cancel</BButton>
-          <BButton variant="danger" @click="handleClearAndRegenerate">
-            Clear & Regenerate
-          </BButton>
+          <BButton variant="danger" @click="handleClearAndRegenerate"> Clear & Regenerate </BButton>
         </template>
       </BModal>
     </BContainer>
@@ -260,11 +254,7 @@ async function refreshAll() {
   if (!token) return;
 
   try {
-    await Promise.all([
-      fetchConfig(token),
-      fetchPrompts(token),
-      fetchCacheStats(token),
-    ]);
+    await Promise.all([fetchConfig(token), fetchPrompts(token), fetchCacheStats(token)]);
   } catch {
     makeToast('Failed to load LLM configuration', 'Error', 'danger');
   }

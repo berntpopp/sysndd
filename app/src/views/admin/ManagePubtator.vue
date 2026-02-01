@@ -1,18 +1,9 @@
 <!-- views/admin/ManagePubtator.vue -->
-/**
- * ManagePubtator component
- *
- * @description Admin interface for managing PubTator3 publication cache.
- * Allows administrators to:
- * - Check cache status for queries
- * - Submit async fetch jobs with progress tracking
- * - Clear cache (soft/hard reset)
- * - Backfill gene symbols for existing entries
- *
- * Uses non-blocking async jobs for fetching to avoid request timeouts.
- *
- * @component ManagePubtator
- */
+/** * ManagePubtator component * * @description Admin interface for managing PubTator3 publication
+cache. * Allows administrators to: * - Check cache status for queries * - Submit async fetch jobs
+with progress tracking * - Clear cache (soft/hard reset) * - Backfill gene symbols for existing
+entries * * Uses non-blocking async jobs for fetching to avoid request timeouts. * * @component
+ManagePubtator */
 
 <template>
   <div class="container-fluid">
@@ -74,8 +65,16 @@
                     <dt class="col-6">Publications:</dt>
                     <dd class="col-6">{{ lastStatus.publications_cached || 0 }}</dd>
 
-                    <dt v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'" class="col-6">Last Updated:</dt>
-                    <dd v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'" class="col-6">
+                    <dt
+                      v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'"
+                      class="col-6"
+                    >
+                      Last Updated:
+                    </dt>
+                    <dd
+                      v-if="lastStatus.cache_date && typeof lastStatus.cache_date === 'string'"
+                      class="col-6"
+                    >
                       {{ formatDate(lastStatus.cache_date) }}
                     </dd>
                   </dl>
@@ -154,11 +153,7 @@
                   <i v-else class="bi bi-download me-1" />
                   Submit Fetch Job
                 </BButton>
-                <BButton
-                  v-if="isJobLoading"
-                  variant="outline-secondary"
-                  @click="stopPolling"
-                >
+                <BButton v-if="isJobLoading" variant="outline-secondary" @click="stopPolling">
                   <i class="bi bi-stop-circle me-1" />
                   Stop Tracking
                 </BButton>
@@ -255,8 +250,8 @@
         @ok="clearAllCache"
       >
         <p>
-          Are you sure you want to clear <strong>all</strong> cached PubTator data? This will
-          delete all publications and annotations for all queries.
+          Are you sure you want to clear <strong>all</strong> cached PubTator data? This will delete
+          all publications and annotations for all queries.
         </p>
         <p class="text-danger mb-0">This action cannot be undone.</p>
       </BModal>
