@@ -35,7 +35,7 @@
 #* # `Return`
 #* - gemini_configured: Boolean, TRUE if GEMINI_API_KEY is set
 #* - current_model: String, current default model name
-#* - available_models: Array of available model names
+#* - available_models: Array of model objects with model_id, display_name, etc.
 #* - rate_limit: Object with rate limit settings (capacity, fill_time_s, etc.)
 #*
 #* @tag llm-admin
@@ -44,10 +44,71 @@
 function(req, res) {
   require_role(req, res, "Administrator")
 
+  # Build structured model objects for frontend
+  model_names <- list_gemini_models()
+  model_info <- list(
+    "gemini-3-pro-preview" = list(
+      display_name = "Gemini 3 Pro Preview",
+      description = "Best quality, complex reasoning tasks",
+      rpm_limit = 1000,
+      rpd_limit = 10000,
+      recommended_for = "Complex analysis"
+    ),
+    "gemini-3-flash-preview" = list(
+      display_name = "Gemini 3 Flash Preview",
+      description = "Fast and capable for most tasks",
+      rpm_limit = 2000,
+      rpd_limit = NULL,
+      recommended_for = "Fast processing"
+    ),
+    "gemini-2.5-flash" = list(
+      display_name = "Gemini 2.5 Flash",
+      description = "Best price-performance balance",
+      rpm_limit = 2000,
+      rpd_limit = NULL,
+      recommended_for = "Cost-effective"
+    ),
+    "gemini-2.5-pro" = list(
+      display_name = "Gemini 2.5 Pro",
+      description = "Complex reasoning, stable release",
+      rpm_limit = 1000,
+      rpd_limit = 5000,
+      recommended_for = "Stable production"
+    ),
+    "gemini-2.5-flash-lite" = list(
+      display_name = "Gemini 2.5 Flash Lite",
+      description = "Budget option for simple tasks",
+      rpm_limit = 4000,
+      rpd_limit = NULL,
+      recommended_for = "Budget processing"
+    )
+  )
+
+  available_models <- lapply(model_names, function(name) {
+    info <- model_info[[name]]
+    if (is.null(info)) {
+      info <- list(
+        display_name = name,
+        description = "Model",
+        rpm_limit = 1000,
+        rpd_limit = NULL,
+        recommended_for = "General use"
+      )
+    }
+    list(
+      model_id = name,
+      display_name = info$display_name,
+      description = info$description,
+      rpm_limit = info$rpm_limit,
+      rpd_limit = info$rpd_limit,
+      recommended_for = info$recommended_for
+    )
+  })
+
   list(
     gemini_configured = is_gemini_configured(),
     current_model = get_default_gemini_model(),
-    available_models = list_gemini_models(),
+    available_models = available_models,
     rate_limit = GEMINI_RATE_LIMIT
   )
 }
@@ -460,54 +521,28 @@ function(req, res, cache_id, action) {
 #* Get all prompt templates
 #*
 #* Returns all prompt templates for each type (functional and phenotype,
-#* generation and judge). Currently returns built-in templates as there
-#* is no database storage for custom templates.
+#* generation and judge). Fetches from database with fallback to hardcoded defaults.
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
-#* Array of prompt template objects, each with:
-#* - type: String, template type
-#* - version: String, current version
-#* - description: String, template description
-#* - template_preview: String, first 500 chars of template
+#* Object keyed by prompt type, each containing:
+#* - template_id: Integer or null
+#* - prompt_type: String
+#* - version: String
+#* - template_text: String, full prompt template
+#* - description: String or null
 #*
 #* @tag llm-admin
-#* @serializer json list(na="string")
+#* @serializer json list(na="string", auto_unbox=TRUE)
 #* @get /prompts
 function(req, res) {
   require_role(req, res, "Administrator")
 
-  # Define the 4 prompt types and their descriptions
-  prompt_types <- list(
-    list(
-      type = "functional_generation",
-      version = "1.0",
-      description = "Prompt for generating functional cluster summaries",
-      template_preview = "You are a genomics expert analyzing gene clusters..."
-    ),
-    list(
-      type = "functional_judge",
-      version = "1.0",
-      description = "Prompt for validating functional cluster summaries",
-      template_preview = "You are a judge evaluating AI-generated summaries..."
-    ),
-    list(
-      type = "phenotype_generation",
-      version = "1.0",
-      description = "Prompt for generating phenotype cluster summaries",
-      template_preview = "You are a clinical geneticist analyzing phenotype clusters..."
-    ),
-    list(
-      type = "phenotype_judge",
-      version = "1.0",
-      description = "Prompt for validating phenotype cluster summaries",
-      template_preview = "You are a judge evaluating AI-generated phenotype summaries..."
-    )
-  )
-
-  prompt_types
+  # Use get_all_prompt_templates() from llm-service.R which fetches from DB
+  # with fallback to hardcoded defaults
+  get_all_prompt_templates()
 }
 
 
