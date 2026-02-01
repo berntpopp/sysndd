@@ -13,19 +13,19 @@ import axios from 'axios';
 import URLS from '@/assets/js/constants/url_constants';
 import { useAsyncJob } from '@/composables/useAsyncJob';
 
-/** Cache status response from API */
+/** Cache status response from API (unwrapped from Plumber array wrappers) */
 export interface CacheStatus {
-  query: string[];
-  cached: boolean[];
-  query_id: number[] | null[];
-  pages_cached: number[];
-  publications_cached: number[];
-  total_pages_available: number[];
-  total_results_available: number[];
-  pages_remaining: number[];
-  cache_date: string[] | null[];
-  estimated_fetch_time_minutes: number[];
-  message: string[];
+  query: string;
+  cached: boolean;
+  query_id: number | null;
+  pages_cached: number;
+  publications_cached: number;
+  total_pages_available: number;
+  total_results_available: number;
+  pages_remaining: number;
+  cache_date: string | null;
+  estimated_fetch_time_minutes: number;
+  message: string;
 }
 
 /** Job submit response from async API */
@@ -51,22 +51,22 @@ export interface JobResult {
   message?: string;
 }
 
-/** Clear cache response */
+/** Clear cache response (unwrapped from Plumber array wrappers) */
 export interface ClearResponse {
-  success: boolean[];
+  success: boolean;
   deleted?: {
     queries: number;
     publications: number;
     annotations: number;
   };
-  message: string[];
+  message: string;
 }
 
-/** Backfill response */
+/** Backfill response (unwrapped from Plumber array wrappers) */
 export interface BackfillResponse {
-  success: boolean[];
-  updated_count?: number[];
-  message: string[];
+  success: boolean;
+  updated_count?: number;
+  message: string;
 }
 
 /**

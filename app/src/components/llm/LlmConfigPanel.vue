@@ -23,9 +23,9 @@
           {{ selectedModelInfo.description }}
           <br />
           <small class="text-muted">
-            Rate limit: {{ selectedModelInfo.rpm_limit }} RPM
-            <span v-if="selectedModelInfo.rpd_limit">
-              , {{ selectedModelInfo.rpd_limit?.toLocaleString() }} RPD
+            Rate limit: {{ selectedModelInfo.rpm_limit?.toLocaleString() ?? 'N/A' }} RPM
+            <span v-if="typeof selectedModelInfo.rpd_limit === 'number' && selectedModelInfo.rpd_limit > 0">
+              , {{ selectedModelInfo.rpd_limit.toLocaleString() }} RPD
             </span>
           </small>
         </BFormText>

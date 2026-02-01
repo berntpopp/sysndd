@@ -22,6 +22,37 @@ import type {
 
 const API_BASE = `${import.meta.env.VITE_API_URL}/api/llm`;
 
+/**
+ * Unwrap Plumber's array-wrapped scalar values.
+ * R/Plumber wraps scalar values in single-element arrays (e.g., ["value"] instead of "value").
+ * This function recursively unwraps them for proper TypeScript consumption.
+ */
+function unwrapPlumberValue<T>(value: T): T {
+  if (value === null || value === undefined) {
+    return value;
+  }
+
+  // If it's an array with exactly one element that is a primitive, unwrap it
+  if (Array.isArray(value)) {
+    if (value.length === 1 && (typeof value[0] === 'string' || typeof value[0] === 'number' || typeof value[0] === 'boolean')) {
+      return value[0] as T;
+    }
+    // If array has multiple elements or contains objects, process each element
+    return value.map((item) => unwrapPlumberValue(item)) as T;
+  }
+
+  // If it's an object, recursively unwrap all properties
+  if (typeof value === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      result[key] = unwrapPlumberValue((value as Record<string, unknown>)[key]);
+    }
+    return result as T;
+  }
+
+  return value;
+}
+
 export interface UseLlmAdminReturn {
   // State
   config: Ref<LlmConfig | null>;
@@ -110,7 +141,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       const response = await axios.get<LlmConfig>(`${API_BASE}/config`, {
         headers: authHeaders(token),
       });
-      config.value = response.data;
+      // Unwrap Plumber's array-wrapped scalar values
+      config.value = unwrapPlumberValue(response.data);
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch config';
       throw e;
