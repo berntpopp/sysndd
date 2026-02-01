@@ -56,6 +56,20 @@
         <!-- RIGHT PANE (Table) -->
         <Pane :size="100 - leftPaneSize" :min-size="25">
           <div class="pane-content">
+            <!-- LLM Summary Card (above table) - only shown for single cluster selection -->
+            <LlmSummaryCard
+              v-if="currentSummary && !summaryLoading && !showAllClustersInTable"
+              :summary="currentSummary.summary_json"
+              :model-name="currentSummary.model_name"
+              :created-at="currentSummary.created_at"
+              :validation-status="currentSummary.validation_status"
+            />
+            <div v-else-if="summaryLoading && !showAllClustersInTable" class="mb-3">
+              <BSpinner small class="me-2" />
+              <span class="text-muted">Loading AI summary...</span>
+            </div>
+            <!-- No placeholder when summary doesn't exist -->
+
             <BCard
               header-tag="header"
               class="text-start"
@@ -326,6 +340,9 @@ import ScoreSlider from '@/components/filters/ScoreSlider.vue';
 // Import NetworkVisualization component (replaces D3.js bubble chart)
 import NetworkVisualization from '@/components/analyses/NetworkVisualization.vue';
 
+// Import LLM Summary Card for AI-generated cluster summaries
+import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
+
 // Import Splitpanes for resizable layout
 import { Splitpanes, Pane } from 'splitpanes';
 import 'splitpanes/dist/splitpanes.css';
@@ -342,6 +359,7 @@ export default {
     CategoryFilter,
     ScoreSlider,
     NetworkVisualization,
+    LlmSummaryCard,
     Splitpanes,
     Pane,
   },
@@ -464,6 +482,10 @@ export default {
 
       // Bidirectional hover highlighting
       hoveredRowId: null,
+
+      // LLM Summary data
+      currentSummary: null,
+      summaryLoading: false,
     };
   },
   computed: {
@@ -1078,6 +1100,41 @@ export default {
     },
 
     /**
+     * Fetch LLM-generated summary for a specific cluster
+     * Uses cluster's hash_filter as the cluster_hash parameter
+     */
+    async fetchClusterSummary(clusterHash, clusterNumber) {
+      if (!clusterHash) {
+        this.currentSummary = null;
+        return;
+      }
+
+      this.summaryLoading = true;
+      try {
+        const response = await this.axios.get(
+          `${import.meta.env.VITE_API_URL}/api/analysis/functional_cluster_summary`,
+          {
+            params: {
+              cluster_hash: clusterHash,
+              cluster_number: clusterNumber,
+            },
+          }
+        );
+        this.currentSummary = response.data;
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // No summary yet - silently handle (this is expected)
+          this.currentSummary = null;
+        } else {
+          console.warn('Failed to fetch cluster summary:', error);
+          this.currentSummary = null;
+        }
+      } finally {
+        this.summaryLoading = false;
+      }
+    },
+
+    /**
      * Handle cluster filter changes from NetworkVisualization
      * Updates the table to show data for selected cluster(s)
      */
@@ -1091,16 +1148,27 @@ export default {
       if (showAll || clusters.length === 0) {
         // Show combined data from all clusters
         this.selectedCluster = this.combineClusterData(this.itemsCluster);
+        // Clear summary when showing all clusters
+        this.currentSummary = null;
       } else if (clusters.length === 1) {
         // Single cluster selected - show that cluster's data
         this.activeParentCluster = clusters[0];
         this.setActiveCluster();
+        // Fetch LLM summary for this cluster
+        const clusterData = this.itemsCluster.find((item) => item.cluster === clusters[0]);
+        if (clusterData?.hash_filter) {
+          this.fetchClusterSummary(clusterData.hash_filter, clusters[0]);
+        } else {
+          this.currentSummary = null;
+        }
       } else {
         // Multiple clusters selected - combine their data
         const selectedClusterData = this.itemsCluster.filter((item) =>
           clusters.includes(item.cluster)
         );
         this.selectedCluster = this.combineClusterData(selectedClusterData);
+        // Clear summary when showing multiple clusters
+        this.currentSummary = null;
       }
 
       // Update pagination
