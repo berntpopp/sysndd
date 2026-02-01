@@ -24,6 +24,10 @@ if (!exists("db_execute_query", mode = "function")) {
 #------------------------------------------------------------------------------
 # Common words to exclude from gene symbol extraction
 # These are frequently matched but are not gene symbols
+#
+# NOTE: Gene symbol extraction from free-text summaries is now DISABLED
+# (see validate_summary_entities). This list is retained for potential
+# future use if gene validation is re-enabled for specific structured fields.
 #------------------------------------------------------------------------------
 COMMON_WORDS <- c(
   # Common abbreviations
@@ -337,24 +341,30 @@ validate_pathways <- function(pathways, enrichment_terms) {
 validate_summary_entities <- function(summary_result, cluster_data) {
   errors <- character(0)
 
-  # Extract gene symbols from summary text
-  summary_text <- summary_result$summary %||% ""
-  extracted_symbols <- extract_gene_symbols(summary_text)
 
-  log_debug("Extracted {length(extracted_symbols)} potential gene symbols from summary")
+  # NOTE: We intentionally do NOT extract gene symbols from free-text summary.
+  #
+  # Rationale: The summary naturally discusses biological pathways and mechanisms
 
-  # Validate gene symbols against database
-  gene_result <- validate_gene_symbols(extracted_symbols)
+  # using terms like "MAPK signaling", "TCA cycle", "PI3K-Akt pathway", etc.
+  # These are NOT gene symbols but get matched by the gene symbol regex pattern.
+  #
+  # Attempting to validate pathway names as genes causes false positives:
+  # - "MAPK" is a pathway family, not a gene (actual genes: MAPK1, MAPK3)
+  # - "TCA" is the tricarboxylic acid cycle, not a gene
+  # - "PI3K" is a pathway, not a gene (actual genes: PIK3CA, PIK3CB)
+  #
+  # The LLM-as-judge handles semantic validation of summary content.
+  # Gene symbol validation should only apply to explicitly structured gene fields.
 
-  if (!gene_result$is_valid) {
-    errors <- c(
-      errors,
-      sprintf(
-        "Invalid gene symbols detected: %s. These genes do not exist in the HGNC database.",
-        paste(gene_result$invalid, collapse = ", ")
-      )
-    )
-  }
+  # Initialize gene validation result as valid (no genes extracted = valid)
+  gene_result <- list(
+    is_valid = TRUE,
+    valid = character(0),
+    invalid = character(0)
+  )
+
+  log_debug("Skipping gene symbol extraction from free-text summary (handled by LLM judge)")
 
   # Extract enrichment terms for pathway validation
   enrichment_terms <- if (!is.null(cluster_data$term_enrichment) &&
