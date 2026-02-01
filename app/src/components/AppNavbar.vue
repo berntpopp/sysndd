@@ -21,7 +21,7 @@
 
       <BNavbarToggle target="nav-collapse" />
 
-      <BCollapse id="nav-collapse" is-nav>
+      <BCollapse id="nav-collapse" v-model="navbarCollapsed" is-nav>
         <!-- Left aligned nav items -->
         <BNavbarNav>
           <IconPairDropdownMenu
@@ -102,6 +102,7 @@ export default {
       show_search: false,
       appVersion: packageInfo.version,
       fetchError: false,
+      navbarCollapsed: false,
     };
   },
   computed: {
@@ -123,6 +124,8 @@ export default {
     $route(to, from) {
       if (to !== from) {
         this.isUserLoggedIn();
+        // Close mobile navbar on route change (fixes #94)
+        this.navbarCollapsed = false;
       }
       // Vue Router 4: onReady replaced with isReady()
       this.$router.isReady().then(() => {
