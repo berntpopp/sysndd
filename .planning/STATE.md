@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 **Phase:** 64 (LLM Admin Dashboard) - IN PROGRESS
-**Plan:** 2/4 complete
-**Status:** Plan 64-02 complete (Prompt Template Database)
+**Plan:** 3/4 complete
+**Status:** Plan 64-03 complete (Frontend Foundation)
 **Progress:** v10.0 [██████████████████░░] 11/12 phases (92%)
 
-**Last completed:** 64-02 - Prompt Template Database Functions
-**Last activity:** 2026-02-01 — Completed 64-02-PLAN.md (prompt templates)
-**Next plan:** 64-03 - Frontend Dashboard Components
+**Last completed:** 64-03 - Frontend Foundation (Types, Composable, Route)
+**Last activity:** 2026-02-01 — Completed 64-03-PLAN.md (frontend foundation)
+**Next plan:** 64-04 - UI Components (LlmConfigPanel, LlmCacheManager, etc.)
 
 ---
 
@@ -53,7 +53,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 | 61 | ~~LLM Validation~~ | Merged into Phase 59 | N/A |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | ✓ Complete |
 | 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | ✓ Complete |
-| 64 | LLM Admin Dashboard | LLM-ADMIN-01 to LLM-ADMIN-10 | In Progress (2/4) |
+| 64 | LLM Admin Dashboard | LLM-ADMIN-01 to LLM-ADMIN-10 | In Progress (3/4) |
 
 **Phases:** 10 active (55-64, Phase 61 merged into 59)
 **Requirements:** 53 mapped (100% coverage)
@@ -88,7 +88,7 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 |--------|-------|-------|
 | **Backend Tests** | 687 + 11 E2E | 20.3% coverage, 24 integration + 53 migration + 11 E2E tests |
 | **Frontend Tests** | 144 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
-| **Vue Composables** | 28 | 7 original + 6 admin + 10 curation + 5 gene page |
+| **Vue Composables** | 29 | 7 original + 7 admin + 10 curation + 5 gene page |
 | **Migrations** | 8 files + runner | api/functions/migration-runner.R ready, llm_prompt_templates added |
 | **Lintr Issues** | 0 | From 1,240 in v4 |
 | **ESLint Issues** | 0 | 240 errors fixed in v7 |
@@ -364,8 +364,8 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ## Session Continuity
 
 **Last session:** 2026-02-01
-**Stopped at:** Completed 64-02-PLAN.md (Prompt Template Database)
-**Next action:** Execute 64-03-PLAN.md (Frontend Dashboard Components)
+**Stopped at:** Completed 64-03-PLAN.md (Frontend Foundation)
+**Next action:** Execute 64-04-PLAN.md (UI Components)
 **Resume file:** None
 
 ### Quick Tasks Completed
@@ -445,6 +445,10 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 - ✓ Plan 02: Prompt Template Database Functions
   - db/migrations/008_add_llm_prompt_templates.sql: table + 4 seeded prompts
   - api/functions/llm-service.R: 4 new functions (get/save/default/all)
+- ✓ Plan 03: Frontend Foundation
+  - app/src/types/llm.ts: 16 TypeScript interfaces for LLM admin API
+  - app/src/composables/useLlmAdmin.ts: composable with 10 API methods
+  - app/src/router/routes.ts: ManageLLM route with Administrator guard
 
 ### Decisions from Phase 64 Plan 02
 
@@ -458,7 +462,16 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 | 2026-02-01 | Seed defaults in migration | Prompts available immediately after migration | Zero-config startup |
 | 2026-02-01 | Hardcoded fallback | Backward compatibility if migration hasn't run | Graceful degradation |
 
+### Decisions from Phase 64 Plan 03
+
+**Plan 03 (Frontend Foundation):**
+
+| Date | Decision | Rationale | Impact |
+|------|----------|-----------|--------|
+| 2026-02-01 | Use Ref<T> instead of Readonly<Ref<T>> | Vue's readonly() creates DeepReadonly conflicting with mutable array types; matches usePubtatorAdmin pattern | Simpler type inference |
+| 2026-02-01 | Placeholder ManageLLM.vue for route target | Pre-existing ManageLLM.vue referenced non-existent components; Plan 64-04 handles full UI | Type-check passes, clean separation |
+
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-01 — Completed 64-02 (Prompt Template Database Functions)*
+*Last updated: 2026-02-01 — Completed 64-03 (Frontend Foundation)*
