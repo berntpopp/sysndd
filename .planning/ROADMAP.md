@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-31
 **Milestone:** v10.0 Data Quality & AI Insights
-**Phases:** 55-63 + 56.1, 57.1 (9 active phases, Phase 61 merged)
-**Requirements:** 43 mapped
+**Phases:** 55-64 + 56.1, 57.1 (10 active phases, Phase 61 merged)
+**Requirements:** 53 mapped
 
 ---
 
@@ -307,6 +307,47 @@ Plans:
 
 ---
 
+## Phase 64: LLM Admin Dashboard
+
+**Goal:** Admin dashboard to manage LLM settings, edit prompts, manage cache, and monitor activity
+
+**Dependencies:** Phase 63
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 64-01-PLAN.md — Backend API endpoints for LLM config, cache, logs, regeneration
+- [ ] 64-02-PLAN.md — Database migration for prompt templates, prompt template functions
+- [ ] 64-03-PLAN.md — Frontend foundation (types, composable, routing)
+- [ ] 64-04-PLAN.md — UI components (ManageLLM.vue, sub-components, navigation)
+
+**Requirements:**
+- LLM-ADMIN-01: GET/PUT /api/llm/config endpoints for model selection and configuration
+- LLM-ADMIN-02: GET/PUT /api/llm/prompts endpoints for prompt template management
+- LLM-ADMIN-03: GET /api/llm/cache/stats and GET /api/llm/cache/summaries endpoints
+- LLM-ADMIN-04: DELETE /api/llm/cache and POST /api/llm/regenerate endpoints
+- LLM-ADMIN-05: GET /api/llm/logs endpoint for generation log viewing
+- LLM-ADMIN-06: POST /api/llm/cache/:id/validate endpoint for manual validation
+- LLM-ADMIN-07: Database migration for llm_prompt_templates table
+- LLM-ADMIN-08: ManageLLM.vue admin view with tabs (Overview, Config, Prompts, Cache, Logs)
+- LLM-ADMIN-09: useLlmAdmin.ts composable for shared API logic
+- LLM-ADMIN-10: LlmConfigPanel, LlmPromptEditor, LlmCacheManager, LlmLogViewer components
+
+**Success Criteria:**
+1. Admin can view and change Gemini model via Configuration tab
+2. Admin can view and edit prompt templates with versioning
+3. Admin can view cache statistics (total, validated, pending, cost)
+4. Admin can clear cache and trigger regeneration (all/functional/phenotype)
+5. Admin can view paginated generation logs with filters
+6. Admin can manually validate or reject cached summaries
+7. Job progress visible during regeneration operations
+8. All operations require Administrator role
+
+**Details:**
+See implementation plan: `.planning/LLM_ADMIN_DASHBOARD_PLAN.md`
+
+---
+
 ## Progress
 
 | Phase | Name | Requirements | Status |
@@ -322,8 +363,9 @@ Plans:
 | 61 | ~~LLM Validation~~ | ~~LLM-09 to LLM-11~~ | Merged into 59 |
 | 62 | Admin & Infrastructure | ADMIN-01, INFRA-01 | Complete |
 | 63 | LLM Pipeline Overhaul | LLM-FIX-01 to LLM-FIX-07 | Complete |
+| 64 | LLM Admin Dashboard | LLM-ADMIN-01 to LLM-ADMIN-10 | Not Started |
 
-**Coverage:** 43/43 requirements mapped (100%) — LLM-11 dropped, 7 fix requirements added
+**Coverage:** 53/53 requirements mapped (100%) — LLM-11 dropped, 7 fix requirements added, 10 admin requirements added
 
 ---
 
@@ -345,6 +387,9 @@ Phase 57 (Pubtator)        Phase 60 (LLM Display)
                                 |
                                 v
                            Phase 63 (LLM Pipeline Overhaul)
+                                |
+                                v
+                           Phase 64 (LLM Admin Dashboard)
 
 Phase 61 merged into Phase 59
 Phase 62 (Admin & Infra) can run parallel after Phase 55
@@ -406,4 +451,4 @@ Phase 62 (Admin & Infra) can run parallel after Phase 55
 ---
 
 *Roadmap created: 2026-01-31*
-*Last updated: 2026-02-01 — Phase 63 complete (LLM Pipeline Overhaul verified working)*
+*Last updated: 2026-02-01 — Phase 64 planned (4 plans in 2 waves)*
