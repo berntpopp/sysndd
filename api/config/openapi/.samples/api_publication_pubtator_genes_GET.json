@@ -1,0 +1,282 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/pubtator/genes?sort=-is_novel,oldest_pub_date&page_after=0&page_size=2",
+      "next": "http://localhost:7777/pubtator/genes?sort=-is_novel,oldest_pub_date&page_after=AMH&page_size=2",
+      "last": "http://localhost:7777/pubtator/genes?sort=-is_novel,oldest_pub_date&page_after=PEX26&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 101,
+      "prevItemID": "null",
+      "currentItemID": "0",
+      "nextItemID": "AMH",
+      "lastItemID": "PEX26",
+      "totalItems": 201,
+      "sort": "-is_novel,oldest_pub_date",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "gene_name",
+          "selectOptions": [
+            "CALM1",
+            "IL6"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Gene name",
+          "count_filtered": 2
+        },
+        {
+          "key": "gene_symbol",
+          "selectOptions": [
+            "CALM1",
+            "IL6"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Gene symbol",
+          "count_filtered": 2
+        },
+        {
+          "key": "gene_normalized_id",
+          "selectOptions": [
+            "3569",
+            "801"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Gene normalized id",
+          "count_filtered": 2
+        },
+        {
+          "key": "hgnc_id",
+          "selectOptions": [
+            "HGNC:1442",
+            "HGNC:6018"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Hgnc id",
+          "count_filtered": 2
+        },
+        {
+          "key": "publication_count",
+          "selectOptions": [
+            "2",
+            "3"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Publication count",
+          "count_filtered": 2
+        },
+        {
+          "key": "entities_count",
+          "selectOptions": [
+            "0"
+          ],
+          "count": 1,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Entities count",
+          "count_filtered": 1
+        },
+        {
+          "key": "is_novel",
+          "selectOptions": [
+            "1"
+          ],
+          "count": 1,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Is novel",
+          "count_filtered": 1
+        },
+        {
+          "key": "oldest_pub_date",
+          "selectOptions": [
+            "2024-12-05"
+          ],
+          "count": 1,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Oldest pub date",
+          "count_filtered": 1
+        },
+        {
+          "key": "pmids",
+          "selectOptions": [
+            "39660033,39575470,41139599",
+            "39677635,40646440"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Pmids",
+          "count_filtered": 2
+        },
+        {
+          "key": "publications",
+          "selectOptions": [
+            "list(pmid = c(39660033, 39575470, 41139599), doi = c(\"10.2147/CCID.S485694\", \"10.3892/mmr.2024.13396\", \"10.9758/cpn.25.1304\"), title = c(\"Combined Abrocitinib and Acitretin Therapy for Darier's Disease: A Case Report\", \"Ciliary neurotrophic factor activation of astrocytes mediates neuronal damage via the IL-6/IL-6R pathway\", \"Could Low Serum TWEAK Levels Serve as a Biomarker for Children and Adolescents Diagnosed with ADHD, Specifically the Predominantly Inattentive Subtype?\"), journal = c(\"Clin Cosmet Investig Dermatol\", \n\"Mol Med Rep\", \"Clin Psychopharmacol Neurosci\"), date = c(20062, 20120, 20422), score = c(208.253997802734, 222.503997802734, 201.861999511719), text_hl = c(\"@DISEASE_Darier_Disease @DISEASE_MESH:D007644 @@@DD@@@ results from an @GENE_ATP2A2 @GENE_488 @@@ATP2A2@@@ <m>mutation</m>. The @GENE_ATP2A2 @GENE_488 @@@ATP2A2@@@ <m>gene</m> is located at 12q23-24.1 on chromosome 12, encoding sarco/endoplasmic reticulum ATPase type 2 (@GENE_ATP2A2 @GENE_488 @@@SERCA2@@@). \", NA, \"@GENE_TNFSF12 @GENE_8742 @@@TNF-related weak inducer of apoptosis@@@ (@GENE_TNFSF12 @GENE_8742 @@@TWEAK@@@) is a secreted ligand in membrane-bound and soluble <m>variant</m> forms belonging to the @GENE_TNF @GENE_7124 @@@TNF@@@ superfamily members. \"\n))",
+            "list(pmid = c(39677635, 40646440), doi = c(\"10.1101/2024.12.02.626503\", \"10.1186/s12883-025-04216-2\"), title = c(\"Voltage Gated Calcium Channel Dysregulation May Contribute to Neurological Symptoms in Calmodulinopathies.\", \"Transcriptome profiling reveals major structural genes, transcription factors and biosynthetic pathways in refractory epilepsy in tropical region of China\"), journal = c(\"bioRxiv\", \"BMC Neurol\"), date = c(20062, 20281), score = c(246.283004760742, 208.256561279297), text_hl = c(\"Calmodulinopathies are caused by <m>mutations</m> in @GENE_CALM1 @GENE_801 @@@calmodulin@@@ (@GENE_CALM1 @GENE_801 @@@CaM@@@), and result in debilitating @DISEASE_Arrhythmias_Cardiac @DISEASE_MESH:D001145 @@@cardiac arrythmias@@@ such as @DISEASE_Long_QT_Syndrome @DISEASE_MESH:D008133 @@@long-QT <m>syndrome</m>@@@ (@DISEASE_Long_QT_Syndrome @DISEASE_MESH:D008133 @@@LQTS@@@) and @DISEASE_Polymorphic_catecholergic_ventricular_tachycardia @DISEASE_MESH:C536334 @@@catecholaminergic polymorphic ventricular tachycardia@@@ (@DISEASE_Polymorphic_catecholergic_ventricular_tachycardia @DISEASE_MESH:C536334 @@@CPVT@@@). \", \n\"Transcriptome profiling reveals major structural <m>genes</m>, transcription factors and biosynthetic pathways in refractory @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@ in tropical region of China\"))"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Publications",
+          "count_filtered": 2
+        },
+        {
+          "key": "entities",
+          "selectOptions": [
+            "list(entity_id = c(NA, NA), disease_ontology_id_version = c(NA, NA), disease_ontology_name = c(NA, NA), hpo_mode_of_inheritance_term = c(NA, NA), hpo_mode_of_inheritance_term_name = c(NA, NA), inheritance_filter = c(NA, NA), ndd_phenotype = c(NA, NA), ndd_phenotype_word = c(NA, NA), entry_date = c(NA, NA), category = c(NA, NA), category_id = c(NA, NA))",
+            "list(entity_id = c(NA, NA, NA), disease_ontology_id_version = c(NA, NA, NA), disease_ontology_name = c(NA, NA, NA), hpo_mode_of_inheritance_term = c(NA, NA, NA), hpo_mode_of_inheritance_term_name = c(NA, NA, NA), inheritance_filter = c(NA, NA, NA), ndd_phenotype = c(NA, NA, NA), ndd_phenotype_word = c(NA, NA, NA), entry_date = c(NA, NA, NA), category = c(NA, NA, NA), category_id = c(NA, NA, NA))"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Entities",
+          "count_filtered": 2
+        }
+      ],
+      "executionTime": "0.55 secs"
+    }
+  ],
+  "data": [
+    {
+      "gene_name": "CALM1",
+      "gene_normalized_id": "801",
+      "hgnc_id": "HGNC:1442",
+      "gene_symbol": "CALM1",
+      "publications": [
+        {
+          "pmid": 39677635,
+          "doi": "10.1101/2024.12.02.626503",
+          "title": "Voltage Gated Calcium Channel Dysregulation May Contribute to Neurological Symptoms in Calmodulinopathies.",
+          "journal": "bioRxiv",
+          "date": "2024-12-05",
+          "score": 246.283,
+          "text_hl": "Calmodulinopathies are caused by <m>mutations</m> in @GENE_CALM1 @GENE_801 @@@calmodulin@@@ (@GENE_CALM1 @GENE_801 @@@CaM@@@), and result in debilitating @DISEASE_Arrhythmias_Cardiac @DISEASE_MESH:D001145 @@@cardiac arrythmias@@@ such as @DISEASE_Long_QT_Syndrome @DISEASE_MESH:D008133 @@@long-QT <m>syndrome</m>@@@ (@DISEASE_Long_QT_Syndrome @DISEASE_MESH:D008133 @@@LQTS@@@) and @DISEASE_Polymorphic_catecholergic_ventricular_tachycardia @DISEASE_MESH:C536334 @@@catecholaminergic polymorphic ventricular tachycardia@@@ (@DISEASE_Polymorphic_catecholergic_ventricular_tachycardia @DISEASE_MESH:C536334 @@@CPVT@@@). "
+        },
+        {
+          "pmid": 40646440,
+          "doi": "10.1186/s12883-025-04216-2",
+          "title": "Transcriptome profiling reveals major structural genes, transcription factors and biosynthetic pathways in refractory epilepsy in tropical region of China",
+          "journal": "BMC Neurol",
+          "date": "2025-07-12",
+          "score": 208.2566,
+          "text_hl": "Transcriptome profiling reveals major structural <m>genes</m>, transcription factors and biosynthetic pathways in refractory @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@ in tropical region of China"
+        }
+      ],
+      "entities": [
+        {},
+        {}
+      ],
+      "publication_count": 2,
+      "entities_count": 0,
+      "is_novel": 1,
+      "oldest_pub_date": "2024-12-05",
+      "pmids": "39677635,40646440"
+    },
+    {
+      "gene_name": "IL6",
+      "gene_normalized_id": "3569",
+      "hgnc_id": "HGNC:6018",
+      "gene_symbol": "IL6",
+      "publications": [
+        {
+          "pmid": 39660033,
+          "doi": "10.2147/CCID.S485694",
+          "title": "Combined Abrocitinib and Acitretin Therapy for Darier's Disease: A Case Report",
+          "journal": "Clin Cosmet Investig Dermatol",
+          "date": "2024-12-05",
+          "score": 208.254,
+          "text_hl": "@DISEASE_Darier_Disease @DISEASE_MESH:D007644 @@@DD@@@ results from an @GENE_ATP2A2 @GENE_488 @@@ATP2A2@@@ <m>mutation</m>. The @GENE_ATP2A2 @GENE_488 @@@ATP2A2@@@ <m>gene</m> is located at 12q23-24.1 on chromosome 12, encoding sarco/endoplasmic reticulum ATPase type 2 (@GENE_ATP2A2 @GENE_488 @@@SERCA2@@@). "
+        },
+        {
+          "pmid": 39575470,
+          "doi": "10.3892/mmr.2024.13396",
+          "title": "Ciliary neurotrophic factor activation of astrocytes mediates neuronal damage via the IL-6/IL-6R pathway",
+          "journal": "Mol Med Rep",
+          "date": "2025-02-01",
+          "score": 222.504
+        },
+        {
+          "pmid": 41139599,
+          "doi": "10.9758/cpn.25.1304",
+          "title": "Could Low Serum TWEAK Levels Serve as a Biomarker for Children and Adolescents Diagnosed with ADHD, Specifically the Predominantly Inattentive Subtype?",
+          "journal": "Clin Psychopharmacol Neurosci",
+          "date": "2025-11-30",
+          "score": 201.862,
+          "text_hl": "@GENE_TNFSF12 @GENE_8742 @@@TNF-related weak inducer of apoptosis@@@ (@GENE_TNFSF12 @GENE_8742 @@@TWEAK@@@) is a secreted ligand in membrane-bound and soluble <m>variant</m> forms belonging to the @GENE_TNF @GENE_7124 @@@TNF@@@ superfamily members. "
+        }
+      ],
+      "entities": [
+        {},
+        {},
+        {}
+      ],
+      "publication_count": 3,
+      "entities_count": 0,
+      "is_novel": 1,
+      "oldest_pub_date": "2024-12-05",
+      "pmids": "39660033,39575470,41139599"
+    }
+  ]
+}

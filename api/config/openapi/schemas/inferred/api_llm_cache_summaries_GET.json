@@ -1,0 +1,97 @@
+{
+  "LlmCacheSummariesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cache_id": {
+              "type": "integer"
+            },
+            "cluster_type": {
+              "type": "string"
+            },
+            "cluster_number": {
+              "type": "integer"
+            },
+            "cluster_hash": {
+              "type": "string"
+            },
+            "model_name": {
+              "type": "string"
+            },
+            "prompt_version": {
+              "type": "string"
+            },
+            "summary_json": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "is_current": {
+              "type": "integer"
+            },
+            "validation_status": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "validated_at": {
+              "type": "string"
+            },
+            "validated_by": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cache_id",
+            "cluster_hash",
+            "cluster_number",
+            "cluster_type",
+            "created_at",
+            "is_current",
+            "model_name",
+            "prompt_version",
+            "summary_json",
+            "tags",
+            "validated_at",
+            "validated_by",
+            "validation_status"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "per_page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "data",
+      "page",
+      "per_page",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_cache_summaries_GET",
+    "x-response-type": "object"
+  }
+}

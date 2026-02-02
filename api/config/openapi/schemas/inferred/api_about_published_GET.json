@@ -1,0 +1,43 @@
+{
+  "AboutPublishedResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            },
+            "section_id": {
+              "type": "string"
+            },
+            "sort_order": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "content",
+            "icon",
+            "section_id",
+            "sort_order",
+            "title"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_about_published_GET",
+    "x-response-type": "object"
+  }
+}

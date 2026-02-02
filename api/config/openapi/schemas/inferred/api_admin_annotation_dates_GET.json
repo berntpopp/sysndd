@@ -1,0 +1,41 @@
+{
+  "AdminAnnotationDatesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "omim_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "mondo_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "hgnc_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "disease_ontology_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "disease_ontology_update",
+      "hgnc_update",
+      "mondo_update",
+      "omim_update"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_annotation_dates_GET",
+    "x-response-type": "object"
+  }
+}

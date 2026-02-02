@@ -1,0 +1,95 @@
+{
+  "StatisticsRereviewLeaderboardResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "submitted_count": {
+              "type": "integer"
+            },
+            "approved_count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "approved_count",
+            "display_name",
+            "submitted_count",
+            "user_id",
+            "user_name"
+          ]
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "start_date": {
+            "type": "object"
+          },
+          "end_date": {
+            "type": "object"
+          },
+          "total_reviewers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_submitted": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_approved": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "end_date",
+          "scope",
+          "start_date",
+          "top",
+          "total_approved",
+          "total_reviewers",
+          "total_submitted"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_rereview_leaderboard_GET",
+    "x-response-type": "object"
+  }
+}

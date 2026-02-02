@@ -1,0 +1,322 @@
+[
+  {
+    "x": "SysNDD",
+    "y": "SysNDD",
+    "value": 1
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "SysNDD",
+    "value": 0.7048
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "SysNDD",
+    "value": 0.6324
+  },
+  {
+    "x": "panelapp",
+    "y": "SysNDD",
+    "value": 0.6676
+  },
+  {
+    "x": "sfari",
+    "y": "SysNDD",
+    "value": 0.3678
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "SysNDD",
+    "value": 0.4424
+  },
+  {
+    "x": "omim_ndd",
+    "y": "SysNDD",
+    "value": 0.688
+  },
+  {
+    "x": "orphanet_id",
+    "y": "SysNDD",
+    "value": 0.5756
+  },
+  {
+    "x": "SysNDD",
+    "y": "radboudumc_ID",
+    "value": 0.7048
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "radboudumc_ID",
+    "value": 1
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "radboudumc_ID",
+    "value": 0.706
+  },
+  {
+    "x": "panelapp",
+    "y": "radboudumc_ID",
+    "value": 0.7489
+  },
+  {
+    "x": "sfari",
+    "y": "radboudumc_ID",
+    "value": 0.336
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "radboudumc_ID",
+    "value": 0.464
+  },
+  {
+    "x": "omim_ndd",
+    "y": "radboudumc_ID",
+    "value": 0.7804
+  },
+  {
+    "x": "orphanet_id",
+    "y": "radboudumc_ID",
+    "value": 0.6618
+  },
+  {
+    "x": "SysNDD",
+    "y": "gene2phenotype",
+    "value": 0.6324
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "gene2phenotype",
+    "value": 0.706
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "gene2phenotype",
+    "value": 1
+  },
+  {
+    "x": "panelapp",
+    "y": "gene2phenotype",
+    "value": 0.7911
+  },
+  {
+    "x": "sfari",
+    "y": "gene2phenotype",
+    "value": 0.3052
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "gene2phenotype",
+    "value": 0.4208
+  },
+  {
+    "x": "omim_ndd",
+    "y": "gene2phenotype",
+    "value": 0.7188
+  },
+  {
+    "x": "orphanet_id",
+    "y": "gene2phenotype",
+    "value": 0.597
+  },
+  {
+    "x": "SysNDD",
+    "y": "panelapp",
+    "value": 0.6676
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "panelapp",
+    "value": 0.7489
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "panelapp",
+    "value": 0.7911
+  },
+  {
+    "x": "panelapp",
+    "y": "panelapp",
+    "value": 1
+  },
+  {
+    "x": "sfari",
+    "y": "panelapp",
+    "value": 0.3299
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "panelapp",
+    "value": 0.4383
+  },
+  {
+    "x": "omim_ndd",
+    "y": "panelapp",
+    "value": 0.7279
+  },
+  {
+    "x": "orphanet_id",
+    "y": "panelapp",
+    "value": 0.6019
+  },
+  {
+    "x": "SysNDD",
+    "y": "sfari",
+    "value": 0.3678
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "sfari",
+    "value": 0.336
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "sfari",
+    "value": 0.3052
+  },
+  {
+    "x": "panelapp",
+    "y": "sfari",
+    "value": 0.3299
+  },
+  {
+    "x": "sfari",
+    "y": "sfari",
+    "value": 1
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "sfari",
+    "value": 0.4124
+  },
+  {
+    "x": "omim_ndd",
+    "y": "sfari",
+    "value": 0.2857
+  },
+  {
+    "x": "orphanet_id",
+    "y": "sfari",
+    "value": 0.2744
+  },
+  {
+    "x": "SysNDD",
+    "y": "geisinger_DBD",
+    "value": 0.4424
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "geisinger_DBD",
+    "value": 0.464
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "geisinger_DBD",
+    "value": 0.4208
+  },
+  {
+    "x": "panelapp",
+    "y": "geisinger_DBD",
+    "value": 0.4383
+  },
+  {
+    "x": "sfari",
+    "y": "geisinger_DBD",
+    "value": 0.4124
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "geisinger_DBD",
+    "value": 1
+  },
+  {
+    "x": "omim_ndd",
+    "y": "geisinger_DBD",
+    "value": 0.4296
+  },
+  {
+    "x": "orphanet_id",
+    "y": "geisinger_DBD",
+    "value": 0.3952
+  },
+  {
+    "x": "SysNDD",
+    "y": "omim_ndd",
+    "value": 0.688
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "omim_ndd",
+    "value": 0.7804
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "omim_ndd",
+    "value": 0.7188
+  },
+  {
+    "x": "panelapp",
+    "y": "omim_ndd",
+    "value": 0.7279
+  },
+  {
+    "x": "sfari",
+    "y": "omim_ndd",
+    "value": 0.2857
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "omim_ndd",
+    "value": 0.4296
+  },
+  {
+    "x": "omim_ndd",
+    "y": "omim_ndd",
+    "value": 1
+  },
+  {
+    "x": "orphanet_id",
+    "y": "omim_ndd",
+    "value": 0.6447
+  },
+  {
+    "x": "SysNDD",
+    "y": "orphanet_id",
+    "value": 0.5756
+  },
+  {
+    "x": "radboudumc_ID",
+    "y": "orphanet_id",
+    "value": 0.6618
+  },
+  {
+    "x": "gene2phenotype",
+    "y": "orphanet_id",
+    "value": 0.597
+  },
+  {
+    "x": "panelapp",
+    "y": "orphanet_id",
+    "value": 0.6019
+  },
+  {
+    "x": "sfari",
+    "y": "orphanet_id",
+    "value": 0.2744
+  },
+  {
+    "x": "geisinger_DBD",
+    "y": "orphanet_id",
+    "value": 0.3952
+  },
+  {
+    "x": "omim_ndd",
+    "y": "orphanet_id",
+    "value": 0.6447
+  },
+  {
+    "x": "orphanet_id",
+    "y": "orphanet_id",
+    "value": 1
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "PanelsOptionsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "lists": {
+              "type": "string"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            }
+          },
+          "required": [
+            "lists",
+            "options"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_panels_options_GET",
+    "x-response-type": "object"
+  }
+}

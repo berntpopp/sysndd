@@ -1,0 +1,183 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/api/comparisons/table?sort=symbol&page_after=0&page_size=2",
+      "next": "http://localhost:7777/api/comparisons/table?sort=symbol&page_after=AACS&page_size=2",
+      "last": "http://localhost:7777/api/comparisons/table?sort=symbol&page_after=ZSWIM8&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 2489,
+      "prevItemID": "null",
+      "currentItemID": "0",
+      "nextItemID": "AACS",
+      "lastItemID": "ZSWIM8",
+      "totalItems": 4977,
+      "sort": "symbol",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "symbol",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4977,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Symbol"
+        },
+        {
+          "key": "SysNDD",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "Refuted",
+            "not listed"
+          ],
+          "count": 5,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Sysndd"
+        },
+        {
+          "key": "gene2phenotype",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "not listed"
+          ],
+          "count": 4,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Gene2phenotype"
+        },
+        {
+          "key": "panelapp",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "Refuted",
+            "not listed"
+          ],
+          "count": 5,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Panelapp"
+        },
+        {
+          "key": "radboudumc_ID",
+          "selectOptions": [
+            "Definitive",
+            "not listed"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Radboudumc id"
+        },
+        {
+          "key": "sfari",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "not listed"
+          ],
+          "count": 4,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Sfari"
+        },
+        {
+          "key": "geisinger_DBD",
+          "selectOptions": [
+            "Definitive",
+            "not listed"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Geisinger dbd"
+        },
+        {
+          "key": "orphanet_id",
+          "selectOptions": [
+            "Definitive",
+            "not listed"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Orphanet id"
+        }
+      ],
+      "executionTime": "0.2 secs"
+    }
+  ],
+  "data": [
+    {
+      "symbol": "A2ML1",
+      "hgnc_id": "HGNC:23336",
+      "SysNDD": "Limited",
+      "radboudumc_ID": "not listed",
+      "gene2phenotype": "not listed",
+      "panelapp": "Limited",
+      "sfari": "not listed",
+      "geisinger_DBD": "not listed",
+      "omim_ndd": "not listed",
+      "orphanet_id": "not listed"
+    },
+    {
+      "symbol": "AAAS",
+      "hgnc_id": "HGNC:13666",
+      "SysNDD": "Definitive",
+      "radboudumc_ID": "not listed",
+      "gene2phenotype": "Definitive",
+      "panelapp": "Definitive",
+      "sfari": "not listed",
+      "geisinger_DBD": "Definitive",
+      "omim_ndd": "Definitive",
+      "orphanet_id": "Definitive"
+    }
+  ]
+}

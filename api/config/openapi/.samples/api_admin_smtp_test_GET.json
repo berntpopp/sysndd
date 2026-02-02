@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "host": "mailpit",
+  "port": 1025,
+  "error": "cannot open the connection"
+}

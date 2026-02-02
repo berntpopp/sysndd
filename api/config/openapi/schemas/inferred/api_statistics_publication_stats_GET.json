@@ -1,0 +1,162 @@
+{
+  "StatisticsPublicationStatsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "publication_type_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "publication_type": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "publication_type"
+          ]
+        }
+      },
+      "journal_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Journal": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Journal",
+            "count"
+          ]
+        }
+      },
+      "last_name_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Lastname": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Lastname",
+            "count"
+          ]
+        }
+      },
+      "update_date_aggregated": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "update_date": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "update_date"
+          ]
+        }
+      },
+      "publication_date_aggregated": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Publication_date": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Publication_date",
+            "count"
+          ]
+        }
+      },
+      "keyword_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Keywords": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Keywords",
+            "count"
+          ]
+        }
+      },
+      "time_aggregate_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "filter_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "min_journal_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "min_lastname_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "min_keyword_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "filter_used",
+      "journal_counts",
+      "keyword_counts",
+      "last_name_counts",
+      "min_journal_count_used",
+      "min_keyword_count_used",
+      "min_lastname_count_used",
+      "publication_date_aggregated",
+      "publication_type_counts",
+      "time_aggregate_used",
+      "update_date_aggregated"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_publication_stats_GET",
+    "x-response-type": "object"
+  }
+}

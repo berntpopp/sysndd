@@ -1,0 +1,52 @@
+{
+  "workers": {
+    "total_workers": [
+      8
+    ],
+    "connections": [
+      1
+    ],
+    "dispatcher_active": [
+      true
+    ]
+  },
+  "cache": {
+    "file_count": [
+      0
+    ],
+    "total_size_mb": [
+      0
+    ],
+    "oldest_cache": [
+      "NA"
+    ],
+    "newest_cache": [
+      "NA"
+    ]
+  },
+  "cache_versions": {
+    "leiden_cache_files": [
+      0
+    ],
+    "walktrap_cache_files": [
+      0
+    ],
+    "mca_versioned_files": [
+      0
+    ],
+    "cache_migration_needed": [
+      false
+    ]
+  },
+  "environment": {
+    "cache_version": [
+      "1"
+    ],
+    "r_version": [
+      "4.4.3"
+    ]
+  },
+  "timestamp": [
+    "2026-02-02T00:04:27Z"
+  ]
+}

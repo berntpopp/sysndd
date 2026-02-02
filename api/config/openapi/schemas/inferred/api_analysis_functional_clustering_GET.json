@@ -1,0 +1,289 @@
+{
+  "AnalysisFunctionalClusteringResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "link",
+            "text",
+            "value"
+          ]
+        }
+      },
+      "clusters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cluster": {
+              "type": "integer"
+            },
+            "cluster_size": {
+              "type": "integer"
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "STRING_id": {
+                    "type": "string"
+                  },
+                  "symbol": {
+                    "type": "string"
+                  },
+                  "hgnc_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "STRING_id",
+                  "hgnc_id",
+                  "symbol"
+                ]
+              }
+            },
+            "hash_filter": {
+              "type": "string"
+            },
+            "term_enrichment": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  },
+                  "number_of_genes": {
+                    "type": "integer"
+                  },
+                  "number_of_genes_in_background": {
+                    "type": "integer"
+                  },
+                  "p_value": {
+                    "type": "number"
+                  },
+                  "fdr": {
+                    "type": "number"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "category",
+                  "description",
+                  "fdr",
+                  "number_of_genes",
+                  "number_of_genes_in_background",
+                  "p_value",
+                  "term"
+                ]
+              }
+            },
+            "subclusters": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cluster": {
+                    "type": "integer"
+                  },
+                  "cluster_size": {
+                    "type": "integer"
+                  },
+                  "identifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "STRING_id": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "hgnc_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "STRING_id",
+                        "hgnc_id",
+                        "symbol"
+                      ]
+                    }
+                  },
+                  "hash_filter": {
+                    "type": "string"
+                  },
+                  "parent_cluster": {
+                    "type": "integer"
+                  },
+                  "term_enrichment": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "category": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "number_of_genes": {
+                          "type": "integer"
+                        },
+                        "number_of_genes_in_background": {
+                          "type": "integer"
+                        },
+                        "p_value": {
+                          "type": "number"
+                        },
+                        "fdr": {
+                          "type": "number"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "category",
+                        "description",
+                        "fdr",
+                        "number_of_genes",
+                        "number_of_genes_in_background",
+                        "p_value",
+                        "term"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "cluster",
+                  "cluster_size",
+                  "hash_filter",
+                  "identifiers",
+                  "parent_cluster",
+                  "term_enrichment"
+                ]
+              }
+            }
+          },
+          "required": [
+            "cluster",
+            "cluster_size",
+            "hash_filter",
+            "identifiers",
+            "subclusters",
+            "term_enrichment"
+          ]
+        }
+      },
+      "pagination": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "page_after": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_cursor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "has_more": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "has_more",
+          "next_cursor",
+          "page_after",
+          "page_size",
+          "total_count"
+        ]
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "elapsed_seconds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "gene_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cluster_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "algorithm",
+          "cluster_count",
+          "elapsed_seconds",
+          "gene_count"
+        ]
+      }
+    },
+    "required": [
+      "categories",
+      "clusters",
+      "meta",
+      "pagination"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_functional_clustering_GET",
+    "x-response-type": "object"
+  }
+}

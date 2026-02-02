@@ -1,0 +1,133 @@
+{
+  "HealthReadyResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "database": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "migrations": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "startup": {
+            "type": "object",
+            "properties": {
+              "fast_path": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              },
+              "lock_acquired": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "required": [
+              "fast_path",
+              "lock_acquired"
+            ]
+          },
+          "lock": {
+            "type": "object",
+            "properties": {
+              "locked": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              },
+              "holder": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "holder",
+              "locked"
+            ]
+          }
+        },
+        "required": [
+          "applied",
+          "lock",
+          "pending",
+          "startup"
+        ]
+      },
+      "pool": {
+        "type": "object",
+        "properties": {
+          "max_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "active": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "idle": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "active",
+          "idle",
+          "max_size",
+          "total"
+        ]
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "database",
+      "migrations",
+      "pool",
+      "status",
+      "timestamp"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_ready_GET",
+    "x-response-type": "object"
+  }
+}

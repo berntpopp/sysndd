@@ -1,0 +1,182 @@
+{
+  "PanelsBrowseResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "sortable": {
+              "type": "string"
+            },
+            "class": {
+              "type": "string"
+            },
+            "sortByFormatted": {
+              "type": "string"
+            },
+            "filterByFormatted": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "class",
+            "filterByFormatted",
+            "key",
+            "label",
+            "sortByFormatted",
+            "sortable"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            },
+            "inheritance": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "entrez_id": {
+              "type": "string"
+            },
+            "ensembl_gene_id": {
+              "type": "string"
+            },
+            "ucsc_id": {
+              "type": "string"
+            },
+            "bed_hg19": {
+              "type": "string"
+            },
+            "bed_hg38": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "bed_hg38",
+            "category",
+            "ensembl_gene_id",
+            "entrez_id",
+            "hgnc_id",
+            "inheritance",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "fields",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_panels_browse_GET",
+    "x-response-type": "pagination"
+  }
+}

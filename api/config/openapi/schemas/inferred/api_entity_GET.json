@@ -1,0 +1,229 @@
+{
+  "EntityResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "inheritance_filter": {
+              "type": "string"
+            },
+            "ndd_phenotype": {
+              "type": "integer"
+            },
+            "ndd_phenotype_word": {
+              "type": "string"
+            },
+            "entry_date": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "category",
+            "category_id",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "entity_id",
+            "entry_date",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "inheritance_filter",
+            "ndd_phenotype",
+            "ndd_phenotype_word",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_entity_GET",
+    "x-response-type": "pagination"
+  }
+}

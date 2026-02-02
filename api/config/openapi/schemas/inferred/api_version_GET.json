@@ -1,0 +1,41 @@
+{
+  "VersionResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "commit": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "title": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "description": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "commit",
+      "description",
+      "title",
+      "version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_version_GET",
+    "x-response-type": "object"
+  }
+}

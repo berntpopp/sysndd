@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "perPage": [
+      10
+    ],
+    "currentPage": [
+      1
+    ],
+    "totalPages": [
+      10305
+    ]
+  },
+  "data": [
+    {
+      "pmid": 41439468,
+      "doi": "10.1080/15384047.2025.2603095",
+      "title": "Assessing progesterone receptor modulation in glioblastoma: from in vitro and animal model to a human pilot protocol",
+      "journal": "Cancer Biol Ther",
+      "date": "2026-12-31T00:00:00Z",
+      "score": 203.7361,
+      "text_hl": "Molecularly, GBs are characterized by isocitrate dehydrogenase wild-type (@GENE_IDH1 @GENE_3417 @@@IDH@@@-wt) status, @GENE_TERT @GENE_7015 @@@telomerase reverse transcriptase@@@ (@GENE_TERT @GENE_7015 @@@TERT@@@) promoter <m>mutations</m>, @GENE_EGFR @GENE_1956 @@@epidermal growth factor receptor@@@ (@GENE_EGFR @GENE_1956 @@@EGFR@@@) amplification and chromosomal alterations, while @DISEASE_Astrocytoma @DISEASE_MESH:D001254 @@@HGA@@@ are identified by <m>mutations</m> in isocitrate dehydrogenase 1 and 2 (IDH1-2), @DISEASE_ATR_X_syndrome @DISEASE_MESH:C538258 @@@alpha thalassemia/<m>mental retardation</m> <m>syndrome</m> X-linked@@@ (@DISEASE_ATR_X_syndrome @DISEASE_MESH:C538258 @@@ATRX@@@), @GENE_TP53 @GENE_7157 @@@tumor protein p53@@@ (@GENE_TP53 @GENE_7157 @@@TP53@@@) and cyclin-dependent kinase inhibitors 2A and 2B (CDK2A/B)."
+    },
+    {
+      "pmid": 41454664,
+      "doi": "10.1080/19490976.2025.2606487",
+      "title": "Targeting the microbiome in pediatric migraine: gastrointestinal manifestations and the therapeutic role of Bifidobacterium longum",
+      "journal": "Gut Microbes",
+      "date": "2026-12-31T00:00:00Z",
+      "score": 208.2409,
+      "text_hl": "The taxonomies of denoised amplicon sequence <m>variants</m> (ASVs) were classified based on the EZBiocloud database. "
+    },
+    {
+      "pmid": 41545316,
+      "doi": "10.1080/19336934.2026.2616950",
+      "title": "Loss of Drosophila UBE3A phenocopies Piezo dysfunction and drives hyperphagic feeding in Drosophila.",
+      "journal": "Fly (Austin)",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 226.0807,
+      "text_hl": "@DISEASE_Angelman_Syndrome @DISEASE_MESH:D017204 @@@Angelman <m>syndrome</m>@@@ (@DISEASE_Angelman_Syndrome @DISEASE_MESH:D017204 @@@AS@@@) is a rare @DISEASE_Heredodegenerative_Disorders_Nervous_System @DISEASE_MESH:D020271 @@@neurogenetic disorder@@@ characterized by @DISEASE_Developmental_Disabilities @DISEASE_MESH:D002658 @@@developmental delay@@@, @DISEASE_Speech_Disorders @DISEASE_MESH:D013064 @@@speech impairment@@@, @DISEASE_Ataxia @DISEASE_MESH:D001259 @@@ataxia@@@, @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@, and in some cases hyperphagic feeding behavior. "
+    },
+    {
+      "pmid": 41508425,
+      "doi": "10.1080/07853890.2025.2611191",
+      "title": "The role of zinc homeostasis in major depressive disorder: heterogeneous pathological mechanisms and therapeutic implications",
+      "journal": "Ann Med",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 216.073,
+      "text_hl": "NA"
+    },
+    {
+      "pmid": 41472336,
+      "doi": "10.1080/07853890.2025.2609424",
+      "title": "Diagnostic and clinical utility of exome sequencing and chromosomal microarray in children with GDD/iD: a meta-analysis",
+      "journal": "Ann Med",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 255.1876,
+      "text_hl": "Global @DISEASE_Intellectual_Disability @DISEASE_MESH:D008607 @@@developmental delay/<m>intellectual disability</m>@@@ (@DISEASE_Aphasia @DISEASE_MESH:D001037 @@@GDD@@@/@DISEASE_Intellectual_Disability @DISEASE_MESH:D008607 @@@ID@@@) is among the most common @DISEASE_Developmental_Disabilities @DISEASE_MESH:D002658 @@@<m>neurodevelopmental disorders</m>@@@, with up to half of cases are attributed to genetic factors. "
+    },
+    {
+      "pmid": 41433235,
+      "doi": "10.1080/19336950.2025.2602975",
+      "title": "One pocket to activate them all (?): Efforts on understanding the modulator pocket in K2P channels",
+      "journal": "Channels (Austin)",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 211.9757,
+      "text_hl": "<m>Mutations</m> near the SF of @GENE_KCNK4 @GENE_50801 @@@TRAAK@@@ (K2P4.1) are associated with @DISEASE_Facial_Dysmorphism_with_Multiple_Malformations @DISEASE_MESH:C565579 @@@facial dysmorphism@@@, @DISEASE_Hypertrichosis @DISEASE_MESH:D006983 @@@hypertrichosis@@@, @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@, @DISEASE_Intellectual_Disability @DISEASE_MESH:D008607 @@@<m>intellectual disability</m>@@@, and @DISEASE_Gingival_Overgrowth @DISEASE_MESH:D019214 @@@gingival overgrowth@@@. "
+    },
+    {
+      "pmid": 41433127,
+      "doi": "10.1080/19336950.2025.2607247",
+      "title": "Regulated degradation of KCC2, a potassium-chloride co-transporter required for synaptic transmission and neurodevelopment",
+      "journal": "Channels (Austin)",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 268.4568,
+      "text_hl": "As outlined in the Introduction, <m>mutations</m> in @GENE_SLC12A5 @GENE_57468 @@@KCC2@@@ have been identified in multiple @DISEASE_Developmental_Disabilities @DISEASE_MESH:D002658 @@@<m>neurodevelopmental disorders</m>@@@, including @DISEASE_Schizophrenia @DISEASE_MESH:D012559 @@@schizophrenia@@@, @DISEASE_Autism_Spectrum_Disorder @DISEASE_MESH:D000067877 @@@<m>autism</m> spectrum disorders@@@, and @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@. "
+    },
+    {
+      "pmid": 41486865,
+      "doi": "10.1080/07853890.2025.2603016",
+      "title": "The ketogenic diet is not for everyone: contraindications, side effects, and drug interactions",
+      "journal": "Ann Med",
+      "date": "2026-12-01T00:00:00Z",
+      "score": 207.0519,
+      "text_hl": "This higher prevalence is due to the increased rate of people carrying the pathogenic <m>variant</m> of the @GENE_HADHA @GENE_3030 @@@HADHA@@@ <m>gene</m>, responsible for the development of the disorder. "
+    },
+    {
+      "pmid": 40537018,
+      "doi": "10.4103/NRR.NRR-D-24-01194",
+      "title": "Neuronal ion channel modulation by Drimys winteri compounds: Opening a new chemical space to neuropharmacology",
+      "journal": "Neural Regen Res",
+      "date": "2026-04-01T00:00:00Z",
+      "score": 205.0888,
+      "text_hl": "., 2023; Lei and Tominaga, 2024). Additionally, <m>mutations</m> in @GENE_TRPV3 @GENE_162514 @@@TRPV3@@@ <m>gene</m> have been related to @DISEASE_Skin_Diseases @DISEASE_MESH:D012871 @@@skin diseases@@@ like @DISEASE_614594 @DISEASE_OMIM:614594 @@@Olmsted <m>syndrome</m>@@@, @DISEASE_Erythromelalgia @DISEASE_MESH:D004916 @@@erythromelalgia@@@, and @DISEASE_Keratoderma_Palmoplantar @DISEASE_MESH:D007645 @@@palmoplantar keratoderma@@@ (Lin et al., 2012; Duchatelet and Hovnanian, 2015; He et al., 2015; Larkin et al., 2021; Song et al., 2021; Um et al., 2022; Vasas et al., 2022; Lei and Tominaga, 2024). "
+    },
+    {
+      "pmid": 40537022,
+      "doi": "10.4103/NRR.NRR-D-24-01337",
+      "title": "Stem cell repair strategies for epilepsy",
+      "journal": "Neural Regen Res",
+      "date": "2026-04-01T00:00:00Z",
+      "score": 246.762,
+      "text_hl": "Ongoing research into alternative therapies for @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@, such as @CHEMICAL_Cannabidiol @CHEMICAL_MESH:D002185 @@@cannabidiol@@@, the ketogenic diet, <m>gene</m> therapy, and optogenetic therapy, holds promise for @SPECIES_9606 @@@patients@@@ (Ghosh et al., 2023). "
+    }
+  ]
+}

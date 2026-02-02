@@ -1,0 +1,80 @@
+[
+  {
+    "lists": "categories_list",
+    "options": [
+      {
+        "value": "All"
+      },
+      {
+        "value": "Definitive"
+      },
+      {
+        "value": "Limited"
+      },
+      {
+        "value": "Moderate"
+      },
+      {
+        "value": "Refuted"
+      }
+    ]
+  },
+  {
+    "lists": "inheritance_list",
+    "options": [
+      {
+        "value": "All"
+      },
+      {
+        "value": "Autosomal dominant"
+      },
+      {
+        "value": "Autosomal recessive"
+      },
+      {
+        "value": "Other"
+      },
+      {
+        "value": "X-linked"
+      }
+    ]
+  },
+  {
+    "lists": "columns_list",
+    "options": [
+      {
+        "value": "category"
+      },
+      {
+        "value": "inheritance"
+      },
+      {
+        "value": "symbol"
+      },
+      {
+        "value": "hgnc_id"
+      },
+      {
+        "value": "entrez_id"
+      },
+      {
+        "value": "ensembl_gene_id"
+      },
+      {
+        "value": "ucsc_id"
+      },
+      {
+        "value": "bed_hg19"
+      },
+      {
+        "value": "bed_hg38"
+      },
+      {
+        "value": "gnomad_constraints"
+      },
+      {
+        "value": "alphafold_id"
+      }
+    ]
+  }
+]

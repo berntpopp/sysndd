@@ -1,0 +1,43 @@
+{
+  "VariantCorrelationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "x_vario_id": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "y_vario_id": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "x_vario_id",
+            "y",
+            "y_vario_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_variant_correlation_GET",
+    "x-response-type": "object"
+  }
+}

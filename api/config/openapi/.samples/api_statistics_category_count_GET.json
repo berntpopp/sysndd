@@ -1,0 +1,103 @@
+{
+  "meta": [
+    {
+      "last_update": "2025-11-12 14:24:52",
+      "executionTime": "0.13 secs"
+    }
+  ],
+  "data": [
+    {
+      "category": "Definitive",
+      "n": 1802,
+      "inheritance": "All",
+      "groups": [
+        {
+          "category": "Definitive",
+          "category_id": 1,
+          "inheritance": "Autosomal recessive",
+          "n": 1133
+        },
+        {
+          "category": "Definitive",
+          "category_id": 1,
+          "inheritance": "Autosomal dominant",
+          "n": 656
+        },
+        {
+          "category": "Definitive",
+          "category_id": 1,
+          "inheritance": "X-linked",
+          "n": 138
+        },
+        {
+          "category": "Definitive",
+          "category_id": 1,
+          "inheritance": "Other",
+          "n": 16
+        }
+      ]
+    },
+    {
+      "category": "Moderate",
+      "n": 154,
+      "inheritance": "All",
+      "groups": [
+        {
+          "category": "Moderate",
+          "category_id": 2,
+          "inheritance": "Autosomal recessive",
+          "n": 90
+        },
+        {
+          "category": "Moderate",
+          "category_id": 2,
+          "inheritance": "Autosomal dominant",
+          "n": 78
+        },
+        {
+          "category": "Moderate",
+          "category_id": 2,
+          "inheritance": "X-linked",
+          "n": 10
+        },
+        {
+          "category": "Moderate",
+          "category_id": 2,
+          "inheritance": "Other",
+          "n": 1
+        }
+      ]
+    },
+    {
+      "category": "Limited",
+      "n": 1253,
+      "inheritance": "All",
+      "groups": [
+        {
+          "category": "Limited",
+          "category_id": 3,
+          "inheritance": "Autosomal recessive",
+          "n": 750
+        },
+        {
+          "category": "Limited",
+          "category_id": 3,
+          "inheritance": "Autosomal dominant",
+          "n": 500
+        },
+        {
+          "category": "Limited",
+          "category_id": 3,
+          "inheritance": "X-linked",
+          "n": 48
+        },
+        {
+          "category": "Limited",
+          "category_id": 3,
+          "inheritance": "Other",
+          "n": 5
+        }
+      ]
+    }
+  ]
+}

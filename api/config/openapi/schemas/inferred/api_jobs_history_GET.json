@@ -1,0 +1,39 @@
+{
+  "JobsHistoryResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array"
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "limit": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "limit"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_jobs_history_GET",
+    "x-response-type": "object"
+  }
+}

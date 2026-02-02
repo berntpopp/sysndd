@@ -1,0 +1,6003 @@
+{
+  "AboutDraftResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            },
+            "section_id": {
+              "type": "string"
+            },
+            "sort_order": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "content",
+            "icon",
+            "section_id",
+            "sort_order",
+            "title"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_about_draft_GET",
+    "x-response-type": "object"
+  },
+  "AboutPublishedResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "icon": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "content": {
+              "type": "string"
+            },
+            "section_id": {
+              "type": "string"
+            },
+            "sort_order": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "content",
+            "icon",
+            "section_id",
+            "sort_order",
+            "title"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_about_published_GET",
+    "x-response-type": "object"
+  },
+  "AdminAnnotationDatesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "omim_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "mondo_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "hgnc_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "disease_ontology_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "disease_ontology_update",
+      "hgnc_update",
+      "mondo_update",
+      "omim_update"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_annotation_dates_GET",
+    "x-response-type": "object"
+  },
+  "AdminVersionResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "api_version": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "api_version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_api_version_GET",
+    "x-response-type": "object"
+  },
+  "AdminSmtpTestResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "host": {
+        "type": "string"
+      },
+      "port": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "error",
+      "host",
+      "port",
+      "success"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_smtp_test_GET",
+    "x-response-type": "object"
+  },
+  "AnalysisFunctionalClusteringResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "link",
+            "text",
+            "value"
+          ]
+        }
+      },
+      "clusters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cluster": {
+              "type": "integer"
+            },
+            "cluster_size": {
+              "type": "integer"
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "STRING_id": {
+                    "type": "string"
+                  },
+                  "symbol": {
+                    "type": "string"
+                  },
+                  "hgnc_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "STRING_id",
+                  "hgnc_id",
+                  "symbol"
+                ]
+              }
+            },
+            "hash_filter": {
+              "type": "string"
+            },
+            "term_enrichment": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string"
+                  },
+                  "number_of_genes": {
+                    "type": "integer"
+                  },
+                  "number_of_genes_in_background": {
+                    "type": "integer"
+                  },
+                  "p_value": {
+                    "type": "number"
+                  },
+                  "fdr": {
+                    "type": "number"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "category",
+                  "description",
+                  "fdr",
+                  "number_of_genes",
+                  "number_of_genes_in_background",
+                  "p_value",
+                  "term"
+                ]
+              }
+            },
+            "subclusters": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cluster": {
+                    "type": "integer"
+                  },
+                  "cluster_size": {
+                    "type": "integer"
+                  },
+                  "identifiers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "STRING_id": {
+                          "type": "string"
+                        },
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "hgnc_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "STRING_id",
+                        "hgnc_id",
+                        "symbol"
+                      ]
+                    }
+                  },
+                  "hash_filter": {
+                    "type": "string"
+                  },
+                  "parent_cluster": {
+                    "type": "integer"
+                  },
+                  "term_enrichment": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "category": {
+                          "type": "string"
+                        },
+                        "term": {
+                          "type": "string"
+                        },
+                        "number_of_genes": {
+                          "type": "integer"
+                        },
+                        "number_of_genes_in_background": {
+                          "type": "integer"
+                        },
+                        "p_value": {
+                          "type": "number"
+                        },
+                        "fdr": {
+                          "type": "number"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "category",
+                        "description",
+                        "fdr",
+                        "number_of_genes",
+                        "number_of_genes_in_background",
+                        "p_value",
+                        "term"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "cluster",
+                  "cluster_size",
+                  "hash_filter",
+                  "identifiers",
+                  "parent_cluster",
+                  "term_enrichment"
+                ]
+              }
+            }
+          },
+          "required": [
+            "cluster",
+            "cluster_size",
+            "hash_filter",
+            "identifiers",
+            "subclusters",
+            "term_enrichment"
+          ]
+        }
+      },
+      "pagination": {
+        "type": "object",
+        "properties": {
+          "page_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "page_after": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "next_cursor": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "total_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "has_more": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "has_more",
+          "next_cursor",
+          "page_after",
+          "page_size",
+          "total_count"
+        ]
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "elapsed_seconds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "gene_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cluster_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "algorithm",
+          "cluster_count",
+          "elapsed_seconds",
+          "gene_count"
+        ]
+      }
+    },
+    "required": [
+      "categories",
+      "clusters",
+      "meta",
+      "pagination"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_functional_clustering_GET",
+    "x-response-type": "object"
+  },
+  "AnalysisNetworkEdgesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "cluster": {
+              "type": "integer"
+            },
+            "degree": {
+              "type": "integer"
+            },
+            "category": {
+              "type": "string"
+            },
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "category",
+            "cluster",
+            "degree",
+            "hgnc_id",
+            "symbol",
+            "x",
+            "y"
+          ]
+        }
+      },
+      "edges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "confidence": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "confidence",
+            "source",
+            "target"
+          ]
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "node_count": {
+            "type": "integer"
+          },
+          "edge_count": {
+            "type": "integer"
+          },
+          "cluster_count": {
+            "type": "integer"
+          },
+          "string_version": {
+            "type": "string"
+          },
+          "min_confidence": {
+            "type": "integer"
+          },
+          "layout_algorithm": {
+            "type": "string"
+          },
+          "layout_time_seconds": {
+            "type": "number"
+          },
+          "total_ndd_genes": {
+            "type": "integer"
+          },
+          "genes_with_string": {
+            "type": "integer"
+          },
+          "genes_in_clusters": {
+            "type": "integer"
+          },
+          "category_counts": {
+            "type": "object",
+            "properties": {
+              "Definitive": {
+                "type": "integer"
+              },
+              "Limited": {
+                "type": "integer"
+              },
+              "Moderate": {
+                "type": "integer"
+              },
+              "Refuted": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "Definitive",
+              "Limited",
+              "Moderate",
+              "Refuted"
+            ]
+          },
+          "total_edges": {
+            "type": "integer"
+          },
+          "edges_filtered": {
+            "type": "boolean"
+          },
+          "elapsed_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "category_counts",
+          "cluster_count",
+          "edge_count",
+          "edges_filtered",
+          "elapsed_seconds",
+          "genes_in_clusters",
+          "genes_with_string",
+          "layout_algorithm",
+          "layout_time_seconds",
+          "min_confidence",
+          "node_count",
+          "string_version",
+          "total_edges",
+          "total_ndd_genes"
+        ]
+      }
+    },
+    "required": [
+      "edges",
+      "metadata",
+      "nodes"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_network_edges_GET",
+    "x-response-type": "object"
+  },
+  "AnalysisPhenotypeClusteringResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cluster": {
+              "type": "string"
+            },
+            "hash_filter": {
+              "type": "string"
+            },
+            "cluster_size": {
+              "type": "integer"
+            },
+            "quali_inp_var": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "variable": {
+                    "type": "string"
+                  },
+                  "Cla.Mod": {
+                    "type": "number"
+                  },
+                  "Mod.Cla": {
+                    "type": "number"
+                  },
+                  "Global": {
+                    "type": "number"
+                  },
+                  "p.value": {
+                    "type": "number"
+                  },
+                  "v.test": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "Cla.Mod",
+                  "Global",
+                  "Mod.Cla",
+                  "p.value",
+                  "v.test",
+                  "variable"
+                ]
+              }
+            },
+            "quali_sup_var": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "variable": {
+                    "type": "string"
+                  },
+                  "Cla.Mod": {
+                    "type": "number"
+                  },
+                  "Mod.Cla": {
+                    "type": "number"
+                  },
+                  "Global": {
+                    "type": "number"
+                  },
+                  "p.value": {
+                    "type": "number"
+                  },
+                  "v.test": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "Cla.Mod",
+                  "Global",
+                  "Mod.Cla",
+                  "p.value",
+                  "v.test",
+                  "variable"
+                ]
+              }
+            },
+            "quanti_sup_var": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "variable": {
+                    "type": "string"
+                  },
+                  "v.test": {
+                    "type": "number"
+                  },
+                  "Mean.in.category": {
+                    "type": "number"
+                  },
+                  "Overall.mean": {
+                    "type": "number"
+                  },
+                  "sd.in.category": {
+                    "type": "number"
+                  },
+                  "Overall.sd": {
+                    "type": "number"
+                  },
+                  "p.value": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "Mean.in.category",
+                  "Overall.mean",
+                  "Overall.sd",
+                  "p.value",
+                  "sd.in.category",
+                  "v.test",
+                  "variable"
+                ]
+              }
+            },
+            "identifiers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entity_id": {
+                    "type": "integer"
+                  },
+                  "hgnc_id": {
+                    "type": "string"
+                  },
+                  "symbol": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "entity_id",
+                  "hgnc_id",
+                  "symbol"
+                ]
+              }
+            }
+          },
+          "required": [
+            "cluster",
+            "cluster_size",
+            "hash_filter",
+            "identifiers",
+            "quali_inp_var",
+            "quali_sup_var",
+            "quanti_sup_var"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_phenotype_clustering_GET",
+    "x-response-type": "object"
+  },
+  "AnalysisPhenotypeFunctionalClusterCorrelationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "correlation_melted": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "y"
+          ]
+        }
+      }
+    },
+    "required": [
+      "correlation_matrix",
+      "correlation_melted"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_phenotype_functional_cluster_correlation_GET",
+    "x-response-type": "object"
+  },
+  "AuthSigninResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "user_name": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "email": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "user_role": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "user_created": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "abbreviation": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "orcid": {
+        "type": "object"
+      },
+      "exp": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "abbreviation",
+      "email",
+      "exp",
+      "orcid",
+      "user_created",
+      "user_id",
+      "user_name",
+      "user_role"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_auth_signin_GET",
+    "x-response-type": "object"
+  },
+  "BackupListResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "size_bytes": {
+              "type": "integer"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "table_count": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "created_at",
+            "filename",
+            "size_bytes",
+            "table_count"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page_size": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "total_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_size_bytes": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "total_count",
+          "total_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta",
+      "page",
+      "page_size",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_backup_list_GET",
+    "x-response-type": "object"
+  },
+  "ComparisonsBrowseResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "SysNDD": {
+              "type": "string"
+            },
+            "radboudumc_ID": {
+              "type": "string"
+            },
+            "gene2phenotype": {
+              "type": "string"
+            },
+            "panelapp": {
+              "type": "string"
+            },
+            "sfari": {
+              "type": "string"
+            },
+            "geisinger_DBD": {
+              "type": "string"
+            },
+            "omim_ndd": {
+              "type": "string"
+            },
+            "orphanet_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "SysNDD",
+            "geisinger_DBD",
+            "gene2phenotype",
+            "hgnc_id",
+            "omim_ndd",
+            "orphanet_id",
+            "panelapp",
+            "radboudumc_ID",
+            "sfari",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_comparisons_browse_GET",
+    "x-response-type": "pagination"
+  },
+  "ComparisonsMetadataResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "last_full_refresh": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "last_refresh_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "last_refresh_error": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sources_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "rows_imported": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "last_full_refresh",
+      "last_refresh_error",
+      "last_refresh_status",
+      "rows_imported",
+      "sources_count"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_metadata_GET",
+    "x-response-type": "object"
+  },
+  "ComparisonsOptionsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "list": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "list"
+          ]
+        }
+      },
+      "inheritance": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "inheritance": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "inheritance"
+          ]
+        }
+      },
+      "category": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "category"
+          ]
+        }
+      },
+      "pathogenicity_mode": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pathogenicity_mode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pathogenicity_mode"
+          ]
+        }
+      }
+    },
+    "required": [
+      "category",
+      "inheritance",
+      "list",
+      "pathogenicity_mode"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_options_GET",
+    "x-response-type": "object"
+  },
+  "ComparisonsSimilarityResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "y"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_similarity_GET",
+    "x-response-type": "object"
+  },
+  "ComparisonsUpsetResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "sets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "name",
+            "sets"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_upset_GET",
+    "x-response-type": "object"
+  },
+  "EntityResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "inheritance_filter": {
+              "type": "string"
+            },
+            "ndd_phenotype": {
+              "type": "integer"
+            },
+            "ndd_phenotype_word": {
+              "type": "string"
+            },
+            "entry_date": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "category",
+            "category_id",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "entity_id",
+            "entry_date",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "inheritance_filter",
+            "ndd_phenotype",
+            "ndd_phenotype_word",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_entity_GET",
+    "x-response-type": "pagination"
+  },
+  "GeneResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "entities_count": {
+              "type": "integer"
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entity_id": {
+                    "type": "integer"
+                  },
+                  "disease_ontology_id_version": {
+                    "type": "string"
+                  },
+                  "disease_ontology_name": {
+                    "type": "string"
+                  },
+                  "hpo_mode_of_inheritance_term": {
+                    "type": "string"
+                  },
+                  "hpo_mode_of_inheritance_term_name": {
+                    "type": "string"
+                  },
+                  "inheritance_filter": {
+                    "type": "string"
+                  },
+                  "ndd_phenotype": {
+                    "type": "integer"
+                  },
+                  "ndd_phenotype_word": {
+                    "type": "string"
+                  },
+                  "entry_date": {
+                    "type": "string"
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "category",
+                  "category_id",
+                  "disease_ontology_id_version",
+                  "disease_ontology_name",
+                  "entity_id",
+                  "entry_date",
+                  "hpo_mode_of_inheritance_term",
+                  "hpo_mode_of_inheritance_term_name",
+                  "inheritance_filter",
+                  "ndd_phenotype",
+                  "ndd_phenotype_word"
+                ]
+              }
+            }
+          },
+          "required": [
+            "entities",
+            "entities_count",
+            "hgnc_id",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_gene_GET",
+    "x-response-type": "pagination"
+  },
+  "HealthResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "version": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "status",
+      "timestamp",
+      "version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_GET",
+    "x-response-type": "object"
+  },
+  "HealthHealthPerformanceResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "workers": {
+        "type": "object",
+        "properties": {
+          "total_workers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "dispatcher_active": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "connections",
+          "dispatcher_active",
+          "total_workers"
+        ]
+      },
+      "cache": {
+        "type": "object",
+        "properties": {
+          "file_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_size_mb": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "oldest_cache": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "newest_cache": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "file_count",
+          "newest_cache",
+          "oldest_cache",
+          "total_size_mb"
+        ]
+      },
+      "cache_versions": {
+        "type": "object",
+        "properties": {
+          "leiden_cache_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "walktrap_cache_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "mca_versioned_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cache_migration_needed": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "cache_migration_needed",
+          "leiden_cache_files",
+          "mca_versioned_files",
+          "walktrap_cache_files"
+        ]
+      },
+      "environment": {
+        "type": "object",
+        "properties": {
+          "cache_version": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "r_version": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "cache_version",
+          "r_version"
+        ]
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "cache",
+      "cache_versions",
+      "environment",
+      "timestamp",
+      "workers"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_health_performance_GET",
+    "x-response-type": "object"
+  },
+  "HealthReadyResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "database": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "migrations": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "startup": {
+            "type": "object",
+            "properties": {
+              "fast_path": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              },
+              "lock_acquired": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "required": [
+              "fast_path",
+              "lock_acquired"
+            ]
+          },
+          "lock": {
+            "type": "object",
+            "properties": {
+              "locked": {
+                "type": "array",
+                "items": {
+                  "type": "boolean"
+                }
+              },
+              "holder": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "holder",
+              "locked"
+            ]
+          }
+        },
+        "required": [
+          "applied",
+          "lock",
+          "pending",
+          "startup"
+        ]
+      },
+      "pool": {
+        "type": "object",
+        "properties": {
+          "max_size": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "active": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "idle": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "active",
+          "idle",
+          "max_size",
+          "total"
+        ]
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "database",
+      "migrations",
+      "pool",
+      "status",
+      "timestamp"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_ready_GET",
+    "x-response-type": "object"
+  },
+  "JobsHistoryResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array"
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "limit": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "limit"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_jobs_history_GET",
+    "x-response-type": "object"
+  },
+  "ListPhenotypeResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "phenotype_id": {
+              "type": "string"
+            },
+            "HPO_term": {
+              "type": "string"
+            },
+            "HPO_term_definition": {
+              "type": "string"
+            },
+            "HPO_term_synonyms": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "HPO_term",
+            "HPO_term_definition",
+            "HPO_term_synonyms",
+            "phenotype_id"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_list_phenotype_GET",
+    "x-response-type": "pagination"
+  },
+  "ListStatusResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category_id": {
+              "type": "integer"
+            },
+            "category": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "category",
+            "category_id"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_list_status_GET",
+    "x-response-type": "pagination"
+  },
+  "ListVariationOntologyResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "vario_id": {
+              "type": "string"
+            },
+            "vario_name": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "definition",
+            "vario_id",
+            "vario_name"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_list_variation_ontology_GET",
+    "x-response-type": "pagination"
+  },
+  "LlmCacheStatsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "total_entries": {
+        "type": "integer"
+      },
+      "by_status": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer"
+          },
+          "validated": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending",
+          "rejected",
+          "validated"
+        ]
+      },
+      "by_type": {
+        "type": "object",
+        "properties": {
+          "functional": {
+            "type": "integer"
+          },
+          "phenotype": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "functional",
+          "phenotype"
+        ]
+      },
+      "last_generation": {
+        "type": "string"
+      },
+      "total_tokens_input": {
+        "type": "integer"
+      },
+      "total_tokens_output": {
+        "type": "integer"
+      },
+      "estimated_cost_usd": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "by_status",
+      "by_type",
+      "estimated_cost_usd",
+      "last_generation",
+      "total_entries",
+      "total_tokens_input",
+      "total_tokens_output"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_cache_stats_GET",
+    "x-response-type": "object"
+  },
+  "LlmCacheSummariesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "cache_id": {
+              "type": "integer"
+            },
+            "cluster_type": {
+              "type": "string"
+            },
+            "cluster_number": {
+              "type": "integer"
+            },
+            "cluster_hash": {
+              "type": "string"
+            },
+            "model_name": {
+              "type": "string"
+            },
+            "prompt_version": {
+              "type": "string"
+            },
+            "summary_json": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "is_current": {
+              "type": "integer"
+            },
+            "validation_status": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "validated_at": {
+              "type": "string"
+            },
+            "validated_by": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cache_id",
+            "cluster_hash",
+            "cluster_number",
+            "cluster_type",
+            "created_at",
+            "is_current",
+            "model_name",
+            "prompt_version",
+            "summary_json",
+            "tags",
+            "validated_at",
+            "validated_by",
+            "validation_status"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "per_page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "data",
+      "page",
+      "per_page",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_cache_summaries_GET",
+    "x-response-type": "object"
+  },
+  "LlmConfigResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "gemini_configured": {
+        "type": "boolean"
+      },
+      "current_model": {
+        "type": "string"
+      },
+      "available_models": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "model_id": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "rpm_limit": {
+              "type": "integer"
+            },
+            "rpd_limit": {
+              "type": [
+                "integer",
+                "object"
+              ]
+            },
+            "recommended_for": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "display_name",
+            "model_id",
+            "recommended_for",
+            "rpd_limit",
+            "rpm_limit"
+          ]
+        }
+      },
+      "rate_limit": {
+        "type": "object",
+        "properties": {
+          "capacity": {
+            "type": "integer"
+          },
+          "fill_time_s": {
+            "type": "integer"
+          },
+          "backoff_base": {
+            "type": "integer"
+          },
+          "max_retries": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "backoff_base",
+          "capacity",
+          "fill_time_s",
+          "max_retries"
+        ]
+      }
+    },
+    "required": [
+      "available_models",
+      "current_model",
+      "gemini_configured",
+      "rate_limit"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_config_GET",
+    "x-response-type": "object"
+  },
+  "LlmLogsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "log_id": {
+              "type": "integer"
+            },
+            "cluster_type": {
+              "type": "string"
+            },
+            "cluster_number": {
+              "type": "integer"
+            },
+            "cluster_hash": {
+              "type": "string"
+            },
+            "model_name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "tokens_input": {
+              "type": "string"
+            },
+            "tokens_output": {
+              "type": "string"
+            },
+            "latency_ms": {
+              "type": "integer"
+            },
+            "error_message": {
+              "type": "string"
+            },
+            "validation_errors": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_hash",
+            "cluster_number",
+            "cluster_type",
+            "created_at",
+            "error_message",
+            "latency_ms",
+            "log_id",
+            "model_name",
+            "status",
+            "tokens_input",
+            "tokens_output",
+            "validation_errors"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "per_page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "data",
+      "page",
+      "per_page",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_logs_GET",
+    "x-response-type": "object"
+  },
+  "LlmPromptsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "functional_generation": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "functional_judge": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "phenotype_generation": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "phenotype_judge": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      }
+    },
+    "required": [
+      "functional_generation",
+      "functional_judge",
+      "phenotype_generation",
+      "phenotype_judge"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_prompts_GET",
+    "x-response-type": "object"
+  },
+  "LogsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "message"
+    ],
+    "description": "Simple message response",
+    "x-inferred-from": "api_logs_GET",
+    "x-response-type": "message"
+  },
+  "OntologyVariantTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "label": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sortable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "filterable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "class": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "vario_id": {
+              "type": "string"
+            },
+            "vario_name": {
+              "type": "string"
+            },
+            "definition": {
+              "type": "string"
+            },
+            "obsolete": {
+              "type": "integer"
+            },
+            "is_active": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "integer"
+            },
+            "update_date": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "definition",
+            "is_active",
+            "obsolete",
+            "sort",
+            "update_date",
+            "vario_id",
+            "vario_name"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_ontology_variant_table_GET",
+    "x-response-type": "pagination"
+  },
+  "PanelsBrowseResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "fields": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "sortable": {
+              "type": "string"
+            },
+            "class": {
+              "type": "string"
+            },
+            "sortByFormatted": {
+              "type": "string"
+            },
+            "filterByFormatted": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "class",
+            "filterByFormatted",
+            "key",
+            "label",
+            "sortByFormatted",
+            "sortable"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            },
+            "inheritance": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "entrez_id": {
+              "type": "string"
+            },
+            "ensembl_gene_id": {
+              "type": "string"
+            },
+            "ucsc_id": {
+              "type": "string"
+            },
+            "bed_hg19": {
+              "type": "string"
+            },
+            "bed_hg38": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "bed_hg38",
+            "category",
+            "ensembl_gene_id",
+            "entrez_id",
+            "hgnc_id",
+            "inheritance",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "fields",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_panels_browse_GET",
+    "x-response-type": "pagination"
+  },
+  "PanelsOptionsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "lists": {
+              "type": "string"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            }
+          },
+          "required": [
+            "lists",
+            "options"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_panels_options_GET",
+    "x-response-type": "object"
+  },
+  "PhenotypeCorrelationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "x_id": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "y_id": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "x_id",
+            "y",
+            "y_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_phenotype_correlation_GET",
+    "x-response-type": "object"
+  },
+  "PhenotypeCountResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "HPO_term": {
+              "type": "string"
+            },
+            "phenotype_id": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "HPO_term",
+            "count",
+            "phenotype_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_phenotype_count_GET",
+    "x-response-type": "object"
+  },
+  "PhenotypeEntitiesBrowseResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "inheritance_filter": {
+              "type": "string"
+            },
+            "ndd_phenotype": {
+              "type": "integer"
+            },
+            "ndd_phenotype_word": {
+              "type": "string"
+            },
+            "entry_date": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            },
+            "modifier_phenotype_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "category",
+            "category_id",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "entity_id",
+            "entry_date",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "inheritance_filter",
+            "modifier_phenotype_id",
+            "ndd_phenotype",
+            "ndd_phenotype_word",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_phenotype_entities_browse_GET",
+    "x-response-type": "pagination"
+  },
+  "PublicationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "publication_id": {
+              "type": "string"
+            },
+            "publication_type": {
+              "type": "string"
+            },
+            "other_publication_id": {
+              "type": "string"
+            },
+            "Title": {
+              "type": "string"
+            },
+            "Abstract": {
+              "type": "string"
+            },
+            "Publication_date": {
+              "type": "string"
+            },
+            "Journal_abbreviation": {
+              "type": "string"
+            },
+            "Journal": {
+              "type": "string"
+            },
+            "Keywords": {
+              "type": "string"
+            },
+            "Lastname": {
+              "type": "string"
+            },
+            "Firstname": {
+              "type": "string"
+            },
+            "update_date": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "Abstract",
+            "Firstname",
+            "Journal",
+            "Journal_abbreviation",
+            "Keywords",
+            "Lastname",
+            "Publication_date",
+            "Title",
+            "other_publication_id",
+            "publication_id",
+            "publication_type",
+            "update_date"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_publication_GET",
+    "x-response-type": "pagination"
+  },
+  "PublicationPubtatorGenesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gene_name": {
+              "type": "string"
+            },
+            "gene_normalized_id": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "gene_symbol": {
+              "type": "string"
+            },
+            "publications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pmid": {
+                    "type": "integer"
+                  },
+                  "doi": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "journal": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "score": {
+                    "type": "number"
+                  },
+                  "text_hl": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "date",
+                  "doi",
+                  "journal",
+                  "pmid",
+                  "score",
+                  "title"
+                ]
+              }
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "publication_count": {
+              "type": "integer"
+            },
+            "entities_count": {
+              "type": "integer"
+            },
+            "is_novel": {
+              "type": "integer"
+            },
+            "oldest_pub_date": {
+              "type": "string"
+            },
+            "pmids": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "entities",
+            "entities_count",
+            "gene_name",
+            "gene_normalized_id",
+            "gene_symbol",
+            "hgnc_id",
+            "is_novel",
+            "oldest_pub_date",
+            "pmids",
+            "publication_count",
+            "publications"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_publication_pubtator_genes_GET",
+    "x-response-type": "pagination"
+  },
+  "PublicationPubtatorSearchResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "object",
+        "properties": {
+          "perPage": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "currentPage": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "totalPages": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "currentPage",
+          "perPage",
+          "totalPages"
+        ]
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pmid": {
+              "type": "integer"
+            },
+            "doi": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "journal": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            },
+            "text_hl": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "doi",
+            "journal",
+            "pmid",
+            "score",
+            "text_hl",
+            "title"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_publication_pubtator_search_GET",
+    "x-response-type": "object"
+  },
+  "PublicationPubtatorTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "search_id": {
+              "type": "integer"
+            },
+            "query_id": {
+              "type": "integer"
+            },
+            "pmid": {
+              "type": "integer"
+            },
+            "doi": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "journal": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            },
+            "text_hl": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "gene_symbols": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "created_at",
+            "date",
+            "doi",
+            "journal",
+            "pmid",
+            "query_id",
+            "score",
+            "search_id",
+            "text_hl",
+            "title"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_publication_pubtator_table_GET",
+    "x-response-type": "pagination"
+  },
+  "PublicationStatsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "oldest_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "outdated_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "oldest_update",
+      "outdated_count",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_publication_stats_GET",
+    "x-response-type": "object"
+  },
+  "ReReviewAssignmentTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "assignment_id": {
+              "type": "integer"
+            },
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "re_review_batch": {
+              "type": "integer"
+            },
+            "re_review_review_saved": {
+              "type": "integer"
+            },
+            "re_review_status_saved": {
+              "type": "integer"
+            },
+            "re_review_submitted": {
+              "type": "integer"
+            },
+            "re_review_approved": {
+              "type": "integer"
+            },
+            "entity_count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "assignment_id",
+            "entity_count",
+            "re_review_approved",
+            "re_review_batch",
+            "re_review_review_saved",
+            "re_review_status_saved",
+            "re_review_submitted",
+            "user_id",
+            "user_name"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_re_review_assignment_table_GET",
+    "x-response-type": "object"
+  },
+  "ReReviewTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_re_review_table_GET",
+    "x-response-type": "pagination"
+  },
+  "ReviewResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "review_id": {
+              "type": "integer"
+            },
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "synopsis": {
+              "type": "string"
+            },
+            "is_primary": {
+              "type": "integer"
+            },
+            "review_date": {
+              "type": "string"
+            },
+            "review_user_name": {
+              "type": "string"
+            },
+            "review_user_role": {
+              "type": "string"
+            },
+            "review_approved": {
+              "type": "integer"
+            },
+            "approving_user_name": {
+              "type": "null"
+            },
+            "approving_user_role": {
+              "type": "null"
+            },
+            "approving_user_id": {
+              "type": "null"
+            },
+            "comment": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "duplicate": {
+              "type": "string"
+            },
+            "active_status": {
+              "type": "integer"
+            },
+            "active_category": {
+              "type": "integer"
+            },
+            "newest_status": {
+              "type": "integer"
+            },
+            "newest_category": {
+              "type": "integer"
+            },
+            "status_change": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "active_category",
+            "active_status",
+            "approving_user_id",
+            "approving_user_name",
+            "approving_user_role",
+            "comment",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "duplicate",
+            "entity_id",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "is_primary",
+            "newest_category",
+            "newest_status",
+            "review_approved",
+            "review_date",
+            "review_id",
+            "review_user_name",
+            "review_user_role",
+            "status_change",
+            "symbol",
+            "synopsis"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_review_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsCategoryCountResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "last_update": {
+              "type": "string"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "executionTime",
+            "last_update"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            },
+            "n": {
+              "type": "integer"
+            },
+            "inheritance": {
+              "type": "string"
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  },
+                  "inheritance": {
+                    "type": "string"
+                  },
+                  "n": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "category",
+                  "category_id",
+                  "inheritance",
+                  "n"
+                ]
+              }
+            }
+          },
+          "required": [
+            "category",
+            "groups",
+            "inheritance",
+            "n"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_category_count_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsContributorLeaderboardResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "entity_count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "display_name",
+            "entity_count",
+            "user_id",
+            "user_name"
+          ]
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "start_date": {
+            "type": "object"
+          },
+          "end_date": {
+            "type": "object"
+          },
+          "total_contributors": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "end_date",
+          "scope",
+          "start_date",
+          "top",
+          "total_contributors"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_contributor_leaderboard_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsEntitiesOverTimeResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "aggregate": {
+              "type": "string"
+            },
+            "group": {
+              "type": "string"
+            },
+            "summarize": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "max_count": {
+              "type": "integer"
+            },
+            "max_cumulative_count": {
+              "type": "integer"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "aggregate",
+            "executionTime",
+            "filter",
+            "group",
+            "max_count",
+            "max_cumulative_count",
+            "summarize"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "string"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entry_date": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "cumulative_count": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "count",
+                  "cumulative_count",
+                  "entry_date"
+                ]
+              }
+            }
+          },
+          "required": [
+            "group",
+            "values"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_entities_over_time_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsNewsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "inheritance_filter": {
+              "type": "string"
+            },
+            "ndd_phenotype": {
+              "type": "integer"
+            },
+            "ndd_phenotype_word": {
+              "type": "string"
+            },
+            "entry_date": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "category",
+            "category_id",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "entity_id",
+            "entry_date",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "inheritance_filter",
+            "ndd_phenotype",
+            "ndd_phenotype_word",
+            "symbol"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_news_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsPublicationStatsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "publication_type_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "publication_type": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "publication_type"
+          ]
+        }
+      },
+      "journal_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Journal": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Journal",
+            "count"
+          ]
+        }
+      },
+      "last_name_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Lastname": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Lastname",
+            "count"
+          ]
+        }
+      },
+      "update_date_aggregated": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "update_date": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "update_date"
+          ]
+        }
+      },
+      "publication_date_aggregated": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Publication_date": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Publication_date",
+            "count"
+          ]
+        }
+      },
+      "keyword_counts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Keywords": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "Keywords",
+            "count"
+          ]
+        }
+      },
+      "time_aggregate_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "filter_used": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "min_journal_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "min_lastname_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "min_keyword_count_used": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "filter_used",
+      "journal_counts",
+      "keyword_counts",
+      "last_name_counts",
+      "min_journal_count_used",
+      "min_keyword_count_used",
+      "min_lastname_count_used",
+      "publication_date_aggregated",
+      "publication_type_counts",
+      "time_aggregate_used",
+      "update_date_aggregated"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_publication_stats_GET",
+    "x-response-type": "object"
+  },
+  "StatisticsRereviewLeaderboardResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "submitted_count": {
+              "type": "integer"
+            },
+            "approved_count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "approved_count",
+            "display_name",
+            "submitted_count",
+            "user_id",
+            "user_name"
+          ]
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "start_date": {
+            "type": "object"
+          },
+          "end_date": {
+            "type": "object"
+          },
+          "total_reviewers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_submitted": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_approved": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "end_date",
+          "scope",
+          "start_date",
+          "top",
+          "total_approved",
+          "total_reviewers",
+          "total_submitted"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_rereview_leaderboard_GET",
+    "x-response-type": "object"
+  },
+  "StatusResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "status_id": {
+              "type": "integer"
+            },
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            },
+            "is_active": {
+              "type": "integer"
+            },
+            "status_date": {
+              "type": "string"
+            },
+            "status_user_name": {
+              "type": "string"
+            },
+            "status_user_role": {
+              "type": "string"
+            },
+            "status_approved": {
+              "type": "integer"
+            },
+            "approving_user_name": {
+              "type": "null"
+            },
+            "approving_user_role": {
+              "type": "null"
+            },
+            "approving_user_id": {
+              "type": "null"
+            },
+            "comment": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "problematic": {
+              "type": "integer"
+            },
+            "duplicate": {
+              "type": "string"
+            },
+            "active_review": {
+              "type": "integer"
+            },
+            "newest_review": {
+              "type": "integer"
+            },
+            "review_change": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "active_review",
+            "approving_user_id",
+            "approving_user_name",
+            "approving_user_role",
+            "category",
+            "category_id",
+            "comment",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "duplicate",
+            "entity_id",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "is_active",
+            "newest_review",
+            "problematic",
+            "review_change",
+            "status_approved",
+            "status_date",
+            "status_id",
+            "status_user_name",
+            "status_user_role",
+            "symbol"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_status_GET",
+    "x-response-type": "object"
+  },
+  "StatusListResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": [
+      "array",
+      "object"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_status__list_GET",
+    "x-response-type": "object"
+  },
+  "UserListResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "user_role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "user_id",
+            "user_name",
+            "user_role"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_user_list_GET",
+    "x-response-type": "object"
+  },
+  "UserRoleListResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "role"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_user_role_list_GET",
+    "x-response-type": "object"
+  },
+  "UserTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "label": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sortable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "filterable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "class": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "orcid": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "abbreviation": {
+              "type": "string"
+            },
+            "first_name": {
+              "type": "string"
+            },
+            "family_name": {
+              "type": "string"
+            },
+            "comment": {
+              "type": "string"
+            },
+            "terms_agreed": {
+              "type": "integer"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "user_role": {
+              "type": "string"
+            },
+            "approved": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "abbreviation",
+            "approved",
+            "comment",
+            "created_at",
+            "email",
+            "family_name",
+            "first_name",
+            "orcid",
+            "terms_agreed",
+            "user_id",
+            "user_name",
+            "user_role"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_user_table_GET",
+    "x-response-type": "pagination"
+  },
+  "VariantBrowseResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "anyOf": [
+                      {
+                        "type": "object"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "inheritance_filter": {
+              "type": "string"
+            },
+            "ndd_phenotype": {
+              "type": "integer"
+            },
+            "ndd_phenotype_word": {
+              "type": "string"
+            },
+            "entry_date": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            },
+            "modifier_variant_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "category",
+            "category_id",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "entity_id",
+            "entry_date",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "inheritance_filter",
+            "modifier_variant_id",
+            "ndd_phenotype",
+            "ndd_phenotype_word",
+            "symbol"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_variant_browse_GET",
+    "x-response-type": "pagination"
+  },
+  "VariantCorrelationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "x_vario_id": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "y_vario_id": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "x_vario_id",
+            "y",
+            "y_vario_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_variant_correlation_GET",
+    "x-response-type": "object"
+  },
+  "VariantCountResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "vario_id": {
+              "type": "string"
+            },
+            "variant_name": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "variant_name",
+            "vario_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_variant_count_GET",
+    "x-response-type": "object"
+  },
+  "VersionResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "version": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "commit": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "title": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "description": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "commit",
+      "description",
+      "title",
+      "version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_version_GET",
+    "x-response-type": "object"
+  }
+}

@@ -1,0 +1,162 @@
+[
+  {
+    "vario_id": "VariO:0001",
+    "variant_name": "variation",
+    "count": 1994
+  },
+  {
+    "vario_id": "VariO:0017",
+    "variant_name": "nonsynonymous variation",
+    "count": 1191
+  },
+  {
+    "vario_id": "VariO:0015",
+    "variant_name": "protein truncation",
+    "count": 983
+  },
+  {
+    "vario_id": "VariO:0508",
+    "variant_name": "affected splice site",
+    "count": 284
+  },
+  {
+    "vario_id": "VariO:0193",
+    "variant_name": "chromosomal deletion",
+    "count": 182
+  },
+  {
+    "vario_id": "VariO:0030",
+    "variant_name": "in-frame indel",
+    "count": 117
+  },
+  {
+    "vario_id": "VariO:0043",
+    "variant_name": "protein loss of function",
+    "count": 86
+  },
+  {
+    "vario_id": "VariO:0141",
+    "variant_name": "DNA deletion",
+    "count": 81
+  },
+  {
+    "vario_id": "VariO:0040",
+    "variant_name": "protein gain of function",
+    "count": 46
+  },
+  {
+    "vario_id": "VariO:0014",
+    "variant_name": "amino acid deletion",
+    "count": 33
+  },
+  {
+    "vario_id": "VariO:0031",
+    "variant_name": "out-of-frame indel",
+    "count": 32
+  },
+  {
+    "vario_id": "VariO:0187",
+    "variant_name": "copy number variation",
+    "count": 22
+  },
+  {
+    "vario_id": "VariO:0132",
+    "variant_name": "chromosomal variation",
+    "count": 21
+  },
+  {
+    "vario_id": "VariO:0142",
+    "variant_name": "DNA insertion",
+    "count": 19
+  },
+  {
+    "vario_id": "VariO:0362",
+    "variant_name": "effect on RNA splicing",
+    "count": 19
+  },
+  {
+    "vario_id": "VariO:0143",
+    "variant_name": "DNA indel",
+    "count": 12
+  },
+  {
+    "vario_id": "VariO:0485",
+    "variant_name": "spliceosomal RNA",
+    "count": 9
+  },
+  {
+    "vario_id": "VariO:0039",
+    "variant_name": "protein function change",
+    "count": 5
+  },
+  {
+    "vario_id": "VariO:0131",
+    "variant_name": "genomic variation",
+    "count": 5
+  },
+  {
+    "vario_id": "VariO:0018",
+    "variant_name": "amino acid insertion",
+    "count": 3
+  },
+  {
+    "vario_id": "VariO:0161",
+    "variant_name": "variation in intron",
+    "count": 3
+  },
+  {
+    "vario_id": "VariO:0189",
+    "variant_name": "trinucleotide expansion",
+    "count": 3
+  },
+  {
+    "vario_id": "VariO:0002",
+    "variant_name": "variation affecting protein",
+    "count": 2
+  },
+  {
+    "vario_id": "VariO:0021",
+    "variant_name": "amino acid substitution",
+    "count": 2
+  },
+  {
+    "vario_id": "VariO:0022",
+    "variant_name": "amino acid indel",
+    "count": 2
+  },
+  {
+    "vario_id": "VariO:0128",
+    "variant_name": "variation affecting DNA",
+    "count": 2
+  },
+  {
+    "vario_id": "VariO:0124",
+    "variant_name": "protein elongation",
+    "count": 1
+  },
+  {
+    "vario_id": "VariO:0125",
+    "variant_name": "C-terminal protein elongation",
+    "count": 1
+  },
+  {
+    "vario_id": "VariO:0144",
+    "variant_name": "DNA translocation",
+    "count": 1
+  },
+  {
+    "vario_id": "VariO:0157",
+    "variant_name": "epigenetic DNA methylation",
+    "count": 1
+  },
+  {
+    "vario_id": "VariO:0444",
+    "variant_name": "de novo variation",
+    "count": 1
+  },
+  {
+    "vario_id": "VariO:0474",
+    "variant_name": "intron retention",
+    "count": 1
+  }
+]

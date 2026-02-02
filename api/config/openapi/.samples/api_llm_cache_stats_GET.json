@@ -1,0 +1,16 @@
+{
+  "total_entries": 12,
+  "by_status": {
+    "pending": 0,
+    "validated": 12,
+    "rejected": 0
+  },
+  "by_type": {
+    "functional": 7,
+    "phenotype": 5
+  },
+  "last_generation": "2026-02-01 22:04:11",
+  "total_tokens_input": 0,
+  "total_tokens_output": 0,
+  "estimated_cost_usd": 0
+}

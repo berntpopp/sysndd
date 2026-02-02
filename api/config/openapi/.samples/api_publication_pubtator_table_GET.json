@@ -1,0 +1,229 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/pubtator/table?sort=search_id&page_after=0&page_size=2",
+      "next": "http://localhost:7777/pubtator/table?sort=search_id&page_after=3&page_size=2",
+      "last": "http://localhost:7777/pubtator/table?sort=search_id&page_after=1098&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 550,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": 3,
+      "lastItemID": 1098,
+      "totalItems": 1100,
+      "sort": "search_id",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "search_id",
+          "selectOptions": [
+            "1",
+            "2"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Search id",
+          "count_filtered": 2
+        },
+        {
+          "key": "query_id",
+          "selectOptions": [
+            "1"
+          ],
+          "count": 1,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Query id",
+          "count_filtered": 1
+        },
+        {
+          "key": "id",
+          "selectOptions": [
+            null
+          ],
+          "count": 1,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Id",
+          "count_filtered": 1
+        },
+        {
+          "key": "pmid",
+          "selectOptions": [
+            "39359098",
+            "39573814"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Pmid",
+          "count_filtered": 2
+        },
+        {
+          "key": "doi",
+          "selectOptions": [
+            "10.1542/peds.2024-068364",
+            "10.4103/NRR.NRR-D-23-01725"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Doi",
+          "count_filtered": 2
+        },
+        {
+          "key": "title",
+          "selectOptions": [
+            "Autism, Electrical Status Epilepticus in Sleep, and a Likely Pathogenic SEMA6B Variant.",
+            "CNKSR2 interactome analysis indicates its association with the centrosome/microtubule system."
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Title",
+          "count_filtered": 2
+        },
+        {
+          "key": "journal",
+          "selectOptions": [
+            "Neural Regen Res",
+            "Pediatrics"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Journal",
+          "count_filtered": 2
+        },
+        {
+          "key": "date",
+          "selectOptions": [
+            "2025-08-01",
+            "2025-11-22"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Date",
+          "count_filtered": 2
+        },
+        {
+          "key": "score",
+          "selectOptions": [
+            "295.877014160156",
+            "319.463012695312"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Score",
+          "count_filtered": 2
+        },
+        {
+          "key": "gene_symbols",
+          "selectOptions": [
+            "SEMA6B",
+            null
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Gene symbols",
+          "count_filtered": 2
+        },
+        {
+          "key": "text_hl",
+          "selectOptions": [
+            "Furthermore, we found that @GENE_CNKSR2 @GENE_245684 @@@CNKSR2@@@ interactors were highly enriched in de novo <m>variants</m> associated with @DISEASE_Intellectual_Disability @DISEASE_MESH:D008607 @@@<m>intellectual disability</m>@@@ and @DISEASE_Autism_Spectrum_Disorder @DISEASE_MESH:D000067877 @@@<m>autism</m> spectrum disorder@@@. ",
+            "Genetic testing identified a De Novo likely pathogenic <m>variant</m> in @GENE_SEMA6B @GENE_10501 @@@SEMA6B@@@, a <m>gene</m> implicated in @DISEASE_Developmental_Disabilities @DISEASE_MESH:D002658 @@@<m>neurodevelopmental disorders</m>@@@ and @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@. "
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Text hl",
+          "count_filtered": 2
+        }
+      ],
+      "executionTime": "0.07 secs"
+    }
+  ],
+  "data": [
+    {
+      "search_id": 1,
+      "query_id": 1,
+      "pmid": 39573814,
+      "doi": "10.1542/peds.2024-068364",
+      "title": "Autism, Electrical Status Epilepticus in Sleep, and a Likely Pathogenic SEMA6B Variant.",
+      "journal": "Pediatrics",
+      "date": "2025-11-22",
+      "score": 319.463,
+      "text_hl": "Genetic testing identified a De Novo likely pathogenic <m>variant</m> in @GENE_SEMA6B @GENE_10501 @@@SEMA6B@@@, a <m>gene</m> implicated in @DISEASE_Developmental_Disabilities @DISEASE_MESH:D002658 @@@<m>neurodevelopmental disorders</m>@@@ and @DISEASE_Epilepsy @DISEASE_MESH:D004827 @@@<m>epilepsy</m>@@@. ",
+      "created_at": "2025-01-01 17:48:18",
+      "gene_symbols": "SEMA6B"
+    },
+    {
+      "search_id": 2,
+      "query_id": 1,
+      "pmid": 39359098,
+      "doi": "10.4103/NRR.NRR-D-23-01725",
+      "title": "CNKSR2 interactome analysis indicates its association with the centrosome/microtubule system.",
+      "journal": "Neural Regen Res",
+      "date": "2025-08-01",
+      "score": 295.877,
+      "text_hl": "Furthermore, we found that @GENE_CNKSR2 @GENE_245684 @@@CNKSR2@@@ interactors were highly enriched in de novo <m>variants</m> associated with @DISEASE_Intellectual_Disability @DISEASE_MESH:D008607 @@@<m>intellectual disability</m>@@@ and @DISEASE_Autism_Spectrum_Disorder @DISEASE_MESH:D000067877 @@@<m>autism</m> spectrum disorder@@@. ",
+      "created_at": "2025-01-01 17:48:18"
+    }
+  ]
+}

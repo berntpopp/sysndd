@@ -1,0 +1,34 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "&page_after=0&page_size=2",
+      "next": "&page_after=VariO:0003&page_size=2",
+      "last": "&page_after=VariO:0512&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 248,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": "VariO:0003",
+      "lastItemID": "VariO:0512",
+      "totalItems": 495
+    }
+  ],
+  "data": [
+    {
+      "vario_id": "VariO:0001",
+      "vario_name": "variation",
+      "definition": "Alteration in DNA, RNA or protein."
+    },
+    {
+      "vario_id": "VariO:0002",
+      "vario_name": "variation affecting protein",
+      "definition": "Effects of a variation on protein level."
+    }
+  ]
+}

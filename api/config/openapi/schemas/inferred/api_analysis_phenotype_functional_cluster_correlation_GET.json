@@ -1,0 +1,46 @@
+{
+  "AnalysisPhenotypeFunctionalClusterCorrelationResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "correlation_matrix": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "correlation_melted": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "string"
+            },
+            "y": {
+              "type": "string"
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "value",
+            "x",
+            "y"
+          ]
+        }
+      }
+    },
+    "required": [
+      "correlation_matrix",
+      "correlation_melted"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_phenotype_functional_cluster_correlation_GET",
+    "x-response-type": "object"
+  }
+}

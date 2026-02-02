@@ -1,0 +1,17 @@
+{
+  "LogsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "message"
+    ],
+    "description": "Simple message response",
+    "x-inferred-from": "api_logs_GET",
+    "x-response-type": "message"
+  }
+}

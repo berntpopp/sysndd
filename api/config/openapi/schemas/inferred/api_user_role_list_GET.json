@@ -1,0 +1,27 @@
+{
+  "UserRoleListResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "role"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_user_role_list_GET",
+    "x-response-type": "object"
+  }
+}

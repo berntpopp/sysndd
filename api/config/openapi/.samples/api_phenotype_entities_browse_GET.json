@@ -1,0 +1,174 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/api/phenotype/entities/browse?sort=entity_id&page_after=0&page_size=2",
+      "next": "http://localhost:7777/api/phenotype/entities/browse?sort=entity_id&page_after=6&page_size=2",
+      "last": "http://localhost:7777/api/phenotype/entities/browse?sort=entity_id&page_after=4604&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 1901,
+      "prevItemID": "null",
+      "currentItemID": "0",
+      "nextItemID": 6,
+      "lastItemID": 4604,
+      "totalItems": 3801,
+      "sort": "entity_id",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "entity_id",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 3801,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Entity id",
+          "count_filtered": 3801
+        },
+        {
+          "key": "symbol",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 3205,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Symbol",
+          "count_filtered": 3205
+        },
+        {
+          "key": "disease_ontology_name",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 2359,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Disease ontology name",
+          "count_filtered": 2359
+        },
+        {
+          "key": "hpo_mode_of_inheritance_term_name",
+          "selectOptions": [
+            "Autosomal dominant inheritance",
+            "Autosomal recessive inheritance",
+            "Mitochondrial inheritance",
+            "Somatic mutation",
+            "X-linked dominant inheritance",
+            "X-linked other inheritance",
+            "X-linked recessive inheritance"
+          ],
+          "count": 7,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Hpo mode of inheritance term name",
+          "count_filtered": 7
+        },
+        {
+          "key": "category",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "Refuted",
+            "not applicable"
+          ],
+          "count": 5,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Category",
+          "count_filtered": 5
+        },
+        {
+          "key": "ndd_phenotype_word",
+          "selectOptions": [
+            "No",
+            "Yes"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Ndd phenotype word",
+          "count_filtered": 2
+        },
+        {
+          "key": "details",
+          "selectOptions": {},
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": false,
+          "class": "text-center",
+          "label": "Details"
+        }
+      ],
+      "executionTime": "0.13 secs"
+    }
+  ],
+  "data": [
+    {
+      "entity_id": 4,
+      "hgnc_id": "HGNC:61",
+      "symbol": "ABCD1",
+      "disease_ontology_id_version": "OMIM:300100_1",
+      "disease_ontology_name": "Adrenoleukodystrophy",
+      "hpo_mode_of_inheritance_term": "HP:0001419",
+      "hpo_mode_of_inheritance_term_name": "X-linked recessive inheritance",
+      "inheritance_filter": "X-linked",
+      "ndd_phenotype": 1,
+      "ndd_phenotype_word": "Yes",
+      "entry_date": "2010-12-10",
+      "category": "Definitive",
+      "category_id": 1,
+      "modifier_phenotype_id": "1-HP:0000077,1-HP:0000707,1-HP:0000708,1-HP:0000818,1-HP:0001249,1-HP:0001939,1-HP:0002011,1-HP:0003676"
+    },
+    {
+      "entity_id": 5,
+      "hgnc_id": "HGNC:68",
+      "symbol": "ABCD4",
+      "disease_ontology_id_version": "OMIM:614857",
+      "disease_ontology_name": "Methylmalonic aciduria and homocystinuria, cblJ type",
+      "hpo_mode_of_inheritance_term": "HP:0000007",
+      "hpo_mode_of_inheritance_term_name": "Autosomal recessive inheritance",
+      "inheritance_filter": "Autosomal recessive",
+      "ndd_phenotype": 1,
+      "ndd_phenotype_word": "Yes",
+      "entry_date": "2012-02-20",
+      "category": "Definitive",
+      "category_id": 1,
+      "modifier_phenotype_id": "1-HP:0001249,1-HP:0001256,1-HP:0001871,1-HP:0001939,1-HP:0001999,1-HP:0002342"
+    }
+  ]
+}

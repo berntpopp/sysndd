@@ -1,0 +1,29 @@
+{
+  "AdminSmtpTestResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "success": {
+        "type": "boolean"
+      },
+      "host": {
+        "type": "string"
+      },
+      "port": {
+        "type": "integer"
+      },
+      "error": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "error",
+      "host",
+      "port",
+      "success"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_smtp_test_GET",
+    "x-response-type": "object"
+  }
+}

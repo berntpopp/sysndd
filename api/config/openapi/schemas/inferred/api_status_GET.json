@@ -1,0 +1,122 @@
+{
+  "StatusResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "status_id": {
+              "type": "integer"
+            },
+            "entity_id": {
+              "type": "integer"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "disease_ontology_id_version": {
+              "type": "string"
+            },
+            "disease_ontology_name": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term": {
+              "type": "string"
+            },
+            "hpo_mode_of_inheritance_term_name": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "integer"
+            },
+            "is_active": {
+              "type": "integer"
+            },
+            "status_date": {
+              "type": "string"
+            },
+            "status_user_name": {
+              "type": "string"
+            },
+            "status_user_role": {
+              "type": "string"
+            },
+            "status_approved": {
+              "type": "integer"
+            },
+            "approving_user_name": {
+              "type": "null"
+            },
+            "approving_user_role": {
+              "type": "null"
+            },
+            "approving_user_id": {
+              "type": "null"
+            },
+            "comment": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "problematic": {
+              "type": "integer"
+            },
+            "duplicate": {
+              "type": "string"
+            },
+            "active_review": {
+              "type": "integer"
+            },
+            "newest_review": {
+              "type": "integer"
+            },
+            "review_change": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "active_review",
+            "approving_user_id",
+            "approving_user_name",
+            "approving_user_role",
+            "category",
+            "category_id",
+            "comment",
+            "disease_ontology_id_version",
+            "disease_ontology_name",
+            "duplicate",
+            "entity_id",
+            "hgnc_id",
+            "hpo_mode_of_inheritance_term",
+            "hpo_mode_of_inheritance_term_name",
+            "is_active",
+            "newest_review",
+            "problematic",
+            "review_change",
+            "status_approved",
+            "status_date",
+            "status_id",
+            "status_user_name",
+            "status_user_role",
+            "symbol"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_status_GET",
+    "x-response-type": "object"
+  }
+}

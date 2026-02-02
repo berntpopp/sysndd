@@ -1,0 +1,34 @@
+{
+  "HealthResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "version": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "status",
+      "timestamp",
+      "version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_GET",
+    "x-response-type": "object"
+  }
+}

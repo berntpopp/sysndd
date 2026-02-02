@@ -1,0 +1,47 @@
+{
+  "status": [
+    "healthy"
+  ],
+  "database": [
+    "connected"
+  ],
+  "migrations": {
+    "pending": [
+      0
+    ],
+    "applied": [
+      11
+    ],
+    "startup": {
+      "fast_path": [
+        true
+      ],
+      "lock_acquired": [
+        false
+      ]
+    },
+    "lock": {
+      "locked": [
+        false
+      ],
+      "holder": {}
+    }
+  },
+  "pool": {
+    "max_size": [
+      5
+    ],
+    "active": [
+      0
+    ],
+    "idle": [
+      1
+    ],
+    "total": [
+      1
+    ]
+  },
+  "timestamp": [
+    "2026-02-02T00:04:27Z"
+  ]
+}

@@ -1,0 +1,252 @@
+{
+  "PublicationPubtatorGenesResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "string"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gene_name": {
+              "type": "string"
+            },
+            "gene_normalized_id": {
+              "type": "string"
+            },
+            "hgnc_id": {
+              "type": "string"
+            },
+            "gene_symbol": {
+              "type": "string"
+            },
+            "publications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pmid": {
+                    "type": "integer"
+                  },
+                  "doi": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "journal": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string"
+                  },
+                  "score": {
+                    "type": "number"
+                  },
+                  "text_hl": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "date",
+                  "doi",
+                  "journal",
+                  "pmid",
+                  "score",
+                  "title"
+                ]
+              }
+            },
+            "entities": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "publication_count": {
+              "type": "integer"
+            },
+            "entities_count": {
+              "type": "integer"
+            },
+            "is_novel": {
+              "type": "integer"
+            },
+            "oldest_pub_date": {
+              "type": "string"
+            },
+            "pmids": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "entities",
+            "entities_count",
+            "gene_name",
+            "gene_normalized_id",
+            "gene_symbol",
+            "hgnc_id",
+            "is_novel",
+            "oldest_pub_date",
+            "pmids",
+            "publication_count",
+            "publications"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_publication_pubtator_genes_GET",
+    "x-response-type": "pagination"
+  }
+}

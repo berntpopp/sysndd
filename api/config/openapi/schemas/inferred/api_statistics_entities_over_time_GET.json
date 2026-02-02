@@ -1,0 +1,90 @@
+{
+  "StatisticsEntitiesOverTimeResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "aggregate": {
+              "type": "string"
+            },
+            "group": {
+              "type": "string"
+            },
+            "summarize": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "max_count": {
+              "type": "integer"
+            },
+            "max_cumulative_count": {
+              "type": "integer"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "aggregate",
+            "executionTime",
+            "filter",
+            "group",
+            "max_count",
+            "max_cumulative_count",
+            "summarize"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "string"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "entry_date": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "cumulative_count": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "count",
+                  "cumulative_count",
+                  "entry_date"
+                ]
+              }
+            }
+          },
+          "required": [
+            "group",
+            "values"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_entities_over_time_GET",
+    "x-response-type": "object"
+  }
+}

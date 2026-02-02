@@ -1,0 +1,81 @@
+{
+  "PublicationPubtatorSearchResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "object",
+        "properties": {
+          "perPage": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "currentPage": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "totalPages": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "currentPage",
+          "perPage",
+          "totalPages"
+        ]
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pmid": {
+              "type": "integer"
+            },
+            "doi": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "journal": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            },
+            "text_hl": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "date",
+            "doi",
+            "journal",
+            "pmid",
+            "score",
+            "text_hl",
+            "title"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_publication_pubtator_search_GET",
+    "x-response-type": "object"
+  }
+}

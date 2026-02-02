@@ -1,0 +1,301 @@
+{
+  "list": [
+    {
+      "list": "SysNDD"
+    },
+    {
+      "list": "panelapp"
+    },
+    {
+      "list": "orphanet_id"
+    },
+    {
+      "list": "omim_ndd"
+    },
+    {
+      "list": "gene2phenotype"
+    },
+    {
+      "list": "radboudumc_ID"
+    },
+    {
+      "list": "sfari"
+    },
+    {
+      "list": "geisinger_DBD"
+    }
+  ],
+  "inheritance": [
+    {
+      "inheritance": "Autosomal dominant"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance;Autosomal recessive inheritance"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance;Autosomal recessive inheritance;Sporadic"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance;Somatic mosaicism;Sporadic"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance;Sporadic"
+    },
+    {
+      "inheritance": "Autosomal dominant inheritance;Sporadic;NA"
+    },
+    {
+      "inheritance": "Autosomal recessive"
+    },
+    {
+      "inheritance": "Autosomal recessive inheritance"
+    },
+    {
+      "inheritance": "Autosomal recessive inheritance;Sporadic"
+    },
+    {
+      "inheritance": "BIALLELIC, autosomal or pseudoautosomal"
+    },
+    {
+      "inheritance": "BOTH monoallelic and biallelic (but BIALLELIC mutations cause a more SEVERE disease form), autosomal or pseudoautosomal"
+    },
+    {
+      "inheritance": "BOTH monoallelic and biallelic, autosomal or pseudoautosomal"
+    },
+    {
+      "inheritance": "Digenic inheritance"
+    },
+    {
+      "inheritance": "HP:0000006"
+    },
+    {
+      "inheritance": "HP:0000007"
+    },
+    {
+      "inheritance": "HP:0001417"
+    },
+    {
+      "inheritance": "HP:0001419"
+    },
+    {
+      "inheritance": "HP:0001423"
+    },
+    {
+      "inheritance": "HP:0001427"
+    },
+    {
+      "inheritance": "HP:0001428"
+    },
+    {
+      "inheritance": "MITOCHONDRIAL"
+    },
+    {
+      "inheritance": "MONOALLELIC, autosomal or pseudoautosomal, NOT imprinted"
+    },
+    {
+      "inheritance": "MONOALLELIC, autosomal or pseudoautosomal, imprinted status unknown"
+    },
+    {
+      "inheritance": "MONOALLELIC, autosomal or pseudoautosomal, maternally imprinted (paternal allele expressed)"
+    },
+    {
+      "inheritance": "MONOALLELIC, autosomal or pseudoautosomal, paternally imprinted (maternal allele expressed)"
+    },
+    {
+      "inheritance": "Mitochondrial inheritance"
+    },
+    {
+      "inheritance": "Multigenic/multifactorial"
+    },
+    {
+      "inheritance": "No data available"
+    },
+    {
+      "inheritance": "Not applicable"
+    },
+    {
+      "inheritance": "Oligogenic"
+    },
+    {
+      "inheritance": "Other"
+    },
+    {
+      "inheritance": "Other - please specifiy in evaluation comments"
+    },
+    {
+      "inheritance": "Other - please specify in evaluation comments"
+    },
+    {
+      "inheritance": "Somatic mosaicism"
+    },
+    {
+      "inheritance": "Sporadic"
+    },
+    {
+      "inheritance": "Unknown"
+    },
+    {
+      "inheritance": "X-LINKED: hemizygous mutation in males, biallelic mutations in females"
+    },
+    {
+      "inheritance": "X-LINKED: hemizygous mutation in males, monoallelic mutations in females may cause disease (may be less severe, later onset than males)"
+    },
+    {
+      "inheritance": "X-linked dominant"
+    },
+    {
+      "inheritance": "X-linked dominant inheritance"
+    },
+    {
+      "inheritance": "X-linked inheritance"
+    },
+    {
+      "inheritance": "X-linked recessive"
+    },
+    {
+      "inheritance": "X-linked recessive inheritance"
+    },
+    {
+      "inheritance": "biallelic_autosomal"
+    },
+    {
+      "inheritance": "mitochondrial"
+    },
+    {
+      "inheritance": "monoallelic_X_hem"
+    },
+    {
+      "inheritance": "monoallelic_X_het"
+    },
+    {
+      "inheritance": "monoallelic_autosomal"
+    },
+    {
+      "inheritance": "NA"
+    }
+  ],
+  "category": [
+    {
+      "category": "1"
+    },
+    {
+      "category": "2"
+    },
+    {
+      "category": "3"
+    },
+    {
+      "category": "Definitive"
+    },
+    {
+      "category": "Limited"
+    },
+    {
+      "category": "Moderate"
+    },
+    {
+      "category": "Refuted"
+    },
+    {
+      "category": "definitive"
+    },
+    {
+      "category": "limited"
+    },
+    {
+      "category": "moderate"
+    },
+    {
+      "category": "not applicable"
+    },
+    {
+      "category": "strong"
+    },
+    {
+      "category": "NA"
+    }
+  ],
+  "pathogenicity_mode": [
+    {
+      "pathogenicity_mode": "1"
+    },
+    {
+      "pathogenicity_mode": "5_prime or 3_prime UTR mutation"
+    },
+    {
+      "pathogenicity_mode": "Disease-causing germline mutation(s) (gain of function) in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Disease-causing germline mutation(s) (loss of function) in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Disease-causing germline mutation(s) in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Disease-causing germline mutation(s) in (not yet assessed)"
+    },
+    {
+      "pathogenicity_mode": "Disease-causing somatic mutation(s) in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Loss-of-function variants (as defined in pop up message) DO NOT cause this phenotype - please provide details in the comments"
+    },
+    {
+      "pathogenicity_mode": "Major susceptibility factor in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Modifying germline mutation in (assessed)"
+    },
+    {
+      "pathogenicity_mode": "Other"
+    },
+    {
+      "pathogenicity_mode": "Other - please provide details in the comments"
+    },
+    {
+      "pathogenicity_mode": "Role in the phenotype of (assessed)"
+    },
+    {
+      "pathogenicity_mode": "absent gene product"
+    },
+    {
+      "pathogenicity_mode": "absent gene product;altered gene product structure"
+    },
+    {
+      "pathogenicity_mode": "absent gene product;altered gene product structure;decreased gene product level"
+    },
+    {
+      "pathogenicity_mode": "absent gene product;decreased gene product level"
+    },
+    {
+      "pathogenicity_mode": "altered gene product structure"
+    },
+    {
+      "pathogenicity_mode": "altered gene product structure;decreased gene product level"
+    },
+    {
+      "pathogenicity_mode": "altered gene product structure;uncertain"
+    },
+    {
+      "pathogenicity_mode": "cis-regulatory or promotor mutation"
+    },
+    {
+      "pathogenicity_mode": "decreased gene product level"
+    },
+    {
+      "pathogenicity_mode": "increased gene product level"
+    },
+    {
+      "pathogenicity_mode": "loss-of-function (truncating variants and curated list of variants)"
+    },
+    {
+      "pathogenicity_mode": "uncertain"
+    },
+    {
+      "pathogenicity_mode": "NA"
+    }
+  ]
+}

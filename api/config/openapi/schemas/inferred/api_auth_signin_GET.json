@@ -1,0 +1,66 @@
+{
+  "AuthSigninResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "user_id": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "user_name": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "email": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "user_role": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "user_created": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "abbreviation": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "orcid": {
+        "type": "object"
+      },
+      "exp": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "abbreviation",
+      "email",
+      "exp",
+      "orcid",
+      "user_created",
+      "user_id",
+      "user_name",
+      "user_role"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_auth_signin_GET",
+    "x-response-type": "object"
+  }
+}

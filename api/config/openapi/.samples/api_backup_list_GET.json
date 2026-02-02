@@ -1,0 +1,33 @@
+{
+  "data": [
+    {
+      "filename": "202602012317.sysndd_db.sql.gz",
+      "size_bytes": 29487967,
+      "created_at": "2026-02-01T23:17:16Z",
+      "table_count": "NA"
+    },
+    {
+      "filename": "202602012110.sysndd_db.sql.gz",
+      "size_bytes": 29337284,
+      "created_at": "2026-02-01T21:10:25Z",
+      "table_count": "NA"
+    }
+  ],
+  "total": [
+    2
+  ],
+  "page": [
+    1
+  ],
+  "page_size": [
+    20
+  ],
+  "meta": {
+    "total_count": [
+      2
+    ],
+    "total_size_bytes": [
+      58825251
+    ]
+  }
+}

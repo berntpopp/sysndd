@@ -1,0 +1,125 @@
+{
+  "LlmPromptsResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "functional_generation": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "functional_judge": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "phenotype_generation": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      },
+      "phenotype_judge": {
+        "type": "object",
+        "properties": {
+          "template_id": {
+            "type": "integer"
+          },
+          "prompt_type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "template_text": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "prompt_type",
+          "template_id",
+          "template_text",
+          "version"
+        ]
+      }
+    },
+    "required": [
+      "functional_generation",
+      "functional_judge",
+      "phenotype_generation",
+      "phenotype_judge"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_prompts_GET",
+    "x-response-type": "object"
+  }
+}

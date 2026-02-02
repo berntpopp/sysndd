@@ -1,0 +1,198 @@
+{
+  "UserTableResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "label": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "sortable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "filterable": {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    }
+                  },
+                  "class": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "class",
+                  "filterable",
+                  "key",
+                  "label",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "integer"
+            },
+            "user_name": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "orcid": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "abbreviation": {
+              "type": "string"
+            },
+            "first_name": {
+              "type": "string"
+            },
+            "family_name": {
+              "type": "string"
+            },
+            "comment": {
+              "type": "string"
+            },
+            "terms_agreed": {
+              "type": "integer"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "user_role": {
+              "type": "string"
+            },
+            "approved": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "abbreviation",
+            "approved",
+            "comment",
+            "created_at",
+            "email",
+            "family_name",
+            "first_name",
+            "orcid",
+            "terms_agreed",
+            "user_id",
+            "user_name",
+            "user_role"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_user_table_GET",
+    "x-response-type": "pagination"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "VariantCountResponse": {
+    "$schema": "http://json-schema.org/schema#",
+    "anyOf": [
+      {
+        "type": "object"
+      },
+      {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "vario_id": {
+              "type": "string"
+            },
+            "variant_name": {
+              "type": "string"
+            },
+            "count": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count",
+            "variant_name",
+            "vario_id"
+          ]
+        }
+      }
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_variant_count_GET",
+    "x-response-type": "object"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "ProblemDetails": {
+    "type": "object",
+    "description": "RFC 9457 Problem Details for HTTP APIs. Used for all error responses.",
+    "required": ["type", "title", "status"],
+    "properties": {
+      "type": {
+        "type": "string",
+        "format": "uri-reference",
+        "description": "URI reference identifying the problem type",
+        "example": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400"
+      },
+      "title": {
+        "type": "string",
+        "description": "Short, human-readable summary of the problem",
+        "example": "Bad Request"
+      },
+      "status": {
+        "type": "integer",
+        "description": "HTTP status code",
+        "example": 400
+      },
+      "detail": {
+        "type": "string",
+        "description": "Human-readable explanation specific to this occurrence",
+        "example": "Missing required parameter: entity_id"
+      },
+      "instance": {
+        "type": "string",
+        "format": "uri-reference",
+        "description": "URI reference identifying the specific occurrence",
+        "example": "/api/entity/123"
+      }
+    },
+    "example": {
+      "type": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400",
+      "title": "Bad Request",
+      "status": 400,
+      "detail": "Invalid filter syntax: missing operator",
+      "instance": "/api/entity"
+    }
+  }
+}

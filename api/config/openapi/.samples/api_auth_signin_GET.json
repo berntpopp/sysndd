@@ -1,0 +1,24 @@
+{
+  "user_id": [
+    1
+  ],
+  "user_name": [
+    "Admin"
+  ],
+  "email": [
+    "admin@sysndd.org"
+  ],
+  "user_role": [
+    "Administrator"
+  ],
+  "user_created": [
+    "2022-06-09"
+  ],
+  "abbreviation": [
+    "AA"
+  ],
+  "orcid": {},
+  "exp": [
+    1769996033
+  ]
+}
