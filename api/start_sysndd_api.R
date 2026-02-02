@@ -459,54 +459,112 @@ corsFilter <- function(req, res) {
   # IMPORTANT: When using withCredentials:true on the frontend, browsers require:
   # 1. Access-Control-Allow-Origin to be the SPECIFIC origin (not "*")
   # 2. Access-Control-Allow-Credentials: true
+  # 3. Vary: Origin header for proper caching
   #
   # Without this, sticky session cookies are silently dropped by the browser,
-
   # causing job status polling to hit random containers and return 404 errors.
+  #
+  # Firefox is stricter about CORS than Chrome/Edge - missing or incorrect
+
+  # CORS headers on preflight can cause 502 errors in Firefox specifically.
+  # See: https://github.com/berntpopp/sysndd/issues/143
 
   # Get the request origin
   origin <- req$HTTP_ORIGIN
 
-  # Define allowed origins based on environment
-  # In production, you may want to restrict this to specific domains
-  allowed_origins <- c(
+
+  # Build allowed origins list from environment variable + development defaults
+  # CORS_ALLOWED_ORIGINS: comma-separated list of allowed origins
+  # e.g., "https://example.com,https://staging.example.com"
+  env_origins <- Sys.getenv("CORS_ALLOWED_ORIGINS", "")
+
+  # Parse environment variable into vector (handle empty string case)
+  custom_origins <- if (nzchar(env_origins)) {
+    trimws(strsplit(env_origins, ",")[[1]])
+  } else {
+    character(0)
+  }
+
+  # Development defaults (always included for local development)
+  dev_origins <- c(
     "http://localhost",
     "http://localhost:80",
-    "http://localhost:5173",  # Vite dev server
+    "http://localhost:5173", # Vite dev server
     "http://127.0.0.1",
     "http://127.0.0.1:80",
     "http://127.0.0.1:5173"
   )
 
-  # Check if origin is allowed (or allow all in development)
-  # For production, add your domain to allowed_origins
+  # Combine custom origins (first, higher priority) with dev defaults
+  allowed_origins <- unique(c(custom_origins, dev_origins))
 
-  if (!is.null(origin) && (origin %in% allowed_origins || Sys.getenv("ENVIRONMENT") == "development")) {
-    res$setHeader("Access-Control-Allow-Origin", origin)
-    res$setHeader("Access-Control-Allow-Credentials", "true")
-  } else if (is.null(origin)) {
-    # No origin header (same-origin request or non-browser client like curl)
-    # Use a safe default that still allows cookies
-    res$setHeader("Access-Control-Allow-Origin", "http://localhost")
-    res$setHeader("Access-Control-Allow-Credentials", "true")
-  } else {
-    # Unknown origin - still set CORS but log warning
-    log_warn("CORS: Unknown origin", origin = origin)
-    res$setHeader("Access-Control-Allow-Origin", origin)
-    res$setHeader("Access-Control-Allow-Credentials", "true")
+  # Log configured origins at startup (only once per session via memoization pattern)
+  if (!exists(".cors_origins_logged", envir = .GlobalEnv)) {
+    if (length(custom_origins) > 0) {
+      message(sprintf("[%s] CORS: Configured allowed origins: %s", Sys.time(), paste(custom_origins, collapse = ", ")))
+    } else {
+      message(sprintf(
+        "[%s] CORS: No custom origins configured, using development defaults only",
+        Sys.time()
+      ))
+    }
+    assign(".cors_origins_logged", TRUE, envir = .GlobalEnv)
   }
 
+  # Determine if origin is allowed
+  is_development <- Sys.getenv("ENVIRONMENT") == "development"
+  origin_allowed <- !is.null(origin) && origin %in% allowed_origins
+
+  # Set CORS headers based on origin validation
+  if (origin_allowed) {
+    # Origin is in allowlist - allow with credentials
+    res$setHeader("Access-Control-Allow-Origin", origin)
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+    res$setHeader("Vary", "Origin") # Critical for proper caching
+  } else if (is.null(origin)) {
+    # No origin header (same-origin request or non-browser client like curl)
+    # Use first allowed origin as default
+    default_origin <- if (length(custom_origins) > 0) custom_origins[1] else "http://localhost"
+    res$setHeader("Access-Control-Allow-Origin", default_origin)
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+    res$setHeader("Vary", "Origin")
+  } else if (is_development) {
+    # Development mode: allow any origin but log for debugging
+    log_debug("CORS: Development mode allowing unlisted origin", origin = origin)
+    res$setHeader("Access-Control-Allow-Origin", origin)
+    res$setHeader("Access-Control-Allow-Credentials", "true")
+    res$setHeader("Vary", "Origin")
+  } else {
+    # Production mode: reject unknown origins
+    # Return proper CORS error instead of allowing (security best practice)
+    log_warn("CORS: Blocked request from unknown origin in production",
+             origin = origin,
+             allowed = paste(allowed_origins, collapse = ", "))
+    res$status <- 403
+    res$setHeader("Content-Type", "application/problem+json")
+    return(list(
+      type = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403",
+      title = "Forbidden",
+      status = 403,
+      detail = "Origin not allowed by CORS policy"
+    ))
+  }
+
+  # Handle preflight OPTIONS requests
   if (req$REQUEST_METHOD == "OPTIONS") {
     res$setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
     res$setHeader(
       "Access-Control-Allow-Headers",
-      req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS
+      req$HTTP_ACCESS_CONTROL_REQUEST_HEADERS %||% "Content-Type, Authorization"
     )
-    res$status <- 200
+    # Cache preflight response for 24 hours (reduces preflight requests)
+    res$setHeader("Access-Control-Max-Age", "86400")
+    # 204 No Content is more appropriate for preflight than 200
+    res$status <- 204
     return(list())
-  } else {
-    plumber::forward()
   }
+
+  plumber::forward()
 }
 
 #* @filter check_signin
