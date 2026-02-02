@@ -212,51 +212,86 @@ function(req, res, user_id = 0, status_approval = FALSE) {
     select(user_id, user_name, approved, first_name, family_name, email) %>%
     filter(user_id == user_id_approval) %>%
     collect()
-  user_id_approval_exists <- as.logical(length(user_table$user_id))
-  user_id_approval_approved <- as.logical(user_table$approved[1])
 
-  if (!user_id_approval_exists) {
+  # Early return: user doesn't exist
+  if (nrow(user_table) == 0) {
     res$status <- 409
     return(list(error = "User account does not exist."))
-  } else if (user_id_approval_exists && user_id_approval_approved) {
+  }
+
+  # Early return: already approved
+ if (as.logical(user_table$approved[1])) {
     res$status <- 409
     return(list(error = "User account already active."))
-  } else if (user_id_approval_exists && !user_id_approval_approved) {
-    if (status_approval) {
-      user_password <- random_password()
-      user_initials <- generate_initials(
-        user_table$first_name,
-        user_table$family_name
-      )
+  }
 
-      # Hash password with Argon2id before storing
-      hashed_password <- hash_password(user_password)
+  # Handle rejection (simpler path first)
+  if (!status_approval) {
+    db_execute_statement(
+      "DELETE FROM user WHERE user_id = ?",
+      list(user_id_approval)
+    )
+    log_info("User rejected and deleted: user_id={user_id_approval}, by={req$user_id}")
+    return(list(message = "User application rejected.", user_id = user_id_approval))
+  }
 
-      # Update user approval status, password, and abbreviation
-      user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
-      user_update_password(user_id_approval, hashed_password)
+  # Handle approval
+  user_password <- random_password()
+  user_initials <- generate_initials(
+    user_table$first_name,
+    user_table$family_name
+  )
 
-      # Generate professional HTML email using template
-      email_html <- email_account_approved(
-        user_name = user_table$user_name,
-        temp_password = user_password,
-        login_url = paste0(dw$base_url, "/Login")
-      )
+  # Hash password with Argon2id before storing
+  hashed_password <- hash_password(user_password)
 
-      send_noreply_email(
-        email_body = email_html,
-        email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
-        email_recipient = user_table$email,
-        email_blind_copy = "curator@sysndd.org",
-        html_content = TRUE
-      )
-    } else {
-      # Rejection - delete user using db_execute_statement
-      db_execute_statement(
-        "DELETE FROM user WHERE user_id = ?",
-        list(user_id_approval)
-      )
-    }
+  # Update user approval status, password, and abbreviation
+  user_update(user_id_approval, list(approved = 1, abbreviation = user_initials))
+  user_update_password(user_id_approval, hashed_password)
+
+  log_info("User approved: user_id={user_id_approval}, user_name={user_table$user_name}, by={req$user_id}")
+
+  # Generate and send email with error handling
+  email_result <- tryCatch({
+    email_html <- email_account_approved(
+      user_name = user_table$user_name,
+      temp_password = user_password,
+      login_url = paste0(dw$base_url, "/Login")
+    )
+
+    send_noreply_email(
+      email_body = email_html,
+      email_subject = "Welcome to SysNDD - Your Account Has Been Approved!",
+      email_recipient = user_table$email,
+      email_blind_copy = "curator@sysndd.org",
+      html_content = TRUE
+    )
+
+    list(success = TRUE)
+  }, error = function(e) {
+    log_error("Email send failed for user_id={user_id_approval}: {e$message}")
+    list(success = FALSE, error = e$message)
+  })
+
+  # Return response with email status
+  if (email_result$success) {
+    return(list(
+      message = "User approved successfully.",
+      user_id = user_id_approval,
+      user_name = user_table$user_name,
+      email_sent = TRUE
+    ))
+  } else {
+    # User is approved but email failed - alert curator
+    res$status <- 200
+    return(list(
+      message = "User approved but email delivery failed. Please contact user manually.",
+      user_id = user_id_approval,
+      user_name = user_table$user_name,
+      email = user_table$email,
+      email_sent = FALSE,
+      email_error = email_result$error
+    ))
   }
 }
 
