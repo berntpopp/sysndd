@@ -209,7 +209,7 @@ function(req, res, user_id = 0, status_approval = FALSE) {
 
   user_table <- pool %>%
     tbl("user") %>%
-    select(user_id, approved, first_name, family_name, email) %>%
+    select(user_id, user_name, approved, first_name, family_name, email) %>%
     filter(user_id == user_id_approval) %>%
     collect()
   user_id_approval_exists <- as.logical(length(user_table$user_id))
