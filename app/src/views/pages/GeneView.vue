@@ -229,9 +229,12 @@ async function fetchUniprotData(): Promise<void> {
 
   try {
     const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(`${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`, {
-      withCredentials: true,
-    });
+    const response = await axios.get(
+      `${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`,
+      {
+        withCredentials: true,
+      }
+    );
 
     // Check for valid response with domains
     if (response.data && response.data.domains) {

@@ -26,3 +26,4 @@ coverage/
 
 # Local plan data (database backups)
 .plan/
+__pycache__/
