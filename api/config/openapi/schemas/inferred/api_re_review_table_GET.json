@@ -1,6 +1,5 @@
 {
   "ReReviewTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {

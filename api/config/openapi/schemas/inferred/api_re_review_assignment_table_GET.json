@@ -1,59 +1,51 @@
 {
   "ReReviewAssignmentTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "assignment_id": {
-              "type": "integer"
-            },
-            "user_id": {
-              "type": "integer"
-            },
-            "user_name": {
-              "type": "string"
-            },
-            "re_review_batch": {
-              "type": "integer"
-            },
-            "re_review_review_saved": {
-              "type": "integer"
-            },
-            "re_review_status_saved": {
-              "type": "integer"
-            },
-            "re_review_submitted": {
-              "type": "integer"
-            },
-            "re_review_approved": {
-              "type": "integer"
-            },
-            "entity_count": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "assignment_id",
-            "entity_count",
-            "re_review_approved",
-            "re_review_batch",
-            "re_review_review_saved",
-            "re_review_status_saved",
-            "re_review_submitted",
-            "user_id",
-            "user_name"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "assignment_id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "re_review_batch": {
+          "type": "integer"
+        },
+        "re_review_review_saved": {
+          "type": "integer"
+        },
+        "re_review_status_saved": {
+          "type": "integer"
+        },
+        "re_review_submitted": {
+          "type": "integer"
+        },
+        "re_review_approved": {
+          "type": "integer"
+        },
+        "entity_count": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "assignment_id",
+        "entity_count",
+        "re_review_approved",
+        "re_review_batch",
+        "re_review_review_saved",
+        "re_review_status_saved",
+        "re_review_submitted",
+        "user_id",
+        "user_name"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_re_review_assignment_table_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   }
 }

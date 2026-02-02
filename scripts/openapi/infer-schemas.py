@@ -36,6 +36,74 @@ def infer_schema_from_samples(sample_files: list) -> dict:
     return builder.to_schema()
 
 
+def clean_schema_for_openapi(schema: dict) -> dict:
+    """
+    Clean up GenSON-generated schema for OpenAPI 3.0 compatibility.
+
+    Fixes:
+    1. Removes $schema field (not valid in OpenAPI 3.0)
+    2. Cleans up anyOf arrays by removing empty { "type": "object" } options
+    3. Simplifies anyOf with single remaining option to use that option directly
+    4. Recursively processes nested schemas
+    """
+    if not isinstance(schema, dict):
+        return schema
+
+    # Remove $schema field (not valid in OpenAPI 3.0)
+    if "$schema" in schema:
+        del schema["$schema"]
+
+    # Clean up anyOf arrays
+    if "anyOf" in schema and isinstance(schema["anyOf"], list):
+        # Filter out empty object types like { "type": "object" } with no properties
+        cleaned_options = []
+        for option in schema["anyOf"]:
+            # Skip empty object schemas (just { "type": "object" } with no properties)
+            if (isinstance(option, dict) and
+                option.get("type") == "object" and
+                "properties" not in option and
+                "additionalProperties" not in option and
+                len(option) == 1):
+                continue
+            cleaned_options.append(option)
+
+        if len(cleaned_options) == 0:
+            # All options were empty, keep a basic object type
+            schema["type"] = "object"
+            del schema["anyOf"]
+        elif len(cleaned_options) == 1:
+            # Only one option left, replace anyOf with that option
+            single_option = cleaned_options[0]
+            del schema["anyOf"]
+            # Merge the single option into the schema
+            for key, value in single_option.items():
+                if key not in schema:  # Don't overwrite existing fields like description
+                    schema[key] = value
+        else:
+            schema["anyOf"] = cleaned_options
+
+    # Recursively clean nested schemas
+    if "properties" in schema and isinstance(schema["properties"], dict):
+        for prop_name, prop_schema in schema["properties"].items():
+            schema["properties"][prop_name] = clean_schema_for_openapi(prop_schema)
+
+    if "items" in schema:
+        if isinstance(schema["items"], dict):
+            schema["items"] = clean_schema_for_openapi(schema["items"])
+        elif isinstance(schema["items"], list):
+            schema["items"] = [clean_schema_for_openapi(item) for item in schema["items"]]
+
+    if "additionalProperties" in schema and isinstance(schema["additionalProperties"], dict):
+        schema["additionalProperties"] = clean_schema_for_openapi(schema["additionalProperties"])
+
+    # Clean anyOf/oneOf/allOf recursively
+    for keyword in ["anyOf", "oneOf", "allOf"]:
+        if keyword in schema and isinstance(schema[keyword], list):
+            schema[keyword] = [clean_schema_for_openapi(opt) for opt in schema[keyword]]
+
+    return schema
+
+
 def detect_response_type(schema: dict) -> str:
     """Detect the type of response based on schema structure."""
     props = schema.get("properties", {})
@@ -131,6 +199,9 @@ def process_samples_directory(samples_dir: Path, output_dir: Path):
 
         # Infer schema
         schema = infer_schema_from_samples(files)
+
+        # Clean up for OpenAPI 3.0 compatibility (remove $schema, fix anyOf, etc.)
+        schema = clean_schema_for_openapi(schema)
 
         # Detect response type
         response_type = detect_response_type(schema)

@@ -1,8 +1,9 @@
 # OpenAPI Response Documentation - Implementation Status Report
 
 **Date**: 2026-02-02
-**Status**: ✅ **COMPLETED**
-**Branch**: `master`
+**Last Updated**: 2026-02-02 (Post-review fixes applied)
+**Status**: ✅ **COMPLETED** (with fixes)
+**Branch**: `feature/openapi-response-schemas`
 
 ---
 
@@ -153,6 +154,52 @@ All error responses now use RFC 9457 ProblemDetails with `application/problem+js
 
 ---
 
+## Known Issues (Post-Implementation Review 2026-02-02)
+
+### ✅ FIXED: Issue 1: Swagger UI Displays Empty `{}` for Some 200 Responses
+
+**Affected Endpoints**: 16 endpoints including `/api/status/`, `/api/user/list`, `/api/panels/options`, etc.
+
+**Root Cause**: GenSON schema inference produces `anyOf` structures when the response could be multiple types:
+
+```json
+{
+  "anyOf": [
+    { "type": "object" },           // <-- Empty object, causes {} display
+    { "type": "array", "items": {...} }
+  ]
+}
+```
+
+Swagger UI doesn't handle `anyOf` well and defaults to showing the first option (empty object).
+
+**Affected Schemas** (16 total):
+- AboutDraftResponse, AboutPublishedResponse
+- AnalysisPhenotypeClusteringResponse
+- ComparisonsSimilarityResponse, ComparisonsUpsetResponse
+- PanelsOptionsResponse
+- PhenotypeCorrelationResponse, PhenotypeCountResponse
+- ReReviewAssignmentTableResponse, ReviewResponse
+- StatisticsNewsResponse, **StatusResponse**
+- UserListResponse, UserRoleListResponse
+- VariantCorrelationResponse, VariantCountResponse
+
+**Fix Applied** (2026-02-02): Added `clean_schema_for_openapi()` function to `scripts/openapi/infer-schemas.py`:
+1. Removes empty `{ "type": "object" }` from `anyOf` arrays
+2. Simplifies `anyOf` with single remaining option to just use that option directly
+3. Removes `$schema` field (not valid in OpenAPI 3.0)
+4. Recursively processes nested schemas
+
+**Verification**: `/api/status/` now shows full array schema in Swagger UI instead of `{}`.
+
+### ✅ FIXED: Issue 2: Invalid `$schema` Field in Inferred Schemas
+
+**Problem**: All 60 inferred schemas contained `"$schema": "http://json-schema.org/schema#"` which is valid JSON Schema but NOT valid in OpenAPI 3.0.
+
+**Fix Applied**: The `clean_schema_for_openapi()` function now strips `$schema` fields during post-processing.
+
+---
+
 ## Future Improvements
 
 1. **Parameterized endpoint sampling**: Collect samples for endpoints like `/api/entity/{sysndd_id}` using real entity IDs.
@@ -162,6 +209,10 @@ All error responses now use RFC 9457 ProblemDetails with `application/problem+js
 3. **Schema validation**: Add Schemathesis-based CI validation as outlined in `OPENAPI-AUTOMATION-STRATEGY.md`.
 
 4. **Incremental updates**: Add workflow to regenerate schemas when API changes.
+
+5. **Fix anyOf/oneOf schemas**: Clean up GenSON output to remove empty object alternatives that break Swagger UI display.
+
+6. **Remove $schema fields**: Post-process inferred schemas to be OpenAPI 3.0 compliant.
 
 ---
 

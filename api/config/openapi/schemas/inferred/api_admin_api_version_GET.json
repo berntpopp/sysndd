@@ -1,6 +1,5 @@
 {
   "AdminVersionResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "api_version": {

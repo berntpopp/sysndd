@@ -1,122 +1,114 @@
 {
   "ReviewResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "review_id": {
-              "type": "integer"
-            },
-            "entity_id": {
-              "type": "integer"
-            },
-            "hgnc_id": {
-              "type": "string"
-            },
-            "symbol": {
-              "type": "string"
-            },
-            "disease_ontology_id_version": {
-              "type": "string"
-            },
-            "disease_ontology_name": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term_name": {
-              "type": "string"
-            },
-            "synopsis": {
-              "type": "string"
-            },
-            "is_primary": {
-              "type": "integer"
-            },
-            "review_date": {
-              "type": "string"
-            },
-            "review_user_name": {
-              "type": "string"
-            },
-            "review_user_role": {
-              "type": "string"
-            },
-            "review_approved": {
-              "type": "integer"
-            },
-            "approving_user_name": {
-              "type": "null"
-            },
-            "approving_user_role": {
-              "type": "null"
-            },
-            "approving_user_id": {
-              "type": "null"
-            },
-            "comment": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "duplicate": {
-              "type": "string"
-            },
-            "active_status": {
-              "type": "integer"
-            },
-            "active_category": {
-              "type": "integer"
-            },
-            "newest_status": {
-              "type": "integer"
-            },
-            "newest_category": {
-              "type": "integer"
-            },
-            "status_change": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "active_category",
-            "active_status",
-            "approving_user_id",
-            "approving_user_name",
-            "approving_user_role",
-            "comment",
-            "disease_ontology_id_version",
-            "disease_ontology_name",
-            "duplicate",
-            "entity_id",
-            "hgnc_id",
-            "hpo_mode_of_inheritance_term",
-            "hpo_mode_of_inheritance_term_name",
-            "is_primary",
-            "newest_category",
-            "newest_status",
-            "review_approved",
-            "review_date",
-            "review_id",
-            "review_user_name",
-            "review_user_role",
-            "status_change",
-            "symbol",
-            "synopsis"
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "review_id": {
+          "type": "integer"
+        },
+        "entity_id": {
+          "type": "integer"
+        },
+        "hgnc_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "disease_ontology_id_version": {
+          "type": "string"
+        },
+        "disease_ontology_name": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term_name": {
+          "type": "string"
+        },
+        "synopsis": {
+          "type": "string"
+        },
+        "is_primary": {
+          "type": "integer"
+        },
+        "review_date": {
+          "type": "string"
+        },
+        "review_user_name": {
+          "type": "string"
+        },
+        "review_user_role": {
+          "type": "string"
+        },
+        "review_approved": {
+          "type": "integer"
+        },
+        "approving_user_name": {
+          "type": "null"
+        },
+        "approving_user_role": {
+          "type": "null"
+        },
+        "approving_user_id": {
+          "type": "null"
+        },
+        "comment": {
+          "type": [
+            "null",
+            "string"
           ]
+        },
+        "duplicate": {
+          "type": "string"
+        },
+        "active_status": {
+          "type": "integer"
+        },
+        "active_category": {
+          "type": "integer"
+        },
+        "newest_status": {
+          "type": "integer"
+        },
+        "newest_category": {
+          "type": "integer"
+        },
+        "status_change": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "active_category",
+        "active_status",
+        "approving_user_id",
+        "approving_user_name",
+        "approving_user_role",
+        "comment",
+        "disease_ontology_id_version",
+        "disease_ontology_name",
+        "duplicate",
+        "entity_id",
+        "hgnc_id",
+        "hpo_mode_of_inheritance_term",
+        "hpo_mode_of_inheritance_term_name",
+        "is_primary",
+        "newest_category",
+        "newest_status",
+        "review_approved",
+        "review_date",
+        "review_id",
+        "review_user_name",
+        "review_user_role",
+        "status_change",
+        "symbol",
+        "synopsis"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_review_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   }
 }

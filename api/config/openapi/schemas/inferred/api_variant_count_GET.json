@@ -1,35 +1,27 @@
 {
   "VariantCountResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "vario_id": {
-              "type": "string"
-            },
-            "variant_name": {
-              "type": "string"
-            },
-            "count": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "count",
-            "variant_name",
-            "vario_id"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "vario_id": {
+          "type": "string"
+        },
+        "variant_name": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "count",
+        "variant_name",
+        "vario_id"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_variant_count_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   }
 }

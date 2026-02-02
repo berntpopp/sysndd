@@ -1,35 +1,27 @@
 {
   "ComparisonsSimilarityResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "type": "string"
-            },
-            "y": {
-              "type": "string"
-            },
-            "value": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "value",
-            "x",
-            "y"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "value",
+        "x",
+        "y"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_comparisons_similarity_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   }
 }

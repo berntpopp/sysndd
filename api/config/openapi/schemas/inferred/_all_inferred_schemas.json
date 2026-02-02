@@ -1,88 +1,71 @@
 {
   "AboutDraftResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "icon": {
-              "type": "string"
-            },
-            "title": {
-              "type": "string"
-            },
-            "content": {
-              "type": "string"
-            },
-            "section_id": {
-              "type": "string"
-            },
-            "sort_order": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "content",
-            "icon",
-            "section_id",
-            "sort_order",
-            "title"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        },
+        "sort_order": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "content",
+        "icon",
+        "section_id",
+        "sort_order",
+        "title"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_about_draft_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "AboutPublishedResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "icon": {
-              "type": "string"
-            },
-            "title": {
-              "type": "string"
-            },
-            "content": {
-              "type": "string"
-            },
-            "section_id": {
-              "type": "string"
-            },
-            "sort_order": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "content",
-            "icon",
-            "section_id",
-            "sort_order",
-            "title"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "section_id": {
+          "type": "string"
+        },
+        "sort_order": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "content",
+        "icon",
+        "section_id",
+        "sort_order",
+        "title"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_about_published_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "AdminAnnotationDatesResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "omim_update": {
@@ -121,7 +104,6 @@
     "x-response-type": "object"
   },
   "AdminVersionResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "api_version": {
@@ -136,7 +118,6 @@
     "x-response-type": "object"
   },
   "AdminSmtpTestResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "success": {
@@ -163,7 +144,6 @@
     "x-response-type": "object"
   },
   "AnalysisFunctionalClusteringResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "categories": {
@@ -450,7 +430,6 @@
     "x-response-type": "object"
   },
   "AnalysisNetworkEdgesResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "nodes": {
@@ -607,172 +586,163 @@
     "x-response-type": "object"
   },
   "AnalysisPhenotypeClusteringResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "cluster": {
-              "type": "string"
-            },
-            "hash_filter": {
-              "type": "string"
-            },
-            "cluster_size": {
-              "type": "integer"
-            },
-            "quali_inp_var": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "variable": {
-                    "type": "string"
-                  },
-                  "Cla.Mod": {
-                    "type": "number"
-                  },
-                  "Mod.Cla": {
-                    "type": "number"
-                  },
-                  "Global": {
-                    "type": "number"
-                  },
-                  "p.value": {
-                    "type": "number"
-                  },
-                  "v.test": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "Cla.Mod",
-                  "Global",
-                  "Mod.Cla",
-                  "p.value",
-                  "v.test",
-                  "variable"
-                ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "cluster": {
+          "type": "string"
+        },
+        "hash_filter": {
+          "type": "string"
+        },
+        "cluster_size": {
+          "type": "integer"
+        },
+        "quali_inp_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "Cla.Mod": {
+                "type": "number"
+              },
+              "Mod.Cla": {
+                "type": "number"
+              },
+              "Global": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
+              },
+              "v.test": {
+                "type": "number"
               }
             },
-            "quali_sup_var": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "variable": {
-                    "type": "string"
-                  },
-                  "Cla.Mod": {
-                    "type": "number"
-                  },
-                  "Mod.Cla": {
-                    "type": "number"
-                  },
-                  "Global": {
-                    "type": "number"
-                  },
-                  "p.value": {
-                    "type": "number"
-                  },
-                  "v.test": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "Cla.Mod",
-                  "Global",
-                  "Mod.Cla",
-                  "p.value",
-                  "v.test",
-                  "variable"
-                ]
+            "required": [
+              "Cla.Mod",
+              "Global",
+              "Mod.Cla",
+              "p.value",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "quali_sup_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "Cla.Mod": {
+                "type": "number"
+              },
+              "Mod.Cla": {
+                "type": "number"
+              },
+              "Global": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
+              },
+              "v.test": {
+                "type": "number"
               }
             },
-            "quanti_sup_var": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "variable": {
-                    "type": "string"
-                  },
-                  "v.test": {
-                    "type": "number"
-                  },
-                  "Mean.in.category": {
-                    "type": "number"
-                  },
-                  "Overall.mean": {
-                    "type": "number"
-                  },
-                  "sd.in.category": {
-                    "type": "number"
-                  },
-                  "Overall.sd": {
-                    "type": "number"
-                  },
-                  "p.value": {
-                    "type": "number"
-                  }
-                },
-                "required": [
-                  "Mean.in.category",
-                  "Overall.mean",
-                  "Overall.sd",
-                  "p.value",
-                  "sd.in.category",
-                  "v.test",
-                  "variable"
-                ]
+            "required": [
+              "Cla.Mod",
+              "Global",
+              "Mod.Cla",
+              "p.value",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "quanti_sup_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "v.test": {
+                "type": "number"
+              },
+              "Mean.in.category": {
+                "type": "number"
+              },
+              "Overall.mean": {
+                "type": "number"
+              },
+              "sd.in.category": {
+                "type": "number"
+              },
+              "Overall.sd": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
               }
             },
-            "identifiers": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "entity_id": {
-                    "type": "integer"
-                  },
-                  "hgnc_id": {
-                    "type": "string"
-                  },
-                  "symbol": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "entity_id",
-                  "hgnc_id",
-                  "symbol"
-                ]
+            "required": [
+              "Mean.in.category",
+              "Overall.mean",
+              "Overall.sd",
+              "p.value",
+              "sd.in.category",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "identifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "integer"
+              },
+              "hgnc_id": {
+                "type": "string"
+              },
+              "symbol": {
+                "type": "string"
               }
-            }
-          },
-          "required": [
-            "cluster",
-            "cluster_size",
-            "hash_filter",
-            "identifiers",
-            "quali_inp_var",
-            "quali_sup_var",
-            "quanti_sup_var"
-          ]
+            },
+            "required": [
+              "entity_id",
+              "hgnc_id",
+              "symbol"
+            ]
+          }
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "cluster",
+        "cluster_size",
+        "hash_filter",
+        "identifiers",
+        "quali_inp_var",
+        "quali_sup_var",
+        "quanti_sup_var"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_analysis_phenotype_clustering_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "AnalysisPhenotypeFunctionalClusterCorrelationResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "correlation_matrix": {
@@ -816,7 +786,6 @@
     "x-response-type": "object"
   },
   "AuthSigninResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "user_id": {
@@ -880,7 +849,6 @@
     "x-response-type": "object"
   },
   "BackupListResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -961,7 +929,6 @@
     "x-response-type": "object"
   },
   "ComparisonsBrowseResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -1166,7 +1133,6 @@
     "x-response-type": "pagination"
   },
   "ComparisonsMetadataResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "last_full_refresh": {
@@ -1212,7 +1178,6 @@
     "x-response-type": "object"
   },
   "ComparisonsOptionsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "list": {
@@ -1283,72 +1248,55 @@
     "x-response-type": "object"
   },
   "ComparisonsSimilarityResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "type": "string"
-            },
-            "y": {
-              "type": "string"
-            },
-            "value": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "value",
-            "x",
-            "y"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "value",
+        "x",
+        "y"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_comparisons_similarity_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "ComparisonsUpsetResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "sets": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "required": [
-            "name",
-            "sets"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "name",
+        "sets"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_comparisons_upset_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "EntityResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -1425,17 +1373,10 @@
                     "type": "string"
                   },
                   "selectOptions": {
-                    "anyOf": [
-                      {
-                        "type": "object"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "count": {
                     "type": "integer"
@@ -1575,7 +1516,6 @@
     "x-response-type": "pagination"
   },
   "GeneResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -1652,17 +1592,10 @@
                     "type": "string"
                   },
                   "selectOptions": {
-                    "anyOf": [
-                      {
-                        "type": "object"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "count": {
                     "type": "integer"
@@ -1816,7 +1749,6 @@
     "x-response-type": "pagination"
   },
   "HealthResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "status": {
@@ -1848,7 +1780,6 @@
     "x-response-type": "object"
   },
   "HealthHealthPerformanceResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "workers": {
@@ -1989,7 +1920,6 @@
     "x-response-type": "object"
   },
   "HealthReadyResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "status": {
@@ -2120,7 +2050,6 @@
     "x-response-type": "object"
   },
   "JobsHistoryResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -2157,7 +2086,6 @@
     "x-response-type": "object"
   },
   "ListPhenotypeResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -2268,7 +2196,6 @@
     "x-response-type": "pagination"
   },
   "ListStatusResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -2371,7 +2298,6 @@
     "x-response-type": "pagination"
   },
   "ListVariationOntologyResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -2478,7 +2404,6 @@
     "x-response-type": "pagination"
   },
   "LlmCacheStatsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "total_entries": {
@@ -2545,7 +2470,6 @@
     "x-response-type": "object"
   },
   "LlmCacheSummariesResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -2640,7 +2564,6 @@
     "x-response-type": "object"
   },
   "LlmConfigResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "gemini_configured": {
@@ -2721,7 +2644,6 @@
     "x-response-type": "object"
   },
   "LlmLogsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -2812,7 +2734,6 @@
     "x-response-type": "object"
   },
   "LlmPromptsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "functional_generation": {
@@ -2935,7 +2856,6 @@
     "x-response-type": "object"
   },
   "LogsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "message": {
@@ -2950,7 +2870,6 @@
     "x-response-type": "message"
   },
   "OntologyVariantTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -3123,7 +3042,6 @@
     "x-response-type": "pagination"
   },
   "PanelsBrowseResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -3303,121 +3221,96 @@
     "x-response-type": "pagination"
   },
   "PanelsOptionsResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "lists": {
-              "type": "string"
-            },
-            "options": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "value": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "value"
-                ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "lists": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "string"
               }
-            }
-          },
-          "required": [
-            "lists",
-            "options"
-          ]
+            },
+            "required": [
+              "value"
+            ]
+          }
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "lists",
+        "options"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_panels_options_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "PhenotypeCorrelationResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "type": "string"
-            },
-            "x_id": {
-              "type": "string"
-            },
-            "y": {
-              "type": "string"
-            },
-            "y_id": {
-              "type": "string"
-            },
-            "value": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "value",
-            "x",
-            "x_id",
-            "y",
-            "y_id"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "x_id": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "y_id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "value",
+        "x",
+        "x_id",
+        "y",
+        "y_id"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_phenotype_correlation_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "PhenotypeCountResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "HPO_term": {
-              "type": "string"
-            },
-            "phenotype_id": {
-              "type": "string"
-            },
-            "count": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "HPO_term",
-            "count",
-            "phenotype_id"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "HPO_term": {
+          "type": "string"
+        },
+        "phenotype_id": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "HPO_term",
+        "count",
+        "phenotype_id"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_phenotype_count_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "PhenotypeEntitiesBrowseResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -3494,17 +3387,10 @@
                     "type": "string"
                   },
                   "selectOptions": {
-                    "anyOf": [
-                      {
-                        "type": "object"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "count": {
                     "type": "integer"
@@ -3647,7 +3533,6 @@
     "x-response-type": "pagination"
   },
   "PublicationResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -3864,7 +3749,6 @@
     "x-response-type": "pagination"
   },
   "PublicationPubtatorGenesResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -4114,7 +3998,6 @@
     "x-response-type": "pagination"
   },
   "PublicationPubtatorSearchResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "meta": {
@@ -4193,7 +4076,6 @@
     "x-response-type": "object"
   },
   "PublicationPubtatorTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -4408,7 +4290,6 @@
     "x-response-type": "pagination"
   },
   "PublicationStatsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "total": {
@@ -4440,64 +4321,55 @@
     "x-response-type": "object"
   },
   "ReReviewAssignmentTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "assignment_id": {
-              "type": "integer"
-            },
-            "user_id": {
-              "type": "integer"
-            },
-            "user_name": {
-              "type": "string"
-            },
-            "re_review_batch": {
-              "type": "integer"
-            },
-            "re_review_review_saved": {
-              "type": "integer"
-            },
-            "re_review_status_saved": {
-              "type": "integer"
-            },
-            "re_review_submitted": {
-              "type": "integer"
-            },
-            "re_review_approved": {
-              "type": "integer"
-            },
-            "entity_count": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "assignment_id",
-            "entity_count",
-            "re_review_approved",
-            "re_review_batch",
-            "re_review_review_saved",
-            "re_review_status_saved",
-            "re_review_submitted",
-            "user_id",
-            "user_name"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "assignment_id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "re_review_batch": {
+          "type": "integer"
+        },
+        "re_review_review_saved": {
+          "type": "integer"
+        },
+        "re_review_status_saved": {
+          "type": "integer"
+        },
+        "re_review_submitted": {
+          "type": "integer"
+        },
+        "re_review_approved": {
+          "type": "integer"
+        },
+        "entity_count": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "assignment_id",
+        "entity_count",
+        "re_review_approved",
+        "re_review_batch",
+        "re_review_review_saved",
+        "re_review_status_saved",
+        "re_review_submitted",
+        "user_id",
+        "user_name"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_re_review_assignment_table_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "ReReviewTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -4585,127 +4457,118 @@
     "x-response-type": "pagination"
   },
   "ReviewResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "review_id": {
-              "type": "integer"
-            },
-            "entity_id": {
-              "type": "integer"
-            },
-            "hgnc_id": {
-              "type": "string"
-            },
-            "symbol": {
-              "type": "string"
-            },
-            "disease_ontology_id_version": {
-              "type": "string"
-            },
-            "disease_ontology_name": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term_name": {
-              "type": "string"
-            },
-            "synopsis": {
-              "type": "string"
-            },
-            "is_primary": {
-              "type": "integer"
-            },
-            "review_date": {
-              "type": "string"
-            },
-            "review_user_name": {
-              "type": "string"
-            },
-            "review_user_role": {
-              "type": "string"
-            },
-            "review_approved": {
-              "type": "integer"
-            },
-            "approving_user_name": {
-              "type": "null"
-            },
-            "approving_user_role": {
-              "type": "null"
-            },
-            "approving_user_id": {
-              "type": "null"
-            },
-            "comment": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "duplicate": {
-              "type": "string"
-            },
-            "active_status": {
-              "type": "integer"
-            },
-            "active_category": {
-              "type": "integer"
-            },
-            "newest_status": {
-              "type": "integer"
-            },
-            "newest_category": {
-              "type": "integer"
-            },
-            "status_change": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "active_category",
-            "active_status",
-            "approving_user_id",
-            "approving_user_name",
-            "approving_user_role",
-            "comment",
-            "disease_ontology_id_version",
-            "disease_ontology_name",
-            "duplicate",
-            "entity_id",
-            "hgnc_id",
-            "hpo_mode_of_inheritance_term",
-            "hpo_mode_of_inheritance_term_name",
-            "is_primary",
-            "newest_category",
-            "newest_status",
-            "review_approved",
-            "review_date",
-            "review_id",
-            "review_user_name",
-            "review_user_role",
-            "status_change",
-            "symbol",
-            "synopsis"
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "review_id": {
+          "type": "integer"
+        },
+        "entity_id": {
+          "type": "integer"
+        },
+        "hgnc_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "disease_ontology_id_version": {
+          "type": "string"
+        },
+        "disease_ontology_name": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term_name": {
+          "type": "string"
+        },
+        "synopsis": {
+          "type": "string"
+        },
+        "is_primary": {
+          "type": "integer"
+        },
+        "review_date": {
+          "type": "string"
+        },
+        "review_user_name": {
+          "type": "string"
+        },
+        "review_user_role": {
+          "type": "string"
+        },
+        "review_approved": {
+          "type": "integer"
+        },
+        "approving_user_name": {
+          "type": "null"
+        },
+        "approving_user_role": {
+          "type": "null"
+        },
+        "approving_user_id": {
+          "type": "null"
+        },
+        "comment": {
+          "type": [
+            "null",
+            "string"
           ]
+        },
+        "duplicate": {
+          "type": "string"
+        },
+        "active_status": {
+          "type": "integer"
+        },
+        "active_category": {
+          "type": "integer"
+        },
+        "newest_status": {
+          "type": "integer"
+        },
+        "newest_category": {
+          "type": "integer"
+        },
+        "status_change": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "active_category",
+        "active_status",
+        "approving_user_id",
+        "approving_user_name",
+        "approving_user_role",
+        "comment",
+        "disease_ontology_id_version",
+        "disease_ontology_name",
+        "duplicate",
+        "entity_id",
+        "hgnc_id",
+        "hpo_mode_of_inheritance_term",
+        "hpo_mode_of_inheritance_term_name",
+        "is_primary",
+        "newest_category",
+        "newest_status",
+        "review_approved",
+        "review_date",
+        "review_id",
+        "review_user_name",
+        "review_user_role",
+        "status_change",
+        "symbol",
+        "synopsis"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_review_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "StatisticsCategoryCountResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "meta": {
@@ -4785,7 +4648,6 @@
     "x-response-type": "object"
   },
   "StatisticsContributorLeaderboardResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -4860,7 +4722,6 @@
     "x-response-type": "object"
   },
   "StatisticsEntitiesOverTimeResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "meta": {
@@ -4948,80 +4809,71 @@
     "x-response-type": "object"
   },
   "StatisticsNewsResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "entity_id": {
-              "type": "integer"
-            },
-            "hgnc_id": {
-              "type": "string"
-            },
-            "symbol": {
-              "type": "string"
-            },
-            "disease_ontology_id_version": {
-              "type": "string"
-            },
-            "disease_ontology_name": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term_name": {
-              "type": "string"
-            },
-            "inheritance_filter": {
-              "type": "string"
-            },
-            "ndd_phenotype": {
-              "type": "integer"
-            },
-            "ndd_phenotype_word": {
-              "type": "string"
-            },
-            "entry_date": {
-              "type": "string"
-            },
-            "category": {
-              "type": "string"
-            },
-            "category_id": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "category",
-            "category_id",
-            "disease_ontology_id_version",
-            "disease_ontology_name",
-            "entity_id",
-            "entry_date",
-            "hgnc_id",
-            "hpo_mode_of_inheritance_term",
-            "hpo_mode_of_inheritance_term_name",
-            "inheritance_filter",
-            "ndd_phenotype",
-            "ndd_phenotype_word",
-            "symbol"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "integer"
+        },
+        "hgnc_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "disease_ontology_id_version": {
+          "type": "string"
+        },
+        "disease_ontology_name": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term_name": {
+          "type": "string"
+        },
+        "inheritance_filter": {
+          "type": "string"
+        },
+        "ndd_phenotype": {
+          "type": "integer"
+        },
+        "ndd_phenotype_word": {
+          "type": "string"
+        },
+        "entry_date": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "category",
+        "category_id",
+        "disease_ontology_id_version",
+        "disease_ontology_name",
+        "entity_id",
+        "entry_date",
+        "hgnc_id",
+        "hpo_mode_of_inheritance_term",
+        "hpo_mode_of_inheritance_term_name",
+        "inheritance_filter",
+        "ndd_phenotype",
+        "ndd_phenotype_word",
+        "symbol"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_statistics_news_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "StatisticsPublicationStatsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "publication_type_counts": {
@@ -5181,7 +5033,6 @@
     "x-response-type": "object"
   },
   "StatisticsRereviewLeaderboardResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "data": {
@@ -5274,127 +5125,118 @@
     "x-response-type": "object"
   },
   "StatusResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "status_id": {
-              "type": "integer"
-            },
-            "entity_id": {
-              "type": "integer"
-            },
-            "hgnc_id": {
-              "type": "string"
-            },
-            "symbol": {
-              "type": "string"
-            },
-            "disease_ontology_id_version": {
-              "type": "string"
-            },
-            "disease_ontology_name": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term": {
-              "type": "string"
-            },
-            "hpo_mode_of_inheritance_term_name": {
-              "type": "string"
-            },
-            "category": {
-              "type": "string"
-            },
-            "category_id": {
-              "type": "integer"
-            },
-            "is_active": {
-              "type": "integer"
-            },
-            "status_date": {
-              "type": "string"
-            },
-            "status_user_name": {
-              "type": "string"
-            },
-            "status_user_role": {
-              "type": "string"
-            },
-            "status_approved": {
-              "type": "integer"
-            },
-            "approving_user_name": {
-              "type": "null"
-            },
-            "approving_user_role": {
-              "type": "null"
-            },
-            "approving_user_id": {
-              "type": "null"
-            },
-            "comment": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "problematic": {
-              "type": "integer"
-            },
-            "duplicate": {
-              "type": "string"
-            },
-            "active_review": {
-              "type": "integer"
-            },
-            "newest_review": {
-              "type": "integer"
-            },
-            "review_change": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "active_review",
-            "approving_user_id",
-            "approving_user_name",
-            "approving_user_role",
-            "category",
-            "category_id",
-            "comment",
-            "disease_ontology_id_version",
-            "disease_ontology_name",
-            "duplicate",
-            "entity_id",
-            "hgnc_id",
-            "hpo_mode_of_inheritance_term",
-            "hpo_mode_of_inheritance_term_name",
-            "is_active",
-            "newest_review",
-            "problematic",
-            "review_change",
-            "status_approved",
-            "status_date",
-            "status_id",
-            "status_user_name",
-            "status_user_role",
-            "symbol"
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "status_id": {
+          "type": "integer"
+        },
+        "entity_id": {
+          "type": "integer"
+        },
+        "hgnc_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "disease_ontology_id_version": {
+          "type": "string"
+        },
+        "disease_ontology_name": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term_name": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        },
+        "is_active": {
+          "type": "integer"
+        },
+        "status_date": {
+          "type": "string"
+        },
+        "status_user_name": {
+          "type": "string"
+        },
+        "status_user_role": {
+          "type": "string"
+        },
+        "status_approved": {
+          "type": "integer"
+        },
+        "approving_user_name": {
+          "type": "null"
+        },
+        "approving_user_role": {
+          "type": "null"
+        },
+        "approving_user_id": {
+          "type": "null"
+        },
+        "comment": {
+          "type": [
+            "null",
+            "string"
           ]
+        },
+        "problematic": {
+          "type": "integer"
+        },
+        "duplicate": {
+          "type": "string"
+        },
+        "active_review": {
+          "type": "integer"
+        },
+        "newest_review": {
+          "type": "integer"
+        },
+        "review_change": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "active_review",
+        "approving_user_id",
+        "approving_user_name",
+        "approving_user_role",
+        "category",
+        "category_id",
+        "comment",
+        "disease_ontology_id_version",
+        "disease_ontology_name",
+        "duplicate",
+        "entity_id",
+        "hgnc_id",
+        "hpo_mode_of_inheritance_term",
+        "hpo_mode_of_inheritance_term_name",
+        "is_active",
+        "newest_review",
+        "problematic",
+        "review_change",
+        "status_approved",
+        "status_date",
+        "status_id",
+        "status_user_name",
+        "status_user_role",
+        "symbol"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_status_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "StatusListResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": [
       "array",
       "object"
@@ -5404,65 +5246,48 @@
     "x-response-type": "object"
   },
   "UserListResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "user_id": {
-              "type": "integer"
-            },
-            "user_name": {
-              "type": "string"
-            },
-            "user_role": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "user_id",
-            "user_name",
-            "user_role"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "user_role": {
+          "type": "string"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "user_id",
+        "user_name",
+        "user_role"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_user_list_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "UserRoleListResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "role": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "role"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_user_role_list_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "UserTableResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -5658,7 +5483,6 @@
     "x-response-type": "pagination"
   },
   "VariantBrowseResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "links": {
@@ -5735,17 +5559,10 @@
                     "type": "string"
                   },
                   "selectOptions": {
-                    "anyOf": [
-                      {
-                        "type": "object"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   },
                   "count": {
                     "type": "integer"
@@ -5888,81 +5705,64 @@
     "x-response-type": "pagination"
   },
   "VariantCorrelationResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "x": {
-              "type": "string"
-            },
-            "x_vario_id": {
-              "type": "string"
-            },
-            "y": {
-              "type": "string"
-            },
-            "y_vario_id": {
-              "type": "string"
-            },
-            "value": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "value",
-            "x",
-            "x_vario_id",
-            "y",
-            "y_vario_id"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "x_vario_id": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "y_vario_id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "value",
+        "x",
+        "x_vario_id",
+        "y",
+        "y_vario_id"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_variant_correlation_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "VariantCountResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "vario_id": {
-              "type": "string"
-            },
-            "variant_name": {
-              "type": "string"
-            },
-            "count": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "count",
-            "variant_name",
-            "vario_id"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "vario_id": {
+          "type": "string"
+        },
+        "variant_name": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "count",
+        "variant_name",
+        "vario_id"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_variant_count_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   },
   "VersionResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "version": {

@@ -1,34 +1,26 @@
 {
   "ComparisonsUpsetResponse": {
-    "$schema": "http://json-schema.org/schema#",
-    "anyOf": [
-      {
-        "type": "object"
-      },
-      {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "sets": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "required": [
-            "name",
-            "sets"
-          ]
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
-      }
-    ],
-    "description": "Object response",
+      },
+      "required": [
+        "name",
+        "sets"
+      ]
+    },
+    "description": "Array response",
     "x-inferred-from": "api_comparisons_upset_GET",
-    "x-response-type": "object"
+    "x-response-type": "array"
   }
 }

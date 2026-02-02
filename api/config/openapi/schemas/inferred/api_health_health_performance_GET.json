@@ -1,6 +1,5 @@
 {
   "HealthHealthPerformanceResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "workers": {

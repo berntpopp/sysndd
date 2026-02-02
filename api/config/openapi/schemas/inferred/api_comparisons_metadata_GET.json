@@ -1,6 +1,5 @@
 {
   "ComparisonsMetadataResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "last_full_refresh": {

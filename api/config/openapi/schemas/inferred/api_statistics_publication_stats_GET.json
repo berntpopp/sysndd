@@ -1,6 +1,5 @@
 {
   "StatisticsPublicationStatsResponse": {
-    "$schema": "http://json-schema.org/schema#",
     "type": "object",
     "properties": {
       "publication_type_counts": {
