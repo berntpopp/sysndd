@@ -17,15 +17,29 @@
 
 #* Get OpenAPI specification
 #*
-#* Returns the OpenAPI JSON specification for this API.
+#* Returns the enhanced OpenAPI JSON specification for this API.
 #* This endpoint is used by the frontend Swagger UI.
+#*
+#* The spec is enhanced with:
+#* - Component schemas from config/openapi/schemas/*.json
+#* - RFC 9457 ProblemDetails error responses
+#* - Standard error response references on all endpoints
 #*
 #* @tag admin
 #* @serializer unboxedJSON
 #*
 #* @get /openapi.json
 function(req, res) {
-  spec <- req$pr$getApiSpec()
+
+  # Get the full spec from root router (stored globally in start_sysndd_api.R)
+  # Note: req$pr refers to sub-router which only has admin endpoints;
+  # root$getApiSpec() returns full spec with all mounted endpoints
+  spec <- root$getApiSpec()
+
+  # Apply OpenAPI enhancements (schemas, error responses)
+  # The root router's pr_set_api_spec callback is already applied by getApiSpec(),
+  # which includes enhance_openapi_spec(). The spec should already be enhanced.
+
   spec
 }
 

@@ -1,0 +1,67 @@
+{
+  "StatisticsNewsResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "entity_id": {
+          "type": "integer"
+        },
+        "hgnc_id": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "disease_ontology_id_version": {
+          "type": "string"
+        },
+        "disease_ontology_name": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term": {
+          "type": "string"
+        },
+        "hpo_mode_of_inheritance_term_name": {
+          "type": "string"
+        },
+        "inheritance_filter": {
+          "type": "string"
+        },
+        "ndd_phenotype": {
+          "type": "integer"
+        },
+        "ndd_phenotype_word": {
+          "type": "string"
+        },
+        "entry_date": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "category_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "category",
+        "category_id",
+        "disease_ontology_id_version",
+        "disease_ontology_name",
+        "entity_id",
+        "entry_date",
+        "hgnc_id",
+        "hpo_mode_of_inheritance_term",
+        "hpo_mode_of_inheritance_term_name",
+        "inheritance_filter",
+        "ndd_phenotype",
+        "ndd_phenotype_word",
+        "symbol"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_statistics_news_GET",
+    "x-response-type": "array"
+  }
+}

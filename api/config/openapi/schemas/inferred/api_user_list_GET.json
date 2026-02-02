@@ -1,0 +1,27 @@
+{
+  "UserListResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "integer"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "user_role": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_id",
+        "user_name",
+        "user_role"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_user_list_GET",
+    "x-response-type": "array"
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "ListPhenotypeResponse": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "string"
+            },
+            "lastItemID": {
+              "type": "string"
+            },
+            "totalItems": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "phenotype_id": {
+              "type": "string"
+            },
+            "HPO_term": {
+              "type": "string"
+            },
+            "HPO_term_definition": {
+              "type": "string"
+            },
+            "HPO_term_synonyms": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "HPO_term",
+            "HPO_term_definition",
+            "HPO_term_synonyms",
+            "phenotype_id"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_list_phenotype_GET",
+    "x-response-type": "pagination"
+  }
+}

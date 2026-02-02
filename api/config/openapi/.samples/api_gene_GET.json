@@ -1,0 +1,176 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777?sort=symbol&page_after=0&page_size=2",
+      "next": "http://localhost:7777?sort=symbol&page_after=AACS&page_size=2",
+      "last": "http://localhost:7777?sort=symbol&page_after=ZSWIM6&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 1608,
+      "prevItemID": "null",
+      "currentItemID": "0",
+      "nextItemID": "AACS",
+      "lastItemID": "ZSWIM6",
+      "totalItems": 3215,
+      "sort": "symbol",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "symbol",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 3215,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Symbol",
+          "count_filtered": 3215
+        },
+        {
+          "key": "category",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "Refuted",
+            "not applicable"
+          ],
+          "count": 5,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Category",
+          "count_filtered": 5
+        },
+        {
+          "key": "hpo_mode_of_inheritance_term_name",
+          "selectOptions": [
+            "Autosomal dominant inheritance",
+            "Autosomal recessive inheritance",
+            "Mitochondrial inheritance",
+            "Somatic mutation",
+            "X-linked dominant inheritance",
+            "X-linked other inheritance",
+            "X-linked recessive inheritance"
+          ],
+          "count": 7,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Hpo mode of inheritance term name",
+          "count_filtered": 7
+        },
+        {
+          "key": "ndd_phenotype_word",
+          "selectOptions": [
+            "No",
+            "Yes"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Ndd phenotype word",
+          "count_filtered": 2
+        },
+        {
+          "key": "entities_count",
+          "selectOptions": [
+            "1",
+            "10",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "count": 10,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Entities count",
+          "count_filtered": 10
+        },
+        {
+          "key": "details",
+          "selectOptions": {},
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": false,
+          "class": "text-center",
+          "label": "Details"
+        }
+      ],
+      "executionTime": "0.1 secs"
+    }
+  ],
+  "data": [
+    {
+      "symbol": "A2ML1",
+      "hgnc_id": "HGNC:23336",
+      "entities_count": 1,
+      "entities": [
+        {
+          "entity_id": 1590,
+          "disease_ontology_id_version": "MONDO:0002254",
+          "disease_ontology_name": "syndromic disease",
+          "hpo_mode_of_inheritance_term": "HP:0000006",
+          "hpo_mode_of_inheritance_term_name": "Autosomal dominant inheritance",
+          "inheritance_filter": "Autosomal dominant",
+          "ndd_phenotype": 1,
+          "ndd_phenotype_word": "Yes",
+          "entry_date": "2015-12-23",
+          "category": "Limited",
+          "category_id": 3
+        }
+      ]
+    },
+    {
+      "symbol": "AAAS",
+      "hgnc_id": "HGNC:13666",
+      "entities_count": 1,
+      "entities": [
+        {
+          "entity_id": 2987,
+          "disease_ontology_id_version": "OMIM:231550",
+          "disease_ontology_name": "Achalasia-addisonianism-alacrimia syndrome",
+          "hpo_mode_of_inheritance_term": "HP:0000007",
+          "hpo_mode_of_inheritance_term_name": "Autosomal recessive inheritance",
+          "inheritance_filter": "Autosomal recessive",
+          "ndd_phenotype": 1,
+          "ndd_phenotype_word": "Yes",
+          "entry_date": "2019-05-11",
+          "category": "Limited",
+          "category_id": 3
+        }
+      ]
+    }
+  ]
+}

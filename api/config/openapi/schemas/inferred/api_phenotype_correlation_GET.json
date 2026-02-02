@@ -1,0 +1,35 @@
+{
+  "PhenotypeCorrelationResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "x_id": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "y_id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "x",
+        "x_id",
+        "y",
+        "y_id"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_phenotype_correlation_GET",
+    "x-response-type": "array"
+  }
+}

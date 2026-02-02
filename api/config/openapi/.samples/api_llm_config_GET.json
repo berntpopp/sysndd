@@ -1,0 +1,52 @@
+{
+  "gemini_configured": true,
+  "current_model": "gemini-3-flash-preview",
+  "available_models": [
+    {
+      "model_id": "gemini-3-pro-preview",
+      "display_name": "Gemini 3 Pro Preview",
+      "description": "Best quality, complex reasoning tasks",
+      "rpm_limit": 1000,
+      "rpd_limit": 10000,
+      "recommended_for": "Complex analysis"
+    },
+    {
+      "model_id": "gemini-3-flash-preview",
+      "display_name": "Gemini 3 Flash Preview",
+      "description": "Fast and capable for most tasks",
+      "rpm_limit": 2000,
+      "rpd_limit": {},
+      "recommended_for": "Fast processing"
+    },
+    {
+      "model_id": "gemini-2.5-flash",
+      "display_name": "Gemini 2.5 Flash",
+      "description": "Best price-performance balance",
+      "rpm_limit": 2000,
+      "rpd_limit": {},
+      "recommended_for": "Cost-effective"
+    },
+    {
+      "model_id": "gemini-2.5-pro",
+      "display_name": "Gemini 2.5 Pro",
+      "description": "Complex reasoning, stable release",
+      "rpm_limit": 1000,
+      "rpd_limit": 5000,
+      "recommended_for": "Stable production"
+    },
+    {
+      "model_id": "gemini-2.5-flash-lite",
+      "display_name": "Gemini 2.5 Flash Lite",
+      "description": "Budget option for simple tasks",
+      "rpm_limit": 4000,
+      "rpd_limit": {},
+      "recommended_for": "Budget processing"
+    }
+  ],
+  "rate_limit": {
+    "capacity": 30,
+    "fill_time_s": 60,
+    "backoff_base": 2,
+    "max_retries": 3
+  }
+}

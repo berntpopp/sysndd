@@ -1,0 +1,16 @@
+{
+  "AdminVersionResponse": {
+    "type": "object",
+    "properties": {
+      "api_version": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "api_version"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_admin_api_version_GET",
+    "x-response-type": "object"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "PublicationStatsResponse": {
+    "type": "object",
+    "properties": {
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "oldest_update": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "outdated_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "oldest_update",
+      "outdated_count",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_publication_stats_GET",
+    "x-response-type": "object"
+  }
+}

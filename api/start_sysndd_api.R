@@ -146,6 +146,7 @@ source("functions/job-manager.R", local = TRUE)
 source("functions/job-progress.R", local = TRUE)
 source("functions/backup-functions.R", local = TRUE)
 source("functions/ols-functions.R", local = TRUE)
+source("functions/openapi-helpers.R")  # OpenAPI schema enhancement (global scope needed for pr_set_api_spec callback)
 
 # Core security and error handling modules
 source("core/security.R", local = TRUE)
@@ -738,7 +739,8 @@ notFoundHandler <- function(req, res) {
 ## -------------------------------------------------------------------##
 # 13) Create root plumber router with doc lines for the entire API
 ## -------------------------------------------------------------------##
-root <- pr() %>%
+# Store root router globally so admin/openapi.json can access full spec
+root <<- pr() %>%
   # Install error handler middleware
   pr_set_error(errorHandler) %>%
   # Install 404 handler for non-existent routes (RFC 9457 compliant)
@@ -768,6 +770,16 @@ root <- pr() %>%
 
     # Insert example requests from your api_spec.json (optional)
     spec <- update_api_spec_examples(spec, api_spec)
+
+    # Enhance with modular schemas and standard error responses
+    # Loads from config/openapi/schemas/*.json and adds RFC 9457 error responses
+    spec <- enhance_openapi_spec(
+      spec,
+      config_dir = "config/openapi",
+      add_error_responses = TRUE,
+      public_paths = c("/api/health", "/api/version", "/api/about", "/__docs__", "/__swagger__")
+    )
+
     spec
   }) %>%
   ####################################################################

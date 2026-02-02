@@ -1,0 +1,14 @@
+{
+  "version": [
+    "0.3.0"
+  ],
+  "commit": [
+    "unknown"
+  ],
+  "title": [
+    "SysNDD API"
+  ],
+  "description": [
+    "This is the API powering the SysNDD website, allowing programmatic access to the database contents."
+  ]
+}

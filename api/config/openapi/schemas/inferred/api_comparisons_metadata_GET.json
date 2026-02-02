@@ -1,0 +1,47 @@
+{
+  "ComparisonsMetadataResponse": {
+    "type": "object",
+    "properties": {
+      "last_full_refresh": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "last_refresh_status": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "last_refresh_error": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "sources_count": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "rows_imported": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "last_full_refresh",
+      "last_refresh_error",
+      "last_refresh_status",
+      "rows_imported",
+      "sources_count"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_metadata_GET",
+    "x-response-type": "object"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "&page_after=0&page_size=2",
+      "next": "null",
+      "last": "null"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 0,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": "null",
+      "lastItemID": "null",
+      "totalItems": 0
+    }
+  ],
+  "data": []
+}

@@ -1,0 +1,32 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "&page_after=0&page_size=2",
+      "next": "&page_after=3&page_size=2",
+      "last": "&page_after=4&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 3,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": 3,
+      "lastItemID": 4,
+      "totalItems": 5
+    }
+  ],
+  "data": [
+    {
+      "category_id": 1,
+      "category": "Definitive"
+    },
+    {
+      "category_id": 2,
+      "category": "Moderate"
+    }
+  ]
+}

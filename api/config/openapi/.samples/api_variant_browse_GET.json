@@ -1,0 +1,189 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/api/variant/browse?sort=entity_id&page_after=0&page_size=2",
+      "next": "http://localhost:7777/api/variant/browse?sort=entity_id&page_after=4&page_size=2",
+      "last": "http://localhost:7777/api/variant/browse?sort=entity_id&page_after=4604&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 2077,
+      "prevItemID": "null",
+      "currentItemID": "0",
+      "nextItemID": 4,
+      "lastItemID": 4604,
+      "totalItems": 4153,
+      "sort": "entity_id",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "entity_id",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4153,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Entity id",
+          "count_filtered": 4153
+        },
+        {
+          "key": "symbol",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 3211,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Symbol",
+          "count_filtered": 3211
+        },
+        {
+          "key": "disease_ontology_name",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 2694,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Disease ontology name",
+          "count_filtered": 2694
+        },
+        {
+          "key": "hpo_mode_of_inheritance_term_name",
+          "selectOptions": [
+            "Autosomal dominant inheritance",
+            "Autosomal recessive inheritance",
+            "Mitochondrial inheritance",
+            "Somatic mutation",
+            "X-linked dominant inheritance",
+            "X-linked other inheritance",
+            "X-linked recessive inheritance"
+          ],
+          "count": 7,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Hpo mode of inheritance term name",
+          "count_filtered": 7
+        },
+        {
+          "key": "category",
+          "selectOptions": [
+            "Definitive",
+            "Limited",
+            "Moderate",
+            "Refuted",
+            "not applicable"
+          ],
+          "count": 5,
+          "filterable": false,
+          "multi_selectable": true,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Category",
+          "count_filtered": 5
+        },
+        {
+          "key": "ndd_phenotype_word",
+          "selectOptions": [
+            "No",
+            "Yes"
+          ],
+          "count": 2,
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": true,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Ndd phenotype word",
+          "count_filtered": 2
+        },
+        {
+          "key": "modifier_variant_id",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 440,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Modifier variant id",
+          "count_filtered": 440
+        },
+        {
+          "key": "details",
+          "selectOptions": {},
+          "filterable": false,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": false,
+          "class": "text-center",
+          "label": "Details"
+        }
+      ],
+      "executionTime": "0.1 secs"
+    }
+  ],
+  "data": [
+    {
+      "entity_id": 2,
+      "hgnc_id": "HGNC:60",
+      "symbol": "ABCC9",
+      "disease_ontology_id_version": "OMIM:608569",
+      "disease_ontology_name": "Cardiomyopathy, dilated, 1O",
+      "hpo_mode_of_inheritance_term": "HP:0000006",
+      "hpo_mode_of_inheritance_term_name": "Autosomal dominant inheritance",
+      "inheritance_filter": "Autosomal dominant",
+      "ndd_phenotype": 0,
+      "ndd_phenotype_word": "No",
+      "entry_date": "2012-02-20",
+      "category": "not applicable",
+      "category_id": 5,
+      "modifier_variant_id": "1-VariO:0001"
+    },
+    {
+      "entity_id": 3,
+      "hgnc_id": "HGNC:60",
+      "symbol": "ABCC9",
+      "disease_ontology_id_version": "OMIM:614050",
+      "disease_ontology_name": "?Atrial fibrillation, familial, 12",
+      "hpo_mode_of_inheritance_term": "HP:0000006",
+      "hpo_mode_of_inheritance_term_name": "Autosomal dominant inheritance",
+      "inheritance_filter": "Autosomal dominant",
+      "ndd_phenotype": 0,
+      "ndd_phenotype_word": "No",
+      "entry_date": "2012-02-20",
+      "category": "not applicable",
+      "category_id": 5,
+      "modifier_variant_id": "1-VariO:0001"
+    }
+  ]
+}

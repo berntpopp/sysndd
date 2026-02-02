@@ -1,0 +1,27 @@
+{
+  "PhenotypeCountResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "HPO_term": {
+          "type": "string"
+        },
+        "phenotype_id": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "HPO_term",
+        "count",
+        "phenotype_id"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_phenotype_count_GET",
+    "x-response-type": "array"
+  }
+}

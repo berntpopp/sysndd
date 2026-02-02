@@ -1,0 +1,216 @@
+{
+  "PublicationPubtatorTableResponse": {
+    "type": "object",
+    "properties": {
+      "links": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "prev": {
+              "type": "string"
+            },
+            "self": {
+              "type": "string"
+            },
+            "next": {
+              "type": "string"
+            },
+            "last": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "last",
+            "next",
+            "prev",
+            "self"
+          ]
+        },
+        "description": "Navigation links for cursor-based pagination"
+      },
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "perPage": {
+              "type": "integer"
+            },
+            "currentPage": {
+              "type": "integer"
+            },
+            "totalPages": {
+              "type": "integer"
+            },
+            "prevItemID": {
+              "type": "string"
+            },
+            "currentItemID": {
+              "type": "integer"
+            },
+            "nextItemID": {
+              "type": "integer"
+            },
+            "lastItemID": {
+              "type": "integer"
+            },
+            "totalItems": {
+              "type": "integer"
+            },
+            "sort": {
+              "type": "string"
+            },
+            "filter": {
+              "type": "string"
+            },
+            "fields": {
+              "type": "string"
+            },
+            "fspec": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "selectOptions": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    }
+                  },
+                  "count": {
+                    "type": "integer"
+                  },
+                  "filterable": {
+                    "type": "boolean"
+                  },
+                  "multi_selectable": {
+                    "type": "boolean"
+                  },
+                  "selectable": {
+                    "type": "boolean"
+                  },
+                  "sortDirection": {
+                    "type": "string"
+                  },
+                  "sortable": {
+                    "type": "boolean"
+                  },
+                  "class": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "count_filtered": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "class",
+                  "count",
+                  "count_filtered",
+                  "filterable",
+                  "key",
+                  "label",
+                  "multi_selectable",
+                  "selectOptions",
+                  "selectable",
+                  "sortDirection",
+                  "sortable"
+                ]
+              }
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "currentItemID",
+            "currentPage",
+            "executionTime",
+            "fields",
+            "filter",
+            "fspec",
+            "lastItemID",
+            "nextItemID",
+            "perPage",
+            "prevItemID",
+            "sort",
+            "totalItems",
+            "totalPages"
+          ]
+        },
+        "description": "Pagination metadata including counts and field specifications"
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "search_id": {
+              "type": "integer"
+            },
+            "query_id": {
+              "type": "integer"
+            },
+            "pmid": {
+              "type": "integer"
+            },
+            "doi": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "journal": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string"
+            },
+            "score": {
+              "type": "number"
+            },
+            "text_hl": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "gene_symbols": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "created_at",
+            "date",
+            "doi",
+            "journal",
+            "pmid",
+            "query_id",
+            "score",
+            "search_id",
+            "text_hl",
+            "title"
+          ]
+        },
+        "description": "Array of result objects"
+      }
+    },
+    "required": [
+      "data",
+      "links",
+      "meta"
+    ],
+    "description": "Paginated list response with cursor navigation",
+    "x-inferred-from": "api_publication_pubtator_table_GET",
+    "x-response-type": "pagination"
+  }
+}

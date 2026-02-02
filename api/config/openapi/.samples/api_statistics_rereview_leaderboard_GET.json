@@ -1,0 +1,93 @@
+{
+  "data": [
+    {
+      "user_id": 21,
+      "user_name": "Firat",
+      "display_name": "Firat Altay",
+      "submitted_count": 314,
+      "approved_count": 0
+    },
+    {
+      "user_id": 86,
+      "user_name": "simonfruh",
+      "display_name": "Simon Früh",
+      "submitted_count": 270,
+      "approved_count": 0
+    },
+    {
+      "user_id": 8,
+      "user_name": "Hilde",
+      "display_name": "Hilde Van Esch",
+      "submitted_count": 25,
+      "approved_count": 0
+    },
+    {
+      "user_id": 100,
+      "user_name": "Caliebe-A",
+      "display_name": "Almuth Caliebe",
+      "submitted_count": 24,
+      "approved_count": 0
+    },
+    {
+      "user_id": 40,
+      "user_name": "sopio",
+      "display_name": "Sopio Gverdtsiteli",
+      "submitted_count": 16,
+      "approved_count": 0
+    },
+    {
+      "user_id": 97,
+      "user_name": "HummelFabian",
+      "display_name": "Fabian Hummel",
+      "submitted_count": 11,
+      "approved_count": 0
+    },
+    {
+      "user_id": 101,
+      "user_name": "NBraemswig",
+      "display_name": "Nuria Brämswig",
+      "submitted_count": 10,
+      "approved_count": 0
+    },
+    {
+      "user_id": 10,
+      "user_name": "Zeynep",
+      "display_name": "Zeynep Tümer",
+      "submitted_count": 6,
+      "approved_count": 0
+    },
+    {
+      "user_id": 55,
+      "user_name": "Vasileiou",
+      "display_name": "Georgia Vasileiou",
+      "submitted_count": 6,
+      "approved_count": 0
+    },
+    {
+      "user_id": 3,
+      "user_name": "Christiane",
+      "display_name": "Christiane Zweier",
+      "submitted_count": 3,
+      "approved_count": 0
+    }
+  ],
+  "meta": {
+    "top": [
+      10
+    ],
+    "scope": [
+      "all_time"
+    ],
+    "start_date": {},
+    "end_date": {},
+    "total_reviewers": [
+      13
+    ],
+    "total_submitted": [
+      689
+    ],
+    "total_approved": [
+      0
+    ]
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "AnalysisPhenotypeClusteringResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "cluster": {
+          "type": "string"
+        },
+        "hash_filter": {
+          "type": "string"
+        },
+        "cluster_size": {
+          "type": "integer"
+        },
+        "quali_inp_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "Cla.Mod": {
+                "type": "number"
+              },
+              "Mod.Cla": {
+                "type": "number"
+              },
+              "Global": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
+              },
+              "v.test": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "Cla.Mod",
+              "Global",
+              "Mod.Cla",
+              "p.value",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "quali_sup_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "Cla.Mod": {
+                "type": "number"
+              },
+              "Mod.Cla": {
+                "type": "number"
+              },
+              "Global": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
+              },
+              "v.test": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "Cla.Mod",
+              "Global",
+              "Mod.Cla",
+              "p.value",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "quanti_sup_var": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variable": {
+                "type": "string"
+              },
+              "v.test": {
+                "type": "number"
+              },
+              "Mean.in.category": {
+                "type": "number"
+              },
+              "Overall.mean": {
+                "type": "number"
+              },
+              "sd.in.category": {
+                "type": "number"
+              },
+              "Overall.sd": {
+                "type": "number"
+              },
+              "p.value": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "Mean.in.category",
+              "Overall.mean",
+              "Overall.sd",
+              "p.value",
+              "sd.in.category",
+              "v.test",
+              "variable"
+            ]
+          }
+        },
+        "identifiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "entity_id": {
+                "type": "integer"
+              },
+              "hgnc_id": {
+                "type": "string"
+              },
+              "symbol": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "entity_id",
+              "hgnc_id",
+              "symbol"
+            ]
+          }
+        }
+      },
+      "required": [
+        "cluster",
+        "cluster_size",
+        "hash_filter",
+        "identifiers",
+        "quali_inp_var",
+        "quali_sup_var",
+        "quanti_sup_var"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_analysis_phenotype_clustering_GET",
+    "x-response-type": "array"
+  }
+}

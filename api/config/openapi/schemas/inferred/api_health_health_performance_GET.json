@@ -1,0 +1,142 @@
+{
+  "HealthHealthPerformanceResponse": {
+    "type": "object",
+    "properties": {
+      "workers": {
+        "type": "object",
+        "properties": {
+          "total_workers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "dispatcher_active": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "connections",
+          "dispatcher_active",
+          "total_workers"
+        ]
+      },
+      "cache": {
+        "type": "object",
+        "properties": {
+          "file_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_size_mb": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "oldest_cache": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "newest_cache": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "file_count",
+          "newest_cache",
+          "oldest_cache",
+          "total_size_mb"
+        ]
+      },
+      "cache_versions": {
+        "type": "object",
+        "properties": {
+          "leiden_cache_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "walktrap_cache_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "mca_versioned_files": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "cache_migration_needed": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            }
+          }
+        },
+        "required": [
+          "cache_migration_needed",
+          "leiden_cache_files",
+          "mca_versioned_files",
+          "walktrap_cache_files"
+        ]
+      },
+      "environment": {
+        "type": "object",
+        "properties": {
+          "cache_version": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "r_version": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "cache_version",
+          "r_version"
+        ]
+      },
+      "timestamp": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "cache",
+      "cache_versions",
+      "environment",
+      "timestamp",
+      "workers"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_health_health_performance_GET",
+    "x-response-type": "object"
+  }
+}

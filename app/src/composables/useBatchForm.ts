@@ -220,7 +220,10 @@ export function useBatchForm() {
         : [];
 
       // Load status categories from /api/list/status
-      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, { headers, withCredentials: true });
+      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, {
+        headers,
+        withCredentials: true,
+      });
       const statusData = statusResponse.data;
       // Handle paginated response format
       const statusArray = statusData?.data || statusData;

@@ -1,0 +1,900 @@
+{
+  "meta": [
+    {
+      "aggregate": "entity_id",
+      "group": "category",
+      "summarize": "month",
+      "filter": "contains(ndd_phenotype_word,Yes)",
+      "max_count": 399,
+      "max_cumulative_count": 1998,
+      "executionTime": "0.05 secs"
+    }
+  ],
+  "data": [
+    {
+      "group": "Definitive",
+      "values": [
+        {
+          "entry_date": "2010-11-01",
+          "count": 399,
+          "cumulative_count": 399
+        },
+        {
+          "entry_date": "2010-12-01",
+          "count": 3,
+          "cumulative_count": 402
+        },
+        {
+          "entry_date": "2011-01-01",
+          "count": 11,
+          "cumulative_count": 413
+        },
+        {
+          "entry_date": "2011-06-01",
+          "count": 21,
+          "cumulative_count": 434
+        },
+        {
+          "entry_date": "2011-07-01",
+          "count": 1,
+          "cumulative_count": 435
+        },
+        {
+          "entry_date": "2011-09-01",
+          "count": 10,
+          "cumulative_count": 445
+        },
+        {
+          "entry_date": "2011-10-01",
+          "count": 7,
+          "cumulative_count": 452
+        },
+        {
+          "entry_date": "2012-02-01",
+          "count": 70,
+          "cumulative_count": 522
+        },
+        {
+          "entry_date": "2012-03-01",
+          "count": 2,
+          "cumulative_count": 524
+        },
+        {
+          "entry_date": "2013-02-01",
+          "count": 101,
+          "cumulative_count": 625
+        },
+        {
+          "entry_date": "2014-03-01",
+          "count": 104,
+          "cumulative_count": 729
+        },
+        {
+          "entry_date": "2015-01-01",
+          "count": 37,
+          "cumulative_count": 766
+        },
+        {
+          "entry_date": "2015-03-01",
+          "count": 24,
+          "cumulative_count": 790
+        },
+        {
+          "entry_date": "2015-04-01",
+          "count": 6,
+          "cumulative_count": 796
+        },
+        {
+          "entry_date": "2015-08-01",
+          "count": 52,
+          "cumulative_count": 848
+        },
+        {
+          "entry_date": "2015-10-01",
+          "count": 7,
+          "cumulative_count": 855
+        },
+        {
+          "entry_date": "2015-12-01",
+          "count": 32,
+          "cumulative_count": 887
+        },
+        {
+          "entry_date": "2016-03-01",
+          "count": 58,
+          "cumulative_count": 945
+        },
+        {
+          "entry_date": "2016-08-01",
+          "count": 90,
+          "cumulative_count": 1035
+        },
+        {
+          "entry_date": "2016-11-01",
+          "count": 33,
+          "cumulative_count": 1068
+        },
+        {
+          "entry_date": "2017-03-01",
+          "count": 34,
+          "cumulative_count": 1102
+        },
+        {
+          "entry_date": "2017-08-01",
+          "count": 36,
+          "cumulative_count": 1138
+        },
+        {
+          "entry_date": "2017-11-01",
+          "count": 46,
+          "cumulative_count": 1184
+        },
+        {
+          "entry_date": "2017-12-01",
+          "count": 28,
+          "cumulative_count": 1212
+        },
+        {
+          "entry_date": "2018-02-01",
+          "count": 32,
+          "cumulative_count": 1244
+        },
+        {
+          "entry_date": "2018-06-01",
+          "count": 22,
+          "cumulative_count": 1266
+        },
+        {
+          "entry_date": "2018-09-01",
+          "count": 31,
+          "cumulative_count": 1297
+        },
+        {
+          "entry_date": "2018-10-01",
+          "count": 34,
+          "cumulative_count": 1331
+        },
+        {
+          "entry_date": "2019-02-01",
+          "count": 37,
+          "cumulative_count": 1368
+        },
+        {
+          "entry_date": "2019-05-01",
+          "count": 44,
+          "cumulative_count": 1412
+        },
+        {
+          "entry_date": "2019-08-01",
+          "count": 27,
+          "cumulative_count": 1439
+        },
+        {
+          "entry_date": "2019-11-01",
+          "count": 18,
+          "cumulative_count": 1457
+        },
+        {
+          "entry_date": "2019-12-01",
+          "count": 2,
+          "cumulative_count": 1459
+        },
+        {
+          "entry_date": "2020-03-01",
+          "count": 24,
+          "cumulative_count": 1483
+        },
+        {
+          "entry_date": "2020-07-01",
+          "count": 31,
+          "cumulative_count": 1514
+        },
+        {
+          "entry_date": "2020-11-01",
+          "count": 33,
+          "cumulative_count": 1547
+        },
+        {
+          "entry_date": "2021-03-01",
+          "count": 2,
+          "cumulative_count": 1549
+        },
+        {
+          "entry_date": "2021-04-01",
+          "count": 31,
+          "cumulative_count": 1580
+        },
+        {
+          "entry_date": "2021-07-01",
+          "count": 32,
+          "cumulative_count": 1612
+        },
+        {
+          "entry_date": "2021-11-01",
+          "count": 14,
+          "cumulative_count": 1626
+        },
+        {
+          "entry_date": "2022-06-01",
+          "count": 41,
+          "cumulative_count": 1667
+        },
+        {
+          "entry_date": "2022-10-01",
+          "count": 61,
+          "cumulative_count": 1728
+        },
+        {
+          "entry_date": "2022-11-01",
+          "count": 3,
+          "cumulative_count": 1731
+        },
+        {
+          "entry_date": "2023-02-01",
+          "count": 2,
+          "cumulative_count": 1733
+        },
+        {
+          "entry_date": "2023-04-01",
+          "count": 1,
+          "cumulative_count": 1734
+        },
+        {
+          "entry_date": "2023-05-01",
+          "count": 78,
+          "cumulative_count": 1812
+        },
+        {
+          "entry_date": "2023-06-01",
+          "count": 1,
+          "cumulative_count": 1813
+        },
+        {
+          "entry_date": "2023-07-01",
+          "count": 18,
+          "cumulative_count": 1831
+        },
+        {
+          "entry_date": "2023-08-01",
+          "count": 9,
+          "cumulative_count": 1840
+        },
+        {
+          "entry_date": "2023-10-01",
+          "count": 1,
+          "cumulative_count": 1841
+        },
+        {
+          "entry_date": "2024-03-01",
+          "count": 18,
+          "cumulative_count": 1859
+        },
+        {
+          "entry_date": "2024-04-01",
+          "count": 11,
+          "cumulative_count": 1870
+        },
+        {
+          "entry_date": "2024-05-01",
+          "count": 23,
+          "cumulative_count": 1893
+        },
+        {
+          "entry_date": "2024-06-01",
+          "count": 8,
+          "cumulative_count": 1901
+        },
+        {
+          "entry_date": "2024-07-01",
+          "count": 1,
+          "cumulative_count": 1902
+        },
+        {
+          "entry_date": "2024-08-01",
+          "count": 2,
+          "cumulative_count": 1904
+        },
+        {
+          "entry_date": "2024-09-01",
+          "count": 24,
+          "cumulative_count": 1928
+        },
+        {
+          "entry_date": "2024-10-01",
+          "count": 1,
+          "cumulative_count": 1929
+        },
+        {
+          "entry_date": "2024-11-01",
+          "count": 2,
+          "cumulative_count": 1931
+        },
+        {
+          "entry_date": "2024-12-01",
+          "count": 3,
+          "cumulative_count": 1934
+        },
+        {
+          "entry_date": "2025-01-01",
+          "count": 1,
+          "cumulative_count": 1935
+        },
+        {
+          "entry_date": "2025-02-01",
+          "count": 23,
+          "cumulative_count": 1958
+        },
+        {
+          "entry_date": "2025-07-01",
+          "count": 16,
+          "cumulative_count": 1974
+        },
+        {
+          "entry_date": "2025-10-01",
+          "count": 22,
+          "cumulative_count": 1996
+        },
+        {
+          "entry_date": "2025-11-01",
+          "count": 2,
+          "cumulative_count": 1998
+        }
+      ]
+    },
+    {
+      "group": "Limited",
+      "values": [
+        {
+          "entry_date": "2010-11-01",
+          "count": 34,
+          "cumulative_count": 34
+        },
+        {
+          "entry_date": "2011-01-01",
+          "count": 2,
+          "cumulative_count": 36
+        },
+        {
+          "entry_date": "2011-09-01",
+          "count": 1,
+          "cumulative_count": 37
+        },
+        {
+          "entry_date": "2011-10-01",
+          "count": 2,
+          "cumulative_count": 39
+        },
+        {
+          "entry_date": "2012-02-01",
+          "count": 5,
+          "cumulative_count": 44
+        },
+        {
+          "entry_date": "2012-03-01",
+          "count": 1,
+          "cumulative_count": 45
+        },
+        {
+          "entry_date": "2013-02-01",
+          "count": 28,
+          "cumulative_count": 73
+        },
+        {
+          "entry_date": "2014-03-01",
+          "count": 155,
+          "cumulative_count": 228
+        },
+        {
+          "entry_date": "2015-01-01",
+          "count": 5,
+          "cumulative_count": 233
+        },
+        {
+          "entry_date": "2015-03-01",
+          "count": 10,
+          "cumulative_count": 243
+        },
+        {
+          "entry_date": "2015-04-01",
+          "count": 4,
+          "cumulative_count": 247
+        },
+        {
+          "entry_date": "2015-08-01",
+          "count": 32,
+          "cumulative_count": 279
+        },
+        {
+          "entry_date": "2015-10-01",
+          "count": 1,
+          "cumulative_count": 280
+        },
+        {
+          "entry_date": "2015-12-01",
+          "count": 26,
+          "cumulative_count": 306
+        },
+        {
+          "entry_date": "2016-03-01",
+          "count": 28,
+          "cumulative_count": 334
+        },
+        {
+          "entry_date": "2016-08-01",
+          "count": 73,
+          "cumulative_count": 407
+        },
+        {
+          "entry_date": "2016-11-01",
+          "count": 20,
+          "cumulative_count": 427
+        },
+        {
+          "entry_date": "2017-03-01",
+          "count": 55,
+          "cumulative_count": 482
+        },
+        {
+          "entry_date": "2017-08-01",
+          "count": 40,
+          "cumulative_count": 522
+        },
+        {
+          "entry_date": "2017-11-01",
+          "count": 24,
+          "cumulative_count": 546
+        },
+        {
+          "entry_date": "2017-12-01",
+          "count": 42,
+          "cumulative_count": 588
+        },
+        {
+          "entry_date": "2018-02-01",
+          "count": 61,
+          "cumulative_count": 649
+        },
+        {
+          "entry_date": "2018-06-01",
+          "count": 21,
+          "cumulative_count": 670
+        },
+        {
+          "entry_date": "2018-09-01",
+          "count": 24,
+          "cumulative_count": 694
+        },
+        {
+          "entry_date": "2018-10-01",
+          "count": 146,
+          "cumulative_count": 840
+        },
+        {
+          "entry_date": "2019-02-01",
+          "count": 72,
+          "cumulative_count": 912
+        },
+        {
+          "entry_date": "2019-05-01",
+          "count": 54,
+          "cumulative_count": 966
+        },
+        {
+          "entry_date": "2019-06-01",
+          "count": 1,
+          "cumulative_count": 967
+        },
+        {
+          "entry_date": "2019-08-01",
+          "count": 25,
+          "cumulative_count": 992
+        },
+        {
+          "entry_date": "2019-11-01",
+          "count": 13,
+          "cumulative_count": 1005
+        },
+        {
+          "entry_date": "2019-12-01",
+          "count": 3,
+          "cumulative_count": 1008
+        },
+        {
+          "entry_date": "2020-03-01",
+          "count": 38,
+          "cumulative_count": 1046
+        },
+        {
+          "entry_date": "2020-07-01",
+          "count": 28,
+          "cumulative_count": 1074
+        },
+        {
+          "entry_date": "2020-11-01",
+          "count": 23,
+          "cumulative_count": 1097
+        },
+        {
+          "entry_date": "2021-03-01",
+          "count": 1,
+          "cumulative_count": 1098
+        },
+        {
+          "entry_date": "2021-04-01",
+          "count": 42,
+          "cumulative_count": 1140
+        },
+        {
+          "entry_date": "2021-07-01",
+          "count": 42,
+          "cumulative_count": 1182
+        },
+        {
+          "entry_date": "2021-11-01",
+          "count": 22,
+          "cumulative_count": 1204
+        },
+        {
+          "entry_date": "2022-06-01",
+          "count": 41,
+          "cumulative_count": 1245
+        },
+        {
+          "entry_date": "2022-10-01",
+          "count": 18,
+          "cumulative_count": 1263
+        },
+        {
+          "entry_date": "2022-11-01",
+          "count": 1,
+          "cumulative_count": 1264
+        },
+        {
+          "entry_date": "2023-04-01",
+          "count": 1,
+          "cumulative_count": 1265
+        },
+        {
+          "entry_date": "2023-05-01",
+          "count": 36,
+          "cumulative_count": 1301
+        },
+        {
+          "entry_date": "2023-07-01",
+          "count": 8,
+          "cumulative_count": 1309
+        },
+        {
+          "entry_date": "2023-08-01",
+          "count": 12,
+          "cumulative_count": 1321
+        },
+        {
+          "entry_date": "2024-03-01",
+          "count": 4,
+          "cumulative_count": 1325
+        },
+        {
+          "entry_date": "2024-04-01",
+          "count": 4,
+          "cumulative_count": 1329
+        },
+        {
+          "entry_date": "2024-05-01",
+          "count": 36,
+          "cumulative_count": 1365
+        },
+        {
+          "entry_date": "2024-06-01",
+          "count": 8,
+          "cumulative_count": 1373
+        },
+        {
+          "entry_date": "2024-08-01",
+          "count": 1,
+          "cumulative_count": 1374
+        },
+        {
+          "entry_date": "2024-09-01",
+          "count": 43,
+          "cumulative_count": 1417
+        },
+        {
+          "entry_date": "2024-10-01",
+          "count": 1,
+          "cumulative_count": 1418
+        },
+        {
+          "entry_date": "2024-11-01",
+          "count": 4,
+          "cumulative_count": 1422
+        },
+        {
+          "entry_date": "2024-12-01",
+          "count": 11,
+          "cumulative_count": 1433
+        },
+        {
+          "entry_date": "2025-01-01",
+          "count": 1,
+          "cumulative_count": 1434
+        },
+        {
+          "entry_date": "2025-02-01",
+          "count": 16,
+          "cumulative_count": 1450
+        },
+        {
+          "entry_date": "2025-07-01",
+          "count": 13,
+          "cumulative_count": 1463
+        },
+        {
+          "entry_date": "2025-10-01",
+          "count": 17,
+          "cumulative_count": 1480
+        },
+        {
+          "entry_date": "2025-11-01",
+          "count": 2,
+          "cumulative_count": 1482
+        }
+      ]
+    },
+    {
+      "group": "Moderate",
+      "values": [
+        {
+          "entry_date": "2010-11-01",
+          "count": 20,
+          "cumulative_count": 20
+        },
+        {
+          "entry_date": "2012-02-01",
+          "count": 1,
+          "cumulative_count": 21
+        },
+        {
+          "entry_date": "2013-02-01",
+          "count": 2,
+          "cumulative_count": 23
+        },
+        {
+          "entry_date": "2014-03-01",
+          "count": 18,
+          "cumulative_count": 41
+        },
+        {
+          "entry_date": "2015-01-01",
+          "count": 3,
+          "cumulative_count": 44
+        },
+        {
+          "entry_date": "2015-03-01",
+          "count": 1,
+          "cumulative_count": 45
+        },
+        {
+          "entry_date": "2015-04-01",
+          "count": 1,
+          "cumulative_count": 46
+        },
+        {
+          "entry_date": "2015-08-01",
+          "count": 3,
+          "cumulative_count": 49
+        },
+        {
+          "entry_date": "2015-12-01",
+          "count": 4,
+          "cumulative_count": 53
+        },
+        {
+          "entry_date": "2016-03-01",
+          "count": 1,
+          "cumulative_count": 54
+        },
+        {
+          "entry_date": "2016-08-01",
+          "count": 1,
+          "cumulative_count": 55
+        },
+        {
+          "entry_date": "2016-11-01",
+          "count": 1,
+          "cumulative_count": 56
+        },
+        {
+          "entry_date": "2017-03-01",
+          "count": 3,
+          "cumulative_count": 59
+        },
+        {
+          "entry_date": "2017-11-01",
+          "count": 2,
+          "cumulative_count": 61
+        },
+        {
+          "entry_date": "2017-12-01",
+          "count": 3,
+          "cumulative_count": 64
+        },
+        {
+          "entry_date": "2018-02-01",
+          "count": 5,
+          "cumulative_count": 69
+        },
+        {
+          "entry_date": "2018-06-01",
+          "count": 2,
+          "cumulative_count": 71
+        },
+        {
+          "entry_date": "2018-09-01",
+          "count": 1,
+          "cumulative_count": 72
+        },
+        {
+          "entry_date": "2018-10-01",
+          "count": 3,
+          "cumulative_count": 75
+        },
+        {
+          "entry_date": "2019-02-01",
+          "count": 2,
+          "cumulative_count": 77
+        },
+        {
+          "entry_date": "2019-05-01",
+          "count": 2,
+          "cumulative_count": 79
+        },
+        {
+          "entry_date": "2019-11-01",
+          "count": 1,
+          "cumulative_count": 80
+        },
+        {
+          "entry_date": "2020-07-01",
+          "count": 10,
+          "cumulative_count": 90
+        },
+        {
+          "entry_date": "2020-11-01",
+          "count": 3,
+          "cumulative_count": 93
+        },
+        {
+          "entry_date": "2021-04-01",
+          "count": 7,
+          "cumulative_count": 100
+        },
+        {
+          "entry_date": "2021-07-01",
+          "count": 3,
+          "cumulative_count": 103
+        },
+        {
+          "entry_date": "2021-11-01",
+          "count": 5,
+          "cumulative_count": 108
+        },
+        {
+          "entry_date": "2022-06-01",
+          "count": 3,
+          "cumulative_count": 111
+        },
+        {
+          "entry_date": "2022-10-01",
+          "count": 11,
+          "cumulative_count": 122
+        },
+        {
+          "entry_date": "2023-04-01",
+          "count": 1,
+          "cumulative_count": 123
+        },
+        {
+          "entry_date": "2023-05-01",
+          "count": 14,
+          "cumulative_count": 137
+        },
+        {
+          "entry_date": "2023-07-01",
+          "count": 5,
+          "cumulative_count": 142
+        },
+        {
+          "entry_date": "2023-08-01",
+          "count": 6,
+          "cumulative_count": 148
+        },
+        {
+          "entry_date": "2024-03-01",
+          "count": 4,
+          "cumulative_count": 152
+        },
+        {
+          "entry_date": "2024-04-01",
+          "count": 3,
+          "cumulative_count": 155
+        },
+        {
+          "entry_date": "2024-05-01",
+          "count": 6,
+          "cumulative_count": 161
+        },
+        {
+          "entry_date": "2024-06-01",
+          "count": 3,
+          "cumulative_count": 164
+        },
+        {
+          "entry_date": "2024-09-01",
+          "count": 4,
+          "cumulative_count": 168
+        },
+        {
+          "entry_date": "2024-11-01",
+          "count": 2,
+          "cumulative_count": 170
+        },
+        {
+          "entry_date": "2024-12-01",
+          "count": 6,
+          "cumulative_count": 176
+        },
+        {
+          "entry_date": "2025-02-01",
+          "count": 12,
+          "cumulative_count": 188
+        },
+        {
+          "entry_date": "2025-07-01",
+          "count": 6,
+          "cumulative_count": 194
+        },
+        {
+          "entry_date": "2025-10-01",
+          "count": 5,
+          "cumulative_count": 199
+        }
+      ]
+    },
+    {
+      "group": "Refuted",
+      "values": [
+        {
+          "entry_date": "2012-02-01",
+          "count": 1,
+          "cumulative_count": 1
+        },
+        {
+          "entry_date": "2014-03-01",
+          "count": 3,
+          "cumulative_count": 4
+        },
+        {
+          "entry_date": "2017-03-01",
+          "count": 1,
+          "cumulative_count": 5
+        }
+      ]
+    },
+    {
+      "group": "not applicable",
+      "values": [
+        {
+          "entry_date": "2010-11-01",
+          "count": 2,
+          "cumulative_count": 2
+        },
+        {
+          "entry_date": "2016-03-01",
+          "count": 1,
+          "cumulative_count": 3
+        }
+      ]
+    }
+  ]
+}

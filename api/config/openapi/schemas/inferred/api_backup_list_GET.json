@@ -1,0 +1,82 @@
+{
+  "BackupListResponse": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "size_bytes": {
+              "type": "integer"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "table_count": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "created_at",
+            "filename",
+            "size_bytes",
+            "table_count"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page_size": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "meta": {
+        "type": "object",
+        "properties": {
+          "total_count": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "total_size_bytes": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "total_count",
+          "total_size_bytes"
+        ]
+      }
+    },
+    "required": [
+      "data",
+      "meta",
+      "page",
+      "page_size",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_backup_list_GET",
+    "x-response-type": "object"
+  }
+}

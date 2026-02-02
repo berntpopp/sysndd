@@ -1,0 +1,68 @@
+{
+  "LlmCacheStatsResponse": {
+    "type": "object",
+    "properties": {
+      "total_entries": {
+        "type": "integer"
+      },
+      "by_status": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer"
+          },
+          "validated": {
+            "type": "integer"
+          },
+          "rejected": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pending",
+          "rejected",
+          "validated"
+        ]
+      },
+      "by_type": {
+        "type": "object",
+        "properties": {
+          "functional": {
+            "type": "integer"
+          },
+          "phenotype": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "functional",
+          "phenotype"
+        ]
+      },
+      "last_generation": {
+        "type": "string"
+      },
+      "total_tokens_input": {
+        "type": "integer"
+      },
+      "total_tokens_output": {
+        "type": "integer"
+      },
+      "estimated_cost_usd": {
+        "type": "integer"
+      }
+    },
+    "required": [
+      "by_status",
+      "by_type",
+      "estimated_cost_usd",
+      "last_generation",
+      "total_entries",
+      "total_tokens_input",
+      "total_tokens_output"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_cache_stats_GET",
+    "x-response-type": "object"
+  }
+}

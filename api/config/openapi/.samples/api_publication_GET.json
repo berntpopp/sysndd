@@ -1,0 +1,178 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "http://localhost:7777/publication?sort=publication_id&page_after=0&page_size=2",
+      "next": "http://localhost:7777/publication?sort=publication_id&page_after=PMID:1334369&page_size=2",
+      "last": "http://localhost:7777/publication?sort=publication_id&page_after=PMID:41145827&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 2345,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": "PMID:1334369",
+      "lastItemID": "PMID:41145827",
+      "totalItems": 4689,
+      "sort": "publication_id",
+      "filter": "",
+      "fields": "",
+      "fspec": [
+        {
+          "key": "publication_id",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4689,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Publication id",
+          "count_filtered": 4689
+        },
+        {
+          "key": "Title",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4684,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Title",
+          "count_filtered": 4684
+        },
+        {
+          "key": "Abstract",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4568,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Abstract",
+          "count_filtered": 4568
+        },
+        {
+          "key": "Lastname",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 3235,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Lastname",
+          "count_filtered": 3235
+        },
+        {
+          "key": "Firstname",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 2902,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Firstname",
+          "count_filtered": 2902
+        },
+        {
+          "key": "Publication_date",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 1370,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Publication date",
+          "count_filtered": 1370
+        },
+        {
+          "key": "Journal",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 402,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Journal",
+          "count_filtered": 402
+        },
+        {
+          "key": "Keywords",
+          "selectOptions": [
+            "null"
+          ],
+          "count": 4512,
+          "filterable": true,
+          "multi_selectable": false,
+          "selectable": false,
+          "sortDirection": "asc",
+          "sortable": true,
+          "class": "text-left",
+          "label": "Keywords",
+          "count_filtered": 4512
+        }
+      ],
+      "executionTime": "0.05 secs"
+    }
+  ],
+  "data": [
+    {
+      "publication_id": "PMID:226298",
+      "publication_type": "additional_references",
+      "other_publication_id": "DOI:10.1111/j.1399-0004.1979.tb00987.x",
+      "Title": "Oculodento-osseous dysplasia: heterogeneity or variable expression?",
+      "Abstract": "Oculodento-osseous dysplasia (ODOD) has been recognised in three South African patients from two kindreds of Dutch descent. Their ocular, nasal, dental and digital stigmata resembled those of previously reported cases, but their cranial hyperostosis and mandibular overgrowth were of much greater degree. In addition, the two survivors had serious neurological complications consequent upon spinal cord compression at the base of the skull and calcification of the basal ganglia. Two of the patients were the product of marriages between a pair of brothers and a pair of sisters, who were themselves clinically normal. This situation is best explained by autosomal recessive inheritance. As ODOD is usually transmitted as an autosomal dominant, and in view of the unusual severity of the manifestations in our patients, it is possible that the condition is heterogeneous and that they had a distinct autosomal recessive form of the disorder. The presence of minimal stigmata in the mother and two prior generations of our third patient could be equally well interpreted as representing great variation in phenotypic expression of a single dominant gene or manifestation in a heterozygote for a recessive gene.",
+      "Publication_date": "2025-04-25",
+      "Journal_abbreviation": "Clin Genet",
+      "Journal": "Clinical genetics",
+      "Keywords": "Abnormalities, Multiple; Adult; Dental Enamel Hypoplasia; Eye Abnormalities; Face; Facial Asymmetry; Female; Heterozygote; Humans; Male; Microphthalmos; Pedigree; Radiography; Skull; Syndactyly; Syndrome; Tooth Abnormalities",
+      "Lastname": "Beighton",
+      "Firstname": "P",
+      "update_date": "2025-04-25 07:24:28"
+    },
+    {
+      "publication_id": "PMID:1302608",
+      "publication_type": "additional_references",
+      "other_publication_id": "DOI:10.1093/hmg/1.9.735",
+      "Title": "Analysis of mutations at the neurofibromatosis 1 (NF1) locus.",
+      "Abstract": "A panel of 200 unrelated NF1 individuals has been screened for mutations using a panel of specific clones for the entire gene. DNA analysis on conventional Southern blots indicated that (20) 10% of NF1 patients showed aberrant bands. Small lesions involving nucleotide alterations were detected in a further 10 patients; 5 of these alterations have been fully characterised and are the novel mutations in the NF1 gene. A number of mutations were identified in exon 2. Identical mutations in this exon in two unrelated individuals involved an insertion of cytosine into codon 5662 and resulted in an inappropriate stop codon. This mutation also created a new MnlI site. Another novel mutation in exon 2 resulted from the insertion of thymidine at nucleotide 5678, which also created an inappropriate stop codon. We have so far completed the screen of exons 1-9 of the NF1 gene for the identification of mutations and have found no evidence of clustering of such mutations in the gene.",
+      "Publication_date": "2023-10-16",
+      "Journal_abbreviation": "Hum Mol Genet",
+      "Journal": "Human molecular genetics",
+      "Keywords": "Amino Acid Sequence; Base Sequence; Blotting, Southern; Cloning, Molecular; Codon; Cytosine; DNA, Neoplasm; Exons; Genes, Neurofibromatosis 1; Humans; Introns; Molecular Sequence Data; Mutation; Neurofibromatosis 1; Oligodeoxyribonucleotides; Point Mutation; Polymerase Chain Reaction; Thymidine",
+      "Lastname": "Upadhyaya",
+      "Firstname": "M",
+      "update_date": "2023-10-16 16:02:16"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "ComparisonsSimilarityResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "string"
+        },
+        "y": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "value",
+        "x",
+        "y"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_comparisons_similarity_GET",
+    "x-response-type": "array"
+  }
+}

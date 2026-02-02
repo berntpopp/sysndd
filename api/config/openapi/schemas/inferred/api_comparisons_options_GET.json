@@ -1,0 +1,72 @@
+{
+  "ComparisonsOptionsResponse": {
+    "type": "object",
+    "properties": {
+      "list": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "list": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "list"
+          ]
+        }
+      },
+      "inheritance": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "inheritance": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "inheritance"
+          ]
+        }
+      },
+      "category": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "category"
+          ]
+        }
+      },
+      "pathogenicity_mode": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "pathogenicity_mode": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "pathogenicity_mode"
+          ]
+        }
+      }
+    },
+    "required": [
+      "category",
+      "inheritance",
+      "list",
+      "pathogenicity_mode"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_comparisons_options_GET",
+    "x-response-type": "object"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "last_full_refresh": [
+    "NA"
+  ],
+  "last_refresh_status": [
+    "failed"
+  ],
+  "last_refresh_error": [
+    "Failed to download omim_genemap2"
+  ],
+  "sources_count": [
+    8
+  ],
+  "rows_imported": [
+    0
+  ]
+}

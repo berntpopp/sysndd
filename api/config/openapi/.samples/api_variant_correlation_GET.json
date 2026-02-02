@@ -1,0 +1,7170 @@
+[
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 1
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": -0.01
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": -0.05
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": -0.11
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": -0.29
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "variation",
+    "y_vario_id": "VariO:0001",
+    "value": 0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 1
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.15
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.09
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.39
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.18
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.07
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.06
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.09
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.09
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.12
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.04
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.04
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.02
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.02
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.03
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.03
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.01
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.03
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.03
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.02
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.08
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.01
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": -0.03
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.02
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "nonsynonymous variation",
+    "y_vario_id": "VariO:0017",
+    "value": 0.02
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.15
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 1
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.19
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.08
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.09
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.06
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.06
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.02
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.24
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.03
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.03
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.02
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.12
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.16
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.06
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": 0.06
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.02
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "in-frame indel",
+    "y_vario_id": "VariO:0030",
+    "value": -0.01
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.09
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.19
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 1
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.2
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.2
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.5
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.22
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.02
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.08
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.09
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.05
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.02
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.2
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.06
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.17
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.03
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.16
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.07
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.31
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.1
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.04
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.04
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.02
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.04
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": 0.07
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "chromosomal deletion",
+    "y_vario_id": "VariO:0193",
+    "value": -0.01
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.02
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.39
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.08
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.2
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 1
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.27
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.16
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.07
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.04
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.02
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.12
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.08
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.05
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.06
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.05
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.04
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.02
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.1
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.04
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.03
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.02
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.02
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.07
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": 0.02
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.02
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "protein truncation",
+    "y_vario_id": "VariO:0015",
+    "value": -0.02
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.05
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.18
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.09
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.2
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.27
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 1
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.19
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.14
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.09
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.06
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.07
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.06
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.07
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.06
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.03
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.11
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.02
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.07
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.02
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.02
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.06
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.03
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": 0.06
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "affected splice site",
+    "y_vario_id": "VariO:0508",
+    "value": -0.01
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.07
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.06
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.5
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.16
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.19
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 1
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.16
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.08
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.03
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.02
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.08
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.11
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": 0.06
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0.01
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "DNA deletion",
+    "y_vario_id": "VariO:0141",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.06
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.06
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.22
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.07
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.14
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.16
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 1
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.03
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.03
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0.02
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.26
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.24
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.1
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.09
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.16
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": 0.13
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "DNA insertion",
+    "y_vario_id": "VariO:0142",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.11
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.01
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.02
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.02
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.04
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.09
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.08
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.01
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 1
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.03
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.03
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.02
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.01
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.01
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.04
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.16
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": 0.23
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "effect on RNA splicing",
+    "y_vario_id": "VariO:0362",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.09
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.24
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.08
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.06
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.03
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 1
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.03
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.08
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.02
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": 0.1
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "amino acid deletion",
+    "y_vario_id": "VariO:0014",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.09
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.03
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.09
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.12
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.07
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.08
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.03
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.03
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 1
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.15
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.09
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.05
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.02
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.06
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.14
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.11
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.1
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": 0.11
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0.01
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "protein loss of function",
+    "y_vario_id": "VariO:0043",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.12
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.05
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.08
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.06
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.03
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.02
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.02
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.08
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.15
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 1
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.06
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.02
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": 0.05
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.02
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "protein gain of function",
+    "y_vario_id": "VariO:0040",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.04
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.03
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.02
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.01
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.07
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.09
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 0.06
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": 1
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.01
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "protein function change",
+    "y_vario_id": "VariO:0039",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.04
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.02
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.2
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.05
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.06
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.02
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.26
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.05
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 1
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.05
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.18
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": 0.2
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "DNA indel",
+    "y_vario_id": "VariO:0143",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.01
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.06
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.06
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.03
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.02
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 1
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.06
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": 0.03
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "out-of-frame indel",
+    "y_vario_id": "VariO:0031",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.02
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.12
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.17
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.05
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.11
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.08
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.24
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.02
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.02
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.05
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.05
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.06
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 1
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.12
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.09
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.21
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.08
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.24
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.15
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": 0.21
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "copy number variation",
+    "y_vario_id": "VariO:0187",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.02
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0.03
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.04
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.02
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0.06
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0.12
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 1
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0.26
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": 0.58
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "trinucleotide expansion",
+    "y_vario_id": "VariO:0189",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.16
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.01
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.07
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.1
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.14
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.09
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.26
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 1
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": 0.45
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "genomic variation",
+    "y_vario_id": "VariO:0131",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0.07
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0.11
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0.21
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0.58
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 0.45
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": 1
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "epigenetic DNA methylation",
+    "y_vario_id": "VariO:0157",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.08
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.31
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.1
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.08
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.08
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.09
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.04
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.1
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0.02
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0.01
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.18
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.03
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.08
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0.01
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 1
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": 0.15
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0.01
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "chromosomal variation",
+    "y_vario_id": "VariO:0132",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 0.16
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.04
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.02
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 0.1
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 0.24
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": 1
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "amino acid insertion",
+    "y_vario_id": "VariO:0018",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.06
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.1
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.03
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.08
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.15
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": 1
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "variation affecting DNA",
+    "y_vario_id": "VariO:0128",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.04
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.03
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.03
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.16
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.2
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": 1
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "amino acid substitution",
+    "y_vario_id": "VariO:0021",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0.01
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.06
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.04
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.03
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.16
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.15
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 0.15
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": 1
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "amino acid indel",
+    "y_vario_id": "VariO:0022",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 0.11
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 0.23
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 0.11
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": 1
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "intron retention",
+    "y_vario_id": "VariO:0474",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.29
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": 0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": 0.02
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": 0.06
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": 0.13
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": 1
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "variation in intron",
+    "y_vario_id": "VariO:0161",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": 0.02
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": 0.06
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": 1
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "de novo variation",
+    "y_vario_id": "VariO:0444",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.08
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.02
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.02
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.07
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.03
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0.01
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": 1
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "spliceosomal RNA",
+    "y_vario_id": "VariO:0485",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0.01
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": 0.04
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": 0
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0.01
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0.01
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": 1
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "variation affecting protein",
+    "y_vario_id": "VariO:0002",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0.03
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 0.07
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 0.06
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 0.21
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": 1
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "DNA translocation",
+    "y_vario_id": "VariO:0144",
+    "value": -0
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": 0.02
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": 1
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "protein elongation",
+    "y_vario_id": "VariO:0124",
+    "value": 1
+  },
+  {
+    "x": "variation",
+    "x_vario_id": "VariO:0001",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": 0
+  },
+  {
+    "x": "nonsynonymous variation",
+    "x_vario_id": "VariO:0017",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": 0.02
+  },
+  {
+    "x": "in-frame indel",
+    "x_vario_id": "VariO:0030",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0.01
+  },
+  {
+    "x": "chromosomal deletion",
+    "x_vario_id": "VariO:0193",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0.01
+  },
+  {
+    "x": "protein truncation",
+    "x_vario_id": "VariO:0015",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0.02
+  },
+  {
+    "x": "affected splice site",
+    "x_vario_id": "VariO:0508",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0.01
+  },
+  {
+    "x": "DNA deletion",
+    "x_vario_id": "VariO:0141",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "DNA insertion",
+    "x_vario_id": "VariO:0142",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "effect on RNA splicing",
+    "x_vario_id": "VariO:0362",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "amino acid deletion",
+    "x_vario_id": "VariO:0014",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "protein loss of function",
+    "x_vario_id": "VariO:0043",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "protein gain of function",
+    "x_vario_id": "VariO:0040",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "protein function change",
+    "x_vario_id": "VariO:0039",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "DNA indel",
+    "x_vario_id": "VariO:0143",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "out-of-frame indel",
+    "x_vario_id": "VariO:0031",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "copy number variation",
+    "x_vario_id": "VariO:0187",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "trinucleotide expansion",
+    "x_vario_id": "VariO:0189",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "genomic variation",
+    "x_vario_id": "VariO:0131",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "epigenetic DNA methylation",
+    "x_vario_id": "VariO:0157",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "chromosomal variation",
+    "x_vario_id": "VariO:0132",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "amino acid insertion",
+    "x_vario_id": "VariO:0018",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "variation affecting DNA",
+    "x_vario_id": "VariO:0128",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "amino acid substitution",
+    "x_vario_id": "VariO:0021",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "amino acid indel",
+    "x_vario_id": "VariO:0022",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "intron retention",
+    "x_vario_id": "VariO:0474",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "variation in intron",
+    "x_vario_id": "VariO:0161",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "de novo variation",
+    "x_vario_id": "VariO:0444",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "spliceosomal RNA",
+    "x_vario_id": "VariO:0485",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "variation affecting protein",
+    "x_vario_id": "VariO:0002",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "DNA translocation",
+    "x_vario_id": "VariO:0144",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": -0
+  },
+  {
+    "x": "protein elongation",
+    "x_vario_id": "VariO:0124",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": 1
+  },
+  {
+    "x": "C-terminal protein elongation",
+    "x_vario_id": "VariO:0125",
+    "y": "C-terminal protein elongation",
+    "y_vario_id": "VariO:0125",
+    "value": 1
+  }
+]

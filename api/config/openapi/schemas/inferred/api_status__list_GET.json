@@ -1,0 +1,11 @@
+{
+  "StatusListResponse": {
+    "type": [
+      "array",
+      "object"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_status__list_GET",
+    "x-response-type": "object"
+  }
+}

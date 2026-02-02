@@ -1,0 +1,81 @@
+{
+  "StatisticsCategoryCountResponse": {
+    "type": "object",
+    "properties": {
+      "meta": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "last_update": {
+              "type": "string"
+            },
+            "executionTime": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "executionTime",
+            "last_update"
+          ]
+        }
+      },
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string"
+            },
+            "n": {
+              "type": "integer"
+            },
+            "inheritance": {
+              "type": "string"
+            },
+            "groups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "category_id": {
+                    "type": "integer"
+                  },
+                  "inheritance": {
+                    "type": "string"
+                  },
+                  "n": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "category",
+                  "category_id",
+                  "inheritance",
+                  "n"
+                ]
+              }
+            }
+          },
+          "required": [
+            "category",
+            "groups",
+            "inheritance",
+            "n"
+          ]
+        }
+      }
+    },
+    "required": [
+      "data",
+      "meta"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_statistics_category_count_GET",
+    "x-response-type": "object"
+  }
+}

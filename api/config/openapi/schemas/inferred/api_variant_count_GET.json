@@ -1,0 +1,27 @@
+{
+  "VariantCountResponse": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "vario_id": {
+          "type": "string"
+        },
+        "variant_name": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "count",
+        "variant_name",
+        "vario_id"
+      ]
+    },
+    "description": "Array response",
+    "x-inferred-from": "api_variant_count_GET",
+    "x-response-type": "array"
+  }
+}

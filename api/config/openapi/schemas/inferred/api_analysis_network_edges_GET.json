@@ -1,0 +1,158 @@
+{
+  "AnalysisNetworkEdgesResponse": {
+    "type": "object",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "hgnc_id": {
+              "type": "string"
+            },
+            "symbol": {
+              "type": "string"
+            },
+            "cluster": {
+              "type": "integer"
+            },
+            "degree": {
+              "type": "integer"
+            },
+            "category": {
+              "type": "string"
+            },
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "category",
+            "cluster",
+            "degree",
+            "hgnc_id",
+            "symbol",
+            "x",
+            "y"
+          ]
+        }
+      },
+      "edges": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "target": {
+              "type": "string"
+            },
+            "confidence": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "confidence",
+            "source",
+            "target"
+          ]
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "node_count": {
+            "type": "integer"
+          },
+          "edge_count": {
+            "type": "integer"
+          },
+          "cluster_count": {
+            "type": "integer"
+          },
+          "string_version": {
+            "type": "string"
+          },
+          "min_confidence": {
+            "type": "integer"
+          },
+          "layout_algorithm": {
+            "type": "string"
+          },
+          "layout_time_seconds": {
+            "type": "number"
+          },
+          "total_ndd_genes": {
+            "type": "integer"
+          },
+          "genes_with_string": {
+            "type": "integer"
+          },
+          "genes_in_clusters": {
+            "type": "integer"
+          },
+          "category_counts": {
+            "type": "object",
+            "properties": {
+              "Definitive": {
+                "type": "integer"
+              },
+              "Limited": {
+                "type": "integer"
+              },
+              "Moderate": {
+                "type": "integer"
+              },
+              "Refuted": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "Definitive",
+              "Limited",
+              "Moderate",
+              "Refuted"
+            ]
+          },
+          "total_edges": {
+            "type": "integer"
+          },
+          "edges_filtered": {
+            "type": "boolean"
+          },
+          "elapsed_seconds": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "category_counts",
+          "cluster_count",
+          "edge_count",
+          "edges_filtered",
+          "elapsed_seconds",
+          "genes_in_clusters",
+          "genes_with_string",
+          "layout_algorithm",
+          "layout_time_seconds",
+          "min_confidence",
+          "node_count",
+          "string_version",
+          "total_edges",
+          "total_ndd_genes"
+        ]
+      }
+    },
+    "required": [
+      "edges",
+      "metadata",
+      "nodes"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_analysis_network_edges_GET",
+    "x-response-type": "object"
+  }
+}

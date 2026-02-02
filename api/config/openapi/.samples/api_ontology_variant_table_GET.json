@@ -1,0 +1,164 @@
+{
+  "links": [
+    {
+      "prev": "null",
+      "self": "&page_after=0&page_size=2",
+      "next": "&page_after=VariO:0003&page_size=2",
+      "last": "&page_after=VariO:0512&page_size=2"
+    }
+  ],
+  "meta": [
+    {
+      "perPage": 2,
+      "currentPage": 1,
+      "totalPages": 248,
+      "prevItemID": "null",
+      "currentItemID": 0,
+      "nextItemID": "VariO:0003",
+      "lastItemID": "VariO:0512",
+      "totalItems": 495,
+      "fspec": [
+        {
+          "key": [
+            "vario_id"
+          ],
+          "label": [
+            "ID"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "vario_name"
+          ],
+          "label": [
+            "Name"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "definition"
+          ],
+          "label": [
+            "Definition"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "obsolete"
+          ],
+          "label": [
+            "Obsolete"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "is_active"
+          ],
+          "label": [
+            "Active"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "sort"
+          ],
+          "label": [
+            "Sort Order"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        },
+        {
+          "key": [
+            "update_date"
+          ],
+          "label": [
+            "Last Updated"
+          ],
+          "sortable": [
+            true
+          ],
+          "filterable": [
+            true
+          ],
+          "class": [
+            "text-start"
+          ]
+        }
+      ],
+      "executionTime": "0.02 secs"
+    }
+  ],
+  "data": [
+    {
+      "vario_id": "VariO:0001",
+      "vario_name": "variation",
+      "definition": "Alteration in DNA, RNA or protein.",
+      "obsolete": 0,
+      "is_active": 1,
+      "sort": 1,
+      "update_date": "2022-06-09"
+    },
+    {
+      "vario_id": "VariO:0002",
+      "vario_name": "variation affecting protein",
+      "definition": "Effects of a variation on protein level.",
+      "obsolete": 0,
+      "is_active": 1,
+      "sort": 17,
+      "update_date": "2022-06-09"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "data": [
+    {
+      "user_id": 3,
+      "user_name": "Christiane",
+      "display_name": "Christiane Zweier",
+      "entity_count": 3567
+    },
+    {
+      "user_id": 2,
+      "user_name": "Bernt",
+      "display_name": "Bernt Popp",
+      "entity_count": 110
+    },
+    {
+      "user_id": 21,
+      "user_name": "Firat",
+      "display_name": "Firat Altay",
+      "entity_count": 8
+    },
+    {
+      "user_id": 86,
+      "user_name": "simonfruh",
+      "display_name": "Simon Früh",
+      "entity_count": 2
+    }
+  ],
+  "meta": {
+    "top": [
+      10
+    ],
+    "scope": [
+      "all_time"
+    ],
+    "start_date": {},
+    "end_date": {},
+    "total_contributors": [
+      4
+    ]
+  }
+}

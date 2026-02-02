@@ -1,0 +1,82 @@
+{
+  "LlmConfigResponse": {
+    "type": "object",
+    "properties": {
+      "gemini_configured": {
+        "type": "boolean"
+      },
+      "current_model": {
+        "type": "string"
+      },
+      "available_models": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "model_id": {
+              "type": "string"
+            },
+            "display_name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "rpm_limit": {
+              "type": "integer"
+            },
+            "rpd_limit": {
+              "type": [
+                "integer",
+                "object"
+              ]
+            },
+            "recommended_for": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "display_name",
+            "model_id",
+            "recommended_for",
+            "rpd_limit",
+            "rpm_limit"
+          ]
+        }
+      },
+      "rate_limit": {
+        "type": "object",
+        "properties": {
+          "capacity": {
+            "type": "integer"
+          },
+          "fill_time_s": {
+            "type": "integer"
+          },
+          "backoff_base": {
+            "type": "integer"
+          },
+          "max_retries": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "backoff_base",
+          "capacity",
+          "fill_time_s",
+          "max_retries"
+        ]
+      }
+    },
+    "required": [
+      "available_models",
+      "current_model",
+      "gemini_configured",
+      "rate_limit"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_config_GET",
+    "x-response-type": "object"
+  }
+}

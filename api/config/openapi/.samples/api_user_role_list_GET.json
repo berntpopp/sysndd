@@ -1,0 +1,14 @@
+[
+  {
+    "role": "Administrator"
+  },
+  {
+    "role": "Curator"
+  },
+  {
+    "role": "Reviewer"
+  },
+  {
+    "role": "Viewer"
+  }
+]

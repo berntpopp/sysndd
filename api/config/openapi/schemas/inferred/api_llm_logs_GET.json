@@ -1,0 +1,92 @@
+{
+  "LlmLogsResponse": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "log_id": {
+              "type": "integer"
+            },
+            "cluster_type": {
+              "type": "string"
+            },
+            "cluster_number": {
+              "type": "integer"
+            },
+            "cluster_hash": {
+              "type": "string"
+            },
+            "model_name": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "tokens_input": {
+              "type": "string"
+            },
+            "tokens_output": {
+              "type": "string"
+            },
+            "latency_ms": {
+              "type": "integer"
+            },
+            "error_message": {
+              "type": "string"
+            },
+            "validation_errors": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "cluster_hash",
+            "cluster_number",
+            "cluster_type",
+            "created_at",
+            "error_message",
+            "latency_ms",
+            "log_id",
+            "model_name",
+            "status",
+            "tokens_input",
+            "tokens_output",
+            "validation_errors"
+          ]
+        }
+      },
+      "total": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      },
+      "per_page": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        }
+      }
+    },
+    "required": [
+      "data",
+      "page",
+      "per_page",
+      "total"
+    ],
+    "description": "Object response",
+    "x-inferred-from": "api_llm_logs_GET",
+    "x-response-type": "object"
+  }
+}
