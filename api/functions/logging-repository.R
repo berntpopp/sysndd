@@ -360,3 +360,226 @@ build_logging_order_clause <- function(
 
   paste("ORDER BY", sort_column, direction)
 }
+
+#------------------------------------------------------------------------------
+# Pagination Helpers (PAG-01, PAG-02)
+#------------------------------------------------------------------------------
+
+#' Build offset-based pagination response
+#'
+#' Constructs a standardized pagination response object with data and metadata.
+#' Provides all fields needed for UI pagination controls.
+#'
+#' @param data Tibble or data.frame, the paginated data for current page
+#' @param total Integer, total count of matching rows (from COUNT query)
+#' @param page Integer, current page number (1-indexed)
+#' @param per_page Integer, page size (rows per page)
+#'
+#' @return List with:
+#'   \describe{
+#'     \item{data}{The input data (unchanged)}
+#'     \item{meta}{List with pagination metadata:
+#'       \describe{
+#'         \item{totalCount}{Total matching rows}
+#'         \item{pageSize}{Rows per page}
+#'         \item{offset}{Row offset for current page (0-indexed)}
+#'         \item{currentPage}{Current page number (1-indexed)}
+#'         \item{totalPages}{Total number of pages}
+#'         \item{hasMore}{Boolean, TRUE if more pages exist}
+#'       }
+#'     }
+#'   }
+#'
+#' @details
+#' Handles edge case of total=0 (returns totalPages=0, hasMore=FALSE).
+#'
+#' The offset is 0-indexed: page 1 has offset 0, page 2 has offset per_page, etc.
+#' This matches the SQL OFFSET clause convention.
+#'
+#' totalPages uses ceiling() to handle partial last pages. For example,
+#' 25 rows with per_page=10 yields totalPages=3.
+#'
+#' hasMore is TRUE when (offset + nrow(data)) < total, indicating there are
+#' more rows beyond the current page that can be fetched.
+#'
+#' @examples
+#' \dontrun{
+#' # Page 1 of 3, 10 items per page, 25 total
+#' data <- tibble(id = 1:10)
+#' response <- build_offset_pagination_response(data, total = 25, page = 1, per_page = 10)
+#' # response$meta$totalPages = 3
+#' # response$meta$hasMore = TRUE
+#' # response$meta$offset = 0
+#'
+#' # Last page (page 3)
+#' data <- tibble(id = 21:25)  # Only 5 rows
+#' response <- build_offset_pagination_response(data, total = 25, page = 3, per_page = 10)
+#' # response$meta$hasMore = FALSE
+#' # response$meta$offset = 20
+#'
+#' # Empty result (total=0)
+#' data <- tibble()
+#' response <- build_offset_pagination_response(data, total = 0, page = 1, per_page = 10)
+#' # response$meta$totalPages = 0
+#' # response$meta$hasMore = FALSE
+#' }
+#'
+#' @export
+build_offset_pagination_response <- function(data, total, page, per_page) {
+  # Coerce to integer for safety
+  page <- as.integer(page)
+  per_page <- as.integer(per_page)
+  total <- as.integer(total)
+
+  # Calculate offset (0-indexed)
+  offset <- (page - 1L) * per_page
+
+  # Calculate total pages (handle total=0 edge case)
+  total_pages <- if (total == 0L) 0L else as.integer(ceiling(total / per_page))
+
+  # Calculate hasMore: are there more rows beyond current page?
+  rows_fetched <- if (is.data.frame(data)) nrow(data) else length(data)
+  has_more <- (offset + rows_fetched) < total
+
+  list(
+    data = data,
+    meta = list(
+      totalCount = total,
+      pageSize = per_page,
+      offset = offset,
+      currentPage = page,
+      totalPages = total_pages,
+      hasMore = has_more
+    )
+  )
+}
+
+#------------------------------------------------------------------------------
+# Main Query Functions (LOG-01, LOG-05, LOG-06)
+#------------------------------------------------------------------------------
+
+#' Get paginated log entries with filtering
+#'
+#' Fetches log entries from database with filtering and offset-based pagination.
+#' Uses database-side filtering (WHERE clause) instead of loading all rows.
+#'
+#' @param status Integer or NULL, filter by HTTP status code (exact match)
+#' @param request_method Character or NULL, filter by method (GET, POST, etc.)
+#' @param path_prefix Character or NULL, filter by path prefix (LIKE 'prefix%')
+#' @param timestamp_from Character or NULL, filter by minimum timestamp
+#' @param timestamp_to Character or NULL, filter by maximum timestamp
+#' @param address Character or NULL, filter by IP address (exact match)
+#' @param page Integer, page number (1-indexed). Default: 1
+#' @param per_page Integer, rows per page. Default: 50
+#' @param sort_column Character, column to sort by. Default: "id"
+#' @param sort_direction Character, ASC or DESC. Default: "DESC"
+#'
+#' @return List with data and meta (from build_offset_pagination_response)
+#'
+#' @details
+#' This function is the main entry point for fetching logs with pagination.
+#' It orchestrates the query building process:
+#'
+#' 1. Validates sort column against LOGGING_ALLOWED_SORT_COLUMNS
+#' 2. Validates sort direction (ASC/DESC only)
+#' 3. Builds WHERE clause with parameterized values
+#' 4. Executes COUNT query first for totalCount
+#' 5. Executes data query with LIMIT/OFFSET
+#' 6. Returns standardized pagination response
+#'
+#' All filtering happens at the database level (LOG-01). This is critical for
+#' performance - the function never uses collect() to load all rows into memory.
+#'
+#' @examples
+#' \dontrun{
+#' # Get first page of all logs
+#' result <- get_logs_paginated()
+#' # result$data contains first 50 rows
+#' # result$meta$totalCount contains total matching rows
+#'
+#' # Get first page of 200 OK responses
+#' result <- get_logs_paginated(status = 200, page = 1, per_page = 50)
+#'
+#' # Get logs from specific path prefix
+#' result <- get_logs_paginated(path_prefix = "/api/entity", page = 2)
+#'
+#' # Get logs sorted by timestamp ascending
+#' result <- get_logs_paginated(sort_column = "timestamp", sort_direction = "ASC")
+#'
+#' # Get logs from a specific time range
+#' result <- get_logs_paginated(
+#'   timestamp_from = "2026-01-01 00:00:00",
+#'   timestamp_to = "2026-01-31 23:59:59"
+#' )
+#'
+#' # Get error logs (4xx and 5xx status codes need separate calls)
+#' errors_4xx <- get_logs_paginated(status = 400)
+#' errors_5xx <- get_logs_paginated(status = 500)
+#' }
+#'
+#' @export
+get_logs_paginated <- function(
+  status = NULL,
+  request_method = NULL,
+  path_prefix = NULL,
+  timestamp_from = NULL,
+  timestamp_to = NULL,
+  address = NULL,
+  page = 1L,
+  per_page = 50L,
+  sort_column = "id",
+  sort_direction = "DESC"
+) {
+  log_info("Fetching logs: page={page}, per_page={per_page}, sort={sort_column} {sort_direction}")
+
+  # Coerce pagination params to integer
+  page <- as.integer(page)
+  per_page <- as.integer(per_page)
+
+  # Validate sort parameters (throws invalid_filter_error if invalid)
+  validate_logging_column(sort_column, LOGGING_ALLOWED_SORT_COLUMNS, "sort")
+  sort_direction <- validate_sort_direction(sort_direction)
+
+  # Build filters list from function parameters
+  filters <- list(
+    status = status,
+    request_method = request_method,
+    path_prefix = path_prefix,
+    timestamp_from = timestamp_from,
+    timestamp_to = timestamp_to,
+    address = address
+  )
+
+  # Build WHERE clause with parameterized values
+  where_result <- build_logging_where_clause(filters)
+  where_clause <- where_result$clause
+  params <- where_result$params
+
+  # Execute COUNT query for totalCount (LOG-06)
+  # This runs first so we know the total before fetching the page
+  count_sql <- paste("SELECT COUNT(*) as total FROM logging WHERE", where_clause)
+  count_result <- db_execute_query(count_sql, params)
+  total <- count_result$total[1] %||% 0L
+
+  # Calculate offset for the current page
+  offset <- (page - 1L) * per_page
+
+  # Build ORDER BY clause
+  order_clause <- paste("ORDER BY", sort_column, sort_direction)
+
+  # Execute data query with LIMIT/OFFSET (LOG-05)
+  # Only fetches the rows needed for the current page
+  data_sql <- paste(
+    "SELECT id, timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified",
+    "FROM logging WHERE", where_clause,
+    order_clause,
+    "LIMIT ? OFFSET ?"
+  )
+  data_params <- append(params, list(per_page, offset))
+  data_result <- db_execute_query(data_sql, data_params)
+
+  log_debug("Fetched {nrow(data_result)} rows, total={total}")
+
+  # Return with pagination metadata (PAG-01, PAG-02)
+  build_offset_pagination_response(data_result, total, page, per_page)
+}
