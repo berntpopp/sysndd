@@ -134,10 +134,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TST-09 | Phase 72 | Pending |
 
 **Coverage:**
-- v10.2 requirements: 38 total
-- Mapped to phases: 38
+- v10.2 requirements: 39 total
+- Mapped to phases: 39
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 after initial definition*
+*Last updated: 2026-02-03 after roadmap creation*

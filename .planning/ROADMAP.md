@@ -1,18 +1,19 @@
-# Roadmap: SysNDD v10.1 Production Deployment Fixes
+# Roadmap: SysNDD v10.2 Performance & Memory Optimization
 
 ## Overview
 
-SysNDD v10.1 fixes three critical production deployment issues blocking horizontal scaling: API container permission mismatch (UID 1001 vs host UID 1000), migration lock timeout when multiple containers start simultaneously, and missing favicon image. The roadmap progresses from infrastructure fixes to migration coordination to validation testing, ensuring multi-container production deployments work correctly.
+SysNDD v10.2 optimizes API memory usage for memory-constrained servers and fixes the ViewLogs performance bug that loads 1M+ rows into memory before filtering. The roadmap progresses from configurable workers (enabling deployment tuning), through analysis algorithm optimizations (STRING thresholds, adaptive layouts, GC calls), to database-side filtering for logs (indexes, parameterized queries, pagination), concluding with documentation and comprehensive testing.
 
 ## Milestones
 
-- ✅ **v10.0 Data Quality & AI Insights** - Phases 1-65 (shipped 2026-02-01)
-- 🚧 **v10.1 Production Deployment Fixes** - Phases 66-68 (in progress)
+- **v10.0 Data Quality & AI Insights** - Phases 1-65 (shipped 2026-02-01)
+- **v10.1 Production Deployment Fixes** - Phases 66-68 (shipped 2026-02-03)
+- **v10.2 Performance & Memory Optimization** - Phases 69-72 (in progress)
 
 ## Phases
 
 <details>
-<summary>✅ v10.0 Data Quality & AI Insights (Phases 1-65) - SHIPPED 2026-02-01</summary>
+<summary>v10.0 Data Quality & AI Insights (Phases 1-65) - SHIPPED 2026-02-01</summary>
 
 See previous milestone documentation. v10.0 delivered:
 - 8 major bug fixes (EIF2AK2, GAP43, MEF2C, viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
@@ -25,75 +26,110 @@ See previous milestone documentation. v10.0 delivered:
 
 </details>
 
-### 🚧 v10.1 Production Deployment Fixes (In Progress)
+<details>
+<summary>v10.1 Production Deployment Fixes (Phases 66-68) - SHIPPED 2026-02-03</summary>
 
-**Milestone Goal:** Fix critical production deployment issues blocking horizontal scaling on VPS.
+See previous milestone documentation. v10.1 delivered:
+- Fixed API container UID mismatch (configurable via build-arg, default 1000)
+- Fixed migration lock timeout with double-checked locking pattern
+- Restored favicon image from _old directory
+- Removed container_name directive from API service for scaling
+
+</details>
+
+### v10.2 Performance & Memory Optimization (In Progress)
+
+**Milestone Goal:** Optimize API memory usage for memory-constrained servers and fix ViewLogs performance bug.
 
 **Target Issues:**
-- #138: API container cannot write to /app/data directory (UID mismatch)
-- #136: Multi-container scaling fails due to migration lock timeout
-- #137: Missing favicon image (brain-neurodevelopmental-disorders-sysndd.png)
+- #150: Optimize mirai worker configuration for memory-constrained servers
+- #152: ViewLogs endpoint loads entire table into memory before filtering
 
-- [x] **Phase 66: Infrastructure Fixes** - UID fix, container_name removal, favicon restoration ✓
-- [x] **Phase 67: Migration Coordination** - Double-checked locking for parallel startup ✓
-- [ ] **Phase 68: Local Production Testing** - Multi-container validation with 4 API replicas
+- [ ] **Phase 69: Configurable Workers** - MIRAI_WORKERS env var with bounded configuration
+- [ ] **Phase 70: Analysis Optimization** - STRING threshold, adaptive layout, LLM batch GC
+- [ ] **Phase 71: ViewLogs Database Filtering** - Indexes, parameterized queries, pagination
+- [ ] **Phase 72: Documentation & Testing** - Deployment guide and comprehensive test coverage
 
 ## Phase Details
 
-### Phase 66: Infrastructure Fixes
-**Goal**: API containers can write to host directories and scale horizontally
-**Depends on**: Nothing (first phase of v10.1)
-**Requirements**: DEPLOY-01, DEPLOY-02, DEPLOY-04, BUG-01
+### Phase 69: Configurable Workers
+**Goal**: Operators can tune mirai worker count for their server's memory constraints
+**Depends on**: Nothing (first phase of v10.2)
+**Requirements**: MEM-01, MEM-02, MEM-03, MEM-04, MEM-05
 **Success Criteria** (what must be TRUE):
-  1. API container writes to /app/data without permission errors
-  2. Dockerfile UID is configurable via build-arg (default 1000)
-  3. `docker compose --scale api=4` succeeds without container naming conflict
-  4. Favicon image loads without 404 errors in browser
-**Plans:** 1 plan
+  1. Operator can set MIRAI_WORKERS=N in docker-compose and API spawns exactly N workers
+  2. Invalid values (0, 9, "abc") are rejected with sensible defaults applied
+  3. Health endpoint response includes current worker count for monitoring
+  4. Production docker-compose.yml defaults to 2 workers, dev defaults to 1 worker
+**Plans:** TBD
 
 Plans:
-- [x] 66-01-PLAN.md — Infrastructure fixes (UID, container_name, favicon) ✓
+- [ ] 69-01: Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
 
-### Phase 67: Migration Coordination
-**Goal**: Multiple API containers start in parallel without migration lock timeout
-**Depends on**: Phase 66
-**Requirements**: DEPLOY-03, MIGRATE-01, MIGRATE-02, MIGRATE-03
+### Phase 70: Analysis Optimization
+**Goal**: Cluster analysis runs faster and uses less memory for large gene sets
+**Depends on**: Phase 69
+**Requirements**: STR-01, STR-02, STR-03, LAY-01, LAY-02, LAY-03, LAY-04, LLM-01, LLM-02
 **Success Criteria** (what must be TRUE):
-  1. Schema check happens before lock acquisition (fast path when up-to-date)
-  2. Double-check after lock prevents race condition (handles concurrent migration)
-  3. Health endpoint reports migration status accurately
-  4. Four API containers start simultaneously without timeout errors
-**Plans:** 1 plan
+  1. STRING API returns ~50% fewer edges with score_threshold=400 (observable via API response size)
+  2. Operator can override STRING threshold via function parameter when calling analysis endpoints
+  3. Network visualization uses DrL layout for >1000 nodes (fast), FR-grid for 500-1000 nodes, standard FR for <500 nodes
+  4. Network metadata reports actual layout algorithm used (user can verify in response)
+  5. LLM batch job memory usage stays bounded over long runs (no gradual increase)
+**Plans:** TBD
 
 Plans:
-- [x] 67-01-PLAN.md — Double-checked locking for migration coordination ✓
+- [ ] 70-01: Increase STRING score_threshold to 400 with configurable parameter
+- [ ] 70-02: Implement adaptive layout algorithm selection based on graph size
+- [ ] 70-03: Add periodic gc() calls to LLM batch executor
 
-### Phase 68: Local Production Testing
-**Goal**: Verified multi-container scaling works correctly in production-like environment
-**Depends on**: Phase 67
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04
+### Phase 71: ViewLogs Database Filtering
+**Goal**: ViewLogs page loads quickly with filtering done in database, not R memory
+**Depends on**: Phase 70
+**Requirements**: IDX-01, IDX-02, IDX-03, IDX-04, IDX-05, LOG-01, LOG-02, LOG-03, LOG-04, LOG-05, LOG-06, PAG-01, PAG-02
 **Success Criteria** (what must be TRUE):
-  1. Production Docker environment builds and runs locally with 4 API replicas
-  2. Container logs show parallel startup (not sequential lock waiting)
-  3. All 4 containers can write to shared /app/data directory
-  4. Fresh database startup triggers migration from exactly one container
-  5. Any issues discovered during testing are fixed and re-validated
-**Plans:** 1 plan
+  1. Logging endpoint executes SQL with WHERE/LIMIT/OFFSET (no full table scan to R memory)
+  2. Filter by timestamp range, status, path prefix all resolve to indexed queries
+  3. SQL injection attempts in filter parameters are rejected (column whitelist enforced)
+  4. Invalid filter syntax returns explicit 400 error with invalid_filter_error type
+  5. Pagination response includes totalCount, totalPages, hasMore for UI pagination controls
+**Plans:** TBD
 
 Plans:
-- [ ] 68-01-PLAN.md — Create test-scaling Makefile target and validate multi-container scaling
+- [ ] 71-01: Add database indexes for logging table (timestamp, status, path, composites)
+- [ ] 71-02: Implement query builder with column whitelist and parameterized queries
+- [ ] 71-03: Implement offset-based pagination with build_offset_pagination_response()
+- [ ] 71-04: Refactor logging endpoint to use database-side filtering
+
+### Phase 72: Documentation & Testing
+**Goal**: Deployment guide exists and all new code has test coverage
+**Depends on**: Phase 71
+**Requirements**: DOC-01, DOC-02, DOC-03, TST-01, TST-02, TST-03, TST-04, TST-05, TST-06, TST-07, TST-08, TST-09
+**Success Criteria** (what must be TRUE):
+  1. docs/DEPLOYMENT.md documents MIRAI_WORKERS with recommended values for small/medium/large servers
+  2. CLAUDE.md memory configuration section helps developers understand worker tuning
+  3. Unit tests verify MIRAI_WORKERS parsing rejects invalid values
+  4. Unit tests verify column whitelist blocks unknown columns and SQL injection patterns
+  5. Integration tests verify paginated queries return different pages with correct metadata
+**Plans:** TBD
+
+Plans:
+- [ ] 72-01: Write unit tests for worker configuration and query builder
+- [ ] 72-02: Write integration tests for database queries and pagination
+- [ ] 72-03: Create deployment documentation with memory configuration profiles
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 66 -> 67 -> 68
+Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 66. Infrastructure Fixes | v10.1 | 1/1 | ✓ Complete | 2026-02-01 |
-| 67. Migration Coordination | v10.1 | 1/1 | ✓ Complete | 2026-02-01 |
-| 68. Local Production Testing | v10.1 | 0/1 | Planned | - |
+| 69. Configurable Workers | v10.2 | 0/1 | Not started | - |
+| 70. Analysis Optimization | v10.2 | 0/3 | Not started | - |
+| 71. ViewLogs Database Filtering | v10.2 | 0/4 | Not started | - |
+| 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
 
 ---
-*Roadmap created: 2026-02-01*
-*Last updated: 2026-02-01 — Phase 68 planned*
+*Roadmap created: 2026-02-03*
+*Last updated: 2026-02-03 — v10.2 roadmap created*
