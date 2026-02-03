@@ -93,13 +93,13 @@ Plans:
   3. SQL injection attempts in filter parameters are rejected (column whitelist enforced)
   4. Invalid filter syntax returns explicit 400 error with invalid_filter_error type
   5. Pagination response includes totalCount, totalPages, hasMore for UI pagination controls
-**Plans:** TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 71-01: Add database indexes for logging table (timestamp, status, path, composites)
-- [ ] 71-02: Implement query builder with column whitelist and parameterized queries
-- [ ] 71-03: Implement offset-based pagination with build_offset_pagination_response()
-- [ ] 71-04: Refactor logging endpoint to use database-side filtering
+- [ ] 71-01-PLAN.md - Add database indexes for logging table (timestamp, status, path, composites)
+- [ ] 71-02-PLAN.md - Implement query builder with column whitelist and parameterized queries
+- [ ] 71-03-PLAN.md - Implement offset-based pagination with build_offset_pagination_response()
+- [ ] 71-04-PLAN.md - Refactor logging endpoint to use database-side filtering
 
 ### Phase 72: Documentation & Testing
 **Goal**: Deployment guide exists and all new code has test coverage
@@ -127,9 +127,9 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 |-------|-----------|----------------|--------|-----------|
 | 69. Configurable Workers | v10.2 | 0/1 | Planned | - |
 | 70. Analysis Optimization | v10.2 | 0/3 | Planned | - |
-| 71. ViewLogs Database Filtering | v10.2 | 0/4 | Not started | - |
+| 71. ViewLogs Database Filtering | v10.2 | 0/4 | Planned | - |
 | 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 70 planned (3 plans)*
+*Last updated: 2026-02-03 - Phase 71 planned (4 plans in 2 waves)*
