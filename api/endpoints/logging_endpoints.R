@@ -6,12 +6,8 @@
 #
 # Make sure to source any required helpers or libraries at the top if needed.
 
-# Load logging repository for database-side filtering (fixes #152)
-if (!exists("get_logs_filtered", mode = "function")) {
-  if (file.exists("functions/logging-repository.R")) {
-    source("functions/logging-repository.R", local = FALSE)
-  }
-}
+# Note: logging-repository.R is sourced inside the endpoint function
+# to ensure proper working directory context
 
 #' Parse sort parameter into column and direction
 #'
@@ -85,6 +81,11 @@ function(req,
 
   tryCatch(
     {
+      # Load logging repository for database-side filtering (fixes #152)
+      if (!exists("get_logs_filtered", mode = "function")) {
+        source("/app/functions/logging-repository.R", local = FALSE)
+      }
+
       # Parse sort parameter to get column and direction
       sort_parts <- parse_sort_param(sort)
       sort_column <- sort_parts$column
