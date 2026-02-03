@@ -354,6 +354,8 @@ sysndd_api_version <<- version_json$version
 ## -------------------------------------------------------------------##
 # 9) Memoize certain functions
 ## -------------------------------------------------------------------##
+# Note: get_string_db() singleton is defined in analyses-functions.R
+# and available to both main process and mirai daemon workers
 cm <- cachem::cache_disk(
   dir      = "/app/cache",
   max_age  = Inf, # Never expires (clear volume to invalidate)

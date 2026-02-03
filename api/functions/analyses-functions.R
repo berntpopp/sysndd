@@ -1,6 +1,45 @@
 # functions/analyses-functions.R
 #### This file holds analyses functions
 
+## -------------------------------------------------------------------##
+# STRINGdb singleton cache
+## -------------------------------------------------------------------##
+# Cache STRINGdb objects by score_threshold to avoid repeated version API calls.
+# STRINGdb$new() checks string-db.org/api/version on every call - expensive!
+# This singleton ensures we only initialize once per threshold value per R process.
+# Works in both main API process and mirai daemon workers.
+string_db_cache <- new.env(parent = emptyenv())
+
+#' Get cached STRINGdb instance
+#'
+#' Returns a cached STRINGdb object for the given score_threshold.
+#' Creates and caches a new instance if not already cached.
+#' Avoids repeated version API calls to string-db.org.
+#'
+#' @param score_threshold INTEGER. STRING confidence threshold (0-1000, default 400)
+#' @return STRINGdb object
+#' @export
+get_string_db <- function(score_threshold = 400L) {
+  cache_key <- as.character(score_threshold)
+
+  if (!exists(cache_key, envir = string_db_cache)) {
+    message(sprintf("[STRING] Initializing STRINGdb singleton (threshold=%d)...", score_threshold))
+    string_db_cache[[cache_key]] <- STRINGdb::STRINGdb$new(
+      version = "11.5",
+      species = 9606,
+      score_threshold = score_threshold,
+      input_directory = "data"
+    )
+    message(sprintf("[STRING] STRINGdb singleton ready (threshold=%d)", score_threshold))
+  }
+
+  string_db_cache[[cache_key]]
+}
+
+## -------------------------------------------------------------------##
+# Analysis Functions
+## -------------------------------------------------------------------##
+
 #' A recursive function generating a functional gene cluster with string-db
 #'
 #' @param hgnc_list A comma separated list as concatenated text
@@ -27,13 +66,8 @@ gen_string_clust_obj <- function(
   # Caching is handled by the memoise wrapper (gen_string_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
-  # load/ download STRING database files
-  string_db <- STRINGdb::STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = score_threshold,
-    input_directory = "data"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(score_threshold)
 
   # Load gene table from database and filter to input HGNC list
   # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
@@ -170,13 +204,8 @@ gen_string_clust_obj <- function(
 #' @return The enrichment tibble
 #' @export
 gen_string_enrich_tib <- function(hgnc_list) {
-  # load/ download STRING database files
-  string_db <- STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = 400,
-    input_directory = "data/"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(400L)
 
   # compute enrichment and convert to tibble
   # Sort by FDR ascending so most significant terms appear first
@@ -390,13 +419,8 @@ gen_network_edges <- function(
   gene_table <- sysndd_db_string_id_table %>%
     filter(hgnc_id %in% cluster_map$hgnc_id)
 
-  # Initialize STRINGdb with specified confidence threshold
-  string_db <- STRINGdb::STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = min_confidence,
-    input_directory = "data"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(min_confidence)
 
   # Get STRING graph
   string_graph <- string_db$get_graph()
