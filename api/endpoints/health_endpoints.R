@@ -199,7 +199,7 @@ function(req, res) {
 #*
 #* @response 200 OK. Returns performance metrics object.
 #*
-#* @get /health/performance
+#* @get /performance
 function() {
   # Read configured worker count from environment (same logic as start_sysndd_api.R)
   configured_workers <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
