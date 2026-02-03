@@ -847,15 +847,26 @@ export default {
             this.loadingProgress = 100;
             this.loading = false;
 
-            // Set table display - show combined data for all clusters by default
+            // Set table display - auto-select first cluster by default (like PhenotypeClusters)
+            // This provides immediate AI summary and consistent UX
             this.$nextTick(() => {
-              if (this.showAllClustersInTable) {
-                // Show combined data from all clusters
-                this.selectedCluster = this.combineClusterData(this.itemsCluster);
-                const arr = this.selectedCluster[this.tableType] || [];
-                this.totalRows = arr.length;
-              } else {
+              if (this.itemsCluster.length > 0) {
+                // Auto-select first cluster for immediate AI summary display
+                this.showAllClustersInTable = false;
+                this.displayedClusters = [1];
+                this.activeParentCluster = 1;
                 this.setActiveCluster();
+
+                // Sync NetworkVisualization dropdown to show cluster 1 selected
+                if (this.$refs.networkVisualization?.selectCluster) {
+                  this.$refs.networkVisualization.selectCluster(1);
+                }
+
+                // Fetch LLM summary for the first cluster
+                const firstCluster = this.itemsCluster.find((item) => item.cluster === 1);
+                if (firstCluster?.hash_filter) {
+                  this.fetchClusterSummary(firstCluster.hash_filter, 1);
+                }
               }
             });
             return;
@@ -893,13 +904,27 @@ export default {
         const response = await this.axios.get(apiUrl);
         this.itemsCluster = response.data.clusters;
         this.valueCategories = response.data.categories;
-        // Show combined data from all clusters by default
-        if (this.showAllClustersInTable) {
-          this.selectedCluster = this.combineClusterData(this.itemsCluster);
-          const arr = this.selectedCluster[this.tableType] || [];
-          this.totalRows = arr.length;
-        } else {
+
+        // Auto-select first cluster by default (like PhenotypeClusters)
+        // This provides immediate AI summary and consistent UX
+        if (this.itemsCluster.length > 0) {
+          this.showAllClustersInTable = false;
+          this.displayedClusters = [1];
+          this.activeParentCluster = 1;
           this.setActiveCluster();
+
+          // Sync NetworkVisualization dropdown to show cluster 1 selected
+          this.$nextTick(() => {
+            if (this.$refs.networkVisualization?.selectCluster) {
+              this.$refs.networkVisualization.selectCluster(1);
+            }
+          });
+
+          // Fetch LLM summary for the first cluster
+          const firstCluster = this.itemsCluster.find((item) => item.cluster === 1);
+          if (firstCluster?.hash_filter) {
+            this.fetchClusterSummary(firstCluster.hash_filter, 1);
+          }
         }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

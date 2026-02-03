@@ -790,12 +790,24 @@ const retryLoadNetwork = async () => {
   }
 };
 
+/**
+ * Select a specific cluster programmatically (for parent component sync)
+ * Used when parent auto-selects first cluster on initial load
+ */
+function selectCluster(clusterId: number) {
+  showAllClusters.value = false;
+  selectedClusters.value = new Set([clusterId]);
+  handleApplyFilters();
+  // Don't emit clusters-changed here - parent already knows the state
+}
+
 // Expose methods for parent component (bidirectional highlighting)
 defineExpose({
   highlightNodeFromTable,
   isRowHighlighted,
   clearHighlights,
   searchMatchCount,
+  selectCluster,
 });
 </script>
 

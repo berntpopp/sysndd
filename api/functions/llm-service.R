@@ -40,10 +40,10 @@ if (!exists("validate_summary_entities", mode = "function")) {
 # Using conservative limit to avoid rate limiting issues
 #------------------------------------------------------------------------------
 GEMINI_RATE_LIMIT <- list(
-  capacity = 30,       # Conservative: 30 RPM (half of Paid Tier 1)
-  fill_time_s = 60,    # 1 minute window
-  backoff_base = 2,    # Exponential backoff base (seconds)
-  max_retries = 3      # Maximum retry attempts
+  capacity = 30, # Conservative: 30 RPM (half of Paid Tier 1)
+  fill_time_s = 60, # 1 minute window
+  backoff_base = 2, # Exponential backoff base (seconds)
+  max_retries = 3 # Maximum retry attempts
 )
 
 #------------------------------------------------------------------------------
@@ -73,34 +73,28 @@ get_default_gemini_model <- function() {
 #' @export
 functional_cluster_summary_type <- ellmer::type_object(
   "AI-generated summary of a functional gene cluster",
-
   summary = ellmer::type_string(
     "2-3 sentence prose summary describing the cluster's biological function
      and relevance to neurodevelopmental disorders.
      Target audience: clinical researchers and database curators."
   ),
-
   key_themes = ellmer::type_array(
     ellmer::type_string("Biological theme or function"),
     "3-5 key biological themes that characterize this cluster"
   ),
-
   pathways = ellmer::type_array(
     ellmer::type_string("Pathway name from enrichment analysis"),
     "Top pathways from the enrichment data that define this cluster.
      Must be exact matches from the provided enrichment terms."
   ),
-
   tags = ellmer::type_array(
     ellmer::type_string("Searchable keyword for filtering"),
     "3-7 short, searchable tags (e.g., 'mitochondrial', 'synaptic', 'metabolism')"
   ),
-
   clinical_relevance = ellmer::type_string(
     "Brief note on clinical implications for NDD diagnosis or research",
     required = FALSE
   ),
-
   confidence = ellmer::type_enum(
     c("high", "medium", "low"),
     "Self-assessed confidence: high if enrichment data strongly supports themes,
@@ -117,40 +111,33 @@ functional_cluster_summary_type <- ellmer::type_object(
 #' @export
 phenotype_cluster_summary_type <- ellmer::type_object(
   "AI-generated summary of a phenotype cluster based on v.test enrichment",
-
   summary = ellmer::type_string(
     "2-3 sentence description of the clinical phenotype pattern.
      Focus on what phenotypes define this cluster (both enriched AND depleted).
      Target audience: clinical geneticists and syndrome researchers."
   ),
-
   key_phenotype_themes = ellmer::type_array(
     ellmer::type_string("Clinical phenotype category"),
     "3-5 main phenotypic themes that are ENRICHED in this cluster (positive v.test)"
   ),
-
   notably_absent = ellmer::type_array(
     ellmer::type_string("Phenotype that is rare in this cluster"),
     "2-3 phenotypes that are DEPLETED in this cluster (negative v.test)",
     required = FALSE
   ),
-
   clinical_pattern = ellmer::type_string(
     "Syndrome category suggested by the phenotype pattern (e.g., 'syndromic malformations',
      'progressive metabolic disorders', 'overgrowth syndromes', 'pure neurodevelopmental')"
   ),
-
   syndrome_hints = ellmer::type_array(
     ellmer::type_string("Recognized syndrome name or category"),
     "Known syndrome categories this phenotype pattern might represent",
     required = FALSE
   ),
-
   tags = ellmer::type_array(
     ellmer::type_string("Searchable clinical keyword"),
     "3-7 short tags derived from the phenotype data (e.g., 'cardiac', 'renal', 'skeletal')"
   ),
-
   inheritance_patterns = ellmer::type_array(
     ellmer::type_string("Inheritance mode abbreviation"),
     "1-3 inheritance patterns significantly associated with this cluster (e.g., 'AD', 'AR', 'XL').
@@ -158,7 +145,6 @@ phenotype_cluster_summary_type <- ellmer::type_object(
      AR=Autosomal recessive, XL=X-linked, MT=Mitochondrial, SP=Sporadic.",
     required = FALSE
   ),
-
   syndromicity = ellmer::type_enum(
     c("predominantly_syndromic", "predominantly_id", "mixed", "unknown"),
     "Overall syndromicity pattern based on phenotype counts:
@@ -169,13 +155,11 @@ phenotype_cluster_summary_type <- ellmer::type_object(
      Derived from quanti_sup_var (phenotype_id_count vs phenotype_non_id_count).",
     required = FALSE
   ),
-
   confidence = ellmer::type_enum(
     c("high", "medium", "low"),
     "Confidence based on phenotype data strength: high if many significant phenotypes,
      medium if moderate signal, low if sparse or conflicting data"
   ),
-
   data_quality_note = ellmer::type_string(
     "Note any data quality issues or caveats about the phenotype interpretation",
     required = FALSE
@@ -449,7 +433,7 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
     }
 
     if (!is.null(inheritance_df) && nrow(inheritance_df) > 0 &&
-        all(c("variable", "v.test", "p.value") %in% names(inheritance_df))) {
+      all(c("variable", "v.test", "p.value") %in% names(inheritance_df))) {
       # Filter to significant associations
       inheritance_sig <- inheritance_df %>%
         dplyr::filter(abs(`v.test`) > vtest_threshold) %>%
@@ -484,7 +468,7 @@ build_phenotype_cluster_prompt <- function(cluster_data, vtest_threshold = 2) {
     }
 
     if (!is.null(quanti_df) && nrow(quanti_df) > 0 &&
-        all(c("variable", "v.test", "p.value") %in% names(quanti_df))) {
+      all(c("variable", "v.test", "p.value") %in% names(quanti_df))) {
       # Filter to significant associations
       quanti_sig <- quanti_df %>%
         dplyr::filter(abs(`v.test`) > vtest_threshold) %>%
@@ -1195,7 +1179,7 @@ calculate_derived_confidence <- function(data, cluster_type = NULL) {
     )
 
     return(list(
-      avg_fdr = avg_pvalue,  # Use p.value for consistency with frontend
+      avg_fdr = avg_pvalue, # Use p.value for consistency with frontend
       term_count = as.integer(term_count),
       score = score
     ))
@@ -1253,11 +1237,11 @@ calculate_derived_confidence <- function(data, cluster_type = NULL) {
 #' @export
 list_gemini_models <- function() {
   c(
-    "gemini-3-pro-preview",       # Best quality, complex reasoning (default)
-    "gemini-3-flash-preview",     # Fast + capable
-    "gemini-2.5-flash",           # Best price-performance
-    "gemini-2.5-pro",             # Complex reasoning (stable)
-    "gemini-2.5-flash-lite"       # Budget option
+    "gemini-3-pro-preview", # Best quality, complex reasoning (default)
+    "gemini-3-flash-preview", # Fast + capable
+    "gemini-2.5-flash", # Best price-performance
+    "gemini-2.5-pro", # Complex reasoning (stable)
+    "gemini-2.5-flash-lite" # Budget option
   )
 }
 
@@ -1385,11 +1369,11 @@ get_default_prompt_template <- function(prompt_type) {
 #'
 #' @export
 save_prompt_template <- function(prompt_type,
-                                  template_text,
-                                  version,
-                                  description = NULL,
-                                  created_by = NULL,
-                                  deactivate_previous = TRUE) {
+                                 template_text,
+                                 version,
+                                 description = NULL,
+                                 created_by = NULL,
+                                 deactivate_previous = TRUE) {
   valid_types <- c(
     "functional_generation", "functional_judge",
     "phenotype_generation", "phenotype_judge"
@@ -1442,4 +1426,312 @@ get_all_prompt_templates <- function() {
   templates <- lapply(types, get_prompt_template)
   names(templates) <- types
   templates
+}
+
+
+#------------------------------------------------------------------------------
+# Cluster Data Fetching Functions for On-Demand Summary Generation
+# Used by LLM endpoint helpers to retrieve cluster data for generation
+#------------------------------------------------------------------------------
+
+#' Fetch Cluster Data for Summary Generation
+#'
+#' Retrieves cluster composition data needed to generate an LLM summary.
+#' This function queries the database for cluster members and enrichment data.
+#' Dispatches to appropriate fetch function based on cluster type.
+#'
+#' @param cluster_hash SHA256 hash of cluster composition
+#' @param cluster_type Character, either "functional" or "phenotype"
+#'
+#' @return List with identifiers, term_enrichment/quali_inp_var, cluster_number
+#'         or NULL if cluster not found
+#'
+#' @export
+fetch_cluster_data_for_generation <- function(cluster_hash, cluster_type) {
+  if (cluster_type == "functional") {
+    fetch_functional_cluster_data(cluster_hash)
+  } else if (cluster_type == "phenotype") {
+    fetch_phenotype_cluster_data(cluster_hash)
+  } else {
+    log_error("Invalid cluster_type: {cluster_type}")
+    NULL
+  }
+}
+
+#' Fetch Functional Cluster Data
+#'
+#' Retrieves functional cluster data for summary generation including
+#' gene identifiers and term enrichment results.
+#'
+#' Uses the memoized gen_string_clust_obj_mem function to compute clusters
+#' dynamically and find the cluster matching the requested hash.
+#'
+#' @param cluster_hash SHA256 hash of cluster composition
+#'
+#' @return List with identifiers, term_enrichment, cluster_number or NULL
+#'
+#' @noRd
+fetch_functional_cluster_data <- function(cluster_hash) {
+  # Build the filter format to match against cluster data
+
+  hash_filter <- paste0("equals(hash,", cluster_hash, ")")
+
+  # Get genes from database (same query as functional_clustering endpoint)
+  conn <- get_db_connection()
+  genes_from_entity_table <- tryCatch(
+    {
+      pool::dbGetQuery(
+        conn,
+        "SELECT DISTINCT hgnc_id FROM ndd_entity_view WHERE ndd_phenotype = 1"
+      )
+    },
+    error = function(e) {
+      log_error("Failed to fetch genes for functional clustering: {e$message}")
+      return(NULL)
+    }
+  )
+
+  if (is.null(genes_from_entity_table) || nrow(genes_from_entity_table) == 0) {
+    log_warn("No genes found for functional clustering")
+    return(NULL)
+  }
+
+  # Check if gen_string_clust_obj_mem is available (defined in start_sysndd_api.R)
+  if (!exists("gen_string_clust_obj_mem", mode = "function")) {
+    log_error("gen_string_clust_obj_mem not available - clustering functions not loaded")
+    return(NULL)
+  }
+
+  # Generate clusters using memoized function
+  functional_clusters <- tryCatch(
+    gen_string_clust_obj_mem(genes_from_entity_table$hgnc_id, algorithm = "leiden"),
+    error = function(e) {
+      log_error("Failed to generate functional clusters: {e$message}")
+      return(NULL)
+    }
+  )
+
+  if (is.null(functional_clusters)) {
+    return(NULL)
+  }
+
+  # Find cluster matching the requested hash
+  matching_cluster <- functional_clusters %>%
+    dplyr::filter(hash_filter == !!hash_filter)
+
+  if (nrow(matching_cluster) == 0) {
+    log_warn("Functional cluster not found for hash: {substr(cluster_hash, 1, 16)}...")
+    return(NULL)
+  }
+
+  cluster_number <- matching_cluster$cluster[1]
+
+  # Extract identifiers from the nested column
+  identifiers <- matching_cluster$identifiers[[1]]
+  if (nrow(identifiers) == 0) {
+    log_warn("No identifiers found for functional cluster {cluster_number}")
+    return(NULL)
+  }
+
+  # Extract term enrichment data (top 100 by FDR)
+  term_enrichment <- matching_cluster$term_enrichment[[1]]
+  if (!is.null(term_enrichment) && nrow(term_enrichment) > 0) {
+    term_enrichment <- term_enrichment %>%
+      dplyr::arrange(fdr) %>%
+      dplyr::slice_head(n = 100) %>%
+      dplyr::select(category, term = term_name, p_value, fdr)
+  } else {
+    term_enrichment <- tibble::tibble(category = character(), term = character(),
+                                       p_value = numeric(), fdr = numeric())
+  }
+
+  list(
+    identifiers = tibble::as_tibble(identifiers),
+    term_enrichment = tibble::as_tibble(term_enrichment),
+    cluster_number = as.integer(cluster_number)
+  )
+}
+
+#' Fetch Phenotype Cluster Data
+#'
+#' Retrieves phenotype cluster data for summary generation including
+#' entity identifiers and qualitative input variables.
+#'
+#' Uses the memoized gen_mca_clust_obj_mem function to compute clusters
+#' dynamically and find the cluster matching the requested hash.
+#'
+#' @param cluster_hash SHA256 hash of cluster composition
+#'
+#' @return List with identifiers, quali_inp_var, cluster_number or NULL
+#'
+#' @noRd
+fetch_phenotype_cluster_data <- function(cluster_hash) {
+  # Build the filter format to match against cluster data
+  hash_filter <- paste0("equals(hash,", cluster_hash, ")")
+
+  # ID phenotype IDs for filtering (same as phenotype_clustering endpoint)
+  id_phenotype_ids <- c(
+    "HP:0001249", "HP:0001256", "HP:0002187",
+    "HP:0002342", "HP:0006889", "HP:0010864"
+  )
+  categories <- c("Definitive")
+
+  # Get data from database (replicating phenotype_clustering endpoint logic)
+  conn <- get_db_connection()
+
+  ndd_entity_view_tbl <- tryCatch(
+    pool::dbGetQuery(conn, "SELECT * FROM ndd_entity_view"),
+    error = function(e) {
+      log_error("Failed to fetch ndd_entity_view: {e$message}")
+      return(NULL)
+    }
+  )
+  if (is.null(ndd_entity_view_tbl)) return(NULL)
+
+  ndd_entity_review_tbl <- tryCatch(
+    pool::dbGetQuery(conn, "SELECT review_id FROM ndd_entity_review WHERE is_primary = 1"),
+    error = function(e) {
+      log_error("Failed to fetch ndd_entity_review: {e$message}")
+      return(NULL)
+    }
+  )
+  if (is.null(ndd_entity_review_tbl)) return(NULL)
+
+  ndd_review_phenotype_connect_tbl <- tryCatch(
+    pool::dbGetQuery(conn, "SELECT * FROM ndd_review_phenotype_connect"),
+    error = function(e) {
+      log_error("Failed to fetch ndd_review_phenotype_connect: {e$message}")
+      return(NULL)
+    }
+  )
+  if (is.null(ndd_review_phenotype_connect_tbl)) return(NULL)
+
+  modifier_list_tbl <- tryCatch(
+    pool::dbGetQuery(conn, "SELECT * FROM modifier_list"),
+    error = function(e) {
+      log_error("Failed to fetch modifier_list: {e$message}")
+      return(NULL)
+    }
+  )
+  if (is.null(modifier_list_tbl)) return(NULL)
+
+  phenotype_list_tbl <- tryCatch(
+    pool::dbGetQuery(conn, "SELECT * FROM phenotype_list"),
+    error = function(e) {
+      log_error("Failed to fetch phenotype_list: {e$message}")
+      return(NULL)
+    }
+  )
+  if (is.null(phenotype_list_tbl)) return(NULL)
+
+  # Convert to tibbles for dplyr operations
+  ndd_entity_view_tbl <- tibble::as_tibble(ndd_entity_view_tbl)
+  ndd_entity_review_tbl <- tibble::as_tibble(ndd_entity_review_tbl)
+  ndd_review_phenotype_connect_tbl <- tibble::as_tibble(ndd_review_phenotype_connect_tbl)
+  modifier_list_tbl <- tibble::as_tibble(modifier_list_tbl)
+  phenotype_list_tbl <- tibble::as_tibble(phenotype_list_tbl)
+
+  # Join and filter (replicating phenotype_clustering endpoint logic)
+  sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
+    dplyr::left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
+    dplyr::left_join(modifier_list_tbl, by = c("modifier_id")) %>%
+    dplyr::left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
+    dplyr::mutate(
+      ndd_phenotype = dplyr::case_when(
+        ndd_phenotype == 1 ~ "Yes",
+        ndd_phenotype == 0 ~ "No",
+        TRUE ~ NA_character_
+      )
+    ) %>%
+    dplyr::filter(ndd_phenotype == "Yes") %>%
+    dplyr::filter(category %in% categories) %>%
+    dplyr::filter(modifier_name == "present") %>%
+    dplyr::filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
+    dplyr::select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
+    dplyr::group_by(entity_id) %>%
+    dplyr::mutate(
+      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
+      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
+    ) %>%
+    dplyr::ungroup() %>%
+    unique()
+
+  if (nrow(sysndd_db_phenotypes) == 0) {
+    log_warn("No phenotype data found for clustering")
+    return(NULL)
+  }
+
+  # Convert to wide format
+  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
+    dplyr::mutate(present = "yes") %>%
+    dplyr::select(-phenotype_id) %>%
+    tidyr::pivot_wider(names_from = HPO_term, values_from = present) %>%
+    dplyr::group_by(hgnc_id) %>%
+    dplyr::mutate(gene_entity_count = dplyr::n()) %>%
+    dplyr::ungroup() %>%
+    dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
+    dplyr::select(-hgnc_id)
+
+  # Convert to data frame for MCA
+  sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
+    dplyr::select(-entity_id) %>%
+    as.data.frame()
+  row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
+
+  # Check if gen_mca_clust_obj_mem is available
+  if (!exists("gen_mca_clust_obj_mem", mode = "function")) {
+    log_error("gen_mca_clust_obj_mem not available - clustering functions not loaded")
+    return(NULL)
+  }
+
+  # Perform cluster analysis using memoized function
+  phenotype_clusters <- tryCatch(
+    gen_mca_clust_obj_mem(sysndd_db_phenotypes_wider_df),
+    error = function(e) {
+      log_error("Failed to generate phenotype clusters: {e$message}")
+      return(NULL)
+    }
+  )
+
+  if (is.null(phenotype_clusters)) {
+    return(NULL)
+  }
+
+  # Find cluster matching the requested hash
+  matching_cluster <- phenotype_clusters %>%
+    dplyr::filter(hash_filter == !!hash_filter)
+
+  if (nrow(matching_cluster) == 0) {
+    log_warn("Phenotype cluster not found for hash: {substr(cluster_hash, 1, 16)}...")
+    return(NULL)
+  }
+
+  cluster_number <- matching_cluster$cluster[1]
+
+  # Extract identifiers and add symbols from entity view
+  identifiers <- matching_cluster$identifiers[[1]]
+  if (nrow(identifiers) == 0) {
+    log_warn("No identifiers found for phenotype cluster {cluster_number}")
+    return(NULL)
+  }
+
+  # Add symbol from entity view
+  ndd_entity_view_sub <- ndd_entity_view_tbl %>%
+    dplyr::select(entity_id, symbol) %>%
+    dplyr::distinct()
+  identifiers <- identifiers %>%
+    dplyr::mutate(entity_id = as.integer(entity_id)) %>%
+    dplyr::left_join(ndd_entity_view_sub, by = "entity_id")
+
+  # Extract qualitative input variables
+  quali_inp_var <- matching_cluster$quali_inp_var[[1]]
+  if (is.null(quali_inp_var) || nrow(quali_inp_var) == 0) {
+    quali_inp_var <- tibble::tibble(variable = character(), p.value = numeric(), v.test = numeric())
+  }
+
+  list(
+    identifiers = tibble::as_tibble(identifiers),
+    quali_inp_var = tibble::as_tibble(quali_inp_var),
+    cluster_number = as.integer(cluster_number)
+  )
 }

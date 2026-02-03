@@ -7103,6 +7103,36 @@
       "Maintainer": "Kirill Müller <krlmlr+r@mailbox.org>",
       "Repository": "RSPM"
     },
+    "pdftools": {
+      "Package": "pdftools",
+      "Version": "3.6.0",
+      "Source": "Repository",
+      "Title": "Text Extraction, Rendering and Converting of PDF Documents",
+      "Author": "Jeroen Ooms [aut, cre] (<https://orcid.org/0000-0002-4035-0289>)",
+      "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Description": "Utilities based on 'libpoppler' for extracting text, fonts, attachments and metadata from a PDF file. Also supports high quality rendering of PDF documents into PNG, JPEG, TIFF format, or into raw bitmap vectors for further processing in R.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://docs.ropensci.org/pdftools/, https://ropensci.r-universe.dev/pdftools",
+      "BugReports": "https://github.com/ropensci/pdftools/issues",
+      "Imports": [
+        "Rcpp (>= 0.12.12)",
+        "qpdf"
+      ],
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "png",
+        "webp",
+        "tesseract",
+        "testthat"
+      ],
+      "SystemRequirements": "Poppler C++ API: libpoppler-cpp-dev (deb) or poppler-cpp-devel (rpm) or poppler (brew)",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.1",
+      "NeedsCompilation": "yes",
+      "Repository": "RSPM"
+    },
     "plotly": {
       "Package": "plotly",
       "Version": "4.11.0",
@@ -7752,6 +7782,34 @@
       "NeedsCompilation": "yes",
       "Author": "Hadley Wickham [aut, cre] (ORCID: <https://orcid.org/0000-0003-4757-117X>), Lionel Henry [aut], Posit Software, PBC [cph, fnd] (ROR: <https://ror.org/03wc8by49>)",
       "Maintainer": "Hadley Wickham <hadley@posit.co>",
+      "Repository": "RSPM"
+    },
+    "qpdf": {
+      "Package": "qpdf",
+      "Version": "1.3.5",
+      "Source": "Repository",
+      "Title": "Split, Combine and Compress PDF Files",
+      "Author": "Jeroen Ooms [aut, cre] (<https://orcid.org/0000-0002-4035-0289>), Jay Berkenbilt [cph] (Author of libqpdf)",
+      "Maintainer": "Jeroen Ooms <jeroenooms@gmail.com>",
+      "Description": "Content-preserving transformations transformations of PDF files. Functions for splitting, combining, and compressing PDF files. Other operations are rescaling, rotating, and overlaying pages. Backends are provided for 'qpdf' (<https://qpdf.sourceforge.io/>) and 'pdftools' based on 'libpoppler'.",
+      "License": "Apache License 2.0",
+      "URL": "https://ropensci.r-universe.dev/qpdf, https://github.com/ropensci/qpdf, https://docs.ropensci.org/qpdf/",
+      "BugReports": "https://github.com/ropensci/qpdf/issues",
+      "Imports": [
+        "Rcpp",
+        "askpass",
+        "curl"
+      ],
+      "LinkingTo": [
+        "Rcpp"
+      ],
+      "Suggests": [
+        "testthat"
+      ],
+      "SystemRequirements": "libjpeg",
+      "Encoding": "UTF-8",
+      "RoxygenNote": "7.3.1",
+      "NeedsCompilation": "yes",
       "Repository": "RSPM"
     },
     "quadprog": {
