@@ -9,11 +9,11 @@ Requirements for memory optimization and ViewLogs performance fixes. Each maps t
 
 ### Memory Configuration (#150)
 
-- [ ] **MEM-01**: mirai worker count is configurable via MIRAI_WORKERS environment variable
-- [ ] **MEM-02**: Worker count is bounded between 1 and 8 workers
-- [ ] **MEM-03**: Worker count is exposed in health endpoint response for monitoring
-- [ ] **MEM-04**: docker-compose.yml includes MIRAI_WORKERS with default 2
-- [ ] **MEM-05**: docker-compose.dev.yml includes MIRAI_WORKERS with default 1
+- [x] **MEM-01**: mirai worker count is configurable via MIRAI_WORKERS environment variable ✓
+- [x] **MEM-02**: Worker count is bounded between 1 and 8 workers ✓
+- [x] **MEM-03**: Worker count is exposed in health endpoint response for monitoring ✓
+- [x] **MEM-04**: docker-compose.yml includes MIRAI_WORKERS with default 2 ✓
+- [x] **MEM-05**: docker-compose.override.yml includes MIRAI_WORKERS with default 1 ✓
 
 ### STRING Optimization (#150)
 
@@ -93,11 +93,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MEM-01 | Phase 69 | Pending |
-| MEM-02 | Phase 69 | Pending |
-| MEM-03 | Phase 69 | Pending |
-| MEM-04 | Phase 69 | Pending |
-| MEM-05 | Phase 69 | Pending |
+| MEM-01 | Phase 69 | Complete |
+| MEM-02 | Phase 69 | Complete |
+| MEM-03 | Phase 69 | Complete |
+| MEM-04 | Phase 69 | Complete |
+| MEM-05 | Phase 69 | Complete |
 | STR-01 | Phase 70 | Pending |
 | STR-02 | Phase 70 | Pending |
 | STR-03 | Phase 70 | Pending |
@@ -140,4 +140,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 after roadmap creation*
+*Last updated: 2026-02-03 — Phase 69 requirements complete*
