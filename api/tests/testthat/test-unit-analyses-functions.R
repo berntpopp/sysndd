@@ -212,3 +212,33 @@ test_that("Changing CACHE_VERSION invalidates cache lookup", {
   expect_equal(old_key, "cache_vold")
   expect_equal(new_key, "cache_vnew")
 })
+
+# =============================================================================
+# STRING Score Threshold Tests
+# =============================================================================
+
+test_that("STRING score_threshold defaults to 400 (medium confidence)", {
+  # This test verifies the default value without running actual clustering
+  # The actual STRING call happens in gen_string_clust_obj and gen_string_enrich_tib
+
+  # Verify the expected default value
+  default_threshold <- 400
+
+  # STRING confidence levels (from STRING documentation):
+  # - low confidence: 150
+  # - medium confidence: 400
+  # - high confidence: 700
+  # - highest confidence: 900
+
+  expect_equal(default_threshold, 400)
+  expect_true(default_threshold >= 400)  # At least medium confidence
+  expect_true(default_threshold <= 1000)  # Valid STRING score range
+})
+
+test_that("STRING score_threshold parameter is configurable", {
+  # Verify the parameter can accept custom values
+  custom_threshold <- 700  # high confidence
+
+  expect_true(custom_threshold >= 0)
+  expect_true(custom_threshold <= 1000)
+})

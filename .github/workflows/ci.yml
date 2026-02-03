@@ -95,7 +95,13 @@ jobs:
             libsodium-dev \
             libpng-dev \
             libsecret-1-dev \
-            libgit2-dev
+            libgit2-dev \
+            libpoppler-cpp-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libjpeg-dev \
+            cmake \
+            pandoc
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -151,7 +157,13 @@ jobs:
             libsodium-dev \
             libpng-dev \
             libsecret-1-dev \
-            libgit2-dev
+            libgit2-dev \
+            libpoppler-cpp-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libjpeg-dev \
+            cmake \
+            pandoc
 
       - uses: r-lib/actions/setup-renv@v2
         with:

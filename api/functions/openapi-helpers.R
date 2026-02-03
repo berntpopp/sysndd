@@ -304,7 +304,8 @@ enhance_openapi_spec <- function(
   schemas_dir <- file.path(config_dir, "schemas")
   message("[enhance_openapi_spec] Loading schemas from: ", schemas_dir)
   schemas <- load_openapi_json_files(schemas_dir)
-  message("[enhance_openapi_spec] Loaded ", length(schemas), " schemas: ", paste(names(schemas), collapse=", "))
+  message("[enhance_openapi_spec] Loaded ", length(schemas), " schemas: ",
+          paste(names(schemas), collapse = ", "))
   if (length(schemas) > 0) {
     if (is.null(spec$components$schemas)) {
       spec$components$schemas <- list()
@@ -332,7 +333,8 @@ enhance_openapi_spec <- function(
       spec$components$responses,
       std_responses
     )
-    message("[enhance_openapi_spec] components$responses now has: ", paste(names(spec$components$responses), collapse=", "))
+    message("[enhance_openapi_spec] components$responses now has: ",
+            paste(names(spec$components$responses), collapse = ", "))
   }
 
   # 3. Load and merge custom response definitions
@@ -387,6 +389,7 @@ enhance_openapi_spec <- function(
     message("[enhance_openapi_spec] Added error responses to ", path_count, " operations")
   }
 
-  message("[enhance_openapi_spec] Final spec components: ", paste(names(spec$components), collapse=", "))
+  message("[enhance_openapi_spec] Final spec components: ",
+          paste(names(spec$components), collapse = ", "))
   spec
 }

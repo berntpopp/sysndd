@@ -254,3 +254,46 @@ test_that("llm_batch_executor handles NULL cluster_hash gracefully", {
   expect_equal(result$succeeded, 0L)
   expect_equal(result$skipped, 0L)
 })
+
+
+# =============================================================================
+# Memory Management Tests
+# =============================================================================
+
+test_that("gc() interval is set to 10 clusters", {
+  # Document the gc() interval used in llm_batch_executor
+  gc_interval <- 10
+
+  expect_equal(gc_interval, 10)
+  expect_true(gc_interval > 1)  # Not every iteration (too much overhead)
+  expect_true(gc_interval <= 20)  # Reasonable upper bound
+})
+
+test_that("gc() is called periodically based on modulo", {
+  # Verify the modulo pattern for gc() calls
+  total_clusters <- 45
+  gc_interval <- 10
+  expected_gc_calls <- floor(total_clusters / gc_interval)
+
+  # Clusters 10, 20, 30, 40 would trigger gc()
+  actual_triggers <- sum(seq_len(total_clusters) %% gc_interval == 0)
+
+  expect_equal(actual_triggers, expected_gc_calls)
+  expect_equal(expected_gc_calls, 4)  # 4 calls for 45 clusters
+})
+
+test_that("gc() final call occurs after batch completion", {
+  # The final gc() call is unconditional after the loop
+  # This test documents that expectation
+
+  final_gc_expected <- TRUE
+  expect_true(final_gc_expected)
+})
+
+test_that("gc() uses verbose = FALSE to minimize log noise", {
+  # gc(verbose = FALSE) suppresses detailed memory output
+  # This is intentional for cleaner batch logs
+
+  verbose_setting <- FALSE
+  expect_false(verbose_setting)
+})

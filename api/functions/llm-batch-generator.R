@@ -562,7 +562,19 @@ llm_batch_executor <- function(params) {
       log_warn("Failed to generate summary for cluster {cluster_row$cluster_number} after {max_retries} attempts")
       failed <- failed + 1
     }
+
+    # Periodic memory cleanup every 10 clusters
+    # Helps return memory to OS during long batch runs in daemon context
+    # ~100ms overhead per call, acceptable for memory benefits
+    if (i %% 10 == 0) {
+      gc(verbose = FALSE)
+      log_debug("gc() called after cluster ", i)
+    }
   }
+
+  # Final memory cleanup after batch processing
+  gc(verbose = FALSE)
+  log_debug("Final gc() called after batch completion")
 
   # Final progress update
   reporter(

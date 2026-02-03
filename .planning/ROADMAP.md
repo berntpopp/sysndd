@@ -45,10 +45,10 @@ See previous milestone documentation. v10.1 delivered:
 - #150: Optimize mirai worker configuration for memory-constrained servers
 - #152: ViewLogs endpoint loads entire table into memory before filtering
 
-- [ ] **Phase 69: Configurable Workers** - MIRAI_WORKERS env var with bounded configuration
-- [ ] **Phase 70: Analysis Optimization** - STRING threshold, adaptive layout, LLM batch GC
-- [ ] **Phase 71: ViewLogs Database Filtering** - Indexes, parameterized queries, pagination
-- [ ] **Phase 72: Documentation & Testing** - Deployment guide and comprehensive test coverage
+- [x] **Phase 69: Configurable Workers** - MIRAI_WORKERS env var with bounded configuration
+- [x] **Phase 70: Analysis Optimization** - STRING threshold, adaptive layout, LLM batch GC
+- [x] **Phase 71: ViewLogs Database Filtering** - Indexes, parameterized queries, pagination
+- [x] **Phase 72: Documentation & Testing** - Deployment guide and comprehensive test coverage
 
 ## Phase Details
 
@@ -61,10 +61,10 @@ See previous milestone documentation. v10.1 delivered:
   2. Invalid values (0, 9, "abc") are rejected with sensible defaults applied
   3. Health endpoint response includes current worker count for monitoring
   4. Production docker-compose.yml defaults to 2 workers, dev defaults to 1 worker
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 69-01: Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
+- [x] 69-01-PLAN.md - Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
 
 ### Phase 70: Analysis Optimization
 **Goal**: Cluster analysis runs faster and uses less memory for large gene sets
@@ -76,12 +76,13 @@ Plans:
   3. Network visualization uses DrL layout for >1000 nodes (fast), FR-grid for 500-1000 nodes, standard FR for <500 nodes
   4. Network metadata reports actual layout algorithm used (user can verify in response)
   5. LLM batch job memory usage stays bounded over long runs (no gradual increase)
-**Plans:** TBD
+**Plans:** 3 plans + 1 debugging session
 
 Plans:
-- [ ] 70-01: Increase STRING score_threshold to 400 with configurable parameter
-- [ ] 70-02: Implement adaptive layout algorithm selection based on graph size
-- [ ] 70-03: Add periodic gc() calls to LLM batch executor
+- [x] 70-01-PLAN.md - Increase STRING score_threshold to 400 with configurable parameter
+- [x] 70-02-PLAN.md - Implement adaptive layout algorithm selection based on graph size
+- [x] 70-03-PLAN.md - Add periodic gc() calls to LLM batch executor
+- [x] 70-04-DEBUGGING-SESSION.md - STRINGdb singleton cache, memory cleanup, performance validation
 
 ### Phase 71: ViewLogs Database Filtering
 **Goal**: ViewLogs page loads quickly with filtering done in database, not R memory
@@ -93,13 +94,14 @@ Plans:
   3. SQL injection attempts in filter parameters are rejected (column whitelist enforced)
   4. Invalid filter syntax returns explicit 400 error with invalid_filter_error type
   5. Pagination response includes totalCount, totalPages, hasMore for UI pagination controls
-**Plans:** TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 71-01: Add database indexes for logging table (timestamp, status, path, composites)
-- [ ] 71-02: Implement query builder with column whitelist and parameterized queries
-- [ ] 71-03: Implement offset-based pagination with build_offset_pagination_response()
-- [ ] 71-04: Refactor logging endpoint to use database-side filtering
+- [x] 71-01-PLAN.md - Add database indexes for logging table (timestamp, status, path, composites)
+- [x] 71-02-PLAN.md - Implement query builder with column whitelist and parameterized queries
+- [x] 71-03-PLAN.md - Implement cursor-compatible filtering (adapted from offset-based)
+- [x] 71-04-PLAN.md - Refactor logging endpoint to use database-side filtering
+- [x] Post-fix: Support frontend filter format `contains(col,val)` and full-text search
 
 ### Phase 72: Documentation & Testing
 **Goal**: Deployment guide exists and all new code has test coverage
@@ -111,12 +113,12 @@ Plans:
   3. Unit tests verify MIRAI_WORKERS parsing rejects invalid values
   4. Unit tests verify column whitelist blocks unknown columns and SQL injection patterns
   5. Integration tests verify paginated queries return different pages with correct metadata
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 72-01: Write unit tests for worker configuration and query builder
-- [ ] 72-02: Write integration tests for database queries and pagination
-- [ ] 72-03: Create deployment documentation with memory configuration profiles
+- [x] 72-01-PLAN.md - Write unit tests for worker configuration and query builder
+- [x] 72-02-PLAN.md - Write integration tests for database queries and pagination
+- [x] 72-03-PLAN.md - Create deployment documentation with memory configuration profiles
 
 ## Progress
 
@@ -125,11 +127,11 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 69. Configurable Workers | v10.2 | 0/1 | Not started | - |
-| 70. Analysis Optimization | v10.2 | 0/3 | Not started | - |
-| 71. ViewLogs Database Filtering | v10.2 | 0/4 | Not started | - |
-| 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
+| 69. Configurable Workers | v10.2 | 1/1 | Complete | 2026-02-03 |
+| 70. Analysis Optimization | v10.2 | 3/3 | Complete | 2026-02-03 |
+| 71. ViewLogs Database Filtering | v10.2 | 4/4 | Complete | 2026-02-03 |
+| 72. Documentation & Testing | v10.2 | 3/3 | Complete | 2026-02-03 |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 — v10.2 roadmap created*
+*Last updated: 2026-02-03 - Phase 72 complete, v10.2 milestone complete*

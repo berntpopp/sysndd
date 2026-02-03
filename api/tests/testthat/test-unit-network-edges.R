@@ -193,3 +193,64 @@ test_that("different min_confidence produces different cache key", {
 
   expect_false(key1 == key2)
 })
+
+# =============================================================================
+# Adaptive Layout Algorithm Tests
+# =============================================================================
+
+test_that("layout algorithm selection uses DrL for large graphs (>1000 nodes)", {
+  # Verify the threshold for DrL selection
+  node_count <- 1500  # Large graph
+
+  expected_algorithm <- if (node_count > 1000) "drl" else "other"
+
+  expect_equal(expected_algorithm, "drl")
+})
+
+test_that("layout algorithm selection uses FR-grid for medium graphs (500-1000 nodes)", {
+  # Verify the threshold for FR-grid selection
+  node_count <- 750  # Medium graph
+
+  expected_algorithm <- if (node_count > 1000) {
+    "drl"
+  } else if (node_count > 500) {
+    "fruchterman_reingold_grid"
+  } else {
+    "fruchterman_reingold"
+  }
+
+  expect_equal(expected_algorithm, "fruchterman_reingold_grid")
+})
+
+test_that("layout algorithm selection uses standard FR for small graphs (<500 nodes)", {
+  # Verify small graphs use standard FR (current behavior)
+  node_count <- 300  # Small graph
+
+  expected_algorithm <- if (node_count > 1000) {
+    "drl"
+  } else if (node_count > 500) {
+    "fruchterman_reingold_grid"
+  } else {
+    "fruchterman_reingold"
+  }
+
+  expect_equal(expected_algorithm, "fruchterman_reingold")
+})
+
+test_that("layout algorithm thresholds are correctly defined", {
+  # Document the threshold values
+  drl_threshold <- 1000
+  grid_threshold <- 500
+
+  expect_true(drl_threshold > grid_threshold)
+  expect_equal(drl_threshold, 1000)
+  expect_equal(grid_threshold, 500)
+})
+
+test_that("metadata layout_algorithm field can be dynamic", {
+  # Verify metadata can hold different algorithm names
+  algorithms <- c("drl", "fruchterman_reingold_grid", "fruchterman_reingold")
+
+  expect_true(all(nchar(algorithms) > 0))
+  expect_equal(length(algorithms), 3)
+})

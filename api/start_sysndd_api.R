@@ -354,6 +354,8 @@ sysndd_api_version <<- version_json$version
 ## -------------------------------------------------------------------##
 # 9) Memoize certain functions
 ## -------------------------------------------------------------------##
+# Note: get_string_db() singleton is defined in analyses-functions.R
+# and available to both main process and mirai daemon workers
 cm <- cachem::cache_disk(
   dir      = "/app/cache",
   max_age  = Inf, # Never expires (clear volume to invalidate)
@@ -373,12 +375,23 @@ nest_pubtator_gene_tibble_mem <<- memoise(nest_pubtator_gene_tibble, cache = cm)
 ## -------------------------------------------------------------------##
 # 9.5) Initialize mirai daemon pool for async jobs
 ## -------------------------------------------------------------------##
+# Read worker count from environment variable with default
+# Why 2: Right-sized for 4-core VPS with 8GB RAM. Operators can tune for
+# memory-constrained servers (1 worker) or larger machines (up to 8).
+worker_count <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
+
+# Handle NA from invalid input (e.g., "abc")
+if (is.na(worker_count)) worker_count <- 2L
+
+# Validate bounds (minimum 1, maximum 8)
+worker_count <- max(1L, min(worker_count, 8L))
+
 daemons(
-  n = 2, # 2 workers (right-sized for 4-core VPS with 8GB RAM)
+  n = worker_count,
   dispatcher = TRUE, # Enable for variable-length jobs
   autoexit = tools::SIGINT
 )
-message(sprintf("[%s] Started mirai daemon pool with 2 workers", Sys.time()))
+message(sprintf("[%s] Started mirai daemon pool with %d workers", Sys.time(), worker_count))
 
 # Export required packages and functions to all daemons
 # NOTE: Load packages that mask dplyr::select FIRST (STRINGdb, biomaRt load

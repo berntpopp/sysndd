@@ -63,6 +63,8 @@ services:
     environment:
       # Override to use development config (Mailpit SMTP, not Strato)
       ENVIRONMENT: development
+      # Lower worker count for development (memory-constrained local machines)
+      MIRAI_WORKERS: ${MIRAI_WORKERS:-1}
 
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:

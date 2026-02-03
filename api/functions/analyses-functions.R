@@ -1,6 +1,45 @@
 # functions/analyses-functions.R
 #### This file holds analyses functions
 
+## -------------------------------------------------------------------##
+# STRINGdb singleton cache
+## -------------------------------------------------------------------##
+# Cache STRINGdb objects by score_threshold to avoid repeated version API calls.
+# STRINGdb$new() checks string-db.org/api/version on every call - expensive!
+# This singleton ensures we only initialize once per threshold value per R process.
+# Works in both main API process and mirai daemon workers.
+string_db_cache <- new.env(parent = emptyenv())
+
+#' Get cached STRINGdb instance
+#'
+#' Returns a cached STRINGdb object for the given score_threshold.
+#' Creates and caches a new instance if not already cached.
+#' Avoids repeated version API calls to string-db.org.
+#'
+#' @param score_threshold INTEGER. STRING confidence threshold (0-1000, default 400)
+#' @return STRINGdb object
+#' @export
+get_string_db <- function(score_threshold = 400L) {
+  cache_key <- as.character(score_threshold)
+
+  if (!exists(cache_key, envir = string_db_cache)) {
+    message(sprintf("[STRING] Initializing STRINGdb singleton (threshold=%d)...", score_threshold))
+    string_db_cache[[cache_key]] <- STRINGdb::STRINGdb$new(
+      version = "11.5",
+      species = 9606,
+      score_threshold = score_threshold,
+      input_directory = "data"
+    )
+    message(sprintf("[STRING] STRINGdb singleton ready (threshold=%d)", score_threshold))
+  }
+
+  string_db_cache[[cache_key]]
+}
+
+## -------------------------------------------------------------------##
+# Analysis Functions
+## -------------------------------------------------------------------##
+
 #' A recursive function generating a functional gene cluster with string-db
 #'
 #' @param hgnc_list A comma separated list as concatenated text
@@ -10,6 +49,7 @@
 #' @param enrichment Boolean value indicating whether to perform enrichment
 #' @param algorithm Clustering algorithm name (default: "leiden")
 #' @param string_id_table Pre-fetched STRING ID table (for daemon context)
+#' @param score_threshold STRING confidence score threshold (0-1000, default 400 = medium)
 #'
 #' @return The clusters tibble
 #' @export
@@ -20,18 +60,14 @@ gen_string_clust_obj <- function(
   parent = NA,
   enrichment = TRUE,
   algorithm = "leiden",
-  string_id_table = NULL
+  string_id_table = NULL,
+  score_threshold = 400
 ) {
   # Caching is handled by the memoise wrapper (gen_string_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
 
-  # load/ download STRING database files
-  string_db <- STRINGdb::STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = 200,
-    input_directory = "data"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(score_threshold)
 
   # Load gene table from database and filter to input HGNC list
   # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
@@ -147,13 +183,19 @@ gen_string_clust_obj <- function(
           subcluster = FALSE,
           parent = cluster,
           algorithm = algorithm,
-          string_id_table = string_id_table
+          string_id_table = string_id_table,
+          score_threshold = score_threshold
         )))
       } else {
         .
       }
     } %>%
     ungroup()
+
+  # Memory cleanup before returning
+  # Remove large intermediate objects to help gc()
+  rm(string_db, subgraph, cluster_result, clusters_list)
+  gc(verbose = FALSE)
 
   # return result
   return(clusters_tibble)
@@ -167,13 +209,8 @@ gen_string_clust_obj <- function(
 #' @return The enrichment tibble
 #' @export
 gen_string_enrich_tib <- function(hgnc_list) {
-  # load/ download STRING database files
-  string_db <- STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = 200,
-    input_directory = "data/"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(400L)
 
   # compute enrichment and convert to tibble
   # Sort by FDR ascending so most significant terms appear first
@@ -387,13 +424,8 @@ gen_network_edges <- function(
   gene_table <- sysndd_db_string_id_table %>%
     filter(hgnc_id %in% cluster_map$hgnc_id)
 
-  # Initialize STRINGdb with specified confidence threshold
-  string_db <- STRINGdb::STRINGdb$new(
-    version = "11.5",
-    species = 9606,
-    score_threshold = min_confidence,
-    input_directory = "data"
-  )
+  # Get cached STRINGdb instance (singleton avoids repeated version API calls)
+  string_db <- get_string_db(min_confidence)
 
   # Get STRING graph
   string_graph <- string_db$get_graph()
@@ -480,18 +512,45 @@ gen_network_edges <- function(
   cluster_count <- length(unique(nodes$cluster[!is.na(nodes$cluster)]))
 
   # PRE-COMPUTE LAYOUT POSITIONS SERVER-SIDE
-  # Using igraph's Fruchterman-Reingold (fast, good quality)
+  # Using igraph's layout algorithms (fast, good quality)
   # This is cached via gen_network_edges_mem, so only computed once
   message(paste0("[gen_network_edges] Computing layout for ", nrow(nodes), " nodes..."))
   layout_start <- Sys.time()
 
-  # Compute layout using igraph - much faster than browser-side JavaScript
-  # Use layout_with_fr (Fruchterman-Reingold) for good cluster separation
-  layout_matrix <- igraph::layout_with_fr(
-    subgraph,
-    niter = 500, # Sufficient iterations for convergence
-    weights = igraph::E(subgraph)$combined_score / 1000 # Use edge weights
-  )
+  # Adaptive layout algorithm selection based on graph size
+  # - DrL for large graphs (>1000 nodes): Designed for large-scale networks
+  # - FR with grid for medium graphs (500-1000): Faster but less accurate
+  # - Standard FR for small graphs (<500): Best quality, current behavior
+  # See: https://r.igraph.org/reference/layout_nicely.html
+  node_count <- nrow(nodes)
+
+  if (node_count > 1000) {
+    # DrL for large graphs - designed for large-scale networks
+    # Does not use edge weights (DrL implementation limitation)
+    message(sprintf("[gen_network_edges] Using DrL layout for %d nodes (large graph)", node_count))
+    layout_matrix <- igraph::layout_with_drl(subgraph)
+    layout_algo <- "drl"
+  } else if (node_count > 500) {
+    # FR with grid optimization for medium graphs
+    # Grid-based version is faster but less accurate
+    message(sprintf("[gen_network_edges] Using FR-grid layout for %d nodes (medium graph)", node_count))
+    layout_matrix <- igraph::layout_with_fr(
+      subgraph,
+      niter = 300,  # Reduced iterations for speed
+      grid = "grid",
+      weights = igraph::E(subgraph)$combined_score / 1000
+    )
+    layout_algo <- "fruchterman_reingold_grid"
+  } else {
+    # Standard FR for small graphs - best quality, current behavior preserved
+    message(sprintf("[gen_network_edges] Using FR layout for %d nodes (small graph)", node_count))
+    layout_matrix <- igraph::layout_with_fr(
+      subgraph,
+      niter = 500,
+      weights = igraph::E(subgraph)$combined_score / 1000
+    )
+    layout_algo <- "fruchterman_reingold"
+  }
 
   layout_time <- as.numeric(difftime(Sys.time(), layout_start, units = "secs"))
   message(paste0("[gen_network_edges] Layout computed in ", round(layout_time, 2), "s"))
@@ -530,7 +589,7 @@ gen_network_edges <- function(
     cluster_count = cluster_count,
     string_version = string_version,
     min_confidence = min_confidence,
-    layout_algorithm = "fruchterman_reingold",
+    layout_algorithm = layout_algo,
     layout_time_seconds = round(layout_time, 2),
     # Add total NDD genes and genes with STRING data for UI display
     total_ndd_genes = nrow(genes_from_entity_table),
@@ -542,12 +601,21 @@ gen_network_edges <- function(
 
   message(paste0("[gen_network_edges] Returning ", nrow(nodes), " nodes, ", nrow(edges), " edges"))
 
-  # Return structured result
-  list(
+  # Build result before cleanup
+  result <- list(
     nodes = nodes,
     edges = edges,
     metadata = metadata
   )
+
+  # Memory cleanup: remove large intermediate objects
+  # STRING graph and igraph objects consume significant memory during computation
+  rm(string_graph, subgraph, edge_list, layout_matrix, layout_normalized)
+  rm(string_to_hgnc, gene_table, cluster_map, node_degrees)
+  gc(verbose = FALSE)
+
+  # Return structured result
+  result
 }
 
 

@@ -156,6 +156,7 @@ services:
       PASSWORD: ${PASSWORD}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      MIRAI_WORKERS: ${MIRAI_WORKERS:-2}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # CORS configuration: comma-separated list of allowed origins
       # Critical for Firefox compatibility (issue #143)

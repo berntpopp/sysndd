@@ -847,26 +847,15 @@ export default {
             this.loadingProgress = 100;
             this.loading = false;
 
-            // Set table display - auto-select first cluster by default (like PhenotypeClusters)
-            // This provides immediate AI summary and consistent UX
+            // Set table display - default to showing all clusters
+            // User can select individual clusters to see AI summaries
             this.$nextTick(() => {
               if (this.itemsCluster.length > 0) {
-                // Auto-select first cluster for immediate AI summary display
-                this.showAllClustersInTable = false;
-                this.displayedClusters = [1];
-                this.activeParentCluster = 1;
+                // Default to all clusters view
+                this.showAllClustersInTable = true;
+                this.displayedClusters = [];
+                this.activeParentCluster = null;
                 this.setActiveCluster();
-
-                // Sync NetworkVisualization dropdown to show cluster 1 selected
-                if (this.$refs.networkVisualization?.selectCluster) {
-                  this.$refs.networkVisualization.selectCluster(1);
-                }
-
-                // Fetch LLM summary for the first cluster
-                const firstCluster = this.itemsCluster.find((item) => item.cluster === 1);
-                if (firstCluster?.hash_filter) {
-                  this.fetchClusterSummary(firstCluster.hash_filter, 1);
-                }
               }
             });
             return;
@@ -905,26 +894,13 @@ export default {
         this.itemsCluster = response.data.clusters;
         this.valueCategories = response.data.categories;
 
-        // Auto-select first cluster by default (like PhenotypeClusters)
-        // This provides immediate AI summary and consistent UX
+        // Default to showing all clusters
+        // User can select individual clusters to see AI summaries
         if (this.itemsCluster.length > 0) {
-          this.showAllClustersInTable = false;
-          this.displayedClusters = [1];
-          this.activeParentCluster = 1;
+          this.showAllClustersInTable = true;
+          this.displayedClusters = [];
+          this.activeParentCluster = null;
           this.setActiveCluster();
-
-          // Sync NetworkVisualization dropdown to show cluster 1 selected
-          this.$nextTick(() => {
-            if (this.$refs.networkVisualization?.selectCluster) {
-              this.$refs.networkVisualization.selectCluster(1);
-            }
-          });
-
-          // Fetch LLM summary for the first cluster
-          const firstCluster = this.itemsCluster.find((item) => item.cluster === 1);
-          if (firstCluster?.hash_filter) {
-            this.fetchClusterSummary(firstCluster.hash_filter, 1);
-          }
         }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -955,6 +931,14 @@ export default {
     },
 
     setActiveCluster() {
+      // Handle "All Clusters" mode - combine data from all clusters
+      if (this.showAllClustersInTable) {
+        this.selectedCluster = this.combineClusterData(this.itemsCluster);
+        const arr = this.selectedCluster[this.tableType] || [];
+        this.totalRows = arr.length;
+        return;
+      }
+
       let match;
       let subClusters;
       let clusterNum;

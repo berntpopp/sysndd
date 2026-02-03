@@ -88,18 +88,50 @@
               <!-- Cluster dropdown -->
               <BDropdown size="sm" variant="outline-secondary" :text="clusterFilterLabel">
                 <BDropdownItemButton :active="showAllClusters" @click="setShowAllClusters(true)">
+                  <i class="bi bi-grid-3x3-gap me-2" />
                   All Clusters
                 </BDropdownItemButton>
                 <BDropdownDivider />
-                <BDropdownItemButton
+                <div
                   v-for="cluster in legendClusters"
                   :key="cluster.id"
-                  :active="selectedClusters.has(cluster.id)"
-                  @click="toggleCluster(cluster.id)"
+                  class="cluster-dropdown-item px-3 py-2"
+                  :class="{ 'cluster-dropdown-item--selected': selectedClusters.has(cluster.id) }"
                 >
-                  <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" />
-                  Cluster {{ cluster.id }}
-                </BDropdownItemButton>
+                  <!-- Main clickable area - single select -->
+                  <button
+                    type="button"
+                    class="cluster-dropdown-main"
+                    :title="`View Cluster ${cluster.id} only`"
+                    @click="selectSingleCluster(cluster.id)"
+                  >
+                    <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" />
+                    <span class="cluster-label">Cluster {{ cluster.id }}</span>
+                    <i
+                      v-if="selectedClusters.has(cluster.id) && selectedClusters.size === 1"
+                      class="bi bi-check-lg text-primary ms-auto"
+                    />
+                  </button>
+                  <!-- Add/Remove button for multi-select -->
+                  <button
+                    v-if="!selectedClusters.has(cluster.id)"
+                    type="button"
+                    class="cluster-dropdown-action cluster-dropdown-action--add"
+                    title="Add to selection"
+                    @click.stop="addClusterToSelection(cluster.id)"
+                  >
+                    <i class="bi bi-plus-lg" />
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    class="cluster-dropdown-action cluster-dropdown-action--remove"
+                    title="Remove from selection"
+                    @click.stop="removeClusterFromSelection(cluster.id)"
+                  >
+                    <i class="bi bi-x-lg" />
+                  </button>
+                </div>
               </BDropdown>
             </div>
           </div>
@@ -221,13 +253,51 @@
         </div>
       </div>
 
-      <!-- Network legend -->
+      <!-- Network legend - interactive cluster pills -->
       <div v-if="legendClusters.length > 0" class="network-legend p-2 border-top">
         <small class="text-muted me-2">Clusters:</small>
-        <span v-for="cluster in legendClusters" :key="cluster.id" class="legend-item me-3">
-          <span class="legend-color" :style="{ backgroundColor: cluster.color }" />
-          {{ cluster.id }}
-        </span>
+        <div class="legend-pills">
+          <div
+            v-for="cluster in legendClusters"
+            :key="cluster.id"
+            class="legend-pill"
+            :class="{
+              'legend-pill--selected': selectedClusters.has(cluster.id) && !showAllClusters,
+              'legend-pill--all': showAllClusters,
+            }"
+          >
+            <!-- Main pill - click to single select -->
+            <button
+              type="button"
+              class="legend-pill-main"
+              :title="`View Cluster ${cluster.id}`"
+              @click="selectSingleCluster(cluster.id)"
+            >
+              <span class="legend-color" :style="{ backgroundColor: cluster.color }" />
+              {{ cluster.id }}
+            </button>
+            <!-- Add button - appears on hover when not selected -->
+            <button
+              v-if="!selectedClusters.has(cluster.id) || showAllClusters"
+              type="button"
+              class="legend-pill-add"
+              title="Add to selection"
+              @click.stop="addClusterToSelection(cluster.id)"
+            >
+              <i class="bi bi-plus" />
+            </button>
+            <!-- Remove button - shown when selected in multi-select mode -->
+            <button
+              v-else-if="selectedClusters.size > 1"
+              type="button"
+              class="legend-pill-remove"
+              title="Remove from selection"
+              @click.stop="removeClusterFromSelection(cluster.id)"
+            >
+              <i class="bi bi-x" />
+            </button>
+          </div>
+        </div>
       </div>
     </BCard>
   </div>
@@ -607,25 +677,45 @@ function setCategoryLevel(level: CategoryFilter) {
   handleApplyFilters();
 }
 
-// Toggle cluster selection
-function toggleCluster(clusterId: number) {
+/**
+ * Select a single cluster (replaces any existing selection)
+ * Primary action for cluster pills and dropdown items
+ */
+function selectSingleCluster(clusterId: number) {
+  showAllClusters.value = false;
+  selectedClusters.value = new Set([clusterId]);
+  handleApplyFilters();
+  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
+}
+
+/**
+ * Add a cluster to the current selection (multi-select)
+ * Used by "+" button on pills and dropdown items
+ */
+function addClusterToSelection(clusterId: number) {
   showAllClusters.value = false;
   const newSet = new Set(selectedClusters.value);
-  if (newSet.has(clusterId)) {
-    newSet.delete(clusterId);
-  } else {
-    newSet.add(clusterId);
-  }
+  newSet.add(clusterId);
+  selectedClusters.value = newSet;
+  handleApplyFilters();
+  emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
+}
+
+/**
+ * Remove a cluster from the current selection
+ * Used by "x" button on selected pills and dropdown items
+ */
+function removeClusterFromSelection(clusterId: number) {
+  const newSet = new Set(selectedClusters.value);
+  newSet.delete(clusterId);
   selectedClusters.value = newSet;
 
-  // If no clusters selected, show all
+  // If no clusters left, show all
   if (newSet.size === 0) {
     showAllClusters.value = true;
   }
 
   handleApplyFilters();
-
-  // Emit cluster selection change for table sync
   emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
@@ -914,19 +1004,230 @@ defineExpose({
   align-items: center;
 }
 
-.legend-item {
+/* ============================================
+   Cluster Selection UI - Polished Design
+   ============================================ */
+
+/* Legend pills container */
+.legend-pills {
   display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
   align-items: center;
-  white-space: nowrap;
 }
 
+/* Individual cluster pill */
+.legend-pill {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  border-radius: 20px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.legend-pill:hover {
+  border-color: #adb5bd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Main clickable area of pill */
+.legend-pill-main {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legend-pill-main:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.legend-pill-main:focus {
+  outline: none;
+}
+
+/* Add button (+ icon) - appears on hover */
+.legend-pill-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  padding: 0;
+  font-size: 11px;
+  color: #198754;
+  background: transparent;
+  border: none;
+  border-left: 1px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.legend-pill:hover .legend-pill-add {
+  width: 24px;
+  padding: 0.25rem 0.375rem;
+  border-left-color: #e9ecef;
+}
+
+.legend-pill-add:hover {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #146c43;
+}
+
+/* Remove button (x icon) - shown when selected */
+.legend-pill-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  padding: 0.25rem 0.375rem;
+  font-size: 11px;
+  color: #6c757d;
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.legend-pill-remove:hover {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: #dc3545;
+}
+
+/* Selected pill state */
+.legend-pill--selected {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+  border-color: #0a58ca;
+  box-shadow: 0 2px 6px rgba(13, 110, 253, 0.35);
+}
+
+.legend-pill--selected .legend-pill-main {
+  color: white;
+}
+
+.legend-pill--selected .legend-pill-main:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.legend-pill--selected .legend-color {
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
+}
+
+/* All clusters mode - subtle equal highlight */
+.legend-pill--all {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+/* Cluster color indicator */
 .legend-color {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  margin-right: 4px;
-  border: 1px solid #333;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.375rem;
+  border: 1.5px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   Dropdown Cluster Items - Polished Design
+   ============================================ */
+
+.cluster-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 4px;
+  margin: 0.125rem 0.5rem;
+  transition: background-color 0.15s ease;
+}
+
+.cluster-dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.cluster-dropdown-item--selected {
+  background-color: #e7f1ff;
+}
+
+.cluster-dropdown-item--selected:hover {
+  background-color: #d0e3ff;
+}
+
+/* Main clickable area in dropdown */
+.cluster-dropdown-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  color: #212529;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cluster-dropdown-main:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.cluster-dropdown-main:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.25);
+}
+
+.cluster-dropdown-main .cluster-label {
+  font-weight: 500;
+}
+
+/* Action buttons in dropdown */
+.cluster-dropdown-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cluster-dropdown-action--add {
+  color: #198754;
+}
+
+.cluster-dropdown-action--add:hover {
+  background-color: #d1e7dd;
+  border-color: #a3cfbb;
+  color: #146c43;
+}
+
+.cluster-dropdown-action--remove {
+  color: #6c757d;
+}
+
+.cluster-dropdown-action--remove:hover {
+  background-color: #f8d7da;
+  border-color: #f1aeb5;
+  color: #dc3545;
 }
 
 /* Button group styling */
