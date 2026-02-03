@@ -201,20 +201,25 @@ function(req, res) {
 #*
 #* @get /health/performance
 function() {
+  # Read configured worker count from environment (same logic as start_sysndd_api.R)
+  configured_workers <- as.integer(Sys.getenv("MIRAI_WORKERS", "2"))
+  if (is.na(configured_workers)) configured_workers <- 2L
+  configured_workers <- max(1L, min(configured_workers, 8L))
+
   # Check worker pool status via mirai
   worker_status <- tryCatch(
     {
       status <- mirai::status()
       list(
-        total_workers = 8,
-        connections = length(status$connections),
+        configured = configured_workers,
+        connections = status$connections,
         # Dispatcher handles task distribution
         dispatcher_active = TRUE
       )
     },
     error = function(e) {
       list(
-        total_workers = 8,
+        configured = configured_workers,
         connections = 0,
         dispatcher_active = FALSE,
         error = e$message
