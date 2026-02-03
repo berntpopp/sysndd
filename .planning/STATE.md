@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Current Position
 
 **Phase:** 72 of 72 (Documentation & Testing)
-**Plan:** Not started
-**Status:** Ready to plan
-**Progress:** v10.2 [###############-----] 75%
+**Plan:** 03 of 05
+**Status:** In progress
+**Progress:** v10.2 [#################---] 85%
 
-**Last completed:** Phase 71 (ViewLogs Database Filtering) - Issue #152 FIXED
-**Last activity:** 2026-02-03 — Phase 71 verified + post-fix for frontend filter format
-**Next action:** Plan Phase 72 with `/gsd:plan-phase 72`
+**Last completed:** 72-03-PLAN.md (Deployment Documentation)
+**Last activity:** 2026-02-03 — Completed 72-03-PLAN.md
+**Next action:** Continue Phase 72 execution
 
 ---
 
@@ -68,6 +68,9 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 | EXPLICIT_SELECT | Use dplyr::select() in endpoint | Avoids masking issues from other packages | 71-04 |
 | FILTER_FORMAT | Use contains(col,val) format for filters | Matches frontend conventions used by all other tables | 71-fix |
 | ANY_SEARCH | Search across path/agent/query/host for any column | Provides full-text search matching frontend expectations | 71-fix |
+| CLAUDE_LOCAL | CLAUDE.md is gitignored (local-only) | Intentional project design for local developer reference | 72-03 |
+| SERVER_PROFILES | 4-8GB/16GB/32GB+ RAM categories | Matches Phase 69 worker defaults (1/2/4 workers) | 72-03 |
+| MEMORY_FORMULA | Peak = Base (500MB) + Workers x 2GB | Based on production observations from cluster analysis | 72-03 |
 
 ---
 
@@ -96,11 +99,11 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ## Session Continuity
 
 **Last session:** 2026-02-03
-**Stopped at:** Completed Phase 71 (ViewLogs Database Filtering)
-**Next action:** Plan Phase 72 (Documentation & Testing)
+**Stopped at:** Completed 72-03-PLAN.md (Deployment Documentation)
+**Next action:** Continue Phase 72 execution
 **Resume file:** None
 
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-03 — Phase 71 complete + post-fix for frontend filter format compatibility*
+*Last updated: 2026-02-03 — Completed 72-03-PLAN.md (Deployment Documentation)*
