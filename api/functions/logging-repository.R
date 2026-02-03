@@ -307,6 +307,34 @@ build_logging_where_clause <- function(filters = list()) {
     params <- append(params, filters$address)
   }
 
+  # Path contains filter (LIKE with wildcards for substring match)
+  if (!is.null(filters$path_contains) && filters$path_contains != "") {
+    where_clause <- paste(where_clause, "AND path LIKE ?")
+    params <- append(params, paste0("%", filters$path_contains, "%"))
+  }
+
+  # Host filter (exact match)
+  if (!is.null(filters$host) && filters$host != "") {
+    where_clause <- paste(where_clause, "AND host = ?")
+    params <- append(params, filters$host)
+  }
+
+  # Agent contains filter (LIKE with wildcards for substring match)
+  if (!is.null(filters$agent_contains) && filters$agent_contains != "") {
+    where_clause <- paste(where_clause, "AND agent LIKE ?")
+    params <- append(params, paste0("%", filters$agent_contains, "%"))
+  }
+
+  # Any contains filter - search across multiple text columns
+  if (!is.null(filters$any_contains) && filters$any_contains != "") {
+    search_val <- paste0("%", filters$any_contains, "%")
+    where_clause <- paste(
+      where_clause,
+      "AND (path LIKE ? OR agent LIKE ? OR query LIKE ? OR host LIKE ?)"
+    )
+    params <- append(params, list(search_val, search_val, search_val, search_val))
+  }
+
   list(
     clause = where_clause,
     params = params
@@ -454,122 +482,147 @@ get_logs_filtered <- function(
 
 #' Parse filter string to filter list
 #'
-#' Converts the comma-separated filter string from the endpoint into a list
+#' Converts the filter string from the endpoint into a list
 #' that can be passed to get_logs_filtered().
 #'
-#' Supported filter formats:
-#' - status==200 (exact match on status)
-#' - request_method==GET (exact match on method)
-#' - path=^/api/ (prefix match on path, converted to path_prefix)
-#' - timestamp>2026-01-01 (converted to timestamp_from)
-#' - timestamp<2026-01-31 (converted to timestamp_to)
-#' - address==127.0.0.1 (exact match on address)
+#' Supported filter formats (matching frontend conventions):
+#' - contains(status,500) - exact match on status
+#' - contains(request_method,GET) - exact match on method
+#' - contains(path,/api/) - LIKE match on path
+#' - contains(address,127.0.0.1) - exact match on address
+#' - equals(column,value) - exact match
+#' - greaterThan(timestamp,2026-01-01) - timestamp_from
+#' - greaterThanOrEqual(timestamp,2026-01-01) - timestamp_from
+#' - lessThan(timestamp,2026-01-31) - timestamp_to
+#' - lessThanOrEqual(timestamp,2026-01-31) - timestamp_to
+#' - and(expr1,expr2) - multiple filters combined
 #'
-#' @param filter_string Character, comma-separated filter expressions
+#' @param filter_string Character, filter expression string
 #'
 #' @return Named list of filters for get_logs_filtered()
 #'
 #' @examples
 #' \dontrun{
 #' # Single filter
-#' parse_logging_filter("status==200")
-#' # list(status = 200)
+#' parse_logging_filter("contains(status,500)")
+#' # list(status = 500)
 #'
-#' # Multiple filters
-#' parse_logging_filter("status==200,request_method==GET")
+#' # Multiple filters with and()
+#' parse_logging_filter("and(contains(status,200),contains(request_method,GET))")
 #' # list(status = 200, request_method = "GET")
 #'
-#' # Path prefix (special handling)
-#' parse_logging_filter("path=^/api/")
-#' # list(path_prefix = "/api/")
+#' # Path search
+#' parse_logging_filter("contains(path,/api/)")
+#' # list(path_contains = "/api/")
 #' }
 #'
 #' @export
 parse_logging_filter <- function(filter_string) {
-  if (is.null(filter_string) || filter_string == "") {
+  if (is.null(filter_string) || filter_string == "" || filter_string == "null") {
     return(list())
   }
 
+  # URL decode the filter string
+  filter_string <- URLdecode(filter_string)
+  filter_string <- trimws(filter_string)
+
   filters <- list()
-  parts <- strsplit(filter_string, ",")[[1]]
 
-  for (part in parts) {
-    part <- trimws(part)
-    if (part == "") next
+  # Helper function to parse a single expression like contains(column,value)
+  parse_single_expr <- function(expr) {
+    expr <- trimws(expr)
+    if (expr == "") return(NULL)
 
-    # Handle different operators
-    if (grepl("==", part)) {
-      # Exact match: column==value
-      split <- strsplit(part, "==")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
+    # Match pattern: operation(column,value)
+    # Handle potential quotes around value
+    match <- regmatches(
+      expr,
+      regexec("^(\\w+)\\(([^,]+),(.+)\\)$", expr)
+    )[[1]]
 
-        # Map to filter list keys
-        if (col == "status") {
-          filters$status <- as.integer(val)
-        } else if (col == "request_method") {
-          filters$request_method <- val
-        } else if (col == "address") {
-          filters$address <- val
-        }
+    if (length(match) == 4) {
+      operation <- match[2]
+      column <- trimws(match[3])
+      value <- trimws(match[4])
+      # Remove surrounding quotes if present
+      value <- gsub("^['\"]|['\"]$", "", value)
+
+      return(list(operation = operation, column = column, value = value))
+    }
+
+    NULL
+  }
+
+  # Helper function to add a parsed expression to filters
+  add_to_filters <- function(parsed_expr) {
+    if (is.null(parsed_expr)) return()
+
+    op <- parsed_expr$operation
+    col <- parsed_expr$column
+    val <- parsed_expr$value
+
+    # Map operations to filter list keys
+    if (op %in% c("contains", "equals")) {
+      if (col == "status") {
+        filters$status <<- as.integer(val)
+      } else if (col == "request_method") {
+        filters$request_method <<- val
+      } else if (col == "address") {
+        filters$address <<- val
+      } else if (col == "path") {
+        # For path, use LIKE matching
+        filters$path_contains <<- val
+      } else if (col == "host") {
+        filters$host <<- val
+      } else if (col == "agent") {
+        filters$agent_contains <<- val
+      } else if (col == "any") {
+        # Search across all text columns
+        filters$any_contains <<- val
       }
-    } else if (grepl("=\\^", part)) {
-      # Prefix match: column=^prefix (path=^/api/)
-      split <- strsplit(part, "=\\^")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
-
-        if (col == "path") {
-          filters$path_prefix <- val
-        }
+    } else if (op %in% c("greaterThan", "greaterThanOrEqual")) {
+      if (col == "timestamp") {
+        filters$timestamp_from <<- val
       }
-    } else if (grepl(">=", part)) {
-      # Greater than or equal: column>=value
-      split <- strsplit(part, ">=")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
-
-        if (col == "timestamp") {
-          filters$timestamp_from <- val
-        }
-      }
-    } else if (grepl("<=", part)) {
-      # Less than or equal: column<=value
-      split <- strsplit(part, "<=")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
-
-        if (col == "timestamp") {
-          filters$timestamp_to <- val
-        }
-      }
-    } else if (grepl(">", part)) {
-      # Greater than: column>value
-      split <- strsplit(part, ">")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
-
-        if (col == "timestamp") {
-          filters$timestamp_from <- val
-        }
-      }
-    } else if (grepl("<", part)) {
-      # Less than: column<value
-      split <- strsplit(part, "<")[[1]]
-      if (length(split) == 2) {
-        col <- trimws(split[1])
-        val <- trimws(split[2])
-
-        if (col == "timestamp") {
-          filters$timestamp_to <- val
-        }
+    } else if (op %in% c("lessThan", "lessThanOrEqual")) {
+      if (col == "timestamp") {
+        filters$timestamp_to <<- val
       }
     }
+  }
+
+  # Check if wrapped in and() or or()
+  if (grepl("^and\\(", filter_string) || grepl("^or\\(", filter_string)) {
+    # Extract content inside and() or or()
+    inner <- sub("^(and|or)\\((.*)\\)$", "\\2", filter_string)
+
+    # Split by ),contains or ),equals etc. (careful parsing)
+    # Use a regex that splits on ),operation(
+    # Split carefully - find top-level commas between expressions
+    exprs <- c()
+    depth <- 0
+    current <- ""
+    for (char in strsplit(inner, "")[[1]]) {
+      if (char == "(") depth <- depth + 1
+      if (char == ")") depth <- depth - 1
+      if (char == "," && depth == 0) {
+        exprs <- c(exprs, current)
+        current <- ""
+      } else {
+        current <- paste0(current, char)
+      }
+    }
+    if (current != "") exprs <- c(exprs, current)
+
+    # Parse each expression
+    for (expr in exprs) {
+      parsed <- parse_single_expr(expr)
+      add_to_filters(parsed)
+    }
+  } else {
+    # Single expression
+    parsed <- parse_single_expr(filter_string)
+    add_to_filters(parsed)
   }
 
   filters
