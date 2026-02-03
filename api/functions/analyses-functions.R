@@ -166,7 +166,8 @@ gen_string_clust_obj <- function(
       }
     } %>%
     {
-      if (enrichment) {
+      # Only add enrichment if there are rows (fixes rowwise $ operator error on empty tibble)
+      if (enrichment && nrow(.) > 0) {
         mutate(.,
           term_enrichment =
             list(gen_string_enrich_tib(identifiers$hgnc_id) %>%
@@ -177,7 +178,8 @@ gen_string_clust_obj <- function(
       }
     } %>%
     {
-      if (subcluster) {
+      # Only add subclusters if there are rows (fixes rowwise $ operator error on empty tibble)
+      if (subcluster && nrow(.) > 0) {
         mutate(., subclusters = list(gen_string_clust_obj(
           identifiers$hgnc_id,
           subcluster = FALSE,

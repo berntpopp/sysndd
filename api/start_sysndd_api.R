@@ -340,9 +340,7 @@ output_columns_allowed <<- c(
   "ensembl_gene_id",
   "ucsc_id",
   "bed_hg19",
-  "bed_hg38",
-  "gnomad_constraints",
-  "alphafold_id"
+  "bed_hg38"
 )
 
 user_status_allowed <<- c("Administrator", "Curator", "Reviewer", "Viewer")

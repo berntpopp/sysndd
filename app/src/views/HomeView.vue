@@ -356,7 +356,7 @@
                 <span class="word"
                   >The classification criteria used for the categories are detailed in our
                   <BLink
-                    href="https://berntpopp.github.io/sysndd/curation-criteria.html"
+                    href="https://berntpopp.github.io/sysndd/05-curation-criteria.html"
                     target="_blank"
                   >
                     Documentation

@@ -22,7 +22,7 @@
                     <BRow>
                       <BCol md="12">
                         Please read the Curation criteria at
-                        <BLink href="https://berntpopp.github.io/sysndd/curation-criteria.html">
+                        <BLink href="https://berntpopp.github.io/sysndd/05-curation-criteria.html">
                           The SysNDD Documentation - Chapter | 5 Curation criteria </BLink
                         >.<br /><br />
                       </BCol>
@@ -37,7 +37,7 @@
                       <BCol md="12">
                         Please read the Re-review instructions at
                         <BLink
-                          href="https://berntpopp.github.io/sysndd/re-review-instructions.html"
+                          href="https://berntpopp.github.io/sysndd/06-re-review-instructions.html"
                         >
                           The SysNDD Documentation - Chapter | 6 Re-review instructions </BLink
                         >.<br /><br />
@@ -52,7 +52,7 @@
                     <BRow>
                       <BCol md="12">
                         Please watch the tutorial videos at
-                        <BLink href="https://berntpopp.github.io/sysndd/tutorial-videos.html">
+                        <BLink href="https://berntpopp.github.io/sysndd/07-tutorial-videos.html">
                           The SysNDD Documentation - Chapter | 7 Tutorial videos </BLink
                         >.<br /><br />
                       </BCol>
