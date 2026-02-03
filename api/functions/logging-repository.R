@@ -1,12 +1,13 @@
 # functions/logging-repository.R
 #
 # Database repository for logging table operations.
-# Provides query building, column validation, and pagination.
+# Provides query building and column validation for database-side filtering.
 #
 # Key features:
 # - Column whitelist validation to prevent SQL injection
 # - Parameterized queries via db_execute_query()
-# - Offset-based pagination with metadata
+# - Database-side filtering (fixes #152 memory issue)
+# - Compatible with existing cursor-based pagination (generate_cursor_pag_inf)
 #
 # Security model:
 # - Column names cannot use parameterized queries (? placeholders)
@@ -362,224 +363,214 @@ build_logging_order_clause <- function(
 }
 
 #------------------------------------------------------------------------------
-# Pagination Helpers (PAG-01, PAG-02)
+# Database Query Functions (LOG-01, LOG-05, LOG-06)
 #------------------------------------------------------------------------------
+#
+# NOTE: This API uses CURSOR-BASED PAGINATION (page_after, page_size) not
+# offset-based pagination (page, per_page). The existing generate_cursor_pag_inf()
+# function handles pagination formatting. These repository functions provide
+# database-side filtering to avoid loading all rows into memory.
 
-#' Build offset-based pagination response
+#' Get filtered log entries for cursor pagination
 #'
-#' Constructs a standardized pagination response object with data and metadata.
-#' Provides all fields needed for UI pagination controls.
+#' Fetches log entries from database with filtering. The result is a tibble
+#' that can be passed to generate_cursor_pag_inf() for cursor-based pagination.
 #'
-#' @param data Tibble or data.frame, the paginated data for current page
-#' @param total Integer, total count of matching rows (from COUNT query)
-#' @param page Integer, current page number (1-indexed)
-#' @param per_page Integer, page size (rows per page)
+#' This function performs database-side filtering (WHERE clause) instead of
+#' loading all rows with collect(). This is the key fix for issue #152.
 #'
-#' @return List with:
-#'   \describe{
-#'     \item{data}{The input data (unchanged)}
-#'     \item{meta}{List with pagination metadata:
-#'       \describe{
-#'         \item{totalCount}{Total matching rows}
-#'         \item{pageSize}{Rows per page}
-#'         \item{offset}{Row offset for current page (0-indexed)}
-#'         \item{currentPage}{Current page number (1-indexed)}
-#'         \item{totalPages}{Total number of pages}
-#'         \item{hasMore}{Boolean, TRUE if more pages exist}
-#'       }
-#'     }
-#'   }
-#'
-#' @details
-#' Handles edge case of total=0 (returns totalPages=0, hasMore=FALSE).
-#'
-#' The offset is 0-indexed: page 1 has offset 0, page 2 has offset per_page, etc.
-#' This matches the SQL OFFSET clause convention.
-#'
-#' totalPages uses ceiling() to handle partial last pages. For example,
-#' 25 rows with per_page=10 yields totalPages=3.
-#'
-#' hasMore is TRUE when (offset + nrow(data)) < total, indicating there are
-#' more rows beyond the current page that can be fetched.
-#'
-#' @examples
-#' \dontrun{
-#' # Page 1 of 3, 10 items per page, 25 total
-#' data <- tibble(id = 1:10)
-#' response <- build_offset_pagination_response(data, total = 25, page = 1, per_page = 10)
-#' # response$meta$totalPages = 3
-#' # response$meta$hasMore = TRUE
-#' # response$meta$offset = 0
-#'
-#' # Last page (page 3)
-#' data <- tibble(id = 21:25)  # Only 5 rows
-#' response <- build_offset_pagination_response(data, total = 25, page = 3, per_page = 10)
-#' # response$meta$hasMore = FALSE
-#' # response$meta$offset = 20
-#'
-#' # Empty result (total=0)
-#' data <- tibble()
-#' response <- build_offset_pagination_response(data, total = 0, page = 1, per_page = 10)
-#' # response$meta$totalPages = 0
-#' # response$meta$hasMore = FALSE
-#' }
-#'
-#' @export
-build_offset_pagination_response <- function(data, total, page, per_page) {
-  # Coerce to integer for safety
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
-  total <- as.integer(total)
-
-  # Calculate offset (0-indexed)
-  offset <- (page - 1L) * per_page
-
-  # Calculate total pages (handle total=0 edge case)
-  total_pages <- if (total == 0L) 0L else as.integer(ceiling(total / per_page))
-
-  # Calculate hasMore: are there more rows beyond current page?
-  rows_fetched <- if (is.data.frame(data)) nrow(data) else length(data)
-  has_more <- (offset + rows_fetched) < total
-
-  list(
-    data = data,
-    meta = list(
-      totalCount = total,
-      pageSize = per_page,
-      offset = offset,
-      currentPage = page,
-      totalPages = total_pages,
-      hasMore = has_more
-    )
-  )
-}
-
-#------------------------------------------------------------------------------
-# Main Query Functions (LOG-01, LOG-05, LOG-06)
-#------------------------------------------------------------------------------
-
-#' Get paginated log entries with filtering
-#'
-#' Fetches log entries from database with filtering and offset-based pagination.
-#' Uses database-side filtering (WHERE clause) instead of loading all rows.
-#'
-#' @param status Integer or NULL, filter by HTTP status code (exact match)
-#' @param request_method Character or NULL, filter by method (GET, POST, etc.)
-#' @param path_prefix Character or NULL, filter by path prefix (LIKE 'prefix%')
-#' @param timestamp_from Character or NULL, filter by minimum timestamp
-#' @param timestamp_to Character or NULL, filter by maximum timestamp
-#' @param address Character or NULL, filter by IP address (exact match)
-#' @param page Integer, page number (1-indexed). Default: 1
-#' @param per_page Integer, rows per page. Default: 50
+#' @param filters Named list of filter criteria (from parse_filter_to_list)
 #' @param sort_column Character, column to sort by. Default: "id"
 #' @param sort_direction Character, ASC or DESC. Default: "DESC"
+#' @param max_rows Integer, maximum rows to return. Default: 100000 (safety limit)
 #'
-#' @return List with data and meta (from build_offset_pagination_response)
+#' @return Tibble with filtered log entries, ready for generate_cursor_pag_inf()
 #'
 #' @details
-#' This function is the main entry point for fetching logs with pagination.
-#' It orchestrates the query building process:
-#'
+#' The function:
 #' 1. Validates sort column against LOGGING_ALLOWED_SORT_COLUMNS
 #' 2. Validates sort direction (ASC/DESC only)
 #' 3. Builds WHERE clause with parameterized values
-#' 4. Executes COUNT query first for totalCount
-#' 5. Executes data query with LIMIT/OFFSET
-#' 6. Returns standardized pagination response
+#' 4. Executes query with ORDER BY for consistent pagination
+#' 5. Returns tibble compatible with generate_cursor_pag_inf()
 #'
-#' All filtering happens at the database level (LOG-01). This is critical for
-#' performance - the function never uses collect() to load all rows into memory.
+#' Unlike the old collect() approach, this filters at the database level.
+#' The max_rows parameter provides a safety limit to prevent memory issues
+#' even with very broad filters.
 #'
 #' @examples
 #' \dontrun{
-#' # Get first page of all logs
-#' result <- get_logs_paginated()
-#' # result$data contains first 50 rows
-#' # result$meta$totalCount contains total matching rows
+#' # Get all logs (up to max_rows)
+#' logs <- get_logs_filtered()
 #'
-#' # Get first page of 200 OK responses
-#' result <- get_logs_paginated(status = 200, page = 1, per_page = 50)
+#' # Get logs with status filter
+#' logs <- get_logs_filtered(list(status = 200))
 #'
-#' # Get logs from specific path prefix
-#' result <- get_logs_paginated(path_prefix = "/api/entity", page = 2)
+#' # Get logs with path prefix
+#' logs <- get_logs_filtered(list(path_prefix = "/api/entity"))
 #'
-#' # Get logs sorted by timestamp ascending
-#' result <- get_logs_paginated(sort_column = "timestamp", sort_direction = "ASC")
-#'
-#' # Get logs from a specific time range
-#' result <- get_logs_paginated(
-#'   timestamp_from = "2026-01-01 00:00:00",
-#'   timestamp_to = "2026-01-31 23:59:59"
-#' )
-#'
-#' # Get error logs (4xx and 5xx status codes need separate calls)
-#' errors_4xx <- get_logs_paginated(status = 400)
-#' errors_5xx <- get_logs_paginated(status = 500)
+#' # Then use with cursor pagination:
+#' result <- generate_cursor_pag_inf(logs, page_size = 50, page_after = 0, "id")
 #' }
 #'
 #' @export
-get_logs_paginated <- function(
-  status = NULL,
-  request_method = NULL,
-  path_prefix = NULL,
-  timestamp_from = NULL,
-  timestamp_to = NULL,
-  address = NULL,
-  page = 1L,
-  per_page = 50L,
+get_logs_filtered <- function(
+  filters = list(),
   sort_column = "id",
-  sort_direction = "DESC"
+  sort_direction = "DESC",
+  max_rows = 100000L
 ) {
-  log_info("Fetching logs: page={page}, per_page={per_page}, sort={sort_column} {sort_direction}")
-
-  # Coerce pagination params to integer
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
+  log_info("Fetching filtered logs: sort={sort_column} {sort_direction}")
 
   # Validate sort parameters (throws invalid_filter_error if invalid)
   validate_logging_column(sort_column, LOGGING_ALLOWED_SORT_COLUMNS, "sort")
   sort_direction <- validate_sort_direction(sort_direction)
-
-  # Build filters list from function parameters
-  filters <- list(
-    status = status,
-    request_method = request_method,
-    path_prefix = path_prefix,
-    timestamp_from = timestamp_from,
-    timestamp_to = timestamp_to,
-    address = address
-  )
 
   # Build WHERE clause with parameterized values
   where_result <- build_logging_where_clause(filters)
   where_clause <- where_result$clause
   params <- where_result$params
 
-  # Execute COUNT query for totalCount (LOG-06)
-  # This runs first so we know the total before fetching the page
-  count_sql <- paste("SELECT COUNT(*) as total FROM logging WHERE", where_clause)
-  count_result <- db_execute_query(count_sql, params)
-  total <- count_result$total[1] %||% 0L
-
-  # Calculate offset for the current page
-  offset <- (page - 1L) * per_page
-
   # Build ORDER BY clause
   order_clause <- paste("ORDER BY", sort_column, sort_direction)
 
-  # Execute data query with LIMIT/OFFSET (LOG-05)
-  # Only fetches the rows needed for the current page
+  # Execute query with LIMIT for safety (LOG-01)
+  # The LIMIT prevents memory issues even with very broad filters
   data_sql <- paste(
-    "SELECT id, timestamp, address, agent, host, request_method, path, query, post, status, duration, file, modified",
+    "SELECT id, timestamp, address, agent, host, request_method, path,",
+    "query, post, status, duration, file, modified",
     "FROM logging WHERE", where_clause,
     order_clause,
-    "LIMIT ? OFFSET ?"
+    "LIMIT ?"
   )
-  data_params <- append(params, list(per_page, offset))
+  data_params <- append(params, list(as.integer(max_rows)))
   data_result <- db_execute_query(data_sql, data_params)
 
-  log_debug("Fetched {nrow(data_result)} rows, total={total}")
+  log_info("Fetched {nrow(data_result)} rows from database")
 
-  # Return with pagination metadata (PAG-01, PAG-02)
-  build_offset_pagination_response(data_result, total, page, per_page)
+  # Return as tibble for compatibility with generate_cursor_pag_inf
+  tibble::as_tibble(data_result)
+}
+
+#' Parse filter string to filter list
+#'
+#' Converts the comma-separated filter string from the endpoint into a list
+#' that can be passed to get_logs_filtered().
+#'
+#' Supported filter formats:
+#' - status==200 (exact match on status)
+#' - request_method==GET (exact match on method)
+#' - path=^/api/ (prefix match on path, converted to path_prefix)
+#' - timestamp>2026-01-01 (converted to timestamp_from)
+#' - timestamp<2026-01-31 (converted to timestamp_to)
+#' - address==127.0.0.1 (exact match on address)
+#'
+#' @param filter_string Character, comma-separated filter expressions
+#'
+#' @return Named list of filters for get_logs_filtered()
+#'
+#' @examples
+#' \dontrun{
+#' # Single filter
+#' parse_logging_filter("status==200")
+#' # list(status = 200)
+#'
+#' # Multiple filters
+#' parse_logging_filter("status==200,request_method==GET")
+#' # list(status = 200, request_method = "GET")
+#'
+#' # Path prefix (special handling)
+#' parse_logging_filter("path=^/api/")
+#' # list(path_prefix = "/api/")
+#' }
+#'
+#' @export
+parse_logging_filter <- function(filter_string) {
+  if (is.null(filter_string) || filter_string == "") {
+    return(list())
+  }
+
+  filters <- list()
+  parts <- strsplit(filter_string, ",")[[1]]
+
+  for (part in parts) {
+    part <- trimws(part)
+    if (part == "") next
+
+    # Handle different operators
+    if (grepl("==", part)) {
+      # Exact match: column==value
+      split <- strsplit(part, "==")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        # Map to filter list keys
+        if (col == "status") {
+          filters$status <- as.integer(val)
+        } else if (col == "request_method") {
+          filters$request_method <- val
+        } else if (col == "address") {
+          filters$address <- val
+        }
+      }
+    } else if (grepl("=\\^", part)) {
+      # Prefix match: column=^prefix (path=^/api/)
+      split <- strsplit(part, "=\\^")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        if (col == "path") {
+          filters$path_prefix <- val
+        }
+      }
+    } else if (grepl(">=", part)) {
+      # Greater than or equal: column>=value
+      split <- strsplit(part, ">=")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        if (col == "timestamp") {
+          filters$timestamp_from <- val
+        }
+      }
+    } else if (grepl("<=", part)) {
+      # Less than or equal: column<=value
+      split <- strsplit(part, "<=")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        if (col == "timestamp") {
+          filters$timestamp_to <- val
+        }
+      }
+    } else if (grepl(">", part)) {
+      # Greater than: column>value
+      split <- strsplit(part, ">")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        if (col == "timestamp") {
+          filters$timestamp_from <- val
+        }
+      }
+    } else if (grepl("<", part)) {
+      # Less than: column<value
+      split <- strsplit(part, "<")[[1]]
+      if (length(split) == 2) {
+        col <- trimws(split[1])
+        val <- trimws(split[2])
+
+        if (col == "timestamp") {
+          filters$timestamp_to <- val
+        }
+      }
+    }
+  }
+
+  filters
 }
