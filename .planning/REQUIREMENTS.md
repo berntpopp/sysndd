@@ -17,21 +17,21 @@ Requirements for memory optimization and ViewLogs performance fixes. Each maps t
 
 ### STRING Optimization (#150)
 
-- [ ] **STR-01**: STRING score_threshold is 400 (medium confidence) in gen_string_clust_obj()
-- [ ] **STR-02**: STRING score_threshold is 400 in gen_string_enrich_tib()
-- [ ] **STR-03**: score_threshold parameter is configurable via function argument with 400 default
+- [x] **STR-01**: STRING score_threshold is 400 (medium confidence) in gen_string_clust_obj() ✓
+- [x] **STR-02**: STRING score_threshold is 400 in gen_string_enrich_tib() ✓
+- [x] **STR-03**: score_threshold parameter is configurable via function argument with 400 default ✓
 
 ### Layout Algorithm (#150)
 
-- [ ] **LAY-01**: Layout algorithm adapts to graph size (>1000 nodes uses DrL)
-- [ ] **LAY-02**: Medium graphs (500-1000 nodes) use FR with grid optimization
-- [ ] **LAY-03**: Small graphs (<500 nodes) use standard FR (current behavior preserved)
-- [ ] **LAY-04**: Network metadata reflects actual layout algorithm used
+- [x] **LAY-01**: Layout algorithm adapts to graph size (>1000 nodes uses DrL) ✓
+- [x] **LAY-02**: Medium graphs (500-1000 nodes) use FR with grid optimization ✓
+- [x] **LAY-03**: Small graphs (<500 nodes) use standard FR (current behavior preserved) ✓
+- [x] **LAY-04**: Network metadata reflects actual layout algorithm used ✓
 
 ### LLM Batch Optimization (#150)
 
-- [ ] **LLM-01**: LLM batch executor calls gc() every 10 clusters
-- [ ] **LLM-02**: Final gc() call after batch processing completes
+- [x] **LLM-01**: LLM batch executor calls gc() every 10 clusters ✓
+- [x] **LLM-02**: Final gc() call after batch processing completes ✓
 
 ### ViewLogs Performance (#152)
 
@@ -98,15 +98,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MEM-03 | Phase 69 | Complete |
 | MEM-04 | Phase 69 | Complete |
 | MEM-05 | Phase 69 | Complete |
-| STR-01 | Phase 70 | Pending |
-| STR-02 | Phase 70 | Pending |
-| STR-03 | Phase 70 | Pending |
-| LAY-01 | Phase 70 | Pending |
-| LAY-02 | Phase 70 | Pending |
-| LAY-03 | Phase 70 | Pending |
-| LAY-04 | Phase 70 | Pending |
-| LLM-01 | Phase 70 | Pending |
-| LLM-02 | Phase 70 | Pending |
+| STR-01 | Phase 70 | Complete |
+| STR-02 | Phase 70 | Complete |
+| STR-03 | Phase 70 | Complete |
+| LAY-01 | Phase 70 | Complete |
+| LAY-02 | Phase 70 | Complete |
+| LAY-03 | Phase 70 | Complete |
+| LAY-04 | Phase 70 | Complete |
+| LLM-01 | Phase 70 | Complete |
+| LLM-02 | Phase 70 | Complete |
 | IDX-01 | Phase 71 | Pending |
 | IDX-02 | Phase 71 | Pending |
 | IDX-03 | Phase 71 | Pending |
@@ -140,4 +140,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 — Phase 69 requirements complete*
+*Last updated: 2026-02-03 — Phase 70 requirements complete (STR-01 through LLM-02)*
