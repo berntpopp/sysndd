@@ -4,14 +4,30 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current Milestone: v10.1 Production Deployment Fixes
+## Current Milestone: v10.2 Performance & Memory Optimization
 
-**Goal:** Fix critical production deployment issues discovered on VPS — permission mismatch blocking data directory writes, migration lock timeout blocking multi-container scaling, and missing favicon image.
+**Goal:** Optimize API memory usage for memory-constrained servers and fix ViewLogs performance bug that loads 1M+ rows into memory before filtering.
 
-**Target fixes:**
-- #138: API container cannot write to /app/data directory (UID mismatch)
-- #136: Multi-container scaling fails due to migration lock timeout
-- #137: Missing favicon image (brain-neurodevelopmental-disorders-sysndd.png)
+**Target issues:**
+- #150: Optimize mirai worker configuration for memory-constrained servers
+- #152: ViewLogs endpoint loads entire table into memory before filtering
+
+**Key features:**
+- Configurable mirai worker count via `MIRAI_WORKERS` environment variable
+- STRING score_threshold increase from 200 → 400 (better quality, ~50% less memory)
+- Adaptive layout algorithm selection based on graph size
+- Database-side filtering for logging endpoint with parameterized SQL
+- Offset-based pagination for ViewLogs with proper indexes
+
+## Previous State (v10.1 shipped 2026-02-03)
+
+**Recent Milestone:** v10.1 Production Deployment Fixes
+
+**Delivered:**
+- Fixed API container UID mismatch (configurable via build-arg, default 1000)
+- Fixed migration lock timeout with double-checked locking pattern
+- Restored favicon image from _old directory
+- Removed container_name directive from API service for scaling
 
 ## Previous State (v10.0 shipped 2026-02-01)
 
@@ -309,11 +325,20 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v10.1 Production Deployment Fixes -->
+<!-- v10.2 Performance & Memory Optimization -->
 
-- [ ] **DEPLOY-01**: API container can write to /app/data directory without permission errors
-- [ ] **DEPLOY-02**: Multiple API containers can start simultaneously without migration lock timeout
-- [ ] **DEPLOY-03**: Favicon image loads without 404 errors
+- [ ] **MEM-01**: mirai worker count is configurable via MIRAI_WORKERS environment variable (1-8)
+- [ ] **MEM-02**: STRING score_threshold is 400 (medium confidence) improving quality and reducing memory
+- [ ] **MEM-03**: STRING score_threshold is configurable via function parameter with 400 default
+- [ ] **MEM-04**: Layout algorithm adapts to graph size (>1000 nodes uses DrL)
+- [ ] **MEM-05**: LLM batch processing calls gc() every 10 clusters
+- [ ] **MEM-06**: Worker count visible in health endpoint response
+- [ ] **LOG-01**: ViewLogs endpoint uses database-side filtering (no collect() before filter)
+- [ ] **LOG-02**: Logging table has indexes for timestamp, status, path, and composites
+- [ ] **LOG-03**: Query builder uses column whitelist preventing SQL injection
+- [ ] **LOG-04**: Filter parser rejects unparseable input explicitly
+- [ ] **LOG-05**: Offset-based pagination with proper LIMIT/OFFSET
+- [ ] **DOC-01**: Deployment guide documents memory configuration profiles
 
 ### Out of Scope
 
@@ -440,4 +465,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-01 after v10.1 milestone started*
+*Last updated: 2026-02-03 after v10.2 milestone started*
