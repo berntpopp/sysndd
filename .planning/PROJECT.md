@@ -4,20 +4,23 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current Milestone: v10.2 Performance & Memory Optimization
+## Current State (v10.2 shipped 2026-02-03)
 
-**Goal:** Optimize API memory usage for memory-constrained servers and fix ViewLogs performance bug that loads 1M+ rows into memory before filtering.
+**Recent Milestone:** v10.2 Performance & Memory Optimization
 
-**Target issues:**
+**Delivered:**
+- Configurable mirai workers via MIRAI_WORKERS env var (1-8 workers, production default 2, dev default 1)
+- STRING score_threshold increased to 400 (medium confidence, ~50% fewer false positive edges)
+- Adaptive layout algorithms (DrL >1000 nodes, FR-grid 500-1000, FR <500)
+- Database-side filtering for logs endpoint (fixed #152 memory bug)
+- Query builder with column whitelist and parameterized SQL
+- 5 database indexes for logging table
+- Comprehensive unit and integration test coverage
+- Deployment documentation with memory profiles
+
+**Target issues (RESOLVED):**
 - #150: Optimize mirai worker configuration for memory-constrained servers
 - #152: ViewLogs endpoint loads entire table into memory before filtering
-
-**Key features:**
-- Configurable mirai worker count via `MIRAI_WORKERS` environment variable
-- STRING score_threshold increase from 200 → 400 (better quality, ~50% less memory)
-- Adaptive layout algorithm selection based on graph size
-- Database-side filtering for logging endpoint with parameterized SQL
-- Offset-based pagination for ViewLogs with proper indexes
 
 ## Previous State (v10.1 shipped 2026-02-03)
 
@@ -321,24 +324,25 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Functional cluster summaries with LlmSummaryCard — v10
 - ✓ Admin comparisons data refresh async job — v10
 - ✓ GitHub Pages Actions workflow deployment — v10
+
+<!-- Shipped in v10.2 -->
+
+- ✓ Configurable mirai workers via MIRAI_WORKERS (1-8) — v10.2
+- ✓ STRING score_threshold 400 (medium confidence) — v10.2
+- ✓ Adaptive layout algorithms (DrL/FR-grid/FR) — v10.2
+- ✓ Database-side filtering for logs endpoint — v10.2
+- ✓ Query builder with column whitelist — v10.2
+- ✓ Parameterized SQL preventing injection — v10.2
+- ✓ Logging table indexes (timestamp, status, path, composites) — v10.2
+- ✓ LLM batch gc() every 10 clusters — v10.2
+- ✓ Deployment documentation with memory profiles — v10.2
+- ✓ Unit tests for worker config and query builder — v10.2
+- ✓ Integration tests for logs pagination — v10.2
 - ✓ LLM admin dashboard (ManageLLM.vue with 5 tabs) — v10
 
 ### Active
 
-<!-- v10.2 Performance & Memory Optimization -->
-
-- [ ] **MEM-01**: mirai worker count is configurable via MIRAI_WORKERS environment variable (1-8)
-- [ ] **MEM-02**: STRING score_threshold is 400 (medium confidence) improving quality and reducing memory
-- [ ] **MEM-03**: STRING score_threshold is configurable via function parameter with 400 default
-- [ ] **MEM-04**: Layout algorithm adapts to graph size (>1000 nodes uses DrL)
-- [ ] **MEM-05**: LLM batch processing calls gc() every 10 clusters
-- [ ] **MEM-06**: Worker count visible in health endpoint response
-- [ ] **LOG-01**: ViewLogs endpoint uses database-side filtering (no collect() before filter)
-- [ ] **LOG-02**: Logging table has indexes for timestamp, status, path, and composites
-- [ ] **LOG-03**: Query builder uses column whitelist preventing SQL injection
-- [ ] **LOG-04**: Filter parser rejects unparseable input explicitly
-- [ ] **LOG-05**: Offset-based pagination with proper LIMIT/OFFSET
-- [ ] **DOC-01**: Deployment guide documents memory configuration profiles
+(None — start next milestone with `/gsd:new-milestone`)
 
 ### Out of Scope
 
@@ -465,4 +469,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-03 after v10.2 milestone started*
+*Last updated: 2026-02-03 after v10.2 milestone completed*
