@@ -61,10 +61,10 @@ See previous milestone documentation. v10.1 delivered:
   2. Invalid values (0, 9, "abc") are rejected with sensible defaults applied
   3. Health endpoint response includes current worker count for monitoring
   4. Production docker-compose.yml defaults to 2 workers, dev defaults to 1 worker
-**Plans:** TBD
+**Plans:** 1 plan
 
 Plans:
-- [ ] 69-01: Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
+- [ ] 69-01-PLAN.md - Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
 
 ### Phase 70: Analysis Optimization
 **Goal**: Cluster analysis runs faster and uses less memory for large gene sets
@@ -125,11 +125,11 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 69. Configurable Workers | v10.2 | 0/1 | Not started | - |
+| 69. Configurable Workers | v10.2 | 0/1 | Planned | - |
 | 70. Analysis Optimization | v10.2 | 0/3 | Not started | - |
 | 71. ViewLogs Database Filtering | v10.2 | 0/4 | Not started | - |
 | 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 — v10.2 roadmap created*
+*Last updated: 2026-02-03 - Phase 69 planned (1 plan)*
