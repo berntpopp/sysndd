@@ -105,5 +105,45 @@ No gaps found. All 5 success criteria are verified:
 
 ---
 
+## Post-Verification Fix
+
+**Issue discovered:** Filter format mismatch between frontend and backend
+**Fixed:** 2026-02-03T14:55:00Z
+
+### Problem
+The frontend sends filters in `contains(column,value)` format (e.g., `contains(status,500)`), but `parse_logging_filter()` originally expected `column==value` format. This caused filtering and search to not work on the ViewLogs page.
+
+### Solution
+Updated `api/functions/logging-repository.R`:
+
+1. **Updated `parse_logging_filter()`** to handle frontend conventions:
+   - `contains(status,500)` → status = 500
+   - `contains(path,/api/)` → path LIKE '%/api/%'
+   - `contains(any,entity)` → full-text search across path/agent/query/host
+   - `and(expr1,expr2)` wrapper for multiple filters
+   - `greaterThan`/`lessThan` for timestamp ranges
+
+2. **Updated `build_logging_where_clause()`** with new filter types:
+   - `path_contains` - LIKE match on path
+   - `agent_contains` - LIKE match on agent
+   - `any_contains` - full-text search across multiple text columns
+
+### Verification
+```bash
+# Status filter - correctly returns 12 entries with status 500
+curl ".../api/logs/?filter=contains(status,500)" → totalItems: 12, all status=500
+
+# Search filter - correctly returns ~17,700 entries containing "entity"
+curl ".../api/logs/?filter=contains(any,entity)" → totalItems: 17700
+```
+
+### Commit
+```
+b6c4bb8b fix(71): support frontend filter format and full-text search
+```
+
+---
+
 *Verified: 2026-02-03T15:00:00Z*
+*Post-fix verified: 2026-02-03T15:05:00Z*
 *Verifier: Claude (gsd-verifier)*

@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 **Progress:** v10.2 [###############-----] 75%
 
 **Last completed:** Phase 71 (ViewLogs Database Filtering) - Issue #152 FIXED
-**Last activity:** 2026-02-03 — Phase 71 verified, all 4 plans complete
+**Last activity:** 2026-02-03 — Phase 71 verified + post-fix for frontend filter format
 **Next action:** Plan Phase 72 with `/gsd:plan-phase 72`
 
 ---
@@ -66,6 +66,8 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 | MAX_ROWS | 100k row safety limit in get_logs_filtered | Prevents memory issues even with very broad filters | 71-03 |
 | NO_COLLECT | Never use collect() for logging queries | Database-side filtering prevents memory explosion on large tables | 71-04 |
 | EXPLICIT_SELECT | Use dplyr::select() in endpoint | Avoids masking issues from other packages | 71-04 |
+| FILTER_FORMAT | Use contains(col,val) format for filters | Matches frontend conventions used by all other tables | 71-fix |
+| ANY_SEARCH | Search across path/agent/query/host for any column | Provides full-text search matching frontend expectations | 71-fix |
 
 ---
 
@@ -101,4 +103,4 @@ See: .planning/PROJECT.md (updated 2026-02-03)
 ---
 
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-03 — Phase 71 complete (ViewLogs database-side filtering) - Issue #152 FIXED*
+*Last updated: 2026-02-03 — Phase 71 complete + post-fix for frontend filter format compatibility*

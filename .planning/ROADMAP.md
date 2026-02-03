@@ -76,12 +76,13 @@ Plans:
   3. Network visualization uses DrL layout for >1000 nodes (fast), FR-grid for 500-1000 nodes, standard FR for <500 nodes
   4. Network metadata reports actual layout algorithm used (user can verify in response)
   5. LLM batch job memory usage stays bounded over long runs (no gradual increase)
-**Plans:** 3 plans
+**Plans:** 3 plans + 1 debugging session
 
 Plans:
 - [x] 70-01-PLAN.md - Increase STRING score_threshold to 400 with configurable parameter
 - [x] 70-02-PLAN.md - Implement adaptive layout algorithm selection based on graph size
 - [x] 70-03-PLAN.md - Add periodic gc() calls to LLM batch executor
+- [x] 70-04-DEBUGGING-SESSION.md - STRINGdb singleton cache, memory cleanup, performance validation
 
 ### Phase 71: ViewLogs Database Filtering
 **Goal**: ViewLogs page loads quickly with filtering done in database, not R memory
@@ -100,6 +101,7 @@ Plans:
 - [x] 71-02-PLAN.md - Implement query builder with column whitelist and parameterized queries
 - [x] 71-03-PLAN.md - Implement cursor-compatible filtering (adapted from offset-based)
 - [x] 71-04-PLAN.md - Refactor logging endpoint to use database-side filtering
+- [x] Post-fix: Support frontend filter format `contains(col,val)` and full-text search
 
 ### Phase 72: Documentation & Testing
 **Goal**: Deployment guide exists and all new code has test coverage
@@ -132,4 +134,4 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 71 complete (4 plans, fixes #152)*
+*Last updated: 2026-02-03 - Phase 71 complete (4 plans + post-fix for frontend filter format)*
