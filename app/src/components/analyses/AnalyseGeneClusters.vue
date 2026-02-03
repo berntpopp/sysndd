@@ -931,6 +931,14 @@ export default {
     },
 
     setActiveCluster() {
+      // Handle "All Clusters" mode - combine data from all clusters
+      if (this.showAllClustersInTable) {
+        this.selectedCluster = this.combineClusterData(this.itemsCluster);
+        const arr = this.selectedCluster[this.tableType] || [];
+        this.totalRows = arr.length;
+        return;
+      }
+
       let match;
       let subClusters;
       let clusterNum;
