@@ -45,7 +45,7 @@ See previous milestone documentation. v10.1 delivered:
 - #150: Optimize mirai worker configuration for memory-constrained servers
 - #152: ViewLogs endpoint loads entire table into memory before filtering
 
-- [ ] **Phase 69: Configurable Workers** - MIRAI_WORKERS env var with bounded configuration
+- [x] **Phase 69: Configurable Workers** - MIRAI_WORKERS env var with bounded configuration
 - [ ] **Phase 70: Analysis Optimization** - STRING threshold, adaptive layout, LLM batch GC
 - [ ] **Phase 71: ViewLogs Database Filtering** - Indexes, parameterized queries, pagination
 - [ ] **Phase 72: Documentation & Testing** - Deployment guide and comprehensive test coverage
@@ -64,7 +64,7 @@ See previous milestone documentation. v10.1 delivered:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 69-01-PLAN.md - Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
+- [x] 69-01-PLAN.md - Implement MIRAI_WORKERS configuration with validation and health endpoint exposure
 
 ### Phase 70: Analysis Optimization
 **Goal**: Cluster analysis runs faster and uses less memory for large gene sets
@@ -76,12 +76,11 @@ Plans:
   3. Network visualization uses DrL layout for >1000 nodes (fast), FR-grid for 500-1000 nodes, standard FR for <500 nodes
   4. Network metadata reports actual layout algorithm used (user can verify in response)
   5. LLM batch job memory usage stays bounded over long runs (no gradual increase)
-**Plans:** 3 plans
+**Plans:** 2 plans
 
 Plans:
 - [ ] 70-01-PLAN.md - Increase STRING score_threshold to 400 with configurable parameter
-- [ ] 70-02-PLAN.md - Implement adaptive layout algorithm selection based on graph size
-- [ ] 70-03-PLAN.md - Add periodic gc() calls to LLM batch executor
+- [ ] 70-02-PLAN.md - Implement adaptive layout algorithm selection and add GC calls to LLM batch
 
 ### Phase 71: ViewLogs Database Filtering
 **Goal**: ViewLogs page loads quickly with filtering done in database, not R memory
@@ -111,12 +110,12 @@ Plans:
   3. Unit tests verify MIRAI_WORKERS parsing rejects invalid values
   4. Unit tests verify column whitelist blocks unknown columns and SQL injection patterns
   5. Integration tests verify paginated queries return different pages with correct metadata
-**Plans:** TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 72-01: Write unit tests for worker configuration and query builder
-- [ ] 72-02: Write integration tests for database queries and pagination
-- [ ] 72-03: Create deployment documentation with memory configuration profiles
+- [ ] 72-01-PLAN.md - Write unit tests for worker configuration and query builder
+- [ ] 72-02-PLAN.md - Write integration tests for database queries and pagination
+- [ ] 72-03-PLAN.md - Create deployment documentation with memory configuration profiles
 
 ## Progress
 
@@ -125,11 +124,11 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 69. Configurable Workers | v10.2 | 0/1 | Planned | - |
-| 70. Analysis Optimization | v10.2 | 0/3 | Planned | - |
+| 69. Configurable Workers | v10.2 | 1/1 | Complete | 2026-02-03 |
+| 70. Analysis Optimization | v10.2 | 0/2 | Planned | - |
 | 71. ViewLogs Database Filtering | v10.2 | 0/4 | Planned | - |
-| 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
+| 72. Documentation & Testing | v10.2 | 0/3 | Planned | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 71 planned (4 plans in 2 waves)*
+*Last updated: 2026-02-03 - Phase 72 planned (3 plans in 1 wave)*
