@@ -192,6 +192,11 @@ gen_string_clust_obj <- function(
     } %>%
     ungroup()
 
+  # Memory cleanup before returning
+  # Remove large intermediate objects to help gc()
+  rm(string_db, subgraph, cluster_result, clusters_list)
+  gc(verbose = FALSE)
+
   # return result
   return(clusters_tibble)
 }
@@ -596,12 +601,21 @@ gen_network_edges <- function(
 
   message(paste0("[gen_network_edges] Returning ", nrow(nodes), " nodes, ", nrow(edges), " edges"))
 
-  # Return structured result
-  list(
+  # Build result before cleanup
+  result <- list(
     nodes = nodes,
     edges = edges,
     metadata = metadata
   )
+
+  # Memory cleanup: remove large intermediate objects
+  # STRING graph and igraph objects consume significant memory during computation
+  rm(string_graph, subgraph, edge_list, layout_matrix, layout_normalized)
+  rm(string_to_hgnc, gene_table, cluster_map, node_degrees)
+  gc(verbose = FALSE)
+
+  # Return structured result
+  result
 }
 
 

@@ -648,6 +648,10 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000")
   # Add elapsed time to metadata
   network_data$metadata$elapsed_seconds <- round(elapsed_seconds, 2)
 
+  # Memory cleanup after heavy operation
+  # This helps return memory to R's internal pool (OS return depends on allocator)
+  gc(verbose = FALSE)
+
   # Return structured response
   network_data
 }
