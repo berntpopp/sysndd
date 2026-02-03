@@ -10,6 +10,7 @@
 #' @param enrichment Boolean value indicating whether to perform enrichment
 #' @param algorithm Clustering algorithm name (default: "leiden")
 #' @param string_id_table Pre-fetched STRING ID table (for daemon context)
+#' @param score_threshold STRING confidence score threshold (0-1000, default 400 = medium)
 #'
 #' @return The clusters tibble
 #' @export
@@ -20,7 +21,8 @@ gen_string_clust_obj <- function(
   parent = NA,
   enrichment = TRUE,
   algorithm = "leiden",
-  string_id_table = NULL
+  string_id_table = NULL,
+  score_threshold = 400
 ) {
   # Caching is handled by the memoise wrapper (gen_string_clust_obj_mem)
   # backed by cachem::cache_disk with Inf TTL. No file-based cache needed.
@@ -29,7 +31,7 @@ gen_string_clust_obj <- function(
   string_db <- STRINGdb::STRINGdb$new(
     version = "11.5",
     species = 9606,
-    score_threshold = 200,
+    score_threshold = score_threshold,
     input_directory = "data"
   )
 
@@ -147,7 +149,8 @@ gen_string_clust_obj <- function(
           subcluster = FALSE,
           parent = cluster,
           algorithm = algorithm,
-          string_id_table = string_id_table
+          string_id_table = string_id_table,
+          score_threshold = score_threshold
         )))
       } else {
         .
@@ -171,7 +174,7 @@ gen_string_enrich_tib <- function(hgnc_list) {
   string_db <- STRINGdb$new(
     version = "11.5",
     species = 9606,
-    score_threshold = 200,
+    score_threshold = 400,
     input_directory = "data/"
   )
 
