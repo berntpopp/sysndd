@@ -96,10 +96,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 71-01-PLAN.md - Add database indexes for logging table (timestamp, status, path, composites)
-- [ ] 71-02-PLAN.md - Implement query builder with column whitelist and parameterized queries
-- [ ] 71-03-PLAN.md - Implement offset-based pagination with build_offset_pagination_response()
-- [ ] 71-04-PLAN.md - Refactor logging endpoint to use database-side filtering
+- [x] 71-01-PLAN.md - Add database indexes for logging table (timestamp, status, path, composites)
+- [x] 71-02-PLAN.md - Implement query builder with column whitelist and parameterized queries
+- [x] 71-03-PLAN.md - Implement cursor-compatible filtering (adapted from offset-based)
+- [x] 71-04-PLAN.md - Refactor logging endpoint to use database-side filtering
 
 ### Phase 72: Documentation & Testing
 **Goal**: Deployment guide exists and all new code has test coverage
@@ -127,9 +127,9 @@ Phases execute in numeric order: 69 -> 70 -> 71 -> 72
 |-------|-----------|----------------|--------|-----------|
 | 69. Configurable Workers | v10.2 | 1/1 | Complete | 2026-02-03 |
 | 70. Analysis Optimization | v10.2 | 3/3 | Complete | 2026-02-03 |
-| 71. ViewLogs Database Filtering | v10.2 | 0/4 | Planned | - |
-| 72. Documentation & Testing | v10.2 | 0/3 | Planned | - |
+| 71. ViewLogs Database Filtering | v10.2 | 4/4 | Complete | 2026-02-03 |
+| 72. Documentation & Testing | v10.2 | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 70 complete (3 plans executed)*
+*Last updated: 2026-02-03 - Phase 71 complete (4 plans, fixes #152)*

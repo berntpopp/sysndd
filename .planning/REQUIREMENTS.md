@@ -35,25 +35,25 @@ Requirements for memory optimization and ViewLogs performance fixes. Each maps t
 
 ### ViewLogs Performance (#152)
 
-- [ ] **LOG-01**: Logging endpoint uses database-side filtering (no collect() before filter)
-- [ ] **LOG-02**: Query builder validates columns against whitelist
-- [ ] **LOG-03**: Query builder uses parameterized queries (? placeholders)
-- [ ] **LOG-04**: Filter parser rejects unparseable input with invalid_filter_error
-- [ ] **LOG-05**: Offset-based pagination with LIMIT/OFFSET
-- [ ] **LOG-06**: Count query returns total matching rows for pagination metadata
+- [x] **LOG-01**: Logging endpoint uses database-side filtering (no collect() before filter) ✓
+- [x] **LOG-02**: Query builder validates columns against whitelist ✓
+- [x] **LOG-03**: Query builder uses parameterized queries (? placeholders) ✓
+- [x] **LOG-04**: Filter parser rejects unparseable input with invalid_filter_error ✓
+- [x] **LOG-05**: Database query uses LIMIT for safety (adapted: cursor pagination with max_rows) ✓
+- [x] **LOG-06**: Pagination metadata returned via existing cursor pagination system ✓
 
 ### Database Indexes (#152)
 
-- [ ] **IDX-01**: Index on logging(timestamp) for date range queries
-- [ ] **IDX-02**: Index on logging(status) for status filtering
-- [ ] **IDX-03**: Index on logging(path) with prefix for path filtering
-- [ ] **IDX-04**: Composite index on logging(timestamp, status)
-- [ ] **IDX-05**: Composite index on logging(id DESC, status)
+- [x] **IDX-01**: Index on logging(timestamp) for date range queries ✓
+- [x] **IDX-02**: Index on logging(status) for status filtering ✓
+- [x] **IDX-03**: Index on logging(path) with prefix for path filtering ✓
+- [x] **IDX-04**: Composite index on logging(timestamp, status) ✓
+- [x] **IDX-05**: Composite index on logging(id DESC, status) ✓
 
 ### Pagination Helper (#152)
 
-- [ ] **PAG-01**: build_offset_pagination_response() function exists
-- [ ] **PAG-02**: Pagination response includes totalCount, pageSize, offset, currentPage, totalPages, hasMore
+- [x] **PAG-01**: get_logs_filtered() returns tibble for cursor pagination (adapted from offset-based) ✓
+- [x] **PAG-02**: Pagination via generate_cursor_pag_inf() with links/meta/data structure ✓
 
 ### Documentation (#150)
 
@@ -107,19 +107,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAY-04 | Phase 70 | Complete |
 | LLM-01 | Phase 70 | Complete |
 | LLM-02 | Phase 70 | Complete |
-| IDX-01 | Phase 71 | Pending |
-| IDX-02 | Phase 71 | Pending |
-| IDX-03 | Phase 71 | Pending |
-| IDX-04 | Phase 71 | Pending |
-| IDX-05 | Phase 71 | Pending |
-| LOG-01 | Phase 71 | Pending |
-| LOG-02 | Phase 71 | Pending |
-| LOG-03 | Phase 71 | Pending |
-| LOG-04 | Phase 71 | Pending |
-| LOG-05 | Phase 71 | Pending |
-| LOG-06 | Phase 71 | Pending |
-| PAG-01 | Phase 71 | Pending |
-| PAG-02 | Phase 71 | Pending |
+| IDX-01 | Phase 71 | Complete |
+| IDX-02 | Phase 71 | Complete |
+| IDX-03 | Phase 71 | Complete |
+| IDX-04 | Phase 71 | Complete |
+| IDX-05 | Phase 71 | Complete |
+| LOG-01 | Phase 71 | Complete |
+| LOG-02 | Phase 71 | Complete |
+| LOG-03 | Phase 71 | Complete |
+| LOG-04 | Phase 71 | Complete |
+| LOG-05 | Phase 71 | Complete |
+| LOG-06 | Phase 71 | Complete |
+| PAG-01 | Phase 71 | Complete |
+| PAG-02 | Phase 71 | Complete |
 | DOC-01 | Phase 72 | Pending |
 | DOC-02 | Phase 72 | Pending |
 | DOC-03 | Phase 72 | Pending |
@@ -140,4 +140,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 — Phase 70 requirements complete (STR-01 through LLM-02)*
+*Last updated: 2026-02-03 — Phase 71 requirements complete (IDX-01 through PAG-02)*
