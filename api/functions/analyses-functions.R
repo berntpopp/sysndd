@@ -483,18 +483,45 @@ gen_network_edges <- function(
   cluster_count <- length(unique(nodes$cluster[!is.na(nodes$cluster)]))
 
   # PRE-COMPUTE LAYOUT POSITIONS SERVER-SIDE
-  # Using igraph's Fruchterman-Reingold (fast, good quality)
+  # Using igraph's layout algorithms (fast, good quality)
   # This is cached via gen_network_edges_mem, so only computed once
   message(paste0("[gen_network_edges] Computing layout for ", nrow(nodes), " nodes..."))
   layout_start <- Sys.time()
 
-  # Compute layout using igraph - much faster than browser-side JavaScript
-  # Use layout_with_fr (Fruchterman-Reingold) for good cluster separation
-  layout_matrix <- igraph::layout_with_fr(
-    subgraph,
-    niter = 500, # Sufficient iterations for convergence
-    weights = igraph::E(subgraph)$combined_score / 1000 # Use edge weights
-  )
+  # Adaptive layout algorithm selection based on graph size
+  # - DrL for large graphs (>1000 nodes): Designed for large-scale networks
+  # - FR with grid for medium graphs (500-1000): Faster but less accurate
+  # - Standard FR for small graphs (<500): Best quality, current behavior
+  # See: https://r.igraph.org/reference/layout_nicely.html
+  node_count <- nrow(nodes)
+
+  if (node_count > 1000) {
+    # DrL for large graphs - designed for large-scale networks
+    # Does not use edge weights (DrL implementation limitation)
+    message(sprintf("[gen_network_edges] Using DrL layout for %d nodes (large graph)", node_count))
+    layout_matrix <- igraph::layout_with_drl(subgraph)
+    layout_algo <- "drl"
+  } else if (node_count > 500) {
+    # FR with grid optimization for medium graphs
+    # Grid-based version is faster but less accurate
+    message(sprintf("[gen_network_edges] Using FR-grid layout for %d nodes (medium graph)", node_count))
+    layout_matrix <- igraph::layout_with_fr(
+      subgraph,
+      niter = 300,  # Reduced iterations for speed
+      grid = "grid",
+      weights = igraph::E(subgraph)$combined_score / 1000
+    )
+    layout_algo <- "fruchterman_reingold_grid"
+  } else {
+    # Standard FR for small graphs - best quality, current behavior preserved
+    message(sprintf("[gen_network_edges] Using FR layout for %d nodes (small graph)", node_count))
+    layout_matrix <- igraph::layout_with_fr(
+      subgraph,
+      niter = 500,
+      weights = igraph::E(subgraph)$combined_score / 1000
+    )
+    layout_algo <- "fruchterman_reingold"
+  }
 
   layout_time <- as.numeric(difftime(Sys.time(), layout_start, units = "secs"))
   message(paste0("[gen_network_edges] Layout computed in ", round(layout_time, 2), "s"))
@@ -533,7 +560,7 @@ gen_network_edges <- function(
     cluster_count = cluster_count,
     string_version = string_version,
     min_confidence = min_confidence,
-    layout_algorithm = "fruchterman_reingold",
+    layout_algorithm = layout_algo,
     layout_time_seconds = round(layout_time, 2),
     # Add total NDD genes and genes with STRING data for UI display
     total_ndd_genes = nrow(genes_from_entity_table),
