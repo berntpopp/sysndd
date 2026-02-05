@@ -1,6 +1,6 @@
 # SysNDD Deployment Guide
 
-**Last Updated:** 2026-02-03
+**Last Updated:** 2026-02-05
 **Applies to:** SysNDD API v2.x
 
 This guide covers deployment configuration for the SysNDD API, with focus on memory optimization for different server sizes.
@@ -167,6 +167,83 @@ Controls the database connection pool size.
 | 4 | 10-12 |
 | 8 | 18-20 |
 
+## Cache Management
+
+The SysNDD API uses [memoise](https://memoise.r-lib.org/) with disk-based caching (`/app/cache`) for expensive computations (gene clustering, network edges, statistics). Cache entries have infinite TTL and persist across container restarts.
+
+### CACHE_VERSION Environment Variable
+
+Controls automatic cache invalidation on deployment. When the value changes, all cached `.rds` files are cleared on next API startup.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `CACHE_VERSION` | 1 | Cache version identifier; increment to invalidate |
+
+**When to increment CACHE_VERSION:**
+
+| Change Type | Increment? | Example |
+|-------------|------------|---------|
+| Modified memoised function logic | Yes | Changed filtering in `gen_string_clust_obj()` |
+| Changed return structure of cached function | Yes | Added/removed columns from cached tibble |
+| New API endpoint (not cached) | No | Added `/api/foo/bar` |
+| Frontend-only changes | No | Updated Vue components |
+| Database schema migration | Maybe | Only if cached queries reference changed columns |
+
+**Configuration:**
+
+```yaml
+# docker-compose.yml (already configured)
+services:
+  api:
+    environment:
+      CACHE_VERSION: ${CACHE_VERSION:-1}
+```
+
+Or via `.env` file:
+
+```bash
+CACHE_VERSION=2  # Increment from previous value
+```
+
+### Manual Cache Clearing
+
+For immediate cache invalidation without redeployment:
+
+```bash
+# Clear all cached data
+docker exec sysndd-api-1 rm -f /app/cache/*.rds
+docker exec sysndd-api-1 rm -rf /app/cache/external/dynamic/*.rds
+
+# Restart to rebuild cache on demand
+docker compose restart api
+```
+
+### Cached Functions
+
+The following functions use disk memoisation:
+
+| Function | Purpose | Cache Impact |
+|----------|---------|--------------|
+| `gen_string_clust_obj_mem` | STRING protein clustering | High (large objects) |
+| `gen_mca_clust_obj_mem` | MCA clustering | High |
+| `gen_network_edges_mem` | Network edge data | Medium |
+| `generate_stat_tibble_mem` | Statistics tables | Low |
+| `generate_gene_news_tibble_mem` | Gene news data | Low |
+| `nest_gene_tibble_mem` | Gene table nesting | Low |
+| `generate_tibble_fspec_mem` | Functional spec tables | Low |
+| `read_log_files_mem` | Log file parsing | Low |
+| `nest_pubtator_gene_tibble_mem` | Pubtator gene data | Low |
+
+### Troubleshooting
+
+**Symptom: Code deployed but behavior unchanged**
+- Cause: Stale cache serving pre-deployment data
+- Solution: Increment `CACHE_VERSION` in `.env` and restart: `docker compose up -d`
+
+**Symptom: "No records to show" after code fix**
+- Cause: Cached empty/differently-structured tibble from before the fix
+- Solution: Clear cache manually (see above) or increment CACHE_VERSION
+
 ## Docker Compose Files
 
 SysNDD includes multiple compose files for different environments:
@@ -205,6 +282,7 @@ docker compose up -d  # Uses override automatically
 |----------|---------|-------------|
 | `MIRAI_WORKERS` | 2 | Background worker count (1-8) |
 | `DB_POOL_SIZE` | 5 | Database connection pool size |
+| `CACHE_VERSION` | 1 | Cache version; increment to clear stale cache on restart |
 | `CORS_ALLOWED_ORIGINS` | (none) | CORS allowed origins (comma-separated) |
 | `GEMINI_API_KEY` | (none) | Google Gemini API key for LLM features |
 | `HOST_UID` | 1000 | UID for container user |
