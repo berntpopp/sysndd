@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 **Phase:** 73 of 75 (Data Infrastructure & Cache Fixes)
-**Plan:** Not started
-**Status:** Ready to plan
-**Progress:** v10.3 [░░░░░░░░░░░░░░░░░░░░] 0%
+**Plan:** 1 of 2 in phase 73
+**Status:** In progress
+**Progress:** v10.3 [██████████░░░░░░░░░░] 50%
 
-**Last completed:** v10.2 Performance & Memory Optimization (shipped 2026-02-03)
-**Last activity:** 2026-02-05 -- Roadmap created for v10.3
-**Next action:** Plan phase 73
+**Last completed:** 73-01-PLAN.md (Database Migrations for Column Widening and Source URL Update)
+**Last activity:** 2026-02-05 -- Completed 73-01-PLAN.md
+**Next action:** Execute 73-02-PLAN.md or plan remaining phases
 
 ---
 
@@ -44,7 +44,7 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 307
+- Total plans completed: 308
 - Milestones shipped: 14 (v1-v10.2)
 - Phases completed: 80
 
@@ -55,7 +55,7 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 | **Backend Tests** | 687 + 11 E2E | 20.3% coverage |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 31 | Including useLlmAdmin, useExcelExport |
-| **Migrations** | 11 files + runner | Schema version 11 (logging_indexes) |
+| **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 | **Total Tests** | 1,381+ | Passing |
@@ -68,7 +68,11 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-No new decisions for v10.3 yet.
+**Phase 73-01 decisions:**
+- Use VARCHAR(255) for version column (bounded data) vs TEXT (unbounded)
+- Convert 7 columns to TEXT for concatenated data (publication_id, phenotype, etc.)
+- Follow migration 009 pattern for DDL (stored procedure + INFORMATION_SCHEMA)
+- Follow migration 010 pattern for DML (simple UPDATE with WHERE)
 
 ### Blockers/Concerns
 
@@ -78,11 +82,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-02-05
-**Stopped at:** Roadmap created for v10.3 milestone
-**Next action:** Plan phase 73 (Data Infrastructure & Cache Fixes)
+**Last session:** 2026-02-05 20:48 UTC
+**Stopped at:** Completed 73-01-PLAN.md
+**Next action:** Execute 73-02-PLAN.md or plan remaining phases (74, 75)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-05 -- Roadmap created*
+*Last updated: 2026-02-05 -- Completed phase 73 plan 01 (database migrations)*
