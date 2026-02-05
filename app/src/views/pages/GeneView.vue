@@ -53,6 +53,16 @@
         </BContainer>
       </div>
 
+      <!-- Associated Entities Table -->
+      <TablesEntities
+        v-if="geneData.length !== 0"
+        :show-filter-controls="false"
+        :show-pagination-controls="false"
+        header-label="Associated "
+        :filter-input="filterInput"
+        :disable-url-sync="true"
+      />
+
       <!-- External genomic data cards -->
       <div class="container-fluid">
         <BContainer fluid>
@@ -115,16 +125,6 @@
           </BRow>
         </BContainer>
       </div>
-
-      <!-- Associated Entities Table -->
-      <TablesEntities
-        v-if="geneData.length !== 0"
-        :show-filter-controls="false"
-        :show-pagination-controls="false"
-        header-label="Associated "
-        :filter-input="filterInput"
-        :disable-url-sync="true"
-      />
     </template>
   </div>
 </template>
