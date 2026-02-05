@@ -44,7 +44,10 @@ Phases 1-72 delivered across milestones v1.0 through v10.2. See `.planning/MILES
   2. Gene2Phenotype download fetches data from the new API URL and correctly parses the updated file format
   3. After a code deployment that changes cached data structures, GeneNetworks table and LLM summaries display correctly (stale memoisation cache does not serve outdated formats)
   4. All three database migrations are idempotent (can be re-run without error)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 73-01-PLAN.md -- Database migrations: widen comparison columns (DATA-01) and update Gene2Phenotype URL (DATA-02)
+- [ ] 73-02-PLAN.md -- Cache versioning: CACHE_VERSION env var for automatic invalidation on deployment (DATA-03)
 
 ### Phase 74: API Bug Fixes
 **Goal**: API endpoints that currently return 500 errors respond correctly for all valid inputs
@@ -73,7 +76,7 @@ Phases 1-72 delivered across milestones v1.0 through v10.2. See `.planning/MILES
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 73. Data Infrastructure & Cache Fixes | v10.3 | 0/TBD | Not started | - |
+| 73. Data Infrastructure & Cache Fixes | v10.3 | 0/2 | Planned | - |
 | 74. API Bug Fixes | v10.3 | 0/TBD | Not started | - |
 | 75. Frontend Fixes & UX Improvements | v10.3 | 0/TBD | Not started | - |
 
