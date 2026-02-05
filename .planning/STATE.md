@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 **Phase:** 75 of 75 (Frontend Fixes & UX Improvements)
-**Plan:** 02 of 3 (Column Header Tooltips)
+**Plan:** 01 of 3 (URL Centralization & Gene Page UX)
 **Status:** In progress
-**Progress:** v10.3 [█████████████░░░░░░░] 67% (Phase 74 complete)
+**Progress:** v10.3 [██████████████░░░░░░] 70% (75-01 complete)
 
-**Last completed:** 75-02-PLAN.md (Column Header Tooltips)
-**Last activity:** 2026-02-05 -- Completed 75-02-PLAN.md
-**Next action:** Execute plan 75-03 (UX improvements)
+**Last completed:** 75-01-PLAN.md (URL Centralization & Gene Page UX)
+**Last activity:** 2026-02-06 -- Completed 75-01-PLAN.md
+**Next action:** Continue with remaining phase 75 plans
 
 ---
 
@@ -44,7 +44,7 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 312
+- Total plans completed: 313
 - Milestones shipped: 14 (v1-v10.2)
 - Phases completed: 82
 
@@ -95,6 +95,12 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Return 200 OK with empty structures instead of errors for valid queries with no results
 - Don't cache empty results (fast enough without caching)
 
+**Phase 75-01 decisions:**
+- Use app/src/constants/docs.ts for URL constants (consistent with TypeScript patterns)
+- Structure as DOCS_BASE_URL + DOCS_URLS object with named keys (DRY, autocomplete-friendly)
+- Return constants from setup() in Options API components (follows Vue 3 composition pattern)
+- Gene page order: info → entities → external data → visualizations (entities most relevant)
+
 **Phase 75-02 decisions:**
 - Extract tooltip logic into reusable composable (TablesGenes and TablesPhenotypes had inline code)
 - Add head() slot to GenericTable with column-header passthrough (allows header customization)
@@ -108,11 +114,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-02-05 23:06 UTC
-**Stopped at:** Completed 75-02-PLAN.md
-**Next action:** Execute plan 75-03
+**Last session:** 2026-02-06 23:06 UTC
+**Stopped at:** Completed 75-01-PLAN.md
+**Next action:** Continue with remaining phase 75 plans
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-05 -- Completed 75-02-PLAN.md (Column Header Tooltips)*
+*Last updated: 2026-02-06 -- Completed 75-01-PLAN.md (URL Centralization & Gene Page UX)*
