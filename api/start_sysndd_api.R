@@ -350,6 +350,60 @@ version_json <<- fromJSON("version_spec.json")
 sysndd_api_version <<- version_json$version
 
 ## -------------------------------------------------------------------##
+# 8.5) Cache version management
+## -------------------------------------------------------------------##
+# The memoise disk cache persists across container restarts with max_age = Inf.
+# When code changes affect memoised function outputs (return structure, filtering
+# logic, etc.), stale cache entries serve outdated data.
+#
+# CACHE_VERSION environment variable triggers automatic cache clearing when
+# incremented. Operators should bump this on deployments that change cached
+# data structures. See docs/DEPLOYMENT.md for details.
+#
+# How it works:
+# 1. Read CACHE_VERSION from environment (default: "1")
+# 2. Compare against .cache_version file in cache directory
+# 3. If mismatch (or no file): clear all cache files and write new version
+# 4. If match: skip (cache is current)
+
+cache_dir <- "/app/cache"
+cache_version <- Sys.getenv("CACHE_VERSION", "1")
+cache_version_file <- file.path(cache_dir, ".cache_version")
+
+# Ensure cache directory exists
+if (!dir.exists(cache_dir)) {
+  dir.create(cache_dir, recursive = TRUE)
+}
+
+# Check stored version
+stored_version <- tryCatch(
+  readLines(cache_version_file, n = 1, warn = FALSE),
+  error = function(e) ""
+)
+
+if (length(stored_version) == 0) stored_version <- ""
+
+if (stored_version != cache_version) {
+  message(sprintf(
+    "[%s] Cache version mismatch (stored: '%s', current: '%s') - clearing cache",
+    Sys.time(), stored_version, cache_version
+  ))
+
+  # Remove all .rds cache files but preserve directory structure
+  cache_files <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE, recursive = TRUE)
+  if (length(cache_files) > 0) {
+    unlink(cache_files)
+    message(sprintf("[%s] Cleared %d cached files", Sys.time(), length(cache_files)))
+  }
+
+  # Write new version marker
+  writeLines(cache_version, cache_version_file)
+  message(sprintf("[%s] Cache version set to '%s'", Sys.time(), cache_version))
+} else {
+  message(sprintf("[%s] Cache version '%s' is current - no clearing needed", Sys.time(), cache_version))
+}
+
+## -------------------------------------------------------------------##
 # 9) Memoize certain functions
 ## -------------------------------------------------------------------##
 # Note: get_string_db() singleton is defined in analyses-functions.R

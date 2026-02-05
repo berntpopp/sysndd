@@ -161,6 +161,7 @@ services:
       # CORS configuration: comma-separated list of allowed origins
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      CACHE_VERSION: ${CACHE_VERSION:-1}
     networks:
       - proxy
       - backend
