@@ -18,6 +18,13 @@
     @head-clicked="handleHeadClicked"
     @sorted="handleSorted"
   >
+    <!-- Column header with optional tooltip support -->
+    <template #head()="data">
+      <slot name="column-header" :data="data" :fields="fields">
+        {{ data.label }}
+      </slot>
+    </template>
+
     <!-- Slot for custom filter fields -->
     <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
     <template #thead-top>

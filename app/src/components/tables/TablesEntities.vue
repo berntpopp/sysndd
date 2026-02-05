@@ -64,6 +64,20 @@
               :sort-by="sortBy"
               @update-sort="handleSortUpdate"
             >
+              <!-- Column header tooltips -->
+              <template #column-header="{ data }">
+                <div
+                  v-b-tooltip.hover.top
+                  :title="
+                    getTooltipText(
+                      fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
+                    )
+                  "
+                >
+                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                </div>
+              </template>
+
               <!-- Custom filter fields slot -->
               <template v-if="showFilterControls" #filter-controls>
                 <td v-for="field in fields" :key="field.key">
@@ -227,6 +241,7 @@ import {
   useText,
   useTableData,
   useTableMethods,
+  useColumnTooltip,
 } from '@/composables';
 
 // Import the Table components
@@ -296,6 +311,7 @@ export default {
     const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
     const colorAndSymbols = useColorAndSymbols();
     const text = useText();
+    const { getTooltipText } = useColumnTooltip();
 
     // Table state composable
     const tableData = useTableData({
@@ -353,6 +369,7 @@ export default {
       ...restTableMethods,
       filter,
       axios,
+      getTooltipText,
     };
   },
   data() {
