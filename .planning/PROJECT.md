@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10 focuses on data quality, literature integration, and AI-assisted cluster interpretation — fixing major bugs, improving Publications and Pubtator views for research and curation, adding LLM-generated cluster summaries with Gemini API, and modernizing GitHub Pages deployment. Building on v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.3 focuses on bug fixes and stabilization — fixing 500 errors on entity creation and panels, resolving cache invalidation issues, updating external data source URLs, widening database columns, restoring column header statistics, improving phenotype selection UX, and fixing documentation links. Building on v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
 ## Current State (v10.2 shipped 2026-02-03)
 
@@ -342,7 +342,18 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-(None — start next milestone with `/gsd:new-milestone`)
+<!-- v10.3 Bug Fixes & Stabilization -->
+
+- [ ] Fix 500 error on direct approval when creating new entity (#166)
+- [ ] Fix phenotype selection UX issues in Create Entity step 3 (#165)
+- [ ] Restore column header hover statistics/metadata (#164)
+- [ ] Move Associated Entities section higher in Genes view (#163)
+- [ ] Fix outdated documentation links (#162)
+- [ ] Fix Panels page 500 error: requested fields not in query (#161)
+- [ ] Fix database columns too small for Comparisons Data Refresh (#158)
+- [ ] Fix GeneNetworks table and LLM summaries after cache invalidation (#157)
+- [ ] Update Gene2Phenotype download URL for new API (#156)
+- [ ] Fix empty tibble handling in gen_string_clust_obj (#155)
 
 ### Out of Scope
 
@@ -469,4 +480,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-03 after v10.2 milestone completed*
+*Last updated: 2026-02-05 after v10.3 milestone started*
