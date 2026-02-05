@@ -22,7 +22,7 @@
                     <BRow>
                       <BCol md="12">
                         Please read the Curation criteria at
-                        <BLink href="https://berntpopp.github.io/sysndd/05-curation-criteria.html">
+                        <BLink :href="DOCS_URLS.CURATION_CRITERIA">
                           The SysNDD Documentation - Chapter | 5 Curation criteria </BLink
                         >.<br /><br />
                       </BCol>
@@ -36,9 +36,7 @@
                     <BRow>
                       <BCol md="12">
                         Please read the Re-review instructions at
-                        <BLink
-                          href="https://berntpopp.github.io/sysndd/06-re-review-instructions.html"
-                        >
+                        <BLink :href="DOCS_URLS.RE_REVIEW_INSTRUCTIONS">
                           The SysNDD Documentation - Chapter | 6 Re-review instructions </BLink
                         >.<br /><br />
                       </BCol>
@@ -52,7 +50,7 @@
                     <BRow>
                       <BCol md="12">
                         Please watch the tutorial videos at
-                        <BLink href="https://berntpopp.github.io/sysndd/07-tutorial-videos.html">
+                        <BLink :href="DOCS_URLS.TUTORIAL_VIDEOS">
                           The SysNDD Documentation - Chapter | 7 Tutorial videos </BLink
                         >.<br /><br />
                       </BCol>
@@ -70,6 +68,7 @@
 
 <script>
 import { useHead } from '@unhead/vue';
+import { DOCS_URLS } from '@/constants/docs';
 
 export default {
   name: 'ReviewInstructions',
@@ -84,6 +83,10 @@ export default {
         },
       ],
     });
+
+    return {
+      DOCS_URLS,
+    };
   },
   data() {
     return {

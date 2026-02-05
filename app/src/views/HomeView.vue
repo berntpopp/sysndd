@@ -355,10 +355,7 @@
                 ><br />
                 <span class="word"
                   >The classification criteria used for the categories are detailed in our
-                  <BLink
-                    href="https://berntpopp.github.io/sysndd/05-curation-criteria.html"
-                    target="_blank"
-                  >
+                  <BLink :href="DOCS_URLS.CURATION_CRITERIA" target="_blank">
                     Documentation
                   </BLink>
                   on GitHub.<br />
@@ -392,6 +389,9 @@ import Utils from '@/assets/js/utils';
 
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
+
+// Import documentation URLs from constants
+import { DOCS_URLS } from '@/constants/docs';
 
 // Import the apiService to make the API calls
 import apiService from '@/assets/js/services/apiService';
@@ -442,6 +442,7 @@ export default {
       makeToast,
       ...colorAndSymbols,
       ...text,
+      DOCS_URLS,
     };
   },
   data() {

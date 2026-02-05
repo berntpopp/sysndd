@@ -19,31 +19,19 @@
           <BCard class="mb-4 border-0 shadow-sm" body-class="py-3">
             <BRow class="text-center">
               <BCol sm="4" class="mb-2 mb-sm-0">
-                <BLink
-                  href="https://berntpopp.github.io/sysndd/"
-                  target="_blank"
-                  class="text-decoration-none"
-                >
+                <BLink :href="DOCS_URLS.HOME" target="_blank" class="text-decoration-none">
                   <i class="bi bi-file-earmark-text fs-2 d-block mb-2 text-primary" />
                   <span class="fw-semibold">Full Documentation</span>
                 </BLink>
               </BCol>
               <BCol sm="4" class="mb-2 mb-sm-0">
-                <BLink
-                  href="https://github.com/berntpopp/sysndd/discussions"
-                  target="_blank"
-                  class="text-decoration-none"
-                >
+                <BLink :href="DOCS_URLS.GITHUB_DISCUSSIONS" target="_blank" class="text-decoration-none">
                   <i class="bi bi-chat-dots fs-2 d-block mb-2 text-success" />
                   <span class="fw-semibold">Discussions</span>
                 </BLink>
               </BCol>
               <BCol sm="4">
-                <BLink
-                  href="https://github.com/berntpopp/sysndd/issues"
-                  target="_blank"
-                  class="text-decoration-none"
-                >
+                <BLink :href="DOCS_URLS.GITHUB_ISSUES" target="_blank" class="text-decoration-none">
                   <i class="bi bi-bug fs-2 d-block mb-2 text-danger" />
                   <span class="fw-semibold">Report Issues</span>
                 </BLink>
@@ -246,13 +234,9 @@
                   page at:
                 </p>
                 <BCard class="text-center border-0 bg-primary bg-opacity-10" body-class="py-4">
-                  <BLink
-                    href="https://berntpopp.github.io/sysndd/"
-                    target="_blank"
-                    class="fs-5 fw-bold"
-                  >
+                  <BLink :href="DOCS_URLS.HOME" target="_blank" class="fs-5 fw-bold">
                     <i class="bi bi-box-arrow-up-right me-2" />
-                    https://berntpopp.github.io/sysndd/
+                    {{ DOCS_URLS.HOME }}
                   </BLink>
                 </BCard>
                 <p class="mt-3">You can:</p>
@@ -283,11 +267,7 @@
               <div class="py-2">
                 <p>Ask questions, report bugs and chat about SysNDD in general using our:</p>
                 <BCard class="text-center border-0 bg-success bg-opacity-10" body-class="py-4">
-                  <BLink
-                    href="https://github.com/berntpopp/sysndd/discussions"
-                    target="_blank"
-                    class="fs-5 fw-bold text-success"
-                  >
+                  <BLink :href="DOCS_URLS.GITHUB_DISCUSSIONS" target="_blank" class="fs-5 fw-bold text-success">
                     <i class="bi bi-github me-2" />
                     GitHub Discussions Page
                   </BLink>
@@ -303,6 +283,7 @@
 
 <script>
 import { useHead } from '@unhead/vue';
+import { DOCS_URLS } from '@/constants/docs';
 
 export default {
   name: 'DocumentationView',
@@ -317,6 +298,10 @@ export default {
         },
       ],
     });
+
+    return {
+      DOCS_URLS,
+    };
   },
   data() {
     return {

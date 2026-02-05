@@ -59,7 +59,7 @@ createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet
       <BDropdownItem
         v-b-tooltip.hover.left
         title="View our documentation."
-        href="https://berntpopp.github.io/sysndd/"
+        :href="DOCS_URLS.HOME"
         target="_blank"
       >
         <i class="bi bi-book-fill" aria-hidden="true" /> Docs
@@ -68,7 +68,7 @@ createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet
       <BDropdownItem
         v-b-tooltip.hover.left
         title="Get help on our GitHub discussions page."
-        href="https://github.com/berntpopp/sysndd/discussions"
+        :href="DOCS_URLS.GITHUB_DISCUSSIONS"
         target="_blank"
       >
         <i class="bi bi-question-circle-fill" aria-hidden="true" /> Help
@@ -79,12 +79,16 @@ createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet
 
 <script>
 import useToast from '@/composables/useToast';
+import { DOCS_URLS } from '@/constants/docs';
 
 export default {
   name: 'HelperBadge',
   setup() {
     const { makeToast } = useToast();
-    return { makeToast };
+    return {
+      makeToast,
+      DOCS_URLS,
+    };
   },
   data() {
     return {
