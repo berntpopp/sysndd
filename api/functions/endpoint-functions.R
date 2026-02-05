@@ -468,7 +468,11 @@ generate_panels_list <- function(
     mutate(category_id = min(category_id)) %>%
     ungroup() %>%
     left_join(status_categories_list, by = c("category_id")) %>%
-    select(-category_id)
+    select(-category_id) %>%
+    # When max_category=FALSE, remove the max_category column (not needed)
+    {
+      if (!max_category) select(., -max_category) else .
+    }
 
   sysndd_db_non_alt_loci_set <- pool %>%
     tbl("non_alt_loci_set") %>%
@@ -481,6 +485,16 @@ generate_panels_list <- function(
   disease_genes_filter <- sysndd_db_disease_genes %>%
     filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     select(-inheritance_filter) %>%
+    # When max_category=TRUE, replace category column with max_category
+    # This ensures arrange, mutate, and output use the max category per gene
+    {
+      if (max_category) {
+        select(., -category) %>%
+          rename(category = max_category)
+      } else {
+        .
+      }
+    } %>%
     unique() %>%
     arrange(symbol, category, inheritance) %>%
     group_by(symbol) %>%
