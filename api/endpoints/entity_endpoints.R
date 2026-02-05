@@ -371,6 +371,12 @@ function(req, res, direct_approval = FALSE) {
         review_user_id,
         TRUE
       )
+
+      logger::log_debug(
+        "Review approval response",
+        status = response_review_approve$status,
+        review_id = response_review$entry$review_id
+      )
     }
 
     response_review_post <- tibble::as_tibble(response_publication) %>%
@@ -378,6 +384,13 @@ function(req, res, direct_approval = FALSE) {
       bind_rows(tibble::as_tibble(response_publication_conn)) %>%
       bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
       bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
+      {
+        if (direct_approval) {
+          bind_rows(., tibble::as_tibble(response_review_approve))
+        } else {
+          .
+        }
+      } %>%
       dplyr::select(status, message) %>%
       mutate(status = max(status)) %>%
       mutate(message = str_c(message, collapse = "; ")) %>%
@@ -427,6 +440,12 @@ function(req, res, direct_approval = FALSE) {
         status_user_id,
         TRUE
       )
+
+      logger::log_debug(
+        "Status approval response",
+        status = response_status_approve$status,
+        status_id = response_status_post$entry
+      )
     }
   } else {
     logger::log_error(
@@ -456,7 +475,8 @@ function(req, res, direct_approval = FALSE) {
       entity_id = response_entity$entry$entity_id,
       user_id = entry_user_id
     )
-    res$status <- response_entity$status
+    # Set HTTP 201 Created for successful entity creation
+    res$status <- 201
     return(response_entity)
   } else {
     logger::log_error(
@@ -468,6 +488,13 @@ function(req, res, direct_approval = FALSE) {
     response <- tibble::as_tibble(response_entity) %>%
       bind_rows(tibble::as_tibble(response_review_post)) %>%
       bind_rows(tibble::as_tibble(response_status_post)) %>%
+      {
+        if (direct_approval && exists("response_status_approve")) {
+          bind_rows(., tibble::as_tibble(response_status_approve))
+        } else {
+          .
+        }
+      } %>%
       dplyr::select(status, message) %>%
       unique() %>%
       mutate(status = max(status)) %>%
