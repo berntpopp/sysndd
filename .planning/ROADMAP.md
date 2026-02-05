@@ -14,7 +14,7 @@
 - ✅ **v10.0 Data Quality & AI Insights** - Phases 55-65 (shipped 2026-02-01)
 - ✅ **v10.1 Production Deployment Fixes** - Phases 66-68 (shipped 2026-02-03)
 - ✅ **v10.2 Performance & Memory Optimization** - Phases 69-72 (shipped 2026-02-03)
-- 🚧 **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (in progress)
+- 🚧 **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (all phases complete, pending milestone audit)
 
 ## Phases
 
@@ -25,13 +25,13 @@ Phases 1-72 delivered across milestones v1.0 through v10.2. See `.planning/MILES
 
 </details>
 
-### 🚧 v10.3 Bug Fixes & Stabilization (In Progress)
+### 🚧 v10.3 Bug Fixes & Stabilization (All Phases Complete)
 
 **Milestone Goal:** Fix 10 open bugs and UX issues to stabilize the production deployment after v10.0-v10.2 feature work.
 
 - [x] **Phase 73: Data Infrastructure & Cache Fixes** - Database migrations and cache invalidation
 - [x] **Phase 74: API Bug Fixes** - Fix three independent 500 errors in API endpoints
-- [ ] **Phase 75: Frontend Fixes & UX Improvements** - Documentation links, column stats, phenotype selection, layout
+- [x] **Phase 75: Frontend Fixes & UX Improvements** - Documentation links, column stats, phenotype selection, layout
 
 ## Phase Details
 
@@ -74,9 +74,9 @@ Plans:
   4. On the Genes detail view, the Associated Entities section appears above the Constraint Scores and ClinVar sections in the page layout
 **Plans:** 3 plans
 Plans:
-- [ ] 75-01-PLAN.md -- Centralize documentation URLs into constants file (FE-01) and reorder Gene page sections (UX-02)
-- [ ] 75-02-PLAN.md -- Create useColumnTooltip composable and restore column header tooltips on Entities table (FE-02)
-- [ ] 75-03-PLAN.md -- Replace BFormSelect with TreeMultiSelect in Create Entity phenotype/variation step (UX-01)
+- [x] 75-01-PLAN.md -- Centralize documentation URLs into constants file (FE-01) and reorder Gene page sections (UX-02)
+- [x] 75-02-PLAN.md -- Create useColumnTooltip composable and restore column header tooltips on Entities table (FE-02)
+- [x] 75-03-PLAN.md -- Replace BFormSelect with TreeMultiSelect in Create Entity phenotype/variation step (UX-01)
 
 ## Progress
 
@@ -86,8 +86,8 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 73. Data Infrastructure & Cache Fixes | v10.3 | 2/2 | ✓ Complete | 2026-02-05 |
 | 74. API Bug Fixes | v10.3 | 3/3 | ✓ Complete | 2026-02-05 |
-| 75. Frontend Fixes & UX Improvements | v10.3 | 0/3 | Planned | - |
+| 75. Frontend Fixes & UX Improvements | v10.3 | 3/3 | ✓ Complete | 2026-02-06 |
 
 ---
 *Roadmap created: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 75 planned (3 plans in 1 wave)*
+*Last updated: 2026-02-06 -- Phase 75 complete (3/3 plans, verified)*

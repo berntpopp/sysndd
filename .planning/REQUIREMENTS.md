@@ -21,13 +21,13 @@ Requirements for v10.3 milestone. Each maps to roadmap phases.
 
 ### Frontend Fixes
 
-- [ ] **FE-01**: Documentation links point to correct numbered-prefix URLs on GitHub Pages (#162)
-- [ ] **FE-02**: Table column headers display statistics/metadata on hover (#164)
+- [x] **FE-01**: Documentation links point to correct numbered-prefix URLs on GitHub Pages (#162)
+- [x] **FE-02**: Table column headers display statistics/metadata on hover (#164)
 
 ### Frontend UX Improvements
 
-- [ ] **UX-01**: Create Entity phenotype selection uses same multiselect component as ModifyEntity (#165)
-- [ ] **UX-02**: Associated Entities section appears above Constraint and ClinVar sections in Genes view (#163)
+- [x] **UX-01**: Create Entity phenotype selection uses same multiselect component as ModifyEntity (#165)
+- [x] **UX-02**: Associated Entities section appears above Constraint and ClinVar sections in Genes view (#163)
 
 ## v2 Requirements
 
@@ -59,10 +59,10 @@ Deferred to future milestones.
 | DATA-01 | Phase 73 | Complete |
 | DATA-02 | Phase 73 | Complete |
 | DATA-03 | Phase 73 | Complete |
-| FE-01 | Phase 75 | Pending |
-| FE-02 | Phase 75 | Pending |
-| UX-01 | Phase 75 | Pending |
-| UX-02 | Phase 75 | Pending |
+| FE-01 | Phase 75 | Complete |
+| FE-02 | Phase 75 | Complete |
+| UX-01 | Phase 75 | Complete |
+| UX-02 | Phase 75 | Complete |
 
 **Coverage:**
 - v1 requirements: 10 total
@@ -71,4 +71,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 74 complete (API-01, API-02, API-03)*
+*Last updated: 2026-02-06 -- Phase 75 complete (FE-01, FE-02, UX-01, UX-02)*
