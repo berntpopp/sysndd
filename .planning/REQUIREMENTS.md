@@ -53,22 +53,22 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | TBD | Pending |
-| API-02 | TBD | Pending |
-| API-03 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| FE-01 | TBD | Pending |
-| FE-02 | TBD | Pending |
-| UX-01 | TBD | Pending |
-| UX-02 | TBD | Pending |
+| API-01 | Phase 74 | Pending |
+| API-02 | Phase 74 | Pending |
+| API-03 | Phase 74 | Pending |
+| DATA-01 | Phase 73 | Pending |
+| DATA-02 | Phase 73 | Pending |
+| DATA-03 | Phase 73 | Pending |
+| FE-01 | Phase 75 | Pending |
+| FE-02 | Phase 75 | Pending |
+| UX-01 | Phase 75 | Pending |
+| UX-02 | Phase 75 | Pending |
 
 **Coverage:**
 - v1 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 (pending roadmap creation)
+- Mapped to phases: 10
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 after initial definition*
+*Last updated: 2026-02-05 after roadmap creation*
