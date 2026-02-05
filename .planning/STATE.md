@@ -1,6 +1,6 @@
 # Project State: SysNDD
 
-**Last updated:** 2026-02-05
+**Last updated:** 2026-02-06
 **Current milestone:** v10.3 Bug Fixes & Stabilization
 
 ---
@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 **Phase:** 75 of 75 (Frontend Fixes & UX Improvements)
-**Plan:** Not started
-**Status:** Ready to plan
+**Plan:** 02 of 3 (Column Header Tooltips)
+**Status:** In progress
 **Progress:** v10.3 [█████████████░░░░░░░] 67% (Phase 74 complete)
 
-**Last completed:** Phase 74 - API Bug Fixes (verified 2026-02-05)
-**Last activity:** 2026-02-05 -- Phase 74 executed and verified
-**Next action:** Plan phase 75 (Frontend Fixes & UX Improvements)
+**Last completed:** 75-02-PLAN.md (Column Header Tooltips)
+**Last activity:** 2026-02-05 -- Completed 75-02-PLAN.md
+**Next action:** Execute plan 75-03 (UX improvements)
 
 ---
 
@@ -54,7 +54,7 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 |--------|-------|-------|
 | **Backend Tests** | 716 + 11 E2E | +29 tests in phase 74 (entity creation, panels, clustering) |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
-| **Vue Composables** | 31 | Including useLlmAdmin, useExcelExport |
+| **Vue Composables** | 32 | Including useColumnTooltip, useLlmAdmin, useExcelExport |
 | **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
@@ -95,6 +95,11 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Return 200 OK with empty structures instead of errors for valid queries with no results
 - Don't cache empty results (fast enough without caching)
 
+**Phase 75-02 decisions:**
+- Extract tooltip logic into reusable composable (TablesGenes and TablesPhenotypes had inline code)
+- Add head() slot to GenericTable with column-header passthrough (allows header customization)
+- Preserved label cleanup regex `/( word)|( name)/g` for consistent mobile display
+
 ### Blockers/Concerns
 
 None yet.
@@ -103,11 +108,11 @@ None yet.
 
 ## Session Continuity
 
-**Last session:** 2026-02-05
-**Stopped at:** Phase 74 executed and verified (human_needed)
-**Next action:** Plan phase 75 (Frontend Fixes & UX Improvements)
+**Last session:** 2026-02-05 23:06 UTC
+**Stopped at:** Completed 75-02-PLAN.md
+**Next action:** Execute plan 75-03
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-05 -- Phase 74 complete, verified, requirements marked*
+*Last updated: 2026-02-05 -- Completed 75-02-PLAN.md (Column Header Tooltips)*
