@@ -106,7 +106,7 @@ import { BContainer, BRow, BCol, BOverlay, BAlert, BButton } from 'bootstrap-vue
 import axios from 'axios';
 
 // Composables
-import { useToast } from '@/composables';
+import { useToast, type TreeNode } from '@/composables';
 import useEntityForm, {
   type SelectOption,
   type EntityFormData,
@@ -194,17 +194,10 @@ export default defineComponent({
     const showDraftRecovery = ref(false);
     const draftLastSaved = ref<string | null>(null);
 
-    // Tree option interface for TreeMultiSelect
-    interface TreeOption {
-      id: string;
-      label: string;
-      children?: TreeOption[];
-    }
-
     // Options loaded from API
     const inheritanceOptions = ref<SelectOption[]>([]);
-    const phenotypeOptions = ref<TreeOption[]>([]);
-    const variationOptions = ref<TreeOption[]>([]);
+    const phenotypeOptions = ref<TreeNode[]>([]);
+    const variationOptions = ref<TreeNode[]>([]);
     const statusOptions = ref<SelectOption[]>([]);
 
     // Provide form state to child components
@@ -264,7 +257,7 @@ export default defineComponent({
      */
     const transformModifierTree = (
       nodes: { id: string; label: string; children?: { id: string; label: string }[] }[]
-    ): TreeOption[] => {
+    ): TreeNode[] => {
       return nodes.map((node) => {
         const phenotypeName = node.label.replace(/^present:\s*/, '');
         const ontologyCode = node.id.replace(/^\d+-/, '');

@@ -245,13 +245,7 @@ import type {
   EntityFormData,
   SelectOption,
 } from '@/composables/useEntityForm';
-
-// Tree option interface for TreeMultiSelect
-interface TreeOption {
-  id: string;
-  label: string;
-  children?: TreeOption[];
-}
+import type { TreeNode } from '@/composables';
 
 export default defineComponent({
   name: 'StepReview',
@@ -277,11 +271,11 @@ export default defineComponent({
       default: () => [],
     },
     phenotypeOptions: {
-      type: Array as PropType<TreeOption[]>,
+      type: Array as PropType<TreeNode[]>,
       default: () => [],
     },
     variationOptions: {
-      type: Array as PropType<TreeOption[]>,
+      type: Array as PropType<TreeNode[]>,
       default: () => [],
     },
   },
@@ -302,9 +296,9 @@ export default defineComponent({
     };
 
     // Helper to get label from tree options (for TreeMultiSelect)
-    const getTreeOptionLabel = (treeOptions: TreeOption[], value: string): string => {
+    const getTreeOptionLabel = (treeOptions: TreeNode[], value: string): string => {
       // Search through tree structure to find the label by ID
-      const searchTree = (nodes: TreeOption[]): string | null => {
+      const searchTree = (nodes: TreeNode[]): string | null => {
         for (const node of nodes) {
           if (node.id === value) {
             return node.label;
