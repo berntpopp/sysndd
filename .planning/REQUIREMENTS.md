@@ -15,9 +15,9 @@ Requirements for v10.3 milestone. Each maps to roadmap phases.
 
 ### Data Infrastructure
 
-- [ ] **DATA-01**: Database migration widens ndd_database_comparison columns to prevent truncation (#158)
-- [ ] **DATA-02**: Database migration updates Gene2Phenotype source URL and file_format to new API (#156)
-- [ ] **DATA-03**: Stale memoization cache is invalidated when code changes affect cached data structures (#157)
+- [x] **DATA-01**: Database migration widens ndd_database_comparison columns to prevent truncation (#158)
+- [x] **DATA-02**: Database migration updates Gene2Phenotype source URL and file_format to new API (#156)
+- [x] **DATA-03**: Stale memoization cache is invalidated when code changes affect cached data structures (#157)
 
 ### Frontend Fixes
 
@@ -56,9 +56,9 @@ Deferred to future milestones.
 | API-01 | Phase 74 | Pending |
 | API-02 | Phase 74 | Pending |
 | API-03 | Phase 74 | Pending |
-| DATA-01 | Phase 73 | Pending |
-| DATA-02 | Phase 73 | Pending |
-| DATA-03 | Phase 73 | Pending |
+| DATA-01 | Phase 73 | Complete |
+| DATA-02 | Phase 73 | Complete |
+| DATA-03 | Phase 73 | Complete |
 | FE-01 | Phase 75 | Pending |
 | FE-02 | Phase 75 | Pending |
 | UX-01 | Phase 75 | Pending |
@@ -71,4 +71,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 after roadmap creation*
+*Last updated: 2026-02-05 -- Phase 73 complete (DATA-01, DATA-02, DATA-03)*
