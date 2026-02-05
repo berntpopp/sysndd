@@ -1,5 +1,62 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v10.2 Performance & Memory Optimization (Shipped: 2026-02-03)
+
+**Delivered:** Optimize API memory usage for memory-constrained servers with configurable mirai workers, STRING threshold optimization, adaptive layout algorithms, and fix ViewLogs performance bug with database-side filtering.
+
+**Phases completed:** 69-72 (11 plans total)
+
+**Key accomplishments:**
+
+- Implemented configurable mirai workers via MIRAI_WORKERS env var with bounds validation (1-8)
+- Increased STRING score_threshold from 200 to 400 (medium confidence, ~50% fewer false positive edges)
+- Added adaptive layout algorithm selection (DrL >1000 nodes, FR-grid 500-1000, FR <500)
+- Built database-side filtering for logs endpoint eliminating collect() memory anti-pattern
+- Created query builder with column whitelist and parameterized SQL preventing injection
+- Added 5 database indexes for logging table (timestamp, status, path, composites)
+- Implemented gc() calls in LLM batch processing (every 10 clusters)
+- Created comprehensive unit and integration test coverage
+- Documented memory configuration with deployment profiles
+
+**Stats:**
+
+- 100,143 lines R code
+- 4 phases, 11 plans
+- 39 requirements satisfied
+- 1 day (2026-02-03)
+
+**Git range:** `dbaf0bc5` → `a8fff3a7`
+
+**Target Issues:**
+- #150: Optimize mirai worker configuration for memory-constrained servers — RESOLVED
+- #152: ViewLogs endpoint loads entire table into memory before filtering — RESOLVED
+
+**What's next:** Planning next milestone
+
+---
+
+## v10.1 Production Deployment Fixes (Shipped: 2026-02-03)
+
+**Delivered:** Fixed production deployment issues including API container UID mismatch, migration lock timeout, missing favicon, and container_name directive blocking scaling.
+
+**Phases completed:** 66-68 (4 plans total)
+
+**Key accomplishments:**
+
+- Fixed API container UID mismatch with configurable build-arg (default 1000)
+- Fixed migration lock timeout with double-checked locking pattern
+- Restored favicon image from _old directory
+- Removed container_name directive from API service for scaling
+
+**Stats:**
+
+- 3 phases, 4 plans
+- 1 day (2026-02-03)
+
+**What's next:** v10.2 Performance & Memory Optimization
+
+---
+
 ## v10.0 Data Quality & AI Insights (Shipped: 2026-02-01)
 
 **Delivered:** Stabilize data quality with 8 major bug fixes, enhance literature research tools (Publications, Pubtator), and add AI-generated cluster summaries using Gemini API with LLM-as-judge validation and full admin dashboard.
