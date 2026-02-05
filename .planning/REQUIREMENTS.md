@@ -9,9 +9,9 @@ Requirements for v10.3 milestone. Each maps to roadmap phases.
 
 ### API Bug Fixes
 
-- [ ] **API-01**: Direct approval entity creation no longer returns 500 error (#166)
-- [ ] **API-02**: Panels page loads successfully with all allowed columns matching query results (#161)
-- [ ] **API-03**: Clustering endpoints handle empty tibbles in rowwise context without crashing (#155)
+- [x] **API-01**: Direct approval entity creation no longer returns 500 error (#166)
+- [x] **API-02**: Panels page loads successfully with all allowed columns matching query results (#161)
+- [x] **API-03**: Clustering endpoints handle empty tibbles in rowwise context without crashing (#155)
 
 ### Data Infrastructure
 
@@ -53,9 +53,9 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | Phase 74 | Pending |
-| API-02 | Phase 74 | Pending |
-| API-03 | Phase 74 | Pending |
+| API-01 | Phase 74 | Complete |
+| API-02 | Phase 74 | Complete |
+| API-03 | Phase 74 | Complete |
 | DATA-01 | Phase 73 | Complete |
 | DATA-02 | Phase 73 | Complete |
 | DATA-03 | Phase 73 | Complete |
@@ -71,4 +71,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 73 complete (DATA-01, DATA-02, DATA-03)*
+*Last updated: 2026-02-05 -- Phase 74 complete (API-01, API-02, API-03)*

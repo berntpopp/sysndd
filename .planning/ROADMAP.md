@@ -30,7 +30,7 @@ Phases 1-72 delivered across milestones v1.0 through v10.2. See `.planning/MILES
 **Milestone Goal:** Fix 10 open bugs and UX issues to stabilize the production deployment after v10.0-v10.2 feature work.
 
 - [x] **Phase 73: Data Infrastructure & Cache Fixes** - Database migrations and cache invalidation
-- [ ] **Phase 74: API Bug Fixes** - Fix three independent 500 errors in API endpoints
+- [x] **Phase 74: API Bug Fixes** - Fix three independent 500 errors in API endpoints
 - [ ] **Phase 75: Frontend Fixes & UX Improvements** - Documentation links, column stats, phenotype selection, layout
 
 ## Phase Details
@@ -59,9 +59,9 @@ Plans:
   3. Clustering endpoints return a valid empty response (not a 500 error) when called for gene sets that produce zero STRING interactions (empty tibble in rowwise context)
 **Plans:** 3 plans
 Plans:
-- [ ] 74-01-PLAN.md -- Fix direct approval entity creation 500 error (API-01, #166)
-- [ ] 74-02-PLAN.md -- Fix Panels page column alias mismatch (API-02, #161)
-- [ ] 74-03-PLAN.md -- Fix clustering empty tibble crash and scan all rowwise patterns (API-03, #155)
+- [x] 74-01-PLAN.md -- Fix direct approval entity creation 500 error (API-01, #166)
+- [x] 74-02-PLAN.md -- Fix Panels page column alias mismatch (API-02, #161)
+- [x] 74-03-PLAN.md -- Fix clustering empty tibble crash and scan all rowwise patterns (API-03, #155)
 
 ### Phase 75: Frontend Fixes & UX Improvements
 **Goal**: Frontend displays correct information and provides a smooth user experience for entity creation and gene browsing
@@ -81,9 +81,9 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 73. Data Infrastructure & Cache Fixes | v10.3 | 2/2 | ✓ Complete | 2026-02-05 |
-| 74. API Bug Fixes | v10.3 | 0/3 | Planned | - |
+| 74. API Bug Fixes | v10.3 | 3/3 | ✓ Complete | 2026-02-05 |
 | 75. Frontend Fixes & UX Improvements | v10.3 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 74 planned (3 plans)*
+*Last updated: 2026-02-05 -- Phase 74 complete (3/3 plans, verified)*
