@@ -126,3 +126,7 @@ export {
   extractGeneSymbols,
 } from './usePubtatorParser';
 export type { ParsedSegment, ExtractedEntity } from './usePubtatorParser';
+
+// Column tooltip utilities
+export { useColumnTooltip } from './useColumnTooltip';
+export type { FieldWithCounts } from './useColumnTooltip';
