@@ -109,7 +109,6 @@ import axios from 'axios';
 import { useToast } from '@/composables';
 import useEntityForm, {
   type SelectOption,
-  type GroupedSelectOptions,
   type EntityFormData,
 } from '@/composables/useEntityForm';
 import useFormDraft from '@/composables/useFormDraft';
@@ -195,10 +194,17 @@ export default defineComponent({
     const showDraftRecovery = ref(false);
     const draftLastSaved = ref<string | null>(null);
 
+    // Tree option interface for TreeMultiSelect
+    interface TreeOption {
+      id: string;
+      label: string;
+      children?: TreeOption[];
+    }
+
     // Options loaded from API
     const inheritanceOptions = ref<SelectOption[]>([]);
-    const phenotypeOptions = ref<GroupedSelectOptions>([]);
-    const variationOptions = ref<GroupedSelectOptions>([]);
+    const phenotypeOptions = ref<TreeOption[]>([]);
+    const variationOptions = ref<TreeOption[]>([]);
     const statusOptions = ref<SelectOption[]>([]);
 
     // Provide form state to child components
@@ -231,19 +237,6 @@ export default defineComponent({
       }
     };
 
-    // API helper for loading grouped options (phenotypes, variations)
-    const loadGroupedOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
-          { withCredentials: true }
-        );
-        targetRef.value = createGroupedOptions(response.data);
-      } catch (e) {
-        makeToast(e as Error, 'Error', 'danger');
-      }
-    };
-
     // Flatten tree options for simple selects (inheritance, status)
     const flattenTreeOptions = (
       options: { id: string; label: string; children?: unknown[] }[],
@@ -261,55 +254,55 @@ export default defineComponent({
       return result;
     };
 
-    // Create grouped options for optgroup display (phenotypes, variations)
-    // Transforms tree structure into Bootstrap-Vue-Next optgroup format
-    const createGroupedOptions = (
-      treeOptions: { id: string; label: string; children?: { id: string; label: string }[] }[]
-    ): GroupedSelectOptions => {
-      return treeOptions.map((parentOpt) => {
-        // Extract term name from "modifier: term" format
-        const termName = extractTermName(parentOpt.label);
-        const parentModifier = extractModifier(parentOpt.label);
-
-        // Build options array with parent first, then children
-        const options: SelectOption[] = [{ value: parentOpt.id, text: parentModifier }];
-
-        if (parentOpt.children && Array.isArray(parentOpt.children)) {
-          parentOpt.children.forEach((child) => {
-            options.push({
-              value: child.id,
-              text: extractModifier(child.label),
-            });
-          });
-        }
-
+    /**
+     * Transform phenotype/variation tree to make all modifiers selectable children.
+     * Copied from ModifyEntity.vue - API returns "present: X" as parent with
+     * [uncertain, variable, rare, absent] as children. We want "X" as parent
+     * with [present, uncertain, variable, rare, absent] as children.
+     *
+     * Output format matches TreeMultiSelect's expected { id, label, children } structure.
+     */
+    const transformModifierTree = (
+      nodes: { id: string; label: string; children?: { id: string; label: string }[] }[]
+    ): TreeOption[] => {
+      return nodes.map((node) => {
+        const phenotypeName = node.label.replace(/^present:\s*/, '');
+        const ontologyCode = node.id.replace(/^\d+-/, '');
         return {
-          label: termName,
-          options,
+          id: `parent-${ontologyCode}`,
+          label: phenotypeName,
+          children: [
+            { id: node.id, label: `present: ${phenotypeName}` },
+            ...(node.children || []).map((child) => {
+              const modifier = child.label.replace(/:\s*.*$/, '');
+              return { id: child.id, label: `${modifier}: ${phenotypeName}` };
+            }),
+          ],
         };
       });
     };
 
-    // Extract term name from "modifier: term" format (e.g., "present: Seizures" -> "Seizures")
-    const extractTermName = (label: string): string => {
-      const colonIndex = label.indexOf(':');
-      if (colonIndex === -1) return label;
-      return label.substring(colonIndex + 1).trim();
-    };
-
-    // Extract modifier from "modifier: term" format (e.g., "present: Seizures" -> "present")
-    const extractModifier = (label: string): string => {
-      const colonIndex = label.indexOf(':');
-      if (colonIndex === -1) return label;
-      return label.substring(0, colonIndex).trim();
+    // API helper for loading tree options (phenotypes, variations)
+    const loadTreeOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
+          { withCredentials: true }
+        );
+        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        targetRef.value = transformModifierTree(rawData);
+      } catch (e) {
+        makeToast(e as Error, 'Error', 'danger');
+        targetRef.value = [];
+      }
     };
 
     // Load all options on mount
     onMounted(async () => {
       await Promise.all([
         loadFlatOptions('inheritance', inheritanceOptions),
-        loadGroupedOptions('phenotype', phenotypeOptions),
-        loadGroupedOptions('variation_ontology', variationOptions),
+        loadTreeOptions('phenotype', phenotypeOptions),
+        loadTreeOptions('variation_ontology', variationOptions),
         loadFlatOptions('status', statusOptions),
       ]);
 

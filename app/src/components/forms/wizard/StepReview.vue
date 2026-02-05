@@ -244,8 +244,14 @@ import { BCard, BCardBody, BRow, BCol, BBadge, BButton, BLink, BAlert } from 'bo
 import type {
   EntityFormData,
   SelectOption,
-  GroupedSelectOptions,
 } from '@/composables/useEntityForm';
+
+// Tree option interface for TreeMultiSelect
+interface TreeOption {
+  id: string;
+  label: string;
+  children?: TreeOption[];
+}
 
 export default defineComponent({
   name: 'StepReview',
@@ -271,11 +277,11 @@ export default defineComponent({
       default: () => [],
     },
     phenotypeOptions: {
-      type: Array as PropType<GroupedSelectOptions>,
+      type: Array as PropType<TreeOption[]>,
       default: () => [],
     },
     variationOptions: {
-      type: Array as PropType<GroupedSelectOptions>,
+      type: Array as PropType<TreeOption[]>,
       default: () => [],
     },
   },
@@ -295,17 +301,23 @@ export default defineComponent({
       return option?.text || String(value);
     };
 
-    // Helper to get label from grouped options
-    const getGroupedOptionLabel = (groupedOptions: GroupedSelectOptions, value: string): string => {
-      for (const group of groupedOptions) {
-        if ('options' in group && Array.isArray(group.options)) {
-          const option = group.options.find((opt) => opt.value === value);
-          if (option) {
-            return `${option.text}: ${group.label}`;
+    // Helper to get label from tree options (for TreeMultiSelect)
+    const getTreeOptionLabel = (treeOptions: TreeOption[], value: string): string => {
+      // Search through tree structure to find the label by ID
+      const searchTree = (nodes: TreeOption[]): string | null => {
+        for (const node of nodes) {
+          if (node.id === value) {
+            return node.label;
+          }
+          if (node.children) {
+            const found = searchTree(node.children);
+            if (found) return found;
           }
         }
-      }
-      return value;
+        return null;
+      };
+
+      return searchTree(treeOptions) || value;
     };
 
     const getInheritanceLabel = (value: string | null) =>
@@ -314,10 +326,10 @@ export default defineComponent({
     const getStatusLabel = (value: string | null) => getOptionLabel(props.statusOptions, value);
 
     const getPhenotypeLabel = (value: string) =>
-      getGroupedOptionLabel(props.phenotypeOptions, value);
+      getTreeOptionLabel(props.phenotypeOptions, value);
 
     const getVariationLabel = (value: string) =>
-      getGroupedOptionLabel(props.variationOptions, value);
+      getTreeOptionLabel(props.variationOptions, value);
 
     // PubMed URL helper
     const getPubMedUrl = (pmid: string): string => {
