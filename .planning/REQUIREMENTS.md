@@ -1,0 +1,74 @@
+# Requirements: SysNDD v10.3 Bug Fixes & Stabilization
+
+**Defined:** 2026-02-05
+**Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
+
+## v1 Requirements
+
+Requirements for v10.3 milestone. Each maps to roadmap phases.
+
+### API Bug Fixes
+
+- [ ] **API-01**: Direct approval entity creation no longer returns 500 error (#166)
+- [ ] **API-02**: Panels page loads successfully with all allowed columns matching query results (#161)
+- [ ] **API-03**: Clustering endpoints handle empty tibbles in rowwise context without crashing (#155)
+
+### Data Infrastructure
+
+- [ ] **DATA-01**: Database migration widens ndd_database_comparison columns to prevent truncation (#158)
+- [ ] **DATA-02**: Database migration updates Gene2Phenotype source URL and file_format to new API (#156)
+- [ ] **DATA-03**: Stale memoization cache is invalidated when code changes affect cached data structures (#157)
+
+### Frontend Fixes
+
+- [ ] **FE-01**: Documentation links point to correct numbered-prefix URLs on GitHub Pages (#162)
+- [ ] **FE-02**: Table column headers display statistics/metadata on hover (#164)
+
+### Frontend UX Improvements
+
+- [ ] **UX-01**: Create Entity phenotype selection uses same multiselect component as ModifyEntity (#165)
+- [ ] **UX-02**: Associated Entities section appears above Constraint and ClinVar sections in Genes view (#163)
+
+## v2 Requirements
+
+Deferred to future milestones.
+
+- **INFRA-01**: Playwright testing infrastructure in dev container (#140)
+- **INFRA-02**: Redis job queue with separate heavy/light workers (#154)
+- **INFRA-03**: Automated log cleanup cron job (#105)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Multi-container scaling fix (#136) | Separate infrastructure concern, not a bug fix |
+| Initial password login bug (#142) | Needs deeper investigation, separate milestone |
+| VariO ontology replacement (#98) | Feature request, not stabilization |
+| Curation matrix links (#89) | Feature request, not stabilization |
+| CurationComparisons input style (#83) | Low priority cosmetic issue |
+| Editable static content via UI (#58) | Feature request, deferred |
+| OMIM update optimization (#139) | Performance enhancement, not a bug |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| API-01 | TBD | Pending |
+| API-02 | TBD | Pending |
+| API-03 | TBD | Pending |
+| DATA-01 | TBD | Pending |
+| DATA-02 | TBD | Pending |
+| DATA-03 | TBD | Pending |
+| FE-01 | TBD | Pending |
+| FE-02 | TBD | Pending |
+| UX-01 | TBD | Pending |
+| UX-02 | TBD | Pending |
+
+**Coverage:**
+- v1 requirements: 10 total
+- Mapped to phases: 0
+- Unmapped: 10 (pending roadmap creation)
+
+---
+*Requirements defined: 2026-02-05*
+*Last updated: 2026-02-05 after initial definition*
