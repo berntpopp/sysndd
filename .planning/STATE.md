@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 **Phase:** 74 of 75 (API Bug Fixes)
-**Plan:** Not started
-**Status:** Ready to plan
-**Progress:** v10.3 [███████░░░░░░░░░░░░░] 33% (Phase 73 complete)
+**Plan:** 01 of 03 (Entity Creation Direct Approval Fix)
+**Status:** In progress
+**Progress:** v10.3 [████████░░░░░░░░░░░░] 40% (Phase 74-01 complete)
 
-**Last completed:** Phase 73 - Data Infrastructure & Cache Fixes (verified 2026-02-05)
-**Last activity:** 2026-02-05 -- Phase 73 executed and verified
-**Next action:** Plan phase 74 (API Bug Fixes)
+**Last completed:** Phase 74-01 - Fix direct approval entity creation
+**Last activity:** 2026-02-05 -- Completed 74-01-PLAN.md
+**Next action:** Plan 74-02 (Panels Page Column Alias Fix)
 
 ---
 
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 687 + 11 E2E | 20.3% coverage |
+| **Backend Tests** | 695 + 11 E2E | Updated with entity creation tests |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 31 | Including useLlmAdmin, useExcelExport |
 | **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
@@ -80,6 +80,11 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Only delete .rds files, preserve directory structure and version marker
 - Clear cache BEFORE cachem::cache_disk() initialization
 
+**Phase 74-01 decisions:**
+- Use HTTP 201 Created for successful entity creation (REST semantics)
+- Include approval responses in bind_rows aggregation (failures surface via max(status))
+- Add debug logging for approval responses (troubleshooting without DB queries)
+
 ### Blockers/Concerns
 
 None yet.
@@ -89,10 +94,10 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-02-05
-**Stopped at:** Phase 73 executed and verified (passed)
-**Next action:** Plan phase 74 (API Bug Fixes)
+**Stopped at:** Completed 74-01-PLAN.md
+**Next action:** Execute plan 74-02 (Panels Page Column Alias Fix)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-05 -- Phase 73 complete, verified, requirements marked*
+*Last updated: 2026-02-05 -- Completed phase 74 plan 01*
