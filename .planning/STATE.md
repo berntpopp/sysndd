@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ## Current Position
 
 **Phase:** 74 of 75 (API Bug Fixes)
-**Plan:** 01 of 03 (Entity Creation Direct Approval Fix)
+**Plan:** 02 of 03 (Panels Page Column Alias Fix)
 **Status:** In progress
-**Progress:** v10.3 [████████░░░░░░░░░░░░] 40% (Phase 74-01 complete)
+**Progress:** v10.3 [█████████░░░░░░░░░░░] 45% (Phase 74-02 complete)
 
-**Last completed:** Phase 74-01 - Fix direct approval entity creation
-**Last activity:** 2026-02-05 -- Completed 74-01-PLAN.md
-**Next action:** Plan 74-02 (Panels Page Column Alias Fix)
+**Last completed:** Phase 74-02 - Panels page column alias fix
+**Last activity:** 2026-02-05 -- Completed 74-02-PLAN.md
+**Next action:** Plan 74-03 (Clustering Endpoints Empty Results Fix)
 
 ---
 
@@ -52,13 +52,13 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 695 + 11 E2E | Updated with entity creation tests |
+| **Backend Tests** | 703 + 11 E2E | +8 panels tests (74-02) |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 31 | Including useLlmAdmin, useExcelExport |
 | **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
-| **Total Tests** | 1,381+ | Passing |
+| **Total Tests** | 1,389+ | Passing |
 
 ---
 
@@ -85,6 +85,10 @@ Decisions are logged in PROJECT.md Key Decisions table.
 - Include approval responses in bind_rows aggregation (failures surface via max(status))
 - Add debug logging for approval responses (troubleshooting without DB queries)
 
+**Phase 74-02 decisions:**
+- Replace category column after filtering, not before (filter uses max_category)
+- Use curly braces {} for conditional column operations in dplyr pipelines
+
 ### Blockers/Concerns
 
 None yet.
@@ -94,10 +98,10 @@ None yet.
 ## Session Continuity
 
 **Last session:** 2026-02-05
-**Stopped at:** Completed 74-01-PLAN.md
-**Next action:** Execute plan 74-02 (Panels Page Column Alias Fix)
+**Stopped at:** Completed 74-02-PLAN.md
+**Next action:** Plan 74-03 (Clustering Endpoints Empty Results Fix)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-05 -- Completed phase 74 plan 01*
+*Last updated: 2026-02-05 -- Completed phase 74 plan 02*
