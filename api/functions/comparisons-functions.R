@@ -603,12 +603,19 @@ standardize_comparison_data <- function(parsed_data, source_name, import_date) {
         disease_ontology_id = str_squish(disease_ontology_id),
         disease_ontology_name = str_replace(disease_ontology_name, ",$", "")
       ) %>%
-      rowwise() %>%
-      mutate(
-        category = toString(category),
-        version = toString(version)
-      ) %>%
-      ungroup()
+      {
+        # Guard rowwise operations against empty tibble
+        if (nrow(.) > 0) {
+          rowwise(.) %>%
+            mutate(
+              category = toString(category),
+              version = toString(version)
+            ) %>%
+            ungroup()
+        } else {
+          .
+        }
+      }
   }
 
   # Select only expected columns in order

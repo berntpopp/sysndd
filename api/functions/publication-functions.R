@@ -64,9 +64,16 @@ check_pmid <- function(pmid_input) {
   input_tibble_request <- input_tibble %>%
     mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
     unique() %>%
-    rowwise() %>%
-    mutate(count = extract_pubmed_count(get_pubmed_ids(publication_id))) %>%
-    ungroup()
+    {
+      # Guard rowwise operations against empty tibble
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(count = extract_pubmed_count(get_pubmed_ids(publication_id))) %>%
+          ungroup()
+      } else {
+        mutate(., count = integer())
+      }
+    }
 
   return(as.logical(prod(as.logical(as.integer(input_tibble_request$count)))))
 }
@@ -301,11 +308,18 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
     mutate(publication_id = str_flatten(publication_id, collapse = " or ")) %>%
     unique() %>%
     ungroup() %>%
-    rowwise() %>%
-    mutate(response = fetch_pubmed_data(get_pubmed_ids(publication_id),
-      encoding = "ASCII"
-    )) %>%
-    ungroup() %>%
+    {
+      # Guard rowwise operations against empty tibble
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(response = fetch_pubmed_data(get_pubmed_ids(publication_id),
+            encoding = "ASCII"
+          )) %>%
+          ungroup()
+      } else {
+        mutate(., response = list())
+      }
+    } %>%
     mutate(new_PM_df = map(response, ~ table_articles_from_xml(.x))) %>%
     unnest(cols = new_PM_df) %>%
     mutate(other_publication_id = paste0("DOI:", doi)) %>%

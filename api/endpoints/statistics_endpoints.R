@@ -295,9 +295,16 @@ function(req, res, start_date, end_date) {
     dplyr::filter(re_review_submitted == 1) %>%
     left_join(sysndd_review_connect, by = c("review_id")) %>%
     left_join(sysndd_status_connect, by = c("status_id")) %>%
-    rowwise() %>%
-    mutate(date = max(review_date, status_date, na.rm = TRUE)) %>%
-    ungroup() %>%
+    {
+      # Guard rowwise operations against empty tibble
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(date = max(review_date, status_date, na.rm = TRUE)) %>%
+          ungroup()
+      } else {
+        mutate(., date = as.Date(NA))
+      }
+    } %>%
     dplyr::filter(date >= as.Date(start_date) & date <= as.Date(end_date))
 
   total_rr <- nrow(sysndd_re_review_entity_connect)
@@ -658,9 +665,16 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     filter(re_review_submitted == 1) %>%
     left_join(review_dates, by = "review_id") %>%
     left_join(status_dates, by = "status_id") %>%
-    rowwise() %>%
-    mutate(date = max(review_date, status_date, na.rm = TRUE)) %>%
-    ungroup()
+    {
+      # Guard rowwise operations against empty tibble
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(date = max(review_date, status_date, na.rm = TRUE)) %>%
+          ungroup()
+      } else {
+        mutate(., date = as.Date(NA))
+      }
+    }
 
   # Get assignments to link batches to users
   assignments <- pool %>%

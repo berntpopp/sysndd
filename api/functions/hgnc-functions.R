@@ -126,9 +126,17 @@ hgnc_id_from_symbol_grouped <- function(input_tibble, request_max = 150) {
     filter(is.na(response)) %>%
     dplyr::select(value) %>%
     unique() %>%
-    rowwise() %>%
-    mutate(response = hgnc_id_from_prevsymbol(value)) %>%
-    mutate(response = case_when(!is.na(response) ~ response, is.na(response) ~ hgnc_id_from_aliassymbol(value)))
+    {
+      # Guard rowwise operations against empty tibble
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(response = hgnc_id_from_prevsymbol(value)) %>%
+          mutate(response = case_when(!is.na(response) ~ response, is.na(response) ~ hgnc_id_from_aliassymbol(value))) %>%
+          ungroup()
+      } else {
+        mutate(., response = integer())
+      }
+    }
 
   input_tibble_request <- input_tibble_request %>%
     left_join(input_tibble_request_repair, by = "value") %>%

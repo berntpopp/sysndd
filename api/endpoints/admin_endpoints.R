@@ -590,17 +590,31 @@ function(req, res) {
 
       # Enrich affected entities with MONDO info
       affected_enriched <- affected %>%
-        dplyr::rowwise() %>%
-        dplyr::mutate(
-          mondo_info = list(mondo_info_map[[disease_ontology_id]]),
-          mondo_id = if (!is.null(mondo_info)) mondo_info$mondo_id else NA_character_,
-          mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
-          deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
-          replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
-          replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
-          replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
-        ) %>%
-        dplyr::ungroup() %>%
+        {
+          # Guard rowwise operations against empty tibble
+          if (nrow(.) > 0) {
+            dplyr::rowwise(.) %>%
+              dplyr::mutate(
+                mondo_info = list(mondo_info_map[[disease_ontology_id]]),
+                mondo_id = if (!is.null(mondo_info)) mondo_info$mondo_id else NA_character_,
+                mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
+                deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
+                replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
+                replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
+                replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
+              ) %>%
+              dplyr::ungroup()
+          } else {
+            dplyr::mutate(.,
+              mondo_id = NA_character_,
+              mondo_label = NA_character_,
+              deprecation_reason = NA_character_,
+              replacement_mondo_id = NA_character_,
+              replacement_mondo_label = NA_character_,
+              replacement_omim_id = NA_character_
+            )
+          }
+        } %>%
         dplyr::select(
           entity_id,
           symbol,

@@ -143,6 +143,19 @@ gen_string_clust_obj <- function(
     cluster_result$membership
   )
 
+  # Early return if no clusters were formed (no STRING interactions for input genes)
+  if (length(clusters_list) == 0) {
+    # Clean up and return empty tibble with expected column structure
+    rm(string_db, subgraph, cluster_result, clusters_list)
+    gc(verbose = FALSE)
+    return(tibble(
+      cluster = integer(),
+      cluster_size = integer(),
+      identifiers = list(),
+      hash_filter = character()
+    ))
+  }
+
   clusters_tibble <- tibble(clusters_list) %>%
     select(STRING_id = clusters_list) %>%
     mutate(cluster = row_number()) %>%
@@ -154,10 +167,17 @@ gen_string_clust_obj <- function(
       post_db_hash(tibble::tibble(symbol = ids$symbol))
     })) %>%
     mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
-    rowwise() %>%
-    mutate(cluster_size = nrow(identifiers)) %>%
-    filter(cluster_size >= min_size) %>%
-    select(cluster, cluster_size, identifiers, hash_filter) %>%
+    {
+      # Guard rowwise operations against empty tibble (fixes subscript out of bounds error)
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(cluster_size = nrow(identifiers)) %>%
+          filter(cluster_size >= min_size) %>%
+          select(cluster, cluster_size, identifiers, hash_filter)
+      } else {
+        select(., cluster, cluster_size = integer(), identifiers, hash_filter)
+      }
+    } %>%
     {
       if (!is.na(parent)) {
         mutate(., parent_cluster = parent)
@@ -292,39 +312,46 @@ gen_mca_clust_obj <- function(
       post_db_hash(tibble::tibble(entity_id = ids$entity_id), "entity_id", "/api/entity")
     })) %>%
     mutate(hash_filter = purrr::map_chr(hash_filter, ~ .x$links$hash)) %>%
-    rowwise() %>%
-    mutate(cluster_size = nrow(identifiers)) %>%
-    mutate(quali_inp_var = list(tibble::as_tibble(
-      mca_hcpc$desc.var$category[[cluster]],
-      rownames = "variable",
-      .name_repair = ~ vctrs::vec_as_names(...,
-        repair = "universal", quiet = TRUE
-      )
-    ) %>%
-      filter(!str_detect(variable, "NA")) %>%
-      filter(!str_detect(variable, "hpo")) %>%
-      mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-      arrange(p.value))) %>%
-    mutate(quali_sup_var = list(tibble::as_tibble(
-      mca_hcpc$desc.var$category[[cluster]],
-      rownames = "variable",
-      .name_repair = ~ vctrs::vec_as_names(...,
-        repair = "universal", quiet = TRUE
-      )
-    ) %>%
-      filter(!str_detect(variable, "NA")) %>%
-      filter(str_detect(variable, "hpo")) %>%
-      mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
-      arrange(p.value))) %>%
-    mutate(quanti_sup_var = list(tibble::as_tibble(
-      mca_hcpc$desc.var$quanti[[cluster]],
-      rownames = "variable",
-      .name_repair = ~ vctrs::vec_as_names(...,
-        repair = "universal", quiet = TRUE
-      )
-    ) %>%
-      arrange(p.value))) %>%
-    ungroup()
+    {
+      # Guard rowwise operations against empty tibble (defensive check)
+      if (nrow(.) > 0) {
+        rowwise(.) %>%
+          mutate(cluster_size = nrow(identifiers)) %>%
+          mutate(quali_inp_var = list(tibble::as_tibble(
+            mca_hcpc$desc.var$category[[cluster]],
+            rownames = "variable",
+            .name_repair = ~ vctrs::vec_as_names(...,
+              repair = "universal", quiet = TRUE
+            )
+          ) %>%
+            filter(!str_detect(variable, "NA")) %>%
+            filter(!str_detect(variable, "hpo")) %>%
+            mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+            arrange(p.value))) %>%
+          mutate(quali_sup_var = list(tibble::as_tibble(
+            mca_hcpc$desc.var$category[[cluster]],
+            rownames = "variable",
+            .name_repair = ~ vctrs::vec_as_names(...,
+              repair = "universal", quiet = TRUE
+            )
+          ) %>%
+            filter(!str_detect(variable, "NA")) %>%
+            filter(str_detect(variable, "hpo")) %>%
+            mutate(variable = str_remove_all(variable, "^.+=|_yes")) %>%
+            arrange(p.value))) %>%
+          mutate(quanti_sup_var = list(tibble::as_tibble(
+            mca_hcpc$desc.var$quanti[[cluster]],
+            rownames = "variable",
+            .name_repair = ~ vctrs::vec_as_names(...,
+              repair = "universal", quiet = TRUE
+            )
+          ) %>%
+            arrange(p.value))) %>%
+          ungroup()
+      } else {
+        mutate(., cluster_size = integer(), quali_inp_var = list(), quali_sup_var = list(), quanti_sup_var = list())
+      }
+    }
 
   # return result
   return(clusters_tibble)

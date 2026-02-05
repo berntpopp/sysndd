@@ -247,9 +247,16 @@ get_mondo_mappings <- function(mondo_ontology, max_age = 1, output_path = "data/
       select(MONDO = value)
 
     all_terms_tibble_mapping <- all_terms_tibble %>%
-      rowwise() %>%
-      mutate(mappings = list(get_term_property(ontology = mondo_ontology, property = "xref", term = MONDO))) %>%
-      ungroup()
+      {
+        # Guard rowwise operations against empty tibble
+        if (nrow(.) > 0) {
+          rowwise(.) %>%
+            mutate(mappings = list(get_term_property(ontology = mondo_ontology, property = "xref", term = MONDO))) %>%
+            ungroup()
+        } else {
+          mutate(., mappings = list())
+        }
+      }
 
     mappings_tibble <- all_terms_tibble_mapping %>%
       unnest(mappings) %>%

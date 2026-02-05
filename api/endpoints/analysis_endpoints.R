@@ -123,6 +123,30 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
     algorithm = algorithm_clean
   )
 
+  # Handle empty clustering results (no STRING interactions for input genes)
+  if (nrow(functional_clusters) == 0) {
+    # Calculate elapsed time
+    elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+
+    return(list(
+      categories = tibble(value = character(), text = character(), link = character()),
+      clusters = functional_clusters,
+      pagination = list(
+        page_size = page_size_int,
+        page_after = page_after_clean,
+        next_cursor = NULL,
+        total_count = 0L,
+        has_more = FALSE
+      ),
+      meta = list(
+        algorithm = algorithm_clean,
+        elapsed_seconds = round(elapsed_seconds, 2),
+        gene_count = nrow(genes_from_entity_table),
+        cluster_count = 0L
+      )
+    ))
+  }
+
   # Calculate elapsed time
   elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
 
@@ -397,12 +421,18 @@ function() {
     algorithm = "leiden"
   )
 
-  # Flatten to (cluster, hgnc_id)
-  functional_clusters_hgnc <- functional_clusters %>%
-    select(cluster, identifiers) %>%
-    unnest(identifiers) %>%
-    mutate(cluster = paste0("fc_", cluster)) %>%
-    select(cluster, hgnc_id)
+  # Handle empty functional clusters (no STRING interactions)
+  # Skip functional cluster portion of correlation analysis
+  if (nrow(functional_clusters) == 0) {
+    functional_clusters_hgnc <- tibble(cluster = character(), hgnc_id = integer())
+  } else {
+    # Flatten to (cluster, hgnc_id)
+    functional_clusters_hgnc <- functional_clusters %>%
+      select(cluster, identifiers) %>%
+      unnest(identifiers) %>%
+      mutate(cluster = paste0("fc_", cluster)) %>%
+      select(cluster, hgnc_id)
+  }
 
   #-------------------------------------------------------#
   # 3) Build Phenotype Clusters
