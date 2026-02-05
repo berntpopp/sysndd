@@ -57,7 +57,11 @@ Plans:
   1. Creating a new entity with direct approval (skipping separate review step) succeeds and returns the new entity without a 500 error
   2. The Panels page loads successfully, displaying all panel data with correctly aliased columns matching the query result set
   3. Clustering endpoints return a valid empty response (not a 500 error) when called for gene sets that produce zero STRING interactions (empty tibble in rowwise context)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 74-01-PLAN.md -- Fix direct approval entity creation 500 error (API-01, #166)
+- [ ] 74-02-PLAN.md -- Fix Panels page column alias mismatch (API-02, #161)
+- [ ] 74-03-PLAN.md -- Fix clustering empty tibble crash and scan all rowwise patterns (API-03, #155)
 
 ### Phase 75: Frontend Fixes & UX Improvements
 **Goal**: Frontend displays correct information and provides a smooth user experience for entity creation and gene browsing
@@ -77,9 +81,9 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 73. Data Infrastructure & Cache Fixes | v10.3 | 2/2 | ✓ Complete | 2026-02-05 |
-| 74. API Bug Fixes | v10.3 | 0/TBD | Not started | - |
+| 74. API Bug Fixes | v10.3 | 0/3 | Planned | - |
 | 75. Frontend Fixes & UX Improvements | v10.3 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 73 complete*
+*Last updated: 2026-02-05 -- Phase 74 planned (3 plans)*
