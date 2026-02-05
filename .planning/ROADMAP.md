@@ -72,7 +72,11 @@ Plans:
   2. Hovering over table column headers displays statistics and metadata tooltips (restored from previous behavior)
   3. Create Entity step 3 uses the same TreeMultiSelect phenotype component as ModifyEntity, providing consistent search, hierarchy navigation, and multi-select behavior
   4. On the Genes detail view, the Associated Entities section appears above the Constraint Scores and ClinVar sections in the page layout
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 75-01-PLAN.md -- Centralize documentation URLs into constants file (FE-01) and reorder Gene page sections (UX-02)
+- [ ] 75-02-PLAN.md -- Create useColumnTooltip composable and restore column header tooltips on Entities table (FE-02)
+- [ ] 75-03-PLAN.md -- Replace BFormSelect with TreeMultiSelect in Create Entity phenotype/variation step (UX-01)
 
 ## Progress
 
@@ -82,8 +86,8 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 73. Data Infrastructure & Cache Fixes | v10.3 | 2/2 | ✓ Complete | 2026-02-05 |
 | 74. API Bug Fixes | v10.3 | 3/3 | ✓ Complete | 2026-02-05 |
-| 75. Frontend Fixes & UX Improvements | v10.3 | 0/TBD | Not started | - |
+| 75. Frontend Fixes & UX Improvements | v10.3 | 0/3 | Planned | - |
 
 ---
 *Roadmap created: 2026-02-05*
-*Last updated: 2026-02-05 -- Phase 74 complete (3/3 plans, verified)*
+*Last updated: 2026-02-05 -- Phase 75 planned (3 plans in 1 wave)*
