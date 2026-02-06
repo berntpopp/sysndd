@@ -574,3 +574,11 @@ export default {
   }
 }
 </style>
+
+<!-- Unscoped: override Bootstrap-Vue-Next's overflow:hidden on sortable <th>
+     so tooltips rendered inside column headers are not clipped -->
+<style>
+.entities-table th.b-table-sortable-column {
+  overflow: visible !important;
+}
+</style>

@@ -67,7 +67,7 @@
               <!-- Column header tooltips -->
               <template #column-header="{ data }">
                 <div
-                  v-b-tooltip.hover.top
+                  v-b-tooltip.hover.bottom
                   :title="
                     getTooltipText(
                       fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
