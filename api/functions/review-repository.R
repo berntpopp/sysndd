@@ -82,7 +82,7 @@ review_find_by_entity <- function(entity_id) {
 #' }
 #'
 #' @export
-review_create <- function(review_data) {
+review_create <- function(review_data, conn = NULL) {
   # Convert to list if tibble/data.frame
   if (is.data.frame(review_data)) {
     review_data <- as.list(review_data[1, ])
@@ -117,10 +117,10 @@ review_create <- function(review_data) {
 
   params <- list(review_data$entity_id, synopsis, review_data$review_user_id)
 
-  db_execute_statement(sql, params)
+  db_execute_statement(sql, params, conn = conn)
 
   # Get last insert ID
-  result <- db_execute_query("SELECT LAST_INSERT_ID() as review_id")
+  result <- db_execute_query("SELECT LAST_INSERT_ID() as review_id", conn = conn)
 
   return(as.integer(result$review_id[1]))
 }

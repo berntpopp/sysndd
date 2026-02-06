@@ -97,7 +97,7 @@ publication_validate_ids <- function(publication_ids) {
   # Get all allowed publication IDs from database
   publication_list_collected <- pool %>%
     tbl("publication") %>%
-    select(publication_id) %>%
+    dplyr::select(publication_id) %>%
     arrange(publication_id) %>%
     collect()
 
@@ -144,26 +144,29 @@ publication_validate_ids <- function(publication_ids) {
 #' }
 #'
 #' @export
-publication_connect_to_review <- function(review_id, entity_id, publications) {
-  # Validate publication IDs
-  publication_validate_ids(publications$publication_id)
+publication_connect_to_review <- function(review_id, entity_id, publications, conn = NULL) {
+  # Skip validation when conn is provided (caller validates before transaction)
+  if (is.null(conn)) {
+    # Validate publication IDs
+    publication_validate_ids(publications$publication_id)
 
-  # Validate entity_id matches the review's entity_id
-  review_entity <- pool %>%
-    tbl("ndd_entity_review") %>%
-    select(review_id, entity_id) %>%
-    filter(review_id == !!review_id) %>%
-    collect() %>%
-    unique()
+    # Validate entity_id matches the review's entity_id
+    review_entity <- pool %>%
+      tbl("ndd_entity_review") %>%
+      dplyr::select(review_id, entity_id) %>%
+      filter(review_id == !!review_id) %>%
+      collect() %>%
+      unique()
 
-  if (nrow(review_entity) > 0) {
-    review_entity_id <- review_entity$entity_id[1]
+    if (nrow(review_entity) > 0) {
+      review_entity_id <- review_entity$entity_id[1]
 
-    if (!is.na(review_entity_id) && review_entity_id != entity_id) {
-      rlang::abort(
-        "entity_id does not match the review's entity_id",
-        class = "publication_validation_error"
-      )
+      if (!is.na(review_entity_id) && review_entity_id != entity_id) {
+        rlang::abort(
+          "entity_id does not match the review's entity_id",
+          class = "publication_validation_error"
+        )
+      }
     }
   }
 
@@ -173,7 +176,7 @@ publication_connect_to_review <- function(review_id, entity_id, publications) {
       review_id = review_id,
       entity_id = entity_id
     ) %>%
-    select(review_id, entity_id, publication_id, publication_type)
+    dplyr::select(review_id, entity_id, publication_id, publication_type)
 
   # Insert each publication
   total_affected <- 0
@@ -182,7 +185,8 @@ publication_connect_to_review <- function(review_id, entity_id, publications) {
     affected <- db_execute_statement(
       "INSERT INTO ndd_review_publication_join (review_id, entity_id, publication_id, publication_type)
        VALUES (?, ?, ?, ?)",
-      list(row$review_id, row$entity_id, row$publication_id, row$publication_type)
+      list(row$review_id, row$entity_id, row$publication_id, row$publication_type),
+      conn = conn
     )
     total_affected <- total_affected + affected
   }
@@ -242,7 +246,7 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
   # Validate entity_id matches the review's entity_id
   review_entity <- pool %>%
     tbl("ndd_entity_review") %>%
-    select(review_id, entity_id) %>%
+    dplyr::select(review_id, entity_id) %>%
     filter(review_id == !!review_id) %>%
     collect() %>%
     unique()
@@ -264,7 +268,7 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
       review_id = review_id,
       entity_id = entity_id
     ) %>%
-    select(review_id, entity_id, publication_id, publication_type)
+    dplyr::select(review_id, entity_id, publication_id, publication_type)
 
   # Execute replacement within transaction
   db_with_transaction({

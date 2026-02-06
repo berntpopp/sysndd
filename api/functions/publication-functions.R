@@ -23,26 +23,22 @@ if (!exists("db_execute_query", mode = "function")) {
 #' @return The count value
 #' @noRd
 extract_pubmed_count <- function(pubmed_result) {
-  # Try S4 slot access first (newer easyPubMed versions)
   tryCatch(
     {
       if (isS4(pubmed_result)) {
+        # easyPubMed v3.x: count is in @meta$exp_count
+        if (!is.null(pubmed_result@meta$exp_count)) {
+          return(pubmed_result@meta$exp_count)
+        }
+        # Fallback: try @count (hypothetical future versions)
         return(pubmed_result@count)
       } else {
-        # Fall back to list access (older versions)
+        # easyPubMed v2.x: count is in $Count
         return(pubmed_result$Count)
       }
     },
     error = function(e) {
-      # If both fail, try alternative approaches
-      tryCatch(
-        {
-          return(pubmed_result$Count)
-        },
-        error = function(e2) {
-          return(0)
-        }
-      )
+      return(0)
     }
   )
 }
@@ -59,7 +55,7 @@ check_pmid <- function(pmid_input) {
   input_tibble <- as_tibble(pmid_input) %>%
     mutate(publication_id = as.character(value)) %>%
     mutate(publication_id = str_remove(publication_id, "PMID:")) %>%
-    select(-value)
+    dplyr::select(-value)
 
   input_tibble_request <- input_tibble %>%
     mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
@@ -92,12 +88,12 @@ new_publication <- function(publications_received) {
     # check if publication_ids are already present in the database
     publications_list_collected <- pool %>%
       tbl("publication") %>%
-      select(publication_id, update_date) %>%
+      dplyr::select(publication_id, update_date) %>%
       arrange(publication_id) %>%
       collect() %>%
       right_join(publications_received, by = c("publication_id")) %>%
       filter(is.na(update_date)) %>%
-      select(-update_date)
+      dplyr::select(-update_date)
 
     # subset by publication_type
     pub_list_coll_gr <- publications_list_collected %>%
@@ -296,7 +292,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   input_tibble <- as_tibble(pmid_value) %>%
     mutate(publication_id = as.character(value)) %>%
     mutate(publication_id = str_remove(publication_id, "PMID:")) %>%
-    select(-value)
+    dplyr::select(-value)
 
   row_number <- nrow(input_tibble)
   groups_number <- ceiling(row_number / request_max)
@@ -324,8 +320,8 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
     unnest(cols = new_PM_df) %>%
     mutate(other_publication_id = paste0("DOI:", doi)) %>%
     mutate(Publication_date = paste0(year, "-", month, "-", day)) %>%
-    select(-publication_id, -group, -response) %>%
-    select(
+    dplyr::select(-publication_id, -group, -response) %>%
+    dplyr::select(
       publication_id = pmid,
       other_publication_id,
       Title = title,
@@ -340,7 +336,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
 
   output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
-    select(-publication_id) %>%
+    dplyr::select(-publication_id) %>%
     mutate(across(everything(), ~ replace_na(.x, "")))
 
   return(output_tibble)

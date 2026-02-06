@@ -278,7 +278,7 @@ put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
           if (length(parts) >= 1) parts[1] else NA
         })
       ) %>%
-      select(phenotype_id, modifier_id)
+      dplyr::select(phenotype_id, modifier_id)
   } else if ("phenotype_id" %in% colnames(phenotypes) && "modifier_id" %in% colnames(phenotypes)) {
     phenotypes_transformed <- phenotypes
   } else {
@@ -342,7 +342,7 @@ put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, revie
           if (length(parts) >= 1) parts[1] else NA
         })
       ) %>%
-      select(vario_id, modifier_id)
+      dplyr::select(vario_id, modifier_id)
   } else if ("vario_id" %in% colnames(variation_ontology) && "modifier_id" %in% colnames(variation_ontology)) {
     vario_transformed <- variation_ontology
   } else {
@@ -552,14 +552,16 @@ put_db_status_approve <- function(status_id, approving_user_id, approved = TRUE)
 #'
 #' @export
 new_publication <- function(publications) {
-  log_debug("new_publication: Processing {nrow(publications)} publications")
+  log_info(
+    "new_publication: Processing {nrow(publications)} publications: {paste(publications$publication_id, collapse = ', ')}" # nolint: line_length_linter
+  )
 
   tryCatch(
     {
       # Get existing publications from database
       existing_publications <- pool %>%
         tbl("publication") %>%
-        select(publication_id) %>%
+        dplyr::select(publication_id) %>%
         collect()
 
       # Find new publications that don't exist
@@ -567,34 +569,46 @@ new_publication <- function(publications) {
         filter(!publication_id %in% existing_publications$publication_id)
 
       if (nrow(new_pubs) == 0) {
-        log_debug("new_publication: All publications already exist")
+        log_info("new_publication: All publications already exist")
         return(list(
           status = 200,
           message = "OK. All publications already exist."
         ))
       }
 
-      # Insert new publications one by one
+      # Insert new publications one by one, track failures
+      failed_pubs <- character(0)
       for (i in seq_len(nrow(new_pubs))) {
         pmid <- new_pubs$publication_id[i]
 
-        # Try to fetch metadata from PubMed (optional - basic insert if fails)
         tryCatch(
           {
-            # Basic insert with just PMID
             db_execute_statement(
               "INSERT INTO publication (publication_id) VALUES (?)",
               list(pmid)
             )
-            log_debug("new_publication: Inserted publication {pmid}")
+            log_info("new_publication: Inserted publication {pmid}")
           },
           error = function(e) {
-            # Ignore duplicate key errors
-            if (!grepl("Duplicate entry", e$message, ignore.case = TRUE)) {
-              log_warn("new_publication: Failed to insert {pmid}: {e$message}")
+            if (grepl("Duplicate entry", e$message, ignore.case = TRUE)) {
+              log_debug("new_publication: Publication {pmid} already exists (race condition)")
+            } else {
+              log_error("new_publication: Failed to insert {pmid}: {e$message}")
+              failed_pubs <<- c(failed_pubs, pmid)
             }
           }
         )
+      }
+
+      if (length(failed_pubs) > 0) {
+        log_error(
+          "new_publication: Failed to insert {length(failed_pubs)} publications: {paste(failed_pubs, collapse = ', ')}" # nolint: line_length_linter
+        )
+        return(list(
+          status = 500,
+          message = paste0("Error inserting publications: ", paste(failed_pubs, collapse = ", ")),
+          error = paste("Failed publications:", paste(failed_pubs, collapse = ", "))
+        ))
       }
 
       log_info("new_publication: Processed {nrow(new_pubs)} new publications")

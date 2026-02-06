@@ -61,7 +61,7 @@ entity_find_by_id <- function(entity_id) {
 #' }
 #'
 #' @export
-entity_create <- function(entity_data) {
+entity_create <- function(entity_data, conn = NULL) {
   # Required fields
   required_fields <- c(
     "hgnc_id",
@@ -116,10 +116,10 @@ entity_create <- function(entity_data) {
     )
   }
 
-  db_execute_statement(sql, params)
+  db_execute_statement(sql, params, conn = conn)
 
   # Get last insert ID
-  result <- db_execute_query("SELECT LAST_INSERT_ID() as entity_id")
+  result <- db_execute_query("SELECT LAST_INSERT_ID() as entity_id", conn = conn)
 
   return(as.integer(result$entity_id[1]))
 }

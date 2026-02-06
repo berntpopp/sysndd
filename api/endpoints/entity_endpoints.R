@@ -221,291 +221,153 @@ function(req, res, direct_approval = FALSE) {
 
   direct_approval <- as.logical(direct_approval)
   create_data <- req$argsBody$create_json
+  user_id <- req$user_id
 
-  entry_user_id <- req$user_id
-  review_user_id <- req$user_id
-  status_user_id <- req$user_id
+  # --- Data preparation (no DB writes, external API calls happen here) ---
 
-  create_data$entity$entry_user_id <- entry_user_id
+  # Prepare entity data
+  entity_data <- create_data$entity
+  entity_data$entry_user_id <- user_id
 
-  logger::log_info(
-    "Entity creation started",
-    hgnc_id = create_data$entity$hgnc_id,
-    user_id = entry_user_id
-  )
-
-  # Block to post new entity
-  response_entity <- post_db_entity(create_data$entity)
-
-  logger::log_debug(
-    "Entity creation response",
-    status = response_entity$status,
-    entity_id = if (!is.null(response_entity$entry) && !is.null(response_entity$entry$entity_id)) {
-      response_entity$entry$entity_id
+  # Prepare review data
+  review_data <- list(
+    synopsis = if (length(create_data$review$synopsis) > 0) {
+      create_data$review$synopsis[[1]]
     } else {
       NA
+    },
+    review_user_id = user_id,
+    comment = create_data$review$comment
+  )
+
+  # Prepare status data
+  status_data <- list(
+    category_id = create_data$status$category_id,
+    status_user_id = user_id,
+    problematic = if (!is.null(create_data$status$problematic)) {
+      create_data$status$problematic
+    } else {
+      0
     }
   )
 
-  if (response_entity$status == 200) {
-    # Prepare data for review
-    if (length(compact(create_data$review$literature)) > 0) {
-      publications_received <- bind_rows(
-        tibble::as_tibble(compact(
-          create_data$review$literature$additional_references
-        )),
-        tibble::as_tibble(compact(
-          create_data$review$literature$gene_review
-        )),
-        .id = "publication_type"
+  # Prepare publications (includes external GeneReviews API call)
+  publications <- NULL
+  if (length(compact(create_data$review$literature)) > 0) {
+    publications <- bind_rows(
+      tibble::as_tibble(compact(
+        create_data$review$literature$additional_references
+      )),
+      tibble::as_tibble(compact(
+        create_data$review$literature$gene_review
+      )),
+      .id = "publication_type"
+    ) %>%
+      dplyr::select(publication_id = value, publication_type) %>%
+      mutate(
+        publication_type = case_when(
+          publication_type == 1 ~ "additional_references",
+          publication_type == 2 ~ "gene_review"
+        )
       ) %>%
-        dplyr::select(publication_id = value, publication_type) %>%
-        mutate(
-          publication_type = case_when(
-            publication_type == 1 ~ "additional_references",
-            publication_type == 2 ~ "gene_review"
-          )
-        ) %>%
-        unique() %>%
-        arrange(publication_id) %>%
-        mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
-        rowwise() %>%
-        mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
-        ungroup() %>%
-        mutate(
-          publication_type = case_when(
-            publication_type == "additional_references" & gr_check ~ "gene_review",
-            publication_type == "gene_review" & !gr_check ~ "additional_references",
-            TRUE ~ publication_type
-          )
-        ) %>%
-        dplyr::select(-gr_check)
-    } else {
-      publications_received <- tibble::as_tibble_row(c(
-        publication_id = NA, publication_type = NA
+      unique() %>%
+      arrange(publication_id) %>%
+      mutate(publication_id = str_replace_all(publication_id, "\\s", "")) %>%
+      rowwise() %>%
+      mutate(gr_check = genereviews_from_pmid(publication_id, check = TRUE)) %>%
+      ungroup() %>%
+      mutate(
+        publication_type = case_when(
+          publication_type == "additional_references" & gr_check ~ "gene_review",
+          publication_type == "gene_review" & !gr_check ~ "additional_references",
+          TRUE ~ publication_type
+        )
+      ) %>%
+      dplyr::select(-gr_check)
+
+    # Insert publications into reference table BEFORE transaction
+    # (reference data persists even if entity creation fails)
+    pub_result <- new_publication(publications)
+    if (pub_result$status != 200) {
+      logger::log_error(
+        "Publication insert failed, aborting entity creation",
+        error = pub_result$message
+      )
+      res$status <- pub_result$status
+      return(list(
+        status = pub_result$status,
+        message = paste("Publication error:", pub_result$message),
+        error = pub_result$error
       ))
     }
-
-    if (!is.null(create_data$review$comment)) {
-      sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
-        add_column(response_entity$entry$entity_id) %>%
-        add_column(create_data$review$comment) %>%
-        add_column(review_user_id) %>%
-        dplyr::select(
-          entity_id = `response_entity$entry$entity_id`,
-          synopsis = value,
-          review_user_id,
-          comment = `create_data$review$comment`
-        )
-    } else {
-      sysnopsis_received <- tibble::as_tibble(create_data$review$synopsis) %>%
-        add_column(response_entity$entry$entity_id) %>%
-        add_column(review_user_id) %>%
-        dplyr::select(
-          entity_id = `response_entity$entry$entity_id`,
-          synopsis = value,
-          review_user_id,
-          comment = NULL
-        )
-    }
-
-    phenotypes_received <- tibble::as_tibble(create_data$review$phenotypes)
-    variation_ontology_received <- tibble::as_tibble(
-      create_data$review$variation_ontology
-    )
-
-    # Use put_post_db_review to add the review
-    response_review <- put_post_db_review("POST", sysnopsis_received)
-
-    logger::log_debug(
-      "Review creation response",
-      status = response_review$status,
-      review_id = if (!is.null(response_review$entry) && !is.null(response_review$entry$review_id)) {
-        response_review$entry$review_id
-      } else {
-        NA
-      }
-    )
-
-    # Submit publications if not empty
-    if (length(compact(create_data$review$literature)) > 0) {
-      response_publication <- new_publication(publications_received)
-      response_publication_conn <- put_post_db_pub_con(
-        "POST",
-        publications_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id)
-      )
-    } else {
-      response_publication <- list(status = 200, message = "OK. Skipped.")
-      response_publication_conn <- list(status = 200, message = "OK. Skipped.")
-    }
-
-    # Submit phenotype connections if not empty
-    if (length(compact(create_data$review$phenotypes)) > 0) {
-      response_phenotype_connections <- put_post_db_phen_con(
-        "POST",
-        phenotypes_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id)
-      )
-    } else {
-      response_phenotype_connections <- list(status = 200, message = "OK. Skipped.")
-    }
-
-    # Submit variation ontology if not empty
-    if (length(compact(create_data$review$variation_ontology)) > 0) {
-      resp_variation_ontology_conn <- put_post_db_var_ont_con(
-        "POST",
-        variation_ontology_received,
-        as.integer(sysnopsis_received$entity_id),
-        as.integer(response_review$entry$review_id)
-      )
-    } else {
-      resp_variation_ontology_conn <- list(status = 200, message = "OK. Skipped.")
-    }
-
-    if (direct_approval) {
-      response_review_approve <- put_db_review_approve(
-        response_review$entry$review_id,
-        review_user_id,
-        TRUE
-      )
-
-      logger::log_debug(
-        "Review approval response",
-        status = response_review_approve$status,
-        review_id = response_review$entry$review_id
-      )
-    }
-
-    response_review_post <- tibble::as_tibble(response_publication) %>%
-      bind_rows(tibble::as_tibble(response_review)) %>%
-      bind_rows(tibble::as_tibble(response_publication_conn)) %>%
-      bind_rows(tibble::as_tibble(response_phenotype_connections)) %>%
-      bind_rows(tibble::as_tibble(resp_variation_ontology_conn)) %>%
-      {
-        if (direct_approval) {
-          bind_rows(., tibble::as_tibble(response_review_approve))
-        } else {
-          .
-        }
-      } %>%
-      dplyr::select(status, message) %>%
-      mutate(status = max(status)) %>%
-      mutate(message = str_c(message, collapse = "; ")) %>%
-      unique()
-  } else {
-    logger::log_error(
-      "Entity creation failed",
-      status = response_entity$status,
-      error = response_entity$error
-    )
-    res$status <- response_entity$status
-    return(list(
-      status = response_entity$status,
-      message = response_entity$message,
-      error = response_entity$error
-    ))
   }
 
-  if (response_entity$status == 200 && response_review_post$status == 200) {
-    create_data$status <- tibble::as_tibble(create_data$status) %>%
-      add_column(response_entity$entry$entity_id) %>%
-      add_column(status_user_id) %>%
-      dplyr::select(
-        entity_id = `response_entity$entry$entity_id`,
-        category_id,
-        status_user_id,
-        comment,
-        problematic
-      )
-
-    create_data$status$status_user_id <- status_user_id
-    response_status_post <- put_post_db_status("POST", create_data$status)
-
-    logger::log_debug(
-      "Status creation response",
-      status = response_status_post$status,
-      status_id = if (!is.null(response_status_post$entry)) {
-        response_status_post$entry
-      } else {
-        NA
-      }
-    )
-
-    if (direct_approval) {
-      response_status_approve <- put_db_status_approve(
-        response_status_post$entry,
-        status_user_id,
-        TRUE
-      )
-
-      logger::log_debug(
-        "Status approval response",
-        status = response_status_approve$status,
-        status_id = response_status_post$entry
-      )
+  # Prepare phenotypes
+  phenotypes <- NULL
+  if (length(compact(create_data$review$phenotypes)) > 0) {
+    phenotypes_raw <- tibble::as_tibble(create_data$review$phenotypes)
+    if ("value" %in% colnames(phenotypes_raw)) {
+      phenotypes <- phenotypes_raw %>%
+        mutate(
+          phenotype_id = sapply(value, function(x) {
+            parts <- strsplit(as.character(x), "-")[[1]]
+            if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
+          }),
+          modifier_id = sapply(value, function(x) {
+            parts <- strsplit(as.character(x), "-")[[1]]
+            if (length(parts) >= 1) parts[1] else NA
+          })
+        ) %>%
+        dplyr::select(phenotype_id, modifier_id)
+    } else if (all(c("phenotype_id", "modifier_id") %in% colnames(phenotypes_raw))) {
+      phenotypes <- phenotypes_raw
     }
-  } else {
-    logger::log_error(
-      "Entity created but review creation failed - PARTIAL CREATION",
-      entity_id = response_entity$entry$entity_id,
-      review_status = response_review_post$status
-    )
-    response_entity_review_post <- tibble::as_tibble(response_entity) %>%
-      bind_rows(tibble::as_tibble(response_review_post)) %>%
-      dplyr::select(status, message) %>%
-      unique() %>%
-      mutate(status = max(status)) %>%
-      mutate(message = str_c(message, collapse = "; "))
-
-    res$status <- response_entity_review_post$status
-    return(list(
-      status = response_entity_review_post$status,
-      message = response_entity_review_post$message
-    ))
   }
 
-  if (response_entity$status == 200 &&
-    response_review_post$status == 200 &&
-    response_status_post$status == 200) {
-    logger::log_info(
-      "Entity creation completed successfully",
-      entity_id = response_entity$entry$entity_id,
-      user_id = entry_user_id
-    )
-    # Set HTTP 201 Created for successful entity creation
-    res$status <- 201
-    return(response_entity)
-  } else {
-    logger::log_error(
-      "Entity+review created but status creation failed - PARTIAL CREATION",
-      entity_id = response_entity$entry$entity_id,
-      review_status = response_review_post$status,
-      status_status = response_status_post$status
-    )
-    response <- tibble::as_tibble(response_entity) %>%
-      bind_rows(tibble::as_tibble(response_review_post)) %>%
-      bind_rows(tibble::as_tibble(response_status_post)) %>%
-      {
-        if (direct_approval && exists("response_status_approve")) {
-          bind_rows(., tibble::as_tibble(response_status_approve))
-        } else {
-          .
-        }
-      } %>%
-      dplyr::select(status, message) %>%
-      unique() %>%
-      mutate(status = max(status)) %>%
-      mutate(message = str_c(message, collapse = "; "))
-
-    res$status <- response$status
-    return(list(
-      status = response$status,
-      message = response$message
-    ))
+  # Prepare variation ontology
+  variation_ontology <- NULL
+  if (length(compact(create_data$review$variation_ontology)) > 0) {
+    vario_raw <- tibble::as_tibble(create_data$review$variation_ontology)
+    if ("value" %in% colnames(vario_raw)) {
+      variation_ontology <- vario_raw %>%
+        mutate(
+          vario_id = sapply(value, function(x) {
+            parts <- strsplit(as.character(x), "-")[[1]]
+            if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
+          }),
+          modifier_id = sapply(value, function(x) {
+            parts <- strsplit(as.character(x), "-")[[1]]
+            if (length(parts) >= 1) parts[1] else NA
+          })
+        ) %>%
+        dplyr::select(vario_id, modifier_id)
+    } else if (all(c("vario_id", "modifier_id") %in% colnames(vario_raw))) {
+      variation_ontology <- vario_raw
+    }
   }
+
+  # --- Transactional creation (all-or-nothing via service layer) ---
+
+  result <- svc_entity_create_full(
+    entity_data = entity_data,
+    review_data = review_data,
+    status_data = status_data,
+    publications = publications,
+    phenotypes = phenotypes,
+    variation_ontology = variation_ontology,
+    direct_approval = direct_approval,
+    approving_user_id = if (direct_approval) user_id else NULL,
+    pool = pool
+  )
+
+  # Map service result to HTTP response
+  if (result$status == 200) {
+    res$status <- 201L
+  } else {
+    res$status <- result$status
+  }
+
+  return(result)
 }
 
 

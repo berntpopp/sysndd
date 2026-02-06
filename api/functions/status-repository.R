@@ -81,7 +81,7 @@ status_find_by_entity <- function(entity_id) {
 #' }
 #'
 #' @export
-status_create <- function(status_data) {
+status_create <- function(status_data, conn = NULL) {
   # Convert to tibble if list
   if (is.list(status_data) && !inherits(status_data, "data.frame")) {
     status_data <- tibble::as_tibble(status_data)
@@ -102,14 +102,22 @@ status_create <- function(status_data) {
     )
   }
 
+  if (!"status_user_id" %in% colnames(status_data)) {
+    rlang::abort(
+      "status_user_id is required",
+      class = "status_validation_error"
+    )
+  }
+
   # Remove status_id if accidentally provided (for POST requests)
   if ("status_id" %in% colnames(status_data)) {
-    status_data <- status_data %>% select(-status_id)
+    status_data <- status_data %>% dplyr::select(-status_id)
   }
 
   # Extract values for insert
   entity_id <- status_data$entity_id[1]
   category_id <- status_data$category_id[1]
+  status_user_id <- status_data$status_user_id[1]
   problematic <- if ("problematic" %in% colnames(status_data)) {
     status_data$problematic[1]
   } else {
@@ -118,13 +126,14 @@ status_create <- function(status_data) {
 
   # Insert record
   db_execute_statement(
-    "INSERT INTO ndd_entity_status (entity_id, category_id, problematic)
-     VALUES (?, ?, ?)",
-    list(entity_id, category_id, problematic)
+    "INSERT INTO ndd_entity_status (entity_id, category_id, status_user_id, problematic)
+     VALUES (?, ?, ?, ?)",
+    list(entity_id, category_id, status_user_id, problematic),
+    conn = conn
   )
 
   # Get the last insert ID
-  id_result <- db_execute_query("SELECT LAST_INSERT_ID() as status_id")
+  id_result <- db_execute_query("SELECT LAST_INSERT_ID() as status_id", conn = conn)
   status_id <- id_result$status_id[1]
 
   log_debug("Created status {status_id} for entity {entity_id}")
@@ -163,7 +172,7 @@ status_update <- function(status_id, updates) {
 
   # Keep only valid columns and remove entity_id/status_id (prevent changing associations)
   updates <- updates %>%
-    select(any_of(valid_columns))
+    dplyr::select(any_of(valid_columns))
 
   # Check if any fields remain
   if (ncol(updates) == 0) {

@@ -34,7 +34,7 @@ phenotype_get_allowed_list <- function() {
   # Use pool with dplyr for efficient retrieval
   allowed <- pool %>%
     tbl("phenotype_list") %>%
-    select(phenotype_id) %>%
+    dplyr::select(phenotype_id) %>%
     collect()
 
   log_debug("Retrieved {nrow(allowed)} allowed phenotype IDs")
@@ -144,36 +144,39 @@ phenotype_find_by_review <- function(review_id) {
 #' }
 #'
 #' @export
-phenotype_connect_to_review <- function(review_id, entity_id, phenotypes) {
+phenotype_connect_to_review <- function(review_id, entity_id, phenotypes, conn = NULL) {
   log_debug("Connecting {nrow(phenotypes)} phenotypes to review {review_id}")
 
-  # Validate phenotype IDs first
-  phenotype_validate_ids(phenotypes$phenotype_id)
+  # Skip validation when conn is provided (caller validates before transaction)
+  if (is.null(conn)) {
+    # Validate phenotype IDs first
+    phenotype_validate_ids(phenotypes$phenotype_id)
 
-  # Validate entity_id matches the review's entity_id
-  review_entity <- db_execute_query(
-    "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
-    list(review_id)
-  )
-
-  if (nrow(review_entity) == 0) {
-    rlang::abort(
-      message = paste("Review not found:", review_id),
-      class = "review_not_found_error",
-      review_id = review_id
+    # Validate entity_id matches the review's entity_id
+    review_entity <- db_execute_query(
+      "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
+      list(review_id)
     )
-  }
 
-  if (review_entity$entity_id[1] != entity_id) {
-    rlang::abort(
-      message = paste0(
-        "Entity ID mismatch: provided ", entity_id,
-        " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
-      ),
-      class = "entity_id_mismatch_error",
-      provided_entity_id = entity_id,
-      review_entity_id = review_entity$entity_id[1]
-    )
+    if (nrow(review_entity) == 0) {
+      rlang::abort(
+        message = paste("Review not found:", review_id),
+        class = "review_not_found_error",
+        review_id = review_id
+      )
+    }
+
+    if (review_entity$entity_id[1] != entity_id) {
+      rlang::abort(
+        message = paste0(
+          "Entity ID mismatch: provided ", entity_id,
+          " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
+        ),
+        class = "entity_id_mismatch_error",
+        provided_entity_id = entity_id,
+        review_entity_id = review_entity$entity_id[1]
+      )
+    }
   }
 
   # Insert each phenotype connection
@@ -189,7 +192,8 @@ phenotype_connect_to_review <- function(review_id, entity_id, phenotypes) {
         entity_id,
         phenotypes$phenotype_id[i],
         phenotypes$modifier_id[i]
-      )
+      ),
+      conn = conn
     )
     total_inserted <- total_inserted + rows_affected
   }

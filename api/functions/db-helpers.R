@@ -182,9 +182,9 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
       # Register cleanup on exit (even if error occurs)
       on.exit(DBI::dbClearResult(result), add = TRUE)
 
-      # Bind parameters if provided
+      # Bind parameters if provided (unname for anonymous ? placeholders)
       if (length(params) > 0) {
-        DBI::dbBind(result, params)
+        DBI::dbBind(result, unname(params))
       }
 
       # Fetch all results
@@ -302,9 +302,9 @@ db_execute_statement <- function(sql, params = list(), conn = NULL) {
       # Register cleanup on exit (even if error occurs)
       on.exit(DBI::dbClearResult(result), add = TRUE)
 
-      # Bind parameters if provided
+      # Bind parameters if provided (unname for anonymous ? placeholders)
       if (length(params) > 0) {
-        DBI::dbBind(result, params)
+        DBI::dbBind(result, unname(params))
       }
 
       # Get affected row count

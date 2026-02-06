@@ -34,7 +34,7 @@ variation_ontology_get_allowed_list <- function() {
   # Use pool with dplyr for efficient retrieval
   allowed <- pool %>%
     tbl("variation_ontology_list") %>%
-    select(vario_id) %>%
+    dplyr::select(vario_id) %>%
     collect()
 
   log_debug("Retrieved {nrow(allowed)} allowed variation ontology IDs")
@@ -144,36 +144,39 @@ variation_ontology_find_by_review <- function(review_id) {
 #' }
 #'
 #' @export
-variation_ontology_connect_to_review <- function(review_id, entity_id, variation_ontology) {
+variation_ontology_connect_to_review <- function(review_id, entity_id, variation_ontology, conn = NULL) {
   log_debug("Connecting {nrow(variation_ontology)} variation ontology terms to review {review_id}")
 
-  # Validate vario IDs first
-  variation_ontology_validate_ids(variation_ontology$vario_id)
+  # Skip validation when conn is provided (caller validates before transaction)
+  if (is.null(conn)) {
+    # Validate vario IDs first
+    variation_ontology_validate_ids(variation_ontology$vario_id)
 
-  # Validate entity_id matches the review's entity_id
-  review_entity <- db_execute_query(
-    "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
-    list(review_id)
-  )
-
-  if (nrow(review_entity) == 0) {
-    rlang::abort(
-      message = paste("Review not found:", review_id),
-      class = "review_not_found_error",
-      review_id = review_id
+    # Validate entity_id matches the review's entity_id
+    review_entity <- db_execute_query(
+      "SELECT entity_id FROM ndd_entity_review WHERE review_id = ?",
+      list(review_id)
     )
-  }
 
-  if (review_entity$entity_id[1] != entity_id) {
-    rlang::abort(
-      message = paste0(
-        "Entity ID mismatch: provided ", entity_id,
-        " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
-      ),
-      class = "entity_id_mismatch_error",
-      provided_entity_id = entity_id,
-      review_entity_id = review_entity$entity_id[1]
-    )
+    if (nrow(review_entity) == 0) {
+      rlang::abort(
+        message = paste("Review not found:", review_id),
+        class = "review_not_found_error",
+        review_id = review_id
+      )
+    }
+
+    if (review_entity$entity_id[1] != entity_id) {
+      rlang::abort(
+        message = paste0(
+          "Entity ID mismatch: provided ", entity_id,
+          " but review ", review_id, " has entity_id ", review_entity$entity_id[1]
+        ),
+        class = "entity_id_mismatch_error",
+        provided_entity_id = entity_id,
+        review_entity_id = review_entity$entity_id[1]
+      )
+    }
   }
 
   # Insert each variation ontology connection
@@ -189,7 +192,8 @@ variation_ontology_connect_to_review <- function(review_id, entity_id, variation
         variation_ontology$vario_id[i],
         variation_ontology$modifier_id[i],
         entity_id
-      )
+      ),
+      conn = conn
     )
     total_inserted <- total_inserted + rows_affected
   }
