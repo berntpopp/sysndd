@@ -140,22 +140,20 @@ test_that("rowwise guard works correctly on non-empty tibble", {
   expect_true("cluster_size" %in% names(result))
 })
 
-test_that("unguarded rowwise on empty tibble with list-column throws error", {
-  # This test demonstrates the BUG - unguarded rowwise crashes
+test_that("unguarded rowwise on empty tibble with list-column returns empty result", {
+  # In older dplyr versions this would throw; modern dplyr handles empty tibbles
+  # gracefully. The guarded approach (next test) is still preferred for safety.
   empty_tibble <- tibble(
     cluster = integer(),
     identifiers = list(),
     hash_filter = character()
   )
 
-  # Unguarded rowwise should fail (this is the bug we're fixing)
-  expect_error(
-    empty_tibble %>%
-      rowwise() %>%
-      mutate(cluster_size = nrow(identifiers)),
-    # Error message varies by dplyr version, so just check it errors
-    regexp = ".*"
-  )
+  result <- empty_tibble %>%
+    rowwise() %>%
+    mutate(cluster_size = nrow(identifiers))
+
+  expect_equal(nrow(result), 0)
 })
 
 test_that("guarded rowwise on empty tibble does not throw error", {

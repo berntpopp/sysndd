@@ -643,7 +643,7 @@ test_that("functional cluster 1 achieves benchmark score >= 8", {
 
   # Assert minimum benchmark score
   expect_gte(score_result$score, 8,
-             info = paste("Benchmark failed:", score_result$reasoning))
+             label = paste("Benchmark failed:", score_result$reasoning))
 })
 
 
@@ -671,7 +671,7 @@ test_that("functional cluster 3 achieves benchmark score >= 8", {
   message(sprintf("Functional Cluster 3 score: %d/10 - %s", score_result$score, score_result$reasoning))
 
   expect_gte(score_result$score, 8,
-             info = paste("Benchmark failed:", score_result$reasoning))
+             label = paste("Benchmark failed:", score_result$reasoning))
 })
 
 
@@ -708,7 +708,7 @@ test_that("phenotype cluster 3 achieves benchmark score >= 7", {
 
   # Phenotype clusters have stricter requirements, so we accept >= 7
   expect_gte(score_result$score, 7,
-             info = paste("Benchmark failed:", score_result$reasoning))
+             label = paste("Benchmark failed:", score_result$reasoning))
 })
 
 
@@ -736,7 +736,7 @@ test_that("phenotype cluster 4 achieves benchmark score >= 7", {
   message(sprintf("Phenotype Cluster 4 score: %d/10 - %s", score_result$score, score_result$reasoning))
 
   expect_gte(score_result$score, 7,
-             info = paste("Benchmark failed:", score_result$reasoning))
+             label = paste("Benchmark failed:", score_result$reasoning))
 })
 
 
@@ -794,7 +794,7 @@ test_that("batch benchmark summary reports aggregated scores", {
 
     # Overall benchmark should average >= 7.5
     expect_gte(avg_score, 7.5,
-               info = sprintf("Average score %.1f below benchmark threshold of 7.5", avg_score))
+               label = sprintf("Average score %.1f below benchmark threshold of 7.5", avg_score))
   } else {
     skip("No benchmark scores collected - all API calls failed")
   }

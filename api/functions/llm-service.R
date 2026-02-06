@@ -695,6 +695,14 @@ generate_cluster_summary <- function(
     )
   }
 
+  # Validate identifiers are non-empty
+  if (!"identifiers" %in% names(cluster_data) || nrow(cluster_data$identifiers) == 0) {
+    rlang::abort(
+      "cluster_data must contain non-empty identifiers",
+      class = "llm_service_error"
+    )
+  }
+
   # Generate cluster hash for logging
   cluster_hash <- if ("identifiers" %in% names(cluster_data)) {
     id_col <- if (cluster_type == "functional") "hgnc_id" else "entity_id"

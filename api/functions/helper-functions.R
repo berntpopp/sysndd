@@ -398,8 +398,8 @@ generate_filter_expressions <- function(
       filter_string_tibble <- tryCatch(
         {
           as_tibble(str_split(str_squish(filter_string), "\\),")[[1]]) %>%
-            separate(value, c("logic", "column_value"), sep = "\\(") %>%
-            separate(column_value, c("column", "filter_value"),
+            tidyr::separate(value, c("logic", "column_value"), sep = "\\(") %>%
+            tidyr::separate(column_value, c("column", "filter_value"),
               sep = "\\,",
               extra = "merge"
             ) %>%

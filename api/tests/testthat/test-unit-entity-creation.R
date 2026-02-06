@@ -137,9 +137,9 @@ test_that("direct approval includes status approval in final aggregation", {
       }
     } %>%
     dplyr::select(status, message) %>%
-    unique() %>%
     mutate(status = max(status)) %>%
-    mutate(message = str_c(message, collapse = "; "))
+    mutate(message = str_c(message, collapse = "; ")) %>%
+    unique()
 
   # Verify status approval is included
   expect_equal(response$status, 200)
@@ -166,9 +166,9 @@ test_that("status approval failure surfaces in final response", {
       }
     } %>%
     dplyr::select(status, message) %>%
-    unique() %>%
     mutate(status = max(status)) %>%
-    mutate(message = str_c(message, collapse = "; "))
+    mutate(message = str_c(message, collapse = "; ")) %>%
+    unique()
 
   # Verify failure status surfaces via max(status)
   expect_equal(response$status, 500)

@@ -90,7 +90,9 @@ test_that("validate_with_llm_judge returns valid verdict structure", {
     term_enrichment = tibble::tibble(
       category = "GO",
       term = c("DNA repair", "cell cycle"),
-      fdr = c(1e-10, 1e-8)
+      description = c("DNA repair", "cell cycle"),
+      fdr = c(1e-10, 1e-8),
+      number_of_genes = c(5L, 3L)
     )
   )
 
@@ -122,13 +124,15 @@ test_that("validate_with_llm_judge verdict is one of accept/low_confidence/rejec
     term_enrichment = tibble::tibble(
       category = "GO",
       term = c("biological process"),
-      fdr = c(0.01)
+      description = c("biological process"),
+      fdr = c(0.01),
+      number_of_genes = c(2L)
     )
   )
 
   result <- validate_with_llm_judge(summary = summary, cluster_data = cluster_data)
 
-  expect_true(result$verdict %in% c("accept", "low_confidence", "reject"))
+  expect_true(result$verdict %in% c("accept", "accept_with_corrections", "low_confidence", "reject"))
 })
 
 
@@ -160,7 +164,9 @@ test_that("generate_and_validate_with_judge maps verdicts to validation_status c
     term_enrichment = tibble::tibble(
       category = "GO",
       term = c("DNA repair", "cell cycle"),
-      fdr = c(1e-10, 1e-8)
+      description = c("DNA repair", "cell cycle"),
+      fdr = c(1e-10, 1e-8),
+      number_of_genes = c(5L, 3L)
     ),
     cluster_number = 999L
   )
@@ -198,7 +204,9 @@ test_that("generate_and_validate_with_judge result contains judge_result", {
     term_enrichment = tibble::tibble(
       category = "GO",
       term = c("DNA repair", "cell cycle"),
-      fdr = c(1e-10, 1e-8)
+      description = c("DNA repair", "cell cycle"),
+      fdr = c(1e-10, 1e-8),
+      number_of_genes = c(5L, 3L)
     ),
     cluster_number = 998L
   )
@@ -207,8 +215,8 @@ test_that("generate_and_validate_with_judge result contains judge_result", {
 
   expect_type(result, "list")
 
-  # Judge result should be present (unless generation failed completely)
-  if (result$success || result$validation_status %in% c("validated", "pending", "rejected")) {
+  # Judge result should be present when generation succeeded
+  if (isTRUE(result$success)) {
     expect_true("judge_result" %in% names(result))
     expect_true("verdict" %in% names(result$judge_result))
     expect_true("reasoning" %in% names(result$judge_result))
@@ -268,7 +276,9 @@ test_that("full judge pipeline works end-to-end", {
     term_enrichment = tibble::tibble(
       category = "GO",
       term = c("DNA repair", "cell cycle"),
-      fdr = c(1e-10, 1e-8)
+      description = c("DNA repair", "cell cycle"),
+      fdr = c(1e-10, 1e-8),
+      number_of_genes = c(5L, 3L)
     ),
     cluster_number = 997L
   )

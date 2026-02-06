@@ -96,7 +96,8 @@ test_that("filter expression replaces category with max_category when max_catego
 
   # Verify category was replaced with max_category
   expect_true(grepl("max_category", filter_string))
-  expect_false(grepl("category,", filter_string))
+  # Use word boundary to avoid matching "category" inside "max_category"
+  expect_false(grepl("\\bcategory\\b", filter_string))
   expect_match(filter_string, "equals\\(max_category,'Definitive'\\)")
 })
 
