@@ -1,182 +1,182 @@
 # Project Research Summary
 
-**Project:** SysNDD v10.0 Data Quality & AI Insights
-**Domain:** LLM cluster summaries, Publications/Pubtator improvements, Bug fixes
-**Researched:** 2026-01-31
+**Project:** SysNDD v10.4 OMIM Optimization & Refactor
+**Domain:** Neurodevelopmental disorder database - OMIM data integration
+**Researched:** 2026-02-07
 **Confidence:** HIGH
 
 ## Executive Summary
 
-SysNDD v10.0 adds LLM-generated cluster summaries using Gemini API, improves Publications and Pubtator views for research/curation, and fixes 8-9 major bugs. Research reveals:
+This milestone optimizes OMIM data integration by consolidating two divergent data flows (ontology and comparisons systems) onto a unified genemap2.txt foundation. The current ontology system uses mim2gene.txt + JAX API calls (~20 minutes for 8,500 disease names), while the comparisons system already efficiently parses genemap2.txt locally. By migrating the ontology system to genemap2.txt, we eliminate the slow JAX API dependency, gain mode of inheritance (MOI) information that was previously unavailable, and unify caching infrastructure with a 1-day TTL.
 
-1. **Use ellmer (not gemini.R)** for Gemini API integration — structured output, batch processing, LLM-as-judge support, maintained by Tidyverse team
-2. **LLM hallucinations are the critical risk** — 2026 research shows even grounded LLMs produce plausible but incorrect gene names; entity validation against database is mandatory
-3. **LLM-as-judge has only 64-68% agreement** with domain experts — use rule-based validators as primary, LLM-as-judge as supplementary
-4. **easyPubMed deprecated functions** retiring in 2026 — must update to new epm_* API
-5. **Existing infrastructure covers 80%** — mirai job system, httr2 patterns, and pubtator caching pattern need minimal adaptation
+The recommended approach leverages existing R packages (httr2, fs, lubridate) without new dependencies. The codebase already has validated patterns from omim-functions.R and file-functions.R that can be extended. The key architectural change is creating shared genemap2-functions.R for download/parsing, then adapting ontology-functions.R to use genemap2 data instead of JAX API, while maintaining backward-compatible database schemas.
 
-**Key stack decision:** Add `ellmer >= 0.4.0` to renv. Update easyPubMed deprecated calls. Store Gemini API key in environment variable (GEMINI_API_KEY).
+Critical risks include OMIM IP blocking from excessive downloads (mitigated by file-based 1-day TTL caching), genemap2.txt column name changes breaking parsing (mitigated by defensive column mapping), and Phenotypes column regex fragility (mitigated by robust field-based parsing). A phased migration with feature flags allows rollback to JAX API if needed, ensuring production stability during the transition.
 
 ## Key Findings
 
 ### Recommended Stack
 
-| Component | Version | Action | Notes |
-|-----------|---------|--------|-------|
-| **ellmer** | >= 0.4.0 | **NEW** | Gemini API with structured output, batch processing |
-| easyPubMed | >= 3.1.3 | UPDATE | Deprecated function calls retiring 2026 |
-| httr2 | 1.2.1 | KEEP | External API patterns already established |
-| mirai | 2.5.1 | KEEP | Async job system already working |
-| cachem | 1.0.x | KEEP | Disk-based caching for LLM summaries |
+No new packages required. The existing R stack already provides everything needed for OMIM file download caching with 1-day TTL.
 
-**What NOT to add:**
-- gemini.R — limited features, single maintainer
-- langchain R bindings — overkill, Python-centric
-- chromadb/vector store — no RAG requirement
-- rentrez — easyPubMed already integrated
+**Core technologies:**
+- **httr2**: HTTP downloads with exponential backoff retry (already used in omim-functions.R for mim2gene.txt)
+- **fs**: Cross-platform file system operations (already used in file-functions.R)
+- **lubridate**: Date arithmetic for TTL validation (already used in check_file_age())
+
+**Key finding:** The project already uses date-stamped filenames (mim2gene.YYYY-MM-DD.txt) and check_file_age() for age-based validation. This pattern extends naturally to all OMIM downloads with consistent 1-day TTL. Do NOT add cachem or memoise (wrong abstraction for file downloads), do NOT use base download.file() (lacks retry logic).
 
 ### Expected Features
 
-**Table stakes (must have):**
-- Grounded LLM summaries from cluster data (genes, GO terms, phenotypes)
-- Structured JSON output with validation
-- Batch pre-generation (avoid real-time API calls)
-- Entity validation (check gene names exist in database)
-- Cached summaries in database with hash-based invalidation
-- Publications metadata from PubMed E-utilities
-- Pubtator gene prioritization for curators
+**Must have (table stakes):**
+- **Download caching with 1-day TTL**: Prevents OMIM IP blocking, aligns with weekly update frequency, already validated in mim2gene download
+- **Disease name extraction**: Core requirement for displaying human-readable disease labels from genemap2 Phenotypes column
+- **MIM number to gene association**: Required to link OMIM diseases to genes for cross-database comparison
+- **Inheritance mode extraction**: Essential for filtering/categorizing diseases by inheritance pattern (currently missing from mim2gene approach, genemap2 provides this)
+- **Environment variable for download key**: Move from hardcoded value to OMIM_DOWNLOAD_KEY env var, consistent with existing project patterns
 
-**Differentiators:**
-- Full LLM-as-judge validation with confidence scoring
-- Novel gene discovery alerts (genes in Pubtator not in SysNDD)
-- Summary version history with model tracking
-- Curator annotation overlay (expert corrections visible)
+**Should have (differentiators):**
+- **Unified data source**: Both ontology and comparisons systems using same genemap2 cache eliminates version drift
+- **MOI data in ontology system**: genemap2 provides inheritance information that mim2gene lacks, populating previously NA fields
+- **Evidence level tracking**: Preserve mapping key (1-4) for future filtering by evidence strength
+- **Deprecation detection**: Track moved/removed OMIM IDs for curator re-review (may require keeping mim2gene download or diff-based approach)
 
-**Anti-features (do NOT build):**
-- Real-time LLM generation on page load
-- Frontend Gemini API calls (exposes key)
-- LLM-generated statistics or p-values
-- Custom LLM fine-tuning
-- Multiple LLM provider fallbacks
+**Defer (post-MVP):**
+- **Dual-source validation**: Cross-validate genemap2 vs mim2gene for data quality (nice-to-have, but comparisons system doesn't need mim2gene)
+- **Dynamic HPO hierarchy fetch**: Static NDD HPO term list is sufficient; API fetch is optimization
+- **MONDO mapping for comparisons**: Already exists for ontology system; extend later if needed
 
 ### Architecture Approach
 
-Five integration points, all following existing patterns:
+The unified genemap2.txt architecture consolidates two currently divergent OMIM data flows by creating shared infrastructure at the data layer while maintaining existing component boundaries. The ontology system currently uses mim2gene.txt + JAX API (~7 minutes for disease names), while comparisons already uses genemap2.txt with HPO filtering. By introducing genemap2-functions.R for shared download/parsing, then rewriting process_omim_ontology() to use genemap2 data, both systems benefit from common caching (1-day TTL in data/ directory), unified download key management (OMIM_DOWNLOAD_KEY env var with database fallback), and reduced external API dependencies.
 
-1. **Gemini API client** (`llm-service.R`) — follows `external-proxy-*.R` pattern
-2. **Summary storage** (`llm_cluster_summary_cache` table) — follows pubtator cache pattern
-3. **Batch generation job** — follows HGNC update job pattern via mirai
-4. **Summary display** — extends AnalyseGeneClusters.vue and AnalysesPhenotypeClusters.vue
-5. **Admin validation panel** — follows ManageAnnotations.vue pattern
+**Major components:**
+1. **genemap2-functions.R (NEW)**: Shared download/parsing infrastructure with get_omim_download_key(), download_genemap2_with_key(), parse_genemap2(), parse_phenotypes_column()
+2. **omim-functions.R (MODIFIED)**: Replace mim2gene + JAX API logic with build_omim_ontology_set_from_genemap2(), remove fetch_all_disease_names(), adapt deprecation tracking
+3. **ontology-functions.R (MODIFIED)**: Rewrite process_omim_ontology() to call genemap2 functions, remove JAX API progress tracking, keep MONDO SSSOM application
+4. **comparisons-functions.R (OPTIONAL)**: Refactor to use shared parse_genemap2() or keep isolated parsing to avoid coupling (Phase 3 decision)
+
+**Performance improvement:** Eliminates 7-minute JAX API fetching, total ontology update time drops from ~8 minutes to ~30 seconds.
 
 ### Critical Pitfalls
 
-1. **Hallucinated gene names** — LLMs invent plausible but non-existent genes; validate every gene symbol against `non_alt_loci_set`
+1. **Missing download caching leads to OMIM IP blocking** — Implement TTL-based caching (1 day) FIRST before any parsing logic. OMIM enforces rate limiting and can revoke API keys for excessive downloads. Use file-based caching with check_file_age(), not httr2 req_cache() which respects HTTP headers (OMIM returns Cache-Control: no-cache). Prevention: download_genemap2_with_key() checks cache age, returns existing file if <1 day old, only downloads on cache miss or expiry.
 
-2. **Schema ≠ content validation** — Gemini structured output validates JSON format, not semantic accuracy; build separate content validators
+2. **genemap2.txt field name changes break parsing** — OMIM periodically renames column headers without versioning (e.g., "Approved Symbol" → "Approved Gene Symbol"). Implement defensive column name mapping with fallbacks for historical variations. Prevention: use colnames_mapping list with alternatives, throw clear error with available columns if none match, don't assume exact header names.
 
-3. **LLM-as-judge unreliability** — 64-68% agreement with experts; use rule-based validators as primary, LLM as supplementary
+3. **Phenotypes column regex fragility** — The Phenotypes column contains complex nested structures with multiple delimiter types. Format: "Disease name, MIM_number (mapping_key), inheritance; Next disease...". Use robust field-based parsing instead of complex regex chains. Prevention: parse_phenotypes_column() extracts MIM (6 digits after comma), mapping key (digit in parentheses), disease name (before first paren), with validation for unparseable entries.
 
-4. **Cache staleness** — Summaries invalid when cluster composition changes; use SHA-256 hash of cluster genes as cache key
+4. **No rollback plan for data source migration** — Cutover from JAX API to genemap2 happens atomically. Implement feature flag (OMIM_DATA_SOURCE env var) with "genemap2", "jax_api", or "both" modes. Prevention: keep JAX API code intact during Phase 2, use "both" mode to validate new vs old approach, only delete old code after stable operation (1-2 weeks).
 
-5. **Rate limits per-project** — All API keys in a GCP project share quota; batch jobs compete with user requests; implement client-side rate limiting
-
-6. **Cost underestimation** — Cluster context can be 2000+ tokens; output tokens cost 2.5-10x more than input; use Batch API for 50% savings
+5. **Environment variable migration incomplete** — Moving OMIM API key from hardcoded to env var can fail in Docker/CI if not configured in all environments. Prevention: get_omim_download_key() with clear error messages listing configuration for .Renviron, docker-compose.yml, GitHub Actions secrets. Test in local, Docker, and CI before deployment.
 
 ## Implications for Roadmap
 
 Based on research, suggested phase structure:
 
-### Bug Fixes (Priority 1)
-**Rationale:** Bugs first, then features (user priority)
-**Delivers:** Fixes for 8-9 open GitHub issues
-**Risk:** LOW (isolated fixes)
+### Phase 1: Shared Infrastructure (Foundation)
+**Rationale:** Create reusable genemap2 download/parse without touching existing systems. Additive-only changes minimize risk.
+**Delivers:** Working genemap2-functions.R with download, parse, and caching capabilities
+**Addresses:** Download caching (table stakes), environment variable management (table stakes), defensive column mapping (critical pitfall 2)
+**Avoids:** IP blocking (critical pitfall 1) by implementing TTL cache first, Phenotypes parsing fragility (critical pitfall 3) with robust extraction
+**Stack:** httr2 with retry logic, fs for file operations, lubridate for TTL validation
+**Research flag:** STANDARD PATTERN (well-documented httr2 usage, existing check_file_age pattern to extend)
 
-### LLM Foundation
-**Rationale:** Required foundation for AI features
-**Delivers:** ellmer integration, DB schema, entity validation pipeline
-**Addresses:** Hallucination prevention, structured output, API key security
-**Risk:** MEDIUM (new external dependency)
+### Phase 2: Ontology System Migration (Primary Goal)
+**Rationale:** Replace mim2gene + JAX API with genemap2 in ontology system. This is the core performance improvement (8 min → 30 sec).
+**Delivers:** Ontology system using genemap2 with MOI data populated, JAX API dependency removed
+**Addresses:** Unified data source (differentiator), MOI data in ontology (should have), performance optimization (eliminates 7-minute JAX API loop)
+**Avoids:** No rollback plan (critical pitfall 4) by keeping JAX code commented, not deleted
+**Uses:** Shared genemap2-functions.R from Phase 1, inheritance mode mapping from comparisons system
+**Implements:** build_omim_ontology_set_from_genemap2() with Phenotypes parsing, versioning logic (OMIM:123456_1 for duplicates), HGNC matching
+**Research flag:** NEEDS LIGHT RESEARCH (Phenotypes column parsing patterns exist in comparisons-functions.R, but need adaptation for ontology schema)
 
-### LLM Batch Generation
-**Rationale:** Avoid real-time API latency
-**Delivers:** mirai job for summary generation, progress tracking, checkpointing
-**Addresses:** Pre-generation, cost control, failure handling
-**Risk:** LOW (follows existing job patterns)
+### Phase 3: Comparisons System Integration (Optional Optimization)
+**Rationale:** Unify comparisons to use shared cache, eliminate duplicate parsing. Lower priority than Phase 2.
+**Delivers:** Single genemap2 download per day (shared cache), consistent data version across systems
+**Addresses:** Unified data source (differentiator), reduced code duplication
+**Avoids:** Cache inconsistency anti-pattern (ontology uses data/, comparisons uses temp_dir)
+**Uses:** Shared download_genemap2_with_key() from Phase 1
+**Decision point:** Shared parse_genemap2() vs isolated parsing (coupling vs duplication trade-off)
+**Research flag:** STANDARD PATTERN (comparisons already uses genemap2, just consolidating infrastructure)
 
-### LLM Validation & Display
-**Rationale:** Human-in-the-loop before public display
-**Delivers:** Validation pipeline, admin UI, cluster view integration
-**Addresses:** Quality control, confidence scoring
-**Risk:** LOW (follows existing admin patterns)
+### Phase 4: Cleanup and Deprecation Tracking (Maintenance)
+**Rationale:** Remove deprecated code, restore deprecation detection functionality. Safe to defer until Phases 1-3 stable.
+**Delivers:** Clean codebase, updated documentation, deprecation tracking (currently lost in genemap2 migration)
+**Addresses:** Deprecation detection (should have feature)
+**Avoids:** Leaving dead code in production
+**Options for deprecation:** Keep mim2gene download for moved/removed entries, or implement diff-based approach comparing genemap2 versions
+**Research flag:** NEEDS RESEARCH (deprecation strategy unclear, mim2gene has explicit moved/removed flag, genemap2 does not)
 
-### Publications Improvements
-**Rationale:** Better metadata for researchers
-**Delivers:** Updated easyPubMed calls, abstract display, author affiliations
-**Risk:** LOW (API wrapper updates)
+### Phase Ordering Rationale
 
-### Pubtator Overhaul
-**Rationale:** Curator prioritization and user research
-**Delivers:** Gene prioritization lists, novel gene alerts, concept documentation
-**Risk:** LOW (extends existing Pubtator integration)
+- **Phase 1 before 2:** Shared infrastructure must exist before ontology migration uses it. Additive-only changes minimize risk.
+- **Phase 2 is primary goal:** Performance improvement (8 min → 30 sec) and MOI data addition are the milestone deliverables.
+- **Phase 3 is optional optimization:** Comparisons system already works, consolidation is code quality improvement not functional requirement.
+- **Phase 4 deferred to post-MVP:** Deprecation tracking is valuable but not blocking, needs research on best approach (mim2gene vs diff-based).
 
-### GitHub Pages Deployment
-**Rationale:** Modern CI/CD
-**Delivers:** GitHub Actions workflow replacing gh-pages branch
-**Risk:** LOW (well-documented pattern)
+**Dependency chain:**
+```
+Phase 1 (genemap2-functions.R) → Phase 2 (ontology migration)
+                                 ↓
+                                 Phase 3 (comparisons consolidation) → Phase 4 (cleanup)
+```
+
+**Pitfall mitigation order:**
+- Phase 1 addresses critical pitfalls 1, 2, 3 (caching, column mapping, parsing)
+- Phase 2 addresses critical pitfall 4 (rollback plan with feature flag)
+- Phase 2 addresses critical pitfall 5 (env var configuration)
+- Phase 4 addresses deprecation tracking gap
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **LLM Validation:** May need iteration on validation prompts based on false positive rates
+- **Phase 2 (Ontology Migration):** Light research needed on inheritance mode mapping (comparisons-functions.R has mapping table, need to verify coverage for all genemap2 MOI terms)
+- **Phase 4 (Deprecation Tracking):** Research needed on deprecation strategy (keep mim2gene download only for moved/removed detection, or implement diff-based approach)
 
 Phases with standard patterns (skip research-phase):
-- **Bug fixes** — specific issues, no research needed
-- **Publications** — easyPubMed migration well-documented
-- **Pubtator** — extends existing integration
-- **GitHub Pages** — GitHub Actions docs are comprehensive
+- **Phase 1 (Shared Infrastructure):** httr2 download with retry is well-documented, file-based caching pattern already exists in codebase (check_file_age, get_newest_file)
+- **Phase 3 (Comparisons Integration):** Comparisons system already parses genemap2, just moving to shared cache (no new patterns)
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack (ellmer) | HIGH | Tidyverse maintained, CRAN verified |
-| Hallucination risks | HIGH | Verified against 2026 Nature, IEEE, JAMA research |
-| LLM-as-judge reliability | HIGH | ACM IUI 2025 research with 64-68% figures |
-| Rate limits | HIGH | Official Gemini API documentation |
-| Existing pattern reuse | HIGH | Based on codebase analysis |
-| Cost estimation | MEDIUM | Pricing may change; verified Jan 2026 |
+| Stack | HIGH | All required packages already in renv.lock, patterns validated in existing code (omim-functions.R, file-functions.R) |
+| Features | MEDIUM | genemap2 parsing well-understood from comparisons system, but inheritance mode coverage needs validation (OMIM uses free text, mapping may be incomplete) |
+| Architecture | HIGH | Based on direct code analysis of existing OMIM flows (ontology vs comparisons), clear integration points identified |
+| Pitfalls | HIGH | OMIM rate limiting documented in terms of service, column name changes observed in community parsers (Scout CHANGELOG), Phenotypes parsing validated from existing comparisons code |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH (85% - stack and architecture very clear, some uncertainty on MOI mapping coverage)
 
 ### Gaps to Address
 
-- Gemini model retirement schedule (currently 2.0 Flash retiring March 2026)
-- Exact token counts for cluster context (pilot needed)
-- Cost per summary batch (pilot needed before full generation)
+- **Inheritance mode mapping completeness:** The comparisons-functions.R mapping table covers 14 inheritance terms, but genemap2 uses free text. Validate during Phase 2 implementation that all genemap2 inheritance values map correctly, log unmapped terms for manual review.
+
+- **Deprecation detection strategy:** genemap2.txt lacks explicit moved/removed flags that mim2gene.txt provides. Options: (1) keep mim2gene download for deprecation checking only, (2) implement diff-based approach comparing genemap2 versions, (3) defer deprecation tracking. Decide during Phase 4 planning based on curator workflow importance.
+
+- **Gene symbol ambiguity handling:** genemap2 contains historical gene symbols that may no longer be current HGNC symbols. Implement fallback matching using Entrez ID and Ensembl ID from genemap2 (columns available) if symbol lookup fails. Monitor match rate during Phase 2 testing.
+
+- **Phenotypes column edge cases:** Known variations include disease names with commas, semicolons in unexpected places, missing mapping keys. Build comprehensive test suite from real genemap2.txt samples before Phase 2 implementation, not just synthetic test data.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [ellmer 0.4.0 Tidyverse blog](https://tidyverse.org/blog/2025/11/ellmer-0-4-0/)
-- [ellmer structured data vignette](https://ellmer.tidyverse.org/articles/structured-data.html)
-- [easyPubMed CRAN PDF](https://cran.r-project.org/web/packages/easyPubMed/easyPubMed.pdf) — 2026 retirement
-- [Gemini API Rate Limits](https://ai.google.dev/gemini-api/docs/rate-limits)
-- [Nature Scientific Reports: Biomedical LLM Hallucinations](https://www.nature.com/articles/s41598-026-35492-8)
-- [ACM IUI 2025: LLM-as-a-Judge Limitations](https://dl.acm.org/doi/10.1145/3708359.3712091)
+- **Existing codebase patterns:** api/functions/omim-functions.R (mim2gene + JAX API, lines 36-72), api/functions/file-functions.R (check_file_age, get_newest_file), api/functions/comparisons-functions.R (genemap2 parsing, lines 390-503)
+- **OMIM official documentation:** https://omim.org/downloads (download URLs, file descriptions), https://www.omim.org/help/faq (mapping key definitions)
+- **httr2 documentation:** https://httr2.r-lib.org/ (retry logic, timeout control)
+- **R package verification:** httr2, fs, lubridate all in renv.lock
 
 ### Secondary (MEDIUM confidence)
-- [IEEE JBHI: Healthcare LLM Hallucinations](https://www.embs.org/jbhi/)
-- [Gemini API Pricing 2026](https://www.metacto.com/blogs/the-true-cost-of-google-gemini)
-- [PubTator 3.0 NAR paper](https://academic.oup.com/nar/article/52/W1/W540/7640526)
+- **HPO phenotype.hpoa format:** https://obophenotype.github.io/human-phenotype-ontology/annotations/phenotype_hpoa/ (12-column format with OMIM cross-reference)
+- **OMIM file comparison:** Biostars discussion on morbidmap vs genemap2 differences (community consensus)
+- **Gene symbol updates:** HGNChelper package documentation for symbol correction (PMC7856679)
+- **Column name variations:** Scout CHANGELOG (Clinical-Genomics/scout) documents field renaming in production
 
-### Codebase Analysis (HIGH confidence)
-- `api/functions/external-proxy-*.R` — httr2 patterns
-- `api/functions/job-manager.R` — mirai async patterns
-- `api/functions/pubtator-functions.R` — caching patterns
-- `app/src/views/admin/ManageAnnotations.vue` — admin job UI pattern
+### Tertiary (LOW confidence, needs validation)
+- **Third-party OMIM parsers:** GitHub topics/omim shows historical column name variations (multiple parsers independently handle "Approved Symbol" vs "Approved Gene Symbol")
+- **Inheritance mode mapping:** Comparisons-functions.R mapping table appears comprehensive but may not cover all genemap2 free text values (validation needed during implementation)
 
 ---
-
-**Research completed:** 2026-01-31
-**Ready for roadmap:** Yes
+*Research completed: 2026-02-07*
+*Ready for roadmap: yes*

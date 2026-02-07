@@ -743,3 +743,329 @@ Before implementation:
 *Research completed: 2026-02-01*
 *Confidence: HIGH (MySQL docs verified, golang-migrate pattern documented, existing codebase analyzed)*
 *Researcher: GSD Project Researcher (Features dimension - Multi-Container Coordination)*
+---
+---
+
+# Feature Landscape: OMIM Phenotype Mapping
+
+**Domain:** Neurodevelopmental disorder gene-disease associations
+**Researched:** 2026-02-07
+**Confidence:** MEDIUM
+
+## Executive Summary
+
+OMIM phenotype mapping for NDD databases requires two distinct workflows with different data sources and feature requirements:
+
+1. **Ontology system** (disease ontology set for entity curation): Uses mim2gene.txt + JAX API to provide disease names for curator selection during entity creation
+2. **Comparisons system** (cross-database gene analysis): Uses genemap2.txt + phenotype.hpoa to identify NDD-relevant genes based on HPO phenotype filtering
+
+The project has ALREADY migrated the ontology system to mim2gene.txt + JAX API (Phase 23, completed). This milestone focuses on the comparisons system, which still uses the OLD genemap2.txt parsing approach.
+
+Key architectural insight: genemap2.txt contains BOTH gene-disease associations AND inheritance mode information in a complex semicolon-delimited "Phenotypes" column that requires multi-stage regex parsing. The old script (db/02_Rcommands) demonstrates the extraction pattern.
+
+## Table Stakes
+
+Features users expect from OMIM phenotype mapping. Missing = product feels incomplete.
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Disease name extraction | Core requirement for displaying human-readable disease labels | Medium | Currently parsed from genemap2 Phenotypes column using regex: `"Disease name, 123456 (3), Autosomal recessive"` → "Disease name" |
+| MIM number to gene association | Required to link OMIM diseases to genes for cross-database comparison | Medium | genemap2 Phenotypes column format: MIM number embedded between disease name and mapping key |
+| Evidence level (mapping key) | OMIM provides 1-4 scale indicating gene-disease evidence strength | Low | Parenthetical number in Phenotypes: (1)=wildtype gene mapped, (2)=disease mapped, (3)=molecular basis known, (4)=chromosome deletion/duplication |
+| Inheritance mode extraction | Essential for filtering/categorizing diseases by inheritance pattern | High | Complex parsing from Phenotypes trailing text: `"), Autosomal recessive"` requires mapping to HPO terms |
+| NDD-specific filtering | Must identify neurodevelopmental disorders among 8000+ OMIM diseases | High | Requires cross-reference with HPO phenotype.hpoa annotations using NDD-related HPO terms (HP:0012759 and children) |
+| Multi-disease per gene support | Single gene can associate with multiple OMIM diseases | Low | genemap2 Phenotypes column uses semicolon delimiter: `"Disease A; Disease B; Disease C"` |
+| Versioning for duplicates | Same MIM may appear multiple times with different genes/inheritance | Medium | Existing pattern: `OMIM:123456_1`, `OMIM:123456_2` when count > 1 |
+
+## Differentiators
+
+Features that set SysNDD apart. Not expected by all users, but valued for research quality.
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Dual-source validation | Cross-validate genemap2 gene-disease associations against mim2gene + JAX API | Medium | Detect discrepancies between OMIM data sources (genemap2 vs mim2gene); flag for curator review |
+| HPO term hierarchy filtering | Use hierarchical HPO relationships to identify NDD-relevant phenotypes beyond direct matches | High | Current code uses static list (HP:0012759, HP:0002342, etc.); could fetch HPO children dynamically via JAX API |
+| Deprecation detection | Flag entities using moved/removed OMIM IDs for curator re-review | Low | Already implemented for ontology system; extend to comparisons |
+| MONDO equivalence mapping | Provide MONDO disease IDs for OMIM diseases to enable cross-ontology research | Medium | Already implemented via SSSOM files; ensure comparisons data includes MONDO mappings |
+| Evidence-weighted filtering | Use mapping key (1-4) to filter comparison results by evidence strength | Low | Simple numeric comparison after parsing; UI could show "molecular basis known" vs "gene mapped" |
+| Inheritance-specific comparisons | Enable database comparisons filtered by inheritance mode (e.g., only autosomal recessive) | Medium | Requires accurate inheritance mode extraction and HPO term normalization |
+
+## Anti-Features
+
+Features to explicitly NOT build. Common mistakes in this domain.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Real-time OMIM API integration | OMIM API requires authentication, has rate limits, and is slower than file-based approach | Download static files (genemap2.txt, mim2gene.txt) nightly; use JAX API only for missing disease names in ontology system |
+| Parsing all OMIM phenotypes | OMIM contains ~8000 phenotypes; comparisons only need NDD-relevant subset | Filter via HPO phenotype.hpoa cross-reference using NDD HPO terms (HP:0012759 children) |
+| Hand-rolled inheritance mode mapping | Genemap2 uses non-standard inheritance abbreviations ("Autosomal dominant" vs HPO "Autosomal dominant inheritance") | Use existing normalization map from db/02_Rcommands line 285-299; map to HPO terms via mode_of_inheritance_list |
+| Storing raw Phenotypes column | Complex semicolon-delimited field with embedded regex patterns is not queryable | Parse into normalized columns: disease_ontology_name, disease_ontology_id, mapping_key, hpo_mode_of_inheritance_term |
+| Mixing ontology and comparison workflows | Two different use cases with different data sources and requirements | Keep ontology system (mim2gene + JAX) separate from comparisons system (genemap2 + HPO); share deprecation detection logic only |
+| Single-source OMIM data | Relying only on genemap2 OR only on mim2gene creates blind spots | Use genemap2 for comparisons (has inheritance + evidence), use mim2gene + JAX for ontology (has deprecation status) |
+
+## Feature Dependencies
+
+```
+Core OMIM Parsing (genemap2.txt)
+    ├─→ Disease Name Extraction
+    │   └─→ Regex: separate on ", (?=[0-9]{6})" to split name from MIM number
+    │
+    ├─→ MIM Number Extraction
+    │   └─→ Regex: extract 6-digit number after disease name
+    │
+    ├─→ Mapping Key Extraction
+    │   └─→ Regex: extract parenthetical number after MIM number
+    │
+    └─→ Inheritance Mode Extraction
+        ├─→ Regex: extract trailing text after ")"
+        ├─→ Normalization: map OMIM terms to HPO standard terms
+        └─→ HPO Term Lookup: join with mode_of_inheritance_list
+
+HPO Phenotype Filtering (phenotype.hpoa)
+    ├─→ NDD HPO Term Definition
+    │   └─→ Static list OR HPO API fetch of HP:0012759 children
+    │
+    ├─→ OMIM-HPO Association
+    │   └─→ Join phenotype.hpoa database_id (MIM:123456) with genemap2 MIM numbers
+    │
+    └─→ NDD Gene Extraction
+        └─→ Filter phenotype.hpoa for NDD HPO terms, then join with genemap2 genes
+
+Dual-Source Validation (genemap2 + mim2gene)
+    ├─→ genemap2 gene-disease pairs
+    ├─→ mim2gene phenotype entries
+    └─→ Cross-reference: flag discrepancies for curator review
+
+Versioning
+    └─→ Group by disease_ontology_id, add _N suffix when count > 1
+```
+
+## Data Source Comparison
+
+| Source | Contains | Best For | Limitations |
+|--------|----------|----------|-------------|
+| **genemap2.txt** | Gene-disease associations, chromosomal location, inheritance modes, mapping keys, phenotype descriptions | Comparisons system (gene-centric analysis with inheritance filtering) | Complex Phenotypes column requires multi-stage regex parsing; no deprecation status |
+| **mim2gene.txt** | MIM number to gene symbol mapping, entry type (gene/phenotype/moved/removed) | Ontology system (disease ID to gene lookup), deprecation detection | NO inheritance modes, NO disease names (requires JAX API), phenotype entries lack gene associations |
+| **mimTitles.txt** | MIM number to disease title mapping | Alternative to JAX API for disease names | Requires OMIM API key; less comprehensive than JAX API |
+| **morbidmap.txt** | Disease-centric view (sorted by disorder name instead of chromosome) | Disorder-first lookups | Subset of genemap2 data; same Phenotypes parsing complexity |
+| **phenotype.hpoa** | HPO phenotype annotations for diseases (including OMIM), evidence codes | NDD filtering via HPO term cross-reference | Large file (~200k annotations); requires NDD HPO term list for filtering |
+
+**Recommendation for comparisons system:** genemap2.txt + phenotype.hpoa is sufficient and correct. Do NOT switch to mim2gene for comparisons (it lacks inheritance modes and requires JAX API calls for disease names, which is slow for 8000+ phenotypes).
+
+## Parsing Strategy: genemap2.txt Phenotypes Column
+
+The Phenotypes column (column 13 in genemap2.txt) has this structure:
+
+```
+Format: "Disease name, MIM_number (mapping_key), inheritance_mode; Next_disease, ..."
+
+Examples:
+1. "Epilepsy, progressive myoclonic 3, 611726 (3), Autosomal recessive"
+2. "Charcot-Marie-Tooth disease, type 2A1, 118210 (3), Autosomal dominant"
+3. "Mental retardation, 615139 (3); ?Microcephaly 10, 615095 (3), Autosomal recessive"
+```
+
+**Multi-stage regex extraction (verified from db/02_Rcommands.R lines 272-277):**
+
+```r
+# Stage 1: Split multiple diseases by semicolon
+separate_rows(Phenotypes, sep = "; ")
+
+# Stage 2: Split disease name from inheritance mode
+#   Pattern: "), " followed by inheritance text (no more closing parens after)
+separate(Phenotypes, c("disease_name_with_mim", "inheritance"), "\\), (?!.+\\))")
+
+# Stage 3: Split disease name from mapping key
+#   Pattern: "(" not followed by another "(" (last opening paren)
+separate(disease_name_with_mim, c("disease_name_with_mim", "mapping_key"), "\\((?!.+\\()")
+
+# Stage 4: Split disease name from MIM number
+#   Pattern: ", " followed by 6-digit number
+separate(disease_name_with_mim, c("disease_name", "mim_number"), ", (?=[0-9]{6})")
+
+# Stage 5: Clean and normalize
+mutate(
+  mapping_key = str_replace_all(mapping_key, "\\)", ""),  # Remove trailing ")"
+  mim_number = str_replace_all(mim_number, " ", ""),      # Remove whitespace
+  inheritance = str_replace_all(inheritance, "\\?", "")   # Remove "?" uncertainty marker
+)
+```
+
+**Inheritance mode normalization (db/02_Rcommands lines 285-299):**
+Maps OMIM abbreviations to HPO standard terms:
+- "Autosomal dominant" → "Autosomal dominant inheritance"
+- "Autosomal recessive" → "Autosomal recessive inheritance"
+- "X-linked" → "X-linked inheritance"
+- "Mitochondrial" → "Mitochondrial inheritance"
+- "Isolated cases" → "Sporadic"
+- etc.
+
+## HPO Phenotype Filtering Strategy
+
+phenotype.hpoa file structure (verified from HPO documentation):
+
+```
+database_id    disease_name    qualifier    hpo_id    reference    evidence    ...
+OMIM:123456    Disease Name    NOT          HP:0001234    PMID:12345    PCS        ...
+```
+
+**NDD filtering workflow:**
+
+1. **Define NDD HPO terms** (comparisons-functions.R lines 393-396):
+   ```r
+   ndd_phenotypes <- c(
+     "HP:0012759",  # Neurodevelopmental abnormality (root term)
+     "HP:0002342",  # Intellectual disability (most common child)
+     "HP:0006889",  # Intellectual disability, severe
+     "HP:0010864"   # Intellectual disability, profound
+     # ... additional children of HP:0012759
+   )
+   ```
+
+2. **Filter phenotype.hpoa** for NDD-annotated OMIM diseases:
+   ```r
+   phenotype_hpoa %>%
+     filter(str_detect(database_id, "^OMIM:")) %>%  # OMIM entries only
+     filter(hpo_id %in% ndd_phenotypes) %>%         # NDD phenotypes only
+     mutate(database_id = str_remove(database_id, "OMIM:"))  # Convert to MIM number
+   ```
+
+3. **Join with genemap2** to get genes:
+   ```r
+   ndd_omim_ids %>%
+     left_join(genemap2_parsed, by = c("database_id" = "mim_number")) %>%
+     filter(!is.na(Approved_Symbol))  # Only entries with gene associations
+   ```
+
+**Trade-off:** Static HPO term list vs dynamic API fetch
+- Static list (current): Fast, reliable, but requires manual updates when HPO hierarchy changes
+- Dynamic API: Always current, but adds external dependency and latency
+- **Recommendation:** Start with static list; add HPO API option for advanced users who want latest hierarchy
+
+## MVP Recommendation
+
+For reimplementing OMIM comparisons data integration, prioritize:
+
+**Phase 1: Core Parsing (Must Have)**
+1. genemap2.txt download and parsing with multi-stage regex extraction
+2. Disease name, MIM number, mapping key extraction
+3. Inheritance mode extraction with OMIM→HPO normalization
+4. Multi-disease-per-gene support (semicolon splitting)
+
+**Phase 2: NDD Filtering (Must Have)**
+1. phenotype.hpoa download and parsing
+2. Static NDD HPO term list (HP:0012759 + common children)
+3. OMIM-HPO cross-reference to identify NDD genes
+4. Join with genemap2 parsed data
+
+**Phase 3: Data Quality (Should Have)**
+1. Versioning for duplicate MIM numbers
+2. Evidence level filtering (mapping key 1-4)
+3. Validation before database write
+4. Transaction-based atomic updates
+
+Defer to post-MVP:
+- **Dual-source validation** (genemap2 vs mim2gene cross-check): Nice-to-have for data quality, but comparisons system doesn't need mim2gene
+- **Dynamic HPO hierarchy fetch**: Static list is sufficient for NDD filtering; API fetch is optimization
+- **mimTitles.txt integration**: JAX API already provides disease names for ontology system; comparisons uses genemap2 Phenotypes
+- **MONDO mapping for comparisons**: Already exists for ontology system; can extend later if needed
+
+## Implementation Notes
+
+### Existing Code to Reuse
+
+1. **Inheritance mode normalization map** (db/02_Rcommands.R lines 285-299):
+   - Move to shared constants or configuration
+   - Use in both ontology and comparisons systems
+
+2. **HPO mode_of_inheritance_list** (db/02_Rcommands.R lines 210-227):
+   - Fetch from HPO API: `HP:0000005` children with names and definitions
+   - Cache in database or static file
+   - Join after normalization to get HPO term IDs
+
+3. **Versioning logic** (db/02_Rcommands.R lines 303-308):
+   - Group by disease_ontology_id
+   - Add cumulative version number when count > 1
+   - Format: `OMIM:123456_1`, `OMIM:123456_2`, etc.
+
+4. **HGNC symbol resolution** (comparisons-functions.R):
+   - Already implemented in comparisons system
+   - Batch lookup via database join (not HGNC API for performance)
+
+### New Code Needed
+
+1. **parse_omim_genemap2() refactoring**:
+   - Current implementation (comparisons-functions.R lines 390-503) is functional
+   - Extract regex patterns to constants for readability
+   - Add validation for malformed Phenotypes entries
+   - Document expected format with examples
+
+2. **NDD HPO term management**:
+   - Static list as configuration constant
+   - Optional: Admin endpoint to refresh from HPO API
+   - Store in database table for auditability
+
+3. **Data validation**:
+   - Check required fields: gene_symbol, disease_ontology_id, mapping_key
+   - Warn on missing inheritance modes (some OMIM entries lack this)
+   - Log parsing failures for curator review
+
+## Sources
+
+### PRIMARY (HIGH confidence)
+- [OMIM FAQ - Phenotype Mapping Keys](https://www.omim.org/help/faq) - Official documentation of mapping key values 1-4
+- [HPO phenotype.hpoa format specification](https://obophenotype.github.io/human-phenotype-ontology/annotations/phenotype_hpoa/) - Official 12-column format with OMIM cross-reference
+- SysNDD existing code:
+  - `/home/bernt-popp/development/sysndd/db/02_Rcommands_sysndd_db_table_disease_ontology_set.R` (lines 265-313: genemap2 Phenotypes parsing)
+  - `/home/bernt-popp/development/sysndd/api/functions/comparisons-functions.R` (lines 390-503: current genemap2 + HPO parsing)
+  - `/home/bernt-popp/development/sysndd/api/functions/omim-functions.R` (mim2gene + JAX API implementation from Phase 23)
+
+### SECONDARY (MEDIUM confidence)
+- [OMIM Downloads Page](https://www.omim.org/downloads/) - File availability and authentication requirements
+- [Biostars: morbidmap vs genemap2 differences](https://www.biostars.org/p/128868/) - Community discussion of OMIM file purposes
+- [OMIM.org: leveraging knowledge across phenotype–gene relationships](https://academic.oup.com/nar/article/47/D1/D1038/5184722) - Academic publication describing OMIM data structure
+- [Monarch Initiative OMIM parsing](https://github.com/monarch-initiative/omim/issues/73) - Community discussion of morbidmap.txt parsing challenges
+
+### TERTIARY (LOW confidence - needs verification)
+- [R OMIM parsing example](https://rdrr.io/github/zhezhangsh/rchive/src/R/ParseOmim.r) - Third-party parsing code (useful patterns but not authoritative)
+- WebSearch results for inheritance mode extraction (multiple sources agree on standard abbreviations, but official OMIM documentation doesn't specify exact format)
+
+## Confidence Assessment
+
+| Area | Confidence | Reason |
+|------|------------|--------|
+| genemap2.txt format | HIGH | Verified from existing SysNDD code (db/02_Rcommands) which successfully parses file; regex patterns tested in production |
+| Phenotypes column structure | HIGH | Multiple code examples (SysNDD + third-party) use identical parsing strategy; consistent across years |
+| phenotype.hpoa format | HIGH | Official HPO documentation specifies 12-column format with OMIM database_id field |
+| Mapping key meanings | HIGH | Official OMIM FAQ defines values 1-4 with clear descriptions |
+| Inheritance mode normalization | MEDIUM | Existing SysNDD code has normalization map, but OMIM doesn't publish official abbreviation list |
+| NDD HPO filtering | MEDIUM | Current code uses static HP:0012759 + children; effective but may miss new HPO terms without updates |
+| File comparison (genemap2 vs mim2gene) | HIGH | Phase 23 research documented tradeoffs; confirmed mim2gene lacks inheritance modes |
+
+## Open Questions
+
+1. **HPO term list maintenance:** Should NDD HPO term list be static or dynamically fetched?
+   - **Static:** Faster, reliable, but requires manual updates
+   - **Dynamic:** Always current, but adds HPO API dependency
+   - **Recommendation:** Static list with admin refresh option
+
+2. **Inheritance mode coverage:** What percentage of genemap2 phenotypes have inheritance information?
+   - Existing code handles missing inheritance with `left_join` (some entries will have NA)
+   - Should these be excluded or flagged in comparisons?
+   - **Recommendation:** Include with NA; let users filter by inheritance presence
+
+3. **Evidence level filtering:** Should comparisons default to mapping key ≥3 (molecular basis known)?
+   - Current code extracts mapping_key but doesn't filter
+   - Level 1-2 are lower evidence (gene/disease mapped, but not molecular basis)
+   - **Recommendation:** Extract all, add UI filter option
+
+4. **MONDO integration:** Should comparisons data include MONDO equivalence mappings?
+   - Already implemented for ontology system via SSSOM files
+   - Could enrich comparisons with cross-ontology links
+   - **Recommendation:** Defer to post-MVP; comparisons primarily gene-centric
+
+---
+
+*Research completed: 2026-02-07*
+*Confidence: MEDIUM (genemap2 parsing HIGH, HPO filtering MEDIUM, inheritance normalization MEDIUM)*
+*Researcher: GSD Project Researcher (Features dimension - OMIM Phenotype Mapping)*
