@@ -26,22 +26,33 @@ if (file.exists(mondo_functions_path)) source(mondo_functions_path)
 
 #' Identify Critical Ontology Changes
 #'
-#' This function identifies critical changes in ontology sets by comparing the updated
-#' ontology set with the current ontology set and a subset of terms used in entities.
-#' It returns a tibble of critical changes.
+#' Compares the updated ontology set with the current one, focusing on terms
+#' referenced by entities. Returns a structured list with auto-fixable
+#' remappings and truly critical changes that require manual review.
 #'
 #' @param disease_ontology_set_update Updated disease ontology dataset.
 #' @param disease_ontology_set Current disease ontology dataset.
-#' @param ndd_entity_view_ontology_set Ontology dataset used in entities.
-#' @return A tibble of critical ontology changes.
+#' @param ndd_entity_view_ontology_set Ontology dataset used in entities
+#'   (must contain disease_ontology_id_version column).
+#' @return A list with three elements:
+#'   \describe{
+#'     \item{auto_fixes}{Tibble of auto-fixable remappings with columns
+#'       old_version, new_version, fix_type ("id_fingerprint" or "name_fingerprint").}
+#'     \item{critical}{Tibble of truly unfixable entity-referenced changes
+#'       (version disappeared, no fingerprint or name match).}
+#'     \item{summary}{List with total_affected, auto_fixable, truly_critical counts.}
+#'   }
 #'
 #' @examples
 #' \dontrun{
-#'   critical_changes <- identify_critical_ontology_changes(
+#'   result <- identify_critical_ontology_changes(
 #'     disease_ontology_set_update,
 #'     disease_ontology_set,
 #'     ndd_entity_view_ontology_set
 #'   )
+#'   # result$auto_fixes — tibble of old_version → new_version
+#'   # result$critical   — tibble of unfixable changes
+#'   # result$summary    — list(total_affected, auto_fixable, truly_critical)
 #' }
 #'
 #' @export
@@ -50,32 +61,32 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 # nolint end
   # Add columns for logic checks in the updated set
   disease_ontology_set_update_extra <- disease_ontology_set_update %>%
-    select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>% # nolint: line_length_linter
-    mutate(
+    dplyr::select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>% # nolint: line_length_linter
+    dplyr::mutate(
       id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       has_id_version = str_detect(disease_ontology_id_version, "_")
     ) %>%
-    group_by(disease_ontology_id) %>%
-    mutate(id_same_name = length(unique(disease_ontology_name))) %>%
-    ungroup()
+    dplyr::group_by(disease_ontology_id) %>%
+    dplyr::mutate(id_same_name = length(unique(disease_ontology_name))) %>%
+    dplyr::ungroup()
 
   # Add columns for logic checks in the current set
   disease_ontology_set_current <- disease_ontology_set %>%
-    mutate(
+    dplyr::mutate(
       id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       has_id_version = str_detect(disease_ontology_id_version, "_")
     ) %>%
-    group_by(disease_ontology_id) %>%
-    mutate(id_same_name = length(unique(disease_ontology_name))) %>%
-    ungroup()
+    dplyr::group_by(disease_ontology_id) %>%
+    dplyr::mutate(id_same_name = length(unique(disease_ontology_name))) %>%
+    dplyr::ungroup()
 
   # Filter current ontology list for terms used in entities
   disease_ontology_set_current_used <- disease_ontology_set_current %>%
-    mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>% # nolint: line_length_linter
-    filter(used_in_entity) %>%
-    select(-used_in_entity)
+    dplyr::mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>% # nolint: line_length_linter
+    dplyr::filter(used_in_entity) %>%
+    dplyr::select(-used_in_entity)
 
   # Check for ontology changes that affect existing entities
   # Columns check for:
@@ -84,7 +95,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
   # - check_id_fingerprint: (id + hgnc + inheritance) fingerprint match
   # - check_name_fingerprint: (name + hgnc + inheritance) fingerprint match
   disease_ontology_set_current_used_check <- disease_ontology_set_current_used %>%
-    mutate(
+    dplyr::mutate(
       check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version, # nolint: line_length_linter
       check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
       check_id_fingerprint = id_hgnc_hpo %in% disease_ontology_set_update_extra$id_hgnc_hpo,
@@ -92,22 +103,113 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
     )
 
   disease_ontology_set_current_used_check_filter <- disease_ontology_set_current_used_check %>%
-    filter(!check_ontology_id_version | !check_ontology_name)
+    dplyr::filter(!check_ontology_id_version | !check_ontology_name)
 
-  # Compute if a mismatch is critical or not
-  critical <- disease_ontology_set_current_used_check_filter %>%
-    mutate(
-      critical = case_when(
-        !has_id_version & check_ontology_id_version & !check_ontology_name ~ FALSE,
-        has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ FALSE,
-        TRUE ~ TRUE
+  # Classify each affected row
+  classified <- disease_ontology_set_current_used_check_filter %>%
+    dplyr::mutate(
+      is_non_critical = dplyr::case_when(
+        !has_id_version & check_ontology_id_version & !check_ontology_name ~ TRUE,
+        has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ TRUE,
+        TRUE ~ FALSE
       ),
-      automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint,
-      automatic_assignment_name = !check_ontology_id_version & check_ontology_name
-    ) %>%
-    filter(critical)
+      automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint, # nolint: line_length_linter
+      automatic_assignment_name = !check_ontology_id_version & check_ontology_name & check_name_fingerprint # nolint: line_length_linter
+    )
 
-  return(critical)
+  # Build auto-fixes: rows where version disappeared but we can find the new version
+  # via ID fingerprint or name fingerprint
+  auto_fix_rows <- classified %>%
+    dplyr::filter(!is_non_critical & (automatic_assignment_version | automatic_assignment_name))
+
+  # For each auto-fix row, look up the new disease_ontology_id_version in the update set
+  auto_fixes <- tibble::tibble(
+    old_version = character(0),
+    new_version = character(0),
+    fix_type = character(0),
+    disease_ontology_name = character(0),
+    hgnc_id = character(0),
+    hpo_mode_of_inheritance_term = character(0)
+  )
+
+  if (nrow(auto_fix_rows) > 0) {
+    # ID fingerprint fixes: join on id_hgnc_hpo
+    id_fixes <- auto_fix_rows %>%
+      dplyr::filter(automatic_assignment_version) %>%
+      dplyr::inner_join(
+        disease_ontology_set_update_extra %>%
+          dplyr::select(new_version = disease_ontology_id_version, id_hgnc_hpo),
+        by = "id_hgnc_hpo",
+        relationship = "many-to-many"
+      ) %>%
+      dplyr::group_by(disease_ontology_id_version) %>%
+      dplyr::slice_head(n = 1) %>%
+      dplyr::ungroup() %>%
+      dplyr::transmute(
+        old_version = disease_ontology_id_version,
+        new_version = new_version,
+        fix_type = "id_fingerprint",
+        disease_ontology_name = disease_ontology_name,
+        hgnc_id = hgnc_id,
+        hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term
+      )
+
+    # Name fingerprint fixes: rows not already ID-fixed
+    name_fix_candidates <- auto_fix_rows %>%
+      dplyr::filter(automatic_assignment_name & !automatic_assignment_version)
+
+    name_fixes <- tibble::tibble(
+      old_version = character(0),
+      new_version = character(0),
+      fix_type = character(0),
+      disease_ontology_name = character(0),
+      hgnc_id = character(0),
+      hpo_mode_of_inheritance_term = character(0)
+    )
+
+    if (nrow(name_fix_candidates) > 0) {
+      name_fixes <- name_fix_candidates %>%
+        dplyr::inner_join(
+          disease_ontology_set_update_extra %>%
+            dplyr::select(new_version = disease_ontology_id_version, name_hgnc_hpo),
+          by = "name_hgnc_hpo",
+          relationship = "many-to-many"
+        ) %>%
+        dplyr::group_by(disease_ontology_id_version) %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::ungroup() %>%
+        dplyr::transmute(
+          old_version = disease_ontology_id_version,
+          new_version = new_version,
+          fix_type = "name_fingerprint",
+          disease_ontology_name = disease_ontology_name,
+          hgnc_id = hgnc_id,
+          hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term
+        )
+    }
+
+    auto_fixes <- dplyr::bind_rows(id_fixes, name_fixes) %>%
+      dplyr::distinct(old_version, .keep_all = TRUE)
+  }
+
+  # Truly critical: rows that are neither non-critical nor auto-fixable
+  truly_critical <- classified %>%
+    dplyr::filter(!is_non_critical & !automatic_assignment_version & !automatic_assignment_name)
+
+  # Build summary
+  total_affected <- nrow(disease_ontology_set_current_used_check_filter)
+  auto_fixable <- nrow(auto_fixes)
+  n_truly_critical <- nrow(truly_critical)
+
+  return(list(
+    auto_fixes = auto_fixes,
+    critical = truly_critical,
+    summary = list(
+      total_affected = total_affected,
+      auto_fixable = auto_fixable,
+      truly_critical = n_truly_critical
+    )
+  ))
 }
 
 

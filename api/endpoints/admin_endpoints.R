@@ -43,166 +43,21 @@ function(req, res) {
   spec
 }
 
-#* Updates ontology sets and identifies critical changes (SYNCHRONOUS - DEPRECATED)
+#* Updates ontology sets (DEPRECATED — removed)
 #*
-#* **DEPRECATED:** Use PUT /admin/update_ontology_async instead for better performance
-#* and progress tracking. This synchronous endpoint may timeout on large datasets.
-#*
-#* This endpoint performs an ontology update process by aggregating and updating
-#* various ontology data sets. It is restricted to Administrator users and
-#* handles the complex process of updating the ontology data, identifying
-#* critical changes, and updating relevant database tables.
-#*
-#* # `Details`
-#* The function starts by collecting data from multiple tables like
-#* mode_of_inheritance_list, non_alt_loci_set, and ndd_entity_view. It then
-#* computes a new disease ontology set and identifies critical changes. Finally,
-#* it updates the ndd_entity table with these changes and updates the database.
-#*
-#* # `Authorization`
-#* Access to this endpoint is restricted to users with the 'Administrator' role.
-#*
-#* # `Return`
-#* If successful, the function returns a success message. If the user is
-#* unauthorized, it returns an error message indicating that access is forbidden.
+#* **REMOVED:** This synchronous endpoint has been removed.
+#* Use PUT /admin/update_ontology_async instead, which provides progress
+#* tracking, auto-fix of version shuffles, and safeguards against
+#* critical ontology changes.
 #*
 #* @tag admin
-#* @serializer json list(na="string")
+#* @serializer unboxedJSON
 #* @put update_ontology
 function(req, res) {
-  # Require Administrator role
-  require_role(req, res, "Administrator")
-
-  # Collect data from multiple tables
-  mode_of_inheritance_list <- pool %>%
-    tbl("mode_of_inheritance_list") %>%
-    select(-is_active, -sort) %>%
-    collect()
-
-  non_alt_loci_set <- pool %>%
-    tbl("non_alt_loci_set") %>%
-    select(hgnc_id, symbol) %>%
-    collect()
-
-  ndd_entity_view <- pool %>%
-    tbl("ndd_entity_view") %>%
-    collect()
-
-  ndd_entity_view_ontology_set <- ndd_entity_view %>%
-    select(entity_id, disease_ontology_id_version, disease_ontology_name) %>%
-    collect()
-
-  disease_ontology_set <- pool %>%
-    tbl("disease_ontology_set") %>%
-    select(
-      disease_ontology_id_version,
-      disease_ontology_id,
-      hgnc_id,
-      hpo_mode_of_inheritance_term,
-      disease_ontology_name
-    ) %>%
-    collect()
-
-  ndd_entity <- pool %>%
-    tbl("ndd_entity") %>%
-    collect()
-
-  # Compute the new disease_ontology_set
-  disease_ontology_set_update <- process_combine_ontology(
-    non_alt_loci_set,
-    mode_of_inheritance_list,
-    3, # e.g., some parameter controlling the process
-    "data/"
-  )
-
-  # Identify critical changes
-  critical_changes <- identify_critical_ontology_changes(
-    disease_ontology_set_update,
-    disease_ontology_set,
-    ndd_entity_view_ontology_set
-  )
-
-  # Mutate ndd_entity with critical changes
-  ndd_entity_mutated <- ndd_entity %>%
-    mutate(
-      disease_ontology_id_version = case_when(
-        (disease_ontology_id_version %in% critical_changes$disease_ontology_id_version) ~
-          "MONDO:0700096_1",
-        TRUE ~ disease_ontology_id_version
-      )
-    ) %>%
-    mutate(entity_quadruple = paste0(
-      hgnc_id, "-", disease_ontology_id_version, "-",
-      hpo_mode_of_inheritance_term, "-", ndd_phenotype
-    )) %>%
-    mutate(number = 1) %>%
-    group_by(entity_quadruple) %>%
-    mutate(
-      entity_quadruple_unique = n(),
-      sum_number = cumsum(number)
-    ) %>%
-    ungroup() %>%
-    mutate(disease_ontology_id_version = case_when(
-      entity_quadruple_unique > 1 & sum_number == 1 ~ "MONDO:0700096_1",
-      entity_quadruple_unique > 1 & sum_number == 2 ~ "MONDO:0700096_2",
-      entity_quadruple_unique > 1 & sum_number == 3 ~ "MONDO:0700096_3",
-      entity_quadruple_unique > 1 & sum_number == 4 ~ "MONDO:0700096_4",
-      entity_quadruple_unique > 1 & sum_number == 5 ~ "MONDO:0700096_5",
-      TRUE ~ disease_ontology_id_version
-    )) %>%
-    select(-entity_quadruple, -number, -entity_quadruple_unique, -sum_number)
-
-  # Use transaction for atomic ontology update
-  tryCatch(
-    {
-      db_with_transaction({
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
-        db_execute_statement("TRUNCATE TABLE disease_ontology_set")
-
-        # Insert disease_ontology_set rows using dynamic column names
-        if (nrow(disease_ontology_set_update) > 0) {
-          cols <- names(disease_ontology_set_update)
-          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-          sql <- sprintf(
-            "INSERT INTO disease_ontology_set (%s) VALUES (%s)",
-            paste(cols, collapse = ", "), placeholders
-          )
-          for (i in seq_len(nrow(disease_ontology_set_update))) {
-            db_execute_statement(sql, as.list(disease_ontology_set_update[i, ]))
-          }
-        }
-
-        db_execute_statement("TRUNCATE TABLE ndd_entity")
-
-        # Insert ndd_entity rows using dynamic column names
-        if (nrow(ndd_entity_mutated) > 0) {
-          cols <- names(ndd_entity_mutated)
-          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-          sql <- sprintf(
-            "INSERT INTO ndd_entity (%s) VALUES (%s)",
-            paste(cols, collapse = ", "), placeholders
-          )
-          for (i in seq_len(nrow(ndd_entity_mutated))) {
-            db_execute_statement(sql, as.list(ndd_entity_mutated[i, ]))
-          }
-        }
-
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
-      })
-
-      # Return success
-      list(
-        status = "Success",
-        message = "Ontology update process completed."
-      )
-    },
-    error = function(e) {
-      res$status <- 500
-      list(
-        error = "An error occurred during the update process. Transaction rolled back.",
-        details = e$message
-      )
-    }
+  res$status <- 410L
+  list(
+    error = "Gone",
+    message = "This endpoint is deprecated. Use PUT /api/admin/update_ontology_async"
   )
 }
 
@@ -304,17 +159,62 @@ function(req, res) {
         stop(paste("Validation failed:", paste(validation$errors, collapse = "; ")))
       }
 
-      # Identify critical changes
+      # Identify critical changes with safeguard
       ndd_entity_view_ontology_set <- params$ndd_entity_view %>%
         dplyr::select(entity_id, disease_ontology_id_version, disease_ontology_name)
 
-      critical_changes <- identify_critical_ontology_changes(
+      safeguard <- identify_critical_ontology_changes(
         disease_ontology_set_update,
         params$disease_ontology_set_current,
         ndd_entity_view_ontology_set
       )
 
-      # Connect and write in transaction
+      # If truly critical changes exist, BLOCK the write
+      if (safeguard$summary$truly_critical > 0) {
+        # Save pending update to CSV for later force-apply
+        pending_dir <- "data/pending_ontology/"
+        if (!dir.exists(pending_dir)) dir.create(pending_dir, recursive = TRUE)
+        csv_path <- paste0(
+          pending_dir,
+          "pending_ontology_update.",
+          format(Sys.Date(), "%Y-%m-%d"),
+          ".csv"
+        )
+        readr::write_csv(disease_ontology_set_update, file = csv_path, na = "NULL")
+
+        # Return blocked result (job completes, but signals blocked)
+        return(list(
+          status = "blocked",
+          message = paste0(
+            "Ontology update blocked: ", safeguard$summary$truly_critical,
+            " critical entity-referenced changes detected. ",
+            "Review and use Force Apply to proceed."
+          ),
+          pending_csv_path = csv_path,
+          critical_count = safeguard$summary$truly_critical,
+          auto_fixable_count = safeguard$summary$auto_fixable,
+          total_affected = safeguard$summary$total_affected,
+          critical_entities = safeguard$critical %>%
+            dplyr::select(
+              disease_ontology_id_version,
+              disease_ontology_name,
+              hgnc_id,
+              hpo_mode_of_inheritance_term
+            ) %>%
+            as.list() %>%
+            purrr::transpose(),
+          auto_fixes = if (nrow(safeguard$auto_fixes) > 0) {
+            safeguard$auto_fixes %>%
+              as.list() %>%
+              purrr::transpose()
+          } else {
+            list()
+          }
+        ))
+      }
+
+      # No truly critical changes — proceed with write
+      # Connect to database
       sysndd_db <- DBI::dbConnect(
         RMariaDB::MariaDB(),
         dbname = params$db_config$dbname,
@@ -324,23 +224,350 @@ function(req, res) {
         host = params$db_config$host,
         port = params$db_config$port
       )
-
       on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
+      auto_fixes_applied <- 0
       DBI::dbBegin(sysndd_db)
       tryCatch(
         {
+          # Truncate and write new ontology set first (new versions must
+          # exist before auto-fix UPDATEs can reference them)
           DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
           DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
           DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
           DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
 
+          # Apply auto-fix UPDATEs to ndd_entity (new versions now exist)
+          if (nrow(safeguard$auto_fixes) > 0) {
+            for (i in seq_len(nrow(safeguard$auto_fixes))) {
+              fix <- safeguard$auto_fixes[i, ]
+              DBI::dbExecute(
+                sysndd_db,
+                "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?", # nolint: line_length_linter
+                params = unname(list(fix$new_version, fix$old_version))
+              )
+              auto_fixes_applied <- auto_fixes_applied + 1
+            }
+          }
+
           DBI::dbCommit(sysndd_db)
-          list(status = "Success", rows_written = nrow(disease_ontology_set_update))
+          list(
+            status = "success",
+            rows_written = nrow(disease_ontology_set_update),
+            auto_fixes_applied = auto_fixes_applied,
+            total_affected = safeguard$summary$total_affected
+          )
         },
         error = function(e) {
           DBI::dbRollback(sysndd_db)
           stop(paste("Database write failed:", e$message))
+        }
+      )
+    }
+  )
+
+  res$status <- 202
+  return(result)
+}
+
+
+#* Force-apply a blocked ontology update
+#*
+#* When an ontology update is blocked due to critical entity-referenced changes,
+#* this endpoint force-applies the update by:
+#* 1. Applying auto-fix remappings to ndd_entity
+#* 2. Writing the new ontology set
+#* 3. Inserting compatibility rows (is_active=FALSE) for critical old versions
+#* 4. Creating a re-review batch for critical entities
+#*
+#* Returns immediately with a job_id. Poll GET /api/jobs/{job_id} for status.
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* # `Parameters`
+#* @param blocked_job_id:character The job_id of the blocked ontology update
+#*
+#* # `Return`
+#* On success: Returns 202 with job_id for the force-apply job.
+#*
+#* @tag admin
+#* @serializer json list(na="string")
+#* @put force_apply_ontology
+function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
+  require_role(req, res, "Administrator")
+
+  if (is.null(blocked_job_id) || blocked_job_id == "") {
+    res$status <- 400L
+    return(list(error = "blocked_job_id query parameter is required"))
+  }
+
+  # Parse optional assigned_user_id (defaults to requesting user)
+  assigned_user_id <- if (!is.null(assigned_user_id) && assigned_user_id != "") {
+    as.integer(assigned_user_id)
+  } else {
+    NULL
+  }
+
+  # Look up the blocked job result
+  blocked_job <- get_job_status(blocked_job_id)
+
+  if (!is.null(blocked_job$error) && blocked_job$error == "JOB_NOT_FOUND") {
+    res$status <- 404L
+    return(list(error = "Blocked job not found", job_id = blocked_job_id))
+  }
+
+  if (blocked_job$status != "completed") {
+    res$status <- 409L
+    return(list(
+      error = "Job is not in completed state",
+      job_status = blocked_job$status
+    ))
+  }
+
+  # Check the job result contains blocked status
+  job_result <- blocked_job$result
+  result_status <- if (is.list(job_result$status)) {
+    job_result$status[[1]]
+  } else {
+    job_result$status
+  }
+  if (is.null(result_status) || result_status != "blocked") {
+    res$status <- 409L
+    return(list(
+      error = "Referenced job was not blocked",
+      result_status = result_status
+    ))
+  }
+
+  # Get the pending CSV path
+  csv_path <- if (is.list(job_result$pending_csv_path)) {
+    job_result$pending_csv_path[[1]]
+  } else {
+    job_result$pending_csv_path
+  }
+  if (is.null(csv_path) || !file.exists(csv_path)) {
+    res$status <- 410L
+    return(list(
+      error = "Pending ontology CSV not found (may have expired)",
+      path = csv_path
+    ))
+  }
+
+  # Staleness check: reject if CSV is older than 48 hours
+  csv_age_hours <- as.numeric(
+    difftime(Sys.time(), file.info(csv_path)$mtime, units = "hours")
+  )
+  if (csv_age_hours > 48) {
+    res$status <- 410L
+    return(list(
+      error = "Pending ontology update is stale (>48 hours). Re-run the update.",
+      age_hours = round(csv_age_hours, 1)
+    ))
+  }
+
+  # Use assigned_user_id if provided, otherwise fall back to requesting user
+  requesting_user_id <- if (!is.null(assigned_user_id)) {
+    assigned_user_id
+  } else {
+    req$user_id
+  }
+
+  # Pre-fetch data needed for the async job
+  ndd_entity_view <- pool %>%
+    tbl("ndd_entity_view") %>%
+    collect()
+
+  disease_ontology_set_current <- pool %>%
+    tbl("disease_ontology_set") %>%
+    collect()
+
+  # Extract critical versions and auto_fixes from blocked job result
+  critical_entities_raw <- job_result$critical_entities
+  auto_fixes_raw <- job_result$auto_fixes
+
+  # Check for duplicate job
+  dup_check <- check_duplicate_job("force_apply_ontology", list())
+  if (dup_check$duplicate) {
+    return(list(
+      job_id = dup_check$existing_job_id,
+      status = "already_running",
+      message = "A force-apply job is already running"
+    ))
+  }
+
+  result <- create_job(
+    operation = "force_apply_ontology",
+    params = list(
+      csv_path = csv_path,
+      auto_fixes_raw = auto_fixes_raw,
+      critical_entities_raw = critical_entities_raw,
+      disease_ontology_set_current = disease_ontology_set_current,
+      ndd_entity_view = ndd_entity_view,
+      requesting_user_id = requesting_user_id,
+      db_config = list(
+        dbname = dw$dbname,
+        user = dw$user,
+        password = dw$password,
+        server = dw$server,
+        host = dw$host,
+        port = dw$port
+      )
+    ),
+    executor_fn = function(params) {
+      source("functions/file-functions.R")
+
+      # Load the pending ontology data
+      disease_ontology_set_update <- readr::read_csv(
+        params$csv_path, na = "NULL", show_col_types = FALSE
+      )
+
+      # Reconstruct auto_fixes tibble from raw list
+      auto_fixes <- if (length(params$auto_fixes_raw) > 0) {
+        tibble::tibble(
+          old_version = vapply(
+            params$auto_fixes_raw,
+            function(x) as.character(x$old_version %||% x$old_version[[1]]),
+            character(1)
+          ),
+          new_version = vapply(
+            params$auto_fixes_raw,
+            function(x) as.character(x$new_version %||% x$new_version[[1]]),
+            character(1)
+          )
+        )
+      } else {
+        tibble::tibble(old_version = character(0), new_version = character(0))
+      }
+
+      # Reconstruct critical entities tibble to extract old versions
+      critical_versions <- if (length(params$critical_entities_raw) > 0) {
+        vapply(
+          params$critical_entities_raw,
+          function(x) {
+            v <- x$disease_ontology_id_version
+            if (is.list(v)) v[[1]] else v
+          },
+          character(1)
+        )
+      } else {
+        character(0)
+      }
+
+      # Get entity_ids referencing critical versions
+      critical_entity_ids <- if (length(critical_versions) > 0) {
+        params$ndd_entity_view %>%
+          dplyr::filter(
+            disease_ontology_id_version %in% critical_versions
+          ) %>%
+          dplyr::pull(entity_id) %>%
+          unique()
+      } else {
+        integer(0)
+      }
+
+      # Build compatibility rows from current ontology for critical versions
+      compatibility_rows <- if (length(critical_versions) > 0) {
+        params$disease_ontology_set_current %>%
+          dplyr::filter(
+            disease_ontology_id_version %in% critical_versions
+          ) %>%
+          dplyr::mutate(is_active = FALSE)
+      } else {
+        tibble::tibble()
+      }
+
+      # Connect to database
+      sysndd_db <- DBI::dbConnect(
+        RMariaDB::MariaDB(),
+        dbname = params$db_config$dbname,
+        user = params$db_config$user,
+        password = params$db_config$password,
+        server = params$db_config$server,
+        host = params$db_config$host,
+        port = params$db_config$port
+      )
+      on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
+
+      auto_fixes_applied <- 0
+      DBI::dbBegin(sysndd_db)
+      tryCatch(
+        {
+          # Truncate and write new ontology set first (new versions must
+          # exist before auto-fix UPDATEs can reference them)
+          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
+          DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
+          DBI::dbAppendTable(
+            sysndd_db, "disease_ontology_set", disease_ontology_set_update
+          )
+
+          # Append compatibility rows so critical entity FKs remain valid
+          compat_count <- 0
+          if (nrow(compatibility_rows) > 0) {
+            DBI::dbAppendTable(
+              sysndd_db, "disease_ontology_set", compatibility_rows
+            )
+            compat_count <- nrow(compatibility_rows)
+          }
+
+          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
+
+          # Apply auto-fix UPDATEs to ndd_entity (new versions now exist)
+          if (nrow(auto_fixes) > 0) {
+            for (i in seq_len(nrow(auto_fixes))) {
+              fix <- auto_fixes[i, ]
+              DBI::dbExecute(
+                sysndd_db,
+                "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?", # nolint: line_length_linter
+                params = unname(list(fix$new_version, fix$old_version))
+              )
+              auto_fixes_applied <- auto_fixes_applied + 1
+            }
+          }
+          DBI::dbCommit(sysndd_db)
+
+          # Create re-review batch for critical entities (outside transaction)
+          re_review_batch_id <- NULL
+          if (length(critical_entity_ids) > 0) {
+            tryCatch({
+              source("services/re-review-service.R")
+              source("functions/db-helpers.R")
+              batch_name <- paste0(
+                "Ontology Update Review - ",
+                format(Sys.Date(), "%Y-%m-%d")
+              )
+              batch_result <- batch_create(
+                criteria = list(entity_ids = critical_entity_ids),
+                assigned_user_id = params$requesting_user_id,
+                batch_name = batch_name,
+                pool = sysndd_db
+              )
+              if (batch_result$status == 200) {
+                re_review_batch_id <- batch_result$entry$batch_id
+              }
+            }, error = function(e) {
+              warning(paste(
+                "Re-review batch creation failed (non-fatal):",
+                e$message
+              ))
+            })
+          }
+
+          # Clean up pending CSV
+          tryCatch(file.remove(params$csv_path), error = function(e) NULL)
+
+          list(
+            status = "success",
+            rows_written = nrow(disease_ontology_set_update),
+            auto_fixes_applied = auto_fixes_applied,
+            compatibility_rows = compat_count,
+            re_review_batch_id = re_review_batch_id,
+            critical_entity_count = length(critical_entity_ids)
+          )
+        },
+        error = function(e) {
+          DBI::dbRollback(sysndd_db)
+          stop(paste("Force-apply failed:", e$message))
         }
       )
     }

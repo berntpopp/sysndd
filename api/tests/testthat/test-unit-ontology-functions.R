@@ -27,12 +27,46 @@ tryCatch({
 })
 
 # =============================================================================
-# identify_critical_ontology_changes() tests
+# identify_critical_ontology_changes() tests — structured return type
 # =============================================================================
 
-test_that("identify_critical_ontology_changes identifies removed terms", {
-  # Create mock ontology sets
-  disease_ontology_set_update <- tibble(
+# Helper: try to source ontology functions, skip if deps missing
+source_ontology <- function() {
+  tryCatch({
+    source(file.path(api_dir, "functions", "ontology-functions.R"))
+    TRUE
+  }, error = function(e) {
+    FALSE
+  })
+}
+
+test_that("return structure has auto_fixes, critical, summary keys", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  update <- tibble(
+    disease_ontology_id_version = "OMIM:100001",
+    disease_ontology_id = "OMIM:100001",
+    hgnc_id = "HGNC:1",
+    hpo_mode_of_inheritance_term = "HP:0000001",
+    disease_ontology_name = "Disease A"
+  )
+
+  result <- identify_critical_ontology_changes(update, update, update)
+
+  expect_true(is.list(result))
+  expect_true(all(c("auto_fixes", "critical", "summary") %in% names(result)))
+  expect_true(is_tibble(result$auto_fixes))
+  expect_true(is_tibble(result$critical))
+  expect_true(is.list(result$summary))
+  expect_true(all(
+    c("total_affected", "auto_fixable", "truly_critical") %in% names(result$summary)
+  ))
+})
+
+test_that("clean update: no changes at all — both empty", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  ontology <- tibble(
     disease_ontology_id_version = c("OMIM:100001", "OMIM:100002"),
     disease_ontology_id = c("OMIM:100001", "OMIM:100002"),
     hgnc_id = c("HGNC:1", "HGNC:2"),
@@ -40,7 +74,29 @@ test_that("identify_critical_ontology_changes identifies removed terms", {
     disease_ontology_name = c("Disease A", "Disease B")
   )
 
-  disease_ontology_set_current <- tibble(
+  entity_set <- tibble(disease_ontology_id_version = "OMIM:100001")
+
+  result <- identify_critical_ontology_changes(ontology, ontology, entity_set)
+
+  expect_equal(nrow(result$auto_fixes), 0)
+  expect_equal(nrow(result$critical), 0)
+  expect_equal(result$summary$total_affected, 0)
+  expect_equal(result$summary$auto_fixable, 0)
+  expect_equal(result$summary$truly_critical, 0)
+})
+
+test_that("truly critical: version gone, no fingerprint or name match", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  update <- tibble(
+    disease_ontology_id_version = c("OMIM:100001", "OMIM:100002"),
+    disease_ontology_id = c("OMIM:100001", "OMIM:100002"),
+    hgnc_id = c("HGNC:1", "HGNC:2"),
+    hpo_mode_of_inheritance_term = c("HP:0000001", "HP:0000002"),
+    disease_ontology_name = c("Disease A", "Disease B")
+  )
+
+  current <- tibble(
     disease_ontology_id_version = c("OMIM:100001", "OMIM:100002", "OMIM:100003"),
     disease_ontology_id = c("OMIM:100001", "OMIM:100002", "OMIM:100003"),
     hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
@@ -48,60 +104,117 @@ test_that("identify_critical_ontology_changes identifies removed terms", {
     disease_ontology_name = c("Disease A", "Disease B", "Disease C")
   )
 
-  # Entity uses a term that was removed in update
-  ndd_entity_view_ontology_set <- tibble(
-    disease_ontology_id_version = c("OMIM:100003")  # This term is NOT in update
-  )
+  entity_set <- tibble(disease_ontology_id_version = "OMIM:100003")
 
-  # Source the function
-  tryCatch({
-    source(file.path(api_dir, "functions", "ontology-functions.R"))
+  result <- identify_critical_ontology_changes(update, current, entity_set)
 
-    result <- identify_critical_ontology_changes(
-      disease_ontology_set_update,
-      disease_ontology_set_current,
-      ndd_entity_view_ontology_set
-    )
-
-    # Should identify changes for terms used in entities but not in update
-    expect_true(is.data.frame(result) || is_tibble(result))
-    expect_true("critical" %in% names(result) || nrow(result) >= 0)
-  }, error = function(e) {
-    skip("ontology-functions.R requires additional dependencies")
-  })
+  expect_equal(result$summary$truly_critical, 1)
+  expect_equal(nrow(result$critical), 1)
+  expect_equal(result$critical$disease_ontology_id_version[1], "OMIM:100003")
+  expect_equal(result$summary$auto_fixable, 0)
 })
 
-test_that("identify_critical_ontology_changes handles matching terms", {
-  # Create mock ontology sets where all terms match
-  disease_ontology_set_update <- tibble(
-    disease_ontology_id_version = c("OMIM:100001", "OMIM:100002"),
-    disease_ontology_id = c("OMIM:100001", "OMIM:100002"),
-    hgnc_id = c("HGNC:1", "HGNC:2"),
-    hpo_mode_of_inheritance_term = c("HP:0000001", "HP:0000002"),
-    disease_ontology_name = c("Disease A", "Disease B")
+test_that("auto-fix by ID fingerprint: version shuffled but id+hgnc+hpo matches", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  # Old: OMIM:200001_1 with HGNC:10 + HP:0000006
+  # New: version changed to OMIM:200001_2, but same (id+hgnc+hpo) fingerprint
+  current <- tibble(
+    disease_ontology_id_version = c("OMIM:200001_1"),
+    disease_ontology_id = c("OMIM:200001"),
+    hgnc_id = c("HGNC:10"),
+    hpo_mode_of_inheritance_term = c("HP:0000006"),
+    disease_ontology_name = c("Old Name Disease")
   )
 
-  disease_ontology_set_current <- disease_ontology_set_update
-
-  ndd_entity_view_ontology_set <- tibble(
-    disease_ontology_id_version = c("OMIM:100001")  # This term IS in update
+  update <- tibble(
+    disease_ontology_id_version = c("OMIM:200001_2"),
+    disease_ontology_id = c("OMIM:200001"),
+    hgnc_id = c("HGNC:10"),
+    hpo_mode_of_inheritance_term = c("HP:0000006"),
+    disease_ontology_name = c("New Name Disease")
   )
 
-  tryCatch({
-    source(file.path(api_dir, "functions", "ontology-functions.R"))
+  entity_set <- tibble(disease_ontology_id_version = "OMIM:200001_1")
 
-    result <- identify_critical_ontology_changes(
-      disease_ontology_set_update,
-      disease_ontology_set_current,
-      ndd_entity_view_ontology_set
-    )
+  result <- identify_critical_ontology_changes(update, current, entity_set)
 
-    # Should return empty result (no critical changes)
-    expect_true(is.data.frame(result) || is_tibble(result))
-    expect_equal(nrow(result), 0)
-  }, error = function(e) {
-    skip("ontology-functions.R requires additional dependencies")
-  })
+  expect_equal(result$summary$auto_fixable, 1)
+  expect_equal(nrow(result$auto_fixes), 1)
+  expect_equal(result$auto_fixes$old_version[1], "OMIM:200001_1")
+  expect_equal(result$auto_fixes$new_version[1], "OMIM:200001_2")
+  expect_equal(result$auto_fixes$fix_type[1], "id_fingerprint")
+  expect_equal(result$summary$truly_critical, 0)
+})
+
+test_that("auto-fix by name fingerprint: version gone but name+hgnc+hpo matches", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  # Old: OMIM:300001_1 with "Same Disease" + HGNC:20 + HP:0000007
+  # New: version changed to OMIM:300001_2, SAME name (name fingerprint matches)
+  # but different id (so id fingerprint does NOT match)
+  current <- tibble(
+    disease_ontology_id_version = c("OMIM:300001_1"),
+    disease_ontology_id = c("OMIM:300001"),
+    hgnc_id = c("HGNC:20"),
+    hpo_mode_of_inheritance_term = c("HP:0000007"),
+    disease_ontology_name = c("Same Disease")
+  )
+
+  update <- tibble(
+    disease_ontology_id_version = c("OMIM:300002"),
+    disease_ontology_id = c("OMIM:300002"),
+    hgnc_id = c("HGNC:20"),
+    hpo_mode_of_inheritance_term = c("HP:0000007"),
+    disease_ontology_name = c("Same Disease")
+  )
+
+  entity_set <- tibble(disease_ontology_id_version = "OMIM:300001_1")
+
+  result <- identify_critical_ontology_changes(update, current, entity_set)
+
+  expect_equal(result$summary$auto_fixable, 1)
+  expect_equal(nrow(result$auto_fixes), 1)
+  expect_equal(result$auto_fixes$old_version[1], "OMIM:300001_1")
+  expect_equal(result$auto_fixes$new_version[1], "OMIM:300002")
+  expect_equal(result$auto_fixes$fix_type[1], "name_fingerprint")
+  expect_equal(result$summary$truly_critical, 0)
+})
+
+test_that("mixed scenario: some auto-fixable, some critical", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  current <- tibble(
+    disease_ontology_id_version = c("OMIM:400001_1", "OMIM:400002_1"),
+    disease_ontology_id = c("OMIM:400001", "OMIM:400002"),
+    hgnc_id = c("HGNC:30", "HGNC:40"),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007"),
+    disease_ontology_name = c("Fixable Disease", "Critical Disease")
+  )
+
+  # Update: first entry has same fingerprint with new version (auto-fixable)
+  # Second entry is completely gone (critical)
+  update <- tibble(
+    disease_ontology_id_version = c("OMIM:400001_2", "OMIM:500001"),
+    disease_ontology_id = c("OMIM:400001", "OMIM:500001"),
+    hgnc_id = c("HGNC:30", "HGNC:50"),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000006"),
+    disease_ontology_name = c("Fixable Disease Renamed", "Unrelated Disease")
+  )
+
+  entity_set <- tibble(
+    disease_ontology_id_version = c("OMIM:400001_1", "OMIM:400002_1")
+  )
+
+  result <- identify_critical_ontology_changes(update, current, entity_set)
+
+  expect_equal(result$summary$total_affected, 2)
+  expect_equal(result$summary$auto_fixable, 1)
+  expect_equal(result$summary$truly_critical, 1)
+  expect_equal(nrow(result$auto_fixes), 1)
+  expect_equal(nrow(result$critical), 1)
+  expect_equal(result$auto_fixes$old_version[1], "OMIM:400001_1")
+  expect_equal(result$critical$disease_ontology_id_version[1], "OMIM:400002_1")
 })
 
 # =============================================================================
@@ -416,9 +529,11 @@ test_that("build_omim_from_genemap2 output integrates with identify_critical_ont
       ndd_entity_view_ontology_set
     )
 
-    # Should identify the name change as a critical change
-    expect_true(is.data.frame(result) || is_tibble(result))
-    expect_true(nrow(result) >= 0)  # May or may not flag depending on logic
+    # New return type: list with auto_fixes, critical, summary
+    expect_true(is.list(result))
+    expect_true(all(c("auto_fixes", "critical", "summary") %in% names(result)))
+    # Name change with same version should be flagged (non-critical name change)
+    expect_true(result$summary$total_affected >= 0)
   }, error = function(e) {
     skip("ontology-functions.R requires additional dependencies")
   })
