@@ -116,6 +116,63 @@ check_file_age <- function(file_basename, folder, months) {
 }
 
 
+#' Check the age of the most recent file in a directory (day precision)
+#'
+#' This function checks the age of the most recent file with a given basename in a
+#' specified directory. It returns TRUE if the newest file is younger than the
+#' specified duration (in days), and FALSE otherwise.
+#'
+#' @param file_basename A string. The basename of the files to check.
+#' This should be in the format "filename.", e.g. "genemap2."
+#'
+#' @param folder A string. The directory where the files are located.
+#'
+#' @param days A numeric. The number of days to compare the file's age with.
+#'
+#' @return A logical. Returns TRUE if the most recent file is younger than the
+#' specified number of days, and FALSE otherwise.
+#'
+#' @examples
+#' \dontrun{
+#' check_file_age_days("genemap2", "data/", 1)
+#' }
+#'
+#' @importFrom fs dir_ls
+#' @importFrom stringr str_extract
+#'
+#' @export
+check_file_age_days <- function(file_basename, folder, days) {
+  # Construct the regex pattern for the files
+  pattern <- paste0(file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
+
+  # Get the list of files
+  files <- dir_ls(folder, regexp = pattern)
+
+  # If there are no files, we set the time to the start of Unix epoch
+  if (length(files) == 0) {
+    newest_date <- as.Date("1970-01-01")
+  } else {
+    # Extract the dates from the file names
+    dates <- str_extract(files, "\\d{4}-\\d{2}-\\d{2}")
+
+    # Convert the dates to Date objects
+    dates <- as.Date(dates)
+
+    # Get the newest date
+    newest_date <- max(dates, na.rm = TRUE)
+  }
+
+  # Get the current date
+  current_date <- Sys.Date()
+
+  # Compute the difference in days between the current date and the newest file date
+  time_diff <- as.numeric(difftime(current_date, newest_date, units = "days"))
+
+  # Return TRUE if the newest file is younger than the specified number of days, and FALSE otherwise
+  return(time_diff < days)
+}
+
+
 #' Get the name of the most recent file in a directory
 #'
 #' This function gets the name of the most recent file with a given basename in a
