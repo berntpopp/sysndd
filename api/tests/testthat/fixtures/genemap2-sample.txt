@@ -1,0 +1,14 @@
+# Copyright (c) 1966-2026 Johns Hopkins University. Use of this file adheres to the terms specified at https://omim.org/help/agreement.
+# Generated: 2026-02-07
+# Comment lines starting with "#" are skipped
+# Tab-separated file with NO header row, 14 positional columns
+chr1	1000000	1100000	1p36.33	1p36.33	100001	TGENE1, TG1	Test Gene 1	TGENE1	1001	ENSG00000000001		Test disease 1, 100010 (3), Autosomal dominant	Tgene1
+chr2	2000000	2100000	2p24.3	2p24.3	100002	TGENE2	Test Gene 2	TGENE2	1002	ENSG00000000002		Test disease 2A, 100020 (3), Autosomal recessive; Test disease 2B, 100021 (3), Autosomal dominant	Tgene2
+chr3	3000000	3100000	3q21.1	3q21.1	100003	TGENE3	Test Gene 3	TGENE3	1003	ENSG00000000003		Test disease 3, 100030 (3), Autosomal dominant, Autosomal recessive	Tgene3
+chr4	4000000	4100000	4q12	4q12	100004	TGENE4	Test Gene 4	TGENE4	1004	ENSG00000000004			Tgene4
+chr5	5000000	5100000	5p15.33	5p15.33	100005	TGENE5	Test Gene 5	TGENE5	1005	ENSG00000000005		Test disease 5 (with parens), 100050 (3), X-linked recessive	Tgene5
+chr6	6000000	6100000	6q25.3	6q25.3	100006	TGENE6	Test Gene 6	TGENE6	1006	ENSG00000000006		Test disease 6, 100060 (3)	Tgene6
+chr7	7000000	7100000	7q11.23	7q11.23	100007	TGENE7	Test Gene 7	TGENE7	1007	ENSG00000000007		Test disease 7, 100070 (3), ?Autosomal dominant	Tgene7
+chr8	8000000	8100000	8p23.1	8p23.1	100008	TGENE8, TG8A	Test Gene 8		1008	ENSG00000000008		Test disease 8, 100080 (3), Mitochondrial	Tgene8
+chrX	9000000	9100000	Xq28	Xq28	100009	TGENE9	Test Gene 9	TGENE9	1009	ENSG00000000009		Test disease 9A, 100090 (3), X-linked; Test disease 9B, 100091 (2), Isolated cases	Tgene9
+chr10	10000000	10100000	10q26.3	10q26.3	100010	TGENE10	Test Gene 10	TGENE10	1010	ENSG00000000010		Test disease 10, 100100 (3), Y-linked	Tgene10
