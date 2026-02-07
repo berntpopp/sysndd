@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 **Phase:** 79 of 79 (Configuration & Cleanup)
-**Plan:** 01 of 01
-**Status:** Plan 79-01 complete
-**Progress:** v10.4 [████████████████████] 100% (Phase 79-01 complete)
+**Plan:** 02 of 02
+**Status:** Phase 79 complete
+**Progress:** v10.4 [████████████████████] 100% (Phase 79 complete)
 
-**Last completed:** Phase 79-01 (OMIM Config Externalization) — 2026-02-07
-**Last activity:** 2026-02-07 — Completed 79-01-PLAN.md
+**Last completed:** Phase 79-02 (JAX API Cleanup) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 79-02-PLAN.md
 **Next action:** v10.4 milestone complete - ready for release
 
 ---
@@ -40,6 +40,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 - Unified cache between ontology and comparisons systems (Phase 78-01) ✅
 - Comparisons config cleanup and testing (Phase 78-02) ✅
 - Environment variable configuration for OMIM download key (Phase 79-01) ✅
+- Remove deprecated JAX API code and unify file caching (Phase 79-02) ✅
 
 **Expected performance:** Ontology update time drops from ~8 minutes to ~30 seconds
 
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - **79-01:** OMIM_DOWNLOAD_KEY passed via Docker Compose environment (no default value, required secret)
 - **79-01:** api/config.yml not modified (gitignored local file, not in version control)
 - **79-01:** Migration 007 uses DEPRECATED placeholder to preserve idempotency (row removed by migration 014)
+- **79-02:** download_mim2gene() uses check_file_age_days() with 1-day TTL (not month-based check_file_age())
+- **79-02:** purrr dependency removed (only used by deleted fetch_jax_disease_name() via pluck())
+- **79-02:** All OMIM download functions unified to same caching pattern (check_file_age_days, message logging)
 
 ### Pending Todos
 
@@ -106,21 +110,21 @@ None.
 ### Blockers/Concerns
 
 **Known risks from research:**
-- OMIM IP blocking from excessive downloads (mitigated: file-based 1-day TTL caching in Phase 76)
+- OMIM IP blocking from excessive downloads (mitigated: file-based 1-day TTL caching in Phase 76, unified in Phase 79-02)
 - genemap2.txt column name changes (mitigated: defensive column mapping in Phase 76)
 - Phenotypes column regex fragility (mitigated: robust field-based parsing in Phase 76)
 - Inheritance mode mapping completeness (validated in 77-01: 15-entry mapping with warning on unmapped terms)
-- Deprecation tracking gap (decision needed in Phase 79: keep mim2gene vs diff-based approach)
+- Deprecation tracking: mim2gene.txt retained for moved/removed entry detection (Phase 79-02 cleanup complete)
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-07
-**Stopped at:** Phase 79-01 complete (v10.4 milestone 100%)
-**Next action:** v10.4 milestone complete - ready for testing and release
+**Stopped at:** Phase 79-02 complete (JAX API cleanup) - v10.4 milestone 100%
+**Next action:** v10.4 milestone verification and release
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-07 — Phase 79-01 (OMIM Config Externalization) complete - v10.4 milestone 100%*
+*Last updated: 2026-02-07 — Phase 79-02 (JAX API Cleanup) complete - v10.4 milestone 100%*
