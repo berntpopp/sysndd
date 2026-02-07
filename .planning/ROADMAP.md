@@ -103,7 +103,7 @@ Plans:
 
 #### Phase 79: Configuration & Cleanup
 
-**Goal:** Remove deprecated JAX API code, clean up hardcoded keys, update documentation
+**Goal:** Remove deprecated JAX API code, clean up hardcoded keys, externalize OMIM download key to environment variable, unify mim2gene.txt caching
 
 **Depends on:** Phase 78 (both systems using genemap2)
 
@@ -116,10 +116,11 @@ Plans:
 4. No dead code remains from JAX API implementation
 5. CLAUDE.md and deployment documentation updated with OMIM_DOWNLOAD_KEY configuration
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 79-01: TBD
+- [ ] 79-01-PLAN.md — Docker Compose + .env.example configuration, remove hardcoded OMIM API keys from all files
+- [ ] 79-02-PLAN.md — Remove JAX API functions, unify mim2gene.txt caching to 1-day TTL, update tests
 
 ## Progress
 
@@ -130,8 +131,8 @@ Plans:
 | 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 78. Comparisons Integration | v10.4 | 0/2 | Not started | - |
-| 79. Configuration & Cleanup | v10.4 | 0/? | Not started | - |
+| 79. Configuration & Cleanup | v10.4 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 78 plan revision*
+*Last updated: 2026-02-07 after Phase 79 planning*
