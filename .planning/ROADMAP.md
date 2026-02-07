@@ -95,10 +95,11 @@ Plans:
 3. Comparisons omim_genemap2 parsing calls shared parse_genemap2() (no duplicate parsing code)
 4. Comparisons data refresh job continues to work with same output schema
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 78-01: TBD
+- [ ] 78-01-PLAN.md — Reduce parse_omim_genemap2() to shared infrastructure, modify async workflow, add migration
+- [ ] 78-02-PLAN.md — Unit tests for reduced parse_omim_genemap2() with synthetic fixtures
 
 #### Phase 79: Configuration & Cleanup
 
@@ -128,9 +129,9 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
-| 78. Comparisons Integration | v10.4 | 0/? | Not started | - |
+| 78. Comparisons Integration | v10.4 | 0/2 | Not started | - |
 | 79. Configuration & Cleanup | v10.4 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 77 completion*
+*Last updated: 2026-02-07 after Phase 78 planning*
