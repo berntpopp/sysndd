@@ -854,3 +854,172 @@ build_omim_ontology_set <- function(mim2gene_data, disease_names, hgnc_list, moi
 
   return(result)
 }
+
+
+#' Build OMIM ontology set from genemap2 data
+#'
+#' Creates disease_ontology_set entries from parsed genemap2 data with inheritance
+#' mode normalization, HGNC ID lookup, and duplicate MIM versioning. This function
+#' replaces the mim2gene + JAX API workflow, using genemap2's richer phenotype data
+#' which includes inheritance mode information.
+#'
+#' @param genemap2_parsed Tibble from parse_genemap2() with columns: Approved_Symbol,
+#'   disease_ontology_name, disease_ontology_id (or MIM_Number),
+#'   hpo_mode_of_inheritance_term_name, Mapping_key
+#' @param hgnc_list Tibble with columns: symbol, hgnc_id
+#' @param moi_list Tibble with columns: hpo_mode_of_inheritance_term_name,
+#'   hpo_mode_of_inheritance_term
+#' @return Tibble matching disease_ontology_set schema
+#'
+#' @details
+#' Creates the following columns:
+#' - disease_ontology_id_version: OMIM:{mim_number} or OMIM:{mim_number}_{version}
+#' - disease_ontology_id: OMIM:{mim_number}
+#' - disease_ontology_name: From genemap2 Phenotypes column
+#' - disease_ontology_source: "mim2gene" (for MONDO SSSOM compatibility)
+#' - disease_ontology_date: Current date
+#' - disease_ontology_is_specific: TRUE (OMIM entries are specific)
+#' - hgnc_id: From HGNC lookup
+#' - hpo_mode_of_inheritance_term: From MOI mapping
+#'
+#' Inheritance mode normalization:
+#' Maps genemap2's 15 short forms (e.g., "Autosomal dominant") to full HPO term names
+#' (e.g., "Autosomal dominant inheritance"). Unknown modes become NA with a warning.
+#'
+#' Versioning logic (ONTO-04):
+#' - If MIM number appears once: OMIM:123456
+#' - If MIM number appears multiple times: OMIM:123456_1, OMIM:123456_2, etc.
+#' - Versioning occurs AFTER inheritance expansion and deduplication
+#'
+#' MONDO compatibility (ONTO-05):
+#' - disease_ontology_source MUST be "mim2gene" (not "genemap2" or "morbidmap")
+#' - This ensures add_mondo_mappings_to_ontology() can find and map entries
+#'
+#' @examples
+#' \dontrun{
+#'   genemap2_data <- parse_genemap2("data/genemap2.txt")
+#'   omim_set <- build_omim_from_genemap2(
+#'     genemap2_data,
+#'     hgnc_list,
+#'     moi_list
+#'   )
+#' }
+#'
+#' @export
+build_omim_from_genemap2 <- function(genemap2_parsed, hgnc_list, moi_list) { # nolint: line_length_linter
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
+
+  # Ensure disease_ontology_id exists (handle both MIM_Number and disease_ontology_id)
+  if ("MIM_Number" %in% names(genemap2_parsed) &&
+      !("disease_ontology_id" %in% names(genemap2_parsed))) {
+    genemap2_parsed <- genemap2_parsed %>%
+      mutate(disease_ontology_id = paste0("OMIM:", MIM_Number))
+  }
+
+  # Join with HGNC list for hgnc_id
+  combined <- genemap2_parsed %>%
+    left_join(
+      hgnc_list %>% dplyr::select(symbol, hgnc_id),
+      by = c("Approved_Symbol" = "symbol")
+    )
+
+  # Expand and normalize inheritance modes
+  # Store original values before normalization for warning detection
+  combined <- combined %>%
+    separate_rows(hpo_mode_of_inheritance_term_name, sep = ", ") %>%
+    mutate(
+      hpo_mode_of_inheritance_term_name = str_replace_all(
+        hpo_mode_of_inheritance_term_name, "\\?", ""
+      )
+    ) %>%
+    mutate(
+      original_moi = hpo_mode_of_inheritance_term_name,
+      hpo_mode_of_inheritance_term_name = case_when(
+        hpo_mode_of_inheritance_term_name == "Autosomal dominant" ~
+          "Autosomal dominant inheritance",
+        hpo_mode_of_inheritance_term_name == "Autosomal recessive" ~
+          "Autosomal recessive inheritance",
+        hpo_mode_of_inheritance_term_name == "Digenic dominant" ~
+          "Digenic inheritance",
+        hpo_mode_of_inheritance_term_name == "Digenic recessive" ~
+          "Digenic inheritance",
+        hpo_mode_of_inheritance_term_name == "Isolated cases" ~
+          "Sporadic",
+        hpo_mode_of_inheritance_term_name == "Mitochondrial" ~
+          "Mitochondrial inheritance",
+        hpo_mode_of_inheritance_term_name == "Multifactorial" ~
+          "Multifactorial inheritance",
+        hpo_mode_of_inheritance_term_name == "Pseudoautosomal dominant" ~
+          "X-linked dominant inheritance",
+        hpo_mode_of_inheritance_term_name == "Pseudoautosomal recessive" ~
+          "X-linked recessive inheritance",
+        hpo_mode_of_inheritance_term_name == "Somatic mosaicism" ~
+          "Somatic mosaicism",
+        hpo_mode_of_inheritance_term_name == "Somatic mutation" ~
+          "Somatic mutation",
+        hpo_mode_of_inheritance_term_name == "X-linked" ~
+          "X-linked inheritance",
+        hpo_mode_of_inheritance_term_name == "X-linked dominant" ~
+          "X-linked dominant inheritance",
+        hpo_mode_of_inheritance_term_name == "X-linked recessive" ~
+          "X-linked recessive inheritance",
+        hpo_mode_of_inheritance_term_name == "Y-linked" ~
+          "Y-linked inheritance",
+        TRUE ~ hpo_mode_of_inheritance_term_name
+      )
+    )
+
+  # Check for unmapped inheritance terms and warn
+  unmapped <- combined %>%
+    filter(!is.na(original_moi) & is.na(hpo_mode_of_inheritance_term_name)) %>%
+    pull(original_moi) %>%
+    unique()
+
+  if (length(unmapped) > 0) {
+    warning(sprintf(
+      "Unmapped inheritance terms found: %s",
+      paste(unmapped, collapse = ", ")
+    ))
+  }
+
+  # Remove temporary column
+  combined <- combined %>%
+    dplyr::select(-original_moi)
+
+  # Join with moi_list to get HPO term IDs
+  combined <- combined %>%
+    left_join(moi_list, by = c("hpo_mode_of_inheritance_term_name"))
+
+  # Select, deduplicate, and apply versioning
+  result <- combined %>%
+    dplyr::select(
+      disease_ontology_id, hgnc_id, disease_ontology_name,
+      hpo_mode_of_inheritance_term
+    ) %>%
+    unique() %>%
+    arrange(disease_ontology_id, hgnc_id, disease_ontology_name,
+            hpo_mode_of_inheritance_term) %>%
+    group_by(disease_ontology_id) %>%
+    mutate(n = 1, count = n(), version = cumsum(n)) %>%
+    ungroup() %>%
+    mutate(disease_ontology_id_version = case_when(
+      count == 1 ~ disease_ontology_id,
+      count >= 1 ~ paste0(disease_ontology_id, "_", version)
+    )) %>%
+    dplyr::select(-n, -count, -version)
+
+  # Add metadata columns and select final schema
+  result <- result %>%
+    mutate(
+      disease_ontology_source = "mim2gene",  # For MONDO SSSOM compatibility
+      disease_ontology_date = current_date,
+      disease_ontology_is_specific = TRUE
+    ) %>%
+    dplyr::select(
+      disease_ontology_id_version, disease_ontology_id, disease_ontology_name,
+      disease_ontology_source, disease_ontology_date, disease_ontology_is_specific,
+      hgnc_id, hpo_mode_of_inheritance_term
+    )
+
+  return(result)
+}
