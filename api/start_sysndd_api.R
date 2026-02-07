@@ -500,6 +500,8 @@ everywhere({
   source("/app/functions/db-helpers.R", local = FALSE)
   # Source PubTator functions for async update jobs
   source("/app/functions/pubtator-functions.R", local = FALSE)
+  # Source OMIM functions (download_genemap2, parse_genemap2, download_hpoa) for comparisons
+  source("/app/functions/omim-functions.R", local = FALSE)
   # Source comparisons functions for async comparisons update jobs
   source("/app/functions/comparisons-sources.R", local = FALSE)
   source("/app/functions/comparisons-functions.R", local = FALSE)
