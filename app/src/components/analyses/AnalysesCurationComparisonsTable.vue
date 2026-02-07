@@ -164,6 +164,20 @@
           :sort-desc="sortDesc"
           @update-sort="handleSortUpdate"
         >
+          <!-- Column header tooltips -->
+          <template #column-header="{ data }">
+            <div
+              v-b-tooltip.hover.top
+              :title="
+                getTooltipText(
+                  fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
+                )
+              "
+            >
+              {{ truncate(data.label, 20) }}
+            </div>
+          </template>
+
           <template #filter-controls>
             <td v-for="field in fields" :key="field.key">
               <BFormInput
@@ -271,7 +285,7 @@
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import { useToast, useUrlParsing, useColorAndSymbols } from '@/composables';
+import { useToast, useUrlParsing, useColorAndSymbols, useColumnTooltip } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -309,6 +323,7 @@ export default {
     const { makeToast } = useToast();
     const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
     const colorAndSymbols = useColorAndSymbols();
+    const { getTooltipText } = useColumnTooltip();
 
     return {
       makeToast,
@@ -316,6 +331,7 @@ export default {
       filterStrToObj,
       sortStringToVariables,
       ...colorAndSymbols,
+      getTooltipText,
     };
   },
   data() {
