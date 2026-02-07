@@ -75,11 +75,11 @@ Plans:
 5. MONDO SSSOM mappings continue to be applied after genemap2 processing
 6. mim2gene.txt continues to be downloaded for deprecation tracking of moved/removed entries
 
-**Plans:** TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 77-01: TBD
-- [ ] 77-02: TBD
+- [ ] 77-01-PLAN.md — Create build_omim_from_genemap2() with inheritance mapping, HGNC joining, and versioning
+- [ ] 77-02-PLAN.md — Rewire process_omim_ontology() to use genemap2 workflow, keep mim2gene for deprecation
 
 #### Phase 78: Comparisons Integration
 
@@ -122,15 +122,15 @@ Plans:
 
 ## Progress
 
-**Execution Order:** Phases execute sequentially: 76 → 77 → 78 → 79
+**Execution Order:** Phases execute sequentially: 76 -> 77 -> 78 -> 79
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. Shared Infrastructure | v10.4 | 0/2 | Planned | - |
-| 77. Ontology Migration | v10.4 | 0/? | Not started | - |
+| 77. Ontology Migration | v10.4 | 0/2 | Planned | - |
 | 78. Comparisons Integration | v10.4 | 0/? | Not started | - |
 | 79. Configuration & Cleanup | v10.4 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 76 planning*
+*Last updated: 2026-02-07 after Phase 77 planning*
