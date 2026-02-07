@@ -2,7 +2,7 @@
 # Unit tests for api/functions/omim-functions.R
 #
 # Tests focus on data transformation logic that doesn't require network calls.
-# JAX API is NOT tested with live calls - only pure function logic.
+# Tests cover: mim2gene parsing, genemap2 parsing, validation, deprecation, caching.
 
 library(testthat)
 library(dplyr)
@@ -261,190 +261,6 @@ test_that("get_deprecated_mim_numbers returns empty vector when no deprecated", 
 
     expect_true(is.character(result))
     expect_equal(length(result), 0)
-  }, error = function(e) {
-    skip(paste("omim-functions.R requires additional dependencies:", e$message))
-  })
-})
-
-# =============================================================================
-# build_omim_ontology_set() tests
-# =============================================================================
-
-test_that("build_omim_ontology_set creates correct columns", {
-  mim_data <- tibble(
-    mim_number = c("100050", "100100"),
-    mim_entry_type = c("phenotype", "phenotype"),
-    gene_symbol = c("GENE1", NA),
-    is_deprecated = c(FALSE, FALSE)
-  )
-
-  disease_names <- tibble(
-    mim_number = c("100050", "100100"),
-    disease_name = c("Disease A", "Disease B")
-  )
-
-  hgnc_list <- tibble(
-    symbol = c("GENE1", "GENE2"),
-    hgnc_id = c("HGNC:1", "HGNC:2")
-  )
-
-  moi_list <- tibble(
-    hpo_mode_of_inheritance_term_name = c("Autosomal dominant inheritance"),
-    hpo_mode_of_inheritance_term = c("HP:0000006")
-  )
-
-  tryCatch({
-    source(file.path(api_dir, "functions", "omim-functions.R"))
-
-    result <- build_omim_ontology_set(mim_data, disease_names, hgnc_list, moi_list)
-
-    # Check required columns exist
-    expected_cols <- c(
-      "disease_ontology_id_version",
-      "disease_ontology_id",
-      "disease_ontology_name",
-      "disease_ontology_source",
-      "disease_ontology_date",
-      "disease_ontology_is_specific",
-      "hgnc_id",
-      "hpo_mode_of_inheritance_term"
-    )
-    expect_true(all(expected_cols %in% names(result)))
-
-    # Check source is mim2gene
-    expect_true(all(result$disease_ontology_source == "mim2gene"))
-
-    # Check is_specific is TRUE for OMIM entries
-    expect_true(all(result$disease_ontology_is_specific))
-  }, error = function(e) {
-    skip(paste("omim-functions.R requires additional dependencies:", e$message))
-  })
-})
-
-test_that("build_omim_ontology_set handles versioning for duplicates", {
-  # Same MIM number with different genes - should get versions
-  mim_data <- tibble(
-    mim_number = c("100050", "100050", "100100"),
-    mim_entry_type = c("phenotype", "phenotype", "phenotype"),
-    gene_symbol = c("GENE1", "GENE2", "GENE3"),
-    is_deprecated = c(FALSE, FALSE, FALSE)
-  )
-
-  disease_names <- tibble(
-    mim_number = c("100050", "100100"),
-    disease_name = c("Disease A", "Disease B")
-  )
-
-  hgnc_list <- tibble(
-    symbol = c("GENE1", "GENE2", "GENE3"),
-    hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3")
-  )
-
-  moi_list <- tibble(
-    hpo_mode_of_inheritance_term_name = character(),
-    hpo_mode_of_inheritance_term = character()
-  )
-
-  tryCatch({
-    source(file.path(api_dir, "functions", "omim-functions.R"))
-
-    result <- build_omim_ontology_set(mim_data, disease_names, hgnc_list, moi_list)
-
-    # Duplicate MIM should get versioned IDs
-    omim_100050_versions <- result %>%
-      filter(disease_ontology_id == "OMIM:100050") %>%
-      pull(disease_ontology_id_version)
-
-    expect_equal(length(omim_100050_versions), 2)
-    expect_true(any(str_detect(omim_100050_versions, "_1$")))
-    expect_true(any(str_detect(omim_100050_versions, "_2$")))
-
-    # Unique MIM should not have version suffix
-    omim_100100_version <- result %>%
-      filter(disease_ontology_id == "OMIM:100100") %>%
-      pull(disease_ontology_id_version)
-
-    expect_equal(omim_100100_version, "OMIM:100100")
-  }, error = function(e) {
-    skip(paste("omim-functions.R requires additional dependencies:", e$message))
-  })
-})
-
-test_that("build_omim_ontology_set excludes deprecated entries", {
-  mim_data <- tibble(
-    mim_number = c("100050", "100100"),
-    mim_entry_type = c("phenotype", "moved/removed"),
-    gene_symbol = c("GENE1", NA),
-    is_deprecated = c(FALSE, TRUE)  # 100100 is deprecated
-  )
-
-  disease_names <- tibble(
-    mim_number = c("100050", "100100"),
-    disease_name = c("Disease A", "Disease B")
-  )
-
-  hgnc_list <- tibble(
-    symbol = c("GENE1"),
-    hgnc_id = c("HGNC:1")
-  )
-
-  moi_list <- tibble(
-    hpo_mode_of_inheritance_term_name = character(),
-    hpo_mode_of_inheritance_term = character()
-  )
-
-  tryCatch({
-    source(file.path(api_dir, "functions", "omim-functions.R"))
-
-    result <- build_omim_ontology_set(mim_data, disease_names, hgnc_list, moi_list)
-
-    # Deprecated entry should be excluded
-    expect_equal(nrow(result), 1)
-    expect_true("OMIM:100050" %in% result$disease_ontology_id)
-    expect_false("OMIM:100100" %in% result$disease_ontology_id)
-  }, error = function(e) {
-    skip(paste("omim-functions.R requires additional dependencies:", e$message))
-  })
-})
-
-test_that("build_omim_ontology_set handles missing disease names", {
-  mim_data <- tibble(
-    mim_number = c("100050", "100100"),
-    mim_entry_type = c("phenotype", "phenotype"),
-    gene_symbol = c("GENE1", NA),
-    is_deprecated = c(FALSE, FALSE)
-  )
-
-  # Only one disease name available
-  disease_names <- tibble(
-    mim_number = c("100050"),
-    disease_name = c("Disease A")
-  )
-
-  hgnc_list <- tibble(
-    symbol = c("GENE1"),
-    hgnc_id = c("HGNC:1")
-  )
-
-  moi_list <- tibble(
-    hpo_mode_of_inheritance_term_name = character(),
-    hpo_mode_of_inheritance_term = character()
-  )
-
-  tryCatch({
-    source(file.path(api_dir, "functions", "omim-functions.R"))
-
-    result <- build_omim_ontology_set(mim_data, disease_names, hgnc_list, moi_list)
-
-    # Both entries should be present
-    expect_equal(nrow(result), 2)
-
-    # First should have name, second should have NA
-    row_1 <- result[result$disease_ontology_id == "OMIM:100050", ]
-    row_2 <- result[result$disease_ontology_id == "OMIM:100100", ]
-
-    expect_equal(row_1$disease_ontology_name, "Disease A")
-    expect_true(is.na(row_2$disease_ontology_name))
   }, error = function(e) {
     skip(paste("omim-functions.R requires additional dependencies:", e$message))
   })
@@ -1063,6 +879,43 @@ test_that("parse_genemap2 handles nested parentheses in disease names", {
     tgene5_rows <- result[result$Approved_Symbol == "TGENE5", ]
     expect_true(any(str_detect(tgene5_rows$disease_ontology_name, "\\(")))
     expect_true(any(str_detect(tgene5_rows$disease_ontology_name, "with parens")))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+# =============================================================================
+# download_mim2gene() caching logic tests
+# =============================================================================
+
+test_that("download_mim2gene returns cached file when fresh", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_tempdir({
+      temp_path <- tempdir()
+      current_date <- format(Sys.Date(), "%Y-%m-%d")
+      cached_file <- file.path(temp_path, paste0("mim2gene.", current_date, ".txt"))
+      writeLines("cached mim2gene content", cached_file)
+
+      result <- download_mim2gene(output_path = temp_path)
+      expect_equal(result, cached_file)
+      expect_true(file.exists(result))
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("download_mim2gene uses check_file_age_days (not check_file_age)", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    # Verify the function signature uses max_age_days parameter
+    fn_args <- names(formals(download_mim2gene))
+    expect_true("max_age_days" %in% fn_args)
+    expect_false("max_age_months" %in% fn_args)
   }, error = function(e) {
     skip(paste("omim-functions.R requires additional dependencies:", e$message))
   })

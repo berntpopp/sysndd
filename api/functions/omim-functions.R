@@ -19,25 +19,44 @@ require(lubridate)
 #' Download mim2gene.txt from OMIM
 #'
 #' Downloads the mim2gene.txt file from OMIM's public data. Uses httr2 with
-#' retry logic for reliability. Checks file age before downloading.
+#' retry logic for reliability. Checks file age before downloading with 1-day
+#' TTL (time-to-live) caching.
 #'
 #' @param output_path Character string, directory to save the file (default: "data/")
 #' @param force Logical, if TRUE downloads even if recent file exists (default: FALSE)
-#' @param max_age_months Integer, maximum age in months before re-downloading (default: 1)
+#' @param max_age_days Integer, maximum age in days before re-downloading (default: 1)
 #' @return Character string, path to the downloaded/existing file
+#'
+#' @details
+#' Downloaded files are named mim2gene.YYYY-MM-DD.txt.
+#'
+#' Caching behavior:
+#' - Uses check_file_age_days() for 1-day TTL checking
+#' - Returns cached file if it exists and is less than max_age_days old
+#' - Downloads fresh file if cache is expired or force=TRUE
+#'
+#' Retry logic (same as download_genemap2):
+#' - max_tries: 3
+#' - max_seconds: 60
+#' - backoff: exponential (2^x seconds)
+#' - timeout: 30 seconds per request
 #'
 #' @examples
 #' \dontrun{
+#'   # Use cached file if < 1 day old
 #'   file_path <- download_mim2gene()
+#'
+#'   # Force fresh download
 #'   file_path <- download_mim2gene(force = TRUE)
 #' }
 #'
 #' @export
-download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_months = 1) {
+download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_days = 1) {
   # Check if recent file exists
-  if (!force && check_file_age("mim2gene", output_path, max_age_months)) {
+  if (!force && check_file_age_days("mim2gene", output_path, max_age_days)) {
     existing_file <- get_newest_file("mim2gene", output_path)
     if (!is.null(existing_file)) {
+      message(sprintf("[OMIM] Using cached mim2gene.txt: %s", existing_file))
       return(existing_file)
     }
   }
@@ -67,6 +86,8 @@ download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_mont
 
   # Write to file
   writeBin(resp_body_raw(response), output_file)
+
+  message(sprintf("[OMIM] Downloaded mim2gene.txt to %s", output_file))
 
   return(output_file)
 }
