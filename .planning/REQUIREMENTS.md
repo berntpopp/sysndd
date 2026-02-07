@@ -9,10 +9,10 @@ Requirements for v10.4 milestone. Each maps to roadmap phases.
 
 ### Shared Infrastructure
 
-- [ ] **INFRA-01**: genemap2.txt downloads use OMIM_DOWNLOAD_KEY environment variable (not hardcoded) (#139)
-- [ ] **INFRA-02**: genemap2.txt downloads are cached on disk with 1-day TTL to prevent OMIM rate limiting/blocking
-- [ ] **INFRA-03**: genemap2.txt parsing handles column name variations defensively (historical field renames)
-- [ ] **INFRA-04**: Shared parse_genemap2() function extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
+- [x] **INFRA-01**: genemap2.txt downloads use OMIM_DOWNLOAD_KEY environment variable (not hardcoded) (#139)
+- [x] **INFRA-02**: genemap2.txt downloads are cached on disk with 1-day TTL to prevent OMIM rate limiting/blocking
+- [x] **INFRA-03**: genemap2.txt parsing handles column name variations defensively (historical field renames)
+- [x] **INFRA-04**: Shared parse_genemap2() function extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
 
 ### Ontology Migration
 
@@ -59,10 +59,10 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 76 | Pending |
-| INFRA-02 | Phase 76 | Pending |
-| INFRA-03 | Phase 76 | Pending |
-| INFRA-04 | Phase 76 | Pending |
+| INFRA-01 | Phase 76 | Complete |
+| INFRA-02 | Phase 76 | Complete |
+| INFRA-03 | Phase 76 | Complete |
+| INFRA-04 | Phase 76 | Complete |
 | ONTO-01 | Phase 77 | Pending |
 | ONTO-02 | Phase 77 | Pending |
 | ONTO-03 | Phase 77 | Pending |
@@ -82,4 +82,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after roadmap creation*
+*Last updated: 2026-02-07 after Phase 76 completion*

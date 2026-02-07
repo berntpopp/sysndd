@@ -38,7 +38,7 @@ Phases 1-75 delivered across milestones v1.0 through v10.3. See `.planning/MILES
 - Unified cache between ontology and comparisons systems
 - Environment variable configuration for OMIM download key
 
-#### Phase 76: Shared Infrastructure
+#### Phase 76: Shared Infrastructure ✅
 
 **Goal:** Create reusable genemap2 download/parse infrastructure without touching existing systems
 
@@ -47,17 +47,17 @@ Phases 1-75 delivered across milestones v1.0 through v10.3. See `.planning/MILES
 **Requirements:** INFRA-01, INFRA-02, INFRA-03, INFRA-04
 
 **Success Criteria** (what must be TRUE):
-1. Developer can set OMIM_DOWNLOAD_KEY environment variable and genemap2.txt downloads succeed
-2. genemap2.txt file is cached on disk with 1-day TTL (no duplicate downloads within 24 hours)
-3. parse_genemap2() extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
-4. Parsing handles historical column name variations without breaking (defensive column mapping)
-5. Unit tests verify download caching logic and parsing edge cases
+1. ✅ Developer can set OMIM_DOWNLOAD_KEY environment variable and genemap2.txt downloads succeed
+2. ✅ genemap2.txt file is cached on disk with 1-day TTL (no duplicate downloads within 24 hours)
+3. ✅ parse_genemap2() extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
+4. ✅ Parsing handles historical column name variations without breaking (defensive column mapping)
+5. ✅ Unit tests verify download caching logic and parsing edge cases
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 76-01-PLAN.md — Download infrastructure: env var API key, 1-day TTL caching, check_file_age_days()
-- [ ] 76-02-PLAN.md — Parse infrastructure: shared parse_genemap2() with fixture-based unit tests
+- [x] 76-01-PLAN.md — Download infrastructure: env var API key, 1-day TTL caching, check_file_age_days()
+- [x] 76-02-PLAN.md — Parse infrastructure: shared parse_genemap2() with fixture-based unit tests
 
 #### Phase 77: Ontology Migration
 
@@ -126,11 +126,11 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 76. Shared Infrastructure | v10.4 | 0/2 | Planned | - |
+| 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 77. Ontology Migration | v10.4 | 0/2 | Planned | - |
 | 78. Comparisons Integration | v10.4 | 0/? | Not started | - |
 | 79. Configuration & Cleanup | v10.4 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 77 planning*
+*Last updated: 2026-02-07 after Phase 76 completion*
