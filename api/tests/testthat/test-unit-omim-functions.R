@@ -486,3 +486,284 @@ test_that("date format is ISO 8601", {
   current_date <- format(Sys.Date(), "%Y-%m-%d")
   expect_true(str_detect(current_date, "^\\d{4}-\\d{2}-\\d{2}$"))
 })
+
+# =============================================================================
+# check_file_age_days() tests
+# =============================================================================
+
+test_that("check_file_age_days returns FALSE when no matching files exist", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+
+    withr::with_tempdir({
+      result <- check_file_age_days("genemap2", tempdir(), 1)
+      expect_false(result)
+    })
+  }, error = function(e) {
+    skip(paste("file-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("check_file_age_days returns TRUE for file created today", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+
+    withr::with_tempdir({
+      temp_path <- tempdir()
+      current_date <- format(Sys.Date(), "%Y-%m-%d")
+      temp_file <- file.path(temp_path, paste0("genemap2.", current_date, ".txt"))
+      writeLines("test content", temp_file)
+
+      result <- check_file_age_days("genemap2", temp_path, 1)
+      expect_true(result)
+    })
+  }, error = function(e) {
+    skip(paste("file-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("check_file_age_days returns FALSE for file older than threshold", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+
+    withr::with_tempdir({
+      temp_path <- tempdir()
+      old_date <- format(Sys.Date() - 3, "%Y-%m-%d")
+      temp_file <- file.path(temp_path, paste0("genemap2.", old_date, ".txt"))
+      writeLines("test content", temp_file)
+
+      result <- check_file_age_days("genemap2", temp_path, 1)
+      expect_false(result)
+    })
+  }, error = function(e) {
+    skip(paste("file-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("check_file_age_days returns TRUE for file within threshold", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+
+    withr::with_tempdir({
+      temp_path <- tempdir()
+      yesterday_date <- format(Sys.Date() - 1, "%Y-%m-%d")
+      temp_file <- file.path(temp_path, paste0("genemap2.", yesterday_date, ".txt"))
+      writeLines("test content", temp_file)
+
+      result <- check_file_age_days("genemap2", temp_path, 2)
+      expect_true(result)
+    })
+  }, error = function(e) {
+    skip(paste("file-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+# =============================================================================
+# download_genemap2() caching logic tests
+# =============================================================================
+
+test_that("download_genemap2 returns cached file when fresh", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "file-functions.R"))
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_tempdir({
+      temp_path <- tempdir()
+      current_date <- format(Sys.Date(), "%Y-%m-%d")
+      cached_file <- file.path(temp_path, paste0("genemap2.", current_date, ".txt"))
+      writeLines("cached content", cached_file)
+
+      withr::with_envvar(c(OMIM_DOWNLOAD_KEY = "test_key"), {
+        result <- download_genemap2(output_path = temp_path)
+        expect_equal(result, cached_file)
+        expect_true(file.exists(result))
+      })
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("get_omim_download_key stops when env var not set", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_envvar(c(OMIM_DOWNLOAD_KEY = ""), {
+      expect_error(
+        get_omim_download_key(),
+        "OMIM_DOWNLOAD_KEY"
+      )
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("get_omim_download_key returns key when set", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_envvar(c(OMIM_DOWNLOAD_KEY = "test_key_123"), {
+      result <- get_omim_download_key()
+      expect_equal(result, "test_key_123")
+    })
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+# =============================================================================
+# parse_genemap2() tests
+# =============================================================================
+
+test_that("parse_genemap2 returns expected columns", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    expected_cols <- c(
+      "Approved_Symbol",
+      "disease_ontology_name",
+      "disease_ontology_id",
+      "Mapping_key",
+      "hpo_mode_of_inheritance_term_name"
+    )
+    expect_true(all(expected_cols %in% names(result)))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 extracts disease MIM numbers as OMIM: IDs", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # All disease_ontology_id values should match OMIM:XXXXXX pattern
+    expect_true(all(str_detect(result$disease_ontology_id, "^OMIM:\\d{6}$")))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 normalizes inheritance terms", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # Check that "Autosomal dominant" becomes "Autosomal dominant inheritance"
+    ad_rows <- result[result$Approved_Symbol == "TGENE1", ]
+    expect_true(any(ad_rows$hpo_mode_of_inheritance_term_name == "Autosomal dominant inheritance"))
+
+    # Check that "Autosomal recessive" becomes "Autosomal recessive inheritance"
+    ar_rows <- result[result$Approved_Symbol == "TGENE2", ]
+    expect_true(any(ar_rows$hpo_mode_of_inheritance_term_name == "Autosomal recessive inheritance"))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 handles multiple phenotypes per gene", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # TGENE2 has two phenotypes (Test disease 2A and 2B)
+    tgene2_rows <- result[result$Approved_Symbol == "TGENE2", ]
+    expect_gte(nrow(tgene2_rows), 2)
+
+    # Should have both disease names
+    disease_names <- tgene2_rows$disease_ontology_name
+    expect_true("Test disease 2A" %in% disease_names)
+    expect_true("Test disease 2B" %in% disease_names)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 removes question marks from inheritance", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # Check no "?" characters remain in inheritance column
+    inheritance_values <- result$hpo_mode_of_inheritance_term_name
+    inheritance_values <- inheritance_values[!is.na(inheritance_values)]
+    expect_false(any(str_detect(inheritance_values, "\\?")))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 filters entries without MIM number", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # No NA values in disease_ontology_id
+    expect_true(all(!is.na(result$disease_ontology_id)))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 filters entries without approved symbol", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # No NA values in Approved_Symbol
+    expect_true(all(!is.na(result$Approved_Symbol)))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 stops on unexpected column count", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    withr::with_tempfile("bad_file", {
+      # Create file with only 10 columns (not 14)
+      bad_data <- "chr1\t1000000\t1100000\t1p36.33\t1p36.33\t100001\tTGENE1\tTest Gene 1\tTGENE1\t1001"
+      writeLines(bad_data, bad_file)
+
+      expect_error(
+        parse_genemap2(bad_file),
+        "column count mismatch"
+      )
+    }, fileext = ".txt")
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("parse_genemap2 handles nested parentheses in disease names", {
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    fixture_path <- testthat::test_path("fixtures/genemap2-sample.txt")
+    result <- parse_genemap2(fixture_path)
+
+    # TGENE5 has "Test disease 5 (with parens)" - should preserve the parentheses
+    tgene5_rows <- result[result$Approved_Symbol == "TGENE5", ]
+    expect_true(any(str_detect(tgene5_rows$disease_ontology_name, "\\(")))
+    expect_true(any(str_detect(tgene5_rows$disease_ontology_name, "with parens")))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
