@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 **Phase:** 77 of 79 (Ontology Migration)
-**Plan:** 01 of 3
+**Plan:** 02 of 3
 **Status:** In progress
-**Progress:** v10.4 [██████░░░░░░░░░░░░░░] 30% (77-01 complete)
+**Progress:** v10.4 [████████░░░░░░░░░░░░] 40% (77-02 complete)
 
-**Last completed:** 77-01 (build_omim_from_genemap2 function) — 2026-02-07
-**Last activity:** 2026-02-07 — Completed 77-01-PLAN.md
-**Next action:** `/gsd:plan-phase 77` (plan 02)
+**Last completed:** 77-02 (process_omim_ontology genemap2 integration) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 77-02-PLAN.md
+**Next action:** `/gsd:plan-phase 77` (plan 03)
 
 ---
 
@@ -47,7 +47,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 318 (from v1-v10.3 + Phase 76 + 77-01)
+- Total plans completed: 319 (from v1-v10.3 + Phase 76 + 77-01 + 77-02)
 - Milestones shipped: 13 (v1-v10.3)
 - Phases in progress: 77
 
@@ -86,6 +86,9 @@ Recent decisions affecting current work:
 - **77-01:** disease_ontology_source MUST remain 'mim2gene' (not 'genemap2') to preserve MONDO SSSOM mapping compatibility
 - **77-01:** Versioning occurs AFTER inheritance expansion and deduplication to prevent spurious versions
 - **77-01:** Unknown inheritance modes trigger warnings (not errors) for graceful handling of new OMIM terms
+- **77-02:** ONTO-02 RESOLVED: Achieved <60 second ontology updates via genemap2 (eliminated 7-minute JAX API bottleneck)
+- **77-02:** mim2gene.txt still downloaded as Step 4 for deprecation tracking (moved/removed MIM entries)
+- **77-02:** Progress callback updated to four-step workflow (download genemap2 / parse / build / deprecation)
 
 ### Pending Todos
 
