@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 **Phase:** 78 of 79 (Comparisons Integration)
-**Plan:** Ready to plan
-**Status:** Ready to plan
-**Progress:** v10.4 [██████████░░░░░░░░░░] 50% (Phase 77 complete)
+**Plan:** 1 of 2
+**Status:** In progress
+**Progress:** v10.4 [███████████░░░░░░░░░] 55% (Phase 78-01 complete)
 
-**Last completed:** Phase 77 (Ontology Migration) — 2026-02-07
-**Last activity:** 2026-02-07 — Phase 77 verified and complete
-**Next action:** `/gsd:plan-phase 78`
+**Last completed:** Phase 78-01 (Shared Infrastructure) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 78-01-PLAN.md
+**Next action:** Execute 78-02-PLAN.md
 
 ---
 
@@ -37,7 +37,8 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 **Key deliverables:**
 - Shared genemap2 infrastructure with download caching and robust parsing (Phase 76) ✅
 - Ontology system migration to genemap2 with mode of inheritance data (Phase 77) ✅
-- Unified cache between ontology and comparisons systems (Phase 78)
+- Unified cache between ontology and comparisons systems (Phase 78-01) ✅
+- Comparisons config cleanup and testing (Phase 78-02)
 - Environment variable configuration for OMIM download key (Phase 79)
 
 **Expected performance:** Ontology update time drops from ~8 minutes to ~30 seconds
@@ -47,9 +48,9 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 319 (from v1-v10.3 + Phase 76-77)
+- Total plans completed: 320 (from v1-v10.3 + Phase 76-78)
 - Milestones shipped: 13 (v1-v10.3)
-- Phases completed: 77
+- Phases completed: 78 (partial - 1 of 2 plans complete)
 
 **Current Stats:**
 
@@ -58,7 +59,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 | **Backend Tests** | 744 + 11 E2E | Coverage 20.3% |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 32 | Including useColumnTooltip, useLlmAdmin, useExcelExport |
-| **Migrations** | 13 files + runner | Schema version 13 |
+| **Migrations** | 14 files + runner | Schema version 14 (pending) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 | **Total Tests** | 1,430+ | Passing |
@@ -89,6 +90,11 @@ Recent decisions affecting current work:
 - **77-02:** Achieved <60 second ontology updates via genemap2 (eliminated 7-minute JAX API bottleneck)
 - **77-02:** mim2gene.txt still downloaded as Step 4 for deprecation tracking (moved/removed MIM entries)
 - **77-02:** Progress callback updated to four-step workflow (download genemap2 / parse / build / deprecation)
+- **78-01:** download_hpoa() uses URL parameter from comparisons_config rather than reading config directly (pure utility pattern)
+- **78-01:** adapt_genemap2_for_comparisons() is adapter (not parser) - receives pre-parsed data from shared parse_genemap2()
+- **78-01:** NDD_HPO_TERMS hardcoded as named constant - stable domain definition, no admin UI exists, YAGNI for database storage
+- **78-01:** Version field changed from filename-based to date-based for consistency with ontology system
+- **78-01:** omim_genemap2 removed from comparisons_config (security: eliminates plaintext API key from database)
 
 ### Pending Todos
 
@@ -108,10 +114,10 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-07
-**Stopped at:** Phase 77 complete, verified, ready for Phase 78
-**Next action:** `/gsd:plan-phase 78`
+**Stopped at:** Completed 78-01-PLAN.md (Shared Infrastructure)
+**Next action:** Execute 78-02-PLAN.md
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-07 — Phase 77 (Ontology Migration) complete and verified*
+*Last updated: 2026-02-07 — Phase 78-01 (Shared Infrastructure) complete*
