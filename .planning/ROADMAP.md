@@ -81,7 +81,7 @@ Plans:
 - [x] 77-01-PLAN.md — Create build_omim_from_genemap2() with inheritance mapping, HGNC joining, and versioning
 - [x] 77-02-PLAN.md — Rewire process_omim_ontology() to use genemap2 workflow, keep mim2gene for deprecation
 
-#### Phase 78: Comparisons Integration
+#### Phase 78: Comparisons Integration ✅
 
 **Goal:** Unify comparisons system to use shared genemap2 cache (single download per day across both systems)
 
@@ -90,16 +90,16 @@ Plans:
 **Requirements:** COMP-01, COMP-02
 
 **Success Criteria** (what must be TRUE):
-1. Comparisons system uses shared genemap2 cache from Phase 76 (data/ directory, not temp_dir)
-2. Only one genemap2.txt download occurs per day regardless of ontology or comparisons update
-3. Comparisons omim_genemap2 parsing calls shared parse_genemap2() (no duplicate parsing code)
-4. Comparisons data refresh job continues to work with same output schema
+1. ✅ Comparisons system uses shared genemap2 cache from Phase 76 (data/ directory, not temp_dir)
+2. ✅ Only one genemap2.txt download occurs per day regardless of ontology or comparisons update
+3. ✅ Comparisons omim_genemap2 parsing calls shared parse_genemap2() (no duplicate parsing code)
+4. ✅ Comparisons data refresh job continues to work with same output schema
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 78-01-PLAN.md — Add download_hpoa() caching, replace parse_omim_genemap2() with adapt_genemap2_for_comparisons() adapter, modify async workflow, add migration
-- [ ] 78-02-PLAN.md — Unit tests for adapt_genemap2_for_comparisons() adapter with synthetic fixtures
+- [x] 78-01-PLAN.md — Add download_hpoa() caching, replace parse_omim_genemap2() with adapt_genemap2_for_comparisons() adapter, modify async workflow, add migration
+- [x] 78-02-PLAN.md — Unit tests for adapt_genemap2_for_comparisons() adapter with synthetic fixtures
 
 #### Phase 79: Configuration & Cleanup
 
@@ -130,9 +130,9 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
-| 78. Comparisons Integration | v10.4 | 0/2 | Not started | - |
+| 78. Comparisons Integration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 79. Configuration & Cleanup | v10.4 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 79 planning*
+*Last updated: 2026-02-07 after Phase 78 completion*

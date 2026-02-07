@@ -25,8 +25,8 @@ Requirements for v10.4 milestone. Each maps to roadmap phases.
 
 ### Comparisons Integration
 
-- [ ] **COMP-01**: Comparisons system uses shared genemap2 cache (single download per day across both systems)
-- [ ] **COMP-02**: Comparisons omim_genemap2 parsing calls shared parse_genemap2() to eliminate code duplication
+- [x] **COMP-01**: Comparisons system uses shared genemap2 cache (single download per day across both systems)
+- [x] **COMP-02**: Comparisons omim_genemap2 parsing calls shared parse_genemap2() to eliminate code duplication
 
 ### Configuration & Cleanup
 
@@ -69,8 +69,8 @@ Deferred to future milestones.
 | ONTO-04 | Phase 77 | Complete |
 | ONTO-05 | Phase 77 | Complete |
 | ONTO-06 | Phase 77 | Complete |
-| COMP-01 | Phase 78 | Pending |
-| COMP-02 | Phase 78 | Pending |
+| COMP-01 | Phase 78 | Complete |
+| COMP-02 | Phase 78 | Complete |
 | CFG-01 | Phase 79 | Pending |
 | CFG-02 | Phase 79 | Pending |
 | CFG-03 | Phase 79 | Pending |
@@ -82,4 +82,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 77 completion*
+*Last updated: 2026-02-07 after Phase 78 completion*
