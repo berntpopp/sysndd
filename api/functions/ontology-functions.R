@@ -117,7 +117,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #' returns the combined dataset. If a recent CSV file exists, it loads that;
 #' otherwise, it regenerates the data and saves it as a CSV file.
 #'
-#' Uses the new mim2gene.txt + JAX API workflow for OMIM data (replacing genemap2.txt).
+#' Uses the genemap2.txt-based workflow for OMIM data (includes gene-disease-inheritance data).
 #' Also downloads and applies MONDO SSSOM mappings for OMIM-to-MONDO equivalence.
 #'
 #' @param hgnc_list A tibble containing non-alternative loci gene data (columns: hgnc_id, symbol).
@@ -311,18 +311,25 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 
 #' Process OMIM Ontology Data
 #'
-#' This function processes the OMIM ontology data using the new mim2gene.txt + JAX API workflow.
-#' It downloads mim2gene.txt from OMIM, fetches disease names from the JAX Ontology API,
+#' This function processes the OMIM ontology data using the genemap2.txt-based workflow.
+#' It downloads genemap2.txt from OMIM, parses the file for gene-disease-inheritance data,
 #' and builds the OMIM ontology set matching the database schema.
 #'
-#' Replaces the previous genemap2.txt-based approach.
+#' Also downloads mim2gene.txt for deprecation tracking (moved/removed entries).
 #'
 #' @param hgnc_list A tibble of HGNC gene symbols and corresponding identifiers (columns: hgnc_id, symbol).
-#' @param moi_list A tibble of mode of inheritance terms (for compatibility, not used in mim2gene workflow).
+#' @param moi_list A tibble of mode of inheritance terms for HPO mapping.
 #' @param max_file_age Integer, maximum age of the file in months before re-downloading (default: 3).
 #' @param progress_callback Optional function for async progress reporting.
 #'   Called with (step, current, total) parameters.
 #' @return A tibble containing processed data from the OMIM ontology.
+#'
+#' @details
+#' This workflow:
+#' 1. Downloads genemap2.txt (primary data source with gene-disease-inheritance data)
+#' 2. Parses genemap2.txt to extract phenotype entries
+#' 3. Builds ontology set with inheritance mode mapping via build_omim_from_genemap2()
+#' 4. Downloads mim2gene.txt for deprecation tracking (secondary, for moved/removed MIMs)
 #'
 #' @examples
 #' \dontrun{
@@ -341,50 +348,58 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'
 #' @export
 process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progress_callback = NULL) {
-  # Step 1: Download mim2gene.txt
+  # Step 1: Download genemap2.txt (Phase 76 shared infrastructure)
   if (!is.null(progress_callback)) {
-    progress_callback(step = "Downloading mim2gene.txt", current = 1, total = 4)
+    progress_callback(step = "Downloading genemap2.txt", current = 1, total = 4)
   }
-  mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_months = max_file_age)
-  mim2gene_data <- parse_mim2gene(mim2gene_file)
+  genemap2_file <- download_genemap2("data/", force = FALSE)
 
-  # Step 2: Fetch disease names from JAX API
-  phenotype_mims <- mim2gene_data$mim_number
+  # Step 2: Parse genemap2 (Phase 76 shared function)
   if (!is.null(progress_callback)) {
-    # Pass through sub-progress to progress_callback
-    disease_names <- fetch_all_disease_names(
-      phenotype_mims,
-      progress_callback = function(step, current, total) {
-        progress_callback(
-          step = paste0("Fetching disease names: ", current, "/", total),
-          current = 2,
-          total = 4
-        )
-      }
+    progress_callback(step = "Parsing genemap2.txt", current = 2, total = 4)
+  }
+  genemap2_parsed <- parse_genemap2(genemap2_file)
+
+  # Step 3: Build ontology set with inheritance mapping
+  if (!is.null(progress_callback)) {
+    progress_callback(step = "Building OMIM ontology set from genemap2", current = 3, total = 4)
+  }
+  omim_terms <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+  # Step 4: Download mim2gene.txt for deprecation tracking (ONTO-06)
+  # mim2gene.txt is free/public (no auth needed) and tracks moved/removed entries
+  if (!is.null(progress_callback)) {
+    progress_callback(
+      step = "Downloading mim2gene.txt for deprecation tracking",
+      current = 4,
+      total = 4
     )
-  } else {
-    disease_names <- fetch_all_disease_names(phenotype_mims)
   }
+  tryCatch({
+    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_months = max_file_age)
+    mim2gene_data <- parse_mim2gene(mim2gene_file)
+    deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
+    if (length(deprecated_mims) > 0) {
+      message(sprintf(
+        "[OMIM] Found %d deprecated (moved/removed) MIM entries in mim2gene.txt",
+        length(deprecated_mims)
+      ))
+    }
+  }, error = function(e) {
+    warning(sprintf(
+      "[OMIM] Could not download mim2gene.txt for deprecation tracking: %s",
+      e$message
+    ))
+  })
 
-  # Step 3: Build OMIM ontology set
-  if (!is.null(progress_callback)) {
-    progress_callback(step = "Building ontology set", current = 3, total = 4)
-  }
-  omim_terms <- build_omim_ontology_set(mim2gene_data, disease_names, hgnc_list, moi_list)
-
-  # Define the file path for the CSV file
+  # Save debug/cache CSV
   omim_file_date <- format(Sys.Date(), "%Y-%m-%d")
-  csv_file_path <- paste0("results/ontology/omim_mim2gene.", omim_file_date, ".csv")
-
-  # Ensure directory exists
+  csv_file_path <- paste0("results/ontology/omim_genemap2.", omim_file_date, ".csv")
   if (!dir.exists("results/ontology")) {
     dir.create("results/ontology", recursive = TRUE)
   }
-
-  # Save the dataset as a CSV file
   write_csv(omim_terms, file = csv_file_path, na = "NULL")
 
-  # Return the tibble
   return(omim_terms)
 }
 
