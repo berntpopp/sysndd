@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 **Phase:** 77 of 79 (Ontology Migration)
-**Plan:** Ready to plan
-**Status:** Ready to plan
-**Progress:** v10.4 [█████░░░░░░░░░░░░░░░] 25% (Phase 76 complete)
+**Plan:** 01 of 3
+**Status:** In progress
+**Progress:** v10.4 [██████░░░░░░░░░░░░░░] 30% (77-01 complete)
 
-**Last completed:** Phase 76 (Shared Infrastructure) — 2026-02-07
-**Last activity:** 2026-02-07 — Phase 76 verified and complete
-**Next action:** `/gsd:plan-phase 77`
+**Last completed:** 77-01 (build_omim_from_genemap2 function) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 77-01-PLAN.md
+**Next action:** `/gsd:plan-phase 77` (plan 02)
 
 ---
 
@@ -47,21 +47,21 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 317 (from v1-v10.3 + Phase 76)
+- Total plans completed: 318 (from v1-v10.3 + Phase 76 + 77-01)
 - Milestones shipped: 13 (v1-v10.3)
-- Phases completed: 76
+- Phases in progress: 77
 
 **Current Stats:**
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 716 + 11 E2E | Coverage 20.3% |
+| **Backend Tests** | 744 + 11 E2E | Coverage 20.3% |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 32 | Including useColumnTooltip, useLlmAdmin, useExcelExport |
 | **Migrations** | 13 files + runner | Schema version 13 |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
-| **Total Tests** | 1,402+ | Passing |
+| **Total Tests** | 1,430+ | Passing |
 
 ---
 
@@ -83,6 +83,9 @@ Recent decisions affecting current work:
 - **76-02:** Normalize 14 OMIM inheritance terms to HPO vocabulary for consistency with existing database
 - **76-02:** Use synthetic fixture data instead of real OMIM data to avoid licensing issues in tests
 - **76-02:** Extract parse_genemap2() from comparisons-functions.R for reuse by both ontology and comparisons systems
+- **77-01:** disease_ontology_source MUST remain 'mim2gene' (not 'genemap2') to preserve MONDO SSSOM mapping compatibility
+- **77-01:** Versioning occurs AFTER inheritance expansion and deduplication to prevent spurious versions
+- **77-01:** Unknown inheritance modes trigger warnings (not errors) for graceful handling of new OMIM terms
 
 ### Pending Todos
 
@@ -94,7 +97,7 @@ None.
 - OMIM IP blocking from excessive downloads (mitigated: file-based 1-day TTL caching in Phase 76)
 - genemap2.txt column name changes (mitigated: defensive column mapping in Phase 76)
 - Phenotypes column regex fragility (mitigated: robust field-based parsing in Phase 76)
-- Inheritance mode mapping completeness (validation during Phase 77 implementation)
+- Inheritance mode mapping completeness (validated in 77-01: 15-entry mapping with warning on unmapped terms)
 - Deprecation tracking gap (decision needed in Phase 79: keep mim2gene vs diff-based approach)
 
 ---
@@ -102,10 +105,10 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-07
-**Stopped at:** Phase 76 complete, verified, ready for Phase 77
-**Next action:** `/gsd:plan-phase 77`
+**Stopped at:** Completed 77-01-PLAN.md
+**Next action:** `/gsd:plan-phase 77` (plan 02 - genemap2 integration)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-07 — Phase 76 (Shared Infrastructure) complete and verified*
+*Last updated: 2026-02-07 — Completed 77-01 (build_omim_from_genemap2 function)*
