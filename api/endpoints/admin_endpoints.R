@@ -600,7 +600,11 @@ function(req, res) {
                 mondo_label = if (!is.null(mondo_info)) mondo_info$mondo_label else NA_character_,
                 deprecation_reason = if (!is.null(mondo_info)) mondo_info$deprecation_reason else NA_character_,
                 replacement_mondo_id = if (!is.null(mondo_info)) mondo_info$replacement_mondo_id else NA_character_,
-                replacement_mondo_label = if (!is.null(mondo_info)) mondo_info$replacement_mondo_label else NA_character_,
+                replacement_mondo_label = if (!is.null(mondo_info)) {
+                  mondo_info$replacement_mondo_label
+                } else {
+                  NA_character_
+                },
                 replacement_omim_id = if (!is.null(mondo_info)) mondo_info$replacement_omim_id else NA_character_
               ) %>%
               dplyr::ungroup()

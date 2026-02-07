@@ -131,7 +131,10 @@ hgnc_id_from_symbol_grouped <- function(input_tibble, request_max = 150) {
       if (nrow(.) > 0) {
         rowwise(.) %>%
           mutate(response = hgnc_id_from_prevsymbol(value)) %>%
-          mutate(response = case_when(!is.na(response) ~ response, is.na(response) ~ hgnc_id_from_aliassymbol(value))) %>%
+          mutate(response = case_when(
+            !is.na(response) ~ response,
+            is.na(response) ~ hgnc_id_from_aliassymbol(value)
+          )) %>%
           ungroup()
       } else {
         mutate(., response = integer())
