@@ -286,6 +286,91 @@ download_hpoa <- function(url, output_path = "data/", force = FALSE, max_age_day
 }
 
 
+#' Download phenotype_to_genes.txt from HPO
+#'
+#' Downloads the phenotype_to_genes.txt file from the Human Phenotype Ontology.
+#' This file contains pre-propagated HPO annotations (HPO hierarchy built in),
+#' making it ideal for filtering by a single HPO term like HP:0012759
+#' (Neurodevelopmental abnormality) without needing hierarchy traversal.
+#'
+#' @param url Character string, the phenotype_to_genes.txt download URL
+#' @param output_path Character string, directory to save the file (default: "data/")
+#' @param force Logical, if TRUE downloads even if recent file exists (default: FALSE)
+#' @param max_age_days Integer, maximum age in days before re-downloading (default: 1)
+#' @return Character string, path to the downloaded/existing file
+#'
+#' @details
+#' Downloaded files are named phenotype_to_genes.YYYY-MM-DD.txt.
+#'
+#' Caching behavior:
+#' - Uses check_file_age_days() for 1-day TTL checking
+#' - Returns cached file if it exists and is less than max_age_days old
+#' - Downloads fresh file if cache is expired or force=TRUE
+#'
+#' Retry logic (same as download_hpoa):
+#' - max_tries: 3
+#' - max_seconds: 60
+#' - backoff: exponential (2^x seconds)
+#' - timeout: 30 seconds per request
+#'
+#' @examples
+#' \dontrun{
+#'   # Use cached file if < 1 day old
+#'   file_path <- download_phenotype_to_genes()
+#'
+#'   # Force fresh download
+#'   file_path <- download_phenotype_to_genes(force = TRUE)
+#' }
+#'
+#' @export
+download_phenotype_to_genes <- function(
+    url = "http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt",
+    output_path = "data/",
+    force = FALSE,
+    max_age_days = 1) {
+  # Check if recent file exists
+  if (!force && check_file_age_days("phenotype_to_genes", output_path, max_age_days)) {
+    existing_file <- get_newest_file("phenotype_to_genes", output_path)
+    if (!is.null(existing_file)) {
+      message(sprintf("[HPO] Using cached phenotype_to_genes.txt: %s", existing_file))
+      return(existing_file)
+    }
+  }
+
+  # Download from HPO
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
+  output_file <- paste0(output_path, "phenotype_to_genes.", current_date, ".txt")
+
+  # Ensure output directory exists
+  if (!dir_exists(output_path)) {
+    dir_create(output_path)
+  }
+
+  response <- request(url) %>%
+    req_retry(
+      max_tries = 3,
+      max_seconds = 60,
+      backoff = ~ 2^.x
+    ) %>%
+    req_timeout(30) %>%
+    req_perform()
+
+  if (resp_status(response) != 200) {
+    stop(sprintf(
+      "Failed to download phenotype_to_genes.txt: HTTP %d",
+      resp_status(response)
+    ))
+  }
+
+  # Write to file
+  writeBin(resp_body_raw(response), output_file)
+
+  message(sprintf("[HPO] Downloaded phenotype_to_genes.txt to %s", output_file))
+
+  return(output_file)
+}
+
+
 #' Parse genemap2.txt file from OMIM
 #'
 #' Reads and parses the genemap2.txt file, extracting disease names, MIM numbers,

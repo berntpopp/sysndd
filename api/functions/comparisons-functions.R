@@ -376,43 +376,46 @@ parse_orphanet_json <- function(file_path) {
   return(result)
 }
 
-#' Parse OMIM Genemap2 with HPO Phenotype Annotations
+#' Parse OMIM Genemap2 with HPO Phenotype-to-Genes Annotations
 #'
-#' Parses OMIM genemap2.txt along with HPO phenotype.hpoa to identify
-#' NDD-related genes based on HPO term filtering.
+#' Filters OMIM genemap2 data to NDD-related genes using the HPO
+#' phenotype_to_genes.txt file, which contains pre-propagated HPO hierarchy
+#' annotations. Filtering for HP:0012759 (Neurodevelopmental abnormality)
+#' captures all descendant terms automatically.
 #'
-#' @param genemap2_path Path to omim_genemap2.txt file
-#' @param phenotype_hpoa_path Path to phenotype.hpoa file
+#' @param genemap2_data Pre-parsed tibble from parse_genemap2()
+#' @param phenotype_to_genes_path Path to phenotype_to_genes.txt file
 #'
 #' @return Tibble with extracted NDD-related genes
 #'
 #' @export
-adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_hpoa_path) {
-  # NDD-related HPO phenotype terms used to filter OMIM entries for SysNDD comparisons
-  # Root term: HP:0012759 (Neurodevelopmental abnormality)
-  # Review if HPO restructures the neurodevelopmental branch
-  NDD_HPO_TERMS <- c(
-    "HP:0012759", "HP:0001249", "HP:0001256", "HP:0002187",
-    "HP:0002342", "HP:0006889", "HP:0010864"
-  )
-
-  # Read phenotype.hpoa (skip header lines)
-  phenotype_hpoa <- read_tsv(
-    phenotype_hpoa_path,
-    skip = 4,
+adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_path) {
+  # Read phenotype_to_genes.txt (tab-delimited, 1 header line starting with #)
+  ptg <- read_tsv(
+    phenotype_to_genes_path,
+    comment = "#",
+    col_names = c(
+      "hpo_id", "hpo_name", "ncbi_gene_id",
+      "gene_symbol", "disease_id"
+    ),
+    col_types = cols(.default = col_character()),
     show_col_types = FALSE
   )
 
-  # Filter for NDD-related OMIM entries via HPO phenotypes
-  phenotype_hpoa_omim_ndd <- phenotype_hpoa %>%
-    filter(str_detect(database_id, "OMIM")) %>%
-    filter(hpo_id %in% NDD_HPO_TERMS) %>%
-    dplyr::select(database_id) %>%
+  # Filter for NDD root term (propagated annotations include all descendants)
+  # and OMIM diseases only
+  ndd_omim_diseases <- ptg %>%
+    filter(hpo_id == "HP:0012759") %>%
+    filter(str_detect(disease_id, "^OMIM:")) %>%
+    dplyr::select(disease_id) %>%
     unique()
 
   # Join to get NDD genes from pre-parsed genemap2 data
-  result <- phenotype_hpoa_omim_ndd %>%
-    left_join(genemap2_data, by = c("database_id" = "disease_ontology_id")) %>%
+  result <- ndd_omim_diseases %>%
+    left_join(
+      genemap2_data,
+      by = c("disease_id" = "disease_ontology_id")
+    ) %>%
     filter(!is.na(Approved_Symbol)) %>%
     mutate(
       list = "omim_ndd",
@@ -421,7 +424,7 @@ adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_hpoa_path) {
     ) %>%
     dplyr::select(
       gene_symbol = Approved_Symbol,
-      disease_ontology_id = database_id,
+      disease_ontology_id = disease_id,
       disease_ontology_name,
       inheritance = hpo_mode_of_inheritance_term_name,
       list,
@@ -756,7 +759,7 @@ comparisons_update_async <- function(params) {
 
     message(sprintf("[%s] [job:%s] Found %d active sources", Sys.time(), job_id, nrow(sources)))
 
-    # Track downloaded files for OMIM+HPO pairing
+    # Track downloaded files
     downloaded_files <- list()
     all_parsed_data <- list()
     import_date <- format(Sys.Date(), "%Y-%m-%d")
@@ -771,16 +774,7 @@ comparisons_update_async <- function(params) {
       progress("download", sprintf("Downloading %s...", source_name),
                current = progress_current, total = progress_total)
 
-      # Use persistent caching for phenotype_hpoa instead of temp download
-      if (source_name == "phenotype_hpoa") {
-        file_path <- download_hpoa(
-          url = source$source_url,
-          output_path = "data/",
-          force = FALSE
-        )
-      } else {
-        file_path <- download_source_data(source, temp_dir)
-      }
+      file_path <- download_source_data(source, temp_dir)
 
       if (is.null(file_path)) {
         update_comparisons_metadata(conn, "failed", nrow(sources), 0,
@@ -811,7 +805,6 @@ comparisons_update_async <- function(params) {
           "sfari" = parse_sfari_csv(file_path),
           "geisinger_DBD" = parse_geisinger_csv(file_path),
           "orphanet_id" = parse_orphanet_json(file_path),
-          "phenotype_hpoa" = NULL,  # Used by omim_genemap2, not parsed separately
           stop(sprintf("Unknown source: %s", source_name))
         )
       }, error = function(e) {
@@ -833,11 +826,8 @@ comparisons_update_async <- function(params) {
     omim_parsed <- tryCatch({
       genemap2_path <- download_genemap2(output_path = "data/", force = FALSE)
       genemap2_data <- parse_genemap2(genemap2_path)
-      hpoa_path <- downloaded_files[["phenotype_hpoa"]]
-      if (is.null(hpoa_path)) {
-        stop("phenotype_hpoa file required for omim_genemap2 parsing")
-      }
-      parsed <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+      ptg_path <- download_phenotype_to_genes(output_path = "data/", force = FALSE)
+      parsed <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
       standardize_comparison_data(parsed, "omim_genemap2", import_date)
     }, error = function(e) {
       update_comparisons_metadata(conn, "failed", nrow(sources), 0,

@@ -400,21 +400,21 @@ test_that("standardize_comparison_data handles special characters", {
 })
 
 # ============================================================================
-# adapt_genemap2_for_comparisons() Tests (Phase 78 - Shared Infrastructure)
+# adapt_genemap2_for_comparisons() Tests (uses phenotype_to_genes.txt)
 # ============================================================================
 
 test_that("adapt_genemap2_for_comparisons returns correct schema columns", {
   # Load fixtures
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   # Parse genemap2 to get pre-parsed tibble (shared infrastructure)
   genemap2_data <- parse_genemap2(genemap2_path)
 
   # Pass pre-parsed data to adapter
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
   # Must have exact comparisons schema columns
   expected_cols <- c("gene_symbol", "disease_ontology_id", "disease_ontology_name",
@@ -425,16 +425,23 @@ test_that("adapt_genemap2_for_comparisons returns correct schema columns", {
 
 test_that("adapt_genemap2_for_comparisons filters only NDD-related entries", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
-  # Should include NDD genes (those matching HPO NDD phenotypes)
-  # Should NOT include non-NDD genes (e.g., BRCA1 with non-NDD HPO)
+  # Should include NDD genes (those matching HP:0012759 in phenotype_to_genes.txt)
+  # Should NOT include non-NDD genes (e.g., BRCA1 only has HP:0003002)
   expect_true(nrow(result) > 0)
+
+  # BRCA1 should not be included (only has breast carcinoma HPO, not NDD)
+  expect_false("BRCA1" %in% result$gene_symbol)
+
+  # NDD genes should be included
+  expect_true("MECP2" %in% result$gene_symbol)
+  expect_true("SCN1A" %in% result$gene_symbol)
 
   # All entries should have list = "omim_ndd"
   expect_true(all(result$list == "omim_ndd"))
@@ -445,12 +452,12 @@ test_that("adapt_genemap2_for_comparisons filters only NDD-related entries", {
 
 test_that("adapt_genemap2_for_comparisons uses date-based version field", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -463,12 +470,12 @@ test_that("adapt_genemap2_for_comparisons uses date-based version field", {
 
 test_that("adapt_genemap2_for_comparisons has normalized inheritance values", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -484,12 +491,12 @@ test_that("adapt_genemap2_for_comparisons has normalized inheritance values", {
 
 test_that("adapt_genemap2_for_comparisons disease_ontology_id has OMIM prefix", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
   skip_if(nrow(result) == 0, "No NDD entries matched in fixtures")
 
@@ -499,12 +506,12 @@ test_that("adapt_genemap2_for_comparisons disease_ontology_id has OMIM prefix", 
 
 test_that("adapt_genemap2_for_comparisons excludes entries without gene symbol", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   genemap2_data <- parse_genemap2(genemap2_path)
-  result <- adapt_genemap2_for_comparisons(genemap2_data, hpoa_path)
+  result <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
 
   # No NA gene_symbol values should be present
   expect_false(any(is.na(result$gene_symbol)))
@@ -512,17 +519,17 @@ test_that("adapt_genemap2_for_comparisons excludes entries without gene symbol",
 
 test_that("adapt_genemap2_for_comparisons receives tibble not file path", {
   genemap2_path <- file.path(api_dir, "tests/testthat/fixtures/genemap2_test.txt")
-  hpoa_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_hpoa_test.txt")
+  ptg_path <- file.path(api_dir, "tests/testthat/fixtures/phenotype_to_genes_test.txt")
   skip_if_not(file.exists(genemap2_path), "genemap2 fixture not found")
-  skip_if_not(file.exists(hpoa_path), "phenotype.hpoa fixture not found")
+  skip_if_not(file.exists(ptg_path), "phenotype_to_genes fixture not found")
 
   # Passing a file path (string) instead of tibble should error
   expect_error(
-    adapt_genemap2_for_comparisons(genemap2_path, hpoa_path),
+    adapt_genemap2_for_comparisons(genemap2_path, ptg_path),
     regexp = NULL  # Any error - adapter expects tibble not string
   )
 
   # Passing pre-parsed tibble should work
   genemap2_data <- parse_genemap2(genemap2_path)
-  expect_no_error(adapt_genemap2_for_comparisons(genemap2_data, hpoa_path))
+  expect_no_error(adapt_genemap2_for_comparisons(genemap2_data, ptg_path))
 })

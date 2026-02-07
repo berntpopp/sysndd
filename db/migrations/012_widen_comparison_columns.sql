@@ -125,7 +125,7 @@ BEGIN
           MODIFY COLUMN disease_ontology_id TEXT NULL COMMENT 'Disease ID (OMIM:123456, ORPHA:1234, MONDO:0001234)';
     END IF;
 
-    -- Widen granularity column: VARCHAR(<500) -> TEXT
+    -- Widen granularity column: VARCHAR -> TEXT
     -- Reason: detailed granularity descriptions
     IF EXISTS (
         SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
@@ -133,7 +133,6 @@ BEGIN
           AND TABLE_NAME = 'ndd_database_comparison'
           AND COLUMN_NAME = 'granularity'
           AND DATA_TYPE = 'varchar'
-          AND (CHARACTER_MAXIMUM_LENGTH < 500 OR CHARACTER_MAXIMUM_LENGTH IS NULL)
     ) THEN
         ALTER TABLE ndd_database_comparison
           MODIFY COLUMN granularity TEXT NULL COMMENT 'Data granularity description for source';
