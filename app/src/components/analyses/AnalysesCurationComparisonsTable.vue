@@ -42,7 +42,7 @@
                 <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
                 abnormality" (HP:0012759) and all its child terms using the files phenotype_to_genes
                 (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa) and genemap2
-                (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
+                (genemap2.txt from OMIM, requires download key),
                 <br />
               </BPopover>
             </h6>

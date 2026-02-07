@@ -1,4 +1,0 @@
-https://omim.org/static/omim/data/mim2gene.txt
-https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/mimTitles.txt
-https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt
-https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/morbidmap.txt
