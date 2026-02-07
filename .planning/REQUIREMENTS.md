@@ -1,74 +1,85 @@
-# Requirements: SysNDD v10.3 Bug Fixes & Stabilization
+# Requirements: SysNDD v10.4 OMIM Optimization & Refactor
 
-**Defined:** 2026-02-05
+**Defined:** 2026-02-07
 **Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
 ## v1 Requirements
 
-Requirements for v10.3 milestone. Each maps to roadmap phases.
+Requirements for v10.4 milestone. Each maps to roadmap phases.
 
-### API Bug Fixes
+### Shared Infrastructure
 
-- [x] **API-01**: Direct approval entity creation no longer returns 500 error (#166)
-- [x] **API-02**: Panels page loads successfully with all allowed columns matching query results (#161)
-- [x] **API-03**: Clustering endpoints handle empty tibbles in rowwise context without crashing (#155)
+- [ ] **INFRA-01**: genemap2.txt downloads use OMIM_DOWNLOAD_KEY environment variable (not hardcoded) (#139)
+- [ ] **INFRA-02**: genemap2.txt downloads are cached on disk with 1-day TTL to prevent OMIM rate limiting/blocking
+- [ ] **INFRA-03**: genemap2.txt parsing handles column name variations defensively (historical field renames)
+- [ ] **INFRA-04**: Shared parse_genemap2() function extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
 
-### Data Infrastructure
+### Ontology Migration
 
-- [x] **DATA-01**: Database migration widens ndd_database_comparison columns to prevent truncation (#158)
-- [x] **DATA-02**: Database migration updates Gene2Phenotype source URL and file_format to new API (#156)
-- [x] **DATA-03**: Stale memoization cache is invalidated when code changes affect cached data structures (#157)
+- [ ] **ONTO-01**: Ontology update uses genemap2.txt for disease names instead of JAX API sequential calls (#139)
+- [ ] **ONTO-02**: Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
+- [ ] **ONTO-03**: Inheritance mode information from genemap2.txt is mapped to HPO terms and stored in disease_ontology_set
+- [ ] **ONTO-04**: Duplicate MIM numbers retain versioning (OMIM:123456_1, _2) consistent with previous behavior
+- [ ] **ONTO-05**: MONDO SSSOM mappings continue to be applied after genemap2 processing (unchanged)
+- [ ] **ONTO-06**: mim2gene.txt continues to be downloaded (free, no auth) for deprecation tracking of moved/removed entries
 
-### Frontend Fixes
+### Comparisons Integration
 
-- [x] **FE-01**: Documentation links point to correct numbered-prefix URLs on GitHub Pages (#162)
-- [x] **FE-02**: Table column headers display statistics/metadata on hover (#164)
+- [ ] **COMP-01**: Comparisons system uses shared genemap2 cache (single download per day across both systems)
+- [ ] **COMP-02**: Comparisons omim_genemap2 parsing calls shared parse_genemap2() to eliminate code duplication
 
-### Frontend UX Improvements
+### Configuration & Cleanup
 
-- [x] **UX-01**: Create Entity phenotype selection uses same multiselect component as ModifyEntity (#165)
-- [x] **UX-02**: Associated Entities section appears above Constraint and ClinVar sections in Genes view (#163)
+- [ ] **CFG-01**: Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable
+- [ ] **CFG-02**: JAX API functions removed (fetch_jax_disease_name, fetch_all_disease_names)
+- [ ] **CFG-03**: Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
 
 ## v2 Requirements
 
 Deferred to future milestones.
 
-- **INFRA-01**: Playwright testing infrastructure in dev container (#140)
-- **INFRA-02**: Redis job queue with separate heavy/light workers (#154)
-- **INFRA-03**: Automated log cleanup cron job (#105)
+- **INFRA-05**: Playwright testing infrastructure in dev container (#140)
+- **INFRA-06**: Redis job queue with separate heavy/light workers (#154)
+- **INFRA-07**: Automated log cleanup cron job (#105)
+- **DEPR-01**: Diff-based deprecation detection (compare genemap2 versions instead of mim2gene)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Multi-container scaling fix (#136) | Separate infrastructure concern, not a bug fix |
+| Multi-container scaling fix (#136) | Separate infrastructure concern |
 | Initial password login bug (#142) | Needs deeper investigation, separate milestone |
-| VariO ontology replacement (#98) | Feature request, not stabilization |
-| Curation matrix links (#89) | Feature request, not stabilization |
-| CurationComparisons input style (#83) | Low priority cosmetic issue |
-| Editable static content via UI (#58) | Feature request, deferred |
-| OMIM update optimization (#139) | Performance enhancement, not a bug |
+| VariO ontology replacement (#98) | Feature request, not OMIM related |
+| Dynamic HPO hierarchy fetch | Static NDD HPO term list sufficient for filtering |
+| Multiple OMIM provider fallbacks | genemap2.txt is sole authoritative source |
+| mimTitles.txt integration | genemap2.txt provides disease names directly |
+| Real-time OMIM API integration | File-based approach with caching is safer and faster |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| API-01 | Phase 74 | Complete |
-| API-02 | Phase 74 | Complete |
-| API-03 | Phase 74 | Complete |
-| DATA-01 | Phase 73 | Complete |
-| DATA-02 | Phase 73 | Complete |
-| DATA-03 | Phase 73 | Complete |
-| FE-01 | Phase 75 | Complete |
-| FE-02 | Phase 75 | Complete |
-| UX-01 | Phase 75 | Complete |
-| UX-02 | Phase 75 | Complete |
+| INFRA-01 | TBD | Pending |
+| INFRA-02 | TBD | Pending |
+| INFRA-03 | TBD | Pending |
+| INFRA-04 | TBD | Pending |
+| ONTO-01 | TBD | Pending |
+| ONTO-02 | TBD | Pending |
+| ONTO-03 | TBD | Pending |
+| ONTO-04 | TBD | Pending |
+| ONTO-05 | TBD | Pending |
+| ONTO-06 | TBD | Pending |
+| COMP-01 | TBD | Pending |
+| COMP-02 | TBD | Pending |
+| CFG-01 | TBD | Pending |
+| CFG-02 | TBD | Pending |
+| CFG-03 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 10 total
-- Mapped to phases: 10
-- Unmapped: 0
+- v1 requirements: 15 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 15
 
 ---
-*Requirements defined: 2026-02-05*
-*Last updated: 2026-02-06 -- Phase 75 complete (FE-01, FE-02, UX-01, UX-02)*
+*Requirements defined: 2026-02-07*
+*Last updated: 2026-02-07 after research synthesis*
