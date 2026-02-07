@@ -59,27 +59,27 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | TBD | Pending |
-| INFRA-02 | TBD | Pending |
-| INFRA-03 | TBD | Pending |
-| INFRA-04 | TBD | Pending |
-| ONTO-01 | TBD | Pending |
-| ONTO-02 | TBD | Pending |
-| ONTO-03 | TBD | Pending |
-| ONTO-04 | TBD | Pending |
-| ONTO-05 | TBD | Pending |
-| ONTO-06 | TBD | Pending |
-| COMP-01 | TBD | Pending |
-| COMP-02 | TBD | Pending |
-| CFG-01 | TBD | Pending |
-| CFG-02 | TBD | Pending |
-| CFG-03 | TBD | Pending |
+| INFRA-01 | Phase 76 | Pending |
+| INFRA-02 | Phase 76 | Pending |
+| INFRA-03 | Phase 76 | Pending |
+| INFRA-04 | Phase 76 | Pending |
+| ONTO-01 | Phase 77 | Pending |
+| ONTO-02 | Phase 77 | Pending |
+| ONTO-03 | Phase 77 | Pending |
+| ONTO-04 | Phase 77 | Pending |
+| ONTO-05 | Phase 77 | Pending |
+| ONTO-06 | Phase 77 | Pending |
+| COMP-01 | Phase 78 | Pending |
+| COMP-02 | Phase 78 | Pending |
+| CFG-01 | Phase 79 | Pending |
+| CFG-02 | Phase 79 | Pending |
+| CFG-03 | Phase 79 | Pending |
 
 **Coverage:**
 - v1 requirements: 15 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 15
+- Mapped to phases: 15 (100%)
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after research synthesis*
+*Last updated: 2026-02-07 after roadmap creation*

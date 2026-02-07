@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Defining requirements for v10.4
+**Current focus:** Phase 76 - Shared Infrastructure
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,14 +19,14 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 
 ## Current Position
 
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Defining requirements
+**Phase:** 76 of 79 (Shared Infrastructure)
+**Plan:** Ready to plan
+**Status:** Ready to plan
 **Progress:** v10.4 [░░░░░░░░░░░░░░░░░░░░] 0%
 
-**Last completed:** v10.3 milestone (all phases verified)
-**Last activity:** 2026-02-07 — Milestone v10.4 started
-**Next action:** Research OMIM best practices, define requirements
+**Last completed:** Phase 75 (Frontend Fixes & UX Improvements) — 2026-02-06
+**Last activity:** 2026-02-07 — Roadmap created for v10.4 milestone
+**Next action:** `/gsd:plan-phase 76`
 
 ---
 
@@ -34,30 +34,31 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 
 **Goal:** Replace slow JAX API with genemap2.txt for OMIM disease names, unify OMIM data sources, add download caching, and move credentials to env vars
 
-**Target features:**
-- Replace JAX API sequential fetch (~20 min) with genemap2.txt parsing (~seconds)
-- Unify OMIM data source between ontology system and comparisons system
-- Disk-based cache with 1-day TTL for OMIM file downloads
-- OMIM download key moved to OMIM_DOWNLOAD_KEY environment variable
-- Research-informed best practices for OMIM phenotype mapping
+**Key deliverables:**
+- Shared genemap2 infrastructure with download caching and robust parsing (Phase 76)
+- Ontology system migration to genemap2 with mode of inheritance data (Phase 77)
+- Unified cache between ontology and comparisons systems (Phase 78)
+- Environment variable configuration for OMIM download key (Phase 79)
+
+**Expected performance:** Ontology update time drops from ~8 minutes to ~30 seconds
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 315
-- Milestones shipped: 15 (v1-v10.3)
-- Phases completed: 83
+- Total plans completed: 315 (from v1-v10.3)
+- Milestones shipped: 13 (v1-v10.3)
+- Phases completed: 75
 
 **Current Stats:**
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 716 + 11 E2E | +29 tests in phase 74 (entity creation, panels, clustering) |
+| **Backend Tests** | 716 + 11 E2E | Coverage 20.3% |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 32 | Including useColumnTooltip, useLlmAdmin, useExcelExport |
-| **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
+| **Migrations** | 13 files + runner | Schema version 13 |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 | **Total Tests** | 1,402+ | Passing |
@@ -69,22 +70,35 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
 
-(New milestone — decisions will be logged as phases complete)
+- v10.4 OMIM approach: Replace JAX API with genemap2.txt for 50x+ performance improvement (8min → 30sec)
+- Existing packages (httr2, fs, lubridate) provide all needed functionality for file caching with 1-day TTL
+- Phased migration with feature flags allows rollback if needed during transition
+- Defensive column mapping handles genemap2.txt historical field name changes
+
+### Pending Todos
+
+None.
 
 ### Blockers/Concerns
 
-None.
+**Known risks from research:**
+- OMIM IP blocking from excessive downloads (mitigated: file-based 1-day TTL caching in Phase 76)
+- genemap2.txt column name changes (mitigated: defensive column mapping in Phase 76)
+- Phenotypes column regex fragility (mitigated: robust field-based parsing in Phase 76)
+- Inheritance mode mapping completeness (validation during Phase 77 implementation)
+- Deprecation tracking gap (decision needed in Phase 79: keep mim2gene vs diff-based approach)
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-07
-**Stopped at:** Milestone v10.4 initialization
-**Next action:** Research OMIM best practices, define requirements
+**Stopped at:** Roadmap created for milestone v10.4
+**Next action:** Plan Phase 76 (Shared Infrastructure)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-07 — Milestone v10.4 started*
+*Last updated: 2026-02-07 — v10.4 roadmap created*
