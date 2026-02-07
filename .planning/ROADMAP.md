@@ -98,8 +98,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 78-01-PLAN.md — Reduce parse_omim_genemap2() to shared infrastructure, modify async workflow, add migration
-- [ ] 78-02-PLAN.md — Unit tests for reduced parse_omim_genemap2() with synthetic fixtures
+- [ ] 78-01-PLAN.md — Add download_hpoa() caching, replace parse_omim_genemap2() with adapt_genemap2_for_comparisons() adapter, modify async workflow, add migration
+- [ ] 78-02-PLAN.md — Unit tests for adapt_genemap2_for_comparisons() adapter with synthetic fixtures
 
 #### Phase 79: Configuration & Cleanup
 
@@ -134,4 +134,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 78 planning*
+*Last updated: 2026-02-07 after Phase 78 plan revision*
