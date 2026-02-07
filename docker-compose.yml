@@ -162,6 +162,8 @@ services:
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       CACHE_VERSION: ${CACHE_VERSION:-1}
+      # OMIM download key for genemap2.txt (required for ontology/comparisons)
+      OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
     networks:
       - proxy
       - backend
