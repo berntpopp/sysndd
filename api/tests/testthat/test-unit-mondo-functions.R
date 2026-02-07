@@ -216,23 +216,24 @@ test_that("get_mondo_for_omim handles empty string input", {
 # add_mondo_mappings_to_ontology() Tests
 # ============================================================================
 
-test_that("add_mondo_mappings_to_ontology adds mondo_equivalent column", {
+test_that("add_mondo_mappings_to_ontology enriches MONDO column for mim2gene entries", {
   withr::with_tempdir({
     sssom_file <- create_mock_sssom_file("test.sssom.tsv")
     mappings <- parse_mondo_sssom(sssom_file)
 
-    # Create mock disease_ontology_set
+    # Create mock disease_ontology_set with empty MONDO column
     ontology_set <- tibble::tibble(
       disease_ontology_id_version = c("OMIM:100100", "OMIM:100200"),
       disease_ontology_id = c("OMIM:100100", "OMIM:100200"),
-      disease_ontology_source = c("mim2gene", "mim2gene")
+      disease_ontology_source = c("mim2gene", "mim2gene"),
+      MONDO = c(NA_character_, NA_character_)
     )
 
     result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
 
-    expect_true("mondo_equivalent" %in% names(result))
-    expect_equal(result$mondo_equivalent[1], "MONDO:0000001")
-    expect_equal(result$mondo_equivalent[2], "MONDO:0000002")
+    expect_true("MONDO" %in% names(result))
+    expect_equal(result$MONDO[1], "MONDO:0000001")
+    expect_equal(result$MONDO[2], "MONDO:0000002")
   })
 })
 
@@ -245,16 +246,17 @@ test_that("add_mondo_mappings_to_ontology only maps mim2gene entries", {
     ontology_set <- tibble::tibble(
       disease_ontology_id_version = c("OMIM:100100", "MONDO:0000999"),
       disease_ontology_id = c("OMIM:100100", "MONDO:0000999"),
-      disease_ontology_source = c("mim2gene", "mondo")
+      disease_ontology_source = c("mim2gene", "mondo"),
+      MONDO = c(NA_character_, "MONDO:0000999")
     )
 
     result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
 
-    # mim2gene entry should have mapping
-    expect_equal(result$mondo_equivalent[1], "MONDO:0000001")
+    # mim2gene entry should have mapping filled from SSSOM
+    expect_equal(result$MONDO[1], "MONDO:0000001")
 
-    # mondo entry should have NA (not mim2gene source)
-    expect_true(is.na(result$mondo_equivalent[2]))
+    # mondo entry should keep its existing MONDO value
+    expect_equal(result$MONDO[2], "MONDO:0000999")
   })
 })
 
@@ -267,12 +269,13 @@ test_that("add_mondo_mappings_to_ontology returns NA for unmapped OMIM", {
     ontology_set <- tibble::tibble(
       disease_ontology_id_version = c("OMIM:888888"),
       disease_ontology_id = c("OMIM:888888"),
-      disease_ontology_source = c("mim2gene")
+      disease_ontology_source = c("mim2gene"),
+      MONDO = NA_character_
     )
 
     result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
 
-    expect_true(is.na(result$mondo_equivalent[1]))
+    expect_true(is.na(result$MONDO[1]))
   })
 })
 
@@ -284,7 +287,8 @@ test_that("add_mondo_mappings_to_ontology handles empty ontology set", {
     ontology_set <- tibble::tibble(
       disease_ontology_id_version = character(),
       disease_ontology_id = character(),
-      disease_ontology_source = character()
+      disease_ontology_source = character(),
+      MONDO = character()
     )
 
     result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
@@ -302,15 +306,36 @@ test_that("add_mondo_mappings_to_ontology handles multiple MONDO matches", {
     ontology_set <- tibble::tibble(
       disease_ontology_id_version = c("OMIM:100400"),
       disease_ontology_id = c("OMIM:100400"),
-      disease_ontology_source = c("mim2gene")
+      disease_ontology_source = c("mim2gene"),
+      MONDO = NA_character_
     )
 
     result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
 
     # Should have semicolon-separated MONDO IDs
-    expect_true(grepl(";", result$mondo_equivalent[1]))
-    expect_true(grepl("MONDO:0000004", result$mondo_equivalent[1]))
-    expect_true(grepl("MONDO:0000005", result$mondo_equivalent[1]))
+    expect_true(grepl(";", result$MONDO[1]))
+    expect_true(grepl("MONDO:0000004", result$MONDO[1]))
+    expect_true(grepl("MONDO:0000005", result$MONDO[1]))
+  })
+})
+
+test_that("add_mondo_mappings_to_ontology preserves existing MONDO values", {
+  withr::with_tempdir({
+    sssom_file <- create_mock_sssom_file("test.sssom.tsv")
+    mappings <- parse_mondo_sssom(sssom_file)
+
+    # mim2gene entry that already has a MONDO from OBO should keep it
+    ontology_set <- tibble::tibble(
+      disease_ontology_id_version = c("OMIM:100100"),
+      disease_ontology_id = c("OMIM:100100"),
+      disease_ontology_source = c("mim2gene"),
+      MONDO = c("MONDO:9999999")
+    )
+
+    result <- add_mondo_mappings_to_ontology(ontology_set, mappings)
+
+    # Should NOT overwrite with SSSOM value
+    expect_equal(result$MONDO[1], "MONDO:9999999")
   })
 })
 

@@ -195,7 +195,7 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
       mutate(is_active = TRUE, update_date = format(Sys.Date(), "%Y-%m-%d"))
 
     # Download and apply MONDO SSSOM mappings for OMIM-to-MONDO equivalence
-    # This adds mondo_equivalent column for mim2gene entries
+    # This enriches the MONDO column for mim2gene entries via vectorized join
     if (!is.null(progress_callback)) {
       progress_callback(step = "Applying MONDO SSSOM mappings", current = 4, total = 4)
     }
