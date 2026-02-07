@@ -72,6 +72,120 @@ download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_mont
 }
 
 
+#' Get OMIM download API key from environment variable
+#'
+#' Retrieves the OMIM download API key from the OMIM_DOWNLOAD_KEY environment
+#' variable. Stops with an informative error message if the variable is not set.
+#'
+#' @return Character string, the OMIM download API key
+#'
+#' @details
+#' The OMIM download key is required for authenticated downloads of genemap2.txt.
+#' Set the environment variable in one of these ways:
+#' - Add to .env file: OMIM_DOWNLOAD_KEY=your_key_here
+#' - Docker Compose: environment: - OMIM_DOWNLOAD_KEY=${OMIM_DOWNLOAD_KEY}
+#' - R session: Sys.setenv(OMIM_DOWNLOAD_KEY = "your_key_here")
+#'
+#' @examples
+#' \dontrun{
+#'   api_key <- get_omim_download_key()
+#' }
+#'
+#' @export
+get_omim_download_key <- function() {
+  api_key <- Sys.getenv("OMIM_DOWNLOAD_KEY", "")
+  if (api_key == "") {
+    stop(
+      "OMIM_DOWNLOAD_KEY environment variable not set.\n",
+      "Add to .env file: OMIM_DOWNLOAD_KEY=your_key_here\n",
+      "Or set in Docker Compose: environment: - OMIM_DOWNLOAD_KEY=${OMIM_DOWNLOAD_KEY}"
+    )
+  }
+  return(api_key)
+}
+
+
+#' Download genemap2.txt from OMIM
+#'
+#' Downloads the genemap2.txt file from OMIM using an authenticated download URL.
+#' Uses httr2 with retry logic for reliability. Checks file age before downloading
+#' with 1-day TTL (time-to-live) caching.
+#'
+#' @param output_path Character string, directory to save the file (default: "data/")
+#' @param force Logical, if TRUE downloads even if recent file exists (default: FALSE)
+#' @param max_age_days Integer, maximum age in days before re-downloading (default: 1)
+#' @return Character string, path to the downloaded/existing file
+#'
+#' @details
+#' Uses OMIM_DOWNLOAD_KEY environment variable for authentication (see get_omim_download_key()).
+#' Downloaded files are named genemap2.YYYY-MM-DD.txt.
+#'
+#' Caching behavior:
+#' - Uses check_file_age_days() for 1-day TTL checking
+#' - Returns cached file if it exists and is less than max_age_days old
+#' - Downloads fresh file if cache is expired or force=TRUE
+#'
+#' Retry logic (same as download_mim2gene):
+#' - max_tries: 3
+#' - max_seconds: 60
+#' - backoff: exponential (2^x seconds)
+#' - timeout: 30 seconds per request
+#'
+#' @examples
+#' \dontrun{
+#'   # Use cached file if < 1 day old
+#'   file_path <- download_genemap2()
+#'
+#'   # Force fresh download
+#'   file_path <- download_genemap2(force = TRUE)
+#' }
+#'
+#' @export
+download_genemap2 <- function(output_path = "data/", force = FALSE, max_age_days = 1) {
+  # Check if recent file exists
+  if (!force && check_file_age_days("genemap2", output_path, max_age_days)) {
+    existing_file <- get_newest_file("genemap2", output_path)
+    if (!is.null(existing_file)) {
+      message(sprintf("[OMIM] Using cached genemap2.txt: %s", existing_file))
+      return(existing_file)
+    }
+  }
+
+  # Get API key
+  api_key <- get_omim_download_key()
+
+  # Download from OMIM with authenticated URL
+  url <- sprintf("https://data.omim.org/downloads/%s/genemap2.txt", api_key)
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
+  output_file <- paste0(output_path, "genemap2.", current_date, ".txt")
+
+  # Ensure output directory exists
+  if (!dir_exists(output_path)) {
+    dir_create(output_path)
+  }
+
+  response <- request(url) %>%
+    req_retry(
+      max_tries = 3,
+      max_seconds = 60,
+      backoff = ~ 2^.x
+    ) %>%
+    req_timeout(30) %>%
+    req_perform()
+
+  if (resp_status(response) != 200) {
+    stop(sprintf("Failed to download genemap2.txt: HTTP %d", resp_status(response)))
+  }
+
+  # Write to file
+  writeBin(resp_body_raw(response), output_file)
+
+  message(sprintf("[OMIM] Downloaded genemap2.txt to %s", output_file))
+
+  return(output_file)
+}
+
+
 #' Parse mim2gene.txt file
 #'
 #' Reads and parses the mim2gene.txt file from OMIM. Filters for phenotype entries
