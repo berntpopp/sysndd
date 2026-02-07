@@ -59,7 +59,7 @@ Plans:
 - [x] 76-01-PLAN.md — Download infrastructure: env var API key, 1-day TTL caching, check_file_age_days()
 - [x] 76-02-PLAN.md — Parse infrastructure: shared parse_genemap2() with fixture-based unit tests
 
-#### Phase 77: Ontology Migration
+#### Phase 77: Ontology Migration ✅
 
 **Goal:** Replace mim2gene + JAX API with genemap2 in ontology system for 50x+ speed improvement
 
@@ -68,18 +68,18 @@ Plans:
 **Requirements:** ONTO-01, ONTO-02, ONTO-03, ONTO-04, ONTO-05, ONTO-06
 
 **Success Criteria** (what must be TRUE):
-1. Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
-2. Disease names in disease_ontology_set match genemap2.txt Phenotypes column
-3. Inheritance mode information from genemap2 is mapped to HPO terms and stored in disease_ontology_set
-4. Duplicate MIM numbers retain _1, _2 versioning consistent with previous behavior
-5. MONDO SSSOM mappings continue to be applied after genemap2 processing
-6. mim2gene.txt continues to be downloaded for deprecation tracking of moved/removed entries
+1. ✅ Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
+2. ✅ Disease names in disease_ontology_set match genemap2.txt Phenotypes column
+3. ✅ Inheritance mode information from genemap2 is mapped to HPO terms and stored in disease_ontology_set
+4. ✅ Duplicate MIM numbers retain _1, _2 versioning consistent with previous behavior
+5. ✅ MONDO SSSOM mappings continue to be applied after genemap2 processing
+6. ✅ mim2gene.txt continues to be downloaded for deprecation tracking of moved/removed entries
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 77-01-PLAN.md — Create build_omim_from_genemap2() with inheritance mapping, HGNC joining, and versioning
-- [ ] 77-02-PLAN.md — Rewire process_omim_ontology() to use genemap2 workflow, keep mim2gene for deprecation
+- [x] 77-01-PLAN.md — Create build_omim_from_genemap2() with inheritance mapping, HGNC joining, and versioning
+- [x] 77-02-PLAN.md — Rewire process_omim_ontology() to use genemap2 workflow, keep mim2gene for deprecation
 
 #### Phase 78: Comparisons Integration
 
@@ -127,10 +127,10 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
-| 77. Ontology Migration | v10.4 | 0/2 | Planned | - |
+| 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 78. Comparisons Integration | v10.4 | 0/? | Not started | - |
 | 79. Configuration & Cleanup | v10.4 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 76 completion*
+*Last updated: 2026-02-07 after Phase 77 completion*

@@ -16,12 +16,12 @@ Requirements for v10.4 milestone. Each maps to roadmap phases.
 
 ### Ontology Migration
 
-- [ ] **ONTO-01**: Ontology update uses genemap2.txt for disease names instead of JAX API sequential calls (#139)
-- [ ] **ONTO-02**: Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
-- [ ] **ONTO-03**: Inheritance mode information from genemap2.txt is mapped to HPO terms and stored in disease_ontology_set
-- [ ] **ONTO-04**: Duplicate MIM numbers retain versioning (OMIM:123456_1, _2) consistent with previous behavior
-- [ ] **ONTO-05**: MONDO SSSOM mappings continue to be applied after genemap2 processing (unchanged)
-- [ ] **ONTO-06**: mim2gene.txt continues to be downloaded (free, no auth) for deprecation tracking of moved/removed entries
+- [x] **ONTO-01**: Ontology update uses genemap2.txt for disease names instead of JAX API sequential calls (#139)
+- [x] **ONTO-02**: Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
+- [x] **ONTO-03**: Inheritance mode information from genemap2.txt is mapped to HPO terms and stored in disease_ontology_set
+- [x] **ONTO-04**: Duplicate MIM numbers retain versioning (OMIM:123456_1, _2) consistent with previous behavior
+- [x] **ONTO-05**: MONDO SSSOM mappings continue to be applied after genemap2 processing (unchanged)
+- [x] **ONTO-06**: mim2gene.txt continues to be downloaded (free, no auth) for deprecation tracking of moved/removed entries
 
 ### Comparisons Integration
 
@@ -63,12 +63,12 @@ Deferred to future milestones.
 | INFRA-02 | Phase 76 | Complete |
 | INFRA-03 | Phase 76 | Complete |
 | INFRA-04 | Phase 76 | Complete |
-| ONTO-01 | Phase 77 | Pending |
-| ONTO-02 | Phase 77 | Pending |
-| ONTO-03 | Phase 77 | Pending |
-| ONTO-04 | Phase 77 | Pending |
-| ONTO-05 | Phase 77 | Pending |
-| ONTO-06 | Phase 77 | Pending |
+| ONTO-01 | Phase 77 | Complete |
+| ONTO-02 | Phase 77 | Complete |
+| ONTO-03 | Phase 77 | Complete |
+| ONTO-04 | Phase 77 | Complete |
+| ONTO-05 | Phase 77 | Complete |
+| ONTO-06 | Phase 77 | Complete |
 | COMP-01 | Phase 78 | Pending |
 | COMP-02 | Phase 78 | Pending |
 | CFG-01 | Phase 79 | Pending |
@@ -82,4 +82,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 76 completion*
+*Last updated: 2026-02-07 after Phase 77 completion*
