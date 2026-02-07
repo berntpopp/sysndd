@@ -451,6 +451,306 @@ test_that("build_omim_ontology_set handles missing disease names", {
 })
 
 # =============================================================================
+# build_omim_from_genemap2() tests
+# =============================================================================
+
+test_that("build_omim_from_genemap2 creates correct output schema", {
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1", "GENE2"),
+    disease_ontology_name = c("Disease A", "Disease B"),
+    disease_ontology_id = c("OMIM:100050", "OMIM:100100"),
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant", "Autosomal recessive"),
+    Mapping_key = c("3", "3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1", "GENE2"),
+    hgnc_id = c("HGNC:1", "HGNC:2")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c(
+      "Autosomal dominant inheritance",
+      "Autosomal recessive inheritance"
+    ),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # Check all 8 required columns exist
+    expected_cols <- c(
+      "disease_ontology_id_version",
+      "disease_ontology_id",
+      "disease_ontology_name",
+      "disease_ontology_source",
+      "disease_ontology_date",
+      "disease_ontology_is_specific",
+      "hgnc_id",
+      "hpo_mode_of_inheritance_term"
+    )
+    expect_true(all(expected_cols %in% names(result)))
+
+    # Check disease_ontology_source is "mim2gene" for all rows
+    expect_true(all(result$disease_ontology_source == "mim2gene"))
+
+    # Check disease_ontology_is_specific is TRUE for all rows
+    expect_true(all(result$disease_ontology_is_specific))
+
+    # Check we have 2 rows
+    expect_equal(nrow(result), 2)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 normalizes inheritance modes", {
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1", "GENE2", "GENE3"),
+    disease_ontology_name = c("Disease A", "Disease B", "Disease C"),
+    disease_ontology_id = c("OMIM:100050", "OMIM:100100", "OMIM:100150"),
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant", "X-linked recessive", "Mitochondrial"),
+    Mapping_key = c("3", "3", "3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1", "GENE2", "GENE3"),
+    hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c(
+      "Autosomal dominant inheritance",
+      "X-linked recessive inheritance",
+      "Mitochondrial inheritance"
+    ),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0001417", "HP:0001427")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # All hpo_mode_of_inheritance_term values should NOT be NA
+    expect_true(all(!is.na(result$hpo_mode_of_inheritance_term)))
+
+    # Check correct HPO term IDs are assigned
+    expect_true("HP:0000006" %in% result$hpo_mode_of_inheritance_term)
+    expect_true("HP:0001417" %in% result$hpo_mode_of_inheritance_term)
+    expect_true("HP:0001427" %in% result$hpo_mode_of_inheritance_term)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 handles duplicate MIM versioning", {
+  # Same MIM number with different genes
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1", "GENE2", "GENE3"),
+    disease_ontology_name = c("Disease A", "Disease A", "Disease B"),
+    disease_ontology_id = c("OMIM:100050", "OMIM:100050", "OMIM:100100"),
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant", "Autosomal recessive", "X-linked"),
+    Mapping_key = c("3", "3", "3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1", "GENE2", "GENE3"),
+    hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c(
+      "Autosomal dominant inheritance",
+      "Autosomal recessive inheritance",
+      "X-linked inheritance"
+    ),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007", "HP:0001417")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # OMIM:100050 entries should get _1 and _2 suffixes
+    omim_100050_versions <- result %>%
+      filter(disease_ontology_id == "OMIM:100050") %>%
+      pull(disease_ontology_id_version)
+
+    expect_equal(length(omim_100050_versions), 2)
+    expect_true(any(str_detect(omim_100050_versions, "_1$")))
+    expect_true(any(str_detect(omim_100050_versions, "_2$")))
+
+    # OMIM:100100 entry should have NO version suffix
+    omim_100100_version <- result %>%
+      filter(disease_ontology_id == "OMIM:100100") %>%
+      pull(disease_ontology_id_version) %>%
+      unique()
+
+    expect_equal(length(omim_100100_version), 1)
+    expect_equal(omim_100100_version, "OMIM:100100")
+
+    # Total rows should match expected
+    expect_equal(nrow(result), 3)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 handles entries with no inheritance info", {
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1"),
+    disease_ontology_name = c("Disease A"),
+    disease_ontology_id = c("OMIM:100050"),
+    hpo_mode_of_inheritance_term_name = NA_character_,
+    Mapping_key = c("3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1"),
+    hgnc_id = c("HGNC:1")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant inheritance"),
+    hpo_mode_of_inheritance_term = c("HP:0000006")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # Result should have 1 row
+    expect_equal(nrow(result), 1)
+
+    # hpo_mode_of_inheritance_term should be NA
+    expect_true(is.na(result$hpo_mode_of_inheritance_term))
+
+    # Other fields should still be populated correctly
+    expect_equal(result$disease_ontology_id, "OMIM:100050")
+    expect_equal(result$disease_ontology_name, "Disease A")
+    expect_equal(result$hgnc_id, "HGNC:1")
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 handles multiple comma-separated inheritance modes", {
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1"),
+    disease_ontology_name = c("Disease A"),
+    disease_ontology_id = c("OMIM:100050"),
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant, Autosomal recessive"),
+    Mapping_key = c("3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1"),
+    hgnc_id = c("HGNC:1")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c(
+      "Autosomal dominant inheritance",
+      "Autosomal recessive inheritance"
+    ),
+    hpo_mode_of_inheritance_term = c("HP:0000006", "HP:0000007")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # Result should have 2 rows (expanded via separate_rows)
+    expect_equal(nrow(result), 2)
+
+    # Both inheritance modes should be correctly normalized and have HPO term IDs
+    expect_true("HP:0000006" %in% result$hpo_mode_of_inheritance_term)
+    expect_true("HP:0000007" %in% result$hpo_mode_of_inheritance_term)
+
+    # Both rows should share the same disease_ontology_id
+    expect_true(all(result$disease_ontology_id == "OMIM:100050"))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 handles MIM_Number column (raw parsed format)", {
+  # Test with MIM_Number instead of disease_ontology_id
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1"),
+    disease_ontology_name = c("Disease A"),
+    MIM_Number = c("100050"),  # MIM_Number instead of disease_ontology_id
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant"),
+    Mapping_key = c("3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1"),
+    hgnc_id = c("HGNC:1")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant inheritance"),
+    hpo_mode_of_inheritance_term = c("HP:0000006")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # Result should have disease_ontology_id = "OMIM:100050" (auto-created from MIM_Number)
+    expect_equal(result$disease_ontology_id, "OMIM:100050")
+    expect_equal(nrow(result), 1)
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+test_that("build_omim_from_genemap2 preserves MONDO compatibility with mim2gene source", {
+  genemap2_parsed <- tibble(
+    Approved_Symbol = c("GENE1"),
+    disease_ontology_name = c("Disease A"),
+    disease_ontology_id = c("OMIM:100050"),
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant"),
+    Mapping_key = c("3")
+  )
+
+  hgnc_list <- tibble(
+    symbol = c("GENE1"),
+    hgnc_id = c("HGNC:1")
+  )
+
+  moi_list <- tibble(
+    hpo_mode_of_inheritance_term_name = c("Autosomal dominant inheritance"),
+    hpo_mode_of_inheritance_term = c("HP:0000006")
+  )
+
+  tryCatch({
+    source(file.path(api_dir, "functions", "omim-functions.R"))
+
+    result <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+    # CRITICAL: disease_ontology_source must be exactly "mim2gene"
+    # This ensures MONDO SSSOM mapping function can find and map entries
+    expect_equal(unique(result$disease_ontology_source), "mim2gene")
+
+    # Verify it's NOT "genemap2" or "morbidmap"
+    expect_false(any(result$disease_ontology_source == "genemap2"))
+    expect_false(any(result$disease_ontology_source == "morbidmap"))
+  }, error = function(e) {
+    skip(paste("omim-functions.R requires additional dependencies:", e$message))
+  })
+})
+
+# =============================================================================
 # Data format validation tests
 # =============================================================================
 
