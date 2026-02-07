@@ -15,7 +15,7 @@
 - ✅ **v10.1 Production Deployment Fixes** - Phases 66-68 (shipped 2026-02-03)
 - ✅ **v10.2 Performance & Memory Optimization** - Phases 69-72 (shipped 2026-02-03)
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
-- 🚧 **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (in progress)
+- ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 
 ## Phases
 
@@ -26,7 +26,7 @@ Phases 1-75 delivered across milestones v1.0 through v10.3. See `.planning/MILES
 
 </details>
 
-### 🚧 v10.4 OMIM Optimization & Refactor (In Progress)
+### ✅ v10.4 OMIM Optimization & Refactor (Shipped 2026-02-07)
 
 **Milestone Goal:** Replace slow JAX API sequential workflow with genemap2.txt-based processing, unify OMIM data sources between ontology and comparisons systems, add disk-based caching with 1-day TTL, and move OMIM download key to environment variable.
 
@@ -101,7 +101,7 @@ Plans:
 - [x] 78-01-PLAN.md — Add download_hpoa() caching, replace parse_omim_genemap2() with adapt_genemap2_for_comparisons() adapter, modify async workflow, add migration
 - [x] 78-02-PLAN.md — Unit tests for adapt_genemap2_for_comparisons() adapter with synthetic fixtures
 
-#### Phase 79: Configuration & Cleanup
+#### Phase 79: Configuration & Cleanup ✅
 
 **Goal:** Remove deprecated JAX API code, clean up hardcoded keys, externalize OMIM download key to environment variable, unify mim2gene.txt caching
 
@@ -110,17 +110,17 @@ Plans:
 **Requirements:** CFG-01, CFG-02, CFG-03
 
 **Success Criteria** (what must be TRUE):
-1. Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable documentation
-2. JAX API functions removed from codebase (fetch_jax_disease_name, fetch_all_disease_names)
-3. Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
-4. No dead code remains from JAX API implementation
-5. CLAUDE.md and deployment documentation updated with OMIM_DOWNLOAD_KEY configuration
+1. ✅ Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable documentation
+2. ✅ JAX API functions removed from codebase (fetch_jax_disease_name, fetch_all_disease_names)
+3. ✅ Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
+4. ✅ No dead code remains from JAX API implementation
+5. ✅ .env.example documents OMIM_DOWNLOAD_KEY with registration URL and usage guidance
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 79-01-PLAN.md — Docker Compose + .env.example configuration, remove hardcoded OMIM API keys from all files
-- [ ] 79-02-PLAN.md — Remove JAX API functions, unify mim2gene.txt caching to 1-day TTL, update tests
+- [x] 79-01-PLAN.md — Docker Compose + .env.example configuration, remove hardcoded OMIM API keys from all files
+- [x] 79-02-PLAN.md — Remove JAX API functions, unify mim2gene.txt caching to 1-day TTL, update tests
 
 ## Progress
 
@@ -131,8 +131,8 @@ Plans:
 | 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 | 78. Comparisons Integration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
-| 79. Configuration & Cleanup | v10.4 | 0/2 | Not started | - |
+| 79. Configuration & Cleanup | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 
 ---
 *Roadmap created: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 78 completion*
+*Last updated: 2026-02-07 after Phase 79 completion — v10.4 milestone complete*

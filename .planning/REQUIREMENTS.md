@@ -30,9 +30,9 @@ Requirements for v10.4 milestone. Each maps to roadmap phases.
 
 ### Configuration & Cleanup
 
-- [ ] **CFG-01**: Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable
-- [ ] **CFG-02**: JAX API functions removed (fetch_jax_disease_name, fetch_all_disease_names)
-- [ ] **CFG-03**: Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
+- [x] **CFG-01**: Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable
+- [x] **CFG-02**: JAX API functions removed (fetch_jax_disease_name, fetch_all_disease_names)
+- [x] **CFG-03**: Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
 
 ## v2 Requirements
 
@@ -71,9 +71,9 @@ Deferred to future milestones.
 | ONTO-06 | Phase 77 | Complete |
 | COMP-01 | Phase 78 | Complete |
 | COMP-02 | Phase 78 | Complete |
-| CFG-01 | Phase 79 | Pending |
-| CFG-02 | Phase 79 | Pending |
-| CFG-03 | Phase 79 | Pending |
+| CFG-01 | Phase 79 | Complete |
+| CFG-02 | Phase 79 | Complete |
+| CFG-03 | Phase 79 | Complete |
 
 **Coverage:**
 - v1 requirements: 15 total
@@ -82,4 +82,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 78 completion*
+*Last updated: 2026-02-07 after Phase 79 completion — all v10.4 requirements complete*
