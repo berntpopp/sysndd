@@ -1,0 +1,8 @@
+# Synthetic genemap2.txt fixture for testing adapt_genemap2_for_comparisons()
+# Format: 14 tab-delimited columns (no header row)
+# Contains test cases for NDD filtering, inheritance parsing, and edge cases
+X	12345678	12456789	Xq28	Xq28	300005	MECP2, RTT	methyl CpG binding protein 2	MECP2	4204	ENSG00000169057	-	Rett syndrome, 312750 (3), X-linked dominant	MGI:96925
+1	45678901	45789012	1p36.33	1p36.33	182389	SCN1A, FEB3A	sodium voltage-gated channel alpha subunit 1	SCN1A	6323	ENSG00000144285	-	Dravet syndrome, 607208 (3), Autosomal dominant; Febrile seizures, familial, 3A, 604403 (3), Autosomal dominant	MGI:98251
+17	43044295	43125483	17q21.31	17q21.31	113705	BRCA1, PSCP	BRCA1 DNA repair associated	BRCA1	672	ENSG00000012048	-	Breast cancer, 114480 (3), Autosomal dominant	MGI:104537
+2	56789012	56890123	2p24.3	2p24.3	607123	-	test gene without symbol	-	99999	ENSG00000999999	-	Test disorder without symbol, 999001 (3), Autosomal recessive	MGI:999999
+7	78901234	78912345	7q36.1	7q36.1	608234	TESTGENE1	test gene no disease	TESTGENE1	88888	ENSG00000888888	-	-	MGI:888888
