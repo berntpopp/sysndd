@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Current Position
 
 **Phase:** 79 of 79 (Configuration & Cleanup)
-**Plan:** Ready to plan
-**Status:** Ready to plan
-**Progress:** v10.4 [███████████████░░░░░] 75% (Phase 78 complete)
+**Plan:** 01 of 01
+**Status:** Plan 79-01 complete
+**Progress:** v10.4 [████████████████████] 100% (Phase 79-01 complete)
 
-**Last completed:** Phase 78 (Comparisons Integration) — 2026-02-07
-**Last activity:** 2026-02-07 — Phase 78 verified and complete
-**Next action:** `/gsd:plan-phase 79`
+**Last completed:** Phase 79-01 (OMIM Config Externalization) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 79-01-PLAN.md
+**Next action:** v10.4 milestone complete - ready for release
 
 ---
 
@@ -39,7 +39,7 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 - Ontology system migration to genemap2 with mode of inheritance data (Phase 77) ✅
 - Unified cache between ontology and comparisons systems (Phase 78-01) ✅
 - Comparisons config cleanup and testing (Phase 78-02) ✅
-- Environment variable configuration for OMIM download key (Phase 79)
+- Environment variable configuration for OMIM download key (Phase 79-01) ✅
 
 **Expected performance:** Ontology update time drops from ~8 minutes to ~30 seconds
 
@@ -48,9 +48,9 @@ See: .planning/PROJECT.md (updated 2026-02-07)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 321 (from v1-v10.3 + Phase 76-78)
+- Total plans completed: 322 (from v1-v10.3 + Phase 76-79)
 - Milestones shipped: 13 (v1-v10.3)
-- Phases completed: 78
+- Phases completed: 79
 
 **Current Stats:**
 
@@ -95,6 +95,9 @@ Recent decisions affecting current work:
 - **78-01:** NDD_HPO_TERMS hardcoded as named constant - stable domain definition, no admin UI exists, YAGNI for database storage
 - **78-01:** Version field changed from filename-based to date-based for consistency with ontology system
 - **78-01:** omim_genemap2 removed from comparisons_config (security: eliminates plaintext API key from database)
+- **79-01:** OMIM_DOWNLOAD_KEY passed via Docker Compose environment (no default value, required secret)
+- **79-01:** api/config.yml not modified (gitignored local file, not in version control)
+- **79-01:** Migration 007 uses DEPRECATED placeholder to preserve idempotency (row removed by migration 014)
 
 ### Pending Todos
 
@@ -114,10 +117,10 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-07
-**Stopped at:** Phase 78 complete, verified, gap fixed (mirai daemon sourcing)
-**Next action:** `/gsd:plan-phase 79`
+**Stopped at:** Phase 79-01 complete (v10.4 milestone 100%)
+**Next action:** v10.4 milestone complete - ready for testing and release
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-07 — Phase 78 (Comparisons Integration) complete and verified*
+*Last updated: 2026-02-07 — Phase 79-01 (OMIM Config Externalization) complete - v10.4 milestone 100%*
