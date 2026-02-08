@@ -1,85 +1,118 @@
-# Requirements: SysNDD v10.4 OMIM Optimization & Refactor
+# Requirements: v10.5 Bug Fixes & Data Integrity
 
-**Defined:** 2026-02-07
-**Core Value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
+**Defined:** 2026-02-08
+**Milestone:** v10.5
+**Source:** Research synthesis + bug analysis files in `.planning/bugs/`
+
+---
 
 ## v1 Requirements
 
-Requirements for v10.4 milestone. Each maps to roadmap phases.
+Requirements for v10.5 milestone. Each maps to roadmap phases.
 
-### Shared Infrastructure
+### Data Display Correctness
 
-- [x] **INFRA-01**: genemap2.txt downloads use OMIM_DOWNLOAD_KEY environment variable (not hardcoded) (#139)
-- [x] **INFRA-02**: genemap2.txt downloads are cached on disk with 1-day TTL to prevent OMIM rate limiting/blocking
-- [x] **INFRA-03**: genemap2.txt parsing handles column name variations defensively (historical field renames)
-- [x] **INFRA-04**: Shared parse_genemap2() function extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
+- [ ] **DISP-01**: CurationComparisons shows per-source category values (no cross-database max aggregation) (#173)
+- [ ] **DISP-02**: Shared `normalize_comparison_categories()` helper extracted to `category-normalization.R` for DRY reuse (#173)
+- [ ] **DISP-03**: `definitive_only` filter applies per-source, not post-aggregation (#173)
+- [ ] **DISP-04**: Entity trend chart forward-fills sparse category data via `mergeGroupedCumulativeSeries()` utility (#171)
+- [ ] **DISP-05**: Global trend total is monotonically non-decreasing (no downward spikes) (#171)
 
-### Ontology Migration
+### AdminStatistics Sub-Bugs
 
-- [x] **ONTO-01**: Ontology update uses genemap2.txt for disease names instead of JAX API sequential calls (#139)
-- [x] **ONTO-02**: Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
-- [x] **ONTO-03**: Inheritance mode information from genemap2.txt is mapped to HPO terms and stored in disease_ontology_set
-- [x] **ONTO-04**: Duplicate MIM numbers retain versioning (OMIM:123456_1, _2) consistent with previous behavior
-- [x] **ONTO-05**: MONDO SSSOM mappings continue to be applied after genemap2 processing (unchanged)
-- [x] **ONTO-06**: mim2gene.txt continues to be downloaded (free, no auth) for deprecation tracking of moved/removed entries
+- [ ] **STAT-01**: Re-review approval synced across all pathways via repository-layer `sync_rereview_approval()` hook (#172-1)
+- [ ] **STAT-02**: Re-review endpoint simplified to delegate to repository functions (DRY) (#172-1)
+- [ ] **STAT-03**: Three-segment leaderboard chart: Approved + Pending + Not Submitted (#172-1)
+- [ ] **STAT-04**: Dynamic percentage denominator from `COUNT(*)` instead of hardcoded 3650 (#172-2)
+- [ ] **STAT-05**: `totalEntities` KPI computed inside `fetchTrendData()` (no cross-function race) (#172-3)
+- [ ] **STAT-06**: Inclusive date range: `inclusiveDayCount()` and `previousPeriod()` in `dateUtils.ts` (#172-4)
+- [ ] **STAT-07**: `safeArray<T>()` and `clampPositive()` utilities prevent crashes and negative bars (#172-5/6)
+- [ ] **STAT-08**: AbortController cancels in-flight requests on granularity change (#172-7)
 
-### Comparisons Integration
+### External API Integration
 
-- [x] **COMP-01**: Comparisons system uses shared genemap2 cache (single download per day across both systems)
-- [x] **COMP-02**: Comparisons omim_genemap2 parsing calls shared parse_genemap2() to eliminate code duplication
+- [ ] **API-01**: PubTator annotation fetch uses LEFT JOIN to query only PMIDs missing annotations (#170)
+- [ ] **API-02**: PubTator batch INSERT uses `INSERT IGNORE` for deduplication (#170)
+- [ ] **API-03**: PubTator API calls rate-limited at 350ms delay between requests (#170)
 
-### Configuration & Cleanup
+### Infrastructure
 
-- [x] **CFG-01**: Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable
-- [x] **CFG-02**: JAX API functions removed (fetch_jax_disease_name, fetch_all_disease_names)
-- [x] **CFG-03**: Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
+- [ ] **INFRA-01**: Traefik router rule includes `Host()` matcher for deterministic TLS cert selection (#169)
+- [ ] **INFRA-02**: No "No domain found" Traefik startup warnings (#169)
+
+### Data Integrity Tooling
+
+- [ ] **INTEG-01**: Admin endpoint detects suffix-gene misalignment entities via multi-table JOIN (#167)
+- [ ] **INTEG-02**: Fixability classification: auto-fixable vs needs-curator (#167)
+- [ ] **INTEG-03**: Admin view `ManageEntityIntegrity.vue` with entity details and curator actions (#167)
+- [ ] **INTEG-04**: Orphaned pointer (entity 4269) surfaced for curator decision (#167)
+- [ ] **INTEG-05**: Compatibility rows (`is_active=FALSE`) generated for broken inactive entity FKs (#167)
+- [ ] **INTEG-06**: Migration script idempotent with stored procedure guards (#167)
+
+### Regression Tests
+
+- [ ] **TEST-01**: R unit tests for category normalization, re-review sync, dynamic denominator, PubTator incremental query, detection query
+- [ ] **TEST-02**: TypeScript unit tests for `mergeGroupedCumulativeSeries()`, `inclusiveDayCount()`, `previousPeriod()`, `safeArray()`, `clampPositive()`
+- [ ] **TEST-03**: Integration test for re-review approval sync across pathways
 
 ## v2 Requirements
 
 Deferred to future milestones.
 
-- **INFRA-05**: Playwright testing infrastructure in dev container (#140)
-- **INFRA-06**: Redis job queue with separate heavy/light workers (#154)
-- **INFRA-07**: Automated log cleanup cron job (#105)
-- **DEPR-01**: Diff-based deprecation detection (compare genemap2 versions instead of mim2gene)
+- **BACK-01**: Historical re-review backfill script (689 records) -- tracked in berntpopp/sysndd-administration#1
+- **BACK-02**: PubTator backfill for ~2,900 PMIDs missing annotations
+- **INTEG-07**: Scheduled nightly integrity checks after ontology updates
+- **INTEG-08**: Integrity KPI card on AdminStatistics dashboard
+- **INTEG-09**: Email alerts on critical entity integrity issues
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Multi-container scaling fix (#136) | Separate infrastructure concern |
-| Initial password login bug (#142) | Needs deeper investigation, separate milestone |
-| VariO ontology replacement (#98) | Feature request, not OMIM related |
-| Dynamic HPO hierarchy fetch | Static NDD HPO term list sufficient for filtering |
-| Multiple OMIM provider fallbacks | genemap2.txt is sole authoritative source |
-| mimTitles.txt integration | genemap2.txt provides disease names directly |
-| Real-time OMIM API integration | File-based approach with caching is safer and faster |
+| Automated suffix-gene fixes | Requires curator judgment for 12 of 13 entities |
+| Real-time AdminStatistics refresh | Weekly review tool, not live dashboard |
+| Bulk entity disease reassignment | Each entity needs individual curator review |
+| PubTator full re-fetch on every update | Rate limiting makes this infeasible |
+| Chart.js negative bar clamping plugin | Fix data, not rendering |
+| Traefik SNI fallback documentation | Fix the root cause instead |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 76 | Complete |
-| INFRA-02 | Phase 76 | Complete |
-| INFRA-03 | Phase 76 | Complete |
-| INFRA-04 | Phase 76 | Complete |
-| ONTO-01 | Phase 77 | Complete |
-| ONTO-02 | Phase 77 | Complete |
-| ONTO-03 | Phase 77 | Complete |
-| ONTO-04 | Phase 77 | Complete |
-| ONTO-05 | Phase 77 | Complete |
-| ONTO-06 | Phase 77 | Complete |
-| COMP-01 | Phase 78 | Complete |
-| COMP-02 | Phase 78 | Complete |
-| CFG-01 | Phase 79 | Complete |
-| CFG-02 | Phase 79 | Complete |
-| CFG-03 | Phase 79 | Complete |
+| DISP-01 | Phase 80 | Pending |
+| DISP-02 | Phase 80 | Pending |
+| DISP-03 | Phase 80 | Pending |
+| DISP-04 | Phase 80 | Pending |
+| DISP-05 | Phase 80 | Pending |
+| INFRA-01 | Phase 80 | Pending |
+| INFRA-02 | Phase 80 | Pending |
+| STAT-01 | Phase 81 | Pending |
+| STAT-02 | Phase 81 | Pending |
+| STAT-03 | Phase 81 | Pending |
+| STAT-04 | Phase 81 | Pending |
+| STAT-05 | Phase 81 | Pending |
+| STAT-06 | Phase 81 | Pending |
+| STAT-07 | Phase 81 | Pending |
+| STAT-08 | Phase 81 | Pending |
+| TEST-03 | Phase 81 | Pending |
+| API-01 | Phase 82 | Pending |
+| API-02 | Phase 82 | Pending |
+| API-03 | Phase 82 | Pending |
+| INTEG-01 | Phase 83 | Pending |
+| INTEG-02 | Phase 83 | Pending |
+| INTEG-03 | Phase 83 | Pending |
+| INTEG-04 | Phase 83 | Pending |
+| INTEG-05 | Phase 83 | Pending |
+| INTEG-06 | Phase 83 | Pending |
+| TEST-01 | Cross-cutting (P80-P83) | Pending |
+| TEST-02 | Cross-cutting (P80-P81) | Pending |
 
 **Coverage:**
-- v1 requirements: 15 total
-- Mapped to phases: 15 (100%)
+- v1 requirements: 27 total
+- Mapped to phases: 27 (100%)
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-02-07*
-*Last updated: 2026-02-07 after Phase 79 completion — all v10.4 requirements complete*
+*Requirements defined: 2026-02-08*
+*Traceability updated: 2026-02-08 (roadmap phases 80-83)*
