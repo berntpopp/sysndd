@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 **Phase:** 80 of 83 (Foundation Fixes)
-**Plan:** Not started
-**Status:** Ready to plan
-**Progress:** v10.5 [░░░░░░░░░░░░░░░░░░░░] 0%
+**Plan:** 02 of 02
+**Status:** In progress
+**Progress:** v10.5 [██░░░░░░░░░░░░░░░░░░] 10%
 
-**Last completed:** v10.4 milestone (OMIM Optimization & Refactor, Phases 76-79)
-**Last activity:** 2026-02-08 -- v10.5 roadmap created (4 phases, 27 requirements)
-**Next action:** `/gsd:plan-phase 80`
+**Last completed:** Phase 80 Plan 02 (Entity trend chart & Traefik TLS)
+**Last activity:** 2026-02-08 -- Completed 80-02-PLAN.md
+**Next action:** Continue Phase 80 or move to Phase 81
 
 ---
 
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Backend Tests** | 744 + 11 E2E | Coverage 20.3% |
-| **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
+| **Frontend Tests** | 199 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 
@@ -65,6 +65,12 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+| ID | Title | Phase | Impact |
+|----|-------|-------|--------|
+| DISP-04 | Use cumulative_count with forward-fill for sparse time-series | 80-02 | Entity trend chart produces correct monotonic totals |
+| INFRA-01 | Add Host() matchers to Traefik production routers | 80-02 | Eliminates TLS cert warnings, deterministic routing |
+
+**Earlier decisions:**
 - v10.5 is a pure bug-fix milestone addressing 6 open GitHub issues
 - 4 phases derived from requirement dependencies and risk ordering
 - TEST-01/TEST-02 are cross-cutting; each phase delivers its own test coverage
@@ -87,10 +93,9 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-08
-**Stopped at:** v10.5 roadmap created with 4 phases (80-83), 27 requirements mapped
-**Next action:** `/gsd:plan-phase 80`
+**Stopped at:** Completed 80-02-PLAN.md
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- v10.5 roadmap created*
+*Last updated: 2026-02-08 -- Completed Phase 80 Plan 02 (entity trend & Traefik TLS)*
