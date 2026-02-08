@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 **Phase:** 81 of 83 (AdminStatistics Sub-Bugs)
-**Plan:** 01 of 03 complete
+**Plan:** 02 of 03 complete
 **Status:** In progress
 **Progress:** v10.5 [██████░░░░░░░░░░░░░░] 30%
 
-**Last completed:** Phase 81 Plan 01 (Re-review approval sync & leaderboard)
-**Last activity:** 2026-02-08 -- Completed 81-01-PLAN.md
-**Next action:** Continue Phase 81 Plans 02-03
+**Last completed:** Phase 81 Plan 02 (AdminStatistics KPI & Data Fixes)
+**Last activity:** 2026-02-08 -- Completed 81-02-PLAN.md
+**Next action:** Continue Phase 81 Plan 03
 
 ---
 
@@ -43,7 +43,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 325 (from v1-v10.4 + Phase 80-81)
+- Total plans completed: 326 (from v1-v10.4 + Phase 80-81)
 - Milestones shipped: 14 (v1-v10.4)
 - Phases completed: 80
 
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Backend Tests** | 781 + 11 E2E | Coverage 20.3% (37 new category normalization tests) |
-| **Frontend Tests** | 199 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
+| **Frontend Tests** | 225 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe (26 new date/API utils tests) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 
@@ -67,6 +67,10 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| KPI-RACE-01 | Derive totalEntities inside fetchTrendData | 81-02 | Eliminates race condition where totalEntities = 0 on page load |
+| DATE-CALC-01 | Use inclusive day counting | 81-02 | Jan 10-20 = 11 days (not 10); accurate KPI context strings |
+| ABORT-01 | AbortController for granularity changes | 81-02 | Cancels stale requests, no memory leaks, accurate loading state |
+| DEFENSIVE-01 | safeArray for API response arrays | 81-02 | UI never crashes on malformed API responses (null/undefined/error objects) |
 | SYNC-01 | sync_rereview_approval() uses transaction-aware conn parameter | 81-01 | Atomic re-review flag updates within caller's transaction |
 | SYNC-02 | Re-review endpoint delegates to repository functions | 81-01 | Single source of truth for approval logic, reduced from 80 to 30 lines |
 | SYNC-04 | Leaderboard includes all assigned re-reviews | 81-01 | Shows complete workload: approved, pending, not yet submitted |
@@ -98,9 +102,9 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-08
-**Stopped at:** Completed Phase 81 Plan 01 (Re-review approval sync & leaderboard)
+**Stopped at:** Completed Phase 81 Plan 02 (AdminStatistics KPI & Data Fixes)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Completed Phase 81 Plan 01 (Re-review approval sync & leaderboard)*
+*Last updated: 2026-02-08 -- Completed Phase 81 Plan 02 (AdminStatistics KPI & Data Fixes)*
