@@ -20,14 +20,14 @@ Requirements for v10.5 milestone. Each maps to roadmap phases.
 
 ### AdminStatistics Sub-Bugs
 
-- [ ] **STAT-01**: Re-review approval synced across all pathways via repository-layer `sync_rereview_approval()` hook (#172-1)
-- [ ] **STAT-02**: Re-review endpoint simplified to delegate to repository functions (DRY) (#172-1)
-- [ ] **STAT-03**: Three-segment leaderboard chart: Approved + Pending + Not Submitted (#172-1)
-- [ ] **STAT-04**: Dynamic percentage denominator from `COUNT(*)` instead of hardcoded 3650 (#172-2)
-- [ ] **STAT-05**: `totalEntities` KPI computed inside `fetchTrendData()` (no cross-function race) (#172-3)
-- [ ] **STAT-06**: Inclusive date range: `inclusiveDayCount()` and `previousPeriod()` in `dateUtils.ts` (#172-4)
-- [ ] **STAT-07**: `safeArray<T>()` and `clampPositive()` utilities prevent crashes and negative bars (#172-5/6)
-- [ ] **STAT-08**: AbortController cancels in-flight requests on granularity change (#172-7)
+- [x] **STAT-01**: Re-review approval synced across all pathways via repository-layer `sync_rereview_approval()` hook (#172-1)
+- [x] **STAT-02**: Re-review endpoint simplified to delegate to repository functions (DRY) (#172-1)
+- [x] **STAT-03**: Three-segment leaderboard chart: Approved + Pending + Not Submitted (#172-1)
+- [x] **STAT-04**: Dynamic percentage denominator from `COUNT(*)` instead of hardcoded 3650 (#172-2)
+- [x] **STAT-05**: `totalEntities` KPI computed inside `fetchTrendData()` (no cross-function race) (#172-3)
+- [x] **STAT-06**: Inclusive date range: `inclusiveDayCount()` and `previousPeriod()` in `dateUtils.ts` (#172-4)
+- [x] **STAT-07**: `safeArray<T>()` and `clampPositive()` utilities prevent crashes and negative bars (#172-5/6)
+- [x] **STAT-08**: AbortController cancels in-flight requests on granularity change (#172-7)
 
 ### External API Integration
 
@@ -53,7 +53,7 @@ Requirements for v10.5 milestone. Each maps to roadmap phases.
 
 - [ ] **TEST-01**: R unit tests for category normalization, re-review sync, dynamic denominator, PubTator incremental query, detection query
 - [ ] **TEST-02**: TypeScript unit tests for `mergeGroupedCumulativeSeries()`, `inclusiveDayCount()`, `previousPeriod()`, `safeArray()`, `clampPositive()`
-- [ ] **TEST-03**: Integration test for re-review approval sync across pathways
+- [x] **TEST-03**: Integration test for re-review approval sync across pathways
 
 ## v2 Requirements
 
@@ -87,15 +87,15 @@ Deferred to future milestones.
 | DISP-05 | Phase 80 | Complete |
 | INFRA-01 | Phase 80 | Complete |
 | INFRA-02 | Phase 80 | Complete |
-| STAT-01 | Phase 81 | Pending |
-| STAT-02 | Phase 81 | Pending |
-| STAT-03 | Phase 81 | Pending |
-| STAT-04 | Phase 81 | Pending |
-| STAT-05 | Phase 81 | Pending |
-| STAT-06 | Phase 81 | Pending |
-| STAT-07 | Phase 81 | Pending |
-| STAT-08 | Phase 81 | Pending |
-| TEST-03 | Phase 81 | Pending |
+| STAT-01 | Phase 81 | Complete |
+| STAT-02 | Phase 81 | Complete |
+| STAT-03 | Phase 81 | Complete |
+| STAT-04 | Phase 81 | Complete |
+| STAT-05 | Phase 81 | Complete |
+| STAT-06 | Phase 81 | Complete |
+| STAT-07 | Phase 81 | Complete |
+| STAT-08 | Phase 81 | Complete |
+| TEST-03 | Phase 81 | Complete |
 | API-01 | Phase 82 | Pending |
 | API-02 | Phase 82 | Pending |
 | API-03 | Phase 82 | Pending |
@@ -115,4 +115,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-08*
-*Traceability updated: 2026-02-08 (roadmap phases 80-83)*
+*Traceability updated: 2026-02-08 (Phase 81 requirements marked Complete)*

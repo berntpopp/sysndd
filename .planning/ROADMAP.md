@@ -93,8 +93,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 81-01: Re-review approval sync and leaderboard chart fix (#172-1)
-- [ ] 81-02: Dynamic denominator, date utilities, defensive data handling, and request cancellation (#172-2, #172-3, #172-4, #172-5/6, #172-7)
+- [x] 81-01-PLAN.md -- Re-review approval sync and leaderboard chart fix (#172-1)
+- [x] 81-02-PLAN.md -- Dynamic denominator, date utilities, defensive data handling, and request cancellation (#172-2, #172-3, #172-4, #172-5/6, #172-7)
 
 **Key files (new):**
 - `api/functions/re-review-sync.R`
@@ -242,10 +242,10 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 80. Foundation Fixes | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
-| 81. AdminStatistics Sub-Bugs | v10.5 | 0/2 | Not started | - |
+| 81. AdminStatistics Sub-Bugs | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
 | 82. PubTator Backend Fix | v10.5 | 0/1 | Not started | - |
 | 83. Entity Data Integrity Audit | v10.5 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 80 complete*
+*Last updated: 2026-02-08 -- Phase 81 complete*
