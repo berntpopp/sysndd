@@ -133,7 +133,7 @@ Plans:
 **Plans:** 1 plan
 
 Plans:
-- [ ] 82-01: PubTator incremental query fix, INSERT IGNORE dedup, and rate limiting (#170)
+- [x] 82-01-PLAN.md -- PubTator incremental query fix, INSERT IGNORE dedup, and rate limiting (#170)
 
 **Key files (modified):**
 - `api/functions/pubtator-functions.R`
@@ -243,9 +243,9 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 80. Foundation Fixes | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
 | 81. AdminStatistics Sub-Bugs | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
-| 82. PubTator Backend Fix | v10.5 | 0/1 | Not started | - |
+| 82. PubTator Backend Fix | v10.5 | 1/1 | ✓ Complete | 2026-02-08 |
 | 83. Entity Data Integrity Audit | v10.5 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 81 complete*
+*Last updated: 2026-02-08 -- Phase 82 complete*

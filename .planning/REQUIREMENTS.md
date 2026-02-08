@@ -31,9 +31,9 @@ Requirements for v10.5 milestone. Each maps to roadmap phases.
 
 ### External API Integration
 
-- [ ] **API-01**: PubTator annotation fetch uses LEFT JOIN to query only PMIDs missing annotations (#170)
-- [ ] **API-02**: PubTator batch INSERT uses `INSERT IGNORE` for deduplication (#170)
-- [ ] **API-03**: PubTator API calls rate-limited at 350ms delay between requests (#170)
+- [x] **API-01**: PubTator annotation fetch uses LEFT JOIN to query only PMIDs missing annotations (#170)
+- [x] **API-02**: PubTator batch INSERT uses `INSERT IGNORE` for deduplication (#170)
+- [x] **API-03**: PubTator API calls rate-limited at 350ms delay between requests (#170)
 
 ### Infrastructure
 
@@ -96,9 +96,9 @@ Deferred to future milestones.
 | STAT-07 | Phase 81 | Complete |
 | STAT-08 | Phase 81 | Complete |
 | TEST-03 | Phase 81 | Complete |
-| API-01 | Phase 82 | Pending |
-| API-02 | Phase 82 | Pending |
-| API-03 | Phase 82 | Pending |
+| API-01 | Phase 82 | Complete |
+| API-02 | Phase 82 | Complete |
+| API-03 | Phase 82 | Complete |
 | INTEG-01 | Phase 83 | Pending |
 | INTEG-02 | Phase 83 | Pending |
 | INTEG-03 | Phase 83 | Pending |
@@ -115,4 +115,4 @@ Deferred to future milestones.
 
 ---
 *Requirements defined: 2026-02-08*
-*Traceability updated: 2026-02-08 (Phase 81 requirements marked Complete)*
+*Traceability updated: 2026-02-08 (Phase 82 requirements marked Complete)*
