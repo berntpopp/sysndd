@@ -307,6 +307,13 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
 
       log_debug("Rejected {length(status_ids)} statuses")
     }
+
+    # Sync re-review approval flag atomically within this transaction
+    sync_rereview_approval(
+      status_ids = status_ids,
+      approving_user_id = approving_user_id,
+      conn = conn
+    )
   })
 
   return(status_ids)

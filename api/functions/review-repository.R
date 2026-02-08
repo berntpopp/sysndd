@@ -325,6 +325,13 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
       db_execute_statement(sql_set_rejected, as.list(review_ids))
     }
 
+    # Sync re-review approval flag atomically within this transaction
+    sync_rereview_approval(
+      review_ids = review_ids,
+      approving_user_id = approving_user_id,
+      conn = conn
+    )
+
     return(review_ids)
   })
 }
