@@ -6,4 +6,4 @@ sfari	https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-cs
 geisinger_DBD	https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv	csv	geisinger_list	no
 orphanet_id	https://id-genes.orphanet.app/es/index/sysid_index_1	json	orphanet_id_list	no
 hpo_phenotype_to_genes	http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt	txt	omim_ndd_list	yes
-phenotype_hpoa	http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa	txt	omim_ndd_list	omim_ndd_list	no
+phenotype_hpoa	http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa	txt	omim_ndd_list	no

@@ -122,8 +122,8 @@ check_file_age <- function(file_basename, folder, months) {
 #' specified directory. It returns TRUE if the newest file is younger than the
 #' specified duration (in days), and FALSE otherwise.
 #'
-#' @param file_basename A string. The basename of the files to check.
-#' This should be in the format "filename.", e.g. "genemap2."
+#' @param file_basename A string. The basename of the files to check,
+#' without a trailing dot, e.g. "genemap2".
 #'
 #' @param folder A string. The directory where the files are located.
 #'

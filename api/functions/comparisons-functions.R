@@ -797,6 +797,15 @@ comparisons_update_async <- function(params) {
 
       message(sprintf("[%s] [job:%s] Parsing %s...", Sys.time(), job_id, source_name))
 
+      # Skip deprecated sources that may remain if migrations haven't run
+      deprecated_sources <- c("phenotype_hpoa", "omim_genemap2",
+                              "hpo_phenotype_to_genes")
+      if (source_name %in% deprecated_sources) {
+        message(sprintf("[%s] [job:%s] Skipping deprecated source: %s",
+                        Sys.time(), job_id, source_name))
+        next
+      }
+
       parsed_data <- tryCatch({
         switch(source_name,
           "radboudumc_ID" = parse_radboudumc_pdf(file_path),
@@ -822,6 +831,8 @@ comparisons_update_async <- function(params) {
     }
 
     # Parse OMIM via shared infrastructure (not in comparisons_config anymore)
+    progress("parse_omim", "Parsing OMIM via shared infrastructure...",
+             current = 2 + nrow(sources) + 1, total = 2 + nrow(sources) + 4)
     message(sprintf("[%s] [job:%s] Parsing omim_genemap2 via shared infrastructure...", Sys.time(), job_id))
     omim_parsed <- tryCatch({
       genemap2_path <- download_genemap2(output_path = "data/", force = FALSE)
@@ -839,7 +850,7 @@ comparisons_update_async <- function(params) {
 
     # Merge all data
     progress("merge", "Merging and resolving HGNC IDs...",
-             current = 2 + nrow(sources) + 2, total = 2 + nrow(sources) + 3)
+             current = 2 + nrow(sources) + 2, total = 2 + nrow(sources) + 4)
 
     merged_data <- bind_rows(all_parsed_data)
 
@@ -886,7 +897,7 @@ comparisons_update_async <- function(params) {
 
     # Write to database atomically
     progress("write", "Writing to database...",
-             current = 2 + nrow(sources) + 3, total = 2 + nrow(sources) + 3)
+             current = 2 + nrow(sources) + 3, total = 2 + nrow(sources) + 4)
 
     # Atomic table replacement: DELETE + INSERT in transaction
     tryCatch({

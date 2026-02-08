@@ -250,6 +250,11 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
     ))
   }
 
+  # Ensure MONDO column exists (callers may omit it)
+  if (!"MONDO" %in% names(disease_ontology_set)) {
+    disease_ontology_set$MONDO <- NA_character_
+  }
+
   # Pre-collapse: one row per OMIM with semicolon-separated MONDO IDs
   collapsed_mappings <- mondo_mappings %>%
     dplyr::group_by(omim_id) %>%
