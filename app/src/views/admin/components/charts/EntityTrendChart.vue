@@ -92,7 +92,11 @@ function calculateSMA(data: number[], period: number = 3): (number | null)[] {
 }
 
 const chartData = computed(() => {
-  if (props.displayMode === 'by_category' && props.categoryData && props.categoryData.dates.length > 0) {
+  if (
+    props.displayMode === 'by_category' &&
+    props.categoryData &&
+    props.categoryData.dates.length > 0
+  ) {
     const labels = props.categoryData.dates;
     const datasets = Object.entries(props.categoryData.series).map(([group, values]) => {
       const color = CATEGORY_COLORS[group] ?? COLORS.primary;

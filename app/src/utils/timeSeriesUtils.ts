@@ -55,9 +55,7 @@ export interface AggregatedPoint {
  * // ]
  * ```
  */
-export function mergeGroupedCumulativeSeries(
-  groups: GroupedTimeSeries[]
-): AggregatedPoint[] {
+export function mergeGroupedCumulativeSeries(groups: GroupedTimeSeries[]): AggregatedPoint[] {
   // Step 1: Collect union of all dates from all groups
   const allDates = new Set<string>();
   for (const g of groups) {
@@ -108,9 +106,10 @@ export function mergeGroupedCumulativeSeries(
  * @param groups - Array of grouped time series data
  * @returns Object with sorted date labels and per-group cumulative value arrays
  */
-export function extractPerGroupSeries(
-  groups: GroupedTimeSeries[]
-): { dates: string[]; series: Record<string, number[]> } {
+export function extractPerGroupSeries(groups: GroupedTimeSeries[]): {
+  dates: string[];
+  series: Record<string, number[]>;
+} {
   const allDates = new Set<string>();
   for (const g of groups) {
     for (const v of g.values ?? []) {

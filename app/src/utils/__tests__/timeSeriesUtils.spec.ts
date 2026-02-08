@@ -102,8 +102,8 @@ describe('mergeGroupedCumulativeSeries', () => {
 
   it('handles null/undefined values array', () => {
     const groups: GroupedTimeSeries[] = [
-      { group: 'A', values: undefined as any },
-      { group: 'B', values: null as any },
+      { group: 'A', values: undefined as unknown as GroupedTimeSeries['values'] },
+      { group: 'B', values: null as unknown as GroupedTimeSeries['values'] },
     ];
 
     const result = mergeGroupedCumulativeSeries(groups);
@@ -241,8 +241,8 @@ describe('extractPerGroupSeries', () => {
 
   it('handles null/undefined values array', () => {
     const groups: GroupedTimeSeries[] = [
-      { group: 'A', values: undefined as any },
-      { group: 'B', values: null as any },
+      { group: 'A', values: undefined as unknown as GroupedTimeSeries['values'] },
+      { group: 'B', values: null as unknown as GroupedTimeSeries['values'] },
     ];
 
     const result = extractPerGroupSeries(groups);

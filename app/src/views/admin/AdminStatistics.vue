@@ -422,9 +422,7 @@ watch(selectedCategories, () => {
 });
 
 // Computed period length for context display
-const periodLengthDays = computed(() =>
-  inclusiveDayCount(startDate.value, endDate.value)
-);
+const periodLengthDays = computed(() => inclusiveDayCount(startDate.value, endDate.value));
 
 // KPI cards computed with scientific context
 const kpiCards = computed(() => [
@@ -505,11 +503,7 @@ function buildTrendFilter(): string | undefined {
 // Computed description text for trend chart
 const trendDescription = computed(() => {
   const nddLabel =
-    nddFilter.value === 'ndd'
-      ? 'NDD'
-      : nddFilter.value === 'non_ndd'
-        ? 'non-NDD'
-        : 'all';
+    nddFilter.value === 'ndd' ? 'NDD' : nddFilter.value === 'non_ndd' ? 'non-NDD' : 'all';
 
   if (categoryDisplay.value === 'by_category') {
     return `Per-category cumulative counts of ${nddLabel} gene-disease associations curated over time.`;
@@ -646,9 +640,19 @@ async function fetchReReviewLeaderboard(): Promise<void> {
     });
 
     // Map response to chart format
-    const data = safeArray<{ display_name: string; total_assigned: number; submitted_count: number; approved_count: number }>(response.data?.data);
+    const data = safeArray<{
+      display_name: string;
+      total_assigned: number;
+      submitted_count: number;
+      approved_count: number;
+    }>(response.data?.data);
     reReviewLeaderboardData.value = data.map(
-      (item: { display_name: string; total_assigned: number; submitted_count: number; approved_count: number }) => ({
+      (item: {
+        display_name: string;
+        total_assigned: number;
+        submitted_count: number;
+        approved_count: number;
+      }) => ({
         user_name: item.display_name || 'Unknown',
         total_assigned: item.total_assigned ?? 0,
         submitted_count: item.submitted_count ?? 0,
