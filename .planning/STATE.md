@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 82 -- PubTator Backend Fix (incremental query, INSERT IGNORE, rate limiting)
+**Current focus:** Phase 83 -- Entity Integrity Checks (next phase)
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,14 +19,14 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 ## Current Position
 
-**Phase:** 81 of 83 (AdminStatistics Sub-Bugs)
-**Plan:** 02 of 02 complete
+**Phase:** 82 of 83 (PubTator Backend Fix)
+**Plan:** 01 of 01 complete
 **Status:** Phase complete
-**Progress:** v10.5 [██████████░░░░░░░░░░] 50%
+**Progress:** v10.5 [████████████░░░░░░░░] 60%
 
-**Last completed:** Phase 81 (AdminStatistics Sub-Bugs) -- all 2 plans verified
-**Last activity:** 2026-02-08 -- Phase 81 verified (7/7 must-haves passed)
-**Next action:** `/gsd:discuss-phase 82`
+**Last completed:** Phase 82 (PubTator Backend Fix) -- all 1 plan complete
+**Last activity:** 2026-02-08 -- Completed Plan 82-01 (PubTator fixes)
+**Next action:** Begin Phase 83 (Entity Integrity Checks)
 
 ---
 
@@ -51,7 +51,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 781 + 11 E2E | Coverage 20.3% (37 new category normalization tests) |
+| **Backend Tests** | 789 + 11 E2E | Coverage 20.3% (8 new PubTator unit tests) |
 | **Frontend Tests** | 225 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe (26 new date/API utils tests) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| RATE-LIMIT-01 | PUBTATOR_RATE_LIMIT_DELAY = 0.35s | 82-01 | 7x faster annotation fetching (~2.86 req/s, under NCBI 3 req/s limit) |
+| LEFT-JOIN-01 | Filter unannotated PMIDs in SQL query | 82-01 | ~90% reduction in redundant NCBI API calls for incremental updates |
+| INSERT-IGNORE-01 | Use INSERT IGNORE for annotation cache only | 82-01 | Idempotent inserts prevent duplicate key errors on retries |
 | KPI-RACE-01 | Derive totalEntities inside fetchTrendData | 81-02 | Eliminates race condition where totalEntities = 0 on page load |
 | DATE-CALC-01 | Use inclusive day counting | 81-02 | Jan 10-20 = 11 days (not 10); accurate KPI context strings |
 | ABORT-01 | AbortController for granularity changes | 81-02 | Cancels stale requests, no memory leaks, accurate loading state |
@@ -102,9 +105,9 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-08
-**Stopped at:** Phase 81 complete, verified 7/7 must-haves
+**Stopped at:** Phase 82 complete (Plan 82-01)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 81 complete (AdminStatistics Sub-Bugs)*
+*Last updated: 2026-02-08 -- Phase 82 complete (PubTator Backend Fix)*
