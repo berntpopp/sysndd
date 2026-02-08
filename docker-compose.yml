@@ -161,7 +161,7 @@ services:
       # CORS configuration: comma-separated list of allowed origins
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
-      CACHE_VERSION: ${CACHE_VERSION:-1}
+      CACHE_VERSION: ${CACHE_VERSION:-2}
       # OMIM download key for genemap2.txt (required for ontology/comparisons)
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
     networks:

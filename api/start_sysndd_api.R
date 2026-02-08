@@ -412,7 +412,7 @@ if (stored_version != cache_version) {
 # and available to both main process and mirai daemon workers
 cm <- cachem::cache_disk(
   dir      = "/app/cache",
-  max_age  = Inf, # Never expires (clear volume to invalidate)
+  max_age  = 86400, # 24h safety net; CACHE_VERSION bump for immediate invalidation
   max_size = 500 * 1024^2 # 500 MB persistent on disk
 )
 
