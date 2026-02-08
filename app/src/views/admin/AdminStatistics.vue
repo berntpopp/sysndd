@@ -209,7 +209,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 import {
   BContainer,
@@ -225,6 +225,8 @@ import {
 import useToast from '@/composables/useToast';
 import { mergeGroupedCumulativeSeries } from '@/utils/timeSeriesUtils';
 import type { GroupedTimeSeries } from '@/utils/timeSeriesUtils';
+import { inclusiveDayCount, previousPeriod } from '@/utils/dateUtils';
+import { safeArray } from '@/utils/apiUtils';
 import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
@@ -318,6 +320,9 @@ const kpiStats = ref<KpiStats>({
   trendDelta: undefined,
 });
 
+// AbortController for cancelling in-flight trend requests
+let trendAbortController: AbortController | null = null;
+
 // Existing statistics data (kept for backward compatibility)
 const statistics = ref<UpdatesStatistics | null>(null);
 const reReviewStatistics = ref<ReReviewStatistics | null>(null);
@@ -343,14 +348,15 @@ const reReviewLeaderboardScopeOptions = [
   { text: 'Date Range', value: 'range' },
 ];
 
-// Computed period length for context display
-const periodLengthDays = computed(() => {
-  const startDateObj = new Date(startDate.value);
-  const endDateObj = new Date(endDate.value);
-  return Math.round(
-    Math.abs((endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24))
-  );
+// Re-fetch trend data when granularity changes
+watch(granularity, () => {
+  fetchTrendData();
 });
+
+// Computed period length for context display
+const periodLengthDays = computed(() =>
+  inclusiveDayCount(startDate.value, endDate.value)
+);
 
 // KPI cards computed with scientific context
 const kpiCards = computed(() => [
@@ -400,6 +406,12 @@ function getAuthHeaders() {
 async function fetchTrendData(): Promise<void> {
   if (!axios) return;
 
+  // Cancel previous in-flight request
+  trendAbortController?.abort();
+  trendAbortController = new AbortController();
+
+  // Clear stale data immediately
+  trendData.value = [];
   loading.value.trend = true;
   try {
     const response = await axios.get(`${apiUrl}/api/statistics/entities_over_time`, {
@@ -409,15 +421,26 @@ async function fetchTrendData(): Promise<void> {
         summarize: granularity.value,
       },
       headers: getAuthHeaders(),
+      signal: trendAbortController.signal,
     });
 
     // Transform response using utility that correctly handles sparse data
-    const allData: GroupedTimeSeries[] = response.data.data || [];
+    const allData = safeArray<GroupedTimeSeries>(response.data?.data);
     trendData.value = mergeGroupedCumulativeSeries(allData);
+
+    // Derive totalEntities from final cumulative value (avoids race condition)
+    if (trendData.value.length > 0) {
+      kpiStats.value.totalEntities = trendData.value[trendData.value.length - 1].count;
+    }
+
+    // Release controller reference after successful completion
+    trendAbortController = null;
   } catch (error) {
-    console.error('Failed to fetch trend data:', error);
-    makeToast('Failed to fetch trend data', 'Error', 'danger');
-    trendData.value = [];
+    if ((error as Error).name !== 'AbortError') {
+      console.error('Failed to fetch trend data:', error);
+      makeToast('Failed to fetch trend data', 'Error', 'danger');
+      trendData.value = [];
+    }
   } finally {
     loading.value.trend = false;
   }
@@ -445,7 +468,7 @@ async function fetchLeaderboard(): Promise<void> {
     });
 
     // Map response to chart format: use display_name for user_name
-    const data = response.data.data || [];
+    const data = safeArray<{ display_name: string; entity_count: number }>(response.data?.data);
     leaderboardData.value = data.map((item: { display_name: string; entity_count: number }) => ({
       user_name: item.display_name || 'Unknown',
       entity_count: item.entity_count,
@@ -489,7 +512,7 @@ async function fetchReReviewLeaderboard(): Promise<void> {
     });
 
     // Map response to chart format
-    const data = response.data.data || [];
+    const data = safeArray<{ display_name: string; total_assigned: number; submitted_count: number; approved_count: number }>(response.data?.data);
     reReviewLeaderboardData.value = data.map(
       (item: { display_name: string; total_assigned: number; submitted_count: number; approved_count: number }) => ({
         user_name: item.display_name || 'Unknown',
@@ -532,26 +555,12 @@ async function fetchUpdatesStats(start: string, end: string): Promise<UpdatesSta
 
 // Calculate trend delta by comparing current period with previous equal-length period
 async function calculateTrendDelta(): Promise<number | undefined> {
-  // Get date range length in days
-  const startDateObj = new Date(startDate.value);
-  const endDateObj = new Date(endDate.value);
-  const rangeLength = Math.abs(
-    (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  // Calculate previous period dates
-  const prevEndDate = new Date(startDateObj);
-  prevEndDate.setDate(prevEndDate.getDate() - 1);
-  const prevStartDate = new Date(prevEndDate);
-  prevStartDate.setDate(prevStartDate.getDate() - rangeLength);
+  const prev = previousPeriod(startDate.value, endDate.value);
 
   // Fetch both periods
   const [currentStats, prevStats] = await Promise.all([
     fetchUpdatesStats(startDate.value, endDate.value),
-    fetchUpdatesStats(
-      prevStartDate.toISOString().split('T')[0],
-      prevEndDate.toISOString().split('T')[0]
-    ),
+    fetchUpdatesStats(prev.start, prev.end),
   ]);
 
   if (!currentStats || !prevStats) return undefined;
@@ -582,11 +591,6 @@ async function fetchKPIStats(): Promise<void> {
 
       // Store for backward compatibility display
       statistics.value = currentStats;
-    }
-
-    // Calculate total entities (from trend data max cumulative)
-    if (trendData.value.length > 0) {
-      kpiStats.value.totalEntities = trendData.value[trendData.value.length - 1].count;
     }
 
     // Calculate trend delta
@@ -658,6 +662,12 @@ async function fetchStatistics(): Promise<void> {
 function refreshAll(): void {
   fetchStatistics();
 }
+
+// Cleanup on unmount
+onUnmounted(() => {
+  trendAbortController?.abort();
+  trendAbortController = null;
+});
 
 // On mount, fetch initial data
 onMounted(() => {
