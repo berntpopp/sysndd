@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 83 -- Entity Integrity Checks (next phase)
+**Current focus:** All phases complete -- ready for milestone completion
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,22 +19,22 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 ## Current Position
 
-**Phase:** 82 of 83 (PubTator Backend Fix)
+**Phase:** 82 of 82 (PubTator Backend Fix)
 **Plan:** 01 of 01 complete
-**Status:** Phase complete
-**Progress:** v10.5 [████████████░░░░░░░░] 60%
+**Status:** Milestone complete
+**Progress:** v10.5 [████████████████████] 100%
 
 **Last completed:** Phase 82 (PubTator Backend Fix) -- all 1 plan complete
-**Last activity:** 2026-02-08 -- Completed Plan 82-01 (PubTator fixes)
-**Next action:** Begin Phase 83 (Entity Integrity Checks)
+**Last activity:** 2026-02-08 -- Phase 83 removed (entity integrity handled manually)
+**Next action:** Complete milestone v10.5
 
 ---
 
 ## Current Milestone: v10.5
 
-**Goal:** Fix 6 open bugs (#173, #172, #171, #170, #169, #167) across data display, admin statistics, PubTator, Traefik, and entity integrity
+**Goal:** Fix 5 open bugs (#173, #172, #171, #170, #169) across data display, admin statistics, PubTator, and Traefik
 
-**Phases:** 80 (Foundation) -> 81 (AdminStatistics) -> 82 (PubTator) -> 83 (Entity Integrity)
+**Phases:** 80 (Foundation) -> 81 (AdminStatistics) -> 82 (PubTator)
 
 **Deadline awareness:** Traefik TLS cert renewal Feb 19, 2026 -- Phase 80 priority
 
@@ -83,8 +83,8 @@ Recent decisions affecting current work:
 | INFRA-01 | Add Host() matchers to Traefik production routers | 80-02 | Eliminates TLS cert warnings, deterministic routing |
 
 **Earlier decisions:**
-- v10.5 is a pure bug-fix milestone addressing 6 open GitHub issues
-- 4 phases derived from requirement dependencies and risk ordering
+- v10.5 is a pure bug-fix milestone addressing 5 open GitHub issues (#167 entity integrity handled manually)
+- 3 phases derived from requirement dependencies and risk ordering
 - TEST-01/TEST-02 are cross-cutting; each phase delivers its own test coverage
 - Phase 82 (PubTator) independent of 80-81; could run in parallel
 
@@ -97,7 +97,7 @@ None.
 **Known risks:**
 - Traefik TLS cert renewal deadline: Feb 19, 2026 (Phase 80)
 - Re-review backfill script (689 records) tracked in berntpopp/sysndd-administration#1
-- Entity integrity: 12 of 13 misalignments need curator review (only 1 auto-fixable)
+- Entity integrity: 12 of 13 misalignments need curator review (handled manually, not in v10.5)
 - PubTator backfill needed for ~2,900 PMIDs missing annotations
 
 ---
@@ -110,4 +110,4 @@ None.
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 82 complete (PubTator Backend Fix)*
+*Last updated: 2026-02-08 -- Phase 83 removed, milestone ready for completion*

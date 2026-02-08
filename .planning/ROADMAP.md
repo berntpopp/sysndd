@@ -16,7 +16,7 @@
 - ✅ **v10.2 Performance & Memory Optimization** - Phases 69-72 (shipped 2026-02-03)
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
 - ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
-- 🚧 **v10.5 Bug Fixes & Data Integrity** - Phases 80-83 (in progress)
+- 🚧 **v10.5 Bug Fixes & Data Integrity** - Phases 80-82 (in progress)
 
 ## Phases
 
@@ -29,11 +29,11 @@ Phases 1-79 delivered across milestones v1.0 through v10.4. See `.planning/MILES
 
 ### 🚧 v10.5 Bug Fixes & Data Integrity (In Progress)
 
-**Milestone Goal:** Fix 6 open bugs across CurationComparisons (#173), AdminStatistics (#172, #171), PubTator (#170), Traefik (#169), and entity data integrity (#167). Delivers correct data display, accurate admin statistics, working PubTator incremental updates, clean infrastructure configuration, and a curator-driven entity integrity audit tool.
+**Milestone Goal:** Fix 5 open bugs across CurationComparisons (#173), AdminStatistics (#172, #171), PubTator (#170), and Traefik (#169). Delivers correct data display, accurate admin statistics, working PubTator incremental updates, and clean infrastructure configuration.
 
-**Phases:** 4 (80-83)
-**Requirements:** 27 v1 requirements mapped (100% coverage)
-**Risk profile:** Medium-High (dominated by #172-1 approval sync and #167 entity integrity audit)
+**Phases:** 3 (80-82)
+**Requirements:** 21 v1 requirements mapped (100% coverage)
+**Risk profile:** Medium-High (dominated by #172-1 approval sync)
 
 #### Phase 80: Foundation Fixes
 
@@ -145,46 +145,6 @@ Plans:
 
 ---
 
-#### Phase 83: Entity Data Integrity Audit
-
-**Goal:** Administrators can view, classify, and act on the 13 suffix-gene misalignment entities through a dedicated admin panel
-
-**Depends on:** Nothing (independent of Phases 80-82, but last for pattern validation)
-
-**Requirements:** INTEG-01, INTEG-02, INTEG-03, INTEG-04, INTEG-05, INTEG-06
-
-**Success Criteria** (what must be TRUE):
-1. Admin endpoint returns the list of entities where `disease_ontology_id_version` gene does not match `entity.hgnc_id`, with fixability classification (auto-fixable vs needs-curator)
-2. `ManageEntityIntegrity.vue` admin view displays entity details, current vs correct disease association, and curator action buttons (approve/defer/skip)
-3. Orphaned pointer (entity 4269, `replaced_by=4271` referencing nonexistent entity) is surfaced for curator decision
-4. Compatibility rows (`is_active=FALSE`) are generated for broken inactive entity foreign keys to maintain referential integrity
-5. Migration script is idempotent: running it twice produces no errors and the same end state (stored procedure guards)
-6. Entity integrity audit is accessible from the admin panel navigation
-
-**Plans:** 2 plans
-
-Plans:
-- [ ] 83-01: Detection endpoint and fixability classification (#167 backend)
-- [ ] 83-02: ManageEntityIntegrity admin view, compatibility rows, and migration script (#167 frontend + data)
-
-**Key files (new):**
-- `api/endpoints/admin_integrity_endpoints.R`
-- `app/src/views/admin/ManageEntityIntegrity.vue`
-- `app/src/components/admin/EntityIntegrityTable.vue`
-- `db/migrations/006_entity_integrity_fixes.sql`
-
-**Key files (modified):**
-- `app/src/router/index.ts`
-- `app/src/views/admin/AdminPanel.vue`
-- `api/start_sysndd_api.R` (source new endpoint file)
-
-**Pitfalls:**
-- Non-idempotent migration scripts block deployments -- use stored procedure guards with IF NOT EXISTS checks (Pitfall 5)
-- Use a separate endpoint (`/api/admin/integrity`) for audit data instead of modifying existing entity endpoints (Pitfall 6)
-- Automated fixes only for the 1 unambiguous entity (662); all others require curator judgment
-
----
-
 ## Requirement Coverage
 
 | Requirement | Phase | Description |
@@ -208,18 +168,12 @@ Plans:
 | API-01 | Phase 82 | LEFT JOIN query for missing-only annotation fetching |
 | API-02 | Phase 82 | INSERT IGNORE for batch deduplication |
 | API-03 | Phase 82 | 350ms rate limiting per NCBI API call |
-| INTEG-01 | Phase 83 | Detection endpoint via multi-table JOIN |
-| INTEG-02 | Phase 83 | Fixability classification (auto-fixable vs needs-curator) |
-| INTEG-03 | Phase 83 | `ManageEntityIntegrity.vue` admin view |
-| INTEG-04 | Phase 83 | Orphaned pointer (entity 4269) surfaced |
-| INTEG-05 | Phase 83 | Compatibility rows for broken inactive entity FKs |
-| INTEG-06 | Phase 83 | Idempotent migration script with stored procedure guards |
 | TEST-01 | Cross-cutting | R unit tests -- each phase delivers its portion |
 | TEST-02 | Cross-cutting | TypeScript unit tests -- each phase delivers its portion |
 
-**Coverage:** 27/27 v1 requirements mapped (100%)
+**Coverage:** 21/21 v1 requirements mapped (100%)
 
-**Cross-cutting note:** TEST-01 and TEST-02 are composite requirements spanning all phases. Each phase delivers regression tests for its own fixes. Complete test coverage verified after Phase 83.
+**Cross-cutting note:** TEST-01 and TEST-02 are composite requirements spanning all phases. Each phase delivers regression tests for its own fixes. Complete test coverage verified after Phase 82.
 
 ## Risk Register
 
@@ -231,20 +185,17 @@ Plans:
 | AbortController memory leaks from reused controllers | MEDIUM | 81 | New controller per request; `onUnmounted()` cleanup |
 | Non-idempotent batch INSERTs for PubTator | MEDIUM | 82 | `INSERT IGNORE`; idempotency test (same batch twice) |
 | NCBI API rate limiting causes batch failures | MEDIUM | 82 | 350ms delay; `httr2::req_retry()` with backoff |
-| Non-idempotent migration script blocks deployment | CRITICAL | 83 | Stored procedure guards; test re-application |
-| API schema changes break frontend | MEDIUM | 83 | Separate endpoint; optional fields only |
 | Traefik TLS cert renewal deadline (Feb 19, 2026) | HIGH | 80 | Prioritize in first plan of Phase 80 |
 
 ## Progress
 
-**Execution Order:** 80 -> 81 -> 82 -> 83
+**Execution Order:** 80 -> 81 -> 82
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 80. Foundation Fixes | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
 | 81. AdminStatistics Sub-Bugs | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
 | 82. PubTator Backend Fix | v10.5 | 1/1 | ✓ Complete | 2026-02-08 |
-| 83. Entity Data Integrity Audit | v10.5 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
