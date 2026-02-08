@@ -19,14 +19,14 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 ## Current Position
 
-**Phase:** 80 of 83 (Foundation Fixes)
-**Plan:** 02 of 02 complete
-**Status:** Phase complete
-**Progress:** v10.5 [█████░░░░░░░░░░░░░░░] 25%
+**Phase:** 81 of 83 (AdminStatistics Sub-Bugs)
+**Plan:** 01 of 03 complete
+**Status:** In progress
+**Progress:** v10.5 [██████░░░░░░░░░░░░░░] 30%
 
-**Last completed:** Phase 80 Plans 01 & 02 (CurationComparisons fix, entity trend, Traefik TLS)
-**Last activity:** 2026-02-08 -- Completed 80-01-PLAN.md and 80-02-PLAN.md
-**Next action:** `/gsd:discuss-phase 81`
+**Last completed:** Phase 81 Plan 01 (Re-review approval sync & leaderboard)
+**Last activity:** 2026-02-08 -- Completed 81-01-PLAN.md
+**Next action:** Continue Phase 81 Plans 02-03
 
 ---
 
@@ -43,7 +43,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 324 (from v1-v10.4 + Phase 80)
+- Total plans completed: 325 (from v1-v10.4 + Phase 80-81)
 - Milestones shipped: 14 (v1-v10.4)
 - Phases completed: 80
 
@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| SYNC-01 | sync_rereview_approval() uses transaction-aware conn parameter | 81-01 | Atomic re-review flag updates within caller's transaction |
+| SYNC-02 | Re-review endpoint delegates to repository functions | 81-01 | Single source of truth for approval logic, reduced from 80 to 30 lines |
+| SYNC-04 | Leaderboard includes all assigned re-reviews | 81-01 | Shows complete workload: approved, pending, not yet submitted |
 | DISP-02 | Extract category normalization into shared helper | 80-01 | Single source of truth for category mappings, DRY principle |
 | DISP-01 | Remove cross-database max aggregation from CurationComparisons | 80-01 | Per-source categories preserved, definitive_only filter works correctly |
 | DISP-04 | Use cumulative_count with forward-fill for sparse time-series | 80-02 | Entity trend chart produces correct monotonic totals |
@@ -95,9 +98,9 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-08
-**Stopped at:** Completed Phase 80 (both plans 01 & 02)
+**Stopped at:** Completed Phase 81 Plan 01 (Re-review approval sync & leaderboard)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Completed Phase 80 (CurationComparisons fix, entity trend, Traefik TLS)*
+*Last updated: 2026-02-08 -- Completed Phase 81 Plan 01 (Re-review approval sync & leaderboard)*
