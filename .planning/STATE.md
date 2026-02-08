@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 80 -- Foundation Fixes (CurationComparisons, entity trend, Traefik TLS)
+**Current focus:** Phase 81 -- AdminStatistics Sub-Bugs (re-review sync, leaderboard, KPIs)
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -22,11 +22,11 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 **Phase:** 80 of 83 (Foundation Fixes)
 **Plan:** 02 of 02 complete
 **Status:** Phase complete
-**Progress:** v10.5 [██░░░░░░░░░░░░░░░░░░] 10%
+**Progress:** v10.5 [█████░░░░░░░░░░░░░░░] 25%
 
 **Last completed:** Phase 80 Plans 01 & 02 (CurationComparisons fix, entity trend, Traefik TLS)
 **Last activity:** 2026-02-08 -- Completed 80-01-PLAN.md and 80-02-PLAN.md
-**Next action:** Move to Phase 81 (AdminStatistics sub-bugs)
+**Next action:** `/gsd:discuss-phase 81`
 
 ---
 
@@ -43,9 +43,9 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 322 (from v1-v10.4)
+- Total plans completed: 324 (from v1-v10.4 + Phase 80)
 - Milestones shipped: 14 (v1-v10.4)
-- Phases completed: 79
+- Phases completed: 80
 
 **Current Stats:**
 

@@ -53,8 +53,8 @@ Phases 1-79 delivered across milestones v1.0 through v10.4. See `.planning/MILES
 **Plans:** 2 plans
 
 Plans:
-- [ ] 80-01-PLAN.md -- CurationComparisons category normalization fix (#173)
-- [ ] 80-02-PLAN.md -- Entity trend time-series aggregation fix (#171) and Traefik TLS config (#169)
+- [x] 80-01-PLAN.md -- CurationComparisons category normalization fix (#173)
+- [x] 80-02-PLAN.md -- Entity trend time-series aggregation fix (#171) and Traefik TLS config (#169)
 
 **Key files (new):**
 - `api/functions/category-normalization.R`
@@ -241,11 +241,11 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 80. Foundation Fixes | v10.5 | 0/2 | Not started | - |
+| 80. Foundation Fixes | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
 | 81. AdminStatistics Sub-Bugs | v10.5 | 0/2 | Not started | - |
 | 82. PubTator Backend Fix | v10.5 | 0/1 | Not started | - |
 | 83. Entity Data Integrity Audit | v10.5 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 80 plans created*
+*Last updated: 2026-02-08 -- Phase 80 complete*

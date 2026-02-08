@@ -12,11 +12,11 @@ Requirements for v10.5 milestone. Each maps to roadmap phases.
 
 ### Data Display Correctness
 
-- [ ] **DISP-01**: CurationComparisons shows per-source category values (no cross-database max aggregation) (#173)
-- [ ] **DISP-02**: Shared `normalize_comparison_categories()` helper extracted to `category-normalization.R` for DRY reuse (#173)
-- [ ] **DISP-03**: `definitive_only` filter applies per-source, not post-aggregation (#173)
-- [ ] **DISP-04**: Entity trend chart forward-fills sparse category data via `mergeGroupedCumulativeSeries()` utility (#171)
-- [ ] **DISP-05**: Global trend total is monotonically non-decreasing (no downward spikes) (#171)
+- [x] **DISP-01**: CurationComparisons shows per-source category values (no cross-database max aggregation) (#173)
+- [x] **DISP-02**: Shared `normalize_comparison_categories()` helper extracted to `category-normalization.R` for DRY reuse (#173)
+- [x] **DISP-03**: `definitive_only` filter applies per-source, not post-aggregation (#173)
+- [x] **DISP-04**: Entity trend chart forward-fills sparse category data via `mergeGroupedCumulativeSeries()` utility (#171)
+- [x] **DISP-05**: Global trend total is monotonically non-decreasing (no downward spikes) (#171)
 
 ### AdminStatistics Sub-Bugs
 
@@ -37,8 +37,8 @@ Requirements for v10.5 milestone. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Traefik router rule includes `Host()` matcher for deterministic TLS cert selection (#169)
-- [ ] **INFRA-02**: No "No domain found" Traefik startup warnings (#169)
+- [x] **INFRA-01**: Traefik router rule includes `Host()` matcher for deterministic TLS cert selection (#169)
+- [x] **INFRA-02**: No "No domain found" Traefik startup warnings (#169)
 
 ### Data Integrity Tooling
 
@@ -80,13 +80,13 @@ Deferred to future milestones.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DISP-01 | Phase 80 | Pending |
-| DISP-02 | Phase 80 | Pending |
-| DISP-03 | Phase 80 | Pending |
-| DISP-04 | Phase 80 | Pending |
-| DISP-05 | Phase 80 | Pending |
-| INFRA-01 | Phase 80 | Pending |
-| INFRA-02 | Phase 80 | Pending |
+| DISP-01 | Phase 80 | Complete |
+| DISP-02 | Phase 80 | Complete |
+| DISP-03 | Phase 80 | Complete |
+| DISP-04 | Phase 80 | Complete |
+| DISP-05 | Phase 80 | Complete |
+| INFRA-01 | Phase 80 | Complete |
+| INFRA-02 | Phase 80 | Complete |
 | STAT-01 | Phase 81 | Pending |
 | STAT-02 | Phase 81 | Pending |
 | STAT-03 | Phase 81 | Pending |
