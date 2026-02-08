@@ -29,12 +29,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 // Paul Tol Muted palette - colorblind safe
 const COLORS = {
-  submitted: '#6699CC', // Muted blue (submitted but not approved)
   approved: '#009E73', // Okabe-Ito bluish green (approved)
+  submitted: '#6699CC', // Muted blue (submitted but not approved)
+  notSubmitted: '#BBBBBB', // Gray (not yet submitted)
 };
 
 interface Reviewer {
   user_name: string;
+  total_assigned: number;
   submitted_count: number;
   approved_count: number;
 }
@@ -59,10 +61,17 @@ const chartData = computed(() => ({
       borderWidth: 1,
     },
     {
-      label: 'Pending',
-      data: props.reviewers.map((r) => r.submitted_count - r.approved_count),
+      label: 'Pending Review',
+      data: props.reviewers.map((r) => Math.max(0, r.submitted_count - r.approved_count)),
       backgroundColor: COLORS.submitted,
       borderColor: COLORS.submitted,
+      borderWidth: 1,
+    },
+    {
+      label: 'Not Yet Submitted',
+      data: props.reviewers.map((r) => Math.max(0, r.total_assigned - r.submitted_count)),
+      backgroundColor: COLORS.notSubmitted,
+      borderColor: COLORS.notSubmitted,
       borderWidth: 1,
     },
   ],

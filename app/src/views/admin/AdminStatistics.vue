@@ -243,6 +243,7 @@ interface ContributorData {
 
 interface ReReviewLeaderboardData {
   user_name: string;
+  total_assigned: number;
   submitted_count: number;
   approved_count: number;
 }
@@ -490,10 +491,11 @@ async function fetchReReviewLeaderboard(): Promise<void> {
     // Map response to chart format
     const data = response.data.data || [];
     reReviewLeaderboardData.value = data.map(
-      (item: { display_name: string; submitted_count: number; approved_count: number }) => ({
+      (item: { display_name: string; total_assigned: number; submitted_count: number; approved_count: number }) => ({
         user_name: item.display_name || 'Unknown',
-        submitted_count: item.submitted_count,
-        approved_count: item.approved_count,
+        total_assigned: item.total_assigned ?? 0,
+        submitted_count: item.submitted_count ?? 0,
+        approved_count: item.approved_count ?? 0,
       })
     );
   } catch (error) {
