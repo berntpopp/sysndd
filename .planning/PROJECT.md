@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.4 focuses on OMIM optimization — replacing the slow JAX API sequential workflow with genemap2.txt-based processing, unifying OMIM data sources between ontology and comparisons systems, adding disk-based caching with 1-day TTL, and moving the OMIM download key to an environment variable. Building on v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.5 focuses on bug fixes and data integrity — fixing CurationComparisons cross-database category aggregation (#173), AdminStatistics display/logic bugs (#172/#171), PubTator annotation storage failures (#170), Traefik TLS configuration (#169), and building an admin entity integrity audit tool for pre-existing suffix-gene misalignments (#167). Building on v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
 ## Current State (v10.2 shipped 2026-02-03)
 
@@ -342,13 +342,21 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v10.4 OMIM Optimization & Refactor -->
+<!-- v10.5 Bug Fixes & Data Integrity -->
 
-- [ ] Replace JAX API with genemap2.txt for OMIM disease names in ontology system (#139)
-- [ ] Unify OMIM data source between ontology and comparisons systems
-- [ ] Add disk-based cache with 1-day TTL for OMIM file downloads
-- [ ] Move OMIM download key from hardcoded to environment variable (OMIM_DOWNLOAD_KEY)
-- [ ] Research and implement best practices for OMIM phenotype mapping
+- [ ] Fix CurationComparisons cross-database max category aggregation bug (#173)
+- [ ] Fix AdminStatistics entity trend chart aggregation (#171)
+- [ ] Fix AdminStatistics re-review approved flag never set (#172)
+- [ ] Fix AdminStatistics hardcoded percentage_finished denominator (#172)
+- [ ] Fix AdminStatistics KPI race condition (#172)
+- [ ] Fix AdminStatistics date range off-by-one (#172)
+- [ ] Fix AdminStatistics negative pending count and null checks (#172)
+- [ ] Fix AdminStatistics stale data on granularity change (#172)
+- [ ] Fix PubTator annotation storage failure for incremental updates (#170)
+- [ ] Fix Traefik Host() matcher for TLS cert selection (#169)
+- [ ] Build admin entity data integrity audit UI (#167)
+- [ ] Fix orphaned replaced_by pointer (entity 4269) (#167)
+- [ ] Add compatibility rows for broken inactive entity FKs (#167)
 
 ### Out of Scope
 
@@ -401,7 +409,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 - **Node.js**: Node 24 LTS (Vue 3 + Vite)
 - **Component Library**: Bootstrap-Vue-Next 0.42.0
 - **Browser Support**: Modern browsers (Chrome, Firefox, Safari, Edge — last 2 versions)
-- **OMIM Data**: mim2gene.txt + JAX API (no OMIM license required)
+- **OMIM Data**: genemap2.txt + mim2gene.txt (no JAX API, env-var based download key)
 
 ## Key Decisions
 
@@ -475,4 +483,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-07 after v10.4 milestone started*
+*Last updated: 2026-02-08 after v10.5 milestone started*
