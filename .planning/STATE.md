@@ -1,6 +1,6 @@
 # Project State: SysNDD
 
-**Last updated:** 2026-02-08
+**Last updated:** 2026-02-09
 **Current milestone:** v10.5 Bug Fixes & Data Integrity
 
 ---
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 **Status:** Milestone complete
 **Progress:** v10.5 [████████████████████] 100%
 
-**Last completed:** Phase 82 (PubTator Backend Fix) -- all 1 plan complete
-**Last activity:** 2026-02-08 -- Phase 83 removed (entity integrity handled manually)
+**Last completed:** Phase 81 Plan 03 (Entity Trend Chart Filter Controls)
+**Last activity:** 2026-02-09 -- Added trend chart filter controls (NDD/category toggle, by-category display)
 **Next action:** Complete milestone v10.5
 
 ---
@@ -43,7 +43,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 326 (from v1-v10.4 + Phases 80-81)
+- Total plans completed: 327 (from v1-v10.4 + Phases 80-82 + 81-03)
 - Milestones shipped: 14 (v1-v10.4)
 - Phases completed: 81
 
@@ -52,7 +52,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Backend Tests** | 789 + 11 E2E | Coverage 20.3% (8 new PubTator unit tests) |
-| **Frontend Tests** | 225 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe (26 new date/API utils tests) |
+| **Frontend Tests** | 229 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe (4 new timeSeriesUtils tests) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 
@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| FILTER-PARAM-01 | Omit filter param when matching API default | 81-03 | No URL encoding issues with filter commas/parentheses |
+| YMAX-RUNNING-01 | Running maximum for y-axis stability | 81-03 | Y-axis stays fixed when toggling categories; resets on NDD change |
+| SEPARATE-WATCHERS-01 | Separate watchers for NDD vs category filters | 81-03 | Correct reset semantics per interaction type |
 | RATE-LIMIT-01 | PUBTATOR_RATE_LIMIT_DELAY = 0.35s | 82-01 | 7x faster annotation fetching (~2.86 req/s, under NCBI 3 req/s limit) |
 | LEFT-JOIN-01 | Filter unannotated PMIDs in SQL query | 82-01 | ~90% reduction in redundant NCBI API calls for incremental updates |
 | INSERT-IGNORE-01 | Use INSERT IGNORE for annotation cache only | 82-01 | Idempotent inserts prevent duplicate key errors on retries |
@@ -104,10 +107,10 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-08
-**Stopped at:** Phase 82 complete (Plan 82-01)
+**Last session:** 2026-02-09
+**Stopped at:** Phase 81 Plan 03 complete (trend chart filter controls)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 83 removed, milestone ready for completion*
+*Last updated: 2026-02-09 -- Phase 81 Plan 03 complete (trend chart filter controls)*

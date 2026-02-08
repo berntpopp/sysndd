@@ -32,7 +32,7 @@ Phases 1-79 delivered across milestones v1.0 through v10.4. See `.planning/MILES
 **Milestone Goal:** Fix 5 open bugs across CurationComparisons (#173), AdminStatistics (#172, #171), PubTator (#170), and Traefik (#169). Delivers correct data display, accurate admin statistics, working PubTator incremental updates, and clean infrastructure configuration.
 
 **Phases:** 3 (80-82)
-**Requirements:** 21 v1 requirements mapped (100% coverage)
+**Requirements:** 24 requirements mapped (100% coverage)
 **Risk profile:** Medium-High (dominated by #172-1 approval sync)
 
 #### Phase 80: Foundation Fixes
@@ -79,7 +79,7 @@ Plans:
 
 **Depends on:** Phase 80 (Bug #172-3 KPI race fix depends on #171 time-series utility)
 
-**Requirements:** STAT-01, STAT-02, STAT-03, STAT-04, STAT-05, STAT-06, STAT-07, STAT-08, TEST-03
+**Requirements:** STAT-01, STAT-02, STAT-03, STAT-04, STAT-05, STAT-06, STAT-07, STAT-08, STAT-09, STAT-10, STAT-11, TEST-03
 
 **Success Criteria** (what must be TRUE):
 1. When a review or status is approved via `/ApproveReview` or `/ApproveStatus`, the corresponding `re_review_entity_connect.re_review_approved` flag is set atomically within the same transaction
@@ -90,11 +90,12 @@ Plans:
 6. Switching granularity (daily/weekly/monthly) immediately clears stale chart data, cancels in-flight requests via AbortController, and shows a loading spinner until fresh data arrives
 7. API responses that return error shapes or null data do not crash the admin view; negative bar values are clamped to zero
 
-**Plans:** 2 plans
+**Plans:** 3 plans
 
 Plans:
 - [x] 81-01-PLAN.md -- Re-review approval sync and leaderboard chart fix (#172-1)
 - [x] 81-02-PLAN.md -- Dynamic denominator, date utilities, defensive data handling, and request cancellation (#172-2, #172-3, #172-4, #172-5/6, #172-7)
+- [x] 81-03-PLAN.md -- Entity trend chart filter controls: NDD/Non-NDD/All toggle, Combined/By Category display, per-category checkboxes (#172-8)
 
 **Key files (new):**
 - `api/functions/re-review-sync.R`
@@ -108,11 +109,15 @@ Plans:
 - `api/endpoints/statistics_endpoints.R`
 - `app/src/views/admin/AdminStatistics.vue`
 - `app/src/views/admin/components/charts/ReReviewBarChart.vue`
+- `app/src/views/admin/components/charts/EntityTrendChart.vue`
+- `app/src/utils/timeSeriesUtils.ts`
 
 **Pitfalls:**
 - Multi-table approval sync must happen inside `db_with_transaction()` -- never separate queries for related approval flags (Pitfall 3)
 - AbortController: create a new controller per request, never reuse an aborted one; clean up on `onUnmounted()` (Pitfall 8)
 - Use `.groups = "drop"` in leaderboard `summarise()` query (Pitfall 1)
+- Omit filter param when matching API default to avoid URL encoding issues (Pitfall 9)
+- Y-axis running maximum with separate watchers for reset-vs-keep semantics (Pitfall 10)
 
 ---
 
@@ -164,6 +169,9 @@ Plans:
 | STAT-06 | Phase 81 | `inclusiveDayCount()` and `previousPeriod()` date utilities |
 | STAT-07 | Phase 81 | `safeArray()` and `clampPositive()` defensive utilities |
 | STAT-08 | Phase 81 | AbortController for request cancellation |
+| STAT-09 | Phase 81 | NDD/Non-NDD/All trend chart filter toggle |
+| STAT-10 | Phase 81 | Combined/By Category display mode for trend chart |
+| STAT-11 | Phase 81 | Per-category checkbox filters with fixed y-axis |
 | TEST-03 | Phase 81 | Integration test for re-review approval sync |
 | API-01 | Phase 82 | LEFT JOIN query for missing-only annotation fetching |
 | API-02 | Phase 82 | INSERT IGNORE for batch deduplication |
@@ -171,7 +179,7 @@ Plans:
 | TEST-01 | Cross-cutting | R unit tests -- each phase delivers its portion |
 | TEST-02 | Cross-cutting | TypeScript unit tests -- each phase delivers its portion |
 
-**Coverage:** 21/21 v1 requirements mapped (100%)
+**Coverage:** 24/24 requirements mapped (100%)
 
 **Cross-cutting note:** TEST-01 and TEST-02 are composite requirements spanning all phases. Each phase delivers regression tests for its own fixes. Complete test coverage verified after Phase 82.
 
@@ -194,9 +202,9 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 80. Foundation Fixes | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
-| 81. AdminStatistics Sub-Bugs | v10.5 | 2/2 | ✓ Complete | 2026-02-08 |
+| 81. AdminStatistics Sub-Bugs | v10.5 | 3/3 | ✓ Complete | 2026-02-09 |
 | 82. PubTator Backend Fix | v10.5 | 1/1 | ✓ Complete | 2026-02-08 |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-08 -- Phase 82 complete*
+*Last updated: 2026-02-09 -- Phase 81 Plan 03 complete (trend chart filter controls)*
