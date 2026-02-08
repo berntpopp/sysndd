@@ -1,8 +1,9 @@
 ---
 phase: 80-foundation-fixes
 verified: 2026-02-08T22:28:00Z
+re-verified: 2026-02-08
 status: passed
-score: 11/11 must-haves verified
+score: 14/14 must-haves verified (11 original + 3 post-execution)
 ---
 
 # Phase 80: Foundation Fixes Verification Report
@@ -10,8 +11,9 @@ score: 11/11 must-haves verified
 **Phase Goal:** Administrators see correct per-source categories in CurationComparisons, accurate monotonic entity trend charts, and Traefik starts without TLS warnings
 
 **Verified:** 2026-02-08T22:28:00Z
+**Re-verified:** 2026-02-08 (post-execution fixes)
 **Status:** PASSED
-**Re-verification:** No — initial verification
+**Re-verification:** Yes — updated after manual testing discovered comparison view filter gaps and cache/routing issues
 
 ## Goal Achievement
 
@@ -92,21 +94,76 @@ No blocker anti-patterns detected.
 
 ### Human Verification Required
 
-None. All success criteria are programmatically verifiable and verified.
+None after re-verification. All counts validated via API + browser.
 
-**Automated checks cover:**
-- ✓ Category normalization logic correctness (via unit tests with fixtures)
-- ✓ Time-series aggregation monotonicity (via unit tests with sparse data)
-- ✓ Traefik configuration syntax (via docker compose config validation)
-- ✓ Source order correctness (via grep verification)
-- ✓ Cross-database aggregation removal (via code inspection)
-- ✓ Import/export wiring (via grep + file existence)
+**Manual verification performed (post-execution):**
+- ✓ Stats API: Definitive 1802, Moderate 154, Limited 1253
+- ✓ Comparisons SysNDD column: Definitive 1802, Moderate 154, Limited 1253
+- ✓ Genes page browser count: 1802
+- ✓ CurationComparisons/Table browser: Total 4977, table renders correctly
+- ✓ Migration 016 idempotent: ran twice successfully, second run produces identical view
 
-**No human verification needed because:**
-- Category display correctness proven by 37 unit tests with multi-source fixtures
-- Monotonicity proven by 9 unit tests with sparse categorical data
-- Traefik config validated by docker compose YAML parser
-- All key behaviors testable without running production system
+---
+
+## Post-Execution Fixes Verification
+
+### Issues Discovered During Manual Testing
+
+Three issues were discovered after the initial automated verification passed:
+
+#### Issue 1: Comparison View Missing `is_active` Filter
+
+**Discovery:** CurationComparisons SysNDD Definitive count was 1806 vs Stats count of 1802.
+
+**Root Cause:** `ndd_database_comparison_view` SQL UNION's SysNDD branch did not include `WHERE ndd_entity.is_active = 1`. Four inactive MONDO:0001071 entities (genes: ASCC3, INTS8, TRR-CCT1-1, CNOT2) leaked through.
+
+**Fix:** Migration `016_fix_comparison_view_active_filter.sql` adds `WHERE ndd_entity.is_active = 1`.
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 9 | Comparison view SysNDD branch excludes inactive entities | ✓ VERIFIED | Migration 016 adds `WHERE is_active = 1`; Definitive count now 1802 matching Stats |
+
+#### Issue 2: Comparison View Missing `ndd_phenotype` Filter
+
+**Discovery:** After fixing is_active, Limited count was still 1254 vs Stats count of 1253.
+
+**Root Cause:** Gene GJA1 (HGNC:4274) has ALL entities with `ndd_phenotype = 0`. Stats filters on `ndd_phenotype == 1`, but the comparison view did not.
+
+**Fix:** Same migration 016 also adds `AND ndd_entity.ndd_phenotype = 1`.
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 10 | Comparison view SysNDD branch excludes non-NDD-phenotype entities | ✓ VERIFIED | Migration 016 adds `AND ndd_phenotype = 1`; Limited count now 1253 matching Stats |
+
+#### Issue 3: Stale Cache + Broken Dev Routing
+
+**Discovery:** After deploying R code changes, API still returned old counts. Also, Traefik production Host() matchers broke localhost dev routing.
+
+**Root Cause:** (a) Memoise disk cache had `max_age = Inf` and no version bump mechanism. (b) Traefik only matched `Host(sysndd.dbmr.unibe.ch)` and rejected `Host: localhost`.
+
+**Fix (commit `8535814c`):**
+- `CACHE_VERSION` bumped from 1 to 2 (forces cache invalidation)
+- `max_age` changed from `Inf` to `86400` (24h safety net)
+- Added `localhost` Host() matcher to `docker-compose.override.yml` for dev
+
+| # | Truth | Status | Evidence |
+|---|-------|--------|----------|
+| 11 | Cache invalidation works on code changes | ✓ VERIFIED | CACHE_VERSION=2 forces fresh cache; max_age=86400 prevents indefinite staleness |
+
+### Post-Execution Artifacts
+
+| Artifact | Expected | Status | Details |
+|----------|----------|--------|---------|
+| `db/migrations/016_fix_comparison_view_active_filter.sql` | Idempotent migration fixing comparison view filters | ✓ VERIFIED | Uses `CREATE OR REPLACE VIEW`; ran twice successfully; adds `is_active = 1 AND ndd_phenotype = 1` |
+| `docker-compose.override.yml` | Localhost Host() matchers for dev routing | ✓ VERIFIED | Both api and app routers accept `Host(localhost)` via `||` operator |
+| `docker-compose.yml` | CACHE_VERSION bump | ✓ VERIFIED | `CACHE_VERSION: ${CACHE_VERSION:-2}` (was 1) |
+
+### Post-Execution Commits
+
+| Commit | Type | Description | Files |
+|--------|------|-------------|-------|
+| 8535814c | fix | Cache invalidation + Traefik dev routing | start_sysndd_api.R, docker-compose.yml, docker-compose.override.yml |
+| e6e2d0b4 | fix | Migration 016: filter inactive/non-NDD from comparison view | 016_fix_comparison_view_active_filter.sql |
 
 ---
 
@@ -326,17 +383,22 @@ grep -c "Host(\`sysndd.dbmr.unibe.ch\`)" docker-compose.yml
 
 | Verification Level | Score | Status |
 |-------------------|-------|--------|
-| Observable Truths | 8/8 | ✓ PASSED |
-| Required Artifacts | 8/8 | ✓ PASSED |
+| Observable Truths | 11/11 (8 original + 3 post-execution) | ✓ PASSED |
+| Required Artifacts | 11/11 (8 original + 3 post-execution) | ✓ PASSED |
 | Key Links | 5/5 | ✓ PASSED |
 | Requirements Coverage | 9/9 | ✓ PASSED |
 | Anti-Patterns | 0 blockers | ✓ PASSED |
-| Human Verification | 0 items | N/A |
+| Manual Verification | 5 items | ✓ PASSED |
 
-**Overall: 11/11 must-haves verified (100%)**
+**Overall: 14/14 must-haves verified (100%)**
+
+### Pre-existing Issues Noted (not introduced by Phase 80)
+
+- **Stats API `type=all` returns 500:** `object 'inheritance' not found` error in `generate_stat_tibble()` when `type=all` (non-default parameter). Works correctly with default `type=gene`. Not a regression — pre-existing bug.
 
 ---
 
-*Verified: 2026-02-08T22:28:00Z*
-*Verifier: Claude (gsd-verifier)*
-*Execution time: 5 minutes*
+*Initial verification: 2026-02-08T22:28:00Z*
+*Re-verified after post-execution fixes: 2026-02-08*
+*Verifier: Claude (gsd-verifier + manual testing)*
+*Total commits: 6 (4 planned + 2 post-execution fixes)*

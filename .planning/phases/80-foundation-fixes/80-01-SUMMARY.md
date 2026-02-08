@@ -25,10 +25,13 @@ key-files:
   created:
     - "api/functions/category-normalization.R"
     - "api/tests/testthat/test-unit-category-normalization.R"
+    - "db/migrations/016_fix_comparison_view_active_filter.sql"
   modified:
     - "api/functions/endpoint-functions.R"
     - "api/endpoints/comparisons_endpoints.R"
     - "api/start_sysndd_api.R"
+    - "docker-compose.yml"
+    - "docker-compose.override.yml"
 
 decisions:
   - id: DISP-02
@@ -41,12 +44,12 @@ decisions:
     impact: "Each database shows its own category rating, not the 'best' category across all sources"
 
 metrics:
-  duration: "3 minutes"
+  duration: "3 minutes (plan) + manual testing/fixes"
   completed: "2026-02-08"
-  commits: 2
+  commits: 4
   tests_added: 37
   tests_passing: 94
-  files_changed: 5
+  files_changed: 8
 ---
 
 # Phase 80 Plan 01: Fix CurationComparisons Category Display
@@ -264,13 +267,56 @@ grep -n "group_by(symbol)" api/functions/endpoint-functions.R
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+**Plan 01 itself executed as written.** However, manual testing after all plans were executed revealed two additional issues in the comparison view SQL that required a database migration (see Post-Execution Fixes below).
 
-All requirements satisfied:
+All original requirements satisfied:
 - ✓ DISP-01: Per-source category preservation
 - ✓ DISP-02: DRY category normalization helper
 - ✓ DISP-03: definitive_only filter works per-source
 - ✓ TEST-01: 37 unit tests with multi-source fixtures
+
+---
+
+## Post-Execution Fixes (discovered during manual testing)
+
+### Problem: SysNDD column counts in CurationComparisons did not match Stats/Genes/Panels
+
+After deploying Plan 01 and Plan 02 fixes, manual cross-checking revealed:
+
+| Metric | Stats/Genes | CurationComparisons SysNDD | Delta |
+|--------|-------------|---------------------------|-------|
+| Definitive | 1802 | 1806 | +4 |
+| Moderate | 154 | 159 | +5 |
+| Limited | 1253 | 1254 | +1 |
+
+### Root Cause 1: `ndd_database_comparison_view` missing `is_active` filter
+
+The SysNDD branch of the `ndd_database_comparison_view` UNION query did not filter on `ndd_entity.is_active = 1`. This allowed 4 inactive MONDO:0001071 entities (genes: ASCC3, INTS8, TRR-CCT1-1, CNOT2) to appear in CurationComparisons but not in Stats/Genes (which use `ndd_entity_view` with `is_active = 1`).
+
+### Root Cause 2: `ndd_database_comparison_view` missing `ndd_phenotype` filter
+
+The view also did not filter on `ndd_entity.ndd_phenotype = 1`. Gene GJA1 (HGNC:4274) has ALL entities with `ndd_phenotype = 0`, so it appeared in CurationComparisons Limited count but not in Stats (which filters `ndd_phenotype == 1`).
+
+### Fix: Migration 016
+
+**File created:** `db/migrations/016_fix_comparison_view_active_filter.sql`
+
+Added `WHERE ndd_entity.is_active = 1 AND ndd_entity.ndd_phenotype = 1` to the SysNDD branch of the `ndd_database_comparison_view`. Uses idempotent `CREATE OR REPLACE VIEW` pattern — safe to run multiple times on both fresh installs and existing databases.
+
+### Additional Fix: Cache invalidation improvements
+
+**Commit `8535814c`:**
+- Bumped `CACHE_VERSION` from 1 to 2 in `docker-compose.yml` (forces immediate cache invalidation)
+- Changed `max_age` from `Inf` to `86400` (24h safety net) in `api/start_sysndd_api.R`
+- Added `localhost` Host() matchers to `docker-compose.override.yml` for dev routing (Traefik refused requests to `localhost` after production Host() matchers were added in Plan 02)
+
+### Verified After Fix
+
+All three sources now match exactly:
+- **Stats API:** Definitive 1802, Moderate 154, Limited 1253
+- **Comparisons SysNDD API:** Definitive 1802, Moderate 154, Limited 1253
+- **Genes page (browser):** 1802
+- **CurationComparisons/Table (browser):** Total 4977, table renders correctly
 
 ---
 
@@ -317,9 +363,11 @@ source("functions/endpoint-functions.R", local = TRUE)
 
 ### Deployment Notes
 
-**No migration required:** This is a pure API logic change, no database schema changes.
+**Migration required:** Run `db/migrations/016_fix_comparison_view_active_filter.sql` on the database. This is idempotent (`CREATE OR REPLACE VIEW`) and safe to run multiple times.
 
-**Rollback plan:** Revert commits 5eb1ef40 and a109e49d if cross-database max aggregation is needed for specific use cases.
+**Cache invalidation:** `CACHE_VERSION` bumped to 2 — API containers will automatically use fresh caches on restart.
+
+**Rollback plan:** Revert commits 5eb1ef40 and a109e49d for R logic changes; revert e6e2d0b4 and re-run migration 009 (original view definition) for the SQL view change.
 
 **Monitoring:** Watch for user reports about CurationComparisons showing "different values than before" - this is expected and correct.
 
@@ -354,8 +402,10 @@ source("functions/endpoint-functions.R", local = TRUE)
 |--------|------|-------------|-------|
 | 5eb1ef40 | refactor | Extract category normalization and fix cross-database aggregation | category-normalization.R, endpoint-functions.R, comparisons_endpoints.R, start_sysndd_api.R |
 | a109e49d | test | Add comprehensive unit tests for category normalization | test-unit-category-normalization.R |
+| 8535814c | fix | Improve cache invalidation and Traefik dev routing | start_sysndd_api.R, docker-compose.yml, docker-compose.override.yml |
+| e6e2d0b4 | fix | Add migration to filter inactive/non-NDD entities from comparison view | 016_fix_comparison_view_active_filter.sql |
 
-**Total:** 2 commits, 5 files changed, 323 lines added, 57 lines removed
+**Total:** 4 commits, 8 files changed (5 original + 3 post-execution fixes)
 
 ---
 
@@ -369,9 +419,12 @@ All success criteria met:
 - ✓ upset endpoint uses shared helper instead of inline duplication (DISP-02)
 - ✓ 37 unit tests pass with multi-source test fixtures (TEST-01 - exceeded minimum of 9)
 - ✓ No regression in existing comparisons tests (57 passed)
+- ✓ SysNDD counts in CurationComparisons match Stats/Genes/Panels exactly (post-execution fix)
+- ✓ Comparison view correctly filters inactive and non-NDD entities (post-execution fix)
+- ✓ Cache invalidation works reliably on code changes (post-execution fix)
 
 ---
 
 *Summary completed: 2026-02-08*
-*Duration: 3 minutes*
-*Status: ✓ All tasks complete, all tests passing*
+*Duration: 3 minutes (plan execution) + manual testing and post-execution fixes*
+*Status: ✓ All tasks complete, all tests passing, all counts verified*

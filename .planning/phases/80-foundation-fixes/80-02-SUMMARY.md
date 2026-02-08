@@ -122,11 +122,11 @@ for each date:
 # Production (docker-compose.yml)
 - "traefik.http.routers.api.rule=Host(`sysndd.dbmr.unibe.ch`) && PathPrefix(`/api`)"
 
-# Development (docker-compose.override.yml) - unchanged
-- "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+# Development (docker-compose.override.yml) - updated post-execution
+- "traefik.http.routers.api.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`)) && PathPrefix(`/api`)"
 ```
 
-**Key insight:** Development (localhost) doesn't need Host() matchers because there's only one domain. Production needs them for deterministic TLS cert selection when multiple certs are available.
+**Key insight:** Production Host() matchers mean Traefik rejects requests without a matching Host header. Development must add `localhost` as an alternative via `docker-compose.override.yml`, otherwise local development requests fail with 404.
 
 ## Decisions Made
 
@@ -215,9 +215,23 @@ Ran `npm run test:unit` in app directory:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+**Plan 02 itself executed as written.** However, two post-execution issues were discovered:
 
-All must_haves satisfied:
+### Issue 1: Traefik localhost routing broken in dev
+
+Adding `Host(\`sysndd.dbmr.unibe.ch\`)` matchers to production `docker-compose.yml` caused Traefik to reject all requests from `localhost` in development, because the override file didn't include a `Host()` matcher. Requests returned 404 since no router matched `Host: localhost`.
+
+**Fix (commit `8535814c`):** Added `(Host(\`sysndd.dbmr.unibe.ch\`) || Host(\`localhost\`))` to both api and app router rules in `docker-compose.override.yml`.
+
+### Issue 2: Stale memoise disk cache
+
+After deploying R API code changes, the memoise disk cache (`/app/cache`) continued serving stale responses. The cache had `max_age = Inf` (never expires) and `CACHE_VERSION = 1` (no version bump).
+
+**Fix (commit `8535814c`):**
+- Bumped `CACHE_VERSION` from 1 to 2 in `docker-compose.yml` (forces immediate invalidation)
+- Changed `max_age` from `Inf` to `86400` (24h safety net) in `start_sysndd_api.R`
+
+All original must_haves satisfied:
 - ✅ Entity trend chart produces monotonically non-decreasing cumulative totals
 - ✅ Switching granularity does not produce downward spikes
 - ✅ Traefik production container configured with Host() matchers
