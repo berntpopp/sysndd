@@ -53,8 +53,8 @@ Phases 1-79 delivered across milestones v1.0 through v10.4. See `.planning/MILES
 **Plans:** 2 plans
 
 Plans:
-- [ ] 80-01: CurationComparisons category normalization fix (#173)
-- [ ] 80-02: Entity trend time-series aggregation fix (#171) and Traefik TLS config (#169)
+- [ ] 80-01-PLAN.md -- CurationComparisons category normalization fix (#173)
+- [ ] 80-02-PLAN.md -- Entity trend time-series aggregation fix (#171) and Traefik TLS config (#169)
 
 **Key files (new):**
 - `api/functions/category-normalization.R`
@@ -64,7 +64,7 @@ Plans:
 - `api/functions/endpoint-functions.R`
 - `api/endpoints/comparisons_endpoints.R`
 - `app/src/views/admin/AdminStatistics.vue`
-- `docker-compose.prod.yml`
+- `docker-compose.yml`
 
 **Pitfalls:**
 - dplyr implicit grouping after `summarise()` -- always use `.groups = "drop"` and verify with `is_grouped_df()` (Pitfall 1)
@@ -248,4 +248,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-08 -- v10.5 milestone roadmap added*
+*Last updated: 2026-02-08 -- Phase 80 plans created*
