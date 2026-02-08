@@ -61,10 +61,10 @@ describe("MIRAI_WORKERS parsing", {
 
   it("handles non-numeric values by defaulting to 2", {
     withr::local_envvar(MIRAI_WORKERS = "abc")
-    expect_equal(parse_mirai_workers(), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
 
     withr::local_envvar(MIRAI_WORKERS = "two")
-    expect_equal(parse_mirai_workers(), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
 
     withr::local_envvar(MIRAI_WORKERS = "4.5")  # Float strings
     expect_equal(parse_mirai_workers(), 4L)  # as.integer truncates
@@ -121,9 +121,9 @@ describe("MIRAI_WORKERS parsing", {
   it("handles mixed valid and invalid characters", {
     # as.integer will fail on these, so should default to 2
     withr::local_envvar(MIRAI_WORKERS = "4workers")
-    expect_equal(parse_mirai_workers(), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
 
     withr::local_envvar(MIRAI_WORKERS = "workers4")
-    expect_equal(parse_mirai_workers(), 2L)
+    expect_equal(suppressWarnings(parse_mirai_workers()), 2L)
   })
 })

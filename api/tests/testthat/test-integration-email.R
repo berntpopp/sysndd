@@ -125,7 +125,8 @@ test_that("SMTP test endpoint function exists", {
 
 test_that("SMTP connection fails gracefully for invalid host", {
   # Test that connection fails cleanly (no crash)
-  result <- tryCatch({
+  # suppressWarnings: socketConnection emits a warning before the error
+  result <- suppressWarnings(tryCatch({
     con <- socketConnection(
       host = "invalid.host.example",
       port = 9999,
@@ -137,7 +138,7 @@ test_that("SMTP connection fails gracefully for invalid host", {
     list(success = TRUE)
   }, error = function(e) {
     list(success = FALSE, error = e$message)
-  })
+  }))
 
   expect_false(result$success)
   expect_true(nchar(result$error) > 0)
