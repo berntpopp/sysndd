@@ -223,6 +223,8 @@ import {
   BFormRadioGroup,
 } from 'bootstrap-vue-next';
 import useToast from '@/composables/useToast';
+import { mergeGroupedCumulativeSeries } from '@/utils/timeSeriesUtils';
+import type { GroupedTimeSeries } from '@/utils/timeSeriesUtils';
 import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
@@ -408,29 +410,9 @@ async function fetchTrendData(): Promise<void> {
       headers: getAuthHeaders(),
     });
 
-    // Transform response: data[0].values array contains { entry_date, count, cumulative_count }
-    // Aggregate across all categories for the overall trend
-    const allData = response.data.data || [];
-    const dateCountMap = new Map<string, number>();
-
-    allData.forEach(
-      (group: { group: string; values: Array<{ entry_date: string; count: number }> }) => {
-        group.values?.forEach((item) => {
-          const existing = dateCountMap.get(item.entry_date) || 0;
-          dateCountMap.set(item.entry_date, existing + item.count);
-        });
-      }
-    );
-
-    // Convert to sorted array
-    const sortedDates = Array.from(dateCountMap.entries()).sort(([a], [b]) => a.localeCompare(b));
-
-    // Calculate cumulative totals
-    let cumulative = 0;
-    trendData.value = sortedDates.map(([date, count]) => {
-      cumulative += count;
-      return { date, count: cumulative };
-    });
+    // Transform response using utility that correctly handles sparse data
+    const allData: GroupedTimeSeries[] = response.data.data || [];
+    trendData.value = mergeGroupedCumulativeSeries(allData);
   } catch (error) {
     console.error('Failed to fetch trend data:', error);
     makeToast('Failed to fetch trend data', 'Error', 'danger');
