@@ -123,24 +123,8 @@ function(res, fields = "", definitive_only = "false") {
   if (definitive_only) {
     # Normalize categories to identify "Definitive" entries, then filter
     filtered_data <- filtered_data %>%
-      mutate(normalized_category = case_when(
-        # gene2phenotype mappings
-        list == "gene2phenotype" & tolower(category) == "strong" ~ "Definitive",
-        list == "gene2phenotype" & tolower(category) == "definitive" ~ "Definitive",
-        # panelapp mappings (confidence levels 1-3)
-        list == "panelapp" & category == "3" ~ "Definitive",
-        # sfari mappings (gene scores 1-3)
-        list == "sfari" & category == "1" ~ "Definitive",
-        list == "sfari" & is.na(category) ~ "Definitive",
-        # geisinger_DBD - all entries are high confidence
-        list == "geisinger_DBD" ~ "Definitive",
-        # radboudumc_ID - all entries are high confidence
-        list == "radboudumc_ID" ~ "Definitive",
-        # SysNDD, omim_ndd, orphanet_id - use existing category
-        TRUE ~ category
-      )) %>%
-      # Keep only entries that are Definitive in their respective source
-      filter(normalized_category == "Definitive")
+      normalize_comparison_categories() %>%
+      filter(category == "Definitive")
   }
 
   # Construct the data for UpSet
