@@ -20,13 +20,13 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 ## Current Position
 
 **Phase:** 80 of 83 (Foundation Fixes)
-**Plan:** 02 of 02
-**Status:** In progress
+**Plan:** 02 of 02 complete
+**Status:** Phase complete
 **Progress:** v10.5 [██░░░░░░░░░░░░░░░░░░] 10%
 
-**Last completed:** Phase 80 Plan 02 (Entity trend chart & Traefik TLS)
-**Last activity:** 2026-02-08 -- Completed 80-02-PLAN.md
-**Next action:** Continue Phase 80 or move to Phase 81
+**Last completed:** Phase 80 Plans 01 & 02 (CurationComparisons fix, entity trend, Traefik TLS)
+**Last activity:** 2026-02-08 -- Completed 80-01-PLAN.md and 80-02-PLAN.md
+**Next action:** Move to Phase 81 (AdminStatistics sub-bugs)
 
 ---
 
@@ -51,7 +51,7 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 744 + 11 E2E | Coverage 20.3% |
+| **Backend Tests** | 781 + 11 E2E | Coverage 20.3% (37 new category normalization tests) |
 | **Frontend Tests** | 199 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
@@ -67,6 +67,8 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| DISP-02 | Extract category normalization into shared helper | 80-01 | Single source of truth for category mappings, DRY principle |
+| DISP-01 | Remove cross-database max aggregation from CurationComparisons | 80-01 | Per-source categories preserved, definitive_only filter works correctly |
 | DISP-04 | Use cumulative_count with forward-fill for sparse time-series | 80-02 | Entity trend chart produces correct monotonic totals |
 | INFRA-01 | Add Host() matchers to Traefik production routers | 80-02 | Eliminates TLS cert warnings, deterministic routing |
 
@@ -93,9 +95,9 @@ None.
 ## Session Continuity
 
 **Last session:** 2026-02-08
-**Stopped at:** Completed 80-02-PLAN.md
+**Stopped at:** Completed Phase 80 (both plans 01 & 02)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-08 -- Completed Phase 80 Plan 02 (entity trend & Traefik TLS)*
+*Last updated: 2026-02-08 -- Completed Phase 80 (CurationComparisons fix, entity trend, Traefik TLS)*
