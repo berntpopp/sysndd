@@ -20,7 +20,7 @@ if (!exists("db_execute_query", mode = "function")) {
 # PubTator API Rate Limiting Configuration
 # Based on API documentation: ~30 requests/minute limit
 #------------------------------------------------------------------------------
-PUBTATOR_RATE_LIMIT_DELAY <- 2.5 # seconds between requests (24 req/min max)
+PUBTATOR_RATE_LIMIT_DELAY <- 0.35 # seconds between requests (~2.86 req/s, under NCBI 3 req/s limit)
 PUBTATOR_MAX_PMIDS_PER_REQUEST <- 100 # batch size for PMID fetches
 PUBTATOR_MAX_RETRIES <- 3
 PUBTATOR_BACKOFF_BASE <- 2 # exponential backoff base (seconds)
@@ -289,8 +289,11 @@ pubtator_db_update <- function(
 
         # E) Gather PMIDs and fetch annotations
         pmid_rows <- db_execute_query(
-          "SELECT pmid FROM pubtator_search_cache
-         WHERE query_id=? AND pmid IS NOT NULL GROUP BY pmid",
+          "SELECT DISTINCT s.pmid
+           FROM pubtator_search_cache s
+           LEFT JOIN pubtator_annotation_cache a ON s.pmid = a.pmid
+           WHERE s.query_id = ? AND s.pmid IS NOT NULL
+             AND a.annotation_id IS NULL",
           list(query_id)
         )
 
@@ -300,7 +303,7 @@ pubtator_db_update <- function(
         }
 
         pmid_vector <- pmid_rows$pmid
-        log_info("Found {length(pmid_vector)} PMIDs => fetching annotations...")
+        log_info("Found {length(pmid_vector)} unannotated PMIDs => fetching annotations...")
         report_progress("annotations", sprintf("Fetching annotations for %d PMIDs...", length(pmid_vector)),
                         current = max_pages, total = max_pages + 2)  # +2 for annotations + gene symbols
 
@@ -333,7 +336,7 @@ pubtator_db_update <- function(
 
         for (r in seq_len(nrow(df_ann))) {
           db_execute_statement(
-            "INSERT INTO pubtator_annotation_cache
+            "INSERT IGNORE INTO pubtator_annotation_cache
             (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
              normalized, `database`, normalized_id, biotype, name, accession)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -573,13 +576,17 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
     report_progress("annotations", "Fetching annotations...", current = max_pages, total = max_pages + 1)
 
     pmid_rows <- db_execute_query(
-      "SELECT pmid FROM pubtator_search_cache WHERE query_id = ? AND pmid IS NOT NULL GROUP BY pmid",
+      "SELECT DISTINCT s.pmid
+       FROM pubtator_search_cache s
+       LEFT JOIN pubtator_annotation_cache a ON s.pmid = a.pmid
+       WHERE s.query_id = ? AND s.pmid IS NOT NULL
+         AND a.annotation_id IS NULL",
       list(query_id), conn = conn
     )
 
     if (nrow(pmid_rows) > 0) {
       pmid_vector <- pmid_rows$pmid
-      log_info("Fetching annotations for {length(pmid_vector)} PMIDs")
+      log_info("Fetching annotations for {length(pmid_vector)} unannotated PMIDs")
 
       doc_list <- pubtator_v3_data_from_pmids(pmid_vector)
 
@@ -602,7 +609,7 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
         for (r in seq_len(nrow(df_ann))) {
           row <- df_ann[r, ]
           db_execute_statement(
-            "INSERT INTO pubtator_annotation_cache
+            "INSERT IGNORE INTO pubtator_annotation_cache
              (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
               normalized, `database`, normalized_id, biotype, name, accession)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
