@@ -53,9 +53,8 @@ generate_comparisons_list <- function(
   ndd_database_comparison_table_col <- ndd_database_comparison_view %>%
     left_join(sysndd_db_non_alt_loci_set, by = c("hgnc_id")) %>%
     collect() %>%
-    # Prefer canonical symbol from HGNC, fall back to imported symbol
-    mutate(symbol = coalesce(canonical_symbol, symbol)) %>%
-    select(-canonical_symbol)
+    # Use canonical symbol from HGNC as the display symbol
+    dplyr::rename(symbol = canonical_symbol)
 
   # normalize categories - map source-specific values to standard categories
   # Standard categories: Definitive, Moderate, Limited, Refuted, not applicable
@@ -65,10 +64,22 @@ generate_comparisons_list <- function(
   # Parse definitive_only parameter
   definitive_only_bool <- tolower(definitive_only) %in% c("true", "1", "yes")
 
-  # Prepare data for pivoting
+  # Category priority for per-source deduplication (lower = more significant)
+  category_priority <- c(
+    "Definitive" = 1L, "Moderate" = 2L, "Limited" = 3L,
+    "Refuted" = 4L, "not applicable" = 5L
+  )
+
+  # Prepare data for pivoting: keep most significant category per (symbol, list)
+  # A gene can have multiple entities in the same source (different diseases),
+  # so we pick the best category within each source for pivot_wider uniqueness
   table_data <- ndd_database_comparison_table_norm %>%
-    select(symbol, hgnc_id, list, category) %>%
-    unique()
+    dplyr::select(symbol, hgnc_id, list, category) %>%
+    dplyr::mutate(cat_priority = category_priority[category]) %>%
+    dplyr::group_by(symbol, hgnc_id, list) %>%
+    dplyr::slice_min(cat_priority, n = 1, with_ties = FALSE) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(-cat_priority)
 
   # If definitive_only is TRUE, filter to only Definitive entries BEFORE pivoting
   # This means each source column will only show genes that are Definitive in that source
