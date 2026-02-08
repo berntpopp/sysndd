@@ -99,4 +99,58 @@ export function mergeGroupedCumulativeSeries(
   });
 }
 
-export default { mergeGroupedCumulativeSeries };
+/**
+ * Extracts per-group cumulative time series with forward-fill.
+ *
+ * Returns a union of all dates and each group's forward-filled cumulative count,
+ * suitable for rendering one line per category in a chart.
+ *
+ * @param groups - Array of grouped time series data
+ * @returns Object with sorted date labels and per-group cumulative value arrays
+ */
+export function extractPerGroupSeries(
+  groups: GroupedTimeSeries[]
+): { dates: string[]; series: Record<string, number[]> } {
+  const allDates = new Set<string>();
+  for (const g of groups) {
+    for (const v of g.values ?? []) {
+      allDates.add(v.entry_date);
+    }
+  }
+
+  if (allDates.size === 0) {
+    return { dates: [], series: {} };
+  }
+
+  const sortedDates = Array.from(allDates).sort();
+
+  const groupMaps = groups.map((g) => {
+    const map = new Map<string, number>();
+    for (const v of g.values ?? []) {
+      map.set(v.entry_date, v.cumulative_count);
+    }
+    return { name: g.group, map };
+  });
+
+  const series: Record<string, number[]> = {};
+  const lastSeen: Record<string, number> = {};
+
+  for (const { name } of groupMaps) {
+    series[name] = [];
+    lastSeen[name] = 0;
+  }
+
+  for (const date of sortedDates) {
+    for (const { name, map } of groupMaps) {
+      const val = map.get(date);
+      if (val !== undefined) {
+        lastSeen[name] = val;
+      }
+      series[name].push(lastSeen[name]);
+    }
+  }
+
+  return { dates: sortedDates, series };
+}
+
+export default { mergeGroupedCumulativeSeries, extractPerGroupSeries };

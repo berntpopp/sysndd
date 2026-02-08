@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeGroupedCumulativeSeries } from '../timeSeriesUtils';
+import { mergeGroupedCumulativeSeries, extractPerGroupSeries } from '../timeSeriesUtils';
 import type { GroupedTimeSeries } from '../timeSeriesUtils';
 
 describe('mergeGroupedCumulativeSeries', () => {
@@ -179,5 +179,89 @@ describe('mergeGroupedCumulativeSeries', () => {
     expect(result[1]).toEqual({ date: '2025-01-02', count: 12 }); // 2 + 10 (forward-filled)
     expect(result[2]).toEqual({ date: '2025-01-03', count: 13 }); // 3 + 10 (forward-filled)
     expect(result[3]).toEqual({ date: '2025-01-04', count: 24 }); // 4 + 20
+  });
+});
+
+describe('extractPerGroupSeries', () => {
+  it('returns empty dates and series for empty input', () => {
+    const result = extractPerGroupSeries([]);
+    expect(result).toEqual({ dates: [], series: {} });
+  });
+
+  it('returns per-group cumulative values', () => {
+    const groups: GroupedTimeSeries[] = [
+      {
+        group: 'Definitive',
+        values: [
+          { entry_date: '2025-01-01', count: 10, cumulative_count: 10 },
+          { entry_date: '2025-01-02', count: 5, cumulative_count: 15 },
+        ],
+      },
+      {
+        group: 'Moderate',
+        values: [
+          { entry_date: '2025-01-01', count: 3, cumulative_count: 3 },
+          { entry_date: '2025-01-02', count: 2, cumulative_count: 5 },
+        ],
+      },
+    ];
+
+    const result = extractPerGroupSeries(groups);
+
+    expect(result.dates).toEqual(['2025-01-01', '2025-01-02']);
+    expect(result.series['Definitive']).toEqual([10, 15]);
+    expect(result.series['Moderate']).toEqual([3, 5]);
+  });
+
+  it('forward-fills missing dates per group', () => {
+    const groups: GroupedTimeSeries[] = [
+      {
+        group: 'A',
+        values: [
+          { entry_date: '2025-01-01', count: 1, cumulative_count: 5 },
+          { entry_date: '2025-01-03', count: 2, cumulative_count: 7 },
+        ],
+      },
+      {
+        group: 'B',
+        values: [
+          { entry_date: '2025-01-01', count: 2, cumulative_count: 2 },
+          { entry_date: '2025-01-02', count: 3, cumulative_count: 5 },
+          { entry_date: '2025-01-03', count: 1, cumulative_count: 6 },
+        ],
+      },
+    ];
+
+    const result = extractPerGroupSeries(groups);
+
+    expect(result.dates).toEqual(['2025-01-01', '2025-01-02', '2025-01-03']);
+    expect(result.series['A']).toEqual([5, 5, 7]); // forward-filled at 2025-01-02
+    expect(result.series['B']).toEqual([2, 5, 6]);
+  });
+
+  it('handles null/undefined values array', () => {
+    const groups: GroupedTimeSeries[] = [
+      { group: 'A', values: undefined as any },
+      { group: 'B', values: null as any },
+    ];
+
+    const result = extractPerGroupSeries(groups);
+    expect(result).toEqual({ dates: [], series: {} });
+  });
+
+  it('sorts dates chronologically', () => {
+    const groups: GroupedTimeSeries[] = [
+      {
+        group: 'A',
+        values: [
+          { entry_date: '2025-01-03', count: 3, cumulative_count: 18 },
+          { entry_date: '2025-01-01', count: 1, cumulative_count: 10 },
+        ],
+      },
+    ];
+
+    const result = extractPerGroupSeries(groups);
+    expect(result.dates).toEqual(['2025-01-01', '2025-01-03']);
+    expect(result.series['A']).toEqual([10, 18]);
   });
 });

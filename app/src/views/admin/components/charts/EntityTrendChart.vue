@@ -44,20 +44,39 @@ const COLORS = {
   secondary: '#004488', // Dark blue for MA line
 };
 
+// Category color map consistent with app conventions
+const CATEGORY_COLORS: Record<string, string> = {
+  Definitive: '#4caf50',
+  Moderate: '#2196f3',
+  Limited: '#ff9800',
+  Refuted: '#f44336',
+};
+
 interface EntityDataPoint {
   date: string;
   count: number;
 }
 
+interface CategorySeriesData {
+  dates: string[];
+  series: Record<string, number[]>;
+}
+
 interface Props {
   entityData: EntityDataPoint[];
+  categoryData?: CategorySeriesData;
+  displayMode?: 'combined' | 'by_category';
   loading?: boolean;
   showMovingAverage?: boolean;
+  yMax?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  categoryData: undefined,
+  displayMode: 'combined',
   loading: false,
   showMovingAverage: false,
+  yMax: undefined,
 });
 
 /**
@@ -73,6 +92,26 @@ function calculateSMA(data: number[], period: number = 3): (number | null)[] {
 }
 
 const chartData = computed(() => {
+  if (props.displayMode === 'by_category' && props.categoryData && props.categoryData.dates.length > 0) {
+    const labels = props.categoryData.dates;
+    const datasets = Object.entries(props.categoryData.series).map(([group, values]) => {
+      const color = CATEGORY_COLORS[group] ?? COLORS.primary;
+      return {
+        label: group,
+        data: values,
+        borderColor: color,
+        backgroundColor: color + '20',
+        tension: 0.4,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      };
+    });
+
+    return { labels, datasets };
+  }
+
+  // Combined mode (default)
   const labels = props.entityData.map((d) => d.date);
   const rawData = props.entityData.map((d) => d.count);
 
@@ -107,7 +146,7 @@ const chartData = computed(() => {
   return { labels, datasets };
 });
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false, // Critical for Bootstrap card compatibility
   plugins: {
@@ -117,17 +156,18 @@ const chartOptions: ChartOptions<'line'> = {
     },
     tooltip: {
       callbacks: {
-        label: (context) => `${context.parsed.y} entities`,
+        label: (context) => `${context.dataset.label}: ${context.parsed.y} entities`,
       },
     },
   },
   scales: {
     y: {
       beginAtZero: true,
+      suggestedMax: props.yMax,
       ticks: {
         precision: 0, // Integer counts only
       },
     },
   },
-};
+}));
 </script>

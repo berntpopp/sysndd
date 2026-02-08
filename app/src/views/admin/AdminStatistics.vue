@@ -49,18 +49,44 @@
                 button-variant="outline-primary"
                 size="sm"
                 buttons
-                @change="fetchTrendData"
+              />
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <div class="d-flex align-items-center gap-2">
+                <BFormRadioGroup
+                  v-model="nddFilter"
+                  :options="nddFilterOptions"
+                  button-variant="outline-secondary"
+                  size="sm"
+                  buttons
+                />
+                <BFormRadioGroup
+                  v-model="categoryDisplay"
+                  :options="categoryDisplayOptions"
+                  button-variant="outline-secondary"
+                  size="sm"
+                  buttons
+                />
+              </div>
+              <BFormCheckboxGroup
+                v-model="selectedCategories"
+                :options="categoryFilterOptions"
+                size="sm"
+                buttons
+                button-variant="outline-secondary"
               />
             </div>
           </template>
           <p class="text-muted small mb-2">
-            Cumulative count of gene-disease associations curated over time. The dashed trend line
-            represents a 3-period moving average for temporal smoothing.
+            {{ trendDescription }}
           </p>
           <EntityTrendChart
             :entity-data="trendData"
+            :category-data="categoryDisplay === 'by_category' ? trendCategoryData : undefined"
+            :display-mode="categoryDisplay"
             :loading="loading.trend"
-            :show-moving-average="true"
+            :show-moving-average="categoryDisplay === 'combined'"
+            :y-max="trendYMax"
           />
         </BCard>
       </BCol>
@@ -221,9 +247,10 @@ import {
   BFormGroup,
   BFormInput,
   BFormRadioGroup,
+  BFormCheckboxGroup,
 } from 'bootstrap-vue-next';
 import useToast from '@/composables/useToast';
-import { mergeGroupedCumulativeSeries } from '@/utils/timeSeriesUtils';
+import { mergeGroupedCumulativeSeries, extractPerGroupSeries } from '@/utils/timeSeriesUtils';
 import type { GroupedTimeSeries } from '@/utils/timeSeriesUtils';
 import { inclusiveDayCount, previousPeriod } from '@/utils/dateUtils';
 import { safeArray } from '@/utils/apiUtils';
@@ -323,6 +350,17 @@ const kpiStats = ref<KpiStats>({
 // AbortController for cancelling in-flight trend requests
 let trendAbortController: AbortController | null = null;
 
+// Entity trend filter controls
+const nddFilter = ref<'ndd' | 'non_ndd' | 'all'>('ndd');
+const categoryDisplay = ref<'combined' | 'by_category'>('combined');
+const selectedCategories = ref<string[]>(['Definitive', 'Moderate', 'Limited', 'Refuted']);
+
+// Per-category chart data (used in by_category mode)
+const trendCategoryData = ref<{ dates: string[]; series: Record<string, number[]> }>({
+  dates: [],
+  series: {},
+});
+
 // Existing statistics data (kept for backward compatibility)
 const statistics = ref<UpdatesStatistics | null>(null);
 const reReviewStatistics = ref<ReReviewStatistics | null>(null);
@@ -348,8 +386,38 @@ const reReviewLeaderboardScopeOptions = [
   { text: 'Date Range', value: 'range' },
 ];
 
+// Entity trend filter options
+const nddFilterOptions = [
+  { text: 'NDD', value: 'ndd' },
+  { text: 'Non-NDD', value: 'non_ndd' },
+  { text: 'All', value: 'all' },
+];
+
+const categoryDisplayOptions = [
+  { text: 'Combined', value: 'combined' },
+  { text: 'By Category', value: 'by_category' },
+];
+
+const categoryFilterOptions = [
+  { text: 'Definitive', value: 'Definitive' },
+  { text: 'Moderate', value: 'Moderate' },
+  { text: 'Limited', value: 'Limited' },
+  { text: 'Refuted', value: 'Refuted' },
+];
+
 // Re-fetch trend data when granularity changes
 watch(granularity, () => {
+  fetchTrendData();
+});
+
+// Reset y-axis max and refetch when NDD filter changes (different dataset)
+watch(nddFilter, () => {
+  trendYMax.value = undefined;
+  fetchTrendData();
+});
+
+// Re-fetch when selected categories change (same dataset, keep y-axis)
+watch(selectedCategories, () => {
   fetchTrendData();
 });
 
@@ -402,6 +470,56 @@ function getAuthHeaders() {
   };
 }
 
+// Persistent y-axis max so scale stays stable across view switches
+const trendYMax = ref<number | undefined>(undefined);
+
+// Build filter string for trend API based on controls.
+// Returns undefined when the filter matches the API default (avoids encoding issues).
+function buildTrendFilter(): string | undefined {
+  const parts: string[] = [];
+
+  if (nddFilter.value === 'ndd') {
+    parts.push('contains(ndd_phenotype_word,Yes)');
+  } else if (nddFilter.value === 'non_ndd') {
+    parts.push('contains(ndd_phenotype_word,No)');
+  }
+  // 'all' → no NDD part
+
+  if (selectedCategories.value.length > 0 && selectedCategories.value.length < 4) {
+    parts.push(`any(category,${selectedCategories.value.join(',')})`);
+  }
+
+  if (parts.length === 0) {
+    // No filters at all → pass empty string to override API default
+    return '';
+  }
+
+  // If this matches the API default exactly, omit to avoid URL-encoding issues
+  if (parts.length === 1 && parts[0] === 'contains(ndd_phenotype_word,Yes)') {
+    return undefined;
+  }
+
+  return parts.join(',');
+}
+
+// Computed description text for trend chart
+const trendDescription = computed(() => {
+  const nddLabel =
+    nddFilter.value === 'ndd'
+      ? 'NDD'
+      : nddFilter.value === 'non_ndd'
+        ? 'non-NDD'
+        : 'all';
+
+  if (categoryDisplay.value === 'by_category') {
+    return `Per-category cumulative counts of ${nddLabel} gene-disease associations curated over time.`;
+  }
+  return (
+    `Cumulative count of ${nddLabel} gene-disease associations curated over time.` +
+    ' The dashed trend line represents a 3-period moving average for temporal smoothing.'
+  );
+});
+
 // Fetch trend data from /entities_over_time endpoint
 async function fetchTrendData(): Promise<void> {
   if (!axios) return;
@@ -412,25 +530,40 @@ async function fetchTrendData(): Promise<void> {
 
   // Clear stale data immediately
   trendData.value = [];
+  trendCategoryData.value = { dates: [], series: {} };
   loading.value.trend = true;
   try {
+    const params: Record<string, string> = {
+      aggregate: 'entity_id',
+      group: 'category',
+      summarize: granularity.value,
+    };
+    const filterValue = buildTrendFilter();
+    if (filterValue !== undefined) {
+      params.filter = filterValue;
+    }
+
     const response = await axios.get(`${apiUrl}/api/statistics/entities_over_time`, {
-      params: {
-        aggregate: 'entity_id',
-        group: 'category',
-        summarize: granularity.value,
-      },
+      params,
       headers: getAuthHeaders(),
       signal: trendAbortController.signal,
     });
 
     // Transform response using utility that correctly handles sparse data
     const allData = safeArray<GroupedTimeSeries>(response.data?.data);
+
+    // Always compute combined data (needed for KPI)
     trendData.value = mergeGroupedCumulativeSeries(allData);
+
+    // Also compute per-category data for by_category mode
+    trendCategoryData.value = extractPerGroupSeries(allData);
 
     // Derive totalEntities from final cumulative value (avoids race condition)
     if (trendData.value.length > 0) {
-      kpiStats.value.totalEntities = trendData.value[trendData.value.length - 1].count;
+      const maxVal = trendData.value[trendData.value.length - 1].count;
+      kpiStats.value.totalEntities = maxVal;
+      // Track y-axis max as running maximum so scale stays fixed across toggles
+      trendYMax.value = Math.max(trendYMax.value ?? 0, maxVal);
     }
 
     // Release controller reference after successful completion
@@ -440,6 +573,7 @@ async function fetchTrendData(): Promise<void> {
       console.error('Failed to fetch trend data:', error);
       makeToast('Failed to fetch trend data', 'Error', 'danger');
       trendData.value = [];
+      trendCategoryData.value = { dates: [], series: {} };
     }
   } finally {
     loading.value.trend = false;
