@@ -183,12 +183,13 @@ pubtator_db_update <- function(
   # C) Wrap ALL database operations in a single transaction
   result <- tryCatch(
     {
-      db_with_transaction({
+      db_with_transaction(function(txn_conn) {
         # Check if query exists
         existing_query <- db_execute_query(
           "SELECT query_id, queried_page_number, total_page_number, page_size
          FROM pubtator_query_cache WHERE query_hash = ?",
-          list(q_hash)
+          list(q_hash),
+          conn = txn_conn
         )
 
         query_id <- NA_integer_
@@ -201,9 +202,10 @@ pubtator_db_update <- function(
             "INSERT INTO pubtator_query_cache
             (query_text, query_hash, total_page_number, queried_page_number, page_size)
            VALUES (?, ?, ?, ?, ?)",
-            list(query, q_hash, total_pages, max_pages, 10)
+            list(query, q_hash, total_pages, max_pages, 10),
+            conn = txn_conn
           )
-          query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id")$id[1]
+          query_id <- db_execute_query("SELECT LAST_INSERT_ID() AS id", conn = txn_conn)$id[1]
         } else {
           # Found existing row
           query_id <- existing_query$query_id[1]
@@ -216,19 +218,22 @@ pubtator_db_update <- function(
             log_info("do_full_update=TRUE => removing old records.")
             db_execute_statement(
               "DELETE FROM pubtator_search_cache WHERE query_id = ?",
-              list(query_id)
+              list(query_id),
+              conn = txn_conn
             )
             db_execute_statement(
               "DELETE a FROM pubtator_annotation_cache a
              JOIN pubtator_search_cache s ON a.search_id = s.search_id
              WHERE s.query_id = ?",
-              list(query_id)
+              list(query_id),
+              conn = txn_conn
             )
             db_execute_statement(
               "UPDATE pubtator_query_cache
              SET total_page_number=?, queried_page_number=?, page_size=?
              WHERE query_id=?",
-              list(total_pages, max_pages, 10, query_id)
+              list(total_pages, max_pages, 10, query_id),
+              conn = txn_conn
             )
             old_queried_number <- 0
           } else {
@@ -275,14 +280,16 @@ pubtator_db_update <- function(
                 "INSERT INTO pubtator_search_cache
                 (query_id, id, pmid, doi, title, journal, date, score, text_hl)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                unname(as.list(df_insert[r, ]))
+                unname(as.list(df_insert[r, ])),
+                conn = txn_conn
               )
             }
 
             db_execute_statement(
               "UPDATE pubtator_query_cache
              SET queried_page_number=?, total_page_number=? WHERE query_id=?",
-              list(max_pages, total_pages, query_id)
+              list(max_pages, total_pages, query_id),
+              conn = txn_conn
             )
           }
         }
@@ -294,7 +301,8 @@ pubtator_db_update <- function(
            LEFT JOIN pubtator_annotation_cache a ON s.pmid = a.pmid
            WHERE s.query_id = ? AND s.pmid IS NOT NULL
              AND a.annotation_id IS NULL",
-          list(query_id)
+          list(query_id),
+          conn = txn_conn
         )
 
         if (nrow(pmid_rows) == 0) {
@@ -319,7 +327,8 @@ pubtator_db_update <- function(
 
         srch_map <- db_execute_query(
           "SELECT search_id, pmid FROM pubtator_search_cache WHERE query_id=?",
-          list(query_id)
+          list(query_id),
+          conn = txn_conn
         )
 
         flat_df_j <- flat_df %>%
@@ -340,7 +349,8 @@ pubtator_db_update <- function(
             (search_id, pmid, id, text, identifier, type, ncbi_homologene, valid,
              normalized, `database`, normalized_id, biotype, name, accession)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            unname(as.list(df_ann[r, ]))
+            unname(as.list(df_ann[r, ])),
+            conn = txn_conn
           )
         }
 
@@ -362,7 +372,8 @@ pubtator_db_update <- function(
              AND a.normalized_id IS NOT NULL
              AND a.normalized_id != ''
            GROUP BY s.search_id",
-          list(query_id)
+          list(query_id),
+          conn = txn_conn
         )
 
         if (nrow(gene_symbols_df) > 0) {
@@ -372,14 +383,15 @@ pubtator_db_update <- function(
               "UPDATE pubtator_search_cache
                SET gene_symbols = ?
                WHERE search_id = ?",
-              list(gene_symbols_df$gene_symbols[r], gene_symbols_df$search_id[r])
+              list(gene_symbols_df$gene_symbols[r], gene_symbols_df$search_id[r]),
+              conn = txn_conn
             )
           }
         }
 
         log_info("All done => returning query_id={query_id}")
         query_id # Return value - transaction auto-commits
-      })
+      }, pool_obj = pool)
     },
     error = function(e) {
       # Transaction auto-rolled back by db_with_transaction

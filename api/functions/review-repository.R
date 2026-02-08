@@ -186,7 +186,7 @@ review_update <- function(review_id, updates) {
   })
 
   # Use transaction for atomic operation
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     # Build parameterized query: column names from code (safe), values via params
     col_names <- names(updates)
     set_clause <- paste0(col_names, " = ?", collapse = ", ")
@@ -196,18 +196,20 @@ review_update <- function(review_id, updates) {
     params_list <- c(as.list(updates), list(review_id))
 
     # Perform the review update
-    affected <- db_execute_statement(update_query, params_list)
+    affected <- db_execute_statement(update_query, params_list, conn = txn_conn)
 
     # Reset approval status
     db_execute_statement(
       "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
-      list(review_id)
+      list(review_id),
+      conn = txn_conn
     )
 
     # Reset approval user
     db_execute_statement(
       "UPDATE ndd_entity_review SET approving_user_id = NULL WHERE review_id = ?",
-      list(review_id)
+      list(review_id),
+      conn = txn_conn
     )
 
     return(affected)
@@ -261,7 +263,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
   }
 
   # Use transaction for atomic multi-statement operation
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     # Get entity_ids for these reviews
     review_placeholders <- paste(rep("?", length(review_ids)), collapse = ", ")
     sql_get_entities <- paste0(
@@ -270,7 +272,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
       ")"
     )
 
-    entity_data <- db_execute_query(sql_get_entities, as.list(review_ids))
+    entity_data <- db_execute_query(sql_get_entities, as.list(review_ids), conn = txn_conn)
     entity_ids <- unique(entity_data$entity_id)
 
     if (approved) {
@@ -283,7 +285,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         entity_placeholders,
         ")"
       )
-      db_execute_statement(sql_reset_primary, as.list(entity_ids))
+      db_execute_statement(sql_reset_primary, as.list(entity_ids), conn = txn_conn)
 
       # Set the specified reviews to primary
       sql_set_primary <- paste0(
@@ -291,7 +293,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         review_placeholders,
         ")"
       )
-      db_execute_statement(sql_set_primary, as.list(review_ids))
+      db_execute_statement(sql_set_primary, as.list(review_ids), conn = txn_conn)
 
       # Add approving_user_id
       sql_set_user <- paste0(
@@ -299,7 +301,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         review_placeholders,
         ")"
       )
-      db_execute_statement(sql_set_user, c(list(approving_user_id), as.list(review_ids)))
+      db_execute_statement(sql_set_user, c(list(approving_user_id), as.list(review_ids)), conn = txn_conn)
 
       # Set review_approved status to approved
       sql_set_approved <- paste0(
@@ -307,7 +309,7 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         review_placeholders,
         ")"
       )
-      db_execute_statement(sql_set_approved, as.list(review_ids))
+      db_execute_statement(sql_set_approved, as.list(review_ids), conn = txn_conn)
     } else {
       # Rejection: add approving_user_id and set review_approved to 0
       sql_set_user <- paste0(
@@ -315,21 +317,21 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         review_placeholders,
         ")"
       )
-      db_execute_statement(sql_set_user, c(list(approving_user_id), as.list(review_ids)))
+      db_execute_statement(sql_set_user, c(list(approving_user_id), as.list(review_ids)), conn = txn_conn)
 
       sql_set_rejected <- paste0(
         "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id IN (",
         review_placeholders,
         ")"
       )
-      db_execute_statement(sql_set_rejected, as.list(review_ids))
+      db_execute_statement(sql_set_rejected, as.list(review_ids), conn = txn_conn)
     }
 
     # Sync re-review approval flag atomically within this transaction
     sync_rereview_approval(
       review_ids = review_ids,
       approving_user_id = approving_user_id,
-      conn = conn
+      conn = txn_conn
     )
 
     return(review_ids)

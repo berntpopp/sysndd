@@ -213,13 +213,14 @@ save_summary_to_cache <- function(
     as.character(jsonlite::toJSON(tags, auto_unbox = FALSE))
   }
 
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     # Mark any existing current summaries as non-current
     affected <- db_execute_statement(
       "UPDATE llm_cluster_summary_cache
        SET is_current = FALSE
        WHERE cluster_type = ? AND cluster_number = ? AND is_current = TRUE",
-      list(cluster_type, cluster_number)
+      list(cluster_type, cluster_number),
+      conn = txn_conn
     )
 
     if (affected > 0) {
@@ -233,11 +234,12 @@ save_summary_to_cache <- function(
         summary_json, tags, is_current, validation_status)
        VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?)",
       list(cluster_type, cluster_number, cluster_hash, model_name, prompt_version,
-           summary_json_str, tags_json_str, validation_status)
+           summary_json_str, tags_json_str, validation_status),
+      conn = txn_conn
     )
 
     # Get the inserted cache_id
-    id_result <- db_execute_query("SELECT LAST_INSERT_ID() AS id")
+    id_result <- db_execute_query("SELECT LAST_INSERT_ID() AS id", conn = txn_conn)
     id_result$id[1]
   })
 
@@ -645,13 +647,14 @@ clear_llm_cache <- function(cluster_type = "all") {
   # Convert NULL to "all" for consistency
   cluster_type <- cluster_type %||% "all"
 
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     if (cluster_type == "all") {
-      affected <- db_execute_statement("DELETE FROM llm_cluster_summary_cache")
+      affected <- db_execute_statement("DELETE FROM llm_cluster_summary_cache", conn = txn_conn)
     } else {
       affected <- db_execute_statement(
         "DELETE FROM llm_cluster_summary_cache WHERE cluster_type = ?",
-        list(cluster_type)
+        list(cluster_type),
+        conn = txn_conn
       )
     }
     affected

@@ -608,9 +608,9 @@ function(req, res) {
   # Use transaction for atomic HGNC update
   tryCatch(
     {
-      db_with_transaction({
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0")
-        db_execute_statement("TRUNCATE TABLE non_alt_loci_set")
+      db_with_transaction(function(txn_conn) {
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0", conn = txn_conn)
+        db_execute_statement("TRUNCATE TABLE non_alt_loci_set", conn = txn_conn)
 
         # Insert hgnc_data rows using dynamic column names
         if (nrow(hgnc_data) > 0) {
@@ -625,11 +625,11 @@ function(req, res) {
           for (i in seq_len(nrow(hgnc_data))) {
             # Convert row to unnamed list for anonymous placeholders
             row_values <- unname(as.list(hgnc_data[i, ]))
-            db_execute_statement(sql, row_values)
+            db_execute_statement(sql, row_values, conn = txn_conn)
           }
         }
 
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1")
+        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1", conn = txn_conn)
       })
 
       list(status = "Success", message = "HGNC data update process completed.")
