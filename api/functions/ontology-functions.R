@@ -26,22 +26,33 @@ if (file.exists(mondo_functions_path)) source(mondo_functions_path)
 
 #' Identify Critical Ontology Changes
 #'
-#' This function identifies critical changes in ontology sets by comparing the updated
-#' ontology set with the current ontology set and a subset of terms used in entities.
-#' It returns a tibble of critical changes.
+#' Compares the updated ontology set with the current one, focusing on terms
+#' referenced by entities. Returns a structured list with auto-fixable
+#' remappings and truly critical changes that require manual review.
 #'
 #' @param disease_ontology_set_update Updated disease ontology dataset.
 #' @param disease_ontology_set Current disease ontology dataset.
-#' @param ndd_entity_view_ontology_set Ontology dataset used in entities.
-#' @return A tibble of critical ontology changes.
+#' @param ndd_entity_view_ontology_set Ontology dataset used in entities
+#'   (must contain disease_ontology_id_version column).
+#' @return A list with three elements:
+#'   \describe{
+#'     \item{auto_fixes}{Tibble of auto-fixable remappings with columns
+#'       old_version, new_version, fix_type ("id_fingerprint" or "name_fingerprint").}
+#'     \item{critical}{Tibble of truly unfixable entity-referenced changes
+#'       (version disappeared, no fingerprint or name match).}
+#'     \item{summary}{List with total_affected, auto_fixable, truly_critical counts.}
+#'   }
 #'
 #' @examples
 #' \dontrun{
-#'   critical_changes <- identify_critical_ontology_changes(
+#'   result <- identify_critical_ontology_changes(
 #'     disease_ontology_set_update,
 #'     disease_ontology_set,
 #'     ndd_entity_view_ontology_set
 #'   )
+#'   # result$auto_fixes — tibble of old_version → new_version
+#'   # result$critical   — tibble of unfixable changes
+#'   # result$summary    — list(total_affected, auto_fixable, truly_critical)
 #' }
 #'
 #' @export
@@ -50,32 +61,32 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 # nolint end
   # Add columns for logic checks in the updated set
   disease_ontology_set_update_extra <- disease_ontology_set_update %>%
-    select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>% # nolint: line_length_linter
-    mutate(
+    dplyr::select(disease_ontology_id_version, disease_ontology_id, hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_name) %>% # nolint: line_length_linter
+    dplyr::mutate(
       id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       has_id_version = str_detect(disease_ontology_id_version, "_")
     ) %>%
-    group_by(disease_ontology_id) %>%
-    mutate(id_same_name = length(unique(disease_ontology_name))) %>%
-    ungroup()
+    dplyr::group_by(disease_ontology_id) %>%
+    dplyr::mutate(id_same_name = length(unique(disease_ontology_name))) %>%
+    dplyr::ungroup()
 
   # Add columns for logic checks in the current set
   disease_ontology_set_current <- disease_ontology_set %>%
-    mutate(
+    dplyr::mutate(
       id_hgnc_hpo = paste0(disease_ontology_id, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       name_hgnc_hpo = paste0(disease_ontology_name, "_", hgnc_id, "_", hpo_mode_of_inheritance_term),
       has_id_version = str_detect(disease_ontology_id_version, "_")
     ) %>%
-    group_by(disease_ontology_id) %>%
-    mutate(id_same_name = length(unique(disease_ontology_name))) %>%
-    ungroup()
+    dplyr::group_by(disease_ontology_id) %>%
+    dplyr::mutate(id_same_name = length(unique(disease_ontology_name))) %>%
+    dplyr::ungroup()
 
   # Filter current ontology list for terms used in entities
   disease_ontology_set_current_used <- disease_ontology_set_current %>%
-    mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>% # nolint: line_length_linter
-    filter(used_in_entity) %>%
-    select(-used_in_entity)
+    dplyr::mutate(used_in_entity = disease_ontology_id_version %in% ndd_entity_view_ontology_set$disease_ontology_id_version) %>% # nolint: line_length_linter
+    dplyr::filter(used_in_entity) %>%
+    dplyr::select(-used_in_entity)
 
   # Check for ontology changes that affect existing entities
   # Columns check for:
@@ -84,7 +95,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
   # - check_id_fingerprint: (id + hgnc + inheritance) fingerprint match
   # - check_name_fingerprint: (name + hgnc + inheritance) fingerprint match
   disease_ontology_set_current_used_check <- disease_ontology_set_current_used %>%
-    mutate(
+    dplyr::mutate(
       check_ontology_id_version = disease_ontology_id_version %in% disease_ontology_set_update_extra$disease_ontology_id_version, # nolint: line_length_linter
       check_ontology_name = disease_ontology_name %in% disease_ontology_set_update_extra$disease_ontology_name,
       check_id_fingerprint = id_hgnc_hpo %in% disease_ontology_set_update_extra$id_hgnc_hpo,
@@ -92,22 +103,113 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
     )
 
   disease_ontology_set_current_used_check_filter <- disease_ontology_set_current_used_check %>%
-    filter(!check_ontology_id_version | !check_ontology_name)
+    dplyr::filter(!check_ontology_id_version | !check_ontology_name)
 
-  # Compute if a mismatch is critical or not
-  critical <- disease_ontology_set_current_used_check_filter %>%
-    mutate(
-      critical = case_when(
-        !has_id_version & check_ontology_id_version & !check_ontology_name ~ FALSE,
-        has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ FALSE,
-        TRUE ~ TRUE
+  # Classify each affected row
+  classified <- disease_ontology_set_current_used_check_filter %>%
+    dplyr::mutate(
+      is_non_critical = dplyr::case_when(
+        !has_id_version & check_ontology_id_version & !check_ontology_name ~ TRUE,
+        has_id_version & check_ontology_id_version & !check_ontology_name & id_same_name == 1 ~ TRUE,
+        TRUE ~ FALSE
       ),
-      automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint,
-      automatic_assignment_name = !check_ontology_id_version & check_ontology_name
-    ) %>%
-    filter(critical)
+      automatic_assignment_version = !check_ontology_id_version & !check_ontology_name & check_id_fingerprint, # nolint: line_length_linter
+      automatic_assignment_name = !check_ontology_id_version & check_ontology_name & check_name_fingerprint # nolint: line_length_linter
+    )
 
-  return(critical)
+  # Build auto-fixes: rows where version disappeared but we can find the new version
+  # via ID fingerprint or name fingerprint
+  auto_fix_rows <- classified %>%
+    dplyr::filter(!is_non_critical & (automatic_assignment_version | automatic_assignment_name))
+
+  # For each auto-fix row, look up the new disease_ontology_id_version in the update set
+  auto_fixes <- tibble::tibble(
+    old_version = character(0),
+    new_version = character(0),
+    fix_type = character(0),
+    disease_ontology_name = character(0),
+    hgnc_id = character(0),
+    hpo_mode_of_inheritance_term = character(0)
+  )
+
+  if (nrow(auto_fix_rows) > 0) {
+    # ID fingerprint fixes: join on id_hgnc_hpo
+    id_fixes <- auto_fix_rows %>%
+      dplyr::filter(automatic_assignment_version) %>%
+      dplyr::inner_join(
+        disease_ontology_set_update_extra %>%
+          dplyr::select(new_version = disease_ontology_id_version, id_hgnc_hpo),
+        by = "id_hgnc_hpo",
+        relationship = "many-to-many"
+      ) %>%
+      dplyr::group_by(disease_ontology_id_version) %>%
+      dplyr::slice_head(n = 1) %>%
+      dplyr::ungroup() %>%
+      dplyr::transmute(
+        old_version = disease_ontology_id_version,
+        new_version = new_version,
+        fix_type = "id_fingerprint",
+        disease_ontology_name = disease_ontology_name,
+        hgnc_id = hgnc_id,
+        hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term
+      )
+
+    # Name fingerprint fixes: rows not already ID-fixed
+    name_fix_candidates <- auto_fix_rows %>%
+      dplyr::filter(automatic_assignment_name & !automatic_assignment_version)
+
+    name_fixes <- tibble::tibble(
+      old_version = character(0),
+      new_version = character(0),
+      fix_type = character(0),
+      disease_ontology_name = character(0),
+      hgnc_id = character(0),
+      hpo_mode_of_inheritance_term = character(0)
+    )
+
+    if (nrow(name_fix_candidates) > 0) {
+      name_fixes <- name_fix_candidates %>%
+        dplyr::inner_join(
+          disease_ontology_set_update_extra %>%
+            dplyr::select(new_version = disease_ontology_id_version, name_hgnc_hpo),
+          by = "name_hgnc_hpo",
+          relationship = "many-to-many"
+        ) %>%
+        dplyr::group_by(disease_ontology_id_version) %>%
+        dplyr::slice_head(n = 1) %>%
+        dplyr::ungroup() %>%
+        dplyr::transmute(
+          old_version = disease_ontology_id_version,
+          new_version = new_version,
+          fix_type = "name_fingerprint",
+          disease_ontology_name = disease_ontology_name,
+          hgnc_id = hgnc_id,
+          hpo_mode_of_inheritance_term = hpo_mode_of_inheritance_term
+        )
+    }
+
+    auto_fixes <- dplyr::bind_rows(id_fixes, name_fixes) %>%
+      dplyr::distinct(old_version, .keep_all = TRUE)
+  }
+
+  # Truly critical: rows that are neither non-critical nor auto-fixable
+  truly_critical <- classified %>%
+    dplyr::filter(!is_non_critical & !automatic_assignment_version & !automatic_assignment_name)
+
+  # Build summary
+  total_affected <- nrow(disease_ontology_set_current_used_check_filter)
+  auto_fixable <- nrow(auto_fixes)
+  n_truly_critical <- nrow(truly_critical)
+
+  return(list(
+    auto_fixes = auto_fixes,
+    critical = truly_critical,
+    summary = list(
+      total_affected = total_affected,
+      auto_fixable = auto_fixable,
+      truly_critical = n_truly_critical
+    )
+  ))
 }
 
 
@@ -117,7 +219,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #' returns the combined dataset. If a recent CSV file exists, it loads that;
 #' otherwise, it regenerates the data and saves it as a CSV file.
 #'
-#' Uses the new mim2gene.txt + JAX API workflow for OMIM data (replacing genemap2.txt).
+#' Uses the genemap2.txt-based workflow for OMIM data (includes gene-disease-inheritance data).
 #' Also downloads and applies MONDO SSSOM mappings for OMIM-to-MONDO equivalence.
 #'
 #' @param hgnc_list A tibble containing non-alternative loci gene data (columns: hgnc_id, symbol).
@@ -195,7 +297,7 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
       mutate(is_active = TRUE, update_date = format(Sys.Date(), "%Y-%m-%d"))
 
     # Download and apply MONDO SSSOM mappings for OMIM-to-MONDO equivalence
-    # This adds mondo_equivalent column for mim2gene entries
+    # This enriches the MONDO column for mim2gene entries via vectorized join
     if (!is.null(progress_callback)) {
       progress_callback(step = "Applying MONDO SSSOM mappings", current = 4, total = 4)
     }
@@ -311,18 +413,25 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 
 #' Process OMIM Ontology Data
 #'
-#' This function processes the OMIM ontology data using the new mim2gene.txt + JAX API workflow.
-#' It downloads mim2gene.txt from OMIM, fetches disease names from the JAX Ontology API,
+#' This function processes the OMIM ontology data using the genemap2.txt-based workflow.
+#' It downloads genemap2.txt from OMIM, parses the file for gene-disease-inheritance data,
 #' and builds the OMIM ontology set matching the database schema.
 #'
-#' Replaces the previous genemap2.txt-based approach.
+#' Also downloads mim2gene.txt for deprecation tracking (moved/removed entries).
 #'
 #' @param hgnc_list A tibble of HGNC gene symbols and corresponding identifiers (columns: hgnc_id, symbol).
-#' @param moi_list A tibble of mode of inheritance terms (for compatibility, not used in mim2gene workflow).
+#' @param moi_list A tibble of mode of inheritance terms for HPO mapping.
 #' @param max_file_age Integer, maximum age of the file in months before re-downloading (default: 3).
 #' @param progress_callback Optional function for async progress reporting.
 #'   Called with (step, current, total) parameters.
 #' @return A tibble containing processed data from the OMIM ontology.
+#'
+#' @details
+#' This workflow:
+#' 1. Downloads genemap2.txt (primary data source with gene-disease-inheritance data)
+#' 2. Parses genemap2.txt to extract phenotype entries
+#' 3. Builds ontology set with inheritance mode mapping via build_omim_from_genemap2()
+#' 4. Downloads mim2gene.txt for deprecation tracking (secondary, for moved/removed MIMs)
 #'
 #' @examples
 #' \dontrun{
@@ -341,50 +450,58 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'
 #' @export
 process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progress_callback = NULL) {
-  # Step 1: Download mim2gene.txt
+  # Step 1: Download genemap2.txt (Phase 76 shared infrastructure)
   if (!is.null(progress_callback)) {
-    progress_callback(step = "Downloading mim2gene.txt", current = 1, total = 4)
+    progress_callback(step = "Downloading genemap2.txt", current = 1, total = 4)
   }
-  mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_months = max_file_age)
-  mim2gene_data <- parse_mim2gene(mim2gene_file)
+  genemap2_file <- download_genemap2("data/", force = FALSE)
 
-  # Step 2: Fetch disease names from JAX API
-  phenotype_mims <- mim2gene_data$mim_number
+  # Step 2: Parse genemap2 (Phase 76 shared function)
   if (!is.null(progress_callback)) {
-    # Pass through sub-progress to progress_callback
-    disease_names <- fetch_all_disease_names(
-      phenotype_mims,
-      progress_callback = function(step, current, total) {
-        progress_callback(
-          step = paste0("Fetching disease names: ", current, "/", total),
-          current = 2,
-          total = 4
-        )
-      }
+    progress_callback(step = "Parsing genemap2.txt", current = 2, total = 4)
+  }
+  genemap2_parsed <- parse_genemap2(genemap2_file)
+
+  # Step 3: Build ontology set with inheritance mapping
+  if (!is.null(progress_callback)) {
+    progress_callback(step = "Building OMIM ontology set from genemap2", current = 3, total = 4)
+  }
+  omim_terms <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
+
+  # Step 4: Download mim2gene.txt for deprecation tracking (ONTO-06)
+  # mim2gene.txt is free/public (no auth needed) and tracks moved/removed entries
+  if (!is.null(progress_callback)) {
+    progress_callback(
+      step = "Downloading mim2gene.txt for deprecation tracking",
+      current = 4,
+      total = 4
     )
-  } else {
-    disease_names <- fetch_all_disease_names(phenotype_mims)
   }
+  tryCatch({
+    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_months = max_file_age)
+    mim2gene_data <- parse_mim2gene(mim2gene_file)
+    deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
+    if (length(deprecated_mims) > 0) {
+      message(sprintf(
+        "[OMIM] Found %d deprecated (moved/removed) MIM entries in mim2gene.txt",
+        length(deprecated_mims)
+      ))
+    }
+  }, error = function(e) {
+    warning(sprintf(
+      "[OMIM] Could not download mim2gene.txt for deprecation tracking: %s",
+      e$message
+    ))
+  })
 
-  # Step 3: Build OMIM ontology set
-  if (!is.null(progress_callback)) {
-    progress_callback(step = "Building ontology set", current = 3, total = 4)
-  }
-  omim_terms <- build_omim_ontology_set(mim2gene_data, disease_names, hgnc_list, moi_list)
-
-  # Define the file path for the CSV file
+  # Save debug/cache CSV
   omim_file_date <- format(Sys.Date(), "%Y-%m-%d")
-  csv_file_path <- paste0("results/ontology/omim_mim2gene.", omim_file_date, ".csv")
-
-  # Ensure directory exists
+  csv_file_path <- paste0("results/ontology/omim_genemap2.", omim_file_date, ".csv")
   if (!dir.exists("results/ontology")) {
     dir.create("results/ontology", recursive = TRUE)
   }
-
-  # Save the dataset as a CSV file
   write_csv(omim_terms, file = csv_file_path, na = "NULL")
 
-  # Return the tibble
   return(omim_terms)
 }
 

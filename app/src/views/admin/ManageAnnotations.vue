@@ -76,6 +76,129 @@
                 minutes...
               </div>
             </div>
+
+            <!-- Blocked ontology update warning -->
+            <BAlert v-if="ontologyBlocked" variant="warning" show class="mt-3 mb-0">
+              <h6 class="alert-heading d-flex align-items-center gap-2">
+                Ontology Update Blocked
+                <span class="badge bg-danger">
+                  {{ ontologyBlocked.critical_count }} critical
+                </span>
+                <span v-if="ontologyBlocked.auto_fixable_count > 0" class="badge bg-info">
+                  {{ ontologyBlocked.auto_fixable_count }} auto-fixable
+                </span>
+              </h6>
+              <p class="mb-2 small">
+                The ontology update detected {{ ontologyBlocked.critical_count }} entity-referenced
+                version(s) that would disappear with no automatic remapping. These entities need
+                manual review after force-applying.
+              </p>
+
+              <!-- Critical entities table -->
+              <div
+                v-if="ontologyBlocked.critical_entities.length > 0"
+                class="mb-3"
+              >
+                <strong class="small">Critical entities:</strong>
+                <BTable
+                  :items="ontologyBlocked.critical_entities"
+                  :fields="[
+                    { key: 'disease_ontology_id_version', label: 'Version', sortable: true },
+                    { key: 'disease_ontology_name', label: 'Disease', sortable: true },
+                    { key: 'hgnc_id', label: 'Gene', sortable: true },
+                    { key: 'hpo_mode_of_inheritance_term', label: 'Inheritance', sortable: false },
+                  ]"
+                  striped
+                  hover
+                  small
+                  responsive
+                  class="mb-0 mt-1"
+                />
+              </div>
+
+              <!-- Auto-fixable remappings (collapsible) -->
+              <div
+                v-if="ontologyBlocked.auto_fixes.length > 0"
+                class="mb-3"
+              >
+                <BButton
+                  variant="link"
+                  size="sm"
+                  class="p-0 text-decoration-none"
+                  @click="showAutoFixes = !showAutoFixes"
+                >
+                  {{ showAutoFixes ? 'Hide' : 'Show' }}
+                  {{ ontologyBlocked.auto_fixable_count }} auto-fixable remappings
+                </BButton>
+                <BTable
+                  v-if="showAutoFixes"
+                  :items="ontologyBlocked.auto_fixes"
+                  :fields="[
+                    { key: 'old_version', label: 'Old Version' },
+                    { key: 'new_version', label: 'New Version' },
+                    { key: 'fix_type', label: 'Match Type' },
+                  ]"
+                  striped
+                  small
+                  responsive
+                  class="mb-0 mt-1"
+                />
+              </div>
+
+              <!-- Action buttons -->
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <BFormSelect
+                  v-model="forceApplySelectedUserId"
+                  :disabled="forceApplyJob.isLoading.value || loadingForceApplyUsers"
+                  size="sm"
+                  style="max-width: 200px"
+                >
+                  <BFormSelectOption :value="null">
+                    {{ loadingForceApplyUsers ? 'Loading...' : 'Assign to (me)' }}
+                  </BFormSelectOption>
+                  <BFormSelectOption
+                    v-for="user in forceApplyUserOptions"
+                    :key="user.value"
+                    :value="user.value"
+                  >
+                    {{ user.text }}
+                  </BFormSelectOption>
+                </BFormSelect>
+                <BButton
+                  variant="danger"
+                  size="sm"
+                  :disabled="forceApplyJob.isLoading.value"
+                  @click="forceApplyOntology"
+                >
+                  <BSpinner v-if="forceApplyJob.isLoading.value" small class="me-1" />
+                  {{ forceApplyJob.isLoading.value ? 'Applying...' : 'Force Apply' }}
+                </BButton>
+                <BButton
+                  variant="outline-secondary"
+                  size="sm"
+                  :disabled="forceApplyJob.isLoading.value"
+                  @click="dismissBlockedOntology"
+                >
+                  Dismiss
+                </BButton>
+              </div>
+
+              <!-- Force-apply progress -->
+              <div v-if="forceApplyJob.isLoading.value" class="mt-2">
+                <BProgress
+                  :value="100"
+                  :max="100"
+                  :animated="true"
+                  :striped="true"
+                  variant="danger"
+                  height="1rem"
+                >
+                  <template #default>
+                    Force applying... ({{ forceApplyJob.elapsedTimeDisplay.value }})
+                  </template>
+                </BProgress>
+              </div>
+            </BAlert>
           </BCard>
         </BCol>
       </BRow>
@@ -920,8 +1043,11 @@ const searchFilter = ref('');
 // Page size options for dropdown
 const pageSizeOptions = [10, 25, 50, 100];
 
-// Create job instances for ontology, HGNC, publication refresh, and comparisons
+// Create job instances for ontology, HGNC, publication refresh, comparisons, and force-apply
 const ontologyJob = useAsyncJob(
+  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+);
+const forceApplyJob = useAsyncJob(
   (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
 );
 const hgncJob = useAsyncJob(
@@ -941,6 +1067,49 @@ const annotationDates = ref({
   mondo_update: null as string | null,
   disease_ontology_update: null as string | null,
 });
+
+// Blocked ontology update state
+interface OntologyBlockedResult {
+  blocked_job_id: string;
+  critical_count: number;
+  auto_fixable_count: number;
+  total_affected: number;
+  critical_entities: Array<Record<string, unknown>>;
+  auto_fixes: Array<Record<string, unknown>>;
+}
+const ontologyBlocked = ref<OntologyBlockedResult | null>(null);
+const showAutoFixes = ref(false);
+
+// User list for re-review batch assignment
+interface UserOption {
+  value: number;
+  text: string;
+}
+const forceApplyUserOptions = ref<UserOption[]>([]);
+const forceApplySelectedUserId = ref<number | null>(null);
+const loadingForceApplyUsers = ref(false);
+
+async function loadForceApplyUsers() {
+  loadingForceApplyUsers.value = true;
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`,
+      {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        withCredentials: true,
+      }
+    );
+    forceApplyUserOptions.value = Array.isArray(response.data)
+      ? response.data.map((item: Record<string, unknown>) => ({
+          value: item.user_id as number,
+          text: item.user_name as string,
+        }))
+      : [];
+  } catch {
+    forceApplyUserOptions.value = [];
+  }
+  loadingForceApplyUsers.value = false;
+}
 
 const loadingDeprecated = ref(false);
 const deprecatedData = ref({
@@ -1091,13 +1260,99 @@ const comparisonsStepLabel = computed(() => {
 // Watch for job completion/failure
 watch(
   () => ontologyJob.status.value,
-  (newStatus) => {
+  async (newStatus) => {
     if (newStatus === 'completed') {
-      makeToast('Ontology annotations updated successfully', 'Success', 'success');
+      // Check if the job result signals a blocked update
+      try {
+        const jobId = ontologyJob.jobId.value;
+        if (jobId) {
+          const statusResp = await axios.get(
+            `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
+            {
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+              withCredentials: true,
+            }
+          );
+          const result = statusResp.data?.result;
+          const resultStatus = unwrapValue(result?.status);
+
+          if (resultStatus === 'blocked') {
+            // Populate blocked state
+            ontologyBlocked.value = {
+              blocked_job_id: unwrapValue(jobId) as string,
+              critical_count: unwrapValue(result.critical_count) || 0,
+              auto_fixable_count: unwrapValue(result.auto_fixable_count) || 0,
+              total_affected: unwrapValue(result.total_affected) || 0,
+              critical_entities: (result.critical_entities || []).map(
+                (e: Record<string, unknown>) => {
+                  const obj: Record<string, unknown> = {};
+                  Object.keys(e).forEach((k) => {
+                    obj[k] = unwrapValue(e[k]);
+                  });
+                  return obj;
+                }
+              ),
+              auto_fixes: (result.auto_fixes || []).map(
+                (f: Record<string, unknown>) => {
+                  const obj: Record<string, unknown> = {};
+                  Object.keys(f).forEach((k) => {
+                    obj[k] = unwrapValue(f[k]);
+                  });
+                  return obj;
+                }
+              ),
+            };
+            // Load user list for batch assignment dropdown
+            loadForceApplyUsers();
+            forceApplySelectedUserId.value = null;
+            makeToast(
+              `Ontology update blocked: ${ontologyBlocked.value.critical_count} critical changes`,
+              'Update Blocked',
+              'warning'
+            );
+            fetchJobHistory();
+            return;
+          }
+
+          // Check for auto-fixes applied
+          const autoFixes = unwrapValue(result?.auto_fixes_applied);
+          if (autoFixes && Number(autoFixes) > 0) {
+            makeToast(
+              `Ontology updated. ${autoFixes} entity version(s) auto-fixed.`,
+              'Success',
+              'success'
+            );
+          } else {
+            makeToast('Ontology annotations updated successfully', 'Success', 'success');
+          }
+        }
+      } catch {
+        makeToast('Ontology annotations updated successfully', 'Success', 'success');
+      }
       fetchAnnotationDates();
       fetchJobHistory();
     } else if (newStatus === 'failed') {
       const errorMsg = ontologyJob.error.value || 'Ontology update failed';
+      makeToast(errorMsg, 'Error', 'danger');
+      fetchJobHistory();
+    }
+  }
+);
+
+watch(
+  () => forceApplyJob.status.value,
+  (newStatus) => {
+    if (newStatus === 'completed') {
+      makeToast(
+        'Ontology force-applied successfully. Re-review batch created for critical entities.',
+        'Success',
+        'success'
+      );
+      ontologyBlocked.value = null;
+      fetchAnnotationDates();
+      fetchJobHistory();
+    } else if (newStatus === 'failed') {
+      const errorMsg = forceApplyJob.error.value || 'Force-apply failed';
       makeToast(errorMsg, 'Error', 'danger');
       fetchJobHistory();
     }
@@ -1364,6 +1619,8 @@ function formatOperationType(operation: string): string {
     clustering: 'Clustering',
     phenotype_clustering: 'Phenotype Clustering',
     ontology_update: 'Ontology Update',
+    omim_update: 'Ontology Update',
+    force_apply_ontology: 'Force Apply Ontology',
     hgnc_update: 'HGNC Update',
     pubtator_update: 'Pubtator Update',
     publication_refresh: 'Publication Refresh',
@@ -1513,6 +1770,42 @@ async function updateOntologyAnnotations() {
   } catch (_error) {
     makeToast('Failed to start ontology update', 'Error', 'danger');
   }
+}
+
+async function forceApplyOntology() {
+  if (!ontologyBlocked.value) return;
+
+  forceApplyJob.reset();
+
+  try {
+    const response = await axios.put(
+      `${import.meta.env.VITE_API_URL}/api/admin/force_apply_ontology`,
+      {},
+      {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        params: {
+          blocked_job_id: ontologyBlocked.value.blocked_job_id,
+          ...(forceApplySelectedUserId.value
+            ? { assigned_user_id: forceApplySelectedUserId.value }
+            : {}),
+        },
+        withCredentials: true,
+      }
+    );
+
+    if (response.data.error) {
+      makeToast(response.data.message || response.data.error, 'Error', 'danger');
+      return;
+    }
+
+    forceApplyJob.startJob(response.data.job_id);
+  } catch {
+    makeToast('Failed to start force-apply', 'Error', 'danger');
+  }
+}
+
+function dismissBlockedOntology() {
+  ontologyBlocked.value = null;
 }
 
 async function updateHgncData() {

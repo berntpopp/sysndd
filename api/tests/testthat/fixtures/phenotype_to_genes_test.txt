@@ -1,0 +1,7 @@
+#format: HPO-ID<tab>HPO-Name<tab>Gene-ID<tab>Gene-Name<tab>Disease-ID
+HP:0012759	Neurodevelopmental abnormality	4204	MECP2	OMIM:312750
+HP:0012759	Neurodevelopmental abnormality	6323	SCN1A	OMIM:607208
+HP:0001249	Intellectual disability	4204	MECP2	OMIM:312750
+HP:0001249	Intellectual disability	6323	SCN1A	OMIM:607208
+HP:0001249	Intellectual disability	99999	NOGENE	OMIM:999001
+HP:0003002	Breast carcinoma	672	BRCA1	OMIM:114480

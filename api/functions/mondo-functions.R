@@ -209,14 +209,18 @@ get_mondo_for_omim <- function(omim_id, mondo_mappings) {
 #'   columns including disease_ontology_id_version and disease_ontology_source.
 #' @param mondo_mappings Tibble. The MONDO-OMIM mapping tibble from parse_mondo_sssom().
 #'
-#' @return The input tibble with an additional "mondo_equivalent" column.
-#'   - For mim2gene entries: contains MONDO ID(s) or NA if no match
-#'   - For non-mim2gene entries: contains NA
+#' @return The input tibble with the MONDO column enriched via SSSOM mappings.
+#'   - For mim2gene entries missing MONDO: fills from SSSOM lookup
+#'   - For entries already having MONDO or non-mim2gene: unchanged
 #'
 #' @details
 #' This function handles the integration of MONDO equivalence data into the
 #' disease ontology set used by the curation interface. Curators can see
 #' suggested MONDO matches for OMIM diseases.
+#'
+#' Uses a vectorized left join for performance instead of row-by-row lookup.
+#' Pre-collapses MONDO mappings so each OMIM ID maps to a single semicolon-
+#' separated string of MONDO IDs, then joins in one operation.
 #'
 #' Note: The function uses disease_ontology_id (not disease_ontology_id_version)
 #' for the lookup, as OMIM IDs in the SSSOM file don't include version suffixes.
@@ -228,8 +232,7 @@ get_mondo_for_omim <- function(omim_id, mondo_mappings) {
 #'   enriched_set <- add_mondo_mappings_to_ontology(ontology_set, mappings)
 #' }
 #'
-#' @importFrom dplyr mutate case_when rowwise ungroup
-#' @importFrom purrr map_chr
+#' @importFrom dplyr mutate left_join group_by summarise coalesce if_else
 #'
 #' @export
 add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings) {
@@ -247,22 +250,32 @@ add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings)
     ))
   }
 
-  # Add MONDO equivalent column
-  # For mim2gene entries, look up MONDO mapping using disease_ontology_id
-  # For other sources (e.g., mondo), set to NA
-  enriched_set <- disease_ontology_set %>%
-    dplyr::mutate(
-      mondo_equivalent = purrr::map_chr(
-        seq_len(dplyr::n()),
-        ~ {
-          if (disease_ontology_source[.x] == "mim2gene") {
-            get_mondo_for_omim(disease_ontology_id[.x], mondo_mappings)
-          } else {
-            NA_character_
-          }
-        }
-      )
+  # Ensure MONDO column exists (callers may omit it)
+  if (!"MONDO" %in% names(disease_ontology_set)) {
+    disease_ontology_set$MONDO <- NA_character_
+  }
+
+  # Pre-collapse: one row per OMIM with semicolon-separated MONDO IDs
+  collapsed_mappings <- mondo_mappings %>%
+    dplyr::group_by(omim_id) %>%
+    dplyr::summarise(
+      mondo_lookup = paste(unique(mondo_id), collapse = ";"),
+      .groups = "drop"
     )
+
+  # Vectorized join: match disease_ontology_id to OMIM IDs
+
+  enriched_set <- disease_ontology_set %>%
+    dplyr::left_join(collapsed_mappings, by = c("disease_ontology_id" = "omim_id")) %>%
+    dplyr::mutate(
+      # Only fill MONDO for mim2gene entries that are missing a value
+      MONDO = dplyr::if_else(
+        disease_ontology_source == "mim2gene" & (is.na(MONDO) | MONDO == ""),
+        mondo_lookup,
+        MONDO
+      )
+    ) %>%
+    dplyr::select(-mondo_lookup)
 
   return(enriched_set)
 }

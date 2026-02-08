@@ -1,17 +1,17 @@
 # Project State: SysNDD
 
-**Last updated:** 2026-02-06
-**Current milestone:** v10.3 Bug Fixes & Stabilization
+**Last updated:** 2026-02-07
+**Current milestone:** v10.4 OMIM Optimization & Refactor
 
 ---
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-05)
+See: .planning/PROJECT.md (updated 2026-02-07)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** Phase 75 complete — milestone ready for audit
+**Current focus:** Phase 79 - Configuration & Cleanup
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,46 +19,51 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 
 ## Current Position
 
-**Phase:** 75 of 75 (Frontend Fixes & UX Improvements) — COMPLETE
-**Plan:** 3/3 complete
-**Status:** Phase verified, milestone ready for audit
-**Progress:** v10.3 [████████████████████] 100% (All phases complete)
+**Phase:** 79 of 79 (Configuration & Cleanup)
+**Plan:** 02 of 02
+**Status:** Phase 79 complete
+**Progress:** v10.4 [████████████████████] 100% (Phase 79 complete)
 
-**Last completed:** Phase 75 - Frontend Fixes & UX Improvements (verified 2026-02-06)
-**Last activity:** 2026-02-06 -- Phase 75 executed and verified (4/4 must-haves passed)
-**Next action:** Audit milestone v10.3
+**Last completed:** Phase 79-02 (JAX API Cleanup) — 2026-02-07
+**Last activity:** 2026-02-07 — Completed 79-02-PLAN.md
+**Next action:** v10.4 milestone complete - ready for release
 
 ---
 
-## Current Milestone: v10.3
+## Current Milestone: v10.4
 
-**Goal:** Fix 10 open bugs and UX issues to stabilize the production deployment
+**Goal:** Replace slow JAX API with genemap2.txt for OMIM disease names, unify OMIM data sources, add download caching, and move credentials to env vars
 
-**Phases:**
-- Phase 73: Data Infrastructure & Cache Fixes (DATA-01, DATA-02, DATA-03) ✓
-- Phase 74: API Bug Fixes (API-01, API-02, API-03) ✓
-- Phase 75: Frontend Fixes & UX Improvements (FE-01, FE-02, UX-01, UX-02) ✓
+**Key deliverables:**
+- Shared genemap2 infrastructure with download caching and robust parsing (Phase 76) ✅
+- Ontology system migration to genemap2 with mode of inheritance data (Phase 77) ✅
+- Unified cache between ontology and comparisons systems (Phase 78-01) ✅
+- Comparisons config cleanup and testing (Phase 78-02) ✅
+- Environment variable configuration for OMIM download key (Phase 79-01) ✅
+- Remove deprecated JAX API code and unify file caching (Phase 79-02) ✅
+
+**Expected performance:** Ontology update time drops from ~8 minutes to ~30 seconds
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 315
-- Milestones shipped: 14 (v1-v10.2)
-- Phases completed: 83
+- Total plans completed: 322 (from v1-v10.3 + Phase 76-79)
+- Milestones shipped: 13 (v1-v10.3)
+- Phases completed: 79
 
 **Current Stats:**
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 716 + 11 E2E | +29 tests in phase 74 (entity creation, panels, clustering) |
+| **Backend Tests** | 744 + 11 E2E | Coverage 20.3% |
 | **Frontend Tests** | 190 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Vue Composables** | 32 | Including useColumnTooltip, useLlmAdmin, useExcelExport |
-| **Migrations** | 13 files + runner | Schema version 13 (widen_comparison_columns, update_gene2phenotype_source) |
+| **Migrations** | 14 files + runner | Schema version 14 (pending) |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
-| **Total Tests** | 1,402+ | Passing |
+| **Total Tests** | 1,430+ | Passing |
 
 ---
 
@@ -67,63 +72,59 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
 
-**Phase 73-01 decisions:**
-- Use VARCHAR(255) for version column (bounded data) vs TEXT (unbounded)
-- Convert 7 columns to TEXT for concatenated data (publication_id, phenotype, etc.)
-- Follow migration 009 pattern for DDL (stored procedure + INFORMATION_SCHEMA)
-- Follow migration 010 pattern for DML (simple UPDATE with WHERE)
+- v10.4 OMIM approach: Replace JAX API with genemap2.txt for 50x+ performance improvement (8min → 30sec)
+- Existing packages (httr2, fs, lubridate) provide all needed functionality for file caching with 1-day TTL
+- Phased migration with feature flags allows rollback if needed during transition
+- Defensive column mapping handles genemap2.txt historical field name changes
+- **76-01:** Use OMIM_DOWNLOAD_KEY environment variable instead of hardcoded API key for security
+- **76-01:** Implement 1-day TTL for genemap2.txt caching (vs month-based for mim2gene.txt)
+- **76-01:** Use day-precision TTL checking via difftime() instead of lubridate intervals
+- **76-02:** Parse genemap2.txt using position-based column mapping (X1-X14) for defensive handling of OMIM format changes
+- **76-02:** Normalize 14 OMIM inheritance terms to HPO vocabulary for consistency with existing database
+- **76-02:** Use synthetic fixture data instead of real OMIM data to avoid licensing issues in tests
+- **76-02:** Extract parse_genemap2() from comparisons-functions.R for reuse by both ontology and comparisons systems
+- **77-01:** disease_ontology_source MUST remain 'mim2gene' (not 'genemap2') to preserve MONDO SSSOM mapping compatibility
+- **77-01:** Versioning occurs AFTER inheritance expansion and deduplication to prevent spurious versions
+- **77-01:** Unknown inheritance modes trigger warnings (not errors) for graceful handling of new OMIM terms
+- **77-02:** Achieved <60 second ontology updates via genemap2 (eliminated 7-minute JAX API bottleneck)
+- **77-02:** mim2gene.txt still downloaded as Step 4 for deprecation tracking (moved/removed MIM entries)
+- **77-02:** Progress callback updated to four-step workflow (download genemap2 / parse / build / deprecation)
+- **78-01:** download_hpoa() uses URL parameter from comparisons_config rather than reading config directly (pure utility pattern)
+- **78-01:** adapt_genemap2_for_comparisons() is adapter (not parser) - receives pre-parsed data from shared parse_genemap2()
+- **78-01:** NDD_HPO_TERMS hardcoded as named constant - stable domain definition, no admin UI exists, YAGNI for database storage
+- **78-01:** Version field changed from filename-based to date-based for consistency with ontology system
+- **78-01:** omim_genemap2 removed from comparisons_config (security: eliminates plaintext API key from database)
+- **79-01:** OMIM_DOWNLOAD_KEY passed via Docker Compose environment (no default value, required secret)
+- **79-01:** api/config.yml not modified (gitignored local file, not in version control)
+- **79-01:** Migration 007 uses DEPRECATED placeholder to preserve idempotency (row removed by migration 014)
+- **79-02:** download_mim2gene() uses check_file_age_days() with 1-day TTL (not month-based check_file_age())
+- **79-02:** purrr dependency removed (only used by deleted fetch_jax_disease_name() via pluck())
+- **79-02:** All OMIM download functions unified to same caching pattern (check_file_age_days, message logging)
 
-**Phase 73-02 decisions:**
-- Use .cache_version marker file (dot-prefix) so cachem ignores it
-- Default CACHE_VERSION to '1' for backward compatibility
-- Only delete .rds files, preserve directory structure and version marker
-- Clear cache BEFORE cachem::cache_disk() initialization
+### Pending Todos
 
-**Phase 74-01 decisions:**
-- Use HTTP 201 Created for successful entity creation (REST semantics)
-- Include approval responses in bind_rows aggregation (failures surface via max(status))
-- Add debug logging for approval responses (troubleshooting without DB queries)
-
-**Phase 74-02 decisions:**
-- Replace category column after filtering, not before (filter uses max_category)
-- Use curly braces {} for conditional column operations in dplyr pipelines
-
-**Phase 74-03 decisions:**
-- Use early return in gen_string_clust_obj when clusters_list is empty (no STRING interactions)
-- Guard all rowwise operations with nrow checks to prevent subscript out of bounds errors
-- Return 200 OK with empty structures instead of errors for valid queries with no results
-- Don't cache empty results (fast enough without caching)
-
-**Phase 75-01 decisions:**
-- Use app/src/constants/docs.ts for URL constants (consistent with TypeScript patterns)
-- Structure as DOCS_BASE_URL + DOCS_URLS object with named keys (DRY, autocomplete-friendly)
-- Return constants from setup() in Options API components (follows Vue 3 composition pattern)
-- Gene page order: info -> entities -> external data -> visualizations (entities most relevant)
-
-**Phase 75-02 decisions:**
-- Extract tooltip logic into reusable composable (TablesGenes and TablesPhenotypes had inline code)
-- Add head() slot to GenericTable with column-header passthrough (allows header customization)
-- Preserved label cleanup regex `/( word)|( name)/g` for consistent mobile display
-
-**Phase 75-03 decisions:**
-- Use TreeNode type from @/composables for type consistency (instead of defining local interface)
-- Props use TreeNode[] | null (null = not loaded, [] = loaded but empty) for better loading state UX
-- Updated StepReview to handle TreeNode[] format (necessary for correct label display after data format change)
+None.
 
 ### Blockers/Concerns
 
-None.
+**Known risks from research:**
+- OMIM IP blocking from excessive downloads (mitigated: file-based 1-day TTL caching in Phase 76, unified in Phase 79-02)
+- genemap2.txt column name changes (mitigated: defensive column mapping in Phase 76)
+- Phenotypes column regex fragility (mitigated: robust field-based parsing in Phase 76)
+- Inheritance mode mapping completeness (validated in 77-01: 15-entry mapping with warning on unmapped terms)
+- Deprecation tracking: mim2gene.txt retained for moved/removed entry detection (Phase 79-02 cleanup complete)
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-02-06
-**Stopped at:** Phase 75 executed and verified
-**Next action:** Audit milestone v10.3
+**Last session:** 2026-02-07
+**Stopped at:** Phase 79-02 complete (JAX API cleanup) - v10.4 milestone 100%
+**Next action:** v10.4 milestone verification and release
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-06 -- Phase 75 complete, verified, all v10.3 phases done*
+*Last updated: 2026-02-07 — Phase 79-02 (JAX API Cleanup) complete - v10.4 milestone 100%*

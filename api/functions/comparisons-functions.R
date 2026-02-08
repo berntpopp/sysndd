@@ -376,114 +376,55 @@ parse_orphanet_json <- function(file_path) {
   return(result)
 }
 
-#' Parse OMIM Genemap2 with HPO Phenotype Annotations
+#' Parse OMIM Genemap2 with HPO Phenotype-to-Genes Annotations
 #'
-#' Parses OMIM genemap2.txt along with HPO phenotype.hpoa to identify
-#' NDD-related genes based on HPO term filtering.
+#' Filters OMIM genemap2 data to NDD-related genes using the HPO
+#' phenotype_to_genes.txt file, which contains pre-propagated HPO hierarchy
+#' annotations. Filtering for HP:0012759 (Neurodevelopmental abnormality)
+#' captures all descendant terms automatically.
 #'
-#' @param genemap2_path Path to omim_genemap2.txt file
-#' @param phenotype_hpoa_path Path to phenotype.hpoa file
+#' @param genemap2_data Pre-parsed tibble from parse_genemap2()
+#' @param phenotype_to_genes_path Path to phenotype_to_genes.txt file
 #'
 #' @return Tibble with extracted NDD-related genes
 #'
 #' @export
-parse_omim_genemap2 <- function(genemap2_path, phenotype_hpoa_path) {
-  # Define NDD-related HPO terms (Neurodevelopmental abnormality HP:0012759 and children)
-  # Note: In the async job, we fetch these from HPO API or use a static list
-  ndd_phenotypes <- c(
-    "HP:0012759", "HP:0001249", "HP:0001256", "HP:0002187",
-    "HP:0002342", "HP:0006889", "HP:0010864"
-  )
-
-  # Read phenotype.hpoa (skip header lines)
-  phenotype_hpoa <- read_tsv(
-    phenotype_hpoa_path,
-    skip = 4,
-    show_col_types = FALSE
-  )
-
-  # Read genemap2.txt (skip comment lines)
-  omim_genemap2 <- read_tsv(
-    genemap2_path,
-    col_names = FALSE,
+adapt_genemap2_for_comparisons <- function(genemap2_data, phenotype_to_genes_path) {
+  # Read phenotype_to_genes.txt (tab-delimited, 1 header line starting with #)
+  ptg <- read_tsv(
+    phenotype_to_genes_path,
     comment = "#",
+    col_names = c(
+      "hpo_id", "hpo_name", "ncbi_gene_id",
+      "gene_symbol", "disease_id"
+    ),
+    col_types = cols(.default = col_character()),
     show_col_types = FALSE
-  ) %>%
-    dplyr::select(
-      Chromosome = X1,
-      Genomic_Position_Start = X2,
-      Genomic_Position_End = X3,
-      Cyto_Location = X4,
-      Computed_Cyto_Location = X5,
-      MIM_Number = X6,
-      Gene_Symbols = X7,
-      Gene_Name = X8,
-      Approved_Symbol = X9,
-      Entrez_Gene_ID = X10,
-      Ensembl_Gene_ID = X11,
-      Comments = X12,
-      Phenotypes = X13,
-      Mouse_Gene_Symbol_ID = X14
-    ) %>%
-    dplyr::select(Approved_Symbol, Phenotypes) %>%
-    separate_rows(Phenotypes, sep = "; ") %>%
-    separate(Phenotypes, c("disease_ontology_name", "hpo_mode_of_inheritance_term_name"),
-             "\\), (?!.+\\))", fill = "right") %>%
-    separate(disease_ontology_name, c("disease_ontology_name", "Mapping_key"),
-             "\\((?!.+\\()", fill = "right") %>%
-    mutate(Mapping_key = str_replace_all(Mapping_key, "\\)", "")) %>%
-    separate(disease_ontology_name, c("disease_ontology_name", "MIM_Number"),
-             ", (?=[0-9][0-9][0-9][0-9][0-9][0-9])", fill = "right") %>%
-    mutate(
-      Mapping_key = str_replace_all(Mapping_key, " ", ""),
-      MIM_Number = str_replace_all(MIM_Number, " ", "")
-    ) %>%
-    filter(!is.na(MIM_Number)) %>%
-    filter(!is.na(Approved_Symbol)) %>%
-    mutate(disease_ontology_id = paste0("OMIM:", MIM_Number)) %>%
-    separate_rows(hpo_mode_of_inheritance_term_name, sep = ", ") %>%
-    mutate(hpo_mode_of_inheritance_term_name = str_replace_all(hpo_mode_of_inheritance_term_name, "\\?", "")) %>%
-    dplyr::select(-MIM_Number) %>%
-    unique() %>%
-    # Map inheritance terms to standardized names
-    mutate(hpo_mode_of_inheritance_term_name = case_when(
-      hpo_mode_of_inheritance_term_name == "Autosomal dominant" ~ "Autosomal dominant inheritance",
-      hpo_mode_of_inheritance_term_name == "Autosomal recessive" ~ "Autosomal recessive inheritance",
-      hpo_mode_of_inheritance_term_name == "Digenic dominant" ~ "Digenic inheritance",
-      hpo_mode_of_inheritance_term_name == "Digenic recessive" ~ "Digenic inheritance",
-      hpo_mode_of_inheritance_term_name == "Isolated cases" ~ "Sporadic",
-      hpo_mode_of_inheritance_term_name == "Mitochondrial" ~ "Mitochondrial inheritance",
-      hpo_mode_of_inheritance_term_name == "Multifactorial" ~ "Multifactorial inheritance",
-      hpo_mode_of_inheritance_term_name == "Pseudoautosomal dominant" ~ "X-linked dominant inheritance",
-      hpo_mode_of_inheritance_term_name == "Pseudoautosomal recessive" ~ "X-linked recessive inheritance",
-      hpo_mode_of_inheritance_term_name == "Somatic mosaicism" ~ "Somatic mosaicism",
-      hpo_mode_of_inheritance_term_name == "Somatic mutation" ~ "Somatic mutation",
-      hpo_mode_of_inheritance_term_name == "X-linked" ~ "X-linked inheritance",
-      hpo_mode_of_inheritance_term_name == "X-linked dominant" ~ "X-linked dominant inheritance",
-      hpo_mode_of_inheritance_term_name == "X-linked recessive" ~ "X-linked recessive inheritance",
-      hpo_mode_of_inheritance_term_name == "Y-linked" ~ "Y-linked inheritance",
-      TRUE ~ hpo_mode_of_inheritance_term_name
-    ))
+  )
 
-  # Filter for NDD-related OMIM entries via HPO phenotypes
-  phenotype_hpoa_omim_ndd <- phenotype_hpoa %>%
-    filter(str_detect(database_id, "OMIM")) %>%
-    filter(hpo_id %in% ndd_phenotypes) %>%
-    dplyr::select(database_id) %>%
+  # Filter for NDD root term (propagated annotations include all descendants)
+  # and OMIM diseases only
+  ndd_omim_diseases <- ptg %>%
+    filter(hpo_id == "HP:0012759") %>%
+    filter(str_detect(disease_id, "^OMIM:")) %>%
+    dplyr::select(disease_id) %>%
     unique()
 
-  # Join to get NDD genes
-  result <- phenotype_hpoa_omim_ndd %>%
-    left_join(omim_genemap2, by = c("database_id" = "disease_ontology_id")) %>%
+  # Join to get NDD genes from pre-parsed genemap2 data
+  result <- ndd_omim_diseases %>%
+    left_join(
+      genemap2_data,
+      by = c("disease_id" = "disease_ontology_id")
+    ) %>%
     filter(!is.na(Approved_Symbol)) %>%
     mutate(
       list = "omim_ndd",
-      version = basename(genemap2_path) %>% str_remove(pattern = "\\.txt$"),
+      version = format(Sys.Date(), "%Y-%m-%d"),
       category = "Definitive"
     ) %>%
     dplyr::select(
       gene_symbol = Approved_Symbol,
-      disease_ontology_id = database_id,
+      disease_ontology_id = disease_id,
       disease_ontology_name,
       inheritance = hpo_mode_of_inheritance_term_name,
       list,
@@ -818,7 +759,7 @@ comparisons_update_async <- function(params) {
 
     message(sprintf("[%s] [job:%s] Found %d active sources", Sys.time(), job_id, nrow(sources)))
 
-    # Track downloaded files for OMIM+HPO pairing
+    # Track downloaded files
     downloaded_files <- list()
     all_parsed_data <- list()
     import_date <- format(Sys.Date(), "%Y-%m-%d")
@@ -856,6 +797,15 @@ comparisons_update_async <- function(params) {
 
       message(sprintf("[%s] [job:%s] Parsing %s...", Sys.time(), job_id, source_name))
 
+      # Skip deprecated sources that may remain if migrations haven't run
+      deprecated_sources <- c("phenotype_hpoa", "omim_genemap2",
+                              "hpo_phenotype_to_genes")
+      if (source_name %in% deprecated_sources) {
+        message(sprintf("[%s] [job:%s] Skipping deprecated source: %s",
+                        Sys.time(), job_id, source_name))
+        next
+      }
+
       parsed_data <- tryCatch({
         switch(source_name,
           "radboudumc_ID" = parse_radboudumc_pdf(file_path),
@@ -864,15 +814,6 @@ comparisons_update_async <- function(params) {
           "sfari" = parse_sfari_csv(file_path),
           "geisinger_DBD" = parse_geisinger_csv(file_path),
           "orphanet_id" = parse_orphanet_json(file_path),
-          "omim_genemap2" = {
-            # OMIM requires HPO phenotype file
-            hpoa_path <- downloaded_files[["phenotype_hpoa"]]
-            if (is.null(hpoa_path)) {
-              stop("phenotype_hpoa file required for omim_genemap2 parsing")
-            }
-            parse_omim_genemap2(file_path, hpoa_path)
-          },
-          "phenotype_hpoa" = NULL,  # Used by omim_genemap2, not parsed separately
           stop(sprintf("Unknown source: %s", source_name))
         )
       }, error = function(e) {
@@ -889,9 +830,27 @@ comparisons_update_async <- function(params) {
       }
     }
 
+    # Parse OMIM via shared infrastructure (not in comparisons_config anymore)
+    progress("parse_omim", "Parsing OMIM via shared infrastructure...",
+             current = 2 + nrow(sources) + 1, total = 2 + nrow(sources) + 4)
+    message(sprintf("[%s] [job:%s] Parsing omim_genemap2 via shared infrastructure...", Sys.time(), job_id))
+    omim_parsed <- tryCatch({
+      genemap2_path <- download_genemap2(output_path = "data/", force = FALSE)
+      genemap2_data <- parse_genemap2(genemap2_path)
+      ptg_path <- download_phenotype_to_genes(output_path = "data/", force = FALSE)
+      parsed <- adapt_genemap2_for_comparisons(genemap2_data, ptg_path)
+      standardize_comparison_data(parsed, "omim_genemap2", import_date)
+    }, error = function(e) {
+      update_comparisons_metadata(conn, "failed", nrow(sources), 0,
+                                   sprintf("Failed to parse omim_genemap2: %s", e$message))
+      stop(sprintf("Failed to parse omim_genemap2: %s", e$message))
+    })
+    all_parsed_data[["omim_genemap2"]] <- omim_parsed
+    message(sprintf("[%s] [job:%s] Parsed %d rows from omim_genemap2", Sys.time(), job_id, nrow(omim_parsed)))
+
     # Merge all data
     progress("merge", "Merging and resolving HGNC IDs...",
-             current = 2 + nrow(sources) + 2, total = 2 + nrow(sources) + 3)
+             current = 2 + nrow(sources) + 2, total = 2 + nrow(sources) + 4)
 
     merged_data <- bind_rows(all_parsed_data)
 
@@ -938,7 +897,7 @@ comparisons_update_async <- function(params) {
 
     # Write to database atomically
     progress("write", "Writing to database...",
-             current = 2 + nrow(sources) + 3, total = 2 + nrow(sources) + 3)
+             current = 2 + nrow(sources) + 3, total = 2 + nrow(sources) + 4)
 
     # Atomic table replacement: DELETE + INSERT in transaction
     tryCatch({
@@ -962,6 +921,10 @@ comparisons_update_async <- function(params) {
 
       # Update source timestamps
       for (source_name in names(all_parsed_data)) {
+        # Skip omim_genemap2 (not in comparisons_config table anymore)
+        if (source_name == "omim_genemap2") {
+          next
+        }
         update_source_last_updated(conn, source_name)
       }
 

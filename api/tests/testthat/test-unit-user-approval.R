@@ -71,8 +71,8 @@ test_that("missing user_name column returns NULL", {
     email = "test@example.com"
   )
 
-  # Accessing missing column returns NULL in R
-  result <- user_table_without_username$user_name
+  # Accessing missing column returns NULL in R (suppress tibble column warning)
+  result <- suppressWarnings(user_table_without_username$user_name)
   expect_null(result)
 })
 

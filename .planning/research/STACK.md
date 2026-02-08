@@ -1,527 +1,306 @@
-# Technology Stack: Curation Workflow Modernization
+# Technology Stack: OMIM File Download Caching
 
-**Project:** SysNDD v7.0 Curation Workflow
-**Research Scope:** Stack additions for multi-select trees, wizards, entity search, accessible selects
-**Researched:** 2026-01-26
-**Overall Confidence:** HIGH
-
----
+**Project:** SysNDD OMIM Optimization
+**Researched:** 2026-02-07
+**Confidence:** HIGH
 
 ## Executive Summary
 
-This document specifies stack additions needed for SysNDD v7.0 curation workflow modernization. The existing stack (Vue 3.5.25, Bootstrap-Vue-Next 0.42.0, TypeScript 5.9.3, VeeValidate 4.15.1) is solid. The focus is on solving specific component gaps:
+No new packages required. The existing R stack (httr2 + fs + lubridate) already provides everything needed for OMIM file download caching with 1-day TTL. The codebase has validated patterns from `omim-functions.R` and `file-functions.R` that can be unified and enhanced.
 
-1. **Multi-select tree** - Replace broken vue3-treeselect with PrimeVue TreeSelect (unstyled mode)
-2. **Form wizard** - Extract existing CreateEntity pattern to reusable component (no new library)
-3. **Entity search/autocomplete** - Extend existing AutocompleteInput component (no new library)
-4. **Accessible selects** - Leverage Bootstrap-Vue-Next BFormSelect with ARIA enhancements (no new library)
+**Key finding:** The project already uses date-stamped filenames (`mim2gene.YYYY-MM-DD.txt`) and `check_file_age()` for age-based validation. This pattern should be extended to all OMIM downloads with consistent 1-day TTL.
 
-**Key Decision:** Use PrimeVue TreeSelect in unstyled mode with Bootstrap classes for tree multi-select. This is the only new library addition. All other needs are met by extracting and enhancing existing patterns.
+## Recommended Stack
 
----
+### Core Dependencies (Already Installed)
 
-## Current Stack (Validated, No Changes Needed)
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| httr2 | Latest (renv) | HTTP downloads | Modern retry logic, timeout control, already used in `omim-functions.R` |
+| fs | Latest (renv) | File system ops | Cross-platform paths, already used in `file-functions.R` |
+| lubridate | Latest (renv) | Date arithmetic | TTL validation with `interval()`, already used in `check_file_age()` |
 
-| Component | Version | Status | Notes |
-|-----------|---------|--------|-------|
-| Vue | 3.5.25 | KEEP | Composition API, 17 composables |
-| TypeScript | 5.9.3 | KEEP | Branded domain types |
-| Bootstrap-Vue-Next | 0.42.0 | KEEP | BFormSelect, BTable, BPagination working |
-| Bootstrap | 5.3.8 | KEEP | Utility classes, forms |
-| VeeValidate | 4.15.1 | KEEP | Form validation, useField/useForm |
-| @vee-validate/rules | 4.15.1 | KEEP | Validation rules |
-| VueUse | 14.1.0 | KEEP | URL sync, useIntervalFn |
-| Vite | 7.3.1 | KEEP | Build tooling |
+### No New Dependencies Required
 
-**Already Working:**
-- FormWizard.vue component (5-step wizard pattern)
-- useEntityForm composable (validation, step navigation)
-- AutocompleteInput.vue (debounced search, keyboard navigation)
-- StepPhenotypeVariation.vue (badge-based multi-select UI)
-- TablesEntities pattern (search, pagination, URL sync)
+The existing stack is sufficient. Do NOT add:
+- ❌ `cachem` — Designed for in-memory/disk caching of R objects, not file downloads
+- ❌ `memoise` — Same as cachem, wrong abstraction layer
+- ❌ `curl` — Lower-level than httr2, no retry logic
+- ❌ Base `download.file()` — No retry logic, less robust than httr2
 
----
+## Implementation Pattern
 
-## New Addition: PrimeVue TreeSelect
+### File Download with Caching (httr2)
 
-### Why PrimeVue TreeSelect
+**Use httr2 over base download.file():**
 
-| Aspect | Details |
-|--------|---------|
-| **Problem** | @zanmato/vue3-treeselect 0.4.2 has broken multi-select (v-model init bug, known issue) |
-| **Solution** | PrimeVue TreeSelect with checkbox selection mode |
-| **Version** | PrimeVue 4.5.4 (latest stable, January 2026) |
-| **Confidence** | HIGH (331K weekly downloads, active maintenance, PrimeTek 2026 roadmap published) |
-
-**Why PrimeVue over alternatives:**
-
-| Option | Verdict | Rationale |
-|--------|---------|-----------|
-| **PrimeVue TreeSelect** | RECOMMENDED | Best accessibility (ARIA compliant), TypeScript native, unstyled mode for Bootstrap integration, active maintenance |
-| @zanmato/vue3-treeselect | AVOID | Multi-select v-model init bug, community maintained, inconsistent updates |
-| @r2rka/vue3-treeselect | AVOID | Fork of megafetis, last published 2+ years ago |
-| Element Plus TreeSelect | ALTERNATIVE | Would require adopting Element Plus styling, conflicts with Bootstrap |
-| Headless UI Combobox | NOT SUITABLE | No built-in tree/hierarchical support |
-| Reka UI Tree + Combobox | NOT SUITABLE | Would require custom composition, no ready-made TreeSelect |
-
-### PrimeVue Unstyled Mode Integration
-
-**Critical:** Use PrimeVue in **unstyled mode** to avoid CSS conflicts with Bootstrap.
-
-**Setup (main.ts):**
-```typescript
-import { createApp } from 'vue'
-import PrimeVue from 'primevue/config'
-
-const app = createApp(App)
-
-// Enable unstyled mode - no PrimeVue CSS applied
-app.use(PrimeVue, {
-  unstyled: true
-})
-```
-
-**Component Import (selective, not full library):**
-```typescript
-// Only import TreeSelect, not entire PrimeVue
-import TreeSelect from 'primevue/treeselect'
-
-export default defineComponent({
-  components: { TreeSelect }
-})
-```
-
-**Pass Through Props for Bootstrap Styling:**
-```typescript
-// Apply Bootstrap classes via PT props
-<TreeSelect
-  v-model="selectedValues"
-  :options="treeOptions"
-  selectionMode="checkbox"
-  display="chip"
-  placeholder="Select phenotypes..."
-  :pt="{
-    root: { class: 'form-control form-control-sm' },
-    label: { class: 'form-select-label' },
-    trigger: { class: 'btn btn-sm btn-outline-secondary' },
-    panel: { class: 'dropdown-menu show p-2' },
-    tree: { class: 'list-unstyled' },
-    node: { class: 'py-1' },
-    checkbox: { class: 'form-check-input' }
-  }"
-/>
-```
-
-### TreeSelect Accessibility Features
-
-PrimeVue TreeSelect has comprehensive ARIA support (verified from official docs):
-
-- `combobox` role on root element with `aria-haspopup` and `aria-expanded`
-- `tree` role on popup list
-- `treeitem` role on each node with `aria-label`, `aria-selected`, `aria-expanded`
-- `aria-checked` in checkbox selection mode
-- Proper `aria-setsize`, `aria-posinset`, `aria-level` calculated automatically
-- Keyboard navigation: Arrow keys, Enter, Escape, Tab
-
-### Installation
-
-```bash
-npm install primevue@^4.5.4
-```
-
-**Bundle Impact:** ~15-20KB gzipped (TreeSelect only, unstyled mode, no CSS)
-
-### Sources
-
-- [PrimeVue TreeSelect Component](https://primevue.org/treeselect/) - Official documentation
-- [PrimeVue Pass Through](https://primevue.org/passthrough/) - Custom class styling
-- [primevue npm](https://www.npmjs.com/package/primevue) - Version 4.5.4, 331K weekly downloads
-
----
-
-## No New Library: Form Wizard
-
-### Why No New Library
-
-The existing CreateEntity.vue already implements a complete wizard pattern:
-
-**Existing Components:**
-- `FormWizard.vue` - Progress indicator, step navigation, submit handling
-- `StepCoreEntity.vue` - Step 1 content
-- `StepEvidence.vue` - Step 2 content
-- `StepPhenotypeVariation.vue` - Step 3 content
-- `StepClassification.vue` - Step 4 content
-- `StepReview.vue` - Step 5 content
-
-**Existing Composable:**
-- `useEntityForm.ts` - Form data, validation, step navigation, draft persistence
-
-### Recommendation: Extract to Reusable Pattern
-
-Instead of adding FormKit multi-step plugin (~25KB) or vue3-form-wizard, **extract the existing pattern**:
-
-**1. Make FormWizard generic:**
-```typescript
-// Current: tightly coupled to entity form
-// After: generic wizard accepting any step configuration
-
-interface WizardStep {
-  id: string
-  label: string
-  validation?: () => boolean
-  component: Component
-}
-
-defineProps<{
-  steps: WizardStep[]
-  modelValue: Record<string, unknown>
-}>()
-```
-
-**2. Create useFormWizard composable:**
-```typescript
-// Extract step navigation logic from useEntityForm
-export function useFormWizard(steps: WizardStep[]) {
-  const currentStepIndex = ref(0)
-  const isCurrentStepValid = computed(() => /*...*/)
-  const nextStep = () => /*...*/
-  const previousStep = () => /*...*/
-  const goToStep = (index: number) => /*...*/
-
-  return { currentStepIndex, isCurrentStepValid, nextStep, previousStep, goToStep }
-}
-```
-
-**Why not FormKit:**
-- FormKit multi-step requires importing @formkit/vue + @formkit/addons (~40KB)
-- Existing pattern already works, validated in production
-- FormKit has its own styling system, would conflict with Bootstrap
-- Cost of new dependency > cost of extraction
-
-**Why not VeeValidate multi-step example:**
-- Already using VeeValidate 4.15.1
-- VeeValidate's multi-step is a documentation example, not a library feature
-- Current implementation already uses VeeValidate patterns
-
-### Sources
-
-- [FormKit Multi-Step Plugin](https://formkit.com/plugins/multi-step) - Evaluated, not recommended
-- [VeeValidate Multi-step Form Wizard](https://vee-validate.logaretm.com/v4/examples/multistep-form-wizard/) - Pattern reference
-- `/app/src/components/forms/wizard/FormWizard.vue` - Existing working implementation
-
----
-
-## No New Library: Entity Search/Autocomplete
-
-### Why No New Library
-
-The existing AutocompleteInput.vue already provides:
-
-- Debounced search with configurable delay
-- Keyboard navigation (Arrow keys, Enter, Escape)
-- Loading state with spinner
-- No results message
-- Configurable item display (label, secondary, description)
-- ARIA attributes (role="listbox", aria-selected, aria-label)
-- Works with async search callbacks
-
-### Recommendation: Extend Existing Component
-
-**Add features to AutocompleteInput.vue:**
-
-**1. Entity preview on selection:**
-```vue
-<template>
-  <AutocompleteInput
-    v-model="entityId"
-    :results="searchResults"
-    @select="handleSelect"
-  >
-    <!-- Add preview slot -->
-    <template #preview="{ selected }">
-      <EntityPreviewCard :entity="selected" />
-    </template>
-  </AutocompleteInput>
-</template>
-```
-
-**2. Improve search result display:**
-```typescript
-// Add formatSearchResult prop for custom formatting
-interface AutocompleteInputProps {
-  // ...existing props
-  formatResult?: (item: Record<string, unknown>) => {
-    primary: string
-    secondary?: string
-    description?: string
-    badge?: { text: string; variant: string }
+```r
+# Good: httr2 with retry logic
+download_omim_file <- function(url, output_path, api_key, force = FALSE) {
+  # Check cache age
+  if (!force && check_file_age("genemap2", "data/", 1)) {
+    return(get_newest_file("genemap2", "data/"))
   }
+
+  # Build authenticated URL
+  auth_url <- str_replace(url, "OMIM_DOWNLOAD_KEY", api_key)
+
+  # Download with httr2
+  response <- request(auth_url) %>%
+    req_retry(
+      max_tries = 3,
+      max_seconds = 60,
+      backoff = ~ 2^.x
+    ) %>%
+    req_timeout(30) %>%
+    req_perform()
+
+  # Save to date-stamped file
+  current_date <- format(Sys.Date(), "%Y-%m-%d")
+  output_file <- paste0(output_path, "genemap2.", current_date, ".txt")
+  writeBin(resp_body_raw(response), output_file)
+
+  return(output_file)
 }
 ```
 
-**3. Add clear button:**
-```vue
-<template>
-  <div class="position-relative">
-    <BFormInput ... />
-    <button
-      v-if="modelValue && !disabled"
-      type="button"
-      class="btn-close position-absolute"
-      style="right: 0.75rem; top: 50%; transform: translateY(-50%);"
-      aria-label="Clear selection"
-      @click="clearSelection"
-    />
-  </div>
-</template>
-```
+**Why httr2:**
+- ✅ Exponential backoff retry (validated in Phase 23-01)
+- ✅ Timeout protection (30s default)
+- ✅ Binary download support (`resp_body_raw()`)
+- ✅ Already used in `omim-functions.R` for mim2gene.txt
+- ✅ Consistent error handling across codebase
 
-### Sources
+### File Age Validation (fs + lubridate)
 
-- `/app/src/components/forms/AutocompleteInput.vue` - Existing implementation (395 lines)
-- `/app/src/components/forms/wizard/StepCoreEntity.vue` - Current usage example
+**Existing pattern from `file-functions.R`:**
 
----
+```r
+# Already exists, works correctly
+check_file_age <- function(file_basename, folder, months) {
+  pattern <- paste0(file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
+  files <- dir_ls(folder, regexp = pattern)
 
-## No New Library: Accessible Selects
-
-### Why No New Library
-
-Bootstrap-Vue-Next BFormSelect already provides:
-
-- Native `<select>` element (best accessibility by default)
-- Keyboard navigation built-in
-- Screen reader compatible
-- Option groups support (`<optgroup>`)
-- Validation state styling
-
-### Current Issue and Solution
-
-**Issue:** ModifyEntity uses flattened tree options in single BFormSelect, losing hierarchy.
-
-**Solution:** Use Bootstrap's native `<optgroup>` which BFormSelect supports:
-
-```typescript
-// Current (flat)
-const options = [
-  { value: 'HP:0001-present', text: 'present: Seizures' },
-  { value: 'HP:0001-absent', text: 'absent: Seizures' },
-  { value: 'HP:0002-present', text: 'present: Hypotonia' }
-]
-
-// Better (grouped)
-const options = [
-  {
-    label: 'Seizures',
-    options: [
-      { value: 'HP:0001-present', text: 'present' },
-      { value: 'HP:0001-absent', text: 'absent' }
-    ]
-  },
-  {
-    label: 'Hypotonia',
-    options: [
-      { value: 'HP:0002-present', text: 'present' },
-      { value: 'HP:0002-absent', text: 'absent' }
-    ]
+  if (length(files) == 0) {
+    return(FALSE)  # No cached file exists
   }
-]
+
+  dates <- str_extract(files, "\\d{4}-\\d{2}-\\d{2}")
+  newest_date <- max(as.Date(dates), na.rm = TRUE)
+  current_date <- Sys.Date()
+
+  time_diff <- interval(newest_date, current_date) / months(1)
+  return(time_diff < months)
+}
 ```
 
-**For multi-select:** Use PrimeVue TreeSelect (recommended above) when hierarchical multi-select is needed. For simple multi-select, BFormSelect with `multiple` attribute works.
+**Enhancement for 1-day TTL:**
 
-### Accessibility Enhancements
+```r
+# Add day-precision variant
+check_file_age_days <- function(file_basename, folder, days) {
+  pattern <- paste0(file_basename, "\\.\\d{4}-\\d{2}-\\d{2}")
+  files <- dir_ls(folder, regexp = pattern)
 
-Add to all selects:
+  if (length(files) == 0) {
+    return(FALSE)
+  }
 
-```vue
-<BFormSelect
-  id="phenotype-select"
-  v-model="selectedPhenotype"
-  :options="phenotypeOptions"
-  aria-label="Select phenotype modifier"
-  aria-describedby="phenotype-help"
-  :aria-invalid="!!error"
-  :aria-errormessage="error ? 'phenotype-error' : undefined"
-/>
-<small id="phenotype-help" class="form-text">
-  Select HPO terms describing this phenotype
-</small>
-<div v-if="error" id="phenotype-error" class="invalid-feedback">
-  {{ error }}
-</div>
+  dates <- str_extract(files, "\\d{4}-\\d{2}-\\d{2}")
+  newest_date <- max(as.Date(dates), na.rm = TRUE)
+  current_date <- Sys.Date()
+
+  time_diff <- as.numeric(current_date - newest_date)
+  return(time_diff < days)
+}
 ```
 
-### Sources
+**Why fs + lubridate:**
+- ✅ `fs::dir_ls()` with regex is fast and cross-platform
+- ✅ `lubridate::interval()` handles edge cases (month boundaries)
+- ✅ Date extraction from filename is already battle-tested
+- ✅ Consistent with existing `omim-functions.R` pattern
 
-- [Bootstrap-Vue-Next BFormSelect](https://bootstrap-vue-next.github.io/bootstrap-vue-next/components/FormSelect.html)
-- [MDN: select element accessibility](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/select#accessibility_concerns)
+### Environment Variable Pattern
 
----
+**Existing pattern from `start_sysndd_api.R`:**
 
-## What NOT to Add
+```r
+# Good: Sys.getenv() with default
+api_key <- Sys.getenv("OMIM_DOWNLOAD_KEY", "")
 
-### Libraries Evaluated and Rejected
+if (api_key == "") {
+  stop("OMIM_DOWNLOAD_KEY environment variable not set")
+}
+```
 
-| Library | Version | Why Rejected |
-|---------|---------|--------------|
-| **FormKit** | 2.x | Adds ~40KB, own styling system, existing wizard works |
-| **vue3-form-wizard** | - | Adds unnecessary dependency, existing pattern sufficient |
-| **@zanmato/vue3-treeselect** | 0.4.2 | Multi-select v-model init bug, inconsistent maintenance |
-| **@r2rka/vue3-treeselect** | 0.2.4 | Last published 2+ years ago |
-| **Element Plus** | - | Would require adopting entire design system |
-| **Vuetify** | - | Would require adopting entire design system |
-| **Headless UI** | 1.7.23 | No tree/hierarchical component |
-| **Reka UI** | 2.7.0 | No ready-made TreeSelect, would require custom composition |
-| **shadcn-vue** | - | No TreeSelect component |
+**Integration points:**
+- Docker Compose: `environment: - OMIM_DOWNLOAD_KEY=${OMIM_DOWNLOAD_KEY}`
+- `.env` file: `OMIM_DOWNLOAD_KEY=9GJLEFvqSmWaImCijeRdVA`
+- CI: GitHub Actions secrets
 
-### Patterns to Avoid
+**Why Sys.getenv():**
+- ✅ Base R, no dependencies
+- ✅ Already used for 7 other env vars (MIRAI_WORKERS, CACHE_VERSION, etc.)
+- ✅ Consistent with project patterns
+- ✅ Docker Compose native support
 
-| Anti-Pattern | Why Avoid | Do Instead |
-|--------------|-----------|------------|
-| Add library for one component | Bundle bloat, maintenance burden | Extend existing patterns |
-| Mix PrimeVue styling with Bootstrap | CSS conflicts, inconsistent UI | Use unstyled mode + PT props |
-| Replace all selects with custom components | Worse accessibility than native | Use native `<select>` with ARIA |
-| Add multiple tree-select libraries | API inconsistency | Pick one (PrimeVue) |
+## OMIM File Formats
 
----
+### Files and Their Purposes
 
-## Installation Summary
+| File | Auth Required | Size | Update Frequency | Purpose |
+|------|---------------|------|------------------|---------|
+| mim2gene.txt | No (public) | ~500 KB | Weekly | MIM→gene mapping, entry types |
+| genemap2.txt | Yes (key) | ~5 MB | Weekly | Disease names, phenotypes, MOI |
+| mimTitles.txt | Yes (key) | ~2 MB | Weekly | MIM titles (alternative to genemap2) |
+| morbidmap.txt | Yes (key) | ~1 MB | Weekly | Legacy format (not recommended) |
 
-### Single Addition
+### Recommended Files for SysNDD
 
+**Primary:**
+- `genemap2.txt` — Contains disease names, phenotypes, inheritance, all needed for ontology system
+
+**Secondary:**
+- `mim2gene.txt` — Already used, continue using for entry types and deprecation detection
+
+**Not needed:**
+- `mimTitles.txt` — Redundant if using genemap2.txt
+- `morbidmap.txt` — Legacy format, genemap2.txt is superior
+
+### Download URLs
+
+```r
+# Public (no auth)
+mim2gene_url <- "https://omim.org/static/omim/data/mim2gene.txt"
+
+# Requires OMIM_DOWNLOAD_KEY
+genemap2_url <- paste0(
+  "https://data.omim.org/downloads/",
+  Sys.getenv("OMIM_DOWNLOAD_KEY"),
+  "/genemap2.txt"
+)
+```
+
+## Integration with Existing Stack
+
+### Unification Points
+
+**Current state:**
+1. Ontology system uses `omim-functions.R` (mim2gene.txt + JAX API)
+2. Comparisons system uses `comparisons-functions.R` (genemap2.txt parsing)
+
+**After OMIM overhaul:**
+1. Both systems use unified `omim-functions.R` (mim2gene.txt + genemap2.txt)
+2. Shared caching via enhanced `file-functions.R`
+3. Shared parsing utilities (already exists in `comparisons-functions.R`)
+
+### Existing Patterns to Reuse
+
+From `comparisons-functions.R` (lines 390-495):
+```r
+parse_omim_genemap2 <- function(genemap2_path, phenotype_hpoa_path) {
+  # Already parses genemap2.txt with disease names
+  # Already handles inheritance mapping
+  # Already filters for NDD phenotypes
+}
+```
+
+From `omim-functions.R` (lines 36-72):
+```r
+download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_months = 1) {
+  # Already checks file age
+  # Already uses httr2 with retry
+  # Already uses date-stamped filenames
+}
+```
+
+**Action:** Generalize the download pattern to work for all OMIM files.
+
+## Alternatives Considered
+
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| HTTP client | httr2 | base download.file() | No retry logic, less robust error handling |
+| HTTP client | httr2 | curl | Lower-level, httr2 provides better abstractions |
+| Caching strategy | Date-stamped files | cachem disk cache | Wrong abstraction (for R objects, not files) |
+| TTL validation | lubridate intervals | difftime() | Works, but lubridate handles edge cases better |
+| Auth pattern | Env var (OMIM_DOWNLOAD_KEY) | Config file | Already use env vars for 7+ settings |
+
+## Installation
+
+No installation needed. All packages already in renv.lock:
+
+```r
+# Verify availability (these should all pass)
+stopifnot(requireNamespace("httr2"))
+stopifnot(requireNamespace("fs"))
+stopifnot(requireNamespace("lubridate"))
+stopifnot(requireNamespace("readr"))
+stopifnot(requireNamespace("stringr"))
+```
+
+## Configuration
+
+### Environment Variables
+
+Add to `.env` (not in git):
 ```bash
-# Only new dependency for v7.0
-npm install primevue@^4.5.4
+OMIM_DOWNLOAD_KEY=9GJLEFvqSmWaImCijeRdVA
 ```
 
-### Main.ts Update
-
-```typescript
-// Add after existing imports
-import PrimeVue from 'primevue/config'
-
-// Add after app.use(BootstrapVueNext)
-app.use(PrimeVue, { unstyled: true })
+Add to `docker-compose.yml`:
+```yaml
+services:
+  api:
+    environment:
+      - OMIM_DOWNLOAD_KEY=${OMIM_DOWNLOAD_KEY}
 ```
 
-### No Changes Needed
+Add to GitHub Actions (if needed for CI):
+```yaml
+env:
+  OMIM_DOWNLOAD_KEY: ${{ secrets.OMIM_DOWNLOAD_KEY }}
+```
 
-- package.json: Only primevue addition
-- vite.config.ts: No changes
-- tsconfig.json: No changes (PrimeVue has TypeScript types)
-- ESLint config: No changes
+### Cache Directory Structure
 
----
+```
+data/
+├── mim2gene.2026-02-07.txt
+├── genemap2.2026-02-07.txt
+└── (old files cleaned up manually or via cron)
+```
 
-## Component Plan
-
-### New Components to Create
-
-| Component | Purpose | Dependencies |
-|-----------|---------|--------------|
-| `TreeMultiSelect.vue` | Wrapper around PrimeVue TreeSelect with Bootstrap styling | PrimeVue TreeSelect |
-| `useFormWizard.ts` | Generic wizard navigation composable | Vue 3 Composition API |
-
-### Components to Extend
-
-| Component | Changes |
-|-----------|---------|
-| `FormWizard.vue` | Make generic (accept any steps), add slot for custom actions |
-| `AutocompleteInput.vue` | Add preview slot, clear button, custom result formatting |
-| `StepPhenotypeVariation.vue` | Replace BFormSelect with TreeMultiSelect |
-
-### Components to Refactor
-
-| Component | Current State | Target State |
-|-----------|---------------|--------------|
-| `ModifyEntity.vue` | Options API, broken treeselect | Composition API, TreeMultiSelect |
-| `ApproveReview.vue` | Basic table | TablesEntities pattern |
-| `ApproveStatus.vue` | Basic table | TablesEntities pattern |
-
----
-
-## Bundle Impact Assessment
-
-| Addition | Size (gzipped) | Notes |
-|----------|----------------|-------|
-| primevue/treeselect (unstyled) | ~15-20KB | Tree-shaken, only TreeSelect |
-| primevue/config | ~2KB | Required for PrimeVue setup |
-| **Total New** | **~17-22KB** | Acceptable for functionality gain |
-
-**Current bundle:** ~600KB gzipped
-**After v7.0:** ~620KB gzipped (+3.5%)
-
----
+**TTL enforcement:** Check `Sys.Date()` vs file date, re-download if ≥1 day old.
 
 ## Migration Path
 
-### Phase 1: Add PrimeVue TreeSelect
+### Phase 1: Add Env Var Support
+1. Add `OMIM_DOWNLOAD_KEY` to environment
+2. Update `omim-functions.R` to read env var
+3. Keep existing JAX API as fallback
 
-1. Install primevue
-2. Configure unstyled mode in main.ts
-3. Create TreeMultiSelect.vue wrapper with Bootstrap PT props
-4. Test with phenotype options
+### Phase 2: Add genemap2.txt Download
+1. Generalize `download_mim2gene()` to `download_omim_file()`
+2. Add `download_genemap2()` wrapper
+3. Implement 1-day TTL caching
 
-### Phase 2: Extract Wizard Pattern
+### Phase 3: Replace JAX API
+1. Add genemap2.txt parsing to `omim-functions.R`
+2. Replace `fetch_all_disease_names()` calls
+3. Remove JAX API dependency
 
-1. Create useFormWizard composable from useEntityForm
-2. Make FormWizard.vue accept generic step configuration
-3. Verify CreateEntity still works
-4. Use pattern for ModifyEntity wizard
-
-### Phase 3: Extend AutocompleteInput
-
-1. Add preview slot
-2. Add clear button
-3. Add custom result formatting
-4. Update ModifyEntity to use enhanced autocomplete
-
-### Phase 4: Apply to Curation Views
-
-1. Update StepPhenotypeVariation to use TreeMultiSelect
-2. Update ModifyEntity with TreeMultiSelect
-3. Verify ApproveReview/ApproveStatus tables
-4. Accessibility audit
-
----
-
-## Confidence Assessment
-
-| Decision | Confidence | Basis |
-|----------|------------|-------|
-| PrimeVue TreeSelect | HIGH | 331K weekly downloads, ARIA compliant, unstyled mode documented |
-| Unstyled mode integration | HIGH | Official PrimeVue feature, documented PT props |
-| No FormKit | HIGH | Existing pattern works, cost > benefit |
-| No new autocomplete library | HIGH | AutocompleteInput already comprehensive |
-| Bootstrap-Vue-Next selects | HIGH | Native select accessibility, optgroup support |
-| Bundle impact ~22KB | HIGH | Tree-shaking verified in PrimeVue docs |
-
----
+### Phase 4: Unify Comparisons
+1. Update comparisons system to use shared OMIM functions
+2. Remove duplicate genemap2.txt parsing from `comparisons-functions.R`
+3. Both systems now share same OMIM data source
 
 ## Sources
 
-**PrimeVue (High Confidence):**
-- [PrimeVue TreeSelect Component](https://primevue.org/treeselect/)
-- [PrimeVue Pass Through](https://primevue.org/passthrough/)
-- [PrimeVue Unstyled Mode](https://primevue.org/theming/styled/)
-- [primevue npm](https://www.npmjs.com/package/primevue) - v4.5.4
-
-**Vue Ecosystem (High Confidence):**
-- [VeeValidate Multi-step Form Wizard](https://vee-validate.logaretm.com/v4/examples/multistep-form-wizard/)
-- [FormKit Multi-Step Plugin](https://formkit.com/plugins/multi-step)
-- [Bootstrap-Vue-Next Documentation](https://bootstrap-vue-next.github.io/bootstrap-vue-next/)
-
-**vue3-treeselect Issues (Medium Confidence - GitHub):**
-- [megafetis/vue3-treeselect Issue #4](https://github.com/megafetis/vue3-treeselect/issues/4) - v-model init bug
-
-**Alternatives Evaluated (Medium Confidence):**
-- [Headless UI Vue Combobox](https://headlessui.com/v1/vue/combobox)
-- [Reka UI (formerly Radix Vue)](https://www.radix-vue.com/)
-- [reka-ui npm](https://www.npmjs.com/package/reka-ui) - v2.7.0
-
----
-
-**Document Version:** 1.0
-**Last Updated:** 2026-01-26
-**Next Review:** After Phase 1 completion (PrimeVue TreeSelect integration)
+- **httr2 documentation:** https://httr2.r-lib.org/ (HIGH confidence)
+- **Existing codebase patterns:** `api/functions/omim-functions.R` (HIGH confidence)
+- **Existing codebase patterns:** `api/functions/file-functions.R` (HIGH confidence)
+- **Existing codebase patterns:** `api/functions/comparisons-functions.R` (HIGH confidence)
+- **OMIM download documentation:** https://omim.org/downloads (MEDIUM confidence, based on existing URLs in codebase)
+- **Environment variable pattern:** `api/start_sysndd_api.R` lines 79, 96, 188, 370, 433, 545 (HIGH confidence)

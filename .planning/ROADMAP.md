@@ -1,4 +1,4 @@
-# Roadmap: SysNDD v10.3 Bug Fixes & Stabilization
+# Roadmap: SysNDD Developer Experience
 
 ## Milestones
 
@@ -14,80 +14,125 @@
 - ✅ **v10.0 Data Quality & AI Insights** - Phases 55-65 (shipped 2026-02-01)
 - ✅ **v10.1 Production Deployment Fixes** - Phases 66-68 (shipped 2026-02-03)
 - ✅ **v10.2 Performance & Memory Optimization** - Phases 69-72 (shipped 2026-02-03)
-- 🚧 **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (all phases complete, pending milestone audit)
+- ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
+- ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 through v10.2 (Phases 1-72) - See MILESTONES.md</summary>
+<summary>✅ v1.0 through v10.3 (Phases 1-75) - See MILESTONES.md</summary>
 
-Phases 1-72 delivered across milestones v1.0 through v10.2. See `.planning/MILESTONES.md` for full history.
+Phases 1-75 delivered across milestones v1.0 through v10.3. See `.planning/MILESTONES.md` for full history.
 
 </details>
 
-### 🚧 v10.3 Bug Fixes & Stabilization (All Phases Complete)
+### ✅ v10.4 OMIM Optimization & Refactor (Shipped 2026-02-07)
 
-**Milestone Goal:** Fix 10 open bugs and UX issues to stabilize the production deployment after v10.0-v10.2 feature work.
+**Milestone Goal:** Replace slow JAX API sequential workflow with genemap2.txt-based processing, unify OMIM data sources between ontology and comparisons systems, add disk-based caching with 1-day TTL, and move OMIM download key to environment variable.
 
-- [x] **Phase 73: Data Infrastructure & Cache Fixes** - Database migrations and cache invalidation
-- [x] **Phase 74: API Bug Fixes** - Fix three independent 500 errors in API endpoints
-- [x] **Phase 75: Frontend Fixes & UX Improvements** - Documentation links, column stats, phenotype selection, layout
+**Performance improvement:** Ontology update time drops from ~8 minutes to ~30 seconds (eliminates 7-minute JAX API loop).
 
-## Phase Details
+**Key deliverables:**
+- Shared genemap2 infrastructure with download caching and robust parsing
+- Ontology system migration to genemap2 with mode of inheritance data
+- Unified cache between ontology and comparisons systems
+- Environment variable configuration for OMIM download key
 
-### Phase 73: Data Infrastructure & Cache Fixes
-**Goal**: Database schema and external data sources are correct, and cached data stays fresh after code changes
-**Depends on**: Nothing (first phase of v10.3)
-**Requirements**: DATA-01, DATA-02, DATA-03
+#### Phase 76: Shared Infrastructure ✅
+
+**Goal:** Create reusable genemap2 download/parse infrastructure without touching existing systems
+
+**Depends on:** Nothing (foundation phase)
+
+**Requirements:** INFRA-01, INFRA-02, INFRA-03, INFRA-04
+
 **Success Criteria** (what must be TRUE):
-  1. Comparisons Data Refresh job completes without column truncation errors (columns wide enough for all external source data)
-  2. Gene2Phenotype download fetches data from the new API URL and correctly parses the updated file format
-  3. After a code deployment that changes cached data structures, GeneNetworks table and LLM summaries display correctly (stale memoisation cache does not serve outdated formats)
-  4. All three database migrations are idempotent (can be re-run without error)
+1. ✅ Developer can set OMIM_DOWNLOAD_KEY environment variable and genemap2.txt downloads succeed
+2. ✅ genemap2.txt file is cached on disk with 1-day TTL (no duplicate downloads within 24 hours)
+3. ✅ parse_genemap2() extracts disease name, MIM number, mapping key, and inheritance from Phenotypes column
+4. ✅ Parsing handles historical column name variations without breaking (defensive column mapping)
+5. ✅ Unit tests verify download caching logic and parsing edge cases
+
 **Plans:** 2 plans
-Plans:
-- [x] 73-01-PLAN.md -- Database migrations: widen comparison columns (DATA-01) and update Gene2Phenotype URL (DATA-02)
-- [x] 73-02-PLAN.md -- Cache versioning: CACHE_VERSION env var for automatic invalidation on deployment (DATA-03)
 
-### Phase 74: API Bug Fixes
-**Goal**: API endpoints that currently return 500 errors respond correctly for all valid inputs
-**Depends on**: Phase 73 (data layer must be stable before fixing API endpoints that read from it)
-**Requirements**: API-01, API-02, API-03
-**Success Criteria** (what must be TRUE):
-  1. Creating a new entity with direct approval (skipping separate review step) succeeds and returns the new entity without a 500 error
-  2. The Panels page loads successfully, displaying all panel data with correctly aliased columns matching the query result set
-  3. Clustering endpoints return a valid empty response (not a 500 error) when called for gene sets that produce zero STRING interactions (empty tibble in rowwise context)
-**Plans:** 3 plans
 Plans:
-- [x] 74-01-PLAN.md -- Fix direct approval entity creation 500 error (API-01, #166)
-- [x] 74-02-PLAN.md -- Fix Panels page column alias mismatch (API-02, #161)
-- [x] 74-03-PLAN.md -- Fix clustering empty tibble crash and scan all rowwise patterns (API-03, #155)
+- [x] 76-01-PLAN.md — Download infrastructure: env var API key, 1-day TTL caching, check_file_age_days()
+- [x] 76-02-PLAN.md — Parse infrastructure: shared parse_genemap2() with fixture-based unit tests
 
-### Phase 75: Frontend Fixes & UX Improvements
-**Goal**: Frontend displays correct information and provides a smooth user experience for entity creation and gene browsing
-**Depends on**: Phase 74 (API fixes ensure backend returns correct data for frontend to display)
-**Requirements**: FE-01, FE-02, UX-01, UX-02
+#### Phase 77: Ontology Migration ✅
+
+**Goal:** Replace mim2gene + JAX API with genemap2 in ontology system for 50x+ speed improvement
+
+**Depends on:** Phase 76 (shared infrastructure)
+
+**Requirements:** ONTO-01, ONTO-02, ONTO-03, ONTO-04, ONTO-05, ONTO-06
+
 **Success Criteria** (what must be TRUE):
-  1. Documentation links in the application navigate to the correct numbered-prefix URLs on GitHub Pages (no 404 errors)
-  2. Hovering over table column headers displays statistics and metadata tooltips (restored from previous behavior)
-  3. Create Entity step 3 uses the same TreeMultiSelect phenotype component as ModifyEntity, providing consistent search, hierarchy navigation, and multi-select behavior
-  4. On the Genes detail view, the Associated Entities section appears above the Constraint Scores and ClinVar sections in the page layout
-**Plans:** 3 plans
+1. ✅ Ontology update completes in under 60 seconds (was ~8 minutes with JAX API)
+2. ✅ Disease names in disease_ontology_set match genemap2.txt Phenotypes column
+3. ✅ Inheritance mode information from genemap2 is mapped to HPO terms and stored in disease_ontology_set
+4. ✅ Duplicate MIM numbers retain _1, _2 versioning consistent with previous behavior
+5. ✅ MONDO SSSOM mappings continue to be applied after genemap2 processing
+6. ✅ mim2gene.txt continues to be downloaded for deprecation tracking of moved/removed entries
+
+**Plans:** 2 plans
+
 Plans:
-- [x] 75-01-PLAN.md -- Centralize documentation URLs into constants file (FE-01) and reorder Gene page sections (UX-02)
-- [x] 75-02-PLAN.md -- Create useColumnTooltip composable and restore column header tooltips on Entities table (FE-02)
-- [x] 75-03-PLAN.md -- Replace BFormSelect with TreeMultiSelect in Create Entity phenotype/variation step (UX-01)
+- [x] 77-01-PLAN.md — Create build_omim_from_genemap2() with inheritance mapping, HGNC joining, and versioning
+- [x] 77-02-PLAN.md — Rewire process_omim_ontology() to use genemap2 workflow, keep mim2gene for deprecation
+
+#### Phase 78: Comparisons Integration ✅
+
+**Goal:** Unify comparisons system to use shared genemap2 cache (single download per day across both systems)
+
+**Depends on:** Phase 77 (ontology migration stable)
+
+**Requirements:** COMP-01, COMP-02
+
+**Success Criteria** (what must be TRUE):
+1. ✅ Comparisons system uses shared genemap2 cache from Phase 76 (data/ directory, not temp_dir)
+2. ✅ Only one genemap2.txt download occurs per day regardless of ontology or comparisons update
+3. ✅ Comparisons omim_genemap2 parsing calls shared parse_genemap2() (no duplicate parsing code)
+4. ✅ Comparisons data refresh job continues to work with same output schema
+
+**Plans:** 2 plans
+
+Plans:
+- [x] 78-01-PLAN.md — Add download_hpoa() caching, replace parse_omim_genemap2() with adapt_genemap2_for_comparisons() adapter, modify async workflow, add migration
+- [x] 78-02-PLAN.md — Unit tests for adapt_genemap2_for_comparisons() adapter with synthetic fixtures
+
+#### Phase 79: Configuration & Cleanup ✅
+
+**Goal:** Remove deprecated JAX API code, clean up hardcoded keys, externalize OMIM download key to environment variable, unify mim2gene.txt caching
+
+**Depends on:** Phase 78 (both systems using genemap2)
+
+**Requirements:** CFG-01, CFG-02, CFG-03
+
+**Success Criteria** (what must be TRUE):
+1. ✅ Docker Compose and .env.example updated with OMIM_DOWNLOAD_KEY variable documentation
+2. ✅ JAX API functions removed from codebase (fetch_jax_disease_name, fetch_all_disease_names)
+3. ✅ Hardcoded OMIM download key removed from comparisons_config migration and omim_links.txt
+4. ✅ No dead code remains from JAX API implementation
+5. ✅ .env.example documents OMIM_DOWNLOAD_KEY with registration URL and usage guidance
+
+**Plans:** 2 plans
+
+Plans:
+- [x] 79-01-PLAN.md — Docker Compose + .env.example configuration, remove hardcoded OMIM API keys from all files
+- [x] 79-02-PLAN.md — Remove JAX API functions, unify mim2gene.txt caching to 1-day TTL, update tests
 
 ## Progress
 
-**Execution Order:** 73 → 74 → 75
+**Execution Order:** Phases execute sequentially: 76 -> 77 -> 78 -> 79
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 73. Data Infrastructure & Cache Fixes | v10.3 | 2/2 | ✓ Complete | 2026-02-05 |
-| 74. API Bug Fixes | v10.3 | 3/3 | ✓ Complete | 2026-02-05 |
-| 75. Frontend Fixes & UX Improvements | v10.3 | 3/3 | ✓ Complete | 2026-02-06 |
+| 76. Shared Infrastructure | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
+| 77. Ontology Migration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
+| 78. Comparisons Integration | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
+| 79. Configuration & Cleanup | v10.4 | 2/2 | ✅ Complete | 2026-02-07 |
 
 ---
-*Roadmap created: 2026-02-05*
-*Last updated: 2026-02-06 -- Phase 75 complete (3/3 plans, verified)*
+*Roadmap created: 2026-02-07*
+*Last updated: 2026-02-07 after Phase 79 completion — v10.4 milestone complete*

@@ -45,7 +45,7 @@ BEGIN
             ('geisinger_DBD', 'https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv', 'csv'),
             ('orphanet_id', 'https://id-genes.orphanet.app/es/index/sysid_index_1', 'json'),
             ('phenotype_hpoa', 'http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa', 'txt'),
-            ('omim_genemap2', 'https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt', 'txt');
+            ('omim_genemap2', 'DEPRECATED:uses-env-var-OMIM_DOWNLOAD_KEY', 'txt');
     END IF;
 
     -- Create comparisons_metadata table if not exists

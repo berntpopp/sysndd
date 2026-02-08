@@ -230,7 +230,7 @@ function(req,
          fields = "",
          `page_after` = "0",
          `page_size` = "10",
-         fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id",
+         fspec = "symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id,omim_ndd",
          definitive_only = "false",
          format = "json") {
   # Set serializer

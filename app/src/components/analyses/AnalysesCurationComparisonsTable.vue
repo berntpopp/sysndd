@@ -40,9 +40,9 @@
                 <strong>6) orphanet ID</strong> downloaded and normalized from
                 https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
                 <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
-                abnormality" (HP:0012759) and all its child terms using the files phenotype_to_genes
-                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype.hpoa) and genemap2
-                (https://data.omim.org/downloads/9GJLEFvqSmWaImCijeRdVA/genemap2.txt),
+                abnormality" (HP:0012759) using the pre-propagated phenotype_to_genes.txt
+                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2
+                (genemap2.txt from OMIM, requires download key),
                 <br />
               </BPopover>
             </h6>
@@ -164,6 +164,20 @@
           :sort-desc="sortDesc"
           @update-sort="handleSortUpdate"
         >
+          <!-- Column header tooltips -->
+          <template #column-header="{ data }">
+            <div
+              v-b-tooltip.hover.top
+              :title="
+                getTooltipText(
+                  fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
+                )
+              "
+            >
+              {{ truncate(data.label, 20) }}
+            </div>
+          </template>
+
           <template #filter-controls>
             <td v-for="field in fields" :key="field.key">
               <BFormInput
@@ -255,6 +269,10 @@
           <template #cell-orphanet_id="{ row }">
             <CategoryIcon :category="row.orphanet_id" size="sm" />
           </template>
+
+          <template #cell-omim_ndd="{ row }">
+            <CategoryIcon :category="row.omim_ndd" size="sm" />
+          </template>
         </GenericTable>
       </div>
     </BCard>
@@ -267,7 +285,7 @@
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 
-import { useToast, useUrlParsing, useColorAndSymbols } from '@/composables';
+import { useToast, useUrlParsing, useColorAndSymbols, useColumnTooltip } from '@/composables';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -298,13 +316,14 @@ export default {
     fspecInput: {
       type: String,
       default:
-        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id',
+        'symbol,SysNDD,gene2phenotype,panelapp,radboudumc_ID,sfari,geisinger_DBD,orphanet_id,omim_ndd',
     },
   },
   setup() {
     const { makeToast } = useToast();
     const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
     const colorAndSymbols = useColorAndSymbols();
+    const { getTooltipText } = useColumnTooltip();
 
     return {
       makeToast,
@@ -312,6 +331,7 @@ export default {
       filterStrToObj,
       sortStringToVariables,
       ...colorAndSymbols,
+      getTooltipText,
     };
   },
   data() {
@@ -374,6 +394,13 @@ export default {
           filterable: true,
           class: 'text-start',
         },
+        {
+          key: 'omim_ndd',
+          label: 'OMIM NDD',
+          sortable: true,
+          filterable: true,
+          class: 'text-start',
+        },
       ],
       totalRows: 0,
       currentPage: 1,
@@ -397,6 +424,7 @@ export default {
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
+        omim_ndd: { content: null, join_char: null, operator: 'contains' },
       },
       filter_string: '',
       filterOn: [],
@@ -423,6 +451,7 @@ export default {
         'sfari',
         'geisinger_DBD',
         'orphanet_id',
+        'omim_ndd',
       ];
 
       // Set all source column filters to "Definitive" when enabled, or null when disabled
@@ -584,6 +613,7 @@ export default {
         sfari: { content: null, join_char: ',', operator: 'any' },
         geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
         orphanet_id: { content: null, join_char: null, operator: 'contains' },
+        omim_ndd: { content: null, join_char: null, operator: 'contains' },
       };
     },
     removeSearch() {
