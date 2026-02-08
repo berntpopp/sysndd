@@ -95,3 +95,46 @@ test_that("pubtator_rate_limited_call sleeps for PUBTATOR_RATE_LIMIT_DELAY", {
   # Should have slept once for the rate limit delay
   expect_true(any(abs(sleep_calls - 0.35) < 0.001))
 })
+
+# Test 9: pubtator_db_update sync transaction uses function(txn_conn)
+test_that("pubtator_db_update sync transaction uses function-based pattern", {
+  src <- readLines(file.path(get_api_dir(), "functions", "pubtator-functions.R"))
+
+  # Find the sync db_with_transaction call (not the async one)
+  txn_lines <- grep("db_with_transaction\\(function\\(txn_conn\\)", src)
+  expect_gte(length(txn_lines), 1,
+    label = "At least one db_with_transaction(function(txn_conn)) in sync path"
+  )
+})
+
+# Test 10: All db_execute_* calls inside sync transaction pass conn = txn_conn
+test_that("pubtator sync transaction passes conn = txn_conn to all DB calls", {
+  src <- readLines(file.path(get_api_dir(), "functions", "pubtator-functions.R"))
+  src_text <- paste(src, collapse = "\n")
+
+  # Extract the sync function body (pubtator_db_update, not async)
+  # Find function start and end
+  func_start <- grep("^pubtator_db_update <- function", src)
+  expect_equal(length(func_start), 1)
+
+  # Find the transaction block
+  txn_start <- grep("db_with_transaction\\(function\\(txn_conn\\)", src)
+  # Use the first one (sync function)
+  sync_txn_start <- txn_start[txn_start > func_start][1]
+  expect_false(is.na(sync_txn_start))
+
+  # Count db_execute_query and db_execute_statement calls within the transaction block
+  # Transaction extends to the matching closing }, pool_obj = pool)
+  # Look for all db_execute_* calls between txn_start and end of function
+  async_start <- grep("^pubtator_db_update_async <- function", src)
+  sync_end <- if (length(async_start) > 0) async_start[1] - 1 else length(src)
+
+  sync_body <- src[sync_txn_start:sync_end]
+  db_calls <- grep("db_execute_(query|statement)\\(", sync_body, value = TRUE)
+  conn_calls <- grep("conn = txn_conn", sync_body, value = TRUE)
+
+  # Every db_execute_* call should have a corresponding conn = txn_conn
+  expect_equal(length(db_calls), length(conn_calls),
+    label = paste("DB calls:", length(db_calls), "conn= args:", length(conn_calls))
+  )
+})
