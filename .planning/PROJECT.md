@@ -4,47 +4,28 @@
 
 Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.5 focuses on bug fixes and data integrity — fixing CurationComparisons cross-database category aggregation (#173), AdminStatistics display/logic bugs (#172/#171), PubTator annotation storage failures (#170), Traefik TLS configuration (#169), and building an admin entity integrity audit tool for pre-existing suffix-gene misalignments (#167). Building on v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current State (v10.2 shipped 2026-02-03)
+## Current State (v10.5 shipped 2026-02-09)
 
-**Recent Milestone:** v10.2 Performance & Memory Optimization
+**Recent Milestone:** v10.5 Bug Fixes & Data Integrity
 
 **Delivered:**
-- Configurable mirai workers via MIRAI_WORKERS env var (1-8 workers, production default 2, dev default 1)
-- STRING score_threshold increased to 400 (medium confidence, ~50% fewer false positive edges)
-- Adaptive layout algorithms (DrL >1000 nodes, FR-grid 500-1000, FR <500)
-- Database-side filtering for logs endpoint (fixed #152 memory bug)
-- Query builder with column whitelist and parameterized SQL
-- 5 database indexes for logging table
-- Comprehensive unit and integration test coverage
-- Deployment documentation with memory profiles
+- Fixed CurationComparisons cross-database max category aggregation (#173)
+- Fixed AdminStatistics re-review approval sync, KPI race condition, date calculations, request cancellation (#172)
+- Fixed entity trend chart sparse time-series aggregation (#171)
+- Fixed PubTator incremental annotation storage with LEFT JOIN optimization (#170)
+- Fixed Traefik TLS cert selection and startup warnings (#169)
+- Rewrote BioCJSON parsing pipeline (72% annotation loss fixed, 110 to 491 PMIDs)
+- Fixed 18 broken db_with_transaction callers (zero atomicity → correct function pattern)
+- Added entity trend chart filter controls (NDD/Non-NDD/All, Combined/By Category)
 
 **Target issues (RESOLVED):**
-- #150: Optimize mirai worker configuration for memory-constrained servers
-- #152: ViewLogs endpoint loads entire table into memory before filtering
+- #173: CurationComparisons cross-database max category aggregation
+- #172: AdminStatistics re-review approval sync and sub-bugs
+- #171: AdminStatistics entity trend chart aggregation
+- #170: PubTator annotation storage failure
+- #169: Traefik TLS cert selection and startup warnings
 
-## Previous State (v10.1 shipped 2026-02-03)
-
-**Recent Milestone:** v10.1 Production Deployment Fixes
-
-**Delivered:**
-- Fixed API container UID mismatch (configurable via build-arg, default 1000)
-- Fixed migration lock timeout with double-checked locking pattern
-- Restored favicon image from _old directory
-- Removed container_name directive from API service for scaling
-
-## Previous State (v10.0 shipped 2026-02-01)
-
-**Recent Milestone:** v10.0 Data Quality & AI Insights
-
-**Delivered:**
-- Fixed 8 major bugs (EIF2AK2, GAP43, MEF2C, viewer profile, PMID deletion, entities over time, disease renaming, re-reviewer identity)
-- Variant navigation links from correlation matrix/counts to filtered entity table
-- Publications view: TimePlot aggregation, Stats cards, row details, admin bulk refresh
-- Pubtator: gene prioritization with novel alerts, PMID chips, Excel export
-- LLM cluster summaries: Gemini API with ellmer, batch pre-generation, LLM-as-judge validation
-- LLM admin dashboard: ManageLLM.vue with 5 tabs (Overview, Config, Prompts, Cache, Logs)
-- Comparisons data refresh async job with 7 external database parsers
-- Documentation migrated to Quarto with GitHub Actions deployment
+**Not shipped:** #167 entity data integrity audit (INTEG-01 through INTEG-06) — not included in execution scope
 
 ## Core Value
 
@@ -325,6 +306,22 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Admin comparisons data refresh async job — v10
 - ✓ GitHub Pages Actions workflow deployment — v10
 
+<!-- Shipped in v10.5 -->
+
+- ✓ Fix CurationComparisons cross-database max category aggregation (#173) — v10.5
+- ✓ Fix AdminStatistics entity trend chart aggregation (#171) — v10.5
+- ✓ Fix AdminStatistics re-review approved flag never set (#172) — v10.5
+- ✓ Fix AdminStatistics hardcoded percentage_finished denominator (#172) — v10.5
+- ✓ Fix AdminStatistics KPI race condition (#172) — v10.5
+- ✓ Fix AdminStatistics date range off-by-one (#172) — v10.5
+- ✓ Fix AdminStatistics negative pending count and null checks (#172) — v10.5
+- ✓ Fix AdminStatistics stale data on granularity change (#172) — v10.5
+- ✓ Fix PubTator annotation storage failure for incremental updates (#170) — v10.5
+- ✓ Fix Traefik Host() matcher for TLS cert selection (#169) — v10.5
+- ✓ Fix 18 broken db_with_transaction callers (zero atomicity) — v10.5
+- ✓ Rewrite BioCJSON parsing pipeline (72% annotation loss fixed) — v10.5
+- ✓ Entity trend chart filter controls (NDD/Non-NDD/All, By Category) — v10.5
+
 <!-- Shipped in v10.2 -->
 
 - ✓ Configurable mirai workers via MIRAI_WORKERS (1-8) — v10.2
@@ -342,21 +339,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v10.5 Bug Fixes & Data Integrity -->
-
-- [ ] Fix CurationComparisons cross-database max category aggregation bug (#173)
-- [ ] Fix AdminStatistics entity trend chart aggregation (#171)
-- [ ] Fix AdminStatistics re-review approved flag never set (#172)
-- [ ] Fix AdminStatistics hardcoded percentage_finished denominator (#172)
-- [ ] Fix AdminStatistics KPI race condition (#172)
-- [ ] Fix AdminStatistics date range off-by-one (#172)
-- [ ] Fix AdminStatistics negative pending count and null checks (#172)
-- [ ] Fix AdminStatistics stale data on granularity change (#172)
-- [ ] Fix PubTator annotation storage failure for incremental updates (#170)
-- [ ] Fix Traefik Host() matcher for TLS cert selection (#169)
-- [ ] Build admin entity data integrity audit UI (#167)
-- [ ] Fix orphaned replaced_by pointer (entity 4269) (#167)
-- [ ] Add compatibility rows for broken inactive entity FKs (#167)
+(No active requirements — milestone complete)
 
 ### Out of Scope
 
@@ -483,4 +466,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-08 after v10.5 milestone started*
+*Last updated: 2026-02-09 after v10.5 milestone complete*
