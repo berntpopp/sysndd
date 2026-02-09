@@ -57,14 +57,9 @@ test_that("generate_query_hash handles empty string", {
   expect_equal(nchar(hash), 64)
 })
 
-test_that("pubtator_v3_parse_nonstandard_json handles NULL input", {
-  # This tests the JSON parser without network calls
-  result <- pubtator_v3_parse_nonstandard_json(NULL)
-  expect_null(result)
-})
-
-test_that("pubtator_v3_parse_nonstandard_json handles empty input", {
-  result <- pubtator_v3_parse_nonstandard_json(character(0))
+test_that("pubtator_parse_biocjson returns NULL for invalid URL", {
+  # Non-existent URL should return NULL (error handled internally)
+  result <- pubtator_parse_biocjson("https://httpbin.org/status/404")
   expect_null(result)
 })
 
@@ -76,40 +71,6 @@ test_that("pubtator_v3_data_from_pmids handles NULL input", {
 test_that("pubtator_v3_data_from_pmids handles empty vector input", {
   result <- pubtator_v3_data_from_pmids(character(0))
   expect_null(result)
-})
-
-test_that("fix_doc_id adds id from _id when missing", {
-  # Test the document ID fixing function
-  doc_with_underscore_id <- list(`_id` = "12345", passages = list())
-  result <- fix_doc_id(doc_with_underscore_id)
-
-  expect_equal(result$id, "12345")
-  expect_equal(result$`_id`, "12345")
-})
-
-test_that("fix_doc_id preserves existing id", {
-  doc_with_id <- list(id = "existing_id", `_id` = "12345", passages = list())
-  result <- fix_doc_id(doc_with_id)
-
-  expect_equal(result$id, "existing_id")
-})
-
-test_that("fix_doc_id handles NULL input", {
-  result <- fix_doc_id(NULL)
-  expect_true(is.list(result))
-  expect_length(result, 0)
-})
-
-test_that("reassemble_pubtator_docs handles NULL input", {
-  result <- reassemble_pubtator_docs(NULL)
-  expect_true(is.list(result))
-  expect_length(result, 0)
-})
-
-test_that("reassemble_pubtator_docs handles empty list", {
-  result <- reassemble_pubtator_docs(list())
-  expect_true(is.list(result))
-  expect_length(result, 0)
 })
 
 test_that("safe_as_json handles NULL", {

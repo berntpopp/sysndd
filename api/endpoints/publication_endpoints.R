@@ -419,37 +419,6 @@ function(req,
     arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
     filter(!!!rlang::parse_exprs(filter_exprs))
 
-  # For backward compatibility: compute gene_symbols for rows where it's NULL
-  # This handles data that was fetched before the migration
-  needs_computation <- sum(is.na(table_data$gene_symbols)) > 0
-
-  if (needs_computation) {
-    # Get human gene annotations by joining with non_alt_loci_set (HGNC)
-    # This filters for human genes only via the HGNC gene list
-    human_genes <- pool %>%
-      tbl("pubtator_annotation_cache") %>%
-      dplyr::filter(type == "Gene") %>%
-      dplyr::inner_join(
-        pool %>% tbl("non_alt_loci_set") %>% dplyr::select(entrez_id, symbol),
-        by = c("normalized_id" = "entrez_id")
-      ) %>%
-      dplyr::select(search_id, symbol) %>%
-      collect() %>%
-      dplyr::group_by(search_id) %>%
-      dplyr::summarise(
-        computed_genes = paste(unique(na.omit(symbol)), collapse = ","),
-        .groups = "drop"
-      )
-
-    # Merge computed genes for rows without pre-computed gene_symbols
-    table_data <- table_data %>%
-      dplyr::left_join(human_genes, by = "search_id") %>%
-      dplyr::mutate(
-        gene_symbols = dplyr::coalesce(gene_symbols, computed_genes)
-      ) %>%
-      dplyr::select(-computed_genes)
-  }
-
   # Select columns
   table_data <- select_tibble_fields(
     table_data,

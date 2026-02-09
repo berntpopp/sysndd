@@ -360,21 +360,127 @@ pubtator_db_update <- function(
         report_progress("genes", "Computing human gene symbols...",
                         current = max_pages + 1, total = max_pages + 2)
 
+        # Source 1: Annotation cache (direct entrez_id + name fallback)
         gene_symbols_df <- db_execute_query(
-          "SELECT
-             s.search_id,
-             GROUP_CONCAT(DISTINCT nal.symbol ORDER BY nal.symbol SEPARATOR ',') AS gene_symbols
-           FROM pubtator_search_cache s
-           JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-           JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
-           WHERE s.query_id = ?
-             AND a.type = 'Gene'
-             AND a.normalized_id IS NOT NULL
-             AND a.normalized_id != ''
-           GROUP BY s.search_id",
+          "SELECT search_id,
+                  GROUP_CONCAT(DISTINCT symbol ORDER BY symbol SEPARATOR ',') AS gene_symbols
+           FROM (
+             SELECT s.search_id, nal.symbol
+             FROM pubtator_search_cache s
+             JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+             JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
+             WHERE s.query_id = ?
+               AND a.type = 'Gene'
+               AND a.normalized_id IS NOT NULL
+               AND a.normalized_id != ''
+             UNION
+             SELECT s.search_id, nal.symbol
+             FROM pubtator_search_cache s
+             JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+             JOIN non_alt_loci_set nal ON UPPER(nal.symbol) = UPPER(a.name)
+             WHERE s.query_id = ?
+               AND a.type = 'Gene'
+               AND a.name IS NOT NULL
+               AND a.name != ''
+           ) gene_matches
+           GROUP BY search_id",
+          list(query_id, query_id),
+          conn = txn_conn
+        )
+
+        # Source 2: Parse @GENE_ tags from text_hl (search API annotations)
+        # Pattern: @GENE_<name> @GENE_<id> @@@<display_text>@@@
+        text_hl_rows <- db_execute_query(
+          "SELECT search_id, text_hl FROM pubtator_search_cache
+           WHERE query_id = ? AND text_hl LIKE '%@GENE_%'",
           list(query_id),
           conn = txn_conn
         )
+
+        if (nrow(text_hl_rows) > 0) {
+          # Extract gene names and display texts from text_hl
+          hl_genes <- do.call(rbind, lapply(seq_len(nrow(text_hl_rows)), function(i) {
+            row <- text_hl_rows[i, ]
+            # Extract @GENE_<symbol> tags (non-numeric = gene symbols)
+            symbols <- stringr::str_match_all(
+              row$text_hl,
+              "@GENE_([A-Za-z][A-Za-z0-9_-]+)\\s"
+            )[[1]][, 2]
+            # Extract display texts from @@@<text>@@@ after @GENE_ tags
+            displays <- stringr::str_match_all(
+              row$text_hl,
+              "@GENE_[^ ]+ @GENE_[0-9]+ @@@<?m?>?([^@<]+)(?:</m>)?@@@"
+            )[[1]][, 2]
+            all_names <- unique(c(symbols, displays))
+            if (length(all_names) > 0) {
+              data.frame(
+                search_id = row$search_id,
+                gene_name = all_names,
+                stringsAsFactors = FALSE
+              )
+            } else {
+              NULL
+            }
+          }))
+
+          if (!is.null(hl_genes) && nrow(hl_genes) > 0) {
+            # Match against HGNC symbols (case-insensitive)
+            unique_names <- unique(toupper(hl_genes$gene_name))
+            placeholders <- paste(rep("?", length(unique_names)), collapse = ",")
+            hgnc_matches <- db_execute_query(
+              sprintf(
+                "SELECT UPPER(symbol) AS upper_symbol, symbol
+                 FROM non_alt_loci_set WHERE UPPER(symbol) IN (%s)",
+                placeholders
+              ),
+              as.list(unique_names),
+              conn = txn_conn
+            )
+
+            if (nrow(hgnc_matches) > 0) {
+              hl_genes$upper_name <- toupper(hl_genes$gene_name)
+              hl_matched <- dplyr::inner_join(
+                hl_genes, hgnc_matches,
+                by = c("upper_name" = "upper_symbol")
+              )
+              if (nrow(hl_matched) > 0) {
+                hl_summary <- hl_matched %>%
+                  dplyr::group_by(search_id) %>%
+                  dplyr::summarise(
+                    hl_gene_symbols = paste(
+                      sort(unique(symbol)), collapse = ","
+                    ),
+                    .groups = "drop"
+                  )
+
+                # Merge text_hl genes with annotation cache genes
+                if (nrow(gene_symbols_df) > 0) {
+                  gene_symbols_df <- dplyr::full_join(
+                    gene_symbols_df, hl_summary,
+                    by = "search_id"
+                  )
+                  gene_symbols_df$gene_symbols <- mapply(
+                    function(a, b) {
+                      syms <- unique(sort(unlist(strsplit(
+                        paste(na.omit(c(a, b)), collapse = ","), ","
+                      ))))
+                      paste(syms, collapse = ",")
+                    },
+                    gene_symbols_df$gene_symbols,
+                    gene_symbols_df$hl_gene_symbols
+                  )
+                  gene_symbols_df$hl_gene_symbols <- NULL
+                } else {
+                  gene_symbols_df <- data.frame(
+                    search_id = hl_summary$search_id,
+                    gene_symbols = hl_summary$hl_gene_symbols,
+                    stringsAsFactors = FALSE
+                  )
+                }
+              }
+            }
+          }
+        }
 
         if (nrow(gene_symbols_df) > 0) {
           log_info("Updating gene_symbols for {nrow(gene_symbols_df)} publications")
@@ -650,16 +756,104 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
     # F) Compute gene symbols
     report_progress("genes", "Computing gene symbols...", current = max_pages + 1, total = max_pages + 1)
 
+    # Source 1: Annotation cache (direct entrez_id + name fallback)
     gene_df <- db_execute_query(
-      "SELECT s.search_id,
-              GROUP_CONCAT(DISTINCT nal.symbol ORDER BY nal.symbol SEPARATOR ',') AS gene_symbols
-       FROM pubtator_search_cache s
-       JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-       JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
-       WHERE s.query_id = ? AND a.type = 'Gene' AND a.normalized_id IS NOT NULL
-       GROUP BY s.search_id",
+      "SELECT search_id,
+              GROUP_CONCAT(DISTINCT symbol ORDER BY symbol SEPARATOR ',') AS gene_symbols
+       FROM (
+         SELECT s.search_id, nal.symbol
+         FROM pubtator_search_cache s
+         JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+         JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
+         WHERE s.query_id = ?
+           AND a.type = 'Gene'
+           AND a.normalized_id IS NOT NULL
+           AND a.normalized_id != ''
+         UNION
+         SELECT s.search_id, nal.symbol
+         FROM pubtator_search_cache s
+         JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+         JOIN non_alt_loci_set nal ON UPPER(nal.symbol) = UPPER(a.name)
+         WHERE s.query_id = ?
+           AND a.type = 'Gene'
+           AND a.name IS NOT NULL
+           AND a.name != ''
+       ) gene_matches
+       GROUP BY search_id",
+      list(query_id, query_id), conn = conn
+    )
+
+    # Source 2: Parse @GENE_ tags from text_hl (search API annotations)
+    text_hl_rows <- db_execute_query(
+      "SELECT search_id, text_hl FROM pubtator_search_cache
+       WHERE query_id = ? AND text_hl LIKE '%@GENE_%'",
       list(query_id), conn = conn
     )
+
+    if (nrow(text_hl_rows) > 0) {
+      hl_genes <- do.call(rbind, lapply(seq_len(nrow(text_hl_rows)), function(i) {
+        row <- text_hl_rows[i, ]
+        symbols <- stringr::str_match_all(
+          row$text_hl,
+          "@GENE_([A-Za-z][A-Za-z0-9_-]+)\\s"
+        )[[1]][, 2]
+        displays <- stringr::str_match_all(
+          row$text_hl,
+          "@GENE_[^ ]+ @GENE_[0-9]+ @@@<?m?>?([^@<]+)(?:</m>)?@@@"
+        )[[1]][, 2]
+        all_names <- unique(c(symbols, displays))
+        if (length(all_names) > 0) {
+          data.frame(search_id = row$search_id, gene_name = all_names,
+                     stringsAsFactors = FALSE)
+        } else {
+          NULL
+        }
+      }))
+
+      if (!is.null(hl_genes) && nrow(hl_genes) > 0) {
+        unique_names <- unique(toupper(hl_genes$gene_name))
+        placeholders <- paste(rep("?", length(unique_names)), collapse = ",")
+        hgnc_matches <- db_execute_query(
+          sprintf(
+            "SELECT UPPER(symbol) AS upper_symbol, symbol
+             FROM non_alt_loci_set WHERE UPPER(symbol) IN (%s)",
+            placeholders
+          ),
+          as.list(unique_names), conn = conn
+        )
+
+        if (nrow(hgnc_matches) > 0) {
+          hl_genes$upper_name <- toupper(hl_genes$gene_name)
+          hl_matched <- dplyr::inner_join(
+            hl_genes, hgnc_matches,
+            by = c("upper_name" = "upper_symbol")
+          )
+          if (nrow(hl_matched) > 0) {
+            hl_summary <- hl_matched %>%
+              dplyr::group_by(search_id) %>%
+              dplyr::summarise(
+                hl_gene_symbols = paste(sort(unique(symbol)), collapse = ","),
+                .groups = "drop"
+              )
+            if (nrow(gene_df) > 0) {
+              gene_df <- dplyr::full_join(gene_df, hl_summary, by = "search_id")
+              gene_df$gene_symbols <- mapply(function(a, b) {
+                syms <- unique(sort(unlist(strsplit(
+                  paste(na.omit(c(a, b)), collapse = ","), ","))))
+                paste(syms, collapse = ",")
+              }, gene_df$gene_symbols, gene_df$hl_gene_symbols)
+              gene_df$hl_gene_symbols <- NULL
+            } else {
+              gene_df <- data.frame(
+                search_id = hl_summary$search_id,
+                gene_symbols = hl_summary$hl_gene_symbols,
+                stringsAsFactors = FALSE
+              )
+            }
+          }
+        }
+      }
+    }
 
     if (nrow(gene_df) > 0) {
       log_info("Updating gene_symbols for {nrow(gene_df)} publications")
@@ -878,7 +1072,7 @@ pubtator_v3_data_from_pmids <- function(pmids,
     "Fetching annotations for {length(pmids)} PMIDs in batches of {max_pmids_per_request}."
   )
 
-  all_documents <- list()
+  all_docs_df <- NULL
   pmid_groups <- split(pmids, ceiling(seq_along(pmids) / max_pmids_per_request))
   total_groups <- length(pmid_groups)
 
@@ -908,17 +1102,20 @@ pubtator_v3_data_from_pmids <- function(pmids,
             Sys.sleep(delay)
           }
 
-          annotations_content <- suppressWarnings(
-            readLines(URLencode(url_annotations))
-          )
-          parsed_json <- pubtator_v3_parse_nonstandard_json(annotations_content)
+          batch_df <- pubtator_parse_biocjson(URLencode(url_annotations))
 
-          docs <- reassemble_pubtator_docs(parsed_json)
-          all_documents <- c(all_documents, docs)
+          if (!is.null(batch_df) && nrow(batch_df) > 0) {
+            if (is.null(all_docs_df)) {
+              all_docs_df <- batch_df
+            } else {
+              all_docs_df <- dplyr::bind_rows(all_docs_df, batch_df)
+            }
+          }
 
           success <- TRUE
+          total_so_far <- if (is.null(all_docs_df)) 0L else nrow(all_docs_df)
           log_info(
-            "Batch {group_idx}/{total_groups} complete. Total docs: {length(all_documents)}."
+            "Batch {group_idx}/{total_groups} complete. Total docs: {total_so_far}."
           )
         },
         error = function(e) {
@@ -946,92 +1143,52 @@ pubtator_v3_data_from_pmids <- function(pmids,
     }
   }
 
-  log_info("Completed fetching annotations for all PMIDs => doc count = {length(all_documents)}.")
-  return(all_documents)
+  total_final <- if (is.null(all_docs_df)) 0L else nrow(all_docs_df)
+  log_info("Completed fetching annotations for all PMIDs => doc count = {total_final}.")
+  return(all_docs_df)
 }
 
 #------------------------------------------------------------------------------
-# 6) reassemble_pubtator_docs
+# 6) pubtator_parse_biocjson
 #------------------------------------------------------------------------------
-#' Reassemble (flatten) the PubTator-Parsed JSON into a list of doc objects
+#' Parse a PubTator3 BioCJSON API response into a data frame of documents
 #'
-#' If top-level is "PubTator3", take doc objects from there. Otherwise, loop over numeric keys.
-#' Each doc has 'id' (copied from '_id' if needed) + 'passages'.
+#' The BioCJSON endpoint returns standard JSON: {"PubTator3": [doc1, doc2, ...]}.
+#' Each doc has id, passages (with annotations), relations, etc.
+#' jsonlite::fromJSON() simplifies the PubTator3 array into a data frame where
+#' each row is one document. The passages column becomes a list of data frames.
 #'
-#' @param parsed_json from pubtator_v3_parse_nonstandard_json
-#' @return list of doc objects
+#' @param url The BioCJSON API URL to fetch
+#' @return A data frame with one row per document, or NULL on failure.
+#'         Columns include: id, passages (list column), pmid, etc.
 #' @export
-reassemble_pubtator_docs <- function(parsed_json) {
-  if (is.null(parsed_json) || length(parsed_json) == 0) {
-    return(list())
-  }
-  if ("PubTator3" %in% names(parsed_json)) {
-    docs <- parsed_json[["PubTator3"]]
-    docs_fixed <- lapply(docs, fix_doc_id)
-    return(docs_fixed)
-  }
-  result <- list()
-  for (key in names(parsed_json)) {
-    sub_item <- parsed_json[[key]]
-    if (!is.null(sub_item) && "PubTator3" %in% names(sub_item)) {
-      docs <- sub_item[["PubTator3"]]
-      docs_fixed <- lapply(docs, fix_doc_id)
-      result <- c(result, docs_fixed)
-    } else {
-      doc_fixed <- fix_doc_id(sub_item)
-      result <- c(result, list(doc_fixed))
-    }
-  }
-  return(result)
-}
-
-#------------------------------------------------------------------------------
-# 7) fix_doc_id
-#------------------------------------------------------------------------------
-#' Ensure doc has 'id' (if only '_id' present)
-#' @export
-fix_doc_id <- function(doc) {
-  if (is.null(doc)) {
-    return(list())
-  }
-  if (!"id" %in% names(doc) && "_id" %in% names(doc)) {
-    doc$id <- doc$`_id`
-  }
-  doc
-}
-
-#------------------------------------------------------------------------------
-# 8) pubtator_v3_parse_nonstandard_json
-#------------------------------------------------------------------------------
-#' Parse Non-standard JSON => reassemble => fromJSON
-#' @export
-pubtator_v3_parse_nonstandard_json <- function(json_content) {
+pubtator_parse_biocjson <- function(url) {
   tryCatch(
     {
-      if (is.null(json_content) || length(json_content) == 0) {
-        log_warn("pubtator_v3_parse_nonstandard_json got NULL or empty json_content => returning NULL.")
+      json_text <- paste(suppressWarnings(readLines(url)), collapse = "")
+      if (is.null(json_text) || nchar(json_text) == 0) {
+        log_warn("pubtator_parse_biocjson: empty response from {url}")
         return(NULL)
       }
-      json_strings <- strsplit(paste(json_content, collapse = " "), "} ")[[1]]
-      if (is.null(json_strings)) {
-        log_warn("Failed to split JSON content => returning NULL.")
+      parsed <- fromJSON(json_text, simplifyVector = TRUE, simplifyDataFrame = TRUE)
+      if (!"PubTator3" %in% names(parsed)) {
+        log_warn("pubtator_parse_biocjson: no 'PubTator3' key in response")
         return(NULL)
       }
-      json_strings <- ifelse(grepl("}$", json_strings),
-        json_strings,
-        paste0(json_strings, "}")
-      )
-      json_with_ids <- paste0('"', seq_along(json_strings), '":', json_strings,
-        collapse = ", "
-      )
-      valid_json_string <- paste0("{", json_with_ids, "}")
-      parsed_json <- fromJSON(valid_json_string)
-      return(parsed_json)
+      docs_df <- parsed[["PubTator3"]]
+      if (!is.data.frame(docs_df) || nrow(docs_df) == 0) {
+        log_warn("pubtator_parse_biocjson: PubTator3 is empty or not a data frame")
+        return(NULL)
+      }
+      # Ensure 'id' column exists (copy from '_id' if needed)
+      if (!"id" %in% names(docs_df) && "_id" %in% names(docs_df)) {
+        docs_df$id <- docs_df$`_id`
+      }
+      log_info("pubtator_parse_biocjson: parsed {nrow(docs_df)} documents")
+      return(docs_df)
     },
     error = function(e) {
-      warning_msg <- paste("Error in parsing JSON content:", e$message)
-      log_warn(warning_msg)
-      warning(warning_msg)
+      log_warn(skip_formatter(paste("pubtator_parse_biocjson error:", e$message)))
       return(NULL)
     }
   )
