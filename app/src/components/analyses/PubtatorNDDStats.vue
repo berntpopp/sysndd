@@ -121,6 +121,19 @@
       <div class="position-relative">
         <BSpinner v-if="loading" label="Loading..." class="spinner" />
         <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
+        <div
+          v-if="!loading && selectedCategory === 'gene'"
+          class="d-flex justify-content-center gap-2 pb-3"
+        >
+          <BBadge variant="success" pill>
+            <i class="bi bi-check-circle me-1" />
+            Curated
+          </BBadge>
+          <BBadge variant="info" pill>
+            <i class="bi bi-journal-text me-1" />
+            Literature Only
+          </BBadge>
+        </div>
       </div>
     </BCard>
   </BContainer>
@@ -128,6 +141,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
@@ -137,15 +151,19 @@ interface GeneData {
   gene_symbol: string;
   publication_count: number;
   is_novel?: number;
+  hgnc_id?: string;
 }
 
 interface StatsDataItem {
   name: string;
   count: number;
+  isNovel?: number;
+  hgncId?: string;
 }
 
 // Composables
 const { makeToast } = useToast();
+const router = useRouter();
 
 // User selections
 const selectedCategory = ref('gene');
@@ -195,7 +213,7 @@ async function fetchStats() {
   const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`;
   const params = new URLSearchParams();
   params.set('page_size', '2000'); // Get enough data for stats
-  params.set('fields', 'gene_symbol,publication_count,is_novel'); // Include is_novel for stats cards
+  params.set('fields', 'gene_symbol,publication_count,is_novel,hgnc_id');
 
   const apiUrl = `${baseUrl}?${params.toString()}`;
 
@@ -206,6 +224,7 @@ async function fetchStats() {
       gene_symbol: String(item.gene_symbol || 'Unknown'),
       publication_count: Number(item.publication_count) || 0,
       is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
+      hgnc_id: item.hgnc_id ? String(item.hgnc_id) : undefined,
     }));
     loadingStats.value = false;
     processAndPlot();
@@ -235,6 +254,8 @@ function processStatsData() {
       .map((item) => ({
         name: item.gene_symbol,
         count: item.publication_count,
+        isNovel: item.is_novel,
+        hgncId: item.hgnc_id,
       }))
       .sort((a, b) => b.count - a.count);
   } else {
@@ -255,10 +276,27 @@ function processStatsData() {
   }
 }
 
+// Bar color constants matching summary cards and PubtatorNDDGenes badges
+const COLOR_CURATED = '#198754'; // Bootstrap success
+const COLOR_LITERATURE_ONLY = '#0dcaf0'; // Bootstrap info
+const COLOR_DEFAULT = '#5470c6'; // Histogram / fallback
+
+/**
+ * Returns bar fill color based on curation status
+ */
+function barFill(d: StatsDataItem): string {
+  if (selectedCategory.value !== 'gene') return COLOR_DEFAULT;
+  if (d.isNovel === 0) return COLOR_CURATED;
+  if (d.isNovel === 1) return COLOR_LITERATURE_ONLY;
+  return COLOR_DEFAULT;
+}
+
 /**
  * Builds a bar chart from the processed statistics
  */
 function generateBarPlot() {
+  const isGeneMode = selectedCategory.value === 'gene';
+
   // Always remove old svg and tooltip first
   d3.select('#pubtator_stats_dataviz').select('svg').remove();
   d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
@@ -307,14 +345,39 @@ function generateBarPlot() {
     .domain(data.map((d) => d.name))
     .padding(0.2);
 
-  svg
+  const xAxisGroup = svg
     .append('g')
+    .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x))
+    .call(d3.axisBottom(x));
+
+  xAxisGroup
     .selectAll('text')
     .attr('transform', 'translate(-10,0)rotate(-45)')
     .style('text-anchor', 'end')
     .style('font-size', '10px');
+
+  // In gene mode, color and make X-axis labels clickable
+  if (isGeneMode) {
+    const labelLookup = new Map(data.map((d) => [d.name, d]));
+
+    xAxisGroup
+      .selectAll<SVGTextElement, string>('text')
+      .each(function (this: SVGTextElement, labelText: string) {
+        const item = labelLookup.get(labelText);
+        if (!item) return;
+
+        d3.select(this)
+          .style('fill', barFill(item))
+          .style('font-weight', 'bold')
+          .style('cursor', item.hgncId ? 'pointer' : 'default')
+          .on('click', () => {
+            if (item.hgncId) {
+              router.push(`/Genes/${item.hgncId}`);
+            }
+          });
+      });
+  }
 
   // Y axis
   const maxY = d3.max(data, (d) => d.count) || 0;
@@ -333,7 +396,7 @@ function generateBarPlot() {
     .attr('dy', '1em')
     .style('text-anchor', 'middle')
     .style('font-size', '12px')
-    .text(selectedCategory.value === 'gene' ? 'Publication Count' : 'Number of Genes');
+    .text(isGeneMode ? 'Publication Count' : 'Number of Genes');
 
   // Create a tooltip element
   const tooltip = d3
@@ -366,7 +429,7 @@ function generateBarPlot() {
   };
 
   // bars
-  svg
+  const bars = svg
     .selectAll('mybar')
     .data(data)
     .enter()
@@ -375,10 +438,23 @@ function generateBarPlot() {
     .attr('y', (d) => y(d.count))
     .attr('width', x.bandwidth())
     .attr('height', (d) => height - y(d.count))
-    .attr('fill', '#5470c6')
+    .attr('fill', (d) => barFill(d))
     .on('mouseover', mouseover)
     .on('mousemove', mousemove)
     .on('mouseleave', mouseleave);
+
+  // In gene mode, make bars clickable for navigation
+  if (isGeneMode) {
+    bars
+      .style('cursor', (d) => (d.hgncId ? 'pointer' : 'default'))
+      .attr('role', 'button')
+      .attr('aria-label', (d) => `View gene page for ${d.name}`)
+      .on('click', (_event: MouseEvent, d: StatsDataItem) => {
+        if (d.hgncId) {
+          router.push(`/Genes/${d.hgncId}`);
+        }
+      });
+  }
 }
 
 // Lifecycle
