@@ -289,5 +289,52 @@ All API data extractions use `safeArray()` to prevent crashes. Unit tests confir
 
 ---
 
+## E2E Browser Testing (2026-02-09)
+
+Manual E2E tests performed via Playwright MCP browser automation against the running Docker stack (Traefik on port 80).
+
+### E2E Test 1: Approve Review via /ApproveReview — PASSED
+
+**Goal:** Verify that approving a review on the /ApproveReview page causes `re_review_approved` to be set to 1 in the database.
+
+| Step | Result |
+|------|--------|
+| Login as Admin (Administrator) | OK — navbar shows Administration/Curation/Review/Admin menus |
+| Pre-condition: `re_review/table?curate=true` | 667 pending re-reviews (submitted=1, approved=0) |
+| Navigate to /ApproveReview | 7 reviews from NBraemswig displayed |
+| Click approve for entity 1179 (TLK2) | Modal: "Approve Review" with entity sysndd:1179 |
+| Confirm approval | Table refreshed: 7 → 6 reviews, entity 1179 removed |
+| Post-condition: `assignment_table` API | NBraemswig batch `re_review_approved`: 0 → 1 |
+| Entity 1179 no longer in `curate=true` list | Confirmed (totalItems: 0) |
+
+**Bonus: Curator role test** — Logged in as Bernt (Curator, not Administrator), navigated to /ApproveReview, successfully approved entity 1180 (RBMS3). NBraemswig batch `re_review_approved`: 1 → 2. Confirms `require_role("Curator")` hierarchical check works for both Curator (level 3) and Administrator (level 4).
+
+### E2E Test 2: Leaderboard "Not Yet Submitted" Gray Segment — PASSED
+
+**Goal:** Verify the ReReviewBarChart on AdminStatistics shows all three segments including the gray "Not Yet Submitted" segment.
+
+| Step | Result |
+|------|--------|
+| Pre-condition: `statistics/rereview_leaderboard?scope=all_time` | Multiple reviewers with `total_assigned > submitted_count` (e.g., Firat: 326 assigned, 314 submitted, 1 approved) |
+| Navigate to /AdminStatistics | Page loads with all sections |
+| "Top Re-Reviewers" chart renders | Chart.js horizontal stacked bar with 10 reviewers |
+| Green (Approved, #009E73) segment | Visible on Firat Altay and Nuria Brämswig |
+| Blue (Pending Review, #6699CC) segment | Dominant segment on most bars |
+| Gray (Not Yet Submitted, #BBBBBB) segment | Clearly visible on Firat, Simon, Almuth, Sopio, Fabian, Nuria, Zeynep, Christiane |
+| Legend shows all three labels | "Approved", "Pending Review", "Not Yet Submitted" confirmed |
+| Scope toggle: "Date Range" | Chart updates correctly, description changes to "within selected 367 day period" |
+
+### Items from "testing needed before merge.md" — Resolution
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| Approving a review via /ApproveReview and verifying `re_review_approved` gets set | **Tested & Passed** | E2E Test 1 above |
+| "Not Yet Submitted" gray segment visibility | **Tested & Passed** | E2E Test 2 above |
+| AbortController under slow network | **Not testable via E2E** — dev API responds too fast; verified via code inspection in original verification |
+
+---
+
 _Verified: 2026-02-08T21:50:32Z_
 _Verifier: Claude (gsd-verifier)_
+_E2E tested: 2026-02-09T10:30:00Z_
+_E2E tester: Claude (Playwright MCP browser automation)_
