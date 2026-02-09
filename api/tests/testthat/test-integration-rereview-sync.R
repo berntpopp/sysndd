@@ -5,6 +5,31 @@
 source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/re-review-sync.R", local = FALSE)
 
+# Ensure test table exists (CI starts with empty DB; DDL is idempotent)
+if (test_db_available()) {
+  con <- get_test_db_connection()
+  tryCatch({
+    DBI::dbExecute(con,
+      "CREATE TABLE IF NOT EXISTS re_review_entity_connect (
+        re_review_entity_id INT NOT NULL AUTO_INCREMENT,
+        entity_id INT DEFAULT NULL,
+        re_review_batch INT DEFAULT NULL,
+        re_review_review_saved TINYINT DEFAULT NULL,
+        re_review_status_saved TINYINT DEFAULT NULL,
+        re_review_submitted TINYINT DEFAULT NULL,
+        re_review_approved TINYINT DEFAULT NULL,
+        approving_user_id INT DEFAULT NULL,
+        status_id INT DEFAULT NULL,
+        review_id INT DEFAULT NULL,
+        PRIMARY KEY (re_review_entity_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3"
+    )
+  }, error = function(e) {
+    message("Could not create re_review_entity_connect: ", e$message)
+  })
+  DBI::dbDisconnect(con)
+}
+
 test_that("sync_rereview_approval updates matching rows for review_ids", {
   skip_if_no_test_db()
 
