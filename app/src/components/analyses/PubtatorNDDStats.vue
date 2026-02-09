@@ -43,9 +43,16 @@
             <template #header>
               <small class="text-muted">Total Genes</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
-              <h3 v-else class="mb-0 text-primary">{{ totalGenes }}</h3>
+              <template v-else>
+                <h3 class="mb-0 text-primary">
+                  {{ isFilterActive ? filteredTotal : totalGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted">
+                  of {{ totalGenes }} total
+                </small>
+              </template>
             </BCardBody>
           </BCard>
         </BCol>
@@ -54,11 +61,16 @@
             <template #header>
               <small class="text-muted">Literature Only</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
-                <h3 class="mb-0 text-info">{{ novelGenes }}</h3>
-                <small class="text-muted">(not yet curated)</small>
+                <h3 class="mb-0 text-info">
+                  {{ isFilterActive ? filteredNovel : novelGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted">
+                  of {{ novelGenes }} total
+                </small>
+                <small v-else class="text-muted">(not yet curated)</small>
               </template>
             </BCardBody>
           </BCard>
@@ -68,16 +80,32 @@
             <template #header>
               <small class="text-muted">Curated</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
-                <h3 class="mb-0 text-success">{{ inSysnddGenes }}</h3>
-                <small class="text-muted">(in SysNDD)</small>
+                <h3 class="mb-0 text-success">
+                  {{ isFilterActive ? filteredCurated : inSysnddGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted">
+                  of {{ inSysnddGenes }} total
+                </small>
+                <small v-else class="text-muted">(in SysNDD)</small>
               </template>
             </BCardBody>
           </BCard>
         </BCol>
       </BRow>
+
+      <!-- Active filter indicator -->
+      <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
+        <small class="text-muted">
+          <i class="bi bi-funnel-fill me-1" />
+          Showing genes with &ge;{{ minCount }} publications
+          <template v-if="displayedCount < filteredTotal">
+            (top {{ displayedCount }} of {{ filteredTotal }})
+          </template>
+        </small>
+      </div>
 
       <!-- User Interface controls -->
       <BRow class="p-2">
@@ -184,10 +212,28 @@ const statsData = ref<StatsDataItem[]>([]);
 const loading = ref(true);
 const loadingStats = ref(true);
 
-// Computed stats for summary cards
+// Computed stats for summary cards — totals (unfiltered)
 const totalGenes = computed(() => rawGeneData.value.length);
 const novelGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 1).length);
 const inSysnddGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 0).length);
+
+// Filtered counts (genes matching minCount threshold)
+const filteredGeneData = computed(() =>
+  rawGeneData.value.filter((g) => g.publication_count >= minCount.value),
+);
+const filteredTotal = computed(() => filteredGeneData.value.length);
+const filteredNovel = computed(() => filteredGeneData.value.filter((g) => g.is_novel === 1).length);
+const filteredCurated = computed(() =>
+  filteredGeneData.value.filter((g) => g.is_novel === 0).length,
+);
+
+// Whether the minCount filter is actively narrowing results
+const isFilterActive = computed(
+  () => selectedCategory.value === 'gene' && minCount.value > 1,
+);
+
+// Number of bars actually displayed (limited by topN)
+const displayedCount = computed(() => Math.min(statsData.value.length, topN.value));
 
 // Watch minCount changes - needs to re-process data and re-plot
 watch(minCount, () => {
