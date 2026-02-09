@@ -263,11 +263,12 @@ variation_ontology_replace_for_review <- function(review_id, entity_id, variatio
   }
 
   # Use transaction for atomic replace
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     # Delete existing variation ontology connections
     deleted <- db_execute_statement(
       "DELETE FROM ndd_review_variation_ontology_connect WHERE review_id = ?",
-      list(review_id)
+      list(review_id),
+      conn = txn_conn
     )
 
     log_debug("Deleted {deleted} existing variation ontology connections for review {review_id}")
@@ -285,7 +286,8 @@ variation_ontology_replace_for_review <- function(review_id, entity_id, variatio
           variation_ontology$vario_id[i],
           variation_ontology$modifier_id[i],
           entity_id
-        )
+        ),
+        conn = txn_conn
       )
       total_inserted <- total_inserted + rows_affected
     }

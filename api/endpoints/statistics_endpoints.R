@@ -308,8 +308,12 @@ function(req, res, start_date, end_date) {
     dplyr::filter(date >= as.Date(start_date) & date <= as.Date(end_date))
 
   total_rr <- nrow(sysndd_re_review_entity_connect)
-  # Example placeholder: dividing total by 3650 for demonstration
-  percent_finished <- (total_rr / 3650) * 100
+  total_in_pipeline <- pool %>%
+    tbl("re_review_entity_connect") %>%
+    summarise(n = n()) %>%
+    collect() %>%
+    pull(n)
+  percent_finished <- if (total_in_pipeline > 0) (total_rr / total_in_pipeline) * 100 else 0
   day_diff <- as.numeric(difftime(as.Date(end_date), as.Date(start_date), units = "days"))
   avg_day <- ifelse(day_diff > 0, total_rr / day_diff, NA)
 
@@ -658,11 +662,17 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     select(status_id, status_date) %>%
     collect()
 
-  # Get re-review data with assignments to determine which user did each re-review
+  # Get ALL re-review assignments (not just submitted ones).
+
+  # NOTE (v10.5): Intentionally includes unsubmitted assignments to support
+
+  # three-segment stacked bars (approved / submitted / not-submitted).
+  # Previously this query filtered for re_review_submitted == 1 only,
+  # which only showed "submitted reviews". The change was made in Phase 81
+  # to give admins visibility into the full re-review pipeline.
   re_review_data <- pool %>%
     tbl("re_review_entity_connect") %>%
     collect() %>%
-    filter(re_review_submitted == 1) %>%
     left_join(review_dates, by = "review_id") %>%
     left_join(status_dates, by = "status_id") %>%
     {
@@ -702,8 +712,10 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
   leaderboard <- re_review_with_users %>%
     group_by(user_id) %>%
     summarise(
-      submitted_count = n(),
-      approved_count = sum(re_review_approved == 1, na.rm = TRUE)
+      total_assigned = n(),
+      submitted_count = sum(re_review_submitted == 1, na.rm = TRUE),
+      approved_count = sum(re_review_approved == 1, na.rm = TRUE),
+      .groups = "drop"
     ) %>%
     arrange(desc(submitted_count)) %>%
     head(as.integer(top)) %>%
@@ -713,7 +725,7 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
       paste(first_name, family_name),
       user_name
     )) %>%
-    select(user_id, user_name, display_name, submitted_count, approved_count)
+    dplyr::select(user_id, user_name, display_name, total_assigned, submitted_count, approved_count)
 
   list(
     data = leaderboard,

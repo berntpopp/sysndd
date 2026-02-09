@@ -95,7 +95,6 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 
   status_ok <- as.logical(status_ok)
   review_ok <- as.logical(review_ok)
-  submit_user_id <- req$user_id
   re_review_id <- as.integer(re_review_id)
 
   re_review_entity_connect_data <- pool %>%
@@ -103,73 +102,24 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
     filter(re_review_entity_id == re_review_id) %>%
     collect()
 
-  # If status_ok, set new status active, reset older ones.
-  if (status_ok) {
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id = ?",
-      list(re_review_entity_connect_data$entity_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET is_active = 1 WHERE status_id = ?",
-      list(re_review_entity_connect_data$status_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
-      list(submit_user_id, re_review_entity_connect_data$status_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id = ?",
-      list(re_review_entity_connect_data$status_id)
-    )
-  } else {
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id = ?",
-      list(submit_user_id, re_review_entity_connect_data$status_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id = ?",
-      list(re_review_entity_connect_data$status_id)
-    )
+  if (nrow(re_review_entity_connect_data) == 0) {
+    res$status <- 404L
+    return(list(error = "Re-review record not found"))
   }
 
-  # If review_ok, reset old primary, set new primary
-  if (review_ok) {
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET is_primary = 0 WHERE entity_id = ?",
-      list(re_review_entity_connect_data$entity_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET is_primary = 1 WHERE review_id = ?",
-      list(re_review_entity_connect_data$review_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
-      list(submit_user_id, re_review_entity_connect_data$review_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET review_approved = 1 WHERE review_id = ?",
-      list(re_review_entity_connect_data$review_id)
-    )
-  } else {
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET approving_user_id = ? WHERE review_id = ?",
-      list(submit_user_id, re_review_entity_connect_data$review_id)
-    )
-    db_execute_statement(
-      "UPDATE ndd_entity_review SET review_approved = 0 WHERE review_id = ?",
-      list(re_review_entity_connect_data$review_id)
-    )
-  }
+  # Delegate to repository functions (which now auto-sync re_review_approved)
+  status_approve(
+    re_review_entity_connect_data$status_id,
+    req$user_id,
+    approved = status_ok
+  )
+  review_approve(
+    re_review_entity_connect_data$review_id,
+    req$user_id,
+    approved = review_ok
+  )
 
-  # Mark re_review_approved
-  db_execute_statement(
-    "UPDATE re_review_entity_connect SET re_review_approved = 1 WHERE re_review_entity_id = ?",
-    list(re_review_id)
-  )
-  db_execute_statement(
-    "UPDATE re_review_entity_connect SET approving_user_id = ? WHERE re_review_entity_id = ?",
-    list(submit_user_id, re_review_id)
-  )
+  list(message = "Re-review approved successfully")
 }
 
 

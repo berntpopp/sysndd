@@ -107,10 +107,7 @@ import axios from 'axios';
 
 // Composables
 import { useToast, type TreeNode } from '@/composables';
-import useEntityForm, {
-  type SelectOption,
-  type EntityFormData,
-} from '@/composables/useEntityForm';
+import useEntityForm, { type SelectOption, type EntityFormData } from '@/composables/useEntityForm';
 import useFormDraft from '@/composables/useFormDraft';
 
 // Components

@@ -181,9 +181,18 @@
                 </td>
               </template>
 
-              <!-- Gene symbol column - link to HGNC -->
+              <!-- Gene symbol column - clickable badge linking to gene page -->
               <template #cell(gene_symbol)="data">
-                <strong>{{ (data.item as GeneItem).gene_symbol }}</strong>
+                <GeneBadge
+                  :symbol="(data.item as GeneItem).gene_symbol"
+                  :hgnc-id="(data.item as GeneItem).hgnc_id"
+                  :link-to="
+                    (data.item as GeneItem).hgnc_id
+                      ? '/Genes/' + (data.item as GeneItem).hgnc_id
+                      : undefined
+                  "
+                  size="sm"
+                />
               </template>
 
               <!-- Source badge column -->
@@ -239,7 +248,7 @@
                 </BButton>
               </template>
 
-              <!-- Row details - expanded view with actual publication data -->
+              <!-- Row details - expanded view with rich publication data -->
               <template #row-details="data">
                 <div class="publication-details">
                   <!-- Loading spinner -->
@@ -255,44 +264,96 @@
                   <div v-else>
                     <div
                       v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
-                      :key="pub.publication_id"
+                      :key="pub.pmid"
                       class="details-section"
                     >
                       <!-- Title -->
-                      <div v-if="pub.Title" class="details-title">
-                        {{ pub.Title }}
+                      <div v-if="pub.title" class="details-title">
+                        {{ pub.title }}
                       </div>
 
                       <div class="details-row">
-                        <!-- PMID & Date -->
+                        <!-- PMID, DOI, Date, Journal, Score -->
                         <div class="details-meta">
                           <a
-                            :href="
-                              'https://pubmed.ncbi.nlm.nih.gov/' +
-                              pub.publication_id.replace('PMID:', '')
-                            "
+                            :href="'https://pubmed.ncbi.nlm.nih.gov/' + pub.pmid"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="details-pmid"
                           >
                             <i class="bi bi-journal-medical me-1" />
-                            {{ pub.publication_id }}
+                            PMID:{{ pub.pmid }}
                             <i class="bi bi-box-arrow-up-right ms-1" />
                           </a>
-                          <span v-if="pub.Publication_date" class="details-date">
+                          <a
+                            v-if="pub.doi"
+                            :href="'https://doi.org/' + pub.doi"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="details-doi"
+                          >
+                            <i class="bi bi-link-45deg me-1" />
+                            {{ pub.doi }}
+                          </a>
+                          <span v-if="pub.date" class="details-date">
                             <i class="bi bi-calendar3 me-1" />
-                            {{ pub.Publication_date }}
+                            {{ pub.date }}
                           </span>
-                          <span v-if="pub.Journal" class="details-journal">
+                          <span v-if="pub.journal" class="details-journal">
                             <i class="bi bi-book me-1" />
-                            {{ pub.Journal }}
+                            {{ pub.journal }}
                           </span>
+                          <BBadge
+                            v-if="pub.score != null"
+                            :variant="
+                              pub.score >= 500
+                                ? 'success'
+                                : pub.score >= 100
+                                  ? 'warning'
+                                  : 'secondary'
+                            "
+                            pill
+                          >
+                            Score: {{ pub.score }}
+                          </BBadge>
                         </div>
                       </div>
 
-                      <!-- Abstract -->
-                      <div v-if="pub.Abstract" class="details-abstract">
-                        {{ truncateText(pub.Abstract, 400) }}
+                      <!-- Annotated Text Section -->
+                      <div v-if="pub.text_hl" class="annotated-text-section mt-2">
+                        <div class="annotated-text-label text-muted small mb-1">
+                          <i class="bi bi-highlighter me-1" />Annotated Text:
+                        </div>
+                        <div class="annotated-text">
+                          <span
+                            v-for="(segment, idx) in parseAnnotations(pub.text_hl)"
+                            :key="idx"
+                            :class="getSegmentClass(segment)"
+                            :title="getSegmentTooltip(segment)"
+                            >{{ segment.text }}</span
+                          >
+                        </div>
+                        <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
+                          <span><span class="pubtator-gene px-1">Gene</span></span>
+                          <span><span class="pubtator-disease px-1">Disease</span></span>
+                          <span><span class="pubtator-variant px-1">Variant</span></span>
+                          <span><span class="pubtator-species px-1">Species</span></span>
+                          <span><span class="pubtator-chemical px-1">Chemical</span></span>
+                          <span><span class="pubtator-match px-1">Match</span></span>
+                        </div>
+                      </div>
+
+                      <!-- Gene symbols as badges -->
+                      <div v-if="pub.gene_symbols" class="gene-symbols-section mt-2">
+                        <div class="gene-chips">
+                          <span
+                            v-for="sym in pub.gene_symbols.split(',')"
+                            :key="sym"
+                            class="gene-chip"
+                          >
+                            {{ sym.trim() }}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
@@ -332,17 +393,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 
 // Import composables
-import { useToast, useUrlParsing, useTableData } from '@/composables';
+import { useToast, useUrlParsing, useTableData, parsePubtatorText } from '@/composables';
+import type { ParsedSegment } from '@/composables/usePubtatorParser';
 import { useExcelExport } from '@/composables/useExcelExport';
 
 // Small reusable components
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
 
 import { useUiStore } from '@/stores/ui';
 import { useRoute } from 'vue-router';
@@ -361,11 +424,15 @@ interface GeneItem {
 }
 
 interface PublicationData {
-  publication_id: string;
-  Title?: string;
-  Journal?: string;
-  Publication_date?: string;
-  Abstract?: string;
+  search_id?: number;
+  pmid: number;
+  doi?: string;
+  title?: string;
+  journal?: string;
+  date?: string;
+  score?: number;
+  gene_symbols?: string;
+  text_hl?: string;
 }
 
 interface FilterField {
@@ -541,6 +608,9 @@ const totalPages = ref(0);
 const publicationCache = ref<Record<string, PublicationData[]>>({});
 const loadingPublications = ref<Record<string, boolean>>({});
 
+// AbortControllers for per-gene publication fetches (prevents orphaned requests)
+const publicationAbortControllers = new Map<string, AbortController>();
+
 // Computed: sortBy as properly typed array for BTable
 const sortByArray = computed(() => sortBy.value);
 
@@ -594,24 +664,32 @@ const truncateText = (str: string | undefined, n: number): string => {
   return str.length > n ? `${str.slice(0, n)}...` : str;
 };
 
-// Fetch publication data for a gene's PMIDs
+// Fetch publication data for a gene's PMIDs from pubtator cache
 const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
   if (!axios || pmids.length === 0) return;
   if (publicationCache.value[geneSymbol]) return; // Already cached
 
+  // Cancel any in-flight request for this gene
+  publicationAbortControllers.get(geneSymbol)?.abort();
+  const controller = new AbortController();
+  publicationAbortControllers.set(geneSymbol, controller);
+
   loadingPublications.value[geneSymbol] = true;
 
   try {
-    // Fetch publications by PMID filter
-    const pmidFilter = pmids.map((p) => `PMID:${p}`).join(';');
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication?filter=publication_id:in:${pmidFilter}&fields=publication_id,Title,Journal,Publication_date,Abstract&page_size=${pmids.length}`;
+    // Use pubtator table endpoint - PMIDs are integers (no PMID: prefix)
+    const pmidFilter = pmids.join(',');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table?filter=any(pmid,${pmidFilter})&fields=search_id,pmid,doi,title,journal,date,score,gene_symbols,text_hl&page_size=${pmids.length}`;
 
-    const response = await axios.get(apiUrl);
+    const response = await axios.get(apiUrl, { signal: controller.signal });
     publicationCache.value[geneSymbol] = response.data.data || [];
   } catch (error) {
-    console.error('Failed to fetch publication data:', error);
-    publicationCache.value[geneSymbol] = [];
+    if ((error as Error).name !== 'AbortError' && (error as Error).name !== 'CanceledError') {
+      console.error('Failed to fetch publication data:', error);
+      publicationCache.value[geneSymbol] = [];
+    }
   } finally {
+    publicationAbortControllers.delete(geneSymbol);
     loadingPublications.value[geneSymbol] = false;
   }
 };
@@ -632,6 +710,43 @@ const getPublications = (geneSymbol: string): PublicationData[] => {
 // Check if publications are loading for a gene
 const isLoadingPublications = (geneSymbol: string): boolean => {
   return loadingPublications.value[geneSymbol] || false;
+};
+
+// Parse PubTator annotations from text_hl field
+const parseAnnotations = (text: string | null | undefined): ParsedSegment[] => {
+  return parsePubtatorText(text);
+};
+
+// Get CSS class for a parsed segment based on its type
+const getSegmentClass = (segment: ParsedSegment): string => {
+  switch (segment.type) {
+    case 'gene':
+      return 'pubtator-gene';
+    case 'disease':
+      return 'pubtator-disease';
+    case 'variant':
+      return 'pubtator-variant';
+    case 'species':
+      return 'pubtator-species';
+    case 'chemical':
+      return 'pubtator-chemical';
+    case 'match':
+      return 'pubtator-match';
+    default:
+      return '';
+  }
+};
+
+// Get tooltip text for annotated segments
+const getSegmentTooltip = (segment: ParsedSegment): string => {
+  if (segment.type === 'plain' || segment.type === 'match') {
+    return '';
+  }
+  const typeLabel = segment.type.charAt(0).toUpperCase() + segment.type.slice(1);
+  if (segment.entityId) {
+    return `${typeLabel}: ${segment.text} (ID: ${segment.entityId})`;
+  }
+  return `${typeLabel}: ${segment.text}`;
 };
 
 // Apply prioritization filters
@@ -842,6 +957,12 @@ const mergeFields = (inboundFields: FieldDefinition[]): FieldDefinition[] => {
   return merged;
 };
 
+// Cleanup: abort all in-flight publication requests on unmount
+onUnmounted(() => {
+  publicationAbortControllers.forEach((controller) => controller.abort());
+  publicationAbortControllers.clear();
+});
+
 // Lifecycle
 onMounted(() => {
   // Transform sort string into sortBy and sortDesc
@@ -986,11 +1107,116 @@ mark {
   border: 1px solid #dee2e6;
 }
 
-.details-abstract {
-  font-size: 0.875rem;
-  line-height: 1.7;
-  color: #333;
-  text-align: justify;
-  padding: 0.5rem 0;
+.details-doi {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  font-size: 0.8em;
+  font-weight: 500;
+  background-color: #f0f0f0;
+  color: #495057;
+  border-radius: 0.3rem;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.details-doi:hover {
+  background-color: #495057;
+  color: white;
+}
+
+/* PubTator annotation styles */
+.annotated-text-section {
+  border-top: 1px solid #dee2e6;
+  padding-top: 0.75rem;
+}
+
+.annotated-text-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.annotated-text {
+  text-align: left;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.pubtator-legend {
+  color: #6c757d;
+}
+
+.pubtator-gene {
+  background-color: #b4e3f9;
+  color: #0d6efd;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-disease {
+  background-color: #ffe0b2;
+  color: #e65100;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-variant {
+  background-color: #f8bbd9;
+  color: #c2185b;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-species {
+  background-color: #c8e6c9;
+  color: #2e7d32;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-chemical {
+  background-color: #e1bee7;
+  color: #7b1fa2;
+  border-radius: 2px;
+  padding: 0 2px;
+  cursor: help;
+}
+
+.pubtator-match {
+  background-color: #fff59d;
+  color: #f57f17;
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Gene symbol chips */
+.gene-symbols-section {
+  border-top: 1px solid #dee2e6;
+  padding-top: 0.5rem;
+}
+
+.gene-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.gene-chip {
+  display: inline-block;
+  padding: 0.15em 0.4em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: #b4e3f9;
+  color: #0d6efd;
+  border-radius: 0.25rem;
+  white-space: nowrap;
 }
 </style>

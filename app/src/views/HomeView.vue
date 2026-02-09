@@ -355,9 +355,7 @@
                 ><br />
                 <span class="word"
                   >The classification criteria used for the categories are detailed in our
-                  <BLink :href="DOCS_URLS.CURATION_CRITERIA" target="_blank">
-                    Documentation
-                  </BLink>
+                  <BLink :href="DOCS_URLS.CURATION_CRITERIA" target="_blank"> Documentation </BLink>
                   on GitHub.<br />
                   In the <mark>Panel</mark> views, which are aggregated by gene, we assign the
                   highest category of associated entities to the gene. </span

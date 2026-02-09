@@ -262,7 +262,7 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
   }
 
   # Execute approval/rejection within transaction
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     if (approved) {
       # Get unique entity IDs
       entity_ids <- unique(ndd_entity_status_data$entity_id)
@@ -271,25 +271,29 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
       # Reset all statuses for these entities to inactive
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET is_active = 0 WHERE entity_id IN (", entity_placeholders, ")"),
-        as.list(entity_ids)
+        as.list(entity_ids),
+        conn = txn_conn
       )
 
       # Set the selected statuses to active
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET is_active = 1 WHERE status_id IN (", status_placeholders, ")"),
-        as.list(status_ids)
+        as.list(status_ids),
+        conn = txn_conn
       )
 
       # Add approving_user_id
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
-        c(list(approving_user_id), as.list(status_ids))
+        c(list(approving_user_id), as.list(status_ids)),
+        conn = txn_conn
       )
 
       # Set status_approved to approved
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id IN (", status_placeholders, ")"),
-        as.list(status_ids)
+        as.list(status_ids),
+        conn = txn_conn
       )
 
       log_debug("Approved {length(status_ids)} statuses for {length(entity_ids)} entities")
@@ -297,16 +301,25 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
       # Rejection: set approving_user_id and status_approved = 0
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET approving_user_id = ? WHERE status_id IN (", status_placeholders, ")"),
-        c(list(approving_user_id), as.list(status_ids))
+        c(list(approving_user_id), as.list(status_ids)),
+        conn = txn_conn
       )
 
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET status_approved = 0 WHERE status_id IN (", status_placeholders, ")"),
-        as.list(status_ids)
+        as.list(status_ids),
+        conn = txn_conn
       )
 
       log_debug("Rejected {length(status_ids)} statuses")
     }
+
+    # Sync re-review approval flag atomically within this transaction
+    sync_rereview_approval(
+      status_ids = status_ids,
+      approving_user_id = approving_user_id,
+      conn = txn_conn
+    )
   })
 
   return(status_ids)

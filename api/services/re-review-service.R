@@ -547,7 +547,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
   }
 
   # Use transaction for atomicity
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     # 1. Generate batch_name if NULL
     if (is.null(batch_name) || batch_name == "") {
       batch_name <- format(Sys.time(), "Batch %Y-%m-%d %H:%M")
@@ -564,7 +564,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
          WHERE e.entity_id IN (", placeholders, ")"
       ),
       as.list(entity_ids),
-      conn = pool
+      conn = txn_conn
     )
 
     if (nrow(existing_entities) != length(entity_ids)) {
@@ -581,7 +581,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
            AND rec.re_review_approved = 0"
       ),
       as.list(entity_ids),
-      conn = pool
+      conn = txn_conn
     )
 
     if (nrow(entities_in_active) > 0) {
@@ -591,7 +591,8 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
 
     # 4. Get next batch_id
     max_batch_result <- db_execute_query(
-      "SELECT COALESCE(MAX(re_review_batch), 0) + 1 as next_batch FROM re_review_entity_connect"
+      "SELECT COALESCE(MAX(re_review_batch), 0) + 1 as next_batch FROM re_review_entity_connect",
+      conn = txn_conn
     )
     batch_id <- max_batch_result$next_batch[1]
 
@@ -609,7 +610,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
           entity$status_id,
           entity$review_id
         ),
-        conn = pool
+        conn = txn_conn
       )
     }
 
@@ -617,7 +618,7 @@ entity_assign <- function(entity_ids, user_id, batch_name = NULL, pool) {
     db_execute_statement(
       "INSERT INTO re_review_assignment (user_id, re_review_batch) VALUES (?, ?)",
       list(user_id, batch_id),
-      conn = pool
+      conn = txn_conn
     )
 
     # Return batch info
@@ -715,12 +716,12 @@ batch_recalculate <- function(batch_id, criteria, pool) {
   batch_size <- if (!is.null(criteria$batch_size)) criteria$batch_size else 20
 
   # Use transaction for atomicity
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     # 1. Delete existing re_review_entity_connect records for this batch
     deleted_count <- db_execute_statement(
       "DELETE FROM re_review_entity_connect WHERE re_review_batch = ?",
       list(batch_id),
-      conn = pool
+      conn = txn_conn
     )
 
     # 2. Build WHERE clause and find matching entities
@@ -743,7 +744,7 @@ batch_recalculate <- function(batch_id, criteria, pool) {
     )
 
     params <- c(params, list(as.integer(batch_size)))
-    matching_entities <- db_execute_query(query, params, conn = pool)
+    matching_entities <- db_execute_query(query, params, conn = txn_conn)
 
     if (nrow(matching_entities) == 0) {
       stop("No entities match the specified criteria")
@@ -763,7 +764,7 @@ batch_recalculate <- function(batch_id, criteria, pool) {
           entity$status_id,
           entity$review_id
         ),
-        conn = pool
+        conn = txn_conn
       )
     }
 

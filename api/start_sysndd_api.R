@@ -114,12 +114,14 @@ source("functions/db-helpers.R", local = TRUE)
 source("functions/entity-repository.R", local = TRUE)
 source("functions/review-repository.R", local = TRUE)
 source("functions/status-repository.R", local = TRUE)
+source("functions/re-review-sync.R", local = TRUE)
 source("functions/publication-repository.R", local = TRUE)
 source("functions/phenotype-repository.R", local = TRUE)
 source("functions/ontology-repository.R", local = TRUE)
 source("functions/user-repository.R", local = TRUE)
 source("functions/hash-repository.R", local = TRUE)
 source("functions/legacy-wrappers.R", local = TRUE)
+source("functions/category-normalization.R", local = TRUE)
 source("functions/endpoint-functions.R", local = TRUE)
 source("functions/publication-functions.R", local = TRUE)
 source("functions/genereviews-functions.R", local = TRUE)
@@ -410,7 +412,7 @@ if (stored_version != cache_version) {
 # and available to both main process and mirai daemon workers
 cm <- cachem::cache_disk(
   dir      = "/app/cache",
-  max_age  = Inf, # Never expires (clear volume to invalidate)
+  max_age  = 86400, # 24h safety net; CACHE_VERSION bump for immediate invalidation
   max_size = 500 * 1024^2 # 500 MB persistent on disk
 )
 

@@ -23,18 +23,14 @@ import {
   type ChartOptions,
 } from 'chart.js';
 import { BSpinner } from 'bootstrap-vue-next';
+import { REVIEW_STATUS_COLORS } from '@/utils/chartColors';
 
 // Tree-shaken Chart.js registration
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Paul Tol Muted palette - colorblind safe
-const COLORS = {
-  submitted: '#6699CC', // Muted blue (submitted but not approved)
-  approved: '#009E73', // Okabe-Ito bluish green (approved)
-};
-
 interface Reviewer {
   user_name: string;
+  total_assigned: number;
   submitted_count: number;
   approved_count: number;
 }
@@ -54,15 +50,22 @@ const chartData = computed(() => ({
     {
       label: 'Approved',
       data: props.reviewers.map((r) => r.approved_count),
-      backgroundColor: COLORS.approved,
-      borderColor: COLORS.approved,
+      backgroundColor: REVIEW_STATUS_COLORS.approved,
+      borderColor: REVIEW_STATUS_COLORS.approved,
       borderWidth: 1,
     },
     {
-      label: 'Pending',
-      data: props.reviewers.map((r) => r.submitted_count - r.approved_count),
-      backgroundColor: COLORS.submitted,
-      borderColor: COLORS.submitted,
+      label: 'Pending Review',
+      data: props.reviewers.map((r) => Math.max(0, r.submitted_count - r.approved_count)),
+      backgroundColor: REVIEW_STATUS_COLORS.submitted,
+      borderColor: REVIEW_STATUS_COLORS.submitted,
+      borderWidth: 1,
+    },
+    {
+      label: 'Not Yet Submitted',
+      data: props.reviewers.map((r) => Math.max(0, r.total_assigned - r.submitted_count)),
+      backgroundColor: REVIEW_STATUS_COLORS.notSubmitted,
+      borderColor: REVIEW_STATUS_COLORS.notSubmitted,
       borderWidth: 1,
     },
   ],

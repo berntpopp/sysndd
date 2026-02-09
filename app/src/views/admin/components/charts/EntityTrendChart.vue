@@ -25,6 +25,7 @@ import {
   type ChartOptions,
 } from 'chart.js';
 import { BSpinner } from 'bootstrap-vue-next';
+import { CHART_PRIMARY, CHART_SECONDARY, CATEGORY_COLORS } from '@/utils/chartColors';
 
 // Tree-shaken Chart.js registration
 ChartJS.register(
@@ -38,26 +39,31 @@ ChartJS.register(
   Filler
 );
 
-// Paul Tol Muted palette for scientific credibility
-const COLORS = {
-  primary: '#6699CC', // Muted blue
-  secondary: '#004488', // Dark blue for MA line
-};
-
 interface EntityDataPoint {
   date: string;
   count: number;
 }
 
+interface CategorySeriesData {
+  dates: string[];
+  series: Record<string, number[]>;
+}
+
 interface Props {
   entityData: EntityDataPoint[];
+  categoryData?: CategorySeriesData;
+  displayMode?: 'combined' | 'by_category';
   loading?: boolean;
   showMovingAverage?: boolean;
+  yMax?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  categoryData: undefined,
+  displayMode: 'combined',
   loading: false,
   showMovingAverage: false,
+  yMax: undefined,
 });
 
 /**
@@ -73,6 +79,30 @@ function calculateSMA(data: number[], period: number = 3): (number | null)[] {
 }
 
 const chartData = computed(() => {
+  if (
+    props.displayMode === 'by_category' &&
+    props.categoryData &&
+    props.categoryData.dates.length > 0
+  ) {
+    const labels = props.categoryData.dates;
+    const datasets = Object.entries(props.categoryData.series).map(([group, values]) => {
+      const color = CATEGORY_COLORS[group] ?? CHART_PRIMARY;
+      return {
+        label: group,
+        data: values,
+        borderColor: color,
+        backgroundColor: color + '20',
+        tension: 0.4,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      };
+    });
+
+    return { labels, datasets };
+  }
+
+  // Combined mode (default)
   const labels = props.entityData.map((d) => d.date);
   const rawData = props.entityData.map((d) => d.count);
 
@@ -80,8 +110,8 @@ const chartData = computed(() => {
     {
       label: 'Entities',
       data: rawData,
-      borderColor: COLORS.primary,
-      backgroundColor: COLORS.primary + '20', // 12% opacity
+      borderColor: CHART_PRIMARY,
+      backgroundColor: CHART_PRIMARY + '20', // 12% opacity
       tension: 0.4, // Smooth Bezier curves
       fill: true,
       pointRadius: 3,
@@ -94,7 +124,7 @@ const chartData = computed(() => {
     datasets.push({
       label: '3-Period Moving Avg',
       data: calculateSMA(rawData, 3) as number[],
-      borderColor: COLORS.secondary,
+      borderColor: CHART_SECONDARY,
       backgroundColor: 'transparent',
       tension: 0.4,
       fill: false,
@@ -107,7 +137,7 @@ const chartData = computed(() => {
   return { labels, datasets };
 });
 
-const chartOptions: ChartOptions<'line'> = {
+const chartOptions = computed<ChartOptions<'line'>>(() => ({
   responsive: true,
   maintainAspectRatio: false, // Critical for Bootstrap card compatibility
   plugins: {
@@ -117,17 +147,18 @@ const chartOptions: ChartOptions<'line'> = {
     },
     tooltip: {
       callbacks: {
-        label: (context) => `${context.parsed.y} entities`,
+        label: (context) => `${context.dataset.label}: ${context.parsed.y} entities`,
       },
     },
   },
   scales: {
     y: {
       beginAtZero: true,
+      suggestedMax: props.yMax,
       ticks: {
         precision: 0, // Integer counts only
       },
     },
   },
-};
+}));
 </script>

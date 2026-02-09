@@ -43,9 +43,14 @@
             <template #header>
               <small class="text-muted">Total Genes</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
-              <h3 v-else class="mb-0 text-primary">{{ totalGenes }}</h3>
+              <template v-else>
+                <h3 class="mb-0 text-primary">
+                  {{ isFilterActive ? filteredTotal : totalGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted"> of {{ totalGenes }} total </small>
+              </template>
             </BCardBody>
           </BCard>
         </BCol>
@@ -54,11 +59,14 @@
             <template #header>
               <small class="text-muted">Literature Only</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
-                <h3 class="mb-0 text-info">{{ novelGenes }}</h3>
-                <small class="text-muted">(not yet curated)</small>
+                <h3 class="mb-0 text-info">
+                  {{ isFilterActive ? filteredNovel : novelGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted"> of {{ novelGenes }} total </small>
+                <small v-else class="text-muted">(not yet curated)</small>
               </template>
             </BCardBody>
           </BCard>
@@ -68,16 +76,32 @@
             <template #header>
               <small class="text-muted">Curated</small>
             </template>
-            <BCardBody class="py-3">
+            <BCardBody class="py-2">
               <BSpinner v-if="loadingStats" small />
               <template v-else>
-                <h3 class="mb-0 text-success">{{ inSysnddGenes }}</h3>
-                <small class="text-muted">(in SysNDD)</small>
+                <h3 class="mb-0 text-success">
+                  {{ isFilterActive ? filteredCurated : inSysnddGenes }}
+                </h3>
+                <small v-if="isFilterActive" class="text-muted">
+                  of {{ inSysnddGenes }} total
+                </small>
+                <small v-else class="text-muted">(in SysNDD)</small>
               </template>
             </BCardBody>
           </BCard>
         </BCol>
       </BRow>
+
+      <!-- Active filter indicator -->
+      <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
+        <small class="text-muted">
+          <i class="bi bi-funnel-fill me-1" />
+          Showing genes with &ge;{{ minCount }} publications
+          <template v-if="displayedCount < filteredTotal">
+            (top {{ displayedCount }} of {{ filteredTotal }})
+          </template>
+        </small>
+      </div>
 
       <!-- User Interface controls -->
       <BRow class="p-2">
@@ -121,6 +145,19 @@
       <div class="position-relative">
         <BSpinner v-if="loading" label="Loading..." class="spinner" />
         <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
+        <div
+          v-if="!loading && selectedCategory === 'gene'"
+          class="d-flex justify-content-center gap-2 pb-3"
+        >
+          <BBadge variant="success" pill>
+            <i class="bi bi-check-circle me-1" />
+            Curated
+          </BBadge>
+          <BBadge variant="info" pill>
+            <i class="bi bi-journal-text me-1" />
+            Literature Only
+          </BBadge>
+        </div>
       </div>
     </BCard>
   </BContainer>
@@ -128,24 +165,30 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
 import axios from 'axios';
 import useToast from '@/composables/useToast';
+import { CURATION_COLORS } from '@/utils/chartColors';
 
 // Types
 interface GeneData {
   gene_symbol: string;
   publication_count: number;
   is_novel?: number;
+  hgnc_id?: string;
 }
 
 interface StatsDataItem {
   name: string;
   count: number;
+  isNovel?: number;
+  hgncId?: string;
 }
 
 // Composables
 const { makeToast } = useToast();
+const router = useRouter();
 
 // User selections
 const selectedCategory = ref('gene');
@@ -166,10 +209,26 @@ const statsData = ref<StatsDataItem[]>([]);
 const loading = ref(true);
 const loadingStats = ref(true);
 
-// Computed stats for summary cards
+// Computed stats for summary cards — totals (unfiltered)
 const totalGenes = computed(() => rawGeneData.value.length);
 const novelGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 1).length);
 const inSysnddGenes = computed(() => rawGeneData.value.filter((g) => g.is_novel === 0).length);
+
+// Filtered counts (genes matching minCount threshold)
+const filteredGeneData = computed(() =>
+  rawGeneData.value.filter((g) => g.publication_count >= minCount.value)
+);
+const filteredTotal = computed(() => filteredGeneData.value.length);
+const filteredNovel = computed(() => filteredGeneData.value.filter((g) => g.is_novel === 1).length);
+const filteredCurated = computed(
+  () => filteredGeneData.value.filter((g) => g.is_novel === 0).length
+);
+
+// Whether the minCount filter is actively narrowing results
+const isFilterActive = computed(() => selectedCategory.value === 'gene' && minCount.value > 1);
+
+// Number of bars actually displayed (limited by topN)
+const displayedCount = computed(() => Math.min(statsData.value.length, topN.value));
 
 // Watch minCount changes - needs to re-process data and re-plot
 watch(minCount, () => {
@@ -194,8 +253,8 @@ async function fetchStats() {
 
   const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`;
   const params = new URLSearchParams();
-  params.set('page_size', '2000'); // Get enough data for stats
-  params.set('fields', 'gene_symbol,publication_count,is_novel'); // Include is_novel for stats cards
+  params.set('page_size', String(STATS_PAGE_SIZE));
+  params.set('fields', 'gene_symbol,publication_count,is_novel,hgnc_id');
 
   const apiUrl = `${baseUrl}?${params.toString()}`;
 
@@ -206,6 +265,7 @@ async function fetchStats() {
       gene_symbol: String(item.gene_symbol || 'Unknown'),
       publication_count: Number(item.publication_count) || 0,
       is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
+      hgnc_id: item.hgnc_id ? String(item.hgnc_id) : undefined,
     }));
     loadingStats.value = false;
     processAndPlot();
@@ -235,6 +295,8 @@ function processStatsData() {
       .map((item) => ({
         name: item.gene_symbol,
         count: item.publication_count,
+        isNovel: item.is_novel,
+        hgncId: item.hgnc_id,
       }))
       .sort((a, b) => b.count - a.count);
   } else {
@@ -255,10 +317,33 @@ function processStatsData() {
   }
 }
 
+// Bar color constants from shared chart colors module
+const COLOR_CURATED = CURATION_COLORS.curated;
+const COLOR_LITERATURE_ONLY = CURATION_COLORS.literatureOnly;
+const COLOR_DEFAULT = CURATION_COLORS.default;
+
+// Chart layout constants
+const STATS_PAGE_SIZE = 2000; // Max genes to fetch for stats aggregation
+const CHART_SVG_WIDTH = 760; // SVG viewBox width (responsive via viewBox)
+const CHART_SVG_HEIGHT = 450; // SVG viewBox height
+const CHART_MARGIN = { top: 30, right: 30, bottom: 150, left: 60 } as const;
+
+/**
+ * Returns bar fill color based on curation status
+ */
+function barFill(d: StatsDataItem): string {
+  if (selectedCategory.value !== 'gene') return COLOR_DEFAULT;
+  if (d.isNovel === 0) return COLOR_CURATED;
+  if (d.isNovel === 1) return COLOR_LITERATURE_ONLY;
+  return COLOR_DEFAULT;
+}
+
 /**
  * Builds a bar chart from the processed statistics
  */
 function generateBarPlot() {
+  const isGeneMode = selectedCategory.value === 'gene';
+
   // Always remove old svg and tooltip first
   d3.select('#pubtator_stats_dataviz').select('svg').remove();
   d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
@@ -281,21 +366,16 @@ function generateBarPlot() {
   const data = statsData.value.slice(0, topN.value);
 
   // set dimensions
-  const margin = {
-    top: 30,
-    right: 30,
-    bottom: 150,
-    left: 60,
-  };
-  const width = 760 - margin.left - margin.right;
-  const height = 450 - margin.top - margin.bottom;
+  const margin = CHART_MARGIN;
+  const width = CHART_SVG_WIDTH - margin.left - margin.right;
+  const height = CHART_SVG_HEIGHT - margin.top - margin.bottom;
 
   // append the SVG
   const svg = d3
     .select('#pubtator_stats_dataviz')
     .append('svg')
     .attr('id', 'pubtator-stats-svg')
-    .attr('viewBox', '0 0 760 450')
+    .attr('viewBox', `0 0 ${CHART_SVG_WIDTH} ${CHART_SVG_HEIGHT}`)
     .attr('preserveAspectRatio', 'xMinYMin meet')
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
@@ -307,14 +387,40 @@ function generateBarPlot() {
     .domain(data.map((d) => d.name))
     .padding(0.2);
 
-  svg
+  const xAxisGroup = svg
     .append('g')
+    .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
-    .call(d3.axisBottom(x))
+    .call(d3.axisBottom(x));
+
+  xAxisGroup
     .selectAll('text')
     .attr('transform', 'translate(-10,0)rotate(-45)')
     .style('text-anchor', 'end')
     .style('font-size', '10px');
+
+  // In gene mode, color and make X-axis labels clickable
+  if (isGeneMode) {
+    const labelLookup = new Map(data.map((d) => [d.name, d]));
+
+    xAxisGroup.selectAll<SVGTextElement, string>('text').each(function (
+      this: SVGTextElement,
+      labelText: string
+    ) {
+      const item = labelLookup.get(labelText);
+      if (!item) return;
+
+      d3.select(this)
+        .style('fill', barFill(item))
+        .style('font-weight', 'bold')
+        .style('cursor', item.hgncId ? 'pointer' : 'default')
+        .on('click', () => {
+          if (item.hgncId) {
+            router.push(`/Genes/${item.hgncId}`);
+          }
+        });
+    });
+  }
 
   // Y axis
   const maxY = d3.max(data, (d) => d.count) || 0;
@@ -333,7 +439,7 @@ function generateBarPlot() {
     .attr('dy', '1em')
     .style('text-anchor', 'middle')
     .style('font-size', '12px')
-    .text(selectedCategory.value === 'gene' ? 'Publication Count' : 'Number of Genes');
+    .text(isGeneMode ? 'Publication Count' : 'Number of Genes');
 
   // Create a tooltip element
   const tooltip = d3
@@ -366,7 +472,7 @@ function generateBarPlot() {
   };
 
   // bars
-  svg
+  const bars = svg
     .selectAll('mybar')
     .data(data)
     .enter()
@@ -375,10 +481,23 @@ function generateBarPlot() {
     .attr('y', (d) => y(d.count))
     .attr('width', x.bandwidth())
     .attr('height', (d) => height - y(d.count))
-    .attr('fill', '#5470c6')
+    .attr('fill', (d) => barFill(d))
     .on('mouseover', mouseover)
     .on('mousemove', mousemove)
     .on('mouseleave', mouseleave);
+
+  // In gene mode, make bars clickable for navigation
+  if (isGeneMode) {
+    bars
+      .style('cursor', (d) => (d.hgncId ? 'pointer' : 'default'))
+      .attr('role', 'button')
+      .attr('aria-label', (d) => `View gene page for ${d.name}`)
+      .on('click', (_event: MouseEvent, d: StatsDataItem) => {
+        if (d.hgncId) {
+          router.push(`/Genes/${d.hgncId}`);
+        }
+      });
+  }
 }
 
 // Lifecycle

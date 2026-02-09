@@ -341,47 +341,55 @@ user_bulk_approve <- function(user_ids, approving_user_id, pool) {
   }
 
   # Execute all operations in a transaction
-  db_with_transaction({
-    processed <- 0
+  db_with_transaction(function(txn_conn) {
+    # Batch SELECT: fetch all users in one query instead of N individual SELECTs
+    id_placeholders <- paste(rep("?", length(user_ids)), collapse = ", ")
+    users <- db_execute_query(
+      sprintf(
+        "SELECT user_id, user_name, email, first_name, family_name, account_status, password
+         FROM user WHERE user_id IN (%s)",
+        id_placeholders
+      ),
+      as.list(user_ids),
+      conn = txn_conn
+    )
 
-    for (user_id in user_ids) {
-      # Get user details
-      user <- pool %>%
-        tbl("user") %>%
-        filter(user_id == !!user_id) %>%
-        select(
-          user_id, user_name, email, first_name, family_name,
-          account_status, password
-        ) %>%
-        collect()
+    # Validate all users exist
+    missing <- setdiff(user_ids, users$user_id)
+    if (length(missing) > 0) {
+      stop(paste("User(s) not found:", paste(missing, collapse = ", ")))
+    }
 
-      if (nrow(user) == 0) {
-        stop(paste("User not found:", user_id))
-      }
+    # Validate none are already active
+    already_active <- users$user_id[users$account_status == "active"]
+    if (length(already_active) > 0) {
+      stop(paste("User account(s) already active:", paste(already_active, collapse = ", ")))
+    }
 
-      if (user$account_status == "active") {
-        stop(paste("User account already active:", user_id))
-      }
+    # Batch UPDATE: set all users to active in one statement
+    db_execute_statement(
+      sprintf(
+        "UPDATE user SET account_status = 'active', approving_user_id = ?
+         WHERE user_id IN (%s)",
+        id_placeholders
+      ),
+      c(list(approving_user_id), as.list(user_ids)),
+      conn = txn_conn
+    )
 
-      # Update user account status
-      db_execute_statement(
-        "UPDATE user SET account_status = ?, approving_user_id = ? WHERE user_id = ?",
-        list("active", approving_user_id, user_id)
-      )
-
-      # Generate password if user doesn't have one
+    # Process password generation and emails per-user (requires individual passwords)
+    for (i in seq_len(nrow(users))) {
+      user <- users[i, ]
       if (is.null(user$password) || user$password == "") {
         user_password <- random_password()
         user_initials <- generate_initials(user$first_name, user$family_name)
 
-        # Hash password with Argon2id before storing
+        # Hash password and update both password + abbreviation in one statement
         hashed_password <- hash_password(user_password)
-        user_update_password(user_id, hashed_password)
-
-        # Update abbreviation
         db_execute_statement(
-          "UPDATE user SET abbreviation = ? WHERE user_id = ?",
-          list(user_initials, user_id)
+          "UPDATE user SET password = ?, abbreviation = ? WHERE user_id = ?",
+          list(hashed_password, user_initials, user$user_id),
+          conn = txn_conn
         )
 
         # Send approval email with password
@@ -396,10 +404,9 @@ user_bulk_approve <- function(user_ids, approving_user_id, pool) {
           "curator@sysndd.org"
         )
       }
-
-      processed <- processed + 1
     }
 
+    processed <- nrow(users)
     logger::log_info("Bulk approved users",
                      count = processed,
                      approving_user_id = approving_user_id)
@@ -455,14 +462,15 @@ user_bulk_delete <- function(user_ids, requesting_user_id, pool) {
   }
 
   # Execute all deletions in a transaction
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     processed <- 0
 
     for (user_id in user_ids) {
       # Delete user
       rows_affected <- db_execute_statement(
         "DELETE FROM user WHERE user_id = ?",
-        list(user_id)
+        list(user_id),
+        conn = txn_conn
       )
 
       if (rows_affected == 0) {
@@ -525,14 +533,15 @@ user_bulk_assign_role <- function(user_ids, new_role, requesting_role, pool) {
   }
 
   # Execute all role updates in a transaction
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     processed <- 0
 
     for (user_id in user_ids) {
       # Update user role
       rows_affected <- db_execute_statement(
         "UPDATE user SET user_role = ? WHERE user_id = ?",
-        list(new_role, user_id)
+        list(new_role, user_id),
+        conn = txn_conn
       )
 
       if (rows_affected == 0) {

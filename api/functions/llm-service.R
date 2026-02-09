@@ -1394,11 +1394,12 @@ save_prompt_template <- function(prompt_type,
   description_val <- if (is.null(description)) NA_character_ else description
   created_by_val <- if (is.null(created_by)) NA_integer_ else as.integer(created_by)
 
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     if (deactivate_previous) {
       db_execute_statement(
         "UPDATE llm_prompt_templates SET is_active = FALSE WHERE prompt_type = ?",
-        list(prompt_type)
+        list(prompt_type),
+        conn = txn_conn
       )
     }
 
@@ -1406,10 +1407,11 @@ save_prompt_template <- function(prompt_type,
       "INSERT INTO llm_prompt_templates
        (prompt_type, version, template_text, description, is_active, created_by)
        VALUES (?, ?, ?, ?, TRUE, ?)",
-      list(prompt_type, version, template_text, description_val, created_by_val)
+      list(prompt_type, version, template_text, description_val, created_by_val),
+      conn = txn_conn
     )
 
-    id_result <- db_execute_query("SELECT LAST_INSERT_ID() AS id")
+    id_result <- db_execute_query("SELECT LAST_INSERT_ID() AS id", conn = txn_conn)
     id_result$id[1]
   })
 

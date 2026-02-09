@@ -263,11 +263,12 @@ phenotype_replace_for_review <- function(review_id, entity_id, phenotypes) {
   }
 
   # Use transaction for atomic replace
-  result <- db_with_transaction({
+  result <- db_with_transaction(function(txn_conn) {
     # Delete existing phenotype connections
     deleted <- db_execute_statement(
       "DELETE FROM ndd_review_phenotype_connect WHERE review_id = ?",
-      list(review_id)
+      list(review_id),
+      conn = txn_conn
     )
 
     log_debug("Deleted {deleted} existing phenotype connections for review {review_id}")
@@ -285,7 +286,8 @@ phenotype_replace_for_review <- function(review_id, entity_id, phenotypes) {
           entity_id,
           phenotypes$phenotype_id[i],
           phenotypes$modifier_id[i]
-        )
+        ),
+        conn = txn_conn
       )
       total_inserted <- total_inserted + rows_affected
     }

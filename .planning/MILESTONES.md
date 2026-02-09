@@ -1,5 +1,42 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v10.5 Bug Fixes & Data Integrity (Shipped: 2026-02-09)
+
+**Delivered:** Fix 5 open bugs across CurationComparisons (#173), AdminStatistics (#172, #171), PubTator (#170), and Traefik (#169) with significant unplanned improvements including BioCJSON parsing pipeline rewrite (72% annotation loss fixed) and 18 broken transaction callers repaired.
+
+**Phases completed:** 80-82 (6 plans total)
+
+**Key accomplishments:**
+
+- Fixed CurationComparisons cross-database max aggregation with shared `normalize_comparison_categories()` helper (#173)
+- Fixed AdminStatistics re-review approval sync, KPI race condition, date calculations, and request cancellation (#172)
+- Fixed entity trend chart sparse time-series aggregation with `mergeGroupedCumulativeSeries()` (#171)
+- Rewrote BioCJSON parsing pipeline fixing 72% annotation loss; annotation coverage improved from 110 to 491 PMIDs (#170)
+- Fixed 18 broken `db_with_transaction` callers that had zero atomicity (expression pattern → function pattern)
+- Added entity trend chart filter controls (NDD/Non-NDD/All, Combined/By Category, per-category checkboxes)
+
+**Stats:**
+
+- 88 files modified (+12,594/-3,292 lines)
+- 106,108 lines R code, 74,057 lines Vue/TS
+- 3 phases, 6 plans, 49 commits
+- 2 days (2026-02-08 → 2026-02-09)
+
+**Git range:** `6906b12c` → `632e10f3`
+
+**Target Issues:**
+- #173: CurationComparisons cross-database max category aggregation — RESOLVED
+- #172: AdminStatistics re-review approval sync and sub-bugs — RESOLVED
+- #171: AdminStatistics entity trend chart aggregation — RESOLVED
+- #170: PubTator annotation storage failure — RESOLVED
+- #169: Traefik TLS cert selection and startup warnings — RESOLVED
+
+**Deferred:** 6 requirements (INTEG-01 through INTEG-06 for #167 entity integrity audit) deferred to v10.6
+
+**What's next:** Planning next milestone
+
+---
+
 ## v10.2 Performance & Memory Optimization (Shipped: 2026-02-03)
 
 **Delivered:** Optimize API memory usage for memory-constrained servers with configurable mirai workers, STRING threshold optimization, adaptive layout algorithms, and fix ViewLogs performance bug with database-side filtering.

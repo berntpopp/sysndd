@@ -108,17 +108,19 @@ function(req, res) {
   # Use transaction for atomic upsert
   result <- tryCatch(
     {
-      db_with_transaction({
+      db_with_transaction(function(txn_conn) {
         # Delete existing draft for this user
         db_execute_statement(
           "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
-          list(req$user_id)
+          list(req$user_id),
+          conn = txn_conn
         )
 
         # Insert new draft
         db_execute_statement(
           "INSERT INTO about_content (user_id, sections_json, status) VALUES (?, ?, 'draft')",
-          list(req$user_id, sections_json)
+          list(req$user_id, sections_json),
+          conn = txn_conn
         )
       })
 
@@ -182,10 +184,11 @@ function(req, res) {
   # Use transaction for atomic publish
   result <- tryCatch(
     {
-      db_with_transaction({
+      db_with_transaction(function(txn_conn) {
         # Get next version number
         version_result <- db_execute_query(
-          "SELECT COALESCE(MAX(version), 0) + 1 AS next_version FROM about_content WHERE status = 'published'"
+          "SELECT COALESCE(MAX(version), 0) + 1 AS next_version FROM about_content WHERE status = 'published'",
+          conn = txn_conn
         )
         next_version <- version_result$next_version[1]
 
@@ -196,13 +199,15 @@ function(req, res) {
             "(user_id, sections_json, status, version, published_at) ",
             "VALUES (?, ?, 'published', ?, NOW())"
           ),
-          list(req$user_id, sections_json, next_version)
+          list(req$user_id, sections_json, next_version),
+          conn = txn_conn
         )
 
         # Delete user's draft
         db_execute_statement(
           "DELETE FROM about_content WHERE user_id = ? AND status = 'draft'",
-          list(req$user_id)
+          list(req$user_id),
+          conn = txn_conn
         )
 
         # Return version number

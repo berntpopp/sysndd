@@ -161,7 +161,7 @@ services:
       # CORS configuration: comma-separated list of allowed origins
       # Critical for Firefox compatibility (issue #143)
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
-      CACHE_VERSION: ${CACHE_VERSION:-1}
+      CACHE_VERSION: ${CACHE_VERSION:-2}
       # OMIM download key for genemap2.txt (required for ontology/comparisons)
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
     networks:
@@ -199,7 +199,7 @@ services:
           path: ./api/renv.lock
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.api.rule=Host(`sysndd.dbmr.unibe.ch`) && PathPrefix(`/api`)"
       - "traefik.http.routers.api.entrypoints=web"
       - "traefik.http.routers.api.priority=100"
       - "traefik.http.services.api.loadbalancer.server.port=7777"
@@ -236,7 +236,7 @@ services:
           cpus: '0.5'
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.app.rule=Host(`sysndd.dbmr.unibe.ch`) && PathPrefix(`/`)"
       - "traefik.http.routers.app.entrypoints=web"
       - "traefik.http.services.app.loadbalancer.server.port=8080"
       - "traefik.http.routers.app.priority=1"

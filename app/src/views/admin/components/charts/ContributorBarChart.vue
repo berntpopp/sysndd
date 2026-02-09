@@ -23,14 +23,10 @@ import {
   type ChartOptions,
 } from 'chart.js';
 import { BSpinner } from 'bootstrap-vue-next';
+import { CHART_PRIMARY } from '@/utils/chartColors';
 
 // Tree-shaken Chart.js registration
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-// Paul Tol Muted palette
-const COLORS = {
-  bar: '#6699CC', // Muted blue
-};
 
 interface Contributor {
   user_name: string;
@@ -52,8 +48,8 @@ const chartData = computed(() => ({
     {
       label: 'Entities',
       data: props.contributors.map((c) => c.entity_count),
-      backgroundColor: COLORS.bar,
-      borderColor: COLORS.bar,
+      backgroundColor: CHART_PRIMARY,
+      borderColor: CHART_PRIMARY,
       borderWidth: 1,
     },
   ],

@@ -271,11 +271,12 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
     dplyr::select(review_id, entity_id, publication_id, publication_type)
 
   # Execute replacement within transaction
-  db_with_transaction({
+  db_with_transaction(function(txn_conn) {
     # Delete old publication connections
     db_execute_statement(
       "DELETE FROM ndd_review_publication_join WHERE review_id = ?",
-      list(review_id)
+      list(review_id),
+      conn = txn_conn
     )
 
     # Insert new publications
@@ -284,7 +285,8 @@ publication_replace_for_review <- function(review_id, entity_id, publications) {
       db_execute_statement(
         "INSERT INTO ndd_review_publication_join (review_id, entity_id, publication_id, publication_type)
          VALUES (?, ?, ?, ?)",
-        list(row$review_id, row$entity_id, row$publication_id, row$publication_type)
+        list(row$review_id, row$entity_id, row$publication_id, row$publication_type),
+        conn = txn_conn
       )
     }
 

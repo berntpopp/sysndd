@@ -170,7 +170,10 @@
               v-b-tooltip.hover.top
               :title="
                 getTooltipText(
-                  fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
+                  fields.find((f) => f.label === data.label) || {
+                    key: data.column,
+                    label: data.label,
+                  }
                 )
               "
             >
