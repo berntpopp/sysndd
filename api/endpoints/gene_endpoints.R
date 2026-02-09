@@ -230,8 +230,7 @@ function(gene_input, input_type = "hgnc") {
       rgd_id,
       STRING_id,
       bed_hg38,
-      gnomad_constraints,
-      alphafold_id
+      any_of(c("gnomad_constraints", "alphafold_id"))
     ) %>%
     arrange(hgnc_id) %>%
     collect() %>%
