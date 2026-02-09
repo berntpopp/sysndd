@@ -16,6 +16,9 @@
       <HelperBadge />
       <!--place the helper badge -->
 
+      <!-- PWA update prompt -->
+      <ReloadPrompt />
+
       <!-- Disclaimer dialog (shown on first visit) -->
       <DisclaimerDialog
         v-model="disclaimerDialogVisible"
@@ -37,6 +40,7 @@ import AppFooter from '@/components/AppFooter.vue';
 import HelperBadge from '@/components/HelperBadge.vue';
 import SkipLink from '@/components/accessibility/SkipLink.vue';
 import DisclaimerDialog from '@/components/disclaimer/DisclaimerDialog.vue';
+import ReloadPrompt from '@/components/ReloadPrompt.vue';
 
 export default {
   name: 'SysNDD',
@@ -46,6 +50,7 @@ export default {
     HelperBadge,
     SkipLink,
     DisclaimerDialog,
+    ReloadPrompt,
   },
   setup() {
     useHead({

@@ -72,7 +72,6 @@
 import MAIN_NAV_CONSTANTS from '@/assets/js/constants/main_nav_constants';
 import URLS from '@/assets/js/constants/url_constants';
 import ROLES from '@/assets/js/constants/role_constants';
-import useToast from '@/composables/useToast';
 import packageInfo from '../../package.json';
 import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
@@ -82,10 +81,6 @@ export default {
   components: {
     SearchCombobox,
     IconPairDropdownMenu,
-  },
-  setup() {
-    const { makeToast } = useToast();
-    return { makeToast };
   },
   data() {
     return {
@@ -156,9 +151,8 @@ export default {
 
         this.user_from_jwt = response_signin.data;
         this.setUserFromJWT();
-      } catch (e) {
+      } catch (_e) {
         this.clearUserData();
-        this.makeToast(e, 'Error', 'danger');
       }
     },
     setUserFromJWT() {

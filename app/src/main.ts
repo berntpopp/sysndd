@@ -19,8 +19,8 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 // Custom SCSS overrides (loads after bootstrap)
 import './assets/scss/custom.scss';
 
-// import axios
-import axios from 'axios';
+// import axios (side-effects: sets defaults + 401 interceptor)
+import axios from './plugins/axios';
 
 // Import all Bootstrap-Vue-Next components for global registration
 import * as BvnComponents from './bootstrap-vue-next-components';
@@ -32,7 +32,6 @@ import App from './App.vue';
 
 // import router
 import router from './router';
-import './registerServiceWorker';
 
 // import custom css
 import './assets/css/custom.css';
