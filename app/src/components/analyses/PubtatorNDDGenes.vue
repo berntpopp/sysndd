@@ -181,9 +181,14 @@
                 </td>
               </template>
 
-              <!-- Gene symbol column - link to HGNC -->
+              <!-- Gene symbol column - clickable badge linking to gene page -->
               <template #cell(gene_symbol)="data">
-                <strong>{{ (data.item as GeneItem).gene_symbol }}</strong>
+                <GeneBadge
+                  :symbol="(data.item as GeneItem).gene_symbol"
+                  :hgnc-id="(data.item as GeneItem).hgnc_id"
+                  :link-to="(data.item as GeneItem).hgnc_id ? '/Genes/' + (data.item as GeneItem).hgnc_id : undefined"
+                  size="sm"
+                />
               </template>
 
               <!-- Source badge column -->
@@ -343,6 +348,7 @@ import { useExcelExport } from '@/composables/useExcelExport';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import GeneBadge from '@/components/ui/GeneBadge.vue';
 
 import { useUiStore } from '@/stores/ui';
 import { useRoute } from 'vue-router';
@@ -602,9 +608,9 @@ const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
   loadingPublications.value[geneSymbol] = true;
 
   try {
-    // Fetch publications by PMID filter
-    const pmidFilter = pmids.map((p) => `PMID:${p}`).join(';');
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication?filter=publication_id:in:${pmidFilter}&fields=publication_id,Title,Journal,Publication_date,Abstract&page_size=${pmids.length}`;
+    // Fetch publications by PMID filter using the API's any() filter syntax
+    const pmidFilter = pmids.map((p) => `PMID:${p}`).join(',');
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication?filter=any(publication_id,${pmidFilter})&fields=publication_id,Title,Journal,Publication_date,Abstract&page_size=${pmids.length}`;
 
     const response = await axios.get(apiUrl);
     publicationCache.value[geneSymbol] = response.data.data || [];
