@@ -673,8 +673,9 @@ function() {
 
 #* Get annotation update dates
 #*
-#* Returns the last update dates for various annotation sources based on
-#* file modification times in the data directory.
+#* Returns the last update dates for various annotation sources.
+#* Prefers job completion timestamps from job history over file metadata,
+#* falling back to file dates for fresh installs with no job runs.
 #*
 #* # `Return`
 #* Returns dates for OMIM (mim2gene), MONDO mappings, and HGNC updates.
@@ -685,17 +686,30 @@ function() {
 function() {
   data_dir <- "data/"
 
+  # Helper: get most recent completed_at for matching operations
+  get_last_successful_run <- function(operations) {
+    history <- tryCatch(get_job_history(100), error = function(e) {
+      data.frame(
+        operation = character(0),
+        status = character(0),
+        completed_at = character(0)
+      )
+    })
+    if (nrow(history) == 0) return(NA)
+    matches <- history[
+      history$operation %in% operations & history$status == "completed",
+    ]
+    if (nrow(matches) == 0) return(NA)
+    # get_job_history returns newest first
+    matches$completed_at[1]
+  }
+
   # Helper to get most recent file date matching a pattern
   get_latest_file_date <- function(pattern) {
     files <- list.files(data_dir, pattern = pattern, full.names = TRUE)
-    if (length(files) == 0) {
-      return(NA)
-    }
-    # Get file info and find most recent
+    if (length(files) == 0) return(NA)
     file_info <- file.info(files)
-    if (nrow(file_info) == 0) {
-      return(NA)
-    }
+    if (nrow(file_info) == 0) return(NA)
     latest <- files[which.max(file_info$mtime)]
     format(file_info[latest, "mtime"], "%Y-%m-%d %H:%M:%S")
   }
@@ -703,22 +717,35 @@ function() {
   # Extract date from filename pattern like mim2gene.YYYY-MM-DD.txt
   get_date_from_filename <- function(pattern) {
     files <- list.files(data_dir, pattern = pattern, full.names = FALSE)
-    if (length(files) == 0) {
-      return(NA)
-    }
-    # Extract date from filename
+    if (length(files) == 0) return(NA)
     dates <- regmatches(files, regexpr("\\d{4}-\\d{2}-\\d{2}", files))
-    if (length(dates) == 0) {
-      return(NA)
-    }
+    if (length(dates) == 0) return(NA)
     max(dates)
   }
 
+  # Prefer job history timestamps; fall back to file metadata
+  omim_job <- get_last_successful_run("omim_update")
+  ontology_job <- get_last_successful_run(
+    c("ontology_update", "force_apply_ontology")
+  )
+  hgnc_job <- get_last_successful_run("hgnc_update")
+
+  null_coalesce <- function(a, b) if (!is.na(a)) a else b
+
   list(
-    omim_update = get_date_from_filename("^mim2gene\\..*\\.txt$"),
-    mondo_update = get_latest_file_date("^mondo"),
-    hgnc_update = get_latest_file_date("^hgnc|^non_alt_loci"),
-    disease_ontology_update = get_date_from_filename("^disease_ontology_set\\..*\\.csv$")
+    omim_update = null_coalesce(
+      omim_job, get_date_from_filename("^mim2gene\\..*\\.txt$")
+    ),
+    mondo_update = null_coalesce(
+      ontology_job, get_latest_file_date("^mondo")
+    ),
+    hgnc_update = null_coalesce(
+      hgnc_job, get_latest_file_date("^hgnc|^non_alt_loci")
+    ),
+    disease_ontology_update = null_coalesce(
+      ontology_job,
+      get_date_from_filename("^disease_ontology_set\\..*\\.csv$")
+    )
   )
 }
 

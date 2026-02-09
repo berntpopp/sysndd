@@ -44,7 +44,6 @@
     "markdown-it": "^14.1.0",
     "ngl": "^2.4.0",
     "pinia": "^3.0.4",
-    "register-service-worker": "^1.7.1",
     "splitpanes": "^4.0.4",
     "swagger-ui": "^5.31.0",
     "swagger-ui-dist": "^5.31.0",
@@ -90,7 +89,8 @@
     "vitest": "^4.0.18",
     "vitest-axe": "^0.1.0",
     "vue-eslint-parser": "^10.2.0",
-    "vue-tsc": "^3.2.4"
+    "vue-tsc": "^3.2.4",
+    "workbox-window": "^7.4.0"
   },
   "browserslist": [
     "> 1%",

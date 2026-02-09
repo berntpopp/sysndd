@@ -10,10 +10,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
-      workbox: {
-        skipWaiting: true,
-      },
+      registerType: 'prompt',
       manifest: {
         name: 'SysNDD',
         short_name: 'SysNDD',

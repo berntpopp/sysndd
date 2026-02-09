@@ -14,7 +14,7 @@ import type { ToastVariant } from '@/types/components';
 
 interface ToastMethods {
   makeToast: (
-    message: string | { message: string },
+    message: unknown,
     title?: string | null,
     variant?: ToastVariant | null,
     autoHide?: boolean,
@@ -34,14 +34,28 @@ export default function useToast(): ToastMethods {
    * @param autoHideDelay - Delay in ms before auto-hide (default: 3000)
    */
   const makeToast = (
-    message: string | { message: string },
+    message: unknown,
     title: string | null = null,
     variant: ToastVariant | null = null,
     autoHide: boolean = true,
     autoHideDelay: number = 3000
   ): void => {
-    const body: string =
-      typeof message === 'object' && message.message ? message.message : (message as string);
+    // Extract meaningful message from various error shapes (Axios errors, Error objects, strings)
+    let body: string;
+    if (typeof message === 'string') {
+      body = message;
+    } else if (typeof message === 'object' && message !== null) {
+      const msg = message as Record<string, unknown>;
+      const resp = msg.response as Record<string, unknown> | undefined;
+      const respData = resp?.data as Record<string, unknown> | undefined;
+      body =
+        (respData?.message as string) ||
+        (respData?.error as string) ||
+        (msg.message as string) ||
+        String(message);
+    } else {
+      body = String(message);
+    }
 
     // For error toasts (danger variant), disable auto-hide per medical app requirements
     // This ensures users don't miss important error messages
