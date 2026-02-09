@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-02-08)
 **Status:** Milestone complete
 **Progress:** v10.5 [████████████████████] 100%
 
-**Last completed:** Phase 81 Plan 03 (Entity Trend Chart Filter Controls)
-**Last activity:** 2026-02-09 -- Added trend chart filter controls (NDD/category toggle, by-category display)
+**Last completed:** Phase 82 post-plan fixes (BioCJSON rewrite, transaction fixes, migration 017)
+**Last activity:** 2026-02-09 -- Rewrote BioCJSON parsing pipeline, fixed 18 broken db_with_transaction callers, added migration 017
 **Next action:** Complete milestone v10.5
 
 ---
@@ -67,6 +67,9 @@ Recent decisions affecting current work:
 
 | ID | Title | Phase | Impact |
 |----|-------|-------|--------|
+| BIOCJSON-01 | Use `fromJSON()` for BioCJSON parsing | 82-post | Standard JSON parser replaces broken custom splitter; 72% annotation loss fixed |
+| TXN-PATTERN-01 | `function(txn_conn)` for all `db_with_transaction` | 82-post | Expression pattern provided zero atomicity; 18 callers fixed |
+| MIGRATION-017 | Idempotent `gene_symbols` column addition | 82-post | Stored procedure guard prevents duplicate ALTER TABLE |
 | FILTER-PARAM-01 | Omit filter param when matching API default | 81-03 | No URL encoding issues with filter commas/parentheses |
 | YMAX-RUNNING-01 | Running maximum for y-axis stability | 81-03 | Y-axis stays fixed when toggling categories; resets on NDD change |
 | SEPARATE-WATCHERS-01 | Separate watchers for NDD vs category filters | 81-03 | Correct reset semantics per interaction type |
@@ -101,16 +104,16 @@ None.
 - Traefik TLS cert renewal deadline: Feb 19, 2026 (Phase 80)
 - Re-review backfill script (689 records) tracked in berntpopp/sysndd-administration#1
 - Entity integrity: 12 of 13 misalignments need curator review (handled manually, not in v10.5)
-- PubTator backfill needed for ~2,900 PMIDs missing annotations
+- PubTator annotation coverage improved after BioCJSON rewrite (491/500 PMIDs vs 110/500 previously); remaining ~9 PMIDs have no PubTator annotations at NCBI
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-09
-**Stopped at:** Phase 81 Plan 03 complete (trend chart filter controls)
+**Stopped at:** Phase 82 post-plan fixes complete (BioCJSON rewrite, transaction atomicity, migration 017)
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-09 -- Phase 81 Plan 03 complete (trend chart filter controls)*
+*Last updated: 2026-02-09 -- Phase 82 post-plan fixes (BioCJSON rewrite, transaction atomicity, migration 017)*

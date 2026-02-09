@@ -140,13 +140,48 @@ Plans:
 Plans:
 - [x] 82-01-PLAN.md -- PubTator incremental query fix, INSERT IGNORE dedup, and rate limiting (#170)
 
+**Post-plan fixes (discovered during E2E testing):**
+
+1. **Migration 017: ensure `gene_symbols` column** -- `pubtator_search_cache.gene_symbols` column was missing; idempotent migration adds it via stored procedure guard (`f2e9626c`)
+
+2. **Fix 18 broken `db_with_transaction` callers** -- Codebase audit found 18 of 21 `db_with_transaction` callers using expression pattern instead of `function(txn_conn)` pattern, providing zero atomicity (inner DB calls got separate pool connections). Mechanical fix: wrap body in `function(txn_conn) { ... }` and pass `conn = txn_conn` to all inner `db_execute_*` calls. Two callers (`review-repository.R`, `status-repository.R`) also had undefined `conn` variable bugs. Files: `pubtator-functions.R`, `review-repository.R`, `status-repository.R`, `phenotype-repository.R`, `publication-repository.R`, `ontology-repository.R`, `llm-cache-repository.R`, `llm-service.R`, `re-review-service.R`, `user-service.R`, `admin_endpoints.R`, `about_endpoints.R` (`d326f22d`)
+
+3. **BioCJSON parsing pipeline rewrite** -- Root cause of 72% annotation loss: three cascading bugs in the old parsing pipeline:
+   - `pubtator_v3_parse_nonstandard_json` split JSON on `"} "` — unnecessary since BioCJSON returns standard JSON
+   - `reassemble_pubtator_docs` used `lapply(df, func)` iterating over COLUMNS not ROWS
+   - `pubtator_v3_data_from_pmids` accumulated batches with `c(list1, list2)` creating duplicate named keys, silently losing all but first batch
+
+   **Fix:** Replaced all three broken functions with one clean `pubtator_parse_biocjson(url)` using `jsonlite::fromJSON()` directly, and switched batch accumulation to `dplyr::bind_rows()`. Results: annotation coverage improved from 110→491 PMIDs (out of 500), gene_symbols from 285→452 (`a8c8a65e`)
+
+4. **Static analysis tests for transaction patterns** -- Codebase-wide tests scanning all R files to ensure every `db_with_transaction` uses `function(txn_conn)` pattern and every inner `db_execute_*` passes `conn =` (`30b03ea7`)
+
+**Key files (new):**
+- `db/migrations/017_ensure_pubtator_gene_symbols.sql`
+- `api/tests/testthat/test-unit-transaction-patterns.R`
+
 **Key files (modified):**
-- `api/functions/pubtator-functions.R`
+- `api/functions/pubtator-functions.R` (incremental query + BioCJSON rewrite)
+- `api/endpoints/publication_endpoints.R` (removed backward-compat gene_symbols code)
+- `api/functions/review-repository.R` (transaction fix)
+- `api/functions/status-repository.R` (transaction fix)
+- `api/functions/phenotype-repository.R` (transaction fix)
+- `api/functions/publication-repository.R` (transaction fix)
+- `api/functions/ontology-repository.R` (transaction fix)
+- `api/functions/llm-cache-repository.R` (transaction fix)
+- `api/functions/llm-service.R` (transaction fix)
+- `api/services/re-review-service.R` (transaction fix)
+- `api/services/user-service.R` (transaction fix)
+- `api/endpoints/admin_endpoints.R` (transaction fix)
+- `api/endpoints/about_endpoints.R` (transaction fix)
 
 **Pitfalls:**
 - Non-idempotent batch INSERTs cause duplicate key errors on retries -- use `INSERT IGNORE` or `ON DUPLICATE KEY UPDATE` (Pitfall 4)
 - NCBI rate limit is 3 req/s; use 350ms delay (not 333ms) for safety margin
 - Test idempotency: inserting the same batch twice must not error and must not create duplicates
+- BioCJSON returns standard JSON `{"PubTator3": [...]}` -- use `fromJSON()` directly, NOT custom line-splitting parsers (Pitfall 11)
+- `lapply(data.frame, func)` iterates over COLUMNS not ROWS -- always use `lapply(seq_len(nrow(df)), ...)` or `purrr::map()` (Pitfall 12)
+- `c(named_list1, named_list2)` with duplicate names silently drops duplicates -- use `dplyr::bind_rows()` for data frame accumulation (Pitfall 13)
+- `db_with_transaction` requires `function(txn_conn)` pattern, NOT expression -- expression pattern gives zero atomicity (Pitfall 14)
 
 ---
 
@@ -193,6 +228,9 @@ Plans:
 | AbortController memory leaks from reused controllers | MEDIUM | 81 | New controller per request; `onUnmounted()` cleanup |
 | Non-idempotent batch INSERTs for PubTator | MEDIUM | 82 | `INSERT IGNORE`; idempotency test (same batch twice) |
 | NCBI API rate limiting causes batch failures | MEDIUM | 82 | 350ms delay; `httr2::req_retry()` with backoff |
+| BioCJSON parsing drops annotations for multi-batch fetches | CRITICAL | 82 | Replaced custom parser with `fromJSON()` + `bind_rows()` |
+| `db_with_transaction` expression pattern provides zero atomicity | CRITICAL | 82 | Converted all 18 callers to `function(txn_conn)` pattern |
+| Missing `gene_symbols` column blocks PubTator storage | HIGH | 82 | Migration 017 adds column idempotently |
 | Traefik TLS cert renewal deadline (Feb 19, 2026) | HIGH | 80 | Prioritize in first plan of Phase 80 |
 
 ## Progress
@@ -207,4 +245,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-09 -- Phase 81 Plan 03 complete (trend chart filter controls)*
+*Last updated: 2026-02-09 -- Phase 82 post-plan fixes (BioCJSON rewrite, transaction atomicity, migration 017)*
