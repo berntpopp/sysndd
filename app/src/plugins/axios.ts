@@ -3,7 +3,12 @@ import router from '@/router';
 
 // Configure axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
-axios.defaults.headers.common.Authorization = `Bearer ${localStorage.getItem('token')}`;
+
+// Only set Authorization header if a token actually exists
+const token = localStorage.getItem('token');
+if (token) {
+  axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+}
 
 // Guard flag to prevent duplicate 401 redirects
 let isLoggingOut = false;
@@ -18,6 +23,7 @@ axios.interceptors.response.use(
       // Clear auth state
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      delete axios.defaults.headers.common.Authorization;
 
       // Redirect to login with return path
       const currentPath = router.currentRoute.value.fullPath;
