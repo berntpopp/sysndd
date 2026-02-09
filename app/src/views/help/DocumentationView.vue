@@ -25,7 +25,11 @@
                 </BLink>
               </BCol>
               <BCol sm="4" class="mb-2 mb-sm-0">
-                <BLink :href="DOCS_URLS.GITHUB_DISCUSSIONS" target="_blank" class="text-decoration-none">
+                <BLink
+                  :href="DOCS_URLS.GITHUB_DISCUSSIONS"
+                  target="_blank"
+                  class="text-decoration-none"
+                >
                   <i class="bi bi-chat-dots fs-2 d-block mb-2 text-success" />
                   <span class="fw-semibold">Discussions</span>
                 </BLink>
@@ -267,7 +271,11 @@
               <div class="py-2">
                 <p>Ask questions, report bugs and chat about SysNDD in general using our:</p>
                 <BCard class="text-center border-0 bg-success bg-opacity-10" body-class="py-4">
-                  <BLink :href="DOCS_URLS.GITHUB_DISCUSSIONS" target="_blank" class="fs-5 fw-bold text-success">
+                  <BLink
+                    :href="DOCS_URLS.GITHUB_DISCUSSIONS"
+                    target="_blank"
+                    class="fs-5 fw-bold text-success"
+                  >
                     <i class="bi bi-github me-2" />
                     GitHub Discussions Page
                   </BLink>

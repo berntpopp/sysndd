@@ -105,7 +105,7 @@
                 button-variant="outline-primary"
                 size="sm"
                 buttons
-                @change="fetchLeaderboard"
+                @change="() => fetchLeaderboard(startDate, endDate)"
               />
             </div>
           </template>
@@ -131,7 +131,7 @@
                 button-variant="outline-primary"
                 size="sm"
                 buttons
-                @change="fetchReReviewLeaderboard"
+                @change="() => fetchReReviewLeaderboard(startDate, endDate)"
               />
             </div>
           </template>
@@ -235,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, inject } from 'vue';
+import { ref, computed, onMounted, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 import {
   BContainer,
@@ -250,60 +250,14 @@ import {
   BFormCheckboxGroup,
 } from 'bootstrap-vue-next';
 import useToast from '@/composables/useToast';
-import { mergeGroupedCumulativeSeries, extractPerGroupSeries } from '@/utils/timeSeriesUtils';
-import type { GroupedTimeSeries } from '@/utils/timeSeriesUtils';
-import { inclusiveDayCount, previousPeriod } from '@/utils/dateUtils';
-import { safeArray } from '@/utils/apiUtils';
+import { inclusiveDayCount } from '@/utils/dateUtils';
+import { useAdminTrendData } from './composables/useAdminTrendData';
+import { useLeaderboardData } from './composables/useLeaderboardData';
+import { useKPIStats } from './composables/useKPIStats';
 import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
 import StatCard from './components/statistics/StatCard.vue';
-
-// Types
-interface TrendDataPoint {
-  date: string;
-  count: number;
-}
-
-interface ContributorData {
-  user_name: string;
-  entity_count: number;
-}
-
-interface ReReviewLeaderboardData {
-  user_name: string;
-  total_assigned: number;
-  submitted_count: number;
-  approved_count: number;
-}
-
-interface UpdatesStatistics {
-  total_new_entities: number;
-  unique_genes: number;
-  average_per_day: number;
-}
-
-interface ReReviewStatistics {
-  total_rereviews: number;
-  percentage_finished: number;
-  average_per_day: number;
-}
-
-interface UpdatedReviewsStatistics {
-  total_updated_reviews: number;
-}
-
-interface UpdatedStatusesStatistics {
-  total_updated_statuses: number;
-}
-
-interface KpiStats {
-  totalEntities: number;
-  newThisPeriod: number;
-  totalContributors: number;
-  avgPerDay: number;
-  trendDelta: number | undefined;
-}
 
 // Inject axios
 const axios = inject<AxiosInstance>('axios');
@@ -312,20 +266,13 @@ const { makeToast } = useToast();
 // API base URL
 const apiUrl = import.meta.env.VITE_API_URL;
 
-// Loading states
-const loading = ref({
-  trend: false,
-  leaderboard: false,
-  reReviewLeaderboard: false,
-  stats: false,
-});
+function getAuthHeaders() {
+  return {
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  };
+}
 
-// Date range and granularity
-const granularity = ref<'month' | 'week' | 'day'>('month');
-const leaderboardScope = ref<'all_time' | 'range'>('all_time');
-const reReviewLeaderboardScope = ref<'all_time' | 'range'>('all_time');
-
-// Set default date range to last 12 months
+// Date range (default: last 12 months)
 const today = new Date();
 const twelveMonthsAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
 const startDate = ref(twelveMonthsAgo.toISOString().split('T')[0]);
@@ -333,60 +280,69 @@ const endDate = ref(today.toISOString().split('T')[0]);
 
 const lastUpdated = ref<Date | null>(null);
 
-// Chart data
-const trendData = ref<TrendDataPoint[]>([]);
-const leaderboardData = ref<ContributorData[]>([]);
-const reReviewLeaderboardData = ref<ReReviewLeaderboardData[]>([]);
+// --- Composables ---
+const {
+  trendData,
+  trendCategoryData,
+  trendYMax,
+  totalEntities,
+  loading: trendLoading,
+  granularity,
+  nddFilter,
+  categoryDisplay,
+  selectedCategories,
+  trendDescription,
+  fetchTrendData,
+} = useAdminTrendData(axios, apiUrl, getAuthHeaders, makeToast);
 
-// KPI data
-const kpiStats = ref<KpiStats>({
-  totalEntities: 0,
-  newThisPeriod: 0,
-  totalContributors: 0,
-  avgPerDay: 0,
-  trendDelta: undefined,
-});
+const {
+  leaderboardData,
+  reReviewLeaderboardData,
+  totalContributors,
+  loadingLeaderboard,
+  loadingReReview,
+  leaderboardScope,
+  reReviewLeaderboardScope,
+  fetchLeaderboard,
+  fetchReReviewLeaderboard,
+} = useLeaderboardData(axios, apiUrl, getAuthHeaders, makeToast);
 
-// AbortController for cancelling in-flight trend requests
-let trendAbortController: AbortController | null = null;
+const {
+  loading: kpiLoading,
+  kpiStats,
+  statistics,
+  reReviewStatistics,
+  updatedReviewsStatistics,
+  updatedStatusesStatistics,
+  fetchKPIStats,
+  fetchExistingStatistics,
+} = useKPIStats(axios, apiUrl, getAuthHeaders, makeToast);
 
-// Entity trend filter controls
-const nddFilter = ref<'ndd' | 'non_ndd' | 'all'>('ndd');
-const categoryDisplay = ref<'combined' | 'by_category'>('combined');
-const selectedCategories = ref<string[]>(['Definitive', 'Moderate', 'Limited', 'Refuted']);
+// --- Composite loading state for template ---
+const loading = computed(() => ({
+  trend: trendLoading.value,
+  leaderboard: loadingLeaderboard.value,
+  reReviewLeaderboard: loadingReReview.value,
+  stats: kpiLoading.value,
+}));
 
-// Per-category chart data (used in by_category mode)
-const trendCategoryData = ref<{ dates: string[]; series: Record<string, number[]> }>({
-  dates: [],
-  series: {},
-});
-
-// Existing statistics data (kept for backward compatibility)
-const statistics = ref<UpdatesStatistics | null>(null);
-const reReviewStatistics = ref<ReReviewStatistics | null>(null);
-const updatedReviewsStatistics = ref<UpdatedReviewsStatistics | null>(null);
-const updatedStatusesStatistics = ref<UpdatedStatusesStatistics | null>(null);
-
-// Options for granularity toggle
+// --- Options arrays ---
 const granularityOptions = [
   { text: 'Monthly', value: 'month' },
   { text: 'Weekly', value: 'week' },
   { text: 'Daily', value: 'day' },
 ];
 
-// Options for leaderboard scope toggle
 const leaderboardScopeOptions = [
   { text: 'All Time', value: 'all_time' },
   { text: 'Date Range', value: 'range' },
 ];
 
-// Options for re-review leaderboard scope toggle
 const reReviewLeaderboardScopeOptions = [
   { text: 'All Time', value: 'all_time' },
   { text: 'Date Range', value: 'range' },
 ];
 
-// Entity trend filter options
 const nddFilterOptions = [
   { text: 'NDD', value: 'ndd' },
   { text: 'Non-NDD', value: 'non_ndd' },
@@ -405,30 +361,14 @@ const categoryFilterOptions = [
   { text: 'Refuted', value: 'Refuted' },
 ];
 
-// Re-fetch trend data when granularity changes
-watch(granularity, () => {
-  fetchTrendData();
-});
-
-// Reset y-axis max and refetch when NDD filter changes (different dataset)
-watch(nddFilter, () => {
-  trendYMax.value = undefined;
-  fetchTrendData();
-});
-
-// Re-fetch when selected categories change (same dataset, keep y-axis)
-watch(selectedCategories, () => {
-  fetchTrendData();
-});
-
-// Computed period length for context display
+// --- Computed ---
 const periodLengthDays = computed(() => inclusiveDayCount(startDate.value, endDate.value));
 
-// KPI cards computed with scientific context
+// KPI cards — orchestrates values from trend, leaderboard, and KPI composables
 const kpiCards = computed(() => [
   {
     label: 'Total Entities',
-    value: kpiStats.value.totalEntities,
+    value: totalEntities.value,
     context: 'Gene-disease associations with NDD phenotype',
   },
   {
@@ -439,7 +379,7 @@ const kpiCards = computed(() => [
   },
   {
     label: 'Contributors',
-    value: kpiStats.value.totalContributors,
+    value: totalContributors.value,
     context: 'Curators with entity submissions',
   },
   {
@@ -449,365 +389,35 @@ const kpiCards = computed(() => [
   },
 ]);
 
-// Helper functions
+// --- Helpers ---
 function formatDateTime(date: Date): string {
   return date.toLocaleString();
 }
 
-function formatDecimal(value: number | number[] | undefined | null): string {
-  if (value === undefined || value === null) return 'N/A';
-  // Handle both array and scalar values from API
-  const numValue = Array.isArray(value) ? value[0] : value;
-  if (typeof numValue !== 'number' || isNaN(numValue)) return 'N/A';
-  return numValue.toFixed(2);
+function formatDecimal(value: number | undefined | null): string {
+  if (value === undefined || value === null || typeof value !== 'number' || isNaN(value))
+    return 'N/A';
+  return value.toFixed(2);
 }
 
-function getAuthHeaders() {
-  return {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  };
-}
-
-// Persistent y-axis max so scale stays stable across view switches
-const trendYMax = ref<number | undefined>(undefined);
-
-// Build filter string for trend API based on controls.
-// Returns undefined when the filter matches the API default (avoids encoding issues).
-function buildTrendFilter(): string | undefined {
-  const parts: string[] = [];
-
-  if (nddFilter.value === 'ndd') {
-    parts.push('contains(ndd_phenotype_word,Yes)');
-  } else if (nddFilter.value === 'non_ndd') {
-    parts.push('contains(ndd_phenotype_word,No)');
-  }
-  // 'all' → no NDD part
-
-  if (selectedCategories.value.length > 0 && selectedCategories.value.length < 4) {
-    parts.push(`any(category,${selectedCategories.value.join(',')})`);
-  }
-
-  if (parts.length === 0) {
-    // No filters at all → pass empty string to override API default
-    return '';
-  }
-
-  // If this matches the API default exactly, omit to avoid URL-encoding issues
-  if (parts.length === 1 && parts[0] === 'contains(ndd_phenotype_word,Yes)') {
-    return undefined;
-  }
-
-  return parts.join(',');
-}
-
-// Computed description text for trend chart
-const trendDescription = computed(() => {
-  const nddLabel =
-    nddFilter.value === 'ndd' ? 'NDD' : nddFilter.value === 'non_ndd' ? 'non-NDD' : 'all';
-
-  if (categoryDisplay.value === 'by_category') {
-    return `Per-category cumulative counts of ${nddLabel} gene-disease associations curated over time.`;
-  }
-  return (
-    `Cumulative count of ${nddLabel} gene-disease associations curated over time.` +
-    ' The dashed trend line represents a 3-period moving average for temporal smoothing.'
-  );
-});
-
-// Fetch trend data from /entities_over_time endpoint
-async function fetchTrendData(): Promise<void> {
-  if (!axios) return;
-
-  // Cancel previous in-flight request
-  trendAbortController?.abort();
-  trendAbortController = new AbortController();
-
-  // Clear stale data immediately
-  trendData.value = [];
-  trendCategoryData.value = { dates: [], series: {} };
-  loading.value.trend = true;
-  try {
-    const params: Record<string, string> = {
-      aggregate: 'entity_id',
-      group: 'category',
-      summarize: granularity.value,
-    };
-    const filterValue = buildTrendFilter();
-    if (filterValue !== undefined) {
-      params.filter = filterValue;
-    }
-
-    const response = await axios.get(`${apiUrl}/api/statistics/entities_over_time`, {
-      params,
-      headers: getAuthHeaders(),
-      signal: trendAbortController.signal,
-    });
-
-    // Transform response using utility that correctly handles sparse data
-    const allData = safeArray<GroupedTimeSeries>(response.data?.data);
-
-    // Always compute combined data (needed for KPI)
-    trendData.value = mergeGroupedCumulativeSeries(allData);
-
-    // Also compute per-category data for by_category mode
-    trendCategoryData.value = extractPerGroupSeries(allData);
-
-    // Derive totalEntities from final cumulative value (avoids race condition)
-    if (trendData.value.length > 0) {
-      const maxVal = trendData.value[trendData.value.length - 1].count;
-      kpiStats.value.totalEntities = maxVal;
-      // Track y-axis max as running maximum so scale stays fixed across toggles
-      trendYMax.value = Math.max(trendYMax.value ?? 0, maxVal);
-    }
-
-    // Release controller reference after successful completion
-    trendAbortController = null;
-  } catch (error) {
-    if ((error as Error).name !== 'AbortError') {
-      console.error('Failed to fetch trend data:', error);
-      makeToast('Failed to fetch trend data', 'Error', 'danger');
-      trendData.value = [];
-      trendCategoryData.value = { dates: [], series: {} };
-    }
-  } finally {
-    loading.value.trend = false;
-  }
-}
-
-// Fetch leaderboard data from /contributor_leaderboard endpoint
-async function fetchLeaderboard(): Promise<void> {
-  if (!axios) return;
-
-  loading.value.leaderboard = true;
-  try {
-    const params: Record<string, string | number> = {
-      top: 10,
-      scope: leaderboardScope.value,
-    };
-
-    if (leaderboardScope.value === 'range') {
-      params.start_date = startDate.value;
-      params.end_date = endDate.value;
-    }
-
-    const response = await axios.get(`${apiUrl}/api/statistics/contributor_leaderboard`, {
-      params,
-      headers: getAuthHeaders(),
-    });
-
-    // Map response to chart format: use display_name for user_name
-    const data = safeArray<{ display_name: string; entity_count: number }>(response.data?.data);
-    leaderboardData.value = data.map((item: { display_name: string; entity_count: number }) => ({
-      user_name: item.display_name || 'Unknown',
-      entity_count: item.entity_count,
-    }));
-
-    // Update total contributors from meta (unwrap R/Plumber array)
-    if (response.data.meta?.total_contributors) {
-      const contributors = response.data.meta.total_contributors;
-      kpiStats.value.totalContributors = Array.isArray(contributors)
-        ? contributors[0]
-        : contributors;
-    }
-  } catch (error) {
-    console.error('Failed to fetch leaderboard:', error);
-    makeToast('Failed to fetch leaderboard data', 'Error', 'danger');
-    leaderboardData.value = [];
-  } finally {
-    loading.value.leaderboard = false;
-  }
-}
-
-// Fetch re-review leaderboard data from /rereview_leaderboard endpoint
-async function fetchReReviewLeaderboard(): Promise<void> {
-  if (!axios) return;
-
-  loading.value.reReviewLeaderboard = true;
-  try {
-    const params: Record<string, string | number> = {
-      top: 10,
-      scope: reReviewLeaderboardScope.value,
-    };
-
-    if (reReviewLeaderboardScope.value === 'range') {
-      params.start_date = startDate.value;
-      params.end_date = endDate.value;
-    }
-
-    const response = await axios.get(`${apiUrl}/api/statistics/rereview_leaderboard`, {
-      params,
-      headers: getAuthHeaders(),
-    });
-
-    // Map response to chart format
-    const data = safeArray<{
-      display_name: string;
-      total_assigned: number;
-      submitted_count: number;
-      approved_count: number;
-    }>(response.data?.data);
-    reReviewLeaderboardData.value = data.map(
-      (item: {
-        display_name: string;
-        total_assigned: number;
-        submitted_count: number;
-        approved_count: number;
-      }) => ({
-        user_name: item.display_name || 'Unknown',
-        total_assigned: item.total_assigned ?? 0,
-        submitted_count: item.submitted_count ?? 0,
-        approved_count: item.approved_count ?? 0,
-      })
-    );
-  } catch (error) {
-    console.error('Failed to fetch re-review leaderboard:', error);
-    makeToast('Failed to fetch re-review leaderboard data', 'Error', 'danger');
-    reReviewLeaderboardData.value = [];
-  } finally {
-    loading.value.reReviewLeaderboard = false;
-  }
-}
-
-// Fetch updates statistics (for KPIs and backward compatibility)
-async function fetchUpdatesStats(start: string, end: string): Promise<UpdatesStatistics | null> {
-  if (!axios) return null;
-
-  try {
-    const response = await axios.get(`${apiUrl}/api/statistics/updates`, {
-      params: { start_date: start, end_date: end },
-      headers: getAuthHeaders(),
-    });
-    // API returns arrays, extract first element
-    const extractValue = (val: number | number[]): number =>
-      Array.isArray(val) ? (val[0] ?? 0) : (val ?? 0);
-    return {
-      total_new_entities: extractValue(response.data.total_new_entities),
-      unique_genes: extractValue(response.data.unique_genes),
-      average_per_day: extractValue(response.data.average_per_day),
-    };
-  } catch (error) {
-    console.error('Failed to fetch updates stats:', error);
-    return null;
-  }
-}
-
-// Calculate trend delta by comparing current period with previous equal-length period
-async function calculateTrendDelta(): Promise<number | undefined> {
-  const prev = previousPeriod(startDate.value, endDate.value);
-
-  // Fetch both periods
-  const [currentStats, prevStats] = await Promise.all([
-    fetchUpdatesStats(startDate.value, endDate.value),
-    fetchUpdatesStats(prev.start, prev.end),
-  ]);
-
-  if (!currentStats || !prevStats) return undefined;
-
-  // Calculate percentage change
-  if (prevStats.total_new_entities === 0) {
-    return currentStats.total_new_entities > 0 ? 100 : 0;
-  }
-  return Math.round(
-    ((currentStats.total_new_entities - prevStats.total_new_entities) /
-      prevStats.total_new_entities) *
-      100
-  );
-}
-
-// Fetch KPI stats
-async function fetchKPIStats(): Promise<void> {
-  if (!axios) return;
-
-  loading.value.stats = true;
-  try {
-    // Fetch current period updates stats
-    const currentStats = await fetchUpdatesStats(startDate.value, endDate.value);
-
-    if (currentStats) {
-      kpiStats.value.newThisPeriod = currentStats.total_new_entities;
-      kpiStats.value.avgPerDay = Math.round(currentStats.average_per_day * 100) / 100;
-
-      // Store for backward compatibility display
-      statistics.value = currentStats;
-    }
-
-    // Calculate trend delta
-    const delta = await calculateTrendDelta();
-    kpiStats.value.trendDelta = delta;
-  } catch (error) {
-    console.error('Failed to fetch KPI stats:', error);
-    makeToast('Failed to fetch KPI statistics', 'Error', 'danger');
-  } finally {
-    loading.value.stats = false;
-  }
-}
-
-// Fetch existing statistics (backward compatibility)
-async function fetchExistingStatistics(): Promise<void> {
-  if (!axios) return;
-
-  try {
-    // Re-review statistics
-    const reReviewResponse = await axios.get(`${apiUrl}/api/statistics/rereview`, {
-      params: { start_date: startDate.value, end_date: endDate.value },
-      headers: getAuthHeaders(),
-    });
-    // Helper to extract scalar from array-wrapped API responses
-    const extractVal = (val: number | number[]): number =>
-      Array.isArray(val) ? (val[0] ?? 0) : (val ?? 0);
-    reReviewStatistics.value = {
-      total_rereviews: extractVal(reReviewResponse.data.total_rereviews),
-      percentage_finished: extractVal(reReviewResponse.data.percentage_finished),
-      average_per_day: extractVal(reReviewResponse.data.average_per_day),
-    };
-
-    // Updated reviews statistics
-    const updatedReviewsResponse = await axios.get(`${apiUrl}/api/statistics/updated_reviews`, {
-      params: { start_date: startDate.value, end_date: endDate.value },
-      headers: getAuthHeaders(),
-    });
-    updatedReviewsStatistics.value = {
-      total_updated_reviews: extractVal(updatedReviewsResponse.data.total_updated_reviews),
-    };
-
-    // Updated statuses statistics
-    const updatedStatusesResponse = await axios.get(`${apiUrl}/api/statistics/updated_statuses`, {
-      params: { start_date: startDate.value, end_date: endDate.value },
-      headers: getAuthHeaders(),
-    });
-    updatedStatusesStatistics.value = {
-      total_updated_statuses: extractVal(updatedStatusesResponse.data.total_updated_statuses),
-    };
-  } catch (error) {
-    console.error('Failed to fetch existing statistics:', error);
-    makeToast('Failed to fetch statistics', 'Error', 'danger');
-  }
-}
-
-// Main fetch function triggered by Apply button
+// --- Orchestration ---
 async function fetchStatistics(): Promise<void> {
+  const start = startDate.value;
+  const end = endDate.value;
   await Promise.all([
     fetchTrendData(),
-    fetchLeaderboard(),
-    fetchReReviewLeaderboard(),
-    fetchKPIStats(),
-    fetchExistingStatistics(),
+    fetchLeaderboard(start, end),
+    fetchReReviewLeaderboard(start, end),
+    fetchKPIStats(start, end),
+    fetchExistingStatistics(start, end),
   ]);
   lastUpdated.value = new Date();
 }
 
-// Refresh all data
 function refreshAll(): void {
   fetchStatistics();
 }
 
-// Cleanup on unmount
-onUnmounted(() => {
-  trendAbortController?.abort();
-  trendAbortController = null;
-});
-
-// On mount, fetch initial data
 onMounted(() => {
   fetchStatistics();
 });

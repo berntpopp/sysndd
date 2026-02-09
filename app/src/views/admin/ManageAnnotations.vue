@@ -81,9 +81,7 @@
             <BAlert v-if="ontologyBlocked" variant="warning" show class="mt-3 mb-0">
               <h6 class="alert-heading d-flex align-items-center gap-2">
                 Ontology Update Blocked
-                <span class="badge bg-danger">
-                  {{ ontologyBlocked.critical_count }} critical
-                </span>
+                <span class="badge bg-danger"> {{ ontologyBlocked.critical_count }} critical </span>
                 <span v-if="ontologyBlocked.auto_fixable_count > 0" class="badge bg-info">
                   {{ ontologyBlocked.auto_fixable_count }} auto-fixable
                 </span>
@@ -95,10 +93,7 @@
               </p>
 
               <!-- Critical entities table -->
-              <div
-                v-if="ontologyBlocked.critical_entities.length > 0"
-                class="mb-3"
-              >
+              <div v-if="ontologyBlocked.critical_entities.length > 0" class="mb-3">
                 <strong class="small">Critical entities:</strong>
                 <BTable
                   :items="ontologyBlocked.critical_entities"
@@ -117,10 +112,7 @@
               </div>
 
               <!-- Auto-fixable remappings (collapsible) -->
-              <div
-                v-if="ontologyBlocked.auto_fixes.length > 0"
-                class="mb-3"
-              >
+              <div v-if="ontologyBlocked.auto_fixes.length > 0" class="mb-3">
                 <BButton
                   variant="link"
                   size="sm"
@@ -1292,15 +1284,13 @@ watch(
                   return obj;
                 }
               ),
-              auto_fixes: (result.auto_fixes || []).map(
-                (f: Record<string, unknown>) => {
-                  const obj: Record<string, unknown> = {};
-                  Object.keys(f).forEach((k) => {
-                    obj[k] = unwrapValue(f[k]);
-                  });
-                  return obj;
-                }
-              ),
+              auto_fixes: (result.auto_fixes || []).map((f: Record<string, unknown>) => {
+                const obj: Record<string, unknown> = {};
+                Object.keys(f).forEach((k) => {
+                  obj[k] = unwrapValue(f[k]);
+                });
+                return obj;
+              }),
             };
             // Load user list for batch assignment dropdown
             loadForceApplyUsers();

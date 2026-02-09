@@ -186,7 +186,11 @@
                 <GeneBadge
                   :symbol="(data.item as GeneItem).gene_symbol"
                   :hgnc-id="(data.item as GeneItem).hgnc_id"
-                  :link-to="(data.item as GeneItem).hgnc_id ? '/Genes/' + (data.item as GeneItem).hgnc_id : undefined"
+                  :link-to="
+                    (data.item as GeneItem).hgnc_id
+                      ? '/Genes/' + (data.item as GeneItem).hgnc_id
+                      : undefined
+                  "
                   size="sm"
                 />
               </template>
@@ -301,7 +305,13 @@
                           </span>
                           <BBadge
                             v-if="pub.score != null"
-                            :variant="pub.score >= 500 ? 'success' : pub.score >= 100 ? 'warning' : 'secondary'"
+                            :variant="
+                              pub.score >= 500
+                                ? 'success'
+                                : pub.score >= 100
+                                  ? 'warning'
+                                  : 'secondary'
+                            "
                             pill
                           >
                             Score: {{ pub.score }}
@@ -383,7 +393,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 
 // Import composables
@@ -598,6 +608,9 @@ const totalPages = ref(0);
 const publicationCache = ref<Record<string, PublicationData[]>>({});
 const loadingPublications = ref<Record<string, boolean>>({});
 
+// AbortControllers for per-gene publication fetches (prevents orphaned requests)
+const publicationAbortControllers = new Map<string, AbortController>();
+
 // Computed: sortBy as properly typed array for BTable
 const sortByArray = computed(() => sortBy.value);
 
@@ -656,6 +669,11 @@ const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
   if (!axios || pmids.length === 0) return;
   if (publicationCache.value[geneSymbol]) return; // Already cached
 
+  // Cancel any in-flight request for this gene
+  publicationAbortControllers.get(geneSymbol)?.abort();
+  const controller = new AbortController();
+  publicationAbortControllers.set(geneSymbol, controller);
+
   loadingPublications.value[geneSymbol] = true;
 
   try {
@@ -663,12 +681,15 @@ const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
     const pmidFilter = pmids.join(',');
     const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table?filter=any(pmid,${pmidFilter})&fields=search_id,pmid,doi,title,journal,date,score,gene_symbols,text_hl&page_size=${pmids.length}`;
 
-    const response = await axios.get(apiUrl);
+    const response = await axios.get(apiUrl, { signal: controller.signal });
     publicationCache.value[geneSymbol] = response.data.data || [];
   } catch (error) {
-    console.error('Failed to fetch publication data:', error);
-    publicationCache.value[geneSymbol] = [];
+    if ((error as Error).name !== 'AbortError' && (error as Error).name !== 'CanceledError') {
+      console.error('Failed to fetch publication data:', error);
+      publicationCache.value[geneSymbol] = [];
+    }
   } finally {
+    publicationAbortControllers.delete(geneSymbol);
     loadingPublications.value[geneSymbol] = false;
   }
 };
@@ -935,6 +956,12 @@ const mergeFields = (inboundFields: FieldDefinition[]): FieldDefinition[] => {
 
   return merged;
 };
+
+// Cleanup: abort all in-flight publication requests on unmount
+onUnmounted(() => {
+  publicationAbortControllers.forEach((controller) => controller.abort());
+  publicationAbortControllers.clear();
+});
 
 // Lifecycle
 onMounted(() => {

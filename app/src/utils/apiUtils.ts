@@ -39,3 +39,24 @@ export function safeArray<T>(data: unknown): T[] {
 export function clampPositive(n: number | null | undefined): number {
   return Math.max(0, n ?? 0);
 }
+
+/**
+ * Unwrap an R/Plumber scalar value that may be wrapped in an array.
+ *
+ * R/Plumber serializes scalar values as single-element JSON arrays
+ * (e.g., `42` becomes `[42]`). This helper safely extracts the scalar.
+ *
+ * @param val - Value from API response (may be T, T[], null, or undefined)
+ * @param fallback - Default value if val is null/undefined (default: undefined)
+ * @returns The unwrapped scalar value, or fallback
+ *
+ * @example
+ * unwrapScalar([42])        // Returns 42
+ * unwrapScalar(42)          // Returns 42
+ * unwrapScalar(null, 0)     // Returns 0
+ * unwrapScalar(undefined)   // Returns undefined
+ */
+export function unwrapScalar<T>(val: T | T[] | null | undefined, fallback?: T): T | undefined {
+  if (val === null || val === undefined) return fallback;
+  return Array.isArray(val) ? (val[0] ?? fallback) : val;
+}

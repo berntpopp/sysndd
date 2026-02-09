@@ -662,7 +662,14 @@ function(req, res, top = 10, start_date = NULL, end_date = NULL, scope = "all_ti
     select(status_id, status_date) %>%
     collect()
 
-  # Get re-review data with assignments to determine which user did each re-review
+  # Get ALL re-review assignments (not just submitted ones).
+
+  # NOTE (v10.5): Intentionally includes unsubmitted assignments to support
+
+  # three-segment stacked bars (approved / submitted / not-submitted).
+  # Previously this query filtered for re_review_submitted == 1 only,
+  # which only showed "submitted reviews". The change was made in Phase 81
+  # to give admins visibility into the full re-review pipeline.
   re_review_data <- pool %>%
     tbl("re_review_entity_connect") %>%
     collect() %>%

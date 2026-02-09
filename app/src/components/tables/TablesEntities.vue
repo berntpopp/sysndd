@@ -70,7 +70,10 @@
                   v-b-tooltip.hover.bottom
                   :title="
                     getTooltipText(
-                      fields.find((f) => f.label === data.label) || { key: data.column, label: data.label }
+                      fields.find((f) => f.label === data.label) || {
+                        key: data.column,
+                        label: data.label,
+                      }
                     )
                   "
                 >

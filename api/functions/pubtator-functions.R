@@ -18,7 +18,8 @@ if (!exists("db_execute_query", mode = "function")) {
 
 #------------------------------------------------------------------------------
 # PubTator API Rate Limiting Configuration
-# Based on API documentation: ~30 requests/minute limit
+# NCBI E-utilities rate limit: 3 req/s without API key, 10 req/s with key.
+# Reference: https://www.ncbi.nlm.nih.gov/books/NBK25497/#chapter2.Usage_Guidelines_and_Requiremen
 #------------------------------------------------------------------------------
 PUBTATOR_RATE_LIMIT_DELAY <- 0.35 # seconds between requests (~2.86 req/s, under NCBI 3 req/s limit)
 PUBTATOR_MAX_PMIDS_PER_REQUEST <- 100 # batch size for PMID fetches
@@ -355,145 +356,9 @@ pubtator_db_update <- function(
         }
 
         # G) Compute and store human gene symbols per search_id
-        # Join annotations with HGNC gene list to filter for human genes only
-        log_info("Computing human gene symbols for query_id={query_id}...")
         report_progress("genes", "Computing human gene symbols...",
                         current = max_pages + 1, total = max_pages + 2)
-
-        # Source 1: Annotation cache (direct entrez_id + name fallback)
-        gene_symbols_df <- db_execute_query(
-          "SELECT search_id,
-                  GROUP_CONCAT(DISTINCT symbol ORDER BY symbol SEPARATOR ',') AS gene_symbols
-           FROM (
-             SELECT s.search_id, nal.symbol
-             FROM pubtator_search_cache s
-             JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-             JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
-             WHERE s.query_id = ?
-               AND a.type = 'Gene'
-               AND a.normalized_id IS NOT NULL
-               AND a.normalized_id != ''
-             UNION
-             SELECT s.search_id, nal.symbol
-             FROM pubtator_search_cache s
-             JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-             JOIN non_alt_loci_set nal ON UPPER(nal.symbol) = UPPER(a.name)
-             WHERE s.query_id = ?
-               AND a.type = 'Gene'
-               AND a.name IS NOT NULL
-               AND a.name != ''
-           ) gene_matches
-           GROUP BY search_id",
-          list(query_id, query_id),
-          conn = txn_conn
-        )
-
-        # Source 2: Parse @GENE_ tags from text_hl (search API annotations)
-        # Pattern: @GENE_<name> @GENE_<id> @@@<display_text>@@@
-        text_hl_rows <- db_execute_query(
-          "SELECT search_id, text_hl FROM pubtator_search_cache
-           WHERE query_id = ? AND text_hl LIKE '%@GENE_%'",
-          list(query_id),
-          conn = txn_conn
-        )
-
-        if (nrow(text_hl_rows) > 0) {
-          # Extract gene names and display texts from text_hl
-          hl_genes <- do.call(rbind, lapply(seq_len(nrow(text_hl_rows)), function(i) {
-            row <- text_hl_rows[i, ]
-            # Extract @GENE_<symbol> tags (non-numeric = gene symbols)
-            symbols <- stringr::str_match_all(
-              row$text_hl,
-              "@GENE_([A-Za-z][A-Za-z0-9_-]+)\\s"
-            )[[1]][, 2]
-            # Extract display texts from @@@<text>@@@ after @GENE_ tags
-            displays <- stringr::str_match_all(
-              row$text_hl,
-              "@GENE_[^ ]+ @GENE_[0-9]+ @@@<?m?>?([^@<]+)(?:</m>)?@@@"
-            )[[1]][, 2]
-            all_names <- unique(c(symbols, displays))
-            if (length(all_names) > 0) {
-              data.frame(
-                search_id = row$search_id,
-                gene_name = all_names,
-                stringsAsFactors = FALSE
-              )
-            } else {
-              NULL
-            }
-          }))
-
-          if (!is.null(hl_genes) && nrow(hl_genes) > 0) {
-            # Match against HGNC symbols (case-insensitive)
-            unique_names <- unique(toupper(hl_genes$gene_name))
-            placeholders <- paste(rep("?", length(unique_names)), collapse = ",")
-            hgnc_matches <- db_execute_query(
-              sprintf(
-                "SELECT UPPER(symbol) AS upper_symbol, symbol
-                 FROM non_alt_loci_set WHERE UPPER(symbol) IN (%s)",
-                placeholders
-              ),
-              as.list(unique_names),
-              conn = txn_conn
-            )
-
-            if (nrow(hgnc_matches) > 0) {
-              hl_genes$upper_name <- toupper(hl_genes$gene_name)
-              hl_matched <- dplyr::inner_join(
-                hl_genes, hgnc_matches,
-                by = c("upper_name" = "upper_symbol")
-              )
-              if (nrow(hl_matched) > 0) {
-                hl_summary <- hl_matched %>%
-                  dplyr::group_by(search_id) %>%
-                  dplyr::summarise(
-                    hl_gene_symbols = paste(
-                      sort(unique(symbol)), collapse = ","
-                    ),
-                    .groups = "drop"
-                  )
-
-                # Merge text_hl genes with annotation cache genes
-                if (nrow(gene_symbols_df) > 0) {
-                  gene_symbols_df <- dplyr::full_join(
-                    gene_symbols_df, hl_summary,
-                    by = "search_id"
-                  )
-                  gene_symbols_df$gene_symbols <- mapply(
-                    function(a, b) {
-                      syms <- unique(sort(unlist(strsplit(
-                        paste(na.omit(c(a, b)), collapse = ","), ","
-                      ))))
-                      paste(syms, collapse = ",")
-                    },
-                    gene_symbols_df$gene_symbols,
-                    gene_symbols_df$hl_gene_symbols
-                  )
-                  gene_symbols_df$hl_gene_symbols <- NULL
-                } else {
-                  gene_symbols_df <- data.frame(
-                    search_id = hl_summary$search_id,
-                    gene_symbols = hl_summary$hl_gene_symbols,
-                    stringsAsFactors = FALSE
-                  )
-                }
-              }
-            }
-          }
-        }
-
-        if (nrow(gene_symbols_df) > 0) {
-          log_info("Updating gene_symbols for {nrow(gene_symbols_df)} publications")
-          for (r in seq_len(nrow(gene_symbols_df))) {
-            db_execute_statement(
-              "UPDATE pubtator_search_cache
-               SET gene_symbols = ?
-               WHERE search_id = ?",
-              list(gene_symbols_df$gene_symbols[r], gene_symbols_df$search_id[r]),
-              conn = txn_conn
-            )
-          }
-        }
+        compute_pubtator_gene_symbols(query_id, conn = txn_conn)
 
         log_info("All done => returning query_id={query_id}")
         query_id # Return value - transaction auto-commits
@@ -755,116 +620,7 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
 
     # F) Compute gene symbols
     report_progress("genes", "Computing gene symbols...", current = max_pages + 1, total = max_pages + 1)
-
-    # Source 1: Annotation cache (direct entrez_id + name fallback)
-    gene_df <- db_execute_query(
-      "SELECT search_id,
-              GROUP_CONCAT(DISTINCT symbol ORDER BY symbol SEPARATOR ',') AS gene_symbols
-       FROM (
-         SELECT s.search_id, nal.symbol
-         FROM pubtator_search_cache s
-         JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-         JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
-         WHERE s.query_id = ?
-           AND a.type = 'Gene'
-           AND a.normalized_id IS NOT NULL
-           AND a.normalized_id != ''
-         UNION
-         SELECT s.search_id, nal.symbol
-         FROM pubtator_search_cache s
-         JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
-         JOIN non_alt_loci_set nal ON UPPER(nal.symbol) = UPPER(a.name)
-         WHERE s.query_id = ?
-           AND a.type = 'Gene'
-           AND a.name IS NOT NULL
-           AND a.name != ''
-       ) gene_matches
-       GROUP BY search_id",
-      list(query_id, query_id), conn = conn
-    )
-
-    # Source 2: Parse @GENE_ tags from text_hl (search API annotations)
-    text_hl_rows <- db_execute_query(
-      "SELECT search_id, text_hl FROM pubtator_search_cache
-       WHERE query_id = ? AND text_hl LIKE '%@GENE_%'",
-      list(query_id), conn = conn
-    )
-
-    if (nrow(text_hl_rows) > 0) {
-      hl_genes <- do.call(rbind, lapply(seq_len(nrow(text_hl_rows)), function(i) {
-        row <- text_hl_rows[i, ]
-        symbols <- stringr::str_match_all(
-          row$text_hl,
-          "@GENE_([A-Za-z][A-Za-z0-9_-]+)\\s"
-        )[[1]][, 2]
-        displays <- stringr::str_match_all(
-          row$text_hl,
-          "@GENE_[^ ]+ @GENE_[0-9]+ @@@<?m?>?([^@<]+)(?:</m>)?@@@"
-        )[[1]][, 2]
-        all_names <- unique(c(symbols, displays))
-        if (length(all_names) > 0) {
-          data.frame(search_id = row$search_id, gene_name = all_names,
-                     stringsAsFactors = FALSE)
-        } else {
-          NULL
-        }
-      }))
-
-      if (!is.null(hl_genes) && nrow(hl_genes) > 0) {
-        unique_names <- unique(toupper(hl_genes$gene_name))
-        placeholders <- paste(rep("?", length(unique_names)), collapse = ",")
-        hgnc_matches <- db_execute_query(
-          sprintf(
-            "SELECT UPPER(symbol) AS upper_symbol, symbol
-             FROM non_alt_loci_set WHERE UPPER(symbol) IN (%s)",
-            placeholders
-          ),
-          as.list(unique_names), conn = conn
-        )
-
-        if (nrow(hgnc_matches) > 0) {
-          hl_genes$upper_name <- toupper(hl_genes$gene_name)
-          hl_matched <- dplyr::inner_join(
-            hl_genes, hgnc_matches,
-            by = c("upper_name" = "upper_symbol")
-          )
-          if (nrow(hl_matched) > 0) {
-            hl_summary <- hl_matched %>%
-              dplyr::group_by(search_id) %>%
-              dplyr::summarise(
-                hl_gene_symbols = paste(sort(unique(symbol)), collapse = ","),
-                .groups = "drop"
-              )
-            if (nrow(gene_df) > 0) {
-              gene_df <- dplyr::full_join(gene_df, hl_summary, by = "search_id")
-              gene_df$gene_symbols <- mapply(function(a, b) {
-                syms <- unique(sort(unlist(strsplit(
-                  paste(na.omit(c(a, b)), collapse = ","), ","))))
-                paste(syms, collapse = ",")
-              }, gene_df$gene_symbols, gene_df$hl_gene_symbols)
-              gene_df$hl_gene_symbols <- NULL
-            } else {
-              gene_df <- data.frame(
-                search_id = hl_summary$search_id,
-                gene_symbols = hl_summary$hl_gene_symbols,
-                stringsAsFactors = FALSE
-              )
-            }
-          }
-        }
-      }
-    }
-
-    if (nrow(gene_df) > 0) {
-      log_info("Updating gene_symbols for {nrow(gene_df)} publications")
-      for (r in seq_len(nrow(gene_df))) {
-        db_execute_statement(
-          "UPDATE pubtator_search_cache SET gene_symbols = ? WHERE search_id = ?",
-          list(gene_df$gene_symbols[r], gene_df$search_id[r]),
-          conn = conn
-        )
-      }
-    }
+    compute_pubtator_gene_symbols(query_id, conn = conn)
 
     DBI::dbCommit(conn)
     log_info("PubTator update complete for query_id={query_id}")
@@ -898,6 +654,163 @@ pubtator_db_update_async <- function(db_config, query, max_pages = 10,
     log_error(skip_formatter(paste("PubTator async update failed:", e$message)))
     return(list(success = FALSE, query_id = NULL, message = paste("Error:", e$message)))
   })
+}
+
+
+#------------------------------------------------------------------------------
+# 3c) SHARED: compute_pubtator_gene_symbols
+#   Extracts human gene symbols for publications in a given query.
+#   Used by both pubtator_db_update (sync) and pubtator_db_update_async.
+#------------------------------------------------------------------------------
+#' Compute and store human gene symbols per search_id
+#'
+#' Joins annotation cache with HGNC gene list using three strategies:
+#' 1. Direct entrez_id match against non_alt_loci_set
+#' 2. Case-insensitive name match against HGNC symbols
+#' 3. Parse @GENE_ tags from text_hl and match display texts against HGNC
+#'
+#' @param query_id Integer query_id from pubtator_query_cache
+#' @param conn Database connection (transaction connection or direct DBI connection)
+#' @return Invisible NULL (side-effect: updates gene_symbols in pubtator_search_cache)
+#' @keywords internal
+compute_pubtator_gene_symbols <- function(query_id, conn) {
+  log_info("Computing human gene symbols for query_id={query_id}...")
+
+  # Source 1: Annotation cache (direct entrez_id + name fallback)
+  gene_symbols_df <- db_execute_query(
+    "SELECT search_id,
+            GROUP_CONCAT(DISTINCT symbol ORDER BY symbol SEPARATOR ',') AS gene_symbols
+     FROM (
+       SELECT s.search_id, nal.symbol
+       FROM pubtator_search_cache s
+       JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+       JOIN non_alt_loci_set nal ON nal.entrez_id = a.normalized_id
+       WHERE s.query_id = ?
+         AND a.type = 'Gene'
+         AND a.normalized_id IS NOT NULL
+         AND a.normalized_id != ''
+       UNION
+       SELECT s.search_id, nal.symbol
+       FROM pubtator_search_cache s
+       JOIN pubtator_annotation_cache a ON s.search_id = a.search_id
+       JOIN non_alt_loci_set nal ON UPPER(nal.symbol) = UPPER(a.name)
+       WHERE s.query_id = ?
+         AND a.type = 'Gene'
+         AND a.name IS NOT NULL
+         AND a.name != ''
+     ) gene_matches
+     GROUP BY search_id",
+    list(query_id, query_id),
+    conn = conn
+  )
+
+  # Source 2: Parse @GENE_ tags from text_hl (search API annotations)
+  text_hl_rows <- db_execute_query(
+    "SELECT search_id, text_hl FROM pubtator_search_cache
+     WHERE query_id = ? AND text_hl LIKE '%@GENE_%'",
+    list(query_id),
+    conn = conn
+  )
+
+  if (nrow(text_hl_rows) > 0) {
+    # Extract gene names and display texts from text_hl
+    hl_genes <- do.call(rbind, lapply(seq_len(nrow(text_hl_rows)), function(i) {
+      row <- text_hl_rows[i, ]
+      # Extract @GENE_<symbol> tags (non-numeric = gene symbols)
+      symbols <- stringr::str_match_all(
+        row$text_hl,
+        "@GENE_([A-Za-z][A-Za-z0-9_-]+)\\s"
+      )[[1]][, 2]
+      # Extract display texts from @@@<text>@@@ after @GENE_ tags
+      displays <- stringr::str_match_all(
+        row$text_hl,
+        "@GENE_[^ ]+ @GENE_[0-9]+ @@@<?m?>?([^@<]+)(?:</m>)?@@@"
+      )[[1]][, 2]
+      all_names <- unique(c(symbols, displays))
+      if (length(all_names) > 0) {
+        data.frame(
+          search_id = row$search_id,
+          gene_name = all_names,
+          stringsAsFactors = FALSE
+        )
+      } else {
+        NULL
+      }
+    }))
+
+    if (!is.null(hl_genes) && nrow(hl_genes) > 0) {
+      # Match against HGNC symbols (case-insensitive)
+      unique_names <- unique(toupper(hl_genes$gene_name))
+      placeholders <- paste(rep("?", length(unique_names)), collapse = ",")
+      hgnc_matches <- db_execute_query(
+        sprintf(
+          "SELECT UPPER(symbol) AS upper_symbol, symbol
+           FROM non_alt_loci_set WHERE UPPER(symbol) IN (%s)",
+          placeholders
+        ),
+        as.list(unique_names),
+        conn = conn
+      )
+
+      if (nrow(hgnc_matches) > 0) {
+        hl_genes$upper_name <- toupper(hl_genes$gene_name)
+        hl_matched <- dplyr::inner_join(
+          hl_genes, hgnc_matches,
+          by = c("upper_name" = "upper_symbol")
+        )
+        if (nrow(hl_matched) > 0) {
+          hl_summary <- hl_matched %>%
+            dplyr::group_by(search_id) %>%
+            dplyr::summarise(
+              hl_gene_symbols = paste(
+                sort(unique(symbol)), collapse = ","
+              ),
+              .groups = "drop"
+            )
+
+          # Merge text_hl genes with annotation cache genes
+          if (nrow(gene_symbols_df) > 0) {
+            gene_symbols_df <- dplyr::full_join(
+              gene_symbols_df, hl_summary,
+              by = "search_id"
+            )
+            gene_symbols_df$gene_symbols <- mapply(
+              function(a, b) {
+                syms <- unique(sort(unlist(strsplit(
+                  paste(na.omit(c(a, b)), collapse = ","), ","
+                ))))
+                paste(syms, collapse = ",")
+              },
+              gene_symbols_df$gene_symbols,
+              gene_symbols_df$hl_gene_symbols
+            )
+            gene_symbols_df$hl_gene_symbols <- NULL
+          } else {
+            gene_symbols_df <- data.frame(
+              search_id = hl_summary$search_id,
+              gene_symbols = hl_summary$hl_gene_symbols,
+              stringsAsFactors = FALSE
+            )
+          }
+        }
+      }
+    }
+  }
+
+  if (nrow(gene_symbols_df) > 0) {
+    log_info("Updating gene_symbols for {nrow(gene_symbols_df)} publications")
+    for (r in seq_len(nrow(gene_symbols_df))) {
+      db_execute_statement(
+        "UPDATE pubtator_search_cache
+         SET gene_symbols = ?
+         WHERE search_id = ?",
+        list(gene_symbols_df$gene_symbols[r], gene_symbols_df$search_id[r]),
+        conn = conn
+      )
+    }
+  }
+
+  invisible(NULL)
 }
 
 

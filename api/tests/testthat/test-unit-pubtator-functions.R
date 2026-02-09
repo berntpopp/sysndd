@@ -130,11 +130,12 @@ test_that("pubtator sync transaction passes conn = txn_conn to all DB calls", {
   sync_end <- if (length(async_start) > 0) async_start[1] - 1 else length(src)
 
   sync_body <- src[sync_txn_start:sync_end]
-  db_calls <- grep("db_execute_(query|statement)\\(", sync_body, value = TRUE)
+  # Count all conn-aware calls: db_execute_* and extracted helper functions
+  db_calls <- grep("(db_execute_(query|statement)|compute_pubtator_gene_symbols)\\(", sync_body, value = TRUE)
   conn_calls <- grep("conn = txn_conn", sync_body, value = TRUE)
 
-  # Every db_execute_* call should have a corresponding conn = txn_conn
+  # Every conn-aware function call should have a corresponding conn = txn_conn
   expect_equal(length(db_calls), length(conn_calls),
-    label = paste("DB calls:", length(db_calls), "conn= args:", length(conn_calls))
+    label = paste("conn-aware calls:", length(db_calls), "conn= args:", length(conn_calls))
   )
 })

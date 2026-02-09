@@ -241,10 +241,7 @@
 <script lang="ts">
 import { defineComponent, inject, type PropType } from 'vue';
 import { BCard, BCardBody, BRow, BCol, BBadge, BButton, BLink, BAlert } from 'bootstrap-vue-next';
-import type {
-  EntityFormData,
-  SelectOption,
-} from '@/composables/useEntityForm';
+import type { EntityFormData, SelectOption } from '@/composables/useEntityForm';
 import type { TreeNode } from '@/composables';
 
 export default defineComponent({
@@ -319,11 +316,9 @@ export default defineComponent({
 
     const getStatusLabel = (value: string | null) => getOptionLabel(props.statusOptions, value);
 
-    const getPhenotypeLabel = (value: string) =>
-      getTreeOptionLabel(props.phenotypeOptions, value);
+    const getPhenotypeLabel = (value: string) => getTreeOptionLabel(props.phenotypeOptions, value);
 
-    const getVariationLabel = (value: string) =>
-      getTreeOptionLabel(props.variationOptions, value);
+    const getVariationLabel = (value: string) => getTreeOptionLabel(props.variationOptions, value);
 
     // PubMed URL helper
     const getPubMedUrl = (pmid: string): string => {

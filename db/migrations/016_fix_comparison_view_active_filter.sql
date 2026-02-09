@@ -31,9 +31,9 @@ JOIN ndd_entity_status_categories_list
 WHERE ndd_entity.is_active = 1
   AND ndd_entity.ndd_phenotype = 1
 
-UNION
+UNION ALL
 
--- External database comparisons (unchanged)
+-- External database comparisons (unchanged, UNION ALL safe: SysNDD and external are disjoint)
 SELECT
   ndd_database_comparison.hgnc_id AS hgnc_id,
   ndd_database_comparison.disease_ontology_id AS disease_ontology_id,

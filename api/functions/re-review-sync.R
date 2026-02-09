@@ -17,7 +17,7 @@
 #'
 #' @return invisible(NULL)
 #' @keywords internal
-sync_rereview_approval <- function(review_ids = NULL, status_ids = NULL, approving_user_id, conn = pool) {
+sync_rereview_approval <- function(review_ids = NULL, status_ids = NULL, approving_user_id, conn = NULL) {
   # Return silently if no IDs provided
   if (is.null(review_ids) && is.null(status_ids)) {
     return(invisible(NULL))

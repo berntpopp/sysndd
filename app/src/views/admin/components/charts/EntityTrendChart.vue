@@ -25,6 +25,7 @@ import {
   type ChartOptions,
 } from 'chart.js';
 import { BSpinner } from 'bootstrap-vue-next';
+import { CHART_PRIMARY, CHART_SECONDARY, CATEGORY_COLORS } from '@/utils/chartColors';
 
 // Tree-shaken Chart.js registration
 ChartJS.register(
@@ -37,20 +38,6 @@ ChartJS.register(
   Legend,
   Filler
 );
-
-// Paul Tol Muted palette for scientific credibility
-const COLORS = {
-  primary: '#6699CC', // Muted blue
-  secondary: '#004488', // Dark blue for MA line
-};
-
-// Category color map consistent with app conventions
-const CATEGORY_COLORS: Record<string, string> = {
-  Definitive: '#4caf50',
-  Moderate: '#2196f3',
-  Limited: '#ff9800',
-  Refuted: '#f44336',
-};
 
 interface EntityDataPoint {
   date: string;
@@ -99,7 +86,7 @@ const chartData = computed(() => {
   ) {
     const labels = props.categoryData.dates;
     const datasets = Object.entries(props.categoryData.series).map(([group, values]) => {
-      const color = CATEGORY_COLORS[group] ?? COLORS.primary;
+      const color = CATEGORY_COLORS[group] ?? CHART_PRIMARY;
       return {
         label: group,
         data: values,
@@ -123,8 +110,8 @@ const chartData = computed(() => {
     {
       label: 'Entities',
       data: rawData,
-      borderColor: COLORS.primary,
-      backgroundColor: COLORS.primary + '20', // 12% opacity
+      borderColor: CHART_PRIMARY,
+      backgroundColor: CHART_PRIMARY + '20', // 12% opacity
       tension: 0.4, // Smooth Bezier curves
       fill: true,
       pointRadius: 3,
@@ -137,7 +124,7 @@ const chartData = computed(() => {
     datasets.push({
       label: '3-Period Moving Avg',
       data: calculateSMA(rawData, 3) as number[],
-      borderColor: COLORS.secondary,
+      borderColor: CHART_SECONDARY,
       backgroundColor: 'transparent',
       tension: 0.4,
       fill: false,
