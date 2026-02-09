@@ -686,22 +686,28 @@ function() {
 function() {
   data_dir <- "data/"
 
+  # Fetch job history once for all lookups
+  history <- tryCatch(get_job_history(100), error = function(e) {
+    data.frame(
+      operation = character(0),
+      status = character(0),
+      completed_at = character(0),
+      stringsAsFactors = FALSE
+    )
+  })
+
   # Helper: get most recent completed_at for matching operations
-  get_last_successful_run <- function(operations) {
-    history <- tryCatch(get_job_history(100), error = function(e) {
-      data.frame(
-        operation = character(0),
-        status = character(0),
-        completed_at = character(0)
-      )
-    })
-    if (nrow(history) == 0) return(NA)
-    matches <- history[
-      history$operation %in% operations & history$status == "completed",
+  get_last_successful_run <- function(operations, hist) {
+    if (nrow(hist) == 0) return(NA)
+    matches <- hist[
+      hist$operation %in% operations & hist$status == "completed",
     ]
     if (nrow(matches) == 0) return(NA)
-    # get_job_history returns newest first
-    matches$completed_at[1]
+    # Sort by completed_at descending to get most recently finished job
+    valid <- matches[!is.na(matches$completed_at), ]
+    if (nrow(valid) == 0) return(NA)
+    sorted <- valid[order(valid$completed_at, decreasing = TRUE), ]
+    sorted$completed_at[1]
   }
 
   # Helper to get most recent file date matching a pattern
@@ -724,11 +730,11 @@ function() {
   }
 
   # Prefer job history timestamps; fall back to file metadata
-  omim_job <- get_last_successful_run("omim_update")
+  omim_job <- get_last_successful_run("omim_update", history)
   ontology_job <- get_last_successful_run(
-    c("ontology_update", "force_apply_ontology")
+    c("ontology_update", "force_apply_ontology"), history
   )
-  hgnc_job <- get_last_successful_run("hgnc_update")
+  hgnc_job <- get_last_successful_run("hgnc_update", history)
 
   null_coalesce <- function(a, b) if (!is.na(a)) a else b
 

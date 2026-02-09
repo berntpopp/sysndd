@@ -40,19 +40,40 @@ export default function useToast(): ToastMethods {
     autoHide: boolean = true,
     autoHideDelay: number = 3000
   ): void => {
+    // Skip errors already handled by the 401 interceptor (redirect to login)
+    if (
+      typeof message === 'object' &&
+      message !== null &&
+      '__handled401' in message &&
+      (message as Record<string, unknown>).__handled401 === true
+    ) {
+      return;
+    }
+
     // Extract meaningful message from various error shapes (Axios errors, Error objects, strings)
     let body: string;
     if (typeof message === 'string') {
       body = message;
     } else if (typeof message === 'object' && message !== null) {
       const msg = message as Record<string, unknown>;
-      const resp = msg.response as Record<string, unknown> | undefined;
-      const respData = resp?.data as Record<string, unknown> | undefined;
-      body =
-        (respData?.message as string) ||
-        (respData?.error as string) ||
-        (msg.message as string) ||
-        String(message);
+      const resp =
+        typeof msg.response === 'object' && msg.response !== null
+          ? (msg.response as Record<string, unknown>)
+          : undefined;
+      const respData =
+        resp !== undefined && typeof resp.data === 'object' && resp.data !== null
+          ? (resp.data as Record<string, unknown>)
+          : undefined;
+
+      if (respData !== undefined && typeof respData.message === 'string') {
+        body = respData.message;
+      } else if (respData !== undefined && typeof respData.error === 'string') {
+        body = respData.error;
+      } else if (typeof msg.message === 'string') {
+        body = msg.message;
+      } else {
+        body = String(message);
+      }
     } else {
       body = String(message);
     }

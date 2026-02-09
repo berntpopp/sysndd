@@ -132,9 +132,10 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_URL || 'http://traefik:80',
         changeOrigin: true,
-        // Traefik routes by Host header; inside Docker the target is 'traefik'
-        // but the routing rule expects 'localhost', so override it explicitly.
-        headers: { Host: 'localhost' },
+        // Inside Docker the proxy target is 'traefik' but Traefik routes by Host
+        // header expecting 'localhost'. Only override when using the default target;
+        // when VITE_API_URL is set the caller controls the target host directly.
+        ...(process.env.VITE_API_URL ? {} : { headers: { Host: 'localhost' } }),
       },
     },
   },
