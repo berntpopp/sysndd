@@ -19,28 +19,28 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 83 — Status Creation Fix & Security ✅ COMPLETE
-**Plan:** 1/1 complete
-**Status:** Phase 83 verified via E2E Playwright testing
-**Progress:** v10.6 [███████░░░░░░░░░░░░░] 33%
+**Phase:** 84 — Status Change Detection (In progress)
+**Plan:** 1/4 complete (84-01-SUMMARY.md)
+**Status:** Composable change detection complete
+**Progress:** v10.6 [████████░░░░░░░░░░░░] 38%
 
-**Last activity:** 2026-02-10 — Phase 83 complete (status fix + backend NULL fix + axios patch + E2E verified)
+**Last activity:** 2026-02-10 — Completed 84-01: hasChanges added to useStatusForm and useReviewForm
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 334 (from v1-v10.6)
+- Total plans completed: 335 (from v1-v10.6)
 - Milestones shipped: 15 (v1-v10.5)
-- Phases completed: 83
+- Phases completed: 83 (84 in progress)
 
 **Current Stats:**
 
 | Metric | Value | Notes |
 |--------|-------|-------|
 | **Backend Tests** | 789 + 11 E2E | Coverage 20.3% |
-| **Frontend Tests** | 229 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
+| **Frontend Tests** | 243 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
 
@@ -56,6 +56,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 |----|----------|-----------|-------|
 | D83-01 | Reset status form BEFORE data load instead of on modal @show event | Modal @show fires asynchronously after data load, destroying entity_id. Moving reset before load prevents race condition. | 83-01 |
 | D83-02 | Compact NULLs in status_create before tibble conversion | JSON null becomes R NULL which tibble rejects. purrr::compact() strips them. | 83-01 |
+| D84-01 | Use exact comparison for all fields including whitespace in comments | Users expect whitespace changes to count as modifications (trailing space should trigger hasChanges). | 84-01 |
+| D84-02 | Snapshot loaded data immediately after API load completes | loadedData must reflect server state, not interim reactive state. | 84-01 |
 
 ### Investigation Results (2026-02-10)
 
@@ -77,9 +79,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Phase 83 complete, ready for Phase 84
-**Resume file:** .planning/phases/83-status-creation-fix-security/83-01-SUMMARY.md
+**Stopped at:** Completed 84-01 (composable change detection)
+**Resume file:** .planning/phases/84-status-change-detection/84-01-SUMMARY.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 83 complete (status creation fix + backend NULL fix + axios security + E2E verified)*
+*Last updated: 2026-02-10 — Completed 84-01: hasChanges added to useStatusForm and useReviewForm with comprehensive tests*
