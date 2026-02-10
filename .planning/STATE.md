@@ -19,21 +19,21 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 84 — Status Change Detection (In progress)
+**Phase:** 84 — Status Change Detection (Complete)
 **Plan:** 3/3 complete (84-01, 84-02, 84-03)
-**Status:** ApproveReview & ApproveStatus change detection complete
-**Progress:** v10.6 [██████████░░░░░░░░░░] 50%
+**Status:** All curation views wired with change detection
+**Progress:** v10.6 [███████████░░░░░░░░░] 55%
 
-**Last activity:** 2026-02-10 — Completed 84-03: Change detection on ApproveReview/ApproveStatus + review_change indicator fix
+**Last activity:** 2026-02-10 — Completed 84-02: ModifyEntity change detection (status & review forms)
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 337 (from v1-v10.6)
+- Total plans completed: 338 (from v1-v10.6)
 - Milestones shipped: 15 (v1-v10.5)
-- Phases completed: 83 (84 in progress)
+- Phases completed: 84
 
 **Current Stats:**
 
@@ -58,6 +58,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | D83-02 | Compact NULLs in status_create before tibble conversion | JSON null becomes R NULL which tibble rejects. purrr::compact() strips them. | 83-01 |
 | D84-01 | Use exact comparison for all fields including whitespace in comments | Users expect whitespace changes to count as modifications (trailing space should trigger hasChanges). | 84-01 |
 | D84-02 | Snapshot loaded data immediately after API load completes | loadedData must reflect server state, not interim reactive state. | 84-01 |
+| D84-02-01 | Wire composable-provided hasChanges for ModifyEntity status form | Status form uses useStatusForm composable (Plan 84-01 added hasChanges) | 84-02 |
+| D84-02-02 | Implement local change detection for ModifyEntity review form | Review form does NOT use composable (raw Review class + direct API calls), requires local computed | 84-02 |
+| D84-02-03 | Use sorted array comparison for review arrays in ModifyEntity | Order shouldn't matter for phenotype/variation/publication changes | 84-02 |
 | D84-03-01 | Store loaded data snapshots in component state | ApproveReview/ApproveStatus use raw classes, not composables | 84-03 |
 | D84-03-02 | Use exact array comparison (sorted) for phenotypes/variation | Order shouldn't matter for change detection | 84-03 |
 | D84-03-03 | Check !isBusy in modal hide handler | Prevent unsaved-changes warning during successful submit | 84-03 |
@@ -68,23 +71,24 @@ Decisions are logged in PROJECT.md Key Decisions table.
 |-----|-----------|----------------|--------|
 | HTTP 500 status change | Modal `@show` resets formData AFTER load + backend NULL→tibble crash | Frontend + backend fix | ✅ Fixed |
 | "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself | ✅ Fixed |
-| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | Phase 84 |
+| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | ✅ Fixed (Phase 84) |
 | Ghost entities | entities 4469, 4474 have `is_active=1` but no status record | Simple — deactivate + prevention | Phase 85 |
 | Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update | ✅ Fixed |
 
 ### Blockers/Concerns
 
 - ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (Phase 83 complete)
-- Remaining work: Status change detection (84), Ghost entity cleanup (85)
+- ~~Status change detection~~ **COMPLETE** (Phase 84)
+- Remaining work: Ghost entity cleanup (85)
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Completed 84-03 (ApproveReview & ApproveStatus change detection)
-**Resume file:** .planning/phases/84-status-change-detection/84-03-SUMMARY.md
+**Stopped at:** Completed Phase 84 (all 3 plans complete)
+**Resume file:** .planning/phases/84-status-change-detection/84-02-SUMMARY.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Completed 84-03: ApproveReview & ApproveStatus change detection with review_change indicator fix*
+*Last updated: 2026-02-10 — Completed Phase 84: Status change detection across all curation views (composables + ModifyEntity + table views)*
