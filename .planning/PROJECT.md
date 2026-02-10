@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.5 focuses on bug fixes and data integrity — fixing CurationComparisons cross-database category aggregation (#173), AdminStatistics display/logic bugs (#172/#171), PubTator annotation storage failures (#170), Traefik TLS configuration (#169), and building an admin entity integrity audit tool for pre-existing suffix-gene misalignments (#167). Building on v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.6 focuses on curation UX regressions and security — restoring "approve both" functionality for review+status, fixing unnecessary status approval when unchanged, resolving ghost entities blocking creation (GAP43, FGF14), fixing HTTP 500 on status change for older entities, and patching axios DoS vulnerability (#181). Building on v10.5's bug fixes, v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
 ## Current State (v10.5 shipped 2026-02-09)
 
@@ -339,7 +339,13 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-(No active requirements — milestone complete)
+<!-- v10.6 Curation UX Fixes & Security -->
+
+- [ ] Fix axios DoS vulnerability via __proto__ key in mergeConfig (#181)
+- [ ] Restore "approve both" (review + status) from ApproveReview view
+- [ ] Fix status requiring approval even when unchanged
+- [ ] Delete ghost entities (GAP43, FGF14) blocking new creation
+- [ ] Fix HTTP 500 on status change for older entities (ATOH1 deafness, ATOH1 intellectual disability)
 
 ### Out of Scope
 
@@ -466,4 +472,4 @@ A new developer can clone the repo and be productive within minutes, with confid
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
 
 ---
-*Last updated: 2026-02-09 after v10.5 milestone complete*
+*Last updated: 2026-02-10 after v10.6 milestone started*
