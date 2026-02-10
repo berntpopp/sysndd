@@ -435,6 +435,7 @@
         header-close-label="Close"
         :busy="loading_review_modal"
         @show="onModifyReviewModalShow"
+        @hide="onModifyReviewModalHide"
         @ok="submitReviewChange"
       >
         <template #title>
@@ -827,6 +828,7 @@ export default {
       select_variation: [],
       select_additional_references: [],
       select_gene_reviews: [],
+      reviewLoadedData: null, // Stores original review data for change detection
       status_info: new Status(),
       deactivate_check: false,
       replace_check: false,
@@ -844,6 +846,24 @@ export default {
         { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
       ],
     };
+  },
+  computed: {
+    hasReviewChanges() {
+      if (!this.reviewLoadedData) return false;
+      const arrEqual = (a, b) => {
+        const sa = [...a].sort();
+        const sb = [...b].sort();
+        return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
+      };
+      return (
+        this.review_info.synopsis !== this.reviewLoadedData.synopsis ||
+        this.review_info.comment !== this.reviewLoadedData.comment ||
+        !arrEqual(this.select_phenotype, this.reviewLoadedData.phenotypes) ||
+        !arrEqual(this.select_variation, this.reviewLoadedData.variationOntology) ||
+        !arrEqual(this.select_additional_references, this.reviewLoadedData.publications) ||
+        !arrEqual(this.select_gene_reviews, this.reviewLoadedData.genereviews)
+      );
+    },
   },
   mounted() {
     this.loadStatusList();
@@ -1123,6 +1143,16 @@ export default {
         this.review_info.review_id = response_review.data[0].review_id;
         this.review_info.entity_id = response_review.data[0].entity_id;
 
+        // Snapshot loaded data for change detection
+        this.reviewLoadedData = {
+          synopsis: this.review_info.synopsis || '',
+          comment: this.review_info.comment || '',
+          phenotypes: [...this.select_phenotype],
+          variationOntology: [...this.select_variation],
+          publications: [...this.select_additional_references],
+          genereviews: [...this.select_gene_reviews],
+        };
+
         this.loading_review_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1326,6 +1356,12 @@ export default {
       }
     },
     async submitReviewChange() {
+      // Silent skip: close modal without API call when nothing changed
+      if (!this.hasReviewChanges) {
+        this.$refs.modifyReviewModal.hide();
+        return;
+      }
+
       this.submitting = 'review';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create`;
 
@@ -1424,6 +1460,7 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+      this.reviewLoadedData = null;
       this.status_info = new Status();
       this.deactivate_check = false;
       this.replace_check = false;
@@ -1458,6 +1495,15 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+    },
+    onModifyReviewModalHide(event) {
+      // Only warn about unsaved changes if not currently submitting
+      if (this.hasReviewChanges && !this.submitting) {
+        const confirmed = window.confirm('You have unsaved review changes. Discard them?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
     },
     onModifyStatusModalShow() {
       // Reset moved to showStatusModify() — intentionally empty to preserve loaded data
