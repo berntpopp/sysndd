@@ -34,7 +34,7 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 
 | Phase | Title | Goal | Status |
 |-------|-------|------|--------|
-| 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ⬚ Not started |
+| 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | 🔄 Planning complete |
 | 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ⬚ Not started |
 | 85 | Ghost Entity Cleanup & Prevention | Deactivate orphaned entities, prevent future ghosts via atomic creation | ⬚ Not started |
 
@@ -43,6 +43,9 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 - Verify: "Approve both" checkbox appears when status_change exists (ApproveReview.vue)
 - Security: Update axios 1.13.4 → 1.13.5 (CVE-2026-25639)
 - Requirements: R1, R2, R5
+- **Plans:** 1 plan
+Plans:
+- [ ] 83-01-PLAN.md — Fix status form reset ordering, update axios, verify approve-both
 
 **Phase 84 — Status Change Detection**
 - Add change detection in ModifyEntity to skip status creation when user didn't change status
@@ -77,4 +80,4 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — v10.6 milestone started*
+*Last updated: 2026-02-10 — Phase 83 planned*
