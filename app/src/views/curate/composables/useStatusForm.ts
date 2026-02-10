@@ -67,7 +67,9 @@ export default function useStatusForm(entityId?: string | number) {
   });
 
   // Track loaded data for change detection
-  const loadedData = ref<Pick<StatusFormData, 'category_id' | 'comment' | 'problematic'> | null>(null);
+  const loadedData = ref<Pick<StatusFormData, 'category_id' | 'comment' | 'problematic'> | null>(
+    null
+  );
 
   // Change detection
   const hasChanges = computed(() => {

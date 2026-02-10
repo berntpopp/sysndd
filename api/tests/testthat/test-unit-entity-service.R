@@ -245,14 +245,12 @@ test_that("repository functions accept optional conn parameter", {
 # =============================================================================
 
 test_that("svc_entity_create_full returns 409 when duplicate detected", {
-  # Mock dependencies
-  local_mocked_bindings(
-    svc_entity_validate = function(entity_data) TRUE,
-    svc_entity_check_duplicate = function(entity_data, pool) {
-      # Return non-NULL to simulate duplicate found
-      list(entity_id = 999)
-    }
-  )
+  # Use mockery::stub for non-package code
+  fn <- svc_entity_create_full
+  mockery::stub(fn, "svc_entity_validate", function(entity_data) TRUE)
+  mockery::stub(fn, "svc_entity_check_duplicate", function(entity_data, pool) {
+    list(entity_id = 999)
+  })
 
   # Minimal valid arguments
   entity_data <- list(
@@ -262,71 +260,81 @@ test_that("svc_entity_create_full returns 409 when duplicate detected", {
     ndd_phenotype = "Definitive"
   )
   review_data <- list(synopsis = "Test", review_user_id = 1)
-  status_data <- list(category_id = 1, problematic = 0, status_user_id = 1)
+  status_data <- list(
+    category_id = 1, problematic = 0, status_user_id = 1
+  )
   pool <- "fake_pool"
 
-  # Call function
-  result <- svc_entity_create_full(
+  result <- fn(
     entity_data = entity_data,
     review_data = review_data,
     status_data = status_data,
     pool = pool
   )
 
-  # Verify 409 response
   expect_equal(result$status, 409)
-  expect_true(grepl("already exists|Conflict", result$message, ignore.case = TRUE))
+  expect_true(
+    grepl("already exists|Conflict", result$message, ignore.case = TRUE)
+  )
 })
 
 test_that("svc_entity_create_full returns 400 on validation error", {
-  # Mock dependencies
-  local_mocked_bindings(
-    svc_entity_validate = function(entity_data) {
-      stop(structure(
-        list(message = "Missing required fields: hgnc_id"),
-        class = c("entity_creation_validation_error", "error", "condition")
-      ))
-    },
-    svc_entity_check_duplicate = function(entity_data, pool) NULL
-  )
+  # The 400 path catches entity_creation_validation_error from INSIDE
 
-  # Minimal valid arguments (will be rejected by mock validation)
+  # the tryCatch (line 584). This fires when publication_validate_ids
+  # throws publication_validation_error, which gets re-wrapped at
+  # line 574-576. Mock the transaction to signal the condition directly.
+  fn <- svc_entity_create_full
+  mockery::stub(
+    fn, "svc_entity_validate", function(entity_data) TRUE
+  )
+  mockery::stub(
+    fn, "svc_entity_check_duplicate",
+    function(entity_data, pool) NULL
+  )
+  mockery::stub(fn, "db_with_transaction", function(fn, ...) {
+    rlang::abort(
+      "Invalid publication: PMID:99999999",
+      class = "entity_creation_validation_error"
+    )
+  })
+
   entity_data <- list(
+    hgnc_id = 1,
     disease_ontology_id_version = "MONDO:0000001",
     hpo_mode_of_inheritance_term = "HP:0000006",
     ndd_phenotype = "Definitive"
   )
   review_data <- list(synopsis = "Test", review_user_id = 1)
-  status_data <- list(category_id = 1, problematic = 0, status_user_id = 1)
+  status_data <- list(
+    category_id = 1, problematic = 0, status_user_id = 1
+  )
   pool <- "fake_pool"
 
-  # Call function
-  result <- svc_entity_create_full(
+  result <- fn(
     entity_data = entity_data,
     review_data = review_data,
     status_data = status_data,
     pool = pool
   )
 
-  # Verify 400 response
   expect_equal(result$status, 400)
   expect_true(grepl("Bad Request", result$message, ignore.case = TRUE))
 })
 
 test_that("svc_entity_create_full returns 500 on transaction error", {
-  # Mock dependencies
-  local_mocked_bindings(
-    svc_entity_validate = function(entity_data) TRUE,
-    svc_entity_check_duplicate = function(entity_data, pool) NULL,
-    db_with_transaction = function(fn, pool = NULL) {
-      stop(structure(
-        list(message = "Connection lost"),
-        class = c("db_transaction_error", "error", "condition")
-      ))
-    }
+  fn <- svc_entity_create_full
+  mockery::stub(
+    fn, "svc_entity_validate", function(entity_data) TRUE
   )
+  mockery::stub(
+    fn, "svc_entity_check_duplicate",
+    function(entity_data, pool) NULL
+  )
+  mockery::stub(fn, "db_with_transaction", function(fn, ...) {
+    rlang::abort("Connection lost", class = "db_transaction_error")
+  })
 
-  # Minimal valid arguments
   entity_data <- list(
     hgnc_id = 1,
     disease_ontology_id_version = "MONDO:0000001",
@@ -334,33 +342,35 @@ test_that("svc_entity_create_full returns 500 on transaction error", {
     ndd_phenotype = "Definitive"
   )
   review_data <- list(synopsis = "Test", review_user_id = 1)
-  status_data <- list(category_id = 1, problematic = 0, status_user_id = 1)
+  status_data <- list(
+    category_id = 1, problematic = 0, status_user_id = 1
+  )
   pool <- "fake_pool"
 
-  # Call function
-  result <- svc_entity_create_full(
+  result <- fn(
     entity_data = entity_data,
     review_data = review_data,
     status_data = status_data,
     pool = pool
   )
 
-  # Verify 500 response with rollback message
   expect_equal(result$status, 500)
   expect_true(grepl("rolled back", result$message, ignore.case = TRUE))
 })
 
 test_that("svc_entity_create_full returns 500 on unexpected error", {
-  # Mock dependencies
-  local_mocked_bindings(
-    svc_entity_validate = function(entity_data) TRUE,
-    svc_entity_check_duplicate = function(entity_data, pool) NULL,
-    db_with_transaction = function(fn, pool = NULL) {
-      stop("Unexpected error: something went wrong")
-    }
+  fn <- svc_entity_create_full
+  mockery::stub(
+    fn, "svc_entity_validate", function(entity_data) TRUE
   )
+  mockery::stub(
+    fn, "svc_entity_check_duplicate",
+    function(entity_data, pool) NULL
+  )
+  mockery::stub(fn, "db_with_transaction", function(fn, ...) {
+    stop("Unexpected error: something went wrong")
+  })
 
-  # Minimal valid arguments
   entity_data <- list(
     hgnc_id = 1,
     disease_ontology_id_version = "MONDO:0000001",
@@ -368,18 +378,20 @@ test_that("svc_entity_create_full returns 500 on unexpected error", {
     ndd_phenotype = "Definitive"
   )
   review_data <- list(synopsis = "Test", review_user_id = 1)
-  status_data <- list(category_id = 1, problematic = 0, status_user_id = 1)
+  status_data <- list(
+    category_id = 1, problematic = 0, status_user_id = 1
+  )
   pool <- "fake_pool"
 
-  # Call function
-  result <- svc_entity_create_full(
+  result <- fn(
     entity_data = entity_data,
     review_data = review_data,
     status_data = status_data,
     pool = pool
   )
 
-  # Verify 500 response
   expect_equal(result$status, 500)
-  expect_true(grepl("Entity creation failed", result$message, ignore.case = TRUE))
+  expect_true(
+    grepl("Entity creation failed", result$message, ignore.case = TRUE)
+  )
 })
