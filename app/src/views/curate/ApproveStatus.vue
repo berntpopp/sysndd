@@ -1216,6 +1216,8 @@ export default {
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.announce('Error submitting status', 'assertive');
+      } finally {
+        this.isBusy = false;
       }
     },
     resetForm() {

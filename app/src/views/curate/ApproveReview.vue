@@ -1756,6 +1756,8 @@ export default {
         this.loadReviewTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.isBusy = false;
       }
     },
     async submitStatusChange() {
@@ -1766,73 +1768,77 @@ export default {
       }
       // Mark busy so the hide handler allows modal close during save
       this.isBusy = true;
-      if (this.status_info.status_approved === 0) {
-        // PUT to update if not approved
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
+      try {
+        if (this.status_info.status_approved === 0) {
+          // PUT to update if not approved
+          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
-        // remove additional data before submission
-        // TODO: replace this workaround
-        this.status_info.status_user_name = null;
-        this.status_info.status_user_role = null;
-        this.status_info.entity_id = null;
-        this.status_info.status_approved = null;
+          // remove additional data before submission
+          // TODO: replace this workaround
+          this.status_info.status_user_name = null;
+          this.status_info.status_user_role = null;
+          this.status_info.entity_id = null;
+          this.status_info.status_approved = null;
 
-        // perform update PUT request
-        try {
-          const response = await this.axios.put(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
+          // perform update PUT request
+          try {
+            const response = await this.axios.put(
+              apiUrl,
+              { status_json: this.status_info },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
 
-          this.makeToast(
-            `${'The new status for this entity has been submitted ' + '(status '}${
-              response.status
-            } (${response.statusText}).`,
-            'Success',
-            'success'
-          );
-          this.resetForm();
-          this.loadReviewTableData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          this.announce('Error submitting status', 'assertive');
+            this.makeToast(
+              `${'The new status for this entity has been submitted ' + '(status '}${
+                response.status
+              } (${response.statusText}).`,
+              'Success',
+              'success'
+            );
+            this.resetForm();
+            this.loadReviewTableData();
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+            this.announce('Error submitting status', 'assertive');
+          }
+        } else if (this.status_info.status_approved === 1) {
+          // POST to create new status if approved
+          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
+
+          // remove additional data before submission
+          // TODO: replace this workaround
+          this.status_info.status_user_name = null;
+          this.status_info.status_user_role = null;
+          this.status_info.status_approved = null;
+
+          // perform update PUT request
+          try {
+            await this.axios.post(
+              apiUrl,
+              { status_json: this.status_info },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
+
+            const message = 'The new status for this entity has been submitted successfully.';
+            this.makeToast(message, 'Success', 'success');
+            this.announce(message);
+            this.resetForm();
+            this.loadReviewTableData();
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+            this.announce('Error submitting status', 'assertive');
+          }
         }
-      } else if (this.status_info.status_approved === 1) {
-        // POST to create new status if approved
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
-
-        // remove additional data before submission
-        // TODO: replace this workaround
-        this.status_info.status_user_name = null;
-        this.status_info.status_user_role = null;
-        this.status_info.status_approved = null;
-
-        // perform update PUT request
-        try {
-          await this.axios.post(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
-
-          const message = 'The new status for this entity has been submitted successfully.';
-          this.makeToast(message, 'Success', 'success');
-          this.announce(message);
-          this.resetForm();
-          this.loadReviewTableData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          this.announce('Error submitting status', 'assertive');
-        }
+      } finally {
+        this.isBusy = false;
       }
     },
     infoReview(item, _index, _button) {

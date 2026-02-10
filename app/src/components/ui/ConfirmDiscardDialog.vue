@@ -8,6 +8,7 @@
     header-text-variant="dark"
     no-close-on-backdrop
     no-close-on-esc
+    hide-header-close
     :title="title"
     role="alertdialog"
     :aria-label="title"
