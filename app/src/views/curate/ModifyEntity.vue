@@ -650,6 +650,7 @@
         header-close-label="Close"
         :busy="statusFormLoading"
         @show="onModifyStatusModalShow"
+        @hide="onModifyStatusModalHide"
         @ok="submitStatusChange"
       >
         <template #title>
@@ -782,6 +783,7 @@ export default {
       loadStatusByEntity,
       submitForm: submitStatusForm,
       resetForm: resetStatusForm,
+      hasChanges: hasStatusChanges,
     } = statusForm;
 
     return {
@@ -792,6 +794,7 @@ export default {
       loadStatusByEntity,
       submitStatusForm,
       resetStatusForm,
+      hasStatusChanges,
       a11yMessage,
       a11yPoliteness,
       announce,
@@ -1385,6 +1388,12 @@ export default {
       }
     },
     async submitStatusChange() {
+      // Silent skip: close modal without API call when nothing changed
+      if (!this.hasStatusChanges) {
+        this.$refs.modifyStatusModal.hide();
+        return;
+      }
+
       this.submitting = 'status';
       try {
         await this.submitStatusForm(false, false); // isUpdate=false (always create), reReview=false
@@ -1453,6 +1462,15 @@ export default {
     onModifyStatusModalShow() {
       // Reset moved to showStatusModify() — intentionally empty to preserve loaded data
       // The reset must happen BEFORE data load, not after modal renders
+    },
+    onModifyStatusModalHide(event) {
+      // Only warn about unsaved changes if not currently submitting
+      if (this.hasStatusChanges && !this.submitting) {
+        const confirmed = window.confirm('You have unsaved status changes. Discard them?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
     },
   },
 };
