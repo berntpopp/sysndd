@@ -17,7 +17,7 @@
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
 - ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 - ✅ **v10.5 Bug Fixes & Data Integrity** - Phases 80-82 (shipped 2026-02-09)
-- ✅ **v10.6 Curation UX Fixes & Security** - Phases 83-85 (shipped 2026-02-10)
+- ✅ **v10.6 Curation UX Fixes & Security** - Phases 83-86 (shipped 2026-02-10)
 
 ## Phases
 
@@ -30,13 +30,14 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 
 ### v10.6 Curation UX Fixes & Security
 
-**Goal:** Fix critical curation workflow regressions blocking Christiane's daily work, clean up ghost entities, and patch axios security vulnerability.
+**Goal:** Fix critical curation workflow regressions blocking Christiane's daily work, clean up ghost entities, patch axios security vulnerability, and add dismiss/auto-dismiss capability for pending queue management.
 
 | Phase | Title | Goal | Status |
 |-------|-------|------|--------|
 | 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ✅ Complete |
 | 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ✅ Complete |
 | 85 | Ghost Entity Cleanup & Prevention | Verify atomic creation prevents future ghosts, update admin issue, enhance test coverage | ✅ Complete |
+| 86 | Dismiss & Auto-Dismiss Pending | Add dismiss capability and auto-dismiss siblings on approve for statuses and reviews | ✅ Complete |
 
 **Phase 83 — Status Creation Fix & Security**
 - Fix: Move `resetStatusForm()` before `loadStatusByEntity()` in `showStatusModify()` (ModifyEntity.vue)
@@ -67,6 +68,17 @@ Plans:
 Plans:
 - [x] 85-01-PLAN.md — Update admin issue, verify prevention, enhance rollback contract tests
 
+**Phase 86 — Dismiss & Auto-Dismiss Pending**
+- Backend: Filter dismissed items from pending queries using `is.na(approving_user_id)`
+- Backend: Auto-dismiss sibling pending items when one is approved
+- Frontend: Add dismiss button/modal to ApproveStatus and ApproveReview
+- Frontend: Add duplicate warning icons and auto-dismiss info alerts in approve modals
+- Tests: 40 integration test assertions + full E2E Playwright verification
+- Requirements: R6
+- **Plans:** 1 plan
+Plans:
+- [x] 86-01-PLAN.md — Dismiss capability, auto-dismiss siblings, duplicate warnings, integration tests
+
 ## Progress
 
 | Phase Range | Milestone | Status | Shipped |
@@ -86,8 +98,8 @@ Plans:
 | 73-75 | v10.3 Bug Fixes & Stabilization | ✅ Complete | 2026-02-06 |
 | 76-79 | v10.4 OMIM Optimization & Refactor | ✅ Complete | 2026-02-07 |
 | 80-82 | v10.5 Bug Fixes & Data Integrity | ✅ Complete | 2026-02-09 |
-| 83-85 | v10.6 Curation UX Fixes & Security | ✅ Complete | 2026-02-10 |
+| 83-86 | v10.6 Curation UX Fixes & Security | ✅ Complete | 2026-02-10 |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 85 complete, v10.6 milestone shipped*
+*Last updated: 2026-02-10 — Phase 86 complete, v10.6 milestone shipped*

@@ -106,6 +106,37 @@ axios 1.13.4 has CVE-2026-25639 — prototype pollution via `__proto__` key in `
 
 ---
 
+## R6: Dismiss & Auto-Dismiss Pending Statuses/Reviews
+
+**Priority:** Medium
+**Source:** Testing debris — entity 304 accumulated 6 pending statuses with no cleanup path
+
+### Problem
+Curators have no way to dismiss unwanted pending statuses or reviews. The API reject path (`status_ok=false`) sets `approving_user_id` but dismissed items still appear in pending queues because queries don't filter on `approving_user_id`. When multiple pending items accumulate for an entity (from testing or corrections), the pending queue becomes cluttered.
+
+### Acceptance Criteria
+- [ ] Curators can dismiss individual pending statuses via dismiss button + confirmation modal
+- [ ] Curators can dismiss individual pending reviews via dismiss button + confirmation modal
+- [ ] Dismissed items no longer appear in pending queues
+- [ ] Approving one status/review auto-dismisses other pending items for the same entity
+- [ ] Approve modal shows auto-dismiss warning when entity has multiple pending items
+- [ ] Duplicate warning icon appears for entities with multiple pending items
+- [ ] "Approve All" skips dismissed items
+- [ ] Cross-entity isolation: auto-dismiss only affects the same entity
+- [ ] Re-submitted items after dismissal appear normally
+- [ ] No schema changes required
+
+### Files to Modify
+- `api/endpoints/status_endpoints.R` — filter dismissed from pending
+- `api/endpoints/review_endpoints.R` — filter dismissed from pending
+- `api/services/approval-service.R` — filter dismissed from "approve all" batch
+- `api/functions/status-repository.R` — auto-dismiss siblings on approve
+- `api/functions/review-repository.R` — auto-dismiss siblings on approve
+- `app/src/views/curate/ApproveStatus.vue` — dismiss button/modal, duplicate warning
+- `app/src/views/curate/ApproveReview.vue` — dismiss button/modal
+
+---
+
 ## Phase Structure
 
 | Phase | Requirements | Scope |
@@ -113,11 +144,14 @@ axios 1.13.4 has CVE-2026-25639 — prototype pollution via `__proto__` key in `
 | 83 | R1, R2, R5 | Fix status 500, verify approve-both, update axios |
 | 84 | R3 | Add status change detection |
 | 85 | R4 | Ghost entity cleanup + prevention |
+| 86 | R6 | Dismiss & auto-dismiss pending statuses/reviews |
 
 ### Rationale
 - **Phase 83** groups the critical fix (R1), its dependent verification (R2), and the trivial security patch (R5) together since R1+R2 test the same workflow
 - **Phase 84** is separate because change detection is a UX improvement that touches the same files but is logically distinct
 - **Phase 85** is last because ghost entity cleanup requires database changes and optionally refactoring the entity creation endpoint
+- **Phase 86** adds pending queue management (dismiss + auto-dismiss) as a follow-on to the UX fixes
 
 ---
 *Requirements created: 2026-02-10*
+*Updated: 2026-02-10 — Added R6 (dismiss/auto-dismiss)*

@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v10.6 — Fix curation UX regressions, ghost entities, and axios vulnerability
+**Current focus:** v10.6 — Fix curation UX regressions, ghost entities, axios vulnerability, and pending queue management
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,27 +19,27 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 85 — Ghost Entity Cleanup & Prevention (Complete)
-**Plan:** 1/1 complete (85-01)
-**Status:** Prevention verified, GitHub issue updated, tests enhanced
+**Phase:** 86 — Dismiss & Auto-Dismiss Pending (Complete)
+**Plan:** 1/1 complete (86-01)
+**Status:** Dismiss capability, auto-dismiss siblings, duplicate warnings, integration tests — all verified
 **Progress:** v10.6 [████████████████████] 100%
 
-**Last activity:** 2026-02-10 — Completed 85-01: Ghost entity cleanup closeout (prevention verification + test enhancement)
+**Last activity:** 2026-02-10 — Completed 86-01: Dismiss/auto-dismiss for pending statuses and reviews (7 files modified, 1 test file created, 40 integration assertions, full E2E verification)
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 339 (from v1-v10.6)
+- Total plans completed: 340 (from v1-v10.6)
 - Milestones shipped: 15 (v1-v10.5)
-- Phases completed: 85
+- Phases completed: 86
 
 **Current Stats:**
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Backend Tests** | 789 + 11 E2E | Coverage 20.3% |
+| **Backend Tests** | 789 + 11 E2E + 40 dismiss/autodismiss | Coverage 20.3%+ |
 | **Frontend Tests** | 244 + 6 a11y suites | Vitest + Vue Test Utils + vitest-axe |
 | **Lintr Issues** | 0 | All clean |
 | **ESLint Issues** | 0 | All clean |
@@ -66,6 +66,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | D84-03-03 | Check !isBusy in modal hide handler | Prevent unsaved-changes warning during successful submit | 84-03 |
 | D85-01-01 | Test rollback contracts via mocking rather than integration tests | Error-handling logic is deterministic and doesn't require database access. Unit tests with mocks are faster, more reliable. | 85-01 |
 | D85-01-02 | Document prevention implementation in GitHub issue rather than code comments | GitHub issue is source of truth for operations team. Code comments would duplicate what's clear from transaction wrapper. | 85-01 |
+| D86-01-01 | Use existing approving_user_id column as dismiss marker | No schema migration needed. Column already exists and reject API path already sets it. | 86-01 |
+| D86-01-02 | Auto-dismiss only same-entity siblings | Cross-entity isolation ensures approving entity A doesn't affect entity B's pending items. | 86-01 |
+| D86-01-03 | Show auto-dismiss warning only when entity has duplicates | Warning is relevant context for multiple pending items; confusing for single items. | 86-01 |
 
 ### Investigation Results (2026-02-10)
 
@@ -76,12 +79,14 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | ✅ Fixed (Phase 84) |
 | Ghost entities | entities 4469, 4474, 4188 have `is_active=1` but no status record | Simple — SQL remediation | ✅ Prevention complete (Phase 85), cleanup pending |
 | Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update | ✅ Fixed |
+| No dismiss for pending items | Rejected items still appear in pending queue (no approving_user_id filter) | Backend filter + frontend UI | ✅ Fixed (Phase 86) |
 
 ### Blockers/Concerns
 
 - ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (Phase 83 complete)
 - ~~Status change detection~~ **COMPLETE** (Phase 84)
 - ~~Ghost entity prevention~~ **COMPLETE** (Phase 85)
+- ~~Pending queue management~~ **COMPLETE** (Phase 86)
 - Remaining work: Execute SQL remediation for 3 ghost entities (operations task, documented in sysndd-administration#2)
 
 ---
@@ -89,9 +94,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Completed Phase 85 (plan 85-01 complete)
-**Resume file:** .planning/phases/85-ghost-entity-cleanup-prevention/85-01-SUMMARY.md
+**Stopped at:** Completed Phase 86 (plan 86-01 complete)
+**Resume file:** .planning/phases/86-dismiss-autodismiss-pending/86-01-SUMMARY.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Completed Phase 85: Ghost entity prevention verified (transaction wrapper), GitHub issue updated with remediation SQL, entity service tests enhanced*
+*Last updated: 2026-02-10 — Completed Phase 86: Dismiss & auto-dismiss for pending statuses/reviews (7 backend/frontend files, 40 integration tests, full E2E Playwright verification)*
