@@ -109,6 +109,37 @@ export default function useReviewForm(entityId?: string | number) {
     comment: '',
   });
 
+  // Track loaded data for change detection
+  const loadedData = ref<{
+    synopsis: string;
+    comment: string;
+    phenotypes: string[];
+    variationOntology: string[];
+    publications: string[];
+    genereviews: string[];
+  } | null>(null);
+
+  /**
+   * Helper function for array comparison
+   */
+  function arraysEqual(a: string[], b: string[]): boolean {
+    if (a.length !== b.length) return false;
+    return a.every((val, idx) => val === b[idx]);
+  }
+
+  // Change detection
+  const hasChanges = computed(() => {
+    if (!loadedData.value) return false;
+    return (
+      formData.synopsis !== loadedData.value.synopsis ||
+      formData.comment !== loadedData.value.comment ||
+      !arraysEqual(formData.phenotypes, loadedData.value.phenotypes) ||
+      !arraysEqual(formData.variationOntology, loadedData.value.variationOntology) ||
+      !arraysEqual(formData.publications, loadedData.value.publications) ||
+      !arraysEqual(formData.genereviews, loadedData.value.genereviews)
+    );
+  });
+
   // Field touched state for validation display
   const touched = reactive<Record<string, boolean>>({
     synopsis: false,
@@ -258,6 +289,16 @@ export default function useReviewForm(entityId?: string | number) {
       originalPublications.value = [...formData.publications];
       originalGenereviews.value = [...formData.genereviews];
 
+      // Snapshot loaded values for change detection
+      loadedData.value = {
+        synopsis: formData.synopsis,
+        comment: formData.comment,
+        phenotypes: [...formData.phenotypes],
+        variationOntology: [...formData.variationOntology],
+        publications: [...formData.publications],
+        genereviews: [...formData.genereviews],
+      };
+
       loading.value = false;
     } catch (error) {
       loading.value = false;
@@ -361,6 +402,9 @@ export default function useReviewForm(entityId?: string | number) {
     // BUG-05 fix: Clear original publications on form reset
     originalPublications.value = [];
     originalGenereviews.value = [];
+
+    // Clear loaded data snapshot
+    loadedData.value = null;
   };
 
   /**
@@ -394,6 +438,9 @@ export default function useReviewForm(entityId?: string | number) {
     formData,
     touched,
     loading,
+
+    // Change detection
+    hasChanges,
 
     // Validation
     validateField,
