@@ -17,6 +17,7 @@
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
 - ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 - ✅ **v10.5 Bug Fixes & Data Integrity** - Phases 80-82 (shipped 2026-02-09)
+- 🔄 **v10.6 Curation UX Fixes & Security** - Phases 83-85
 
 ## Phases
 
@@ -26,6 +27,32 @@
 Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILESTONES.md` for full history.
 
 </details>
+
+### v10.6 Curation UX Fixes & Security
+
+**Goal:** Fix critical curation workflow regressions blocking Christiane's daily work, clean up ghost entities, and patch axios security vulnerability.
+
+| Phase | Title | Goal | Status |
+|-------|-------|------|--------|
+| 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ⬚ Not started |
+| 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ⬚ Not started |
+| 85 | Ghost Entity Cleanup & Prevention | Deactivate orphaned entities, prevent future ghosts via atomic creation | ⬚ Not started |
+
+**Phase 83 — Status Creation Fix & Security**
+- Fix: Move `resetStatusForm()` before `loadStatusByEntity()` in `showStatusModify()` (ModifyEntity.vue)
+- Verify: "Approve both" checkbox appears when status_change exists (ApproveReview.vue)
+- Security: Update axios 1.13.4 → 1.13.5 (CVE-2026-25639)
+- Requirements: R1, R2, R5
+
+**Phase 84 — Status Change Detection**
+- Add change detection in ModifyEntity to skip status creation when user didn't change status
+- Expose `hasChanges()` from useStatusForm composable
+- Requirements: R3
+
+**Phase 85 — Ghost Entity Cleanup & Prevention**
+- Deactivate entities 4469 (GAP43) and 4474 (FGF14) via migration/script
+- Integrate atomic entity creation (`svc_entity_create_with_review_status`) to prevent future orphans
+- Requirements: R4
 
 ## Progress
 
@@ -46,7 +73,8 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 | 73-75 | v10.3 Bug Fixes & Stabilization | ✅ Complete | 2026-02-06 |
 | 76-79 | v10.4 OMIM Optimization & Refactor | ✅ Complete | 2026-02-07 |
 | 80-82 | v10.5 Bug Fixes & Data Integrity | ✅ Complete | 2026-02-09 |
+| 83-85 | v10.6 Curation UX Fixes & Security | 🔄 In Progress | — |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-09 — v10.5 milestone complete*
+*Last updated: 2026-02-10 — v10.6 milestone started*

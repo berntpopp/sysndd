@@ -19,12 +19,12 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** Not started (defining requirements)
-**Plan:** —
-**Status:** Investigating issues
-**Progress:** v10.6 [░░░░░░░░░░░░░░░░░░░░] 0%
+**Phase:** 83 — Status Creation Fix & Security
+**Plan:** Not yet created
+**Status:** Research complete, roadmap defined, ready for `/gsd:plan-phase`
+**Progress:** v10.6 [██░░░░░░░░░░░░░░░░░░] 10%
 
-**Last activity:** 2026-02-10 — Milestone v10.6 started
+**Last activity:** 2026-02-10 — Research complete, all 5 bugs root-caused
 
 ---
 
@@ -52,13 +52,15 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-### Pending Todos
+### Investigation Results (2026-02-10)
 
-- Investigate "approve both" regression (code archaeology needed)
-- Investigate unnecessary status approval requirement
-- Identify and delete ghost entities (GAP43, FGF14)
-- Diagnose HTTP 500 on ATOH1 status changes
-- Update axios to fix DoS vulnerability (#181)
+| Bug | Root Cause | Fix Complexity |
+|-----|-----------|----------------|
+| HTTP 500 status change | Modal `@show` resets formData AFTER load deletes `entity_id` | Simple — reorder reset/load |
+| "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself |
+| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() |
+| Ghost entities | entities 4469, 4474 have `is_active=1` but no status record | Simple — deactivate + prevention |
+| Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update |
 
 ### Blockers/Concerns
 
@@ -69,9 +71,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Starting deep investigation of curation UX regressions
+**Stopped at:** Research complete. Ready for `/gsd:plan-phase` on Phase 83.
 **Resume file:** None
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — v10.6 milestone started*
+*Last updated: 2026-02-10 — v10.6 research complete, roadmap defined*
