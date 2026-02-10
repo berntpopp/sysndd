@@ -310,6 +310,18 @@ review_approve <- function(review_ids, approving_user_id, approved = TRUE) {
         ")"
       )
       db_execute_statement(sql_set_approved, as.list(review_ids), conn = txn_conn)
+
+      # Auto-dismiss other pending reviews for the same entities
+      db_execute_statement(
+        paste0(
+          "UPDATE ndd_entity_review SET approving_user_id = ? ",
+          "WHERE entity_id IN (", entity_placeholders, ") ",
+          "AND review_approved = 0 AND approving_user_id IS NULL ",
+          "AND review_id NOT IN (", review_placeholders, ")"
+        ),
+        c(list(approving_user_id), as.list(entity_ids), as.list(review_ids)),
+        conn = txn_conn
+      )
     } else {
       # Rejection: add approving_user_id and set review_approved to 0
       sql_set_user <- paste0(

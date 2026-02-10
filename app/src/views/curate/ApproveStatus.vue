@@ -364,7 +364,9 @@
                   size="sm"
                   class="me-1 btn-xs"
                   variant="secondary"
-                  :title="row.item.review_change ? 'Edit status (review change pending)' : 'Edit status'"
+                  :title="
+                    row.item.review_change ? 'Edit status (review change pending)' : 'Edit status'
+                  "
                   :aria-label="`Edit status for entity ${row.item.entity_id}${row.item.review_change ? ' (review change pending)' : ''}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
@@ -389,6 +391,30 @@
                   @click="infoApproveStatus(row.item, row.index, $event.target)"
                 >
                   <i class="bi bi-check2-circle" aria-hidden="true" />
+                </BButton>
+
+                <BButton
+                  v-b-tooltip.hover.right
+                  size="sm"
+                  class="me-1 btn-xs"
+                  variant="outline-danger"
+                  title="Dismiss status"
+                  :aria-label="`Dismiss status for entity ${row.item.entity_id}`"
+                  @click="infoDismissStatus(row.item, row.index, $event.target)"
+                >
+                  <i class="bi bi-x-circle" aria-hidden="true" />
+                </BButton>
+
+                <BButton
+                  v-if="row.item.duplicate === 'yes'"
+                  v-b-tooltip.hover.right
+                  variant="warning"
+                  title="Multiple pending statuses for this entity"
+                  :aria-label="`Warning: Multiple pending statuses for entity ${row.item.entity_id}`"
+                  size="sm"
+                  class="me-1 btn-xs"
+                >
+                  <i class="bi bi-exclamation-triangle-fill" aria-hidden="true" />
                 </BButton>
               </template>
 
@@ -484,9 +510,57 @@
             </BBadge>
           </p>
           <p class="text-muted small">Click <strong>Approve</strong> to confirm and submit.</p>
+
+          <div
+            v-if="approveModal.hasDuplicates"
+            class="alert alert-info small text-start mt-3 mb-0"
+          >
+            <i class="bi bi-info-circle me-1" />
+            Other pending statuses for this entity will be automatically dismissed.
+          </div>
         </div>
       </BModal>
       <!-- Approve modal -->
+
+      <!-- Dismiss modal -->
+      <BModal
+        :id="dismissModal.id"
+        :ref="dismissModal.id"
+        size="md"
+        centered
+        ok-title="Dismiss"
+        ok-variant="danger"
+        no-close-on-esc
+        no-close-on-backdrop
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        header-close-label="Close"
+        @ok="handleDismissOk"
+      >
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-x-circle-fill me-2 text-danger" />
+            <span class="fw-semibold">Dismiss Status</span>
+          </div>
+        </template>
+
+        <div class="text-center py-3">
+          <div class="mb-3">
+            <i class="bi bi-x-circle text-danger" style="font-size: 2.5rem" />
+          </div>
+          <p class="mb-2">
+            Dismiss this pending status for entity
+            <BBadge variant="primary" class="mx-1">
+              {{ dismissModal.title }}
+            </BBadge>
+            ?
+          </p>
+          <p class="text-muted small">
+            The status will be removed from the pending queue. This does not delete the record.
+          </p>
+        </div>
+      </BModal>
+      <!-- Dismiss modal -->
 
       <!-- Modify status modal -->
       <BModal
@@ -690,6 +764,14 @@
 
       <!-- ARIA live region for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+
+      <!-- Confirm discard unsaved changes dialog -->
+      <ConfirmDiscardDialog
+        ref="confirmDiscardDialog"
+        modal-id="approve-status-confirm-discard"
+        @discard="onConfirmDiscard"
+        @keep-editing="pendingDiscardTarget = null"
+      />
     </BContainer>
   </div>
 </template>
@@ -719,6 +801,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
+import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
 
 export default {
   name: 'ApproveStatus',
@@ -730,6 +813,7 @@ export default {
     CategoryIcon,
     AriaLiveRegion,
     IconLegend,
+    ConfirmDiscardDialog,
   },
   setup() {
     const { makeToast } = useToast();
@@ -761,9 +845,15 @@ export default {
           color: '#ffc107',
           label: 'Review change pending',
         },
+        {
+          icon: 'bi bi-exclamation-triangle-fill',
+          color: '#ffc107',
+          label: 'Multiple pending statuses',
+        },
         { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
         { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit status' },
         { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve status' },
+        { icon: 'bi bi-x-circle', color: '#dc3545', label: 'Dismiss status' },
       ],
       problematic_text: {
         0: 'No problems',
@@ -914,12 +1004,19 @@ export default {
         id: 'approve-modal',
         title: '',
         content: [],
+        hasDuplicates: false,
+      },
+      dismissModal: {
+        id: 'dismiss-modal',
+        title: '',
+        statusId: null,
       },
       approve_all_selected: false,
       switch_approve_text: { true: 'Yes', false: 'No' },
       loading_status_approve: true,
       loading_status_modal: true,
       isBusy: true,
+      pendingDiscardTarget: null, // 'status' — tracks which modal triggered discard confirm
     };
   },
   computed: {
@@ -927,8 +1024,8 @@ export default {
       if (!this.statusLoadedData) return false;
       return (
         this.status_info.category_id !== this.statusLoadedData.category_id ||
-        this.status_info.comment !== this.statusLoadedData.comment ||
-        this.status_info.problematic !== this.statusLoadedData.problematic
+        (this.status_info.comment || '') !== this.statusLoadedData.comment ||
+        Boolean(this.status_info.problematic) !== this.statusLoadedData.problematic
       );
     },
     // Category filter options from unique values in items
@@ -1089,6 +1186,8 @@ export default {
         this.$refs[this.statusModal.id].hide();
         return;
       }
+      // Mark busy so the hide handler allows modal close during save
+      this.isBusy = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
       // remove additional data before submission
@@ -1133,17 +1232,54 @@ export default {
       this.statusLoadedData = null;
     },
     onStatusModalHide(event) {
+      if (this.pendingDiscardTarget === 'status') {
+        this.pendingDiscardTarget = null;
+        return;
+      }
       if (this.hasStatusChanges && !this.isBusy) {
-        const confirmed = window.confirm('You have unsaved status changes. Discard them?');
-        if (!confirmed) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+        this.pendingDiscardTarget = 'status';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
+    onConfirmDiscard() {
+      if (this.pendingDiscardTarget === 'status') {
+        this.$refs[this.statusModal.id].hide();
       }
     },
     infoApproveStatus(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
+      this.approveModal.hasDuplicates = item.duplicate === 'yes';
       this.loadStatusInfo(item.status_id);
       this.$refs[this.approveModal.id].show();
+    },
+    infoDismissStatus(item, _index, _button) {
+      this.dismissModal.title = `sysndd:${item.entity_id}`;
+      this.dismissModal.statusId = item.status_id;
+      this.$refs[this.dismissModal.id].show();
+    },
+    async handleDismissOk(_bvModalEvt) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/approve/${
+        this.dismissModal.statusId
+      }?status_ok=false`;
+
+      try {
+        await this.axios.put(
+          apiUrl,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        this.announce('Status dismissed successfully');
+        this.loadStatusTableData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.announce('Error dismissing status', 'assertive');
+      }
     },
     infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;

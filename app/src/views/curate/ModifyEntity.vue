@@ -738,6 +738,14 @@
 
       <!-- AriaLiveRegion for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+
+      <!-- Confirm discard unsaved changes dialog -->
+      <ConfirmDiscardDialog
+        ref="confirmDiscardDialog"
+        modal-id="modify-entity-confirm-discard"
+        @discard="onConfirmDiscard"
+        @keep-editing="pendingDiscardTarget = null"
+      />
     </BContainer>
   </div>
 </template>
@@ -752,6 +760,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
+import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Review from '@/assets/js/classes/submission/submissionReview';
@@ -770,6 +779,7 @@ export default {
     EntityBadge,
     AriaLiveRegion,
     IconLegend,
+    ConfirmDiscardDialog,
   },
   setup() {
     const { makeToast } = useToast();
@@ -837,6 +847,7 @@ export default {
       loading_review_modal: true,
       loading_status_modal: true,
       submitting: null, // null | 'rename' | 'deactivate' | 'review' | 'status'
+      pendingDiscardTarget: null, // 'review' | 'status' — tracks which modal triggered discard confirm
       legendItems: [
         { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
@@ -856,8 +867,8 @@ export default {
         return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
       };
       return (
-        this.review_info.synopsis !== this.reviewLoadedData.synopsis ||
-        this.review_info.comment !== this.reviewLoadedData.comment ||
+        (this.review_info.synopsis || '') !== this.reviewLoadedData.synopsis ||
+        (this.review_info.comment || '') !== this.reviewLoadedData.comment ||
         !arrEqual(this.select_phenotype, this.reviewLoadedData.phenotypes) ||
         !arrEqual(this.select_variation, this.reviewLoadedData.variationOntology) ||
         !arrEqual(this.select_additional_references, this.reviewLoadedData.publications) ||
@@ -1497,12 +1508,14 @@ export default {
       this.select_gene_reviews = [];
     },
     onModifyReviewModalHide(event) {
-      // Only warn about unsaved changes if not currently submitting
+      if (this.pendingDiscardTarget === 'review') {
+        this.pendingDiscardTarget = null;
+        return; // Allow close after confirmed discard
+      }
       if (this.hasReviewChanges && !this.submitting) {
-        const confirmed = window.confirm('You have unsaved review changes. Discard them?');
-        if (!confirmed) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+        this.pendingDiscardTarget = 'review';
+        this.$refs.confirmDiscardDialog.show();
       }
     },
     onModifyStatusModalShow() {
@@ -1510,12 +1523,21 @@ export default {
       // The reset must happen BEFORE data load, not after modal renders
     },
     onModifyStatusModalHide(event) {
-      // Only warn about unsaved changes if not currently submitting
+      if (this.pendingDiscardTarget === 'status') {
+        this.pendingDiscardTarget = null;
+        return; // Allow close after confirmed discard
+      }
       if (this.hasStatusChanges && !this.submitting) {
-        const confirmed = window.confirm('You have unsaved status changes. Discard them?');
-        if (!confirmed) {
-          event.preventDefault();
-        }
+        event.preventDefault();
+        this.pendingDiscardTarget = 'status';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
+    onConfirmDiscard() {
+      if (this.pendingDiscardTarget === 'review') {
+        this.$refs.modifyReviewModal.hide();
+      } else if (this.pendingDiscardTarget === 'status') {
+        this.$refs.modifyStatusModal.hide();
       }
     },
   },

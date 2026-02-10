@@ -85,6 +85,9 @@ function(req, res, filter_status_approved = FALSE) {
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     left_join(ndd_entity_tbl, by = c("entity_id")) %>%
     filter(status_approved == filter_status_approved) %>%
+    {
+      if (!filter_status_approved) filter(., is.na(approving_user_id)) else .
+    } %>%
     collect() %>%
     select(
       status_id,

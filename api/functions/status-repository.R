@@ -296,6 +296,18 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
         conn = txn_conn
       )
 
+      # Auto-dismiss other pending statuses for the same entities
+      db_execute_statement(
+        paste0(
+          "UPDATE ndd_entity_status SET approving_user_id = ? ",
+          "WHERE entity_id IN (", entity_placeholders, ") ",
+          "AND status_approved = 0 AND approving_user_id IS NULL ",
+          "AND status_id NOT IN (", status_placeholders, ")"
+        ),
+        c(list(approving_user_id), as.list(entity_ids), as.list(status_ids)),
+        conn = txn_conn
+      )
+
       log_debug("Approved {length(status_ids)} statuses for {length(entity_ids)} entities")
     } else {
       # Rejection: set approving_user_id and status_approved = 0
