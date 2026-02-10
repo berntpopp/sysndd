@@ -17,7 +17,7 @@
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
 - ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 - ✅ **v10.5 Bug Fixes & Data Integrity** - Phases 80-82 (shipped 2026-02-09)
-- 🔄 **v10.6 Curation UX Fixes & Security** - Phases 83-85
+- ✅ **v10.6 Curation UX Fixes & Security** - Phases 83-85 (shipped 2026-02-10)
 
 ## Phases
 
@@ -36,7 +36,7 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 |-------|-------|------|--------|
 | 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ✅ Complete |
 | 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ✅ Complete |
-| 85 | Ghost Entity Cleanup & Prevention | Verify atomic creation prevents future ghosts, update admin issue, enhance test coverage | ⬚ Not started |
+| 85 | Ghost Entity Cleanup & Prevention | Verify atomic creation prevents future ghosts, update admin issue, enhance test coverage | ✅ Complete |
 
 **Phase 83 — Status Creation Fix & Security**
 - Fix: Move `resetStatusForm()` before `loadStatusByEntity()` in `showStatusModify()` (ModifyEntity.vue)
@@ -65,7 +65,7 @@ Plans:
 - Requirements: R4
 - **Plans:** 1 plan
 Plans:
-- [ ] 85-01-PLAN.md — Update admin issue, verify prevention, enhance rollback contract tests
+- [x] 85-01-PLAN.md — Update admin issue, verify prevention, enhance rollback contract tests
 
 ## Progress
 
@@ -86,8 +86,8 @@ Plans:
 | 73-75 | v10.3 Bug Fixes & Stabilization | ✅ Complete | 2026-02-06 |
 | 76-79 | v10.4 OMIM Optimization & Refactor | ✅ Complete | 2026-02-07 |
 | 80-82 | v10.5 Bug Fixes & Data Integrity | ✅ Complete | 2026-02-09 |
-| 83-85 | v10.6 Curation UX Fixes & Security | 🔄 In Progress | — |
+| 83-85 | v10.6 Curation UX Fixes & Security | ✅ Complete | 2026-02-10 |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 85 planned (1 plan, 1 wave)*
+*Last updated: 2026-02-10 — Phase 85 complete, v10.6 milestone shipped*

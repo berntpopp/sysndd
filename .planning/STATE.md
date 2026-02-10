@@ -22,7 +22,7 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 **Phase:** 85 — Ghost Entity Cleanup & Prevention (Complete)
 **Plan:** 1/1 complete (85-01)
 **Status:** Prevention verified, GitHub issue updated, tests enhanced
-**Progress:** v10.6 [███████████░░░░░░░░░] 60%
+**Progress:** v10.6 [████████████████████] 100%
 
 **Last activity:** 2026-02-10 — Completed 85-01: Ghost entity cleanup closeout (prevention verification + test enhancement)
 
