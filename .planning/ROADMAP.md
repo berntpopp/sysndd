@@ -48,9 +48,15 @@ Plans:
 - [x] 83-01-PLAN.md — Fix status form reset ordering, update axios, verify approve-both
 
 **Phase 84 — Status Change Detection**
-- Add change detection in ModifyEntity to skip status creation when user didn't change status
-- Expose `hasChanges()` from useStatusForm composable
+- Add change detection in ModifyEntity, ApproveReview, ApproveStatus to skip status/review creation when user didn't change anything
+- Expose `hasChanges()` from useStatusForm and useReviewForm composables
+- Fix missing review_change indicator in ApproveStatus
 - Requirements: R3
+- **Plans:** 3 plans
+Plans:
+- [ ] 84-01-PLAN.md — Add hasChanges to useStatusForm and useReviewForm composables + tests
+- [ ] 84-02-PLAN.md — Wire change detection into ModifyEntity (status + review forms)
+- [ ] 84-03-PLAN.md — Add change detection to ApproveReview and ApproveStatus + fix review_change indicator
 
 **Phase 85 — Ghost Entity Cleanup & Prevention**
 - Deactivate entities 4469 (GAP43) and 4474 (FGF14) via migration/script
@@ -80,4 +86,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 83 complete*
+*Last updated: 2026-02-10 — Phase 84 planned*
