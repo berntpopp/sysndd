@@ -1,7 +1,7 @@
 {
     "title": "SysNDD API",
     "description": "This is the API powering the SysNDD website, allowing programmatic access to the database contents.",
-    "version": "0.10.0",
+    "version": "0.10.1",
     "contact": {
       "name": "API Support",
       "url": "https://berntpopp.github.io/sysndd/api.html",
