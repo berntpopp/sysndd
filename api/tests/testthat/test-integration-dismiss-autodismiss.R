@@ -14,6 +14,45 @@ source_api_file("functions/status-repository.R", local = FALSE)
 source_api_file("functions/review-repository.R", local = FALSE)
 source_api_file("functions/re-review-sync.R", local = FALSE)
 
+# Ensure test tables exist (CI starts with empty DB; DDL is idempotent)
+if (test_db_available()) {
+  con <- get_test_db_connection()
+  tryCatch({
+    DBI::dbExecute(con,
+      "CREATE TABLE IF NOT EXISTS ndd_entity_status (
+        status_id INT NOT NULL AUTO_INCREMENT,
+        entity_id INT DEFAULT NULL,
+        category_id INT DEFAULT NULL,
+        status_user_id INT NOT NULL,
+        status_date TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        comment TEXT DEFAULT NULL,
+        problematic TINYINT DEFAULT 0,
+        status_approved TINYINT DEFAULT 0,
+        approving_user_id INT DEFAULT NULL,
+        is_active TINYINT DEFAULT 0,
+        PRIMARY KEY (status_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3"
+    )
+    DBI::dbExecute(con,
+      "CREATE TABLE IF NOT EXISTS ndd_entity_review (
+        review_id INT NOT NULL AUTO_INCREMENT,
+        entity_id INT DEFAULT NULL,
+        synopsis TEXT DEFAULT NULL,
+        review_user_id INT NOT NULL,
+        review_date TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        comment TEXT DEFAULT NULL,
+        review_approved TINYINT DEFAULT 0,
+        approving_user_id INT DEFAULT NULL,
+        is_primary TINYINT DEFAULT 0,
+        PRIMARY KEY (review_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3"
+    )
+  }, error = function(e) {
+    message("Could not create test tables: ", e$message)
+  })
+  DBI::dbDisconnect(con)
+}
+
 # ---------------------------------------------------------------------------
 # Status dismiss / auto-dismiss tests
 # ---------------------------------------------------------------------------
