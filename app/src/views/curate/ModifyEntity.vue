@@ -1213,6 +1213,9 @@ export default {
       this.$refs.modifyReviewModal.show();
     },
     async showStatusModify() {
+      // Reset form FIRST to ensure clean state before loading data
+      this.resetStatusForm();
+
       // Load entity and status data
       await this.getEntity();
 
@@ -1448,8 +1451,8 @@ export default {
       this.select_gene_reviews = [];
     },
     onModifyStatusModalShow() {
-      // Reset form state on show (FORM-07: prevents stale data flash)
-      this.resetStatusForm();
+      // Reset moved to showStatusModify() — intentionally empty to preserve loaded data
+      // The reset must happen BEFORE data load, not after modal renders
     },
   },
 };
