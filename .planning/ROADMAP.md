@@ -35,7 +35,7 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 | Phase | Title | Goal | Status |
 |-------|-------|------|--------|
 | 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ✅ Complete |
-| 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ⬚ Not started |
+| 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ✅ Complete |
 | 85 | Ghost Entity Cleanup & Prevention | Deactivate orphaned entities, prevent future ghosts via atomic creation | ⬚ Not started |
 
 **Phase 83 — Status Creation Fix & Security**
@@ -54,9 +54,9 @@ Plans:
 - Requirements: R3
 - **Plans:** 3 plans
 Plans:
-- [ ] 84-01-PLAN.md — Add hasChanges to useStatusForm and useReviewForm composables + tests
-- [ ] 84-02-PLAN.md — Wire change detection into ModifyEntity (status + review forms)
-- [ ] 84-03-PLAN.md — Add change detection to ApproveReview and ApproveStatus + fix review_change indicator
+- [x] 84-01-PLAN.md — Add hasChanges to useStatusForm and useReviewForm composables + tests
+- [x] 84-02-PLAN.md — Wire change detection into ModifyEntity (status + review forms)
+- [x] 84-03-PLAN.md — Add change detection to ApproveReview and ApproveStatus + fix review_change indicator
 
 **Phase 85 — Ghost Entity Cleanup & Prevention**
 - Deactivate entities 4469 (GAP43) and 4474 (FGF14) via migration/script
@@ -86,4 +86,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 84 planned*
+*Last updated: 2026-02-10 — Phase 84 complete*
