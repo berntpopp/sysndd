@@ -19,21 +19,21 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 83 — Status Creation Fix & Security
-**Plan:** 01 of 3 complete
-**Status:** In progress — Phase 83 executing
-**Progress:** v10.6 [███░░░░░░░░░░░░░░░░░] 15%
+**Phase:** 83 — Status Creation Fix & Security ✅ COMPLETE
+**Plan:** 1/1 complete
+**Status:** Phase 83 verified via E2E Playwright testing
+**Progress:** v10.6 [███████░░░░░░░░░░░░░] 33%
 
-**Last activity:** 2026-02-10 — Completed 83-01 (status creation fix + axios security patch)
+**Last activity:** 2026-02-10 — Phase 83 complete (status fix + backend NULL fix + axios patch + E2E verified)
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 333 (from v1-v10.5)
+- Total plans completed: 334 (from v1-v10.6)
 - Milestones shipped: 15 (v1-v10.5)
-- Phases completed: 82
+- Phases completed: 83
 
 **Current Stats:**
 
@@ -55,20 +55,21 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | ID | Decision | Rationale | Phase |
 |----|----------|-----------|-------|
 | D83-01 | Reset status form BEFORE data load instead of on modal @show event | Modal @show fires asynchronously after data load, destroying entity_id. Moving reset before load prevents race condition. | 83-01 |
+| D83-02 | Compact NULLs in status_create before tibble conversion | JSON null becomes R NULL which tibble rejects. purrr::compact() strips them. | 83-01 |
 
 ### Investigation Results (2026-02-10)
 
-| Bug | Root Cause | Fix Complexity |
-|-----|-----------|----------------|
-| HTTP 500 status change | Modal `@show` resets formData AFTER load deletes `entity_id` | Simple — reorder reset/load |
-| "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself |
-| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() |
-| Ghost entities | entities 4469, 4474 have `is_active=1` but no status record | Simple — deactivate + prevention |
-| Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update |
+| Bug | Root Cause | Fix Complexity | Status |
+|-----|-----------|----------------|--------|
+| HTTP 500 status change | Modal `@show` resets formData AFTER load + backend NULL→tibble crash | Frontend + backend fix | ✅ Fixed |
+| "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself | ✅ Fixed |
+| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | Phase 84 |
+| Ghost entities | entities 4469, 4474 have `is_active=1` but no status record | Simple — deactivate + prevention | Phase 85 |
+| Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update | ✅ Fixed |
 
 ### Blockers/Concerns
 
-- ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (83-01: status change HTTP 500 fixed)
+- ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (Phase 83 complete)
 - Remaining work: Status change detection (84), Ghost entity cleanup (85)
 
 ---
@@ -76,9 +77,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Completed 83-01-PLAN.md execution
+**Stopped at:** Phase 83 complete, ready for Phase 84
 **Resume file:** .planning/phases/83-status-creation-fix-security/83-01-SUMMARY.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 83 Plan 01 complete (status creation fix + axios security)*
+*Last updated: 2026-02-10 — Phase 83 complete (status creation fix + backend NULL fix + axios security + E2E verified)*

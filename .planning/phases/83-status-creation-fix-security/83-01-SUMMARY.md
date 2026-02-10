@@ -22,6 +22,7 @@ key-files:
     - app/src/views/curate/ModifyEntity.vue
     - app/package.json
     - app/package-lock.json
+    - api/functions/status-repository.R
 
 # Decisions
 decisions:
@@ -77,6 +78,7 @@ The `ModifyEntity.vue` component had incorrect modal lifecycle ordering:
 | `app/src/views/curate/ModifyEntity.vue` | Fixed form reset ordering, preserves entity_id through modal lifecycle |
 | `app/package.json` | Updated axios dependency to secure version |
 | `app/package-lock.json` | Locked axios 1.13.5 |
+| `api/functions/status-repository.R` | Compact NULLs before tibble conversion in status_create |
 
 ## Commits
 
@@ -84,6 +86,7 @@ The `ModifyEntity.vue` component had incorrect modal lifecycle ordering:
 |------|---------|
 | d314313b | fix(83-01): fix status form reset ordering |
 | 8a2dd8d7 | fix(83-01): update axios to 1.13.5 |
+| b861fc11 | fix(83-01): compact NULL values in status_create before tibble conversion |
 
 ## Technical Details
 
@@ -126,11 +129,11 @@ Traced entity_id through submission path:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+**Backend fix required:** Playwright E2E testing revealed a pre-existing backend bug in `status_create()` — JSON `null` values from the frontend become R `NULL` which `tibble::as_tibble()` rejects with "All columns in a tibble must be vectors". Fixed by adding `purrr::compact()` before tibble conversion. This bug was hidden because the old broken form never reached this code path.
 
 ## Issues Encountered
 
-None - straightforward bug fix and dependency update.
+Pre-existing backend bug in `api/functions/status-repository.R` — see Deviations above.
 
 ## Test Results
 
@@ -139,6 +142,8 @@ None - straightforward bug fix and dependency update.
 - ✅ axios 1.13.5 installed, no axios vulnerabilities
 - ✅ Code review: reset → load → show ordering verified
 - ✅ Data flow trace: entity_id preserved through modal lifecycle
+- ✅ **E2E Playwright:** Status change POST returns HTTP 200 with entity_id in body
+- ✅ **E2E Playwright:** "Approve both" checkbox visible on ApproveReview for entity with status_change
 
 ## Next Phase Readiness
 
