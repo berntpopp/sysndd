@@ -364,11 +364,19 @@
                   size="sm"
                   class="me-1 btn-xs"
                   variant="secondary"
-                  title="Edit status"
-                  :aria-label="`Edit status for entity ${row.item.entity_id}`"
+                  :title="row.item.review_change ? 'Edit status (review change pending)' : 'Edit status'"
+                  :aria-label="`Edit status for entity ${row.item.entity_id}${row.item.review_change ? ' (review change pending)' : ''}`"
                   @click="infoStatus(row.item, row.index, $event.target)"
                 >
-                  <i class="bi bi-pen" aria-hidden="true" />
+                  <span class="position-relative d-inline-block" style="font-size: 0.9em">
+                    <i class="bi bi-pen" aria-hidden="true" />
+                    <i
+                      v-if="row.item.review_change"
+                      class="bi bi-exclamation-triangle-fill position-absolute text-warning"
+                      style="top: -0.3em; right: -0.5em; font-size: 0.7em"
+                      aria-hidden="true"
+                    />
+                  </span>
                 </BButton>
 
                 <BButton
@@ -494,6 +502,7 @@
         header-close-label="Close"
         :busy="loading_status_modal"
         @ok="submitStatusChange"
+        @hide="onStatusModalHide"
       >
         <template #title>
           <div class="d-flex align-items-center">
@@ -739,6 +748,7 @@ export default {
   },
   data() {
     return {
+      statusLoadedData: null, // Snapshot of status values when loaded
       legendItems: [
         { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
@@ -746,6 +756,11 @@ export default {
         { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
         { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'No problems' },
         { icon: 'bi bi-exclamation-triangle-fill', color: '#dc3545', label: 'Problematic' },
+        {
+          icon: 'bi bi-exclamation-triangle-fill',
+          color: '#ffc107',
+          label: 'Review change pending',
+        },
         { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
         { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit status' },
         { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve status' },
@@ -908,6 +923,14 @@ export default {
     };
   },
   computed: {
+    hasStatusChanges() {
+      if (!this.statusLoadedData) return false;
+      return (
+        this.status_info.category_id !== this.statusLoadedData.category_id ||
+        this.status_info.comment !== this.statusLoadedData.comment ||
+        this.status_info.problematic !== this.statusLoadedData.problematic
+      );
+    },
     // Category filter options from unique values in items
     categoryFilterOptions() {
       const categories = [...new Set(this.items_StatusTable.map((item) => item.category))].filter(
@@ -1036,6 +1059,12 @@ export default {
         this.status_info.status_user_name = response.data[0].status_user_name;
         this.status_info.entity_id = response.data[0].entity_id;
 
+        this.statusLoadedData = {
+          category_id: this.status_info.category_id,
+          comment: this.status_info.comment || '',
+          problematic: this.status_info.problematic || false,
+        };
+
         this.loading_status_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1055,6 +1084,11 @@ export default {
       }
     },
     async submitStatusChange() {
+      // Silent skip when nothing changed
+      if (!this.hasStatusChanges) {
+        this.$refs[this.statusModal.id].hide();
+        return;
+      }
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
       // remove additional data before submission
@@ -1096,6 +1130,15 @@ export default {
         hpo_mode_of_inheritance_term: '',
       };
       this.status_info = new Status();
+      this.statusLoadedData = null;
+    },
+    onStatusModalHide(event) {
+      if (this.hasStatusChanges && !this.isBusy) {
+        const confirmed = window.confirm('You have unsaved status changes. Discard them?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
     },
     infoApproveStatus(item, _index, _button) {
       this.approveModal.title = `sysndd:${item.entity_id}`;
