@@ -1,5 +1,41 @@
 # Project Milestones: SysNDD Developer Experience
 
+## v10.6 Curation UX Fixes & Security (Shipped: 2026-02-10)
+
+**Delivered:** Fix critical curation workflow regressions (HTTP 500 on status change, unnecessary status approvals, ghost entity prevention), patch axios DoS vulnerability, and add dismiss/auto-dismiss capability for pending queue management.
+
+**Phases completed:** 83-86 (6 plans total)
+
+**Key accomplishments:**
+
+- Fixed HTTP 500 on status change caused by modal lifecycle race condition (resetForm after loadData) + backend NULL compact fix
+- Patched axios CVE-2026-25639 DoS vulnerability (1.13.4 → 1.13.5)
+- Added change detection to all 3 curation views (ModifyEntity, ApproveReview, ApproveStatus) preventing unnecessary status/review creation
+- Verified ghost entity prevention via atomic svc_entity_create_full() transaction wrapper, enhanced rollback contract tests
+- Built dismiss & auto-dismiss for pending statuses/reviews with 40 integration test assertions and full E2E Playwright verification
+- Restored "approve both" checkbox functionality (symptom of status creation bug, auto-fixed)
+
+**Stats:**
+
+- 40 files modified (+6,467/-43 lines)
+- 63,911 lines R code, 75,287 lines Vue/TS
+- 4 phases, 6 plans, 30 commits
+- 1 day (2026-02-10)
+
+**Git range:** `aeca2118` → `d6df155f`
+
+**Target Issues:**
+- HTTP 500 on status change for ATOH1 entities — RESOLVED
+- "Approve both" checkbox not appearing — RESOLVED (symptom fix)
+- Status requiring approval even when unchanged — RESOLVED
+- Ghost entity prevention — VERIFIED (remediation SQL documented)
+- axios DoS vulnerability CVE-2026-25639 — RESOLVED
+- Pending queue cluttered with dismissed items — RESOLVED
+
+**What's next:** Planning next milestone
+
+---
+
 ## v10.5 Bug Fixes & Data Integrity (Shipped: 2026-02-09)
 
 **Delivered:** Fix 5 open bugs across CurationComparisons (#173), AdminStatistics (#172, #171), PubTator (#170), and Traefik (#169) with significant unplanned improvements including BioCJSON parsing pipeline rewrite (72% annotation loss fixed) and 18 broken transaction callers repaired.

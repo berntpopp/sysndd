@@ -82,9 +82,9 @@ status_find_by_entity <- function(entity_id) {
 #'
 #' @export
 status_create <- function(status_data, conn = NULL) {
-  # Convert to tibble if list
+  # Convert to tibble if list (compact NULLs first — JSON nulls become R NULL)
   if (is.list(status_data) && !inherits(status_data, "data.frame")) {
-    status_data <- tibble::as_tibble(status_data)
+    status_data <- tibble::as_tibble(purrr::compact(status_data))
   }
 
   # Validate required fields
@@ -293,6 +293,18 @@ status_approve <- function(status_ids, approving_user_id, approved = TRUE) {
       db_execute_statement(
         paste0("UPDATE ndd_entity_status SET status_approved = 1 WHERE status_id IN (", status_placeholders, ")"),
         as.list(status_ids),
+        conn = txn_conn
+      )
+
+      # Auto-dismiss other pending statuses for the same entities
+      db_execute_statement(
+        paste0(
+          "UPDATE ndd_entity_status SET approving_user_id = ? ",
+          "WHERE entity_id IN (", entity_placeholders, ") ",
+          "AND status_approved = 0 AND approving_user_id IS NULL ",
+          "AND status_id NOT IN (", status_placeholders, ")"
+        ),
+        c(list(approving_user_id), as.list(entity_ids), as.list(status_ids)),
         conn = txn_conn
       )
 

@@ -435,6 +435,7 @@
         header-close-label="Close"
         :busy="loading_review_modal"
         @show="onModifyReviewModalShow"
+        @hide="onModifyReviewModalHide"
         @ok="submitReviewChange"
       >
         <template #title>
@@ -650,6 +651,7 @@
         header-close-label="Close"
         :busy="statusFormLoading"
         @show="onModifyStatusModalShow"
+        @hide="onModifyStatusModalHide"
         @ok="submitStatusChange"
       >
         <template #title>
@@ -736,6 +738,14 @@
 
       <!-- AriaLiveRegion for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+
+      <!-- Confirm discard unsaved changes dialog -->
+      <ConfirmDiscardDialog
+        ref="confirmDiscardDialog"
+        modal-id="modify-entity-confirm-discard"
+        @discard="onConfirmDiscard"
+        @keep-editing="pendingDiscardTarget = null"
+      />
     </BContainer>
   </div>
 </template>
@@ -750,6 +760,7 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
+import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Review from '@/assets/js/classes/submission/submissionReview';
@@ -768,6 +779,7 @@ export default {
     EntityBadge,
     AriaLiveRegion,
     IconLegend,
+    ConfirmDiscardDialog,
   },
   setup() {
     const { makeToast } = useToast();
@@ -782,6 +794,7 @@ export default {
       loadStatusByEntity,
       submitForm: submitStatusForm,
       resetForm: resetStatusForm,
+      hasChanges: hasStatusChanges,
     } = statusForm;
 
     return {
@@ -792,6 +805,7 @@ export default {
       loadStatusByEntity,
       submitStatusForm,
       resetStatusForm,
+      hasStatusChanges,
       a11yMessage,
       a11yPoliteness,
       announce,
@@ -824,6 +838,7 @@ export default {
       select_variation: [],
       select_additional_references: [],
       select_gene_reviews: [],
+      reviewLoadedData: null, // Stores original review data for change detection
       status_info: new Status(),
       deactivate_check: false,
       replace_check: false,
@@ -832,6 +847,7 @@ export default {
       loading_review_modal: true,
       loading_status_modal: true,
       submitting: null, // null | 'rename' | 'deactivate' | 'review' | 'status'
+      pendingDiscardTarget: null, // 'review' | 'status' — tracks which modal triggered discard confirm
       legendItems: [
         { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
@@ -841,6 +857,24 @@ export default {
         { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
       ],
     };
+  },
+  computed: {
+    hasReviewChanges() {
+      if (!this.reviewLoadedData) return false;
+      const arrEqual = (a, b) => {
+        const sa = [...a].sort();
+        const sb = [...b].sort();
+        return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
+      };
+      return (
+        (this.review_info.synopsis || '') !== this.reviewLoadedData.synopsis ||
+        (this.review_info.comment || '') !== this.reviewLoadedData.comment ||
+        !arrEqual(this.select_phenotype, this.reviewLoadedData.phenotypes) ||
+        !arrEqual(this.select_variation, this.reviewLoadedData.variationOntology) ||
+        !arrEqual(this.select_additional_references, this.reviewLoadedData.publications) ||
+        !arrEqual(this.select_gene_reviews, this.reviewLoadedData.genereviews)
+      );
+    },
   },
   mounted() {
     this.loadStatusList();
@@ -1120,6 +1154,16 @@ export default {
         this.review_info.review_id = response_review.data[0].review_id;
         this.review_info.entity_id = response_review.data[0].entity_id;
 
+        // Snapshot loaded data for change detection
+        this.reviewLoadedData = {
+          synopsis: this.review_info.synopsis || '',
+          comment: this.review_info.comment || '',
+          phenotypes: [...this.select_phenotype],
+          variationOntology: [...this.select_variation],
+          publications: [...this.select_additional_references],
+          genereviews: [...this.select_gene_reviews],
+        };
+
         this.loading_review_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1213,6 +1257,9 @@ export default {
       this.$refs.modifyReviewModal.show();
     },
     async showStatusModify() {
+      // Reset form FIRST to ensure clean state before loading data
+      this.resetStatusForm();
+
       // Load entity and status data
       await this.getEntity();
 
@@ -1320,6 +1367,12 @@ export default {
       }
     },
     async submitReviewChange() {
+      // Silent skip: close modal without API call when nothing changed
+      if (!this.hasReviewChanges) {
+        this.$refs.modifyReviewModal.hide();
+        return;
+      }
+
       this.submitting = 'review';
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create`;
 
@@ -1382,6 +1435,12 @@ export default {
       }
     },
     async submitStatusChange() {
+      // Silent skip: close modal without API call when nothing changed
+      if (!this.hasStatusChanges) {
+        this.$refs.modifyStatusModal.hide();
+        return;
+      }
+
       this.submitting = 'status';
       try {
         await this.submitStatusForm(false, false); // isUpdate=false (always create), reReview=false
@@ -1412,6 +1471,7 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+      this.reviewLoadedData = null;
       this.status_info = new Status();
       this.deactivate_check = false;
       this.replace_check = false;
@@ -1447,9 +1507,38 @@ export default {
       this.select_additional_references = [];
       this.select_gene_reviews = [];
     },
+    onModifyReviewModalHide(event) {
+      if (this.pendingDiscardTarget === 'review') {
+        this.pendingDiscardTarget = null;
+        return; // Allow close after confirmed discard
+      }
+      if (this.hasReviewChanges && !this.submitting) {
+        event.preventDefault();
+        this.pendingDiscardTarget = 'review';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
     onModifyStatusModalShow() {
-      // Reset form state on show (FORM-07: prevents stale data flash)
-      this.resetStatusForm();
+      // Reset moved to showStatusModify() — intentionally empty to preserve loaded data
+      // The reset must happen BEFORE data load, not after modal renders
+    },
+    onModifyStatusModalHide(event) {
+      if (this.pendingDiscardTarget === 'status') {
+        this.pendingDiscardTarget = null;
+        return; // Allow close after confirmed discard
+      }
+      if (this.hasStatusChanges && !this.submitting) {
+        event.preventDefault();
+        this.pendingDiscardTarget = 'status';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
+    onConfirmDiscard() {
+      if (this.pendingDiscardTarget === 'review') {
+        this.$refs.modifyReviewModal.hide();
+      } else if (this.pendingDiscardTarget === 'status') {
+        this.$refs.modifyStatusModal.hide();
+      }
     },
   },
 };

@@ -9,7 +9,7 @@
  * - Interface Segregation: Exposes only necessary methods
  */
 
-import { ref, reactive, watch } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import axios from 'axios';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import useFormDraft from '@/composables/useFormDraft';
@@ -64,6 +64,21 @@ export default function useStatusForm(entityId?: string | number) {
     category_id: null,
     comment: '',
     problematic: false,
+  });
+
+  // Track loaded data for change detection
+  const loadedData = ref<Pick<StatusFormData, 'category_id' | 'comment' | 'problematic'> | null>(
+    null
+  );
+
+  // Change detection
+  const hasChanges = computed(() => {
+    if (!loadedData.value) return false;
+    return (
+      formData.category_id !== loadedData.value.category_id ||
+      formData.comment !== loadedData.value.comment ||
+      formData.problematic !== loadedData.value.problematic
+    );
   });
 
   // Field touched state for validation display
@@ -159,6 +174,13 @@ export default function useStatusForm(entityId?: string | number) {
       formData.status_user_role = statusData.status_user_role;
       formData.status_date = statusData.status_date;
       formData.re_review_status_saved = reReviewSaved;
+
+      // Snapshot loaded values for change detection
+      loadedData.value = {
+        category_id: formData.category_id,
+        comment: formData.comment,
+        problematic: formData.problematic,
+      };
     } catch (error) {
       console.error('Failed to load status:', error);
       throw error;
@@ -191,6 +213,13 @@ export default function useStatusForm(entityId?: string | number) {
       // Set metadata
       formData.status_id = statusData.status_id;
       formData.entity_id = statusData.entity_id;
+
+      // Snapshot loaded values for change detection
+      loadedData.value = {
+        category_id: formData.category_id,
+        comment: formData.comment,
+        problematic: formData.problematic,
+      };
     } catch (error) {
       console.error('Failed to load status by entity:', error);
       throw error;
@@ -290,6 +319,9 @@ export default function useStatusForm(entityId?: string | number) {
     delete formData.status_date;
     delete formData.re_review_status_saved;
 
+    // Clear loaded data snapshot
+    loadedData.value = null;
+
     // Reset touched state
     Object.keys(touched).forEach((key) => {
       touched[key as keyof typeof touched] = false;
@@ -313,6 +345,9 @@ export default function useStatusForm(entityId?: string | number) {
     formData,
     loading,
     touched,
+
+    // Change detection
+    hasChanges,
 
     // Validation
     validateField,

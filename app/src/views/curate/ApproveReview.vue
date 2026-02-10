@@ -404,12 +404,25 @@
                 >
                   <i class="bi bi-check2-circle" aria-hidden="true" />
                 </BButton>
+
+                <BButton
+                  v-b-tooltip.hover.right
+                  size="sm"
+                  class="me-1 btn-xs"
+                  variant="outline-danger"
+                  title="Dismiss review"
+                  :aria-label="`Dismiss review for entity ${row.item.entity_id}`"
+                  @click="infoDismissReview(row.item, row.index, $event.target)"
+                >
+                  <i class="bi bi-x-circle" aria-hidden="true" />
+                </BButton>
+
                 <BButton
                   v-if="row.item.duplicate === 'yes'"
                   v-b-tooltip.hover.right
-                  variant="danger"
-                  title="Multiple unapproved reviews for this entity"
-                  :aria-label="`Warning: Multiple unapproved reviews for entity ${row.item.entity_id}`"
+                  variant="warning"
+                  title="Multiple pending reviews for this entity"
+                  :aria-label="`Warning: Multiple pending reviews for entity ${row.item.entity_id}`"
                   size="sm"
                   class="me-1 btn-xs"
                 >
@@ -516,6 +529,14 @@
           <p class="mb-3">
             You have finished checking this review and are ready to <strong>approve</strong> it?
           </p>
+
+          <div
+            v-if="entity.duplicate === 'yes'"
+            class="alert alert-info small text-start mt-2 mb-3"
+          >
+            <i class="bi bi-info-circle me-1" />
+            Other pending reviews for this entity will be automatically dismissed.
+          </div>
         </div>
 
         <div v-if="entity.status_change">
@@ -549,6 +570,7 @@
         header-close-label="Close"
         :busy="loading_review_modal"
         @ok="submitReviewChange"
+        @hide="onReviewModalHide"
       >
         <template #title>
           <div class="d-flex align-items-center">
@@ -804,6 +826,7 @@
         header-close-label="Close"
         :busy="loading_status_modal"
         @ok="submitStatusChange"
+        @hide="onStatusModalHide"
       >
         <template #title>
           <div class="d-flex align-items-center">
@@ -960,6 +983,46 @@
       </BModal>
       <!-- 3) Status modal -->
 
+      <!-- Dismiss modal -->
+      <BModal
+        :id="dismissModal.id"
+        :ref="dismissModal.id"
+        size="md"
+        centered
+        ok-title="Dismiss"
+        ok-variant="danger"
+        no-close-on-esc
+        no-close-on-backdrop
+        header-class="border-bottom-0 pb-0"
+        footer-class="border-top-0 pt-0"
+        header-close-label="Close"
+        @ok="handleDismissOk"
+      >
+        <template #title>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-x-circle-fill me-2 text-danger" />
+            <span class="fw-semibold">Dismiss Review</span>
+          </div>
+        </template>
+
+        <div class="text-center py-3">
+          <div class="mb-3">
+            <i class="bi bi-x-circle text-danger" style="font-size: 2.5rem" />
+          </div>
+          <p class="mb-2">
+            Dismiss this pending review for entity
+            <BBadge variant="primary" class="mx-1">
+              {{ dismissModal.title }}
+            </BBadge>
+            ?
+          </p>
+          <p class="text-muted small">
+            The review will be removed from the pending queue. This does not delete the record.
+          </p>
+        </div>
+      </BModal>
+      <!-- Dismiss modal -->
+
       <!-- 4) Check approve all modal -->
       <BModal
         id="approveAllModal"
@@ -1010,6 +1073,14 @@
 
       <!-- ARIA live region for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+
+      <!-- Confirm discard unsaved changes dialog -->
+      <ConfirmDiscardDialog
+        ref="confirmDiscardDialog"
+        modal-id="approve-review-confirm-discard"
+        @discard="onConfirmDiscard"
+        @keep-editing="pendingDiscardTarget = null"
+      />
     </BContainer>
   </div>
 </template>
@@ -1026,6 +1097,7 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
+import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -1050,6 +1122,7 @@ export default {
     CategoryIcon,
     AriaLiveRegion,
     IconLegend,
+    ConfirmDiscardDialog,
   },
   setup() {
     const { makeToast } = useToast();
@@ -1068,6 +1141,8 @@ export default {
   },
   data() {
     return {
+      statusLoadedData: null, // Snapshot of status values when loaded
+      reviewLoadedData: null, // Snapshot of review values when loaded
       legendItems: [
         { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
@@ -1078,9 +1153,15 @@ export default {
           color: '#dc3545',
           label: 'Status change pending',
         },
+        {
+          icon: 'bi bi-exclamation-triangle-fill',
+          color: '#ffc107',
+          label: 'Multiple pending reviews',
+        },
         { icon: 'bi bi-eye', color: '#0d6efd', label: 'Toggle details' },
         { icon: 'bi bi-pen', color: '#6c757d', label: 'Edit review' },
         { icon: 'bi bi-check2-circle', color: '#dc3545', label: 'Approve review' },
+        { icon: 'bi bi-x-circle', color: '#dc3545', label: 'Dismiss review' },
       ],
       phenotypes_options: [],
       variation_ontology_options: [],
@@ -1234,6 +1315,11 @@ export default {
         title: '',
         content: [],
       },
+      dismissModal: {
+        id: 'dismiss-modal',
+        title: '',
+        reviewId: null,
+      },
       statusModal: {
         id: 'status-modal',
         title: '',
@@ -1262,9 +1348,41 @@ export default {
       loading_review_modal: true,
       status_approved: false,
       isBusy: true,
+      pendingDiscardTarget: null, // 'review' | 'status' — tracks which modal triggered discard confirm
     };
   },
   computed: {
+    hasStatusChanges() {
+      if (!this.statusLoadedData) return false;
+      return (
+        this.status_info.category_id !== this.statusLoadedData.category_id ||
+        (this.status_info.comment || '') !== this.statusLoadedData.comment ||
+        Boolean(this.status_info.problematic) !== this.statusLoadedData.problematic
+      );
+    },
+    hasReviewChanges() {
+      if (!this.reviewLoadedData) return false;
+      return (
+        (this.review_info.synopsis || '') !== this.reviewLoadedData.synopsis ||
+        (this.review_info.comment || '') !== this.reviewLoadedData.comment ||
+        !this.arraysAreEqual(
+          [...this.select_phenotype].sort(),
+          [...this.reviewLoadedData.phenotypes].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_variation].sort(),
+          [...this.reviewLoadedData.variationOntology].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_additional_references].sort(),
+          [...this.reviewLoadedData.publications].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_gene_reviews].sort(),
+          [...this.reviewLoadedData.genereviews].sort()
+        )
+      );
+    },
     // Category filter options from unique values in items
     categoryFilterOptions() {
       const categories = [
@@ -1521,6 +1639,15 @@ export default {
         this.review_info.review_user_name = response_review.data[0].review_user_name;
         this.review_info.review_user_role = response_review.data[0].review_user_role;
 
+        this.reviewLoadedData = {
+          synopsis: this.review_info.synopsis || '',
+          comment: this.review_info.comment || '',
+          phenotypes: [...this.select_phenotype],
+          variationOntology: [...this.select_variation],
+          publications: [...this.select_additional_references],
+          genereviews: [...this.select_gene_reviews],
+        };
+
         this.loading_review_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1548,6 +1675,12 @@ export default {
         this.status_info.status_date = response.data[0].status_date;
         this.status_info.status_approved = response.data[0].status_approved;
 
+        this.statusLoadedData = {
+          category_id: this.status_info.category_id,
+          comment: this.status_info.comment || '',
+          problematic: this.status_info.problematic || false,
+        };
+
         this.loading_status_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1566,6 +1699,11 @@ export default {
       }
     },
     async submitReviewChange() {
+      // Silent skip when nothing changed
+      if (!this.hasReviewChanges) {
+        this.$refs[this.reviewModal.id].hide();
+        return;
+      }
       this.isBusy = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/update`;
 
@@ -1618,76 +1756,89 @@ export default {
         this.loadReviewTableData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+      } finally {
+        this.isBusy = false;
       }
     },
     async submitStatusChange() {
-      if (this.status_info.status_approved === 0) {
-        // PUT to update if not approved
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
+      // Silent skip when nothing changed
+      if (!this.hasStatusChanges) {
+        this.$refs[this.statusModal.id].hide();
+        return;
+      }
+      // Mark busy so the hide handler allows modal close during save
+      this.isBusy = true;
+      try {
+        if (this.status_info.status_approved === 0) {
+          // PUT to update if not approved
+          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
 
-        // remove additional data before submission
-        // TODO: replace this workaround
-        this.status_info.status_user_name = null;
-        this.status_info.status_user_role = null;
-        this.status_info.entity_id = null;
-        this.status_info.status_approved = null;
+          // remove additional data before submission
+          // TODO: replace this workaround
+          this.status_info.status_user_name = null;
+          this.status_info.status_user_role = null;
+          this.status_info.entity_id = null;
+          this.status_info.status_approved = null;
 
-        // perform update PUT request
-        try {
-          const response = await this.axios.put(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
+          // perform update PUT request
+          try {
+            const response = await this.axios.put(
+              apiUrl,
+              { status_json: this.status_info },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
 
-          this.makeToast(
-            `${'The new status for this entity has been submitted ' + '(status '}${
-              response.status
-            } (${response.statusText}).`,
-            'Success',
-            'success'
-          );
-          this.resetForm();
-          this.loadReviewTableData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          this.announce('Error submitting status', 'assertive');
+            this.makeToast(
+              `${'The new status for this entity has been submitted ' + '(status '}${
+                response.status
+              } (${response.statusText}).`,
+              'Success',
+              'success'
+            );
+            this.resetForm();
+            this.loadReviewTableData();
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+            this.announce('Error submitting status', 'assertive');
+          }
+        } else if (this.status_info.status_approved === 1) {
+          // POST to create new status if approved
+          const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
+
+          // remove additional data before submission
+          // TODO: replace this workaround
+          this.status_info.status_user_name = null;
+          this.status_info.status_user_role = null;
+          this.status_info.status_approved = null;
+
+          // perform update PUT request
+          try {
+            await this.axios.post(
+              apiUrl,
+              { status_json: this.status_info },
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+              }
+            );
+
+            const message = 'The new status for this entity has been submitted successfully.';
+            this.makeToast(message, 'Success', 'success');
+            this.announce(message);
+            this.resetForm();
+            this.loadReviewTableData();
+          } catch (e) {
+            this.makeToast(e, 'Error', 'danger');
+            this.announce('Error submitting status', 'assertive');
+          }
         }
-      } else if (this.status_info.status_approved === 1) {
-        // POST to create new status if approved
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
-
-        // remove additional data before submission
-        // TODO: replace this workaround
-        this.status_info.status_user_name = null;
-        this.status_info.status_user_role = null;
-        this.status_info.status_approved = null;
-
-        // perform update PUT request
-        try {
-          await this.axios.post(
-            apiUrl,
-            { status_json: this.status_info },
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`,
-              },
-            }
-          );
-
-          const message = 'The new status for this entity has been submitted successfully.';
-          this.makeToast(message, 'Success', 'success');
-          this.announce(message);
-          this.resetForm();
-          this.loadReviewTableData();
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          this.announce('Error submitting status', 'assertive');
-        }
+      } finally {
+        this.isBusy = false;
       }
     },
     infoReview(item, _index, _button) {
@@ -1701,6 +1852,34 @@ export default {
       this.entity = {};
       this.entity = item;
       this.$refs[this.approveModal.id].show();
+    },
+    infoDismissReview(item, _index, _button) {
+      this.dismissModal.title = `sysndd:${item.entity_id}`;
+      this.dismissModal.reviewId = item.review_id;
+      this.$refs[this.dismissModal.id].show();
+    },
+    async handleDismissOk(_bvModalEvt) {
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/approve/${
+        this.dismissModal.reviewId
+      }?review_ok=false`;
+
+      try {
+        await this.axios.put(
+          apiUrl,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          }
+        );
+
+        this.announce('Review dismissed successfully');
+        this.loadReviewTableData();
+      } catch (e) {
+        this.makeToast(e, 'Error', 'danger');
+        this.announce('Error dismissing review', 'assertive');
+      }
     },
     async handleApproveOk(_bvModalEvt) {
       const apiUrlReview = `${import.meta.env.VITE_API_URL}/api/review/approve/${
@@ -1801,6 +1980,8 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+      this.statusLoadedData = null;
+      this.reviewLoadedData = null;
     },
     infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
@@ -1810,6 +1991,35 @@ export default {
     },
     resetApproveModal() {
       this.status_approved = false;
+    },
+    onStatusModalHide(event) {
+      if (this.pendingDiscardTarget === 'status') {
+        this.pendingDiscardTarget = null;
+        return;
+      }
+      if (this.hasStatusChanges && !this.isBusy) {
+        event.preventDefault();
+        this.pendingDiscardTarget = 'status';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
+    onReviewModalHide(event) {
+      if (this.pendingDiscardTarget === 'review') {
+        this.pendingDiscardTarget = null;
+        return;
+      }
+      if (this.hasReviewChanges && !this.isBusy) {
+        event.preventDefault();
+        this.pendingDiscardTarget = 'review';
+        this.$refs.confirmDiscardDialog.show();
+      }
+    },
+    onConfirmDiscard() {
+      if (this.pendingDiscardTarget === 'review') {
+        this.$refs[this.reviewModal.id].hide();
+      } else if (this.pendingDiscardTarget === 'status') {
+        this.$refs[this.statusModal.id].hide();
+      }
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function

@@ -17,13 +17,14 @@
 - ✅ **v10.3 Bug Fixes & Stabilization** - Phases 73-75 (shipped 2026-02-06)
 - ✅ **v10.4 OMIM Optimization & Refactor** - Phases 76-79 (shipped 2026-02-07)
 - ✅ **v10.5 Bug Fixes & Data Integrity** - Phases 80-82 (shipped 2026-02-09)
+- ✅ **v10.6 Curation UX Fixes & Security** - Phases 83-86 (shipped 2026-02-10)
 
 ## Phases
 
 <details>
-<summary>✅ v1.0 through v10.5 (Phases 1-82) - See MILESTONES.md</summary>
+<summary>✅ v1.0 through v10.6 (Phases 1-86) - See MILESTONES.md</summary>
 
-Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILESTONES.md` for full history.
+Phases 1-86 delivered across milestones v1.0 through v10.6. See `.planning/MILESTONES.md` for full history.
 
 </details>
 
@@ -46,7 +47,8 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 | 73-75 | v10.3 Bug Fixes & Stabilization | ✅ Complete | 2026-02-06 |
 | 76-79 | v10.4 OMIM Optimization & Refactor | ✅ Complete | 2026-02-07 |
 | 80-82 | v10.5 Bug Fixes & Data Integrity | ✅ Complete | 2026-02-09 |
+| 83-86 | v10.6 Curation UX Fixes & Security | ✅ Complete | 2026-02-10 |
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-09 — v10.5 milestone complete*
+*Last updated: 2026-02-10 — v10.6 milestone archived*

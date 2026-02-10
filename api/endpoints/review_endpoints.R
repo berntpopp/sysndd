@@ -98,6 +98,9 @@ function(req, res, filter_review_approved = FALSE) {
     left_join(user_table, by = c("approving_user_id" = "user_id")) %>%
     left_join(ndd_entity_tbl, by = c("entity_id")) %>%
     filter(review_approved == filter_review_approved) %>%
+    {
+      if (!filter_review_approved) filter(., is.na(approving_user_id)) else .
+    } %>%
     collect() %>%
     dplyr::select(
       review_id,

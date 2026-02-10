@@ -310,4 +310,187 @@ describe('useReviewForm', () => {
       expect(submittedData.literature.additional_references).not.toContain('PMID:12345678');
     });
   });
+
+  describe('Change detection', () => {
+    it('hasChanges is false when no data loaded', () => {
+      const { hasChanges } = useReviewForm();
+      expect(hasChanges.value).toBe(false);
+    });
+
+    it('hasChanges is false immediately after loadReviewData', async () => {
+      const axios = await import('axios');
+      const mockAxios = axios.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+      };
+
+      // Mock all API responses
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) {
+          return Promise.resolve({
+            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
+          });
+        }
+        if (url.includes('/phenotypes')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/variation')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({
+          data: [{ synopsis: 'Test synopsis', comment: 'Test comment', entity_id: 1 }],
+        });
+      });
+
+      const { hasChanges, loadReviewData } = useReviewForm();
+
+      await loadReviewData(1);
+      await flushPromises();
+
+      // Should be false immediately after load (no changes yet)
+      expect(hasChanges.value).toBe(false);
+    });
+
+    it('hasChanges is true when synopsis changes', async () => {
+      const axios = await import('axios');
+      const mockAxios = axios.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+      };
+
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/phenotypes')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/variation')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({
+          data: [{ synopsis: 'Original synopsis', comment: '', entity_id: 1 }],
+        });
+      });
+
+      const { formData, hasChanges, loadReviewData } = useReviewForm();
+
+      await loadReviewData(1);
+      await flushPromises();
+
+      expect(hasChanges.value).toBe(false);
+
+      // Change synopsis
+      formData.synopsis = 'Modified synopsis';
+
+      expect(hasChanges.value).toBe(true);
+    });
+
+    it('hasChanges is true when comment changes', async () => {
+      const axios = await import('axios');
+      const mockAxios = axios.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+      };
+
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/phenotypes')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/variation')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({
+          data: [{ synopsis: 'Test synopsis', comment: 'Original comment', entity_id: 1 }],
+        });
+      });
+
+      const { formData, hasChanges, loadReviewData } = useReviewForm();
+
+      await loadReviewData(1);
+      await flushPromises();
+
+      expect(hasChanges.value).toBe(false);
+
+      // Change comment
+      formData.comment = 'Modified comment';
+
+      expect(hasChanges.value).toBe(true);
+    });
+
+    it('hasChanges is true when publications change', async () => {
+      const axios = await import('axios');
+      const mockAxios = axios.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+      };
+
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) {
+          return Promise.resolve({
+            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
+          });
+        }
+        if (url.includes('/phenotypes')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/variation')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({
+          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
+        });
+      });
+
+      const { formData, hasChanges, loadReviewData } = useReviewForm();
+
+      await loadReviewData(1);
+      await flushPromises();
+
+      expect(hasChanges.value).toBe(false);
+
+      // Add a new publication
+      formData.publications.push('PMID:99999999');
+
+      expect(hasChanges.value).toBe(true);
+    });
+
+    it('hasChanges returns false after resetForm', async () => {
+      const axios = await import('axios');
+      const mockAxios = axios.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+      };
+
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) {
+          return Promise.resolve({
+            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
+          });
+        }
+        if (url.includes('/phenotypes')) {
+          return Promise.resolve({ data: [] });
+        }
+        if (url.includes('/variation')) {
+          return Promise.resolve({ data: [] });
+        }
+        return Promise.resolve({
+          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
+        });
+      });
+
+      const { formData, hasChanges, loadReviewData, resetForm } = useReviewForm();
+
+      await loadReviewData(1);
+      await flushPromises();
+
+      // Make changes
+      formData.synopsis = 'Modified synopsis';
+      expect(hasChanges.value).toBe(true);
+
+      // Reset form
+      resetForm();
+
+      // Should be false after reset (no loaded data)
+      expect(hasChanges.value).toBe(false);
+    });
+  });
 });
