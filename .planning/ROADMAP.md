@@ -36,7 +36,7 @@ Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILES
 |-------|-------|------|--------|
 | 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ✅ Complete |
 | 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ✅ Complete |
-| 85 | Ghost Entity Cleanup & Prevention | Deactivate orphaned entities, prevent future ghosts via atomic creation | ⬚ Not started |
+| 85 | Ghost Entity Cleanup & Prevention | Verify atomic creation prevents future ghosts, update admin issue, enhance test coverage | ⬚ Not started |
 
 **Phase 83 — Status Creation Fix & Security**
 - Fix: Move `resetStatusForm()` before `loadStatusByEntity()` in `showStatusModify()` (ModifyEntity.vue)
@@ -59,9 +59,13 @@ Plans:
 - [x] 84-03-PLAN.md — Add change detection to ApproveReview and ApproveStatus + fix review_change indicator
 
 **Phase 85 — Ghost Entity Cleanup & Prevention**
-- Deactivate entities 4469 (GAP43) and 4474 (FGF14) via migration/script
-- Integrate atomic entity creation (`svc_entity_create_with_review_status`) to prevent future orphans
+- Verify atomic entity creation (svc_entity_create_full) already prevents future ghosts (commit 831ac85a)
+- Update GitHub issue sysndd-administration#2 to reflect prevention is already implemented
+- Enhance entity service tests with rollback error-handling contract tests
 - Requirements: R4
+- **Plans:** 1 plan
+Plans:
+- [ ] 85-01-PLAN.md — Update admin issue, verify prevention, enhance rollback contract tests
 
 ## Progress
 
@@ -86,4 +90,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 84 complete*
+*Last updated: 2026-02-10 — Phase 85 planned (1 plan, 1 wave)*
