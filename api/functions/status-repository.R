@@ -82,9 +82,9 @@ status_find_by_entity <- function(entity_id) {
 #'
 #' @export
 status_create <- function(status_data, conn = NULL) {
-  # Convert to tibble if list
+  # Convert to tibble if list (compact NULLs first — JSON nulls become R NULL)
   if (is.list(status_data) && !inherits(status_data, "data.frame")) {
-    status_data <- tibble::as_tibble(status_data)
+    status_data <- tibble::as_tibble(purrr::compact(status_data))
   }
 
   # Validate required fields
