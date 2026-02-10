@@ -9,21 +9,42 @@
 </template>
 
 <script setup lang="ts">
+import { onUnmounted } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 
 const intervalMS = 60 * 60 * 1000; // Check for updates every 60 minutes
+let intervalId: ReturnType<typeof setInterval> | undefined;
 
 const { needRefresh, updateServiceWorker } = useRegisterSW({
-  onRegisteredSW(_swUrl: string, registration: ServiceWorkerRegistration | undefined) {
+  onRegisteredSW(swUrl: string, registration: ServiceWorkerRegistration | undefined) {
     if (registration) {
-      setInterval(() => {
-        registration.update();
+      intervalId = setInterval(async () => {
+        if (registration.installing) return;
+        if ('connection' in navigator && !navigator.onLine) return;
+
+        try {
+          const resp = await fetch(swUrl, {
+            cache: 'no-store',
+            headers: { 'cache-control': 'no-cache' },
+          });
+          if (resp?.status === 200) {
+            await registration.update();
+          }
+        } catch {
+          // Network error — skip this cycle
+        }
       }, intervalMS);
     }
   },
   onRegisterError(error: unknown) {
     console.error('SW registration error:', error);
   },
+});
+
+onUnmounted(() => {
+  if (intervalId !== undefined) {
+    clearInterval(intervalId);
+  }
 });
 
 function close() {

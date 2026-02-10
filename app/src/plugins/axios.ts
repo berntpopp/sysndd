@@ -37,8 +37,11 @@ axios.interceptors.response.use(
         isLoggingOut = false;
       }, 2000);
 
-      // Return a never-resolving promise to suppress downstream .catch() toasts
-      return new Promise(() => {});
+      // Mark as handled so downstream .catch() can skip toast display,
+      // while still rejecting so .finally() cleanup runs properly
+      const handled = new Error('Redirecting to login');
+      (handled as Error & { __handled401: boolean }).__handled401 = true;
+      return Promise.reject(handled);
     }
 
     return Promise.reject(error);
