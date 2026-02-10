@@ -22,62 +22,11 @@
 ## Phases
 
 <details>
-<summary>✅ v1.0 through v10.5 (Phases 1-82) - See MILESTONES.md</summary>
+<summary>✅ v1.0 through v10.6 (Phases 1-86) - See MILESTONES.md</summary>
 
-Phases 1-82 delivered across milestones v1.0 through v10.5. See `.planning/MILESTONES.md` for full history.
+Phases 1-86 delivered across milestones v1.0 through v10.6. See `.planning/MILESTONES.md` for full history.
 
 </details>
-
-### v10.6 Curation UX Fixes & Security
-
-**Goal:** Fix critical curation workflow regressions blocking Christiane's daily work, clean up ghost entities, patch axios security vulnerability, and add dismiss/auto-dismiss capability for pending queue management.
-
-| Phase | Title | Goal | Status |
-|-------|-------|------|--------|
-| 83 | Status Creation Fix & Security | Fix HTTP 500 on status change, verify approve-both restores, update axios | ✅ Complete |
-| 84 | Status Change Detection | Add frontend change detection to skip status creation when unchanged | ✅ Complete |
-| 85 | Ghost Entity Cleanup & Prevention | Verify atomic creation prevents future ghosts, update admin issue, enhance test coverage | ✅ Complete |
-| 86 | Dismiss & Auto-Dismiss Pending | Add dismiss capability and auto-dismiss siblings on approve for statuses and reviews | ✅ Complete |
-
-**Phase 83 — Status Creation Fix & Security**
-- Fix: Move `resetStatusForm()` before `loadStatusByEntity()` in `showStatusModify()` (ModifyEntity.vue)
-- Verify: "Approve both" checkbox appears when status_change exists (ApproveReview.vue)
-- Security: Update axios 1.13.4 → 1.13.5 (CVE-2026-25639)
-- Requirements: R1, R2, R5
-- **Plans:** 1 plan
-Plans:
-- [x] 83-01-PLAN.md — Fix status form reset ordering, update axios, verify approve-both
-
-**Phase 84 — Status Change Detection**
-- Add change detection in ModifyEntity, ApproveReview, ApproveStatus to skip status/review creation when user didn't change anything
-- Expose `hasChanges()` from useStatusForm and useReviewForm composables
-- Fix missing review_change indicator in ApproveStatus
-- Requirements: R3
-- **Plans:** 3 plans
-Plans:
-- [x] 84-01-PLAN.md — Add hasChanges to useStatusForm and useReviewForm composables + tests
-- [x] 84-02-PLAN.md — Wire change detection into ModifyEntity (status + review forms)
-- [x] 84-03-PLAN.md — Add change detection to ApproveReview and ApproveStatus + fix review_change indicator
-
-**Phase 85 — Ghost Entity Cleanup & Prevention**
-- Verify atomic entity creation (svc_entity_create_full) already prevents future ghosts (commit 831ac85a)
-- Update GitHub issue sysndd-administration#2 to reflect prevention is already implemented
-- Enhance entity service tests with rollback error-handling contract tests
-- Requirements: R4
-- **Plans:** 1 plan
-Plans:
-- [x] 85-01-PLAN.md — Update admin issue, verify prevention, enhance rollback contract tests
-
-**Phase 86 — Dismiss & Auto-Dismiss Pending**
-- Backend: Filter dismissed items from pending queries using `is.na(approving_user_id)`
-- Backend: Auto-dismiss sibling pending items when one is approved
-- Frontend: Add dismiss button/modal to ApproveStatus and ApproveReview
-- Frontend: Add duplicate warning icons and auto-dismiss info alerts in approve modals
-- Tests: 40 integration test assertions + full E2E Playwright verification
-- Requirements: R6
-- **Plans:** 1 plan
-Plans:
-- [x] 86-01-PLAN.md — Dismiss capability, auto-dismiss siblings, duplicate warnings, integration tests
 
 ## Progress
 
@@ -102,4 +51,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-01-20*
-*Last updated: 2026-02-10 — Phase 86 complete, v10.6 milestone shipped*
+*Last updated: 2026-02-10 — v10.6 milestone archived*

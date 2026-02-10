@@ -1,7 +1,7 @@
 # Project State: SysNDD
 
 **Last updated:** 2026-02-10
-**Current milestone:** v10.6 Curation UX Fixes & Security
+**Current milestone:** v10.6 complete — next milestone not yet planned
 
 ---
 
@@ -11,7 +11,7 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 **Core value:** A new developer can clone the repo and be productive within minutes, with confidence that their changes won't break existing functionality.
 
-**Current focus:** v10.6 — Fix curation UX regressions, ghost entities, axios vulnerability, and pending queue management
+**Current focus:** Planning next milestone
 
 **Stack:** R 4.4.3 (Plumber API) + Vue 3.5.25 (TypeScript) + Bootstrap-Vue-Next 0.42.0 + MySQL 8.0.40
 
@@ -19,20 +19,20 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 86 — Dismiss & Auto-Dismiss Pending (Complete)
-**Plan:** 1/1 complete (86-01)
-**Status:** Dismiss capability, auto-dismiss siblings, duplicate warnings, integration tests — all verified
-**Progress:** v10.6 [████████████████████] 100%
+**Phase:** 86 of 86 — All phases complete
+**Plan:** Not started (next milestone)
+**Status:** Ready to plan
+**Progress:** v10.6 [████████████████████] 100% — SHIPPED
 
-**Last activity:** 2026-02-10 — Completed 86-01: Dismiss/auto-dismiss for pending statuses and reviews (7 files modified, 1 test file created, 40 integration assertions, full E2E verification)
+**Last activity:** 2026-02-10 — v10.6 milestone complete
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 340 (from v1-v10.6)
-- Milestones shipped: 15 (v1-v10.5)
+- Total plans completed: 346 (from v1-v10.6)
+- Milestones shipped: 16 (v1-v10.6)
 - Phases completed: 86
 
 **Current Stats:**
@@ -52,41 +52,10 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 Decisions are logged in PROJECT.md Key Decisions table.
 
-| ID | Decision | Rationale | Phase |
-|----|----------|-----------|-------|
-| D83-01 | Reset status form BEFORE data load instead of on modal @show event | Modal @show fires asynchronously after data load, destroying entity_id. Moving reset before load prevents race condition. | 83-01 |
-| D83-02 | Compact NULLs in status_create before tibble conversion | JSON null becomes R NULL which tibble rejects. purrr::compact() strips them. | 83-01 |
-| D84-01 | Use exact comparison for all fields including whitespace in comments | Users expect whitespace changes to count as modifications (trailing space should trigger hasChanges). | 84-01 |
-| D84-02 | Snapshot loaded data immediately after API load completes | loadedData must reflect server state, not interim reactive state. | 84-01 |
-| D84-02-01 | Wire composable-provided hasChanges for ModifyEntity status form | Status form uses useStatusForm composable (Plan 84-01 added hasChanges) | 84-02 |
-| D84-02-02 | Implement local change detection for ModifyEntity review form | Review form does NOT use composable (raw Review class + direct API calls), requires local computed | 84-02 |
-| D84-02-03 | Use sorted array comparison for review arrays in ModifyEntity | Order shouldn't matter for phenotype/variation/publication changes | 84-02 |
-| D84-03-01 | Store loaded data snapshots in component state | ApproveReview/ApproveStatus use raw classes, not composables | 84-03 |
-| D84-03-02 | Use exact array comparison (sorted) for phenotypes/variation | Order shouldn't matter for change detection | 84-03 |
-| D84-03-03 | Check !isBusy in modal hide handler | Prevent unsaved-changes warning during successful submit | 84-03 |
-| D85-01-01 | Test rollback contracts via mocking rather than integration tests | Error-handling logic is deterministic and doesn't require database access. Unit tests with mocks are faster, more reliable. | 85-01 |
-| D85-01-02 | Document prevention implementation in GitHub issue rather than code comments | GitHub issue is source of truth for operations team. Code comments would duplicate what's clear from transaction wrapper. | 85-01 |
-| D86-01-01 | Use existing approving_user_id column as dismiss marker | No schema migration needed. Column already exists and reject API path already sets it. | 86-01 |
-| D86-01-02 | Auto-dismiss only same-entity siblings | Cross-entity isolation ensures approving entity A doesn't affect entity B's pending items. | 86-01 |
-| D86-01-03 | Show auto-dismiss warning only when entity has duplicates | Warning is relevant context for multiple pending items; confusing for single items. | 86-01 |
-
-### Investigation Results (2026-02-10)
-
-| Bug | Root Cause | Fix Complexity | Status |
-|-----|-----------|----------------|--------|
-| HTTP 500 status change | Modal `@show` resets formData AFTER load + backend NULL→tibble crash | Frontend + backend fix | ✅ Fixed |
-| "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself | ✅ Fixed |
-| Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | ✅ Fixed (Phase 84) |
-| Ghost entities | entities 4469, 4474, 4188 have `is_active=1` but no status record | Simple — SQL remediation | ✅ Prevention complete (Phase 85), cleanup pending |
-| Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update | ✅ Fixed |
-| No dismiss for pending items | Rejected items still appear in pending queue (no approving_user_id filter) | Backend filter + frontend UI | ✅ Fixed (Phase 86) |
+Recent v10.6 decisions: D83-01, D83-02, D84-01 through D84-03-03, D85-01-01, D85-01-02, D86-01-01 through D86-01-03.
 
 ### Blockers/Concerns
 
-- ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (Phase 83 complete)
-- ~~Status change detection~~ **COMPLETE** (Phase 84)
-- ~~Ghost entity prevention~~ **COMPLETE** (Phase 85)
-- ~~Pending queue management~~ **COMPLETE** (Phase 86)
 - Remaining work: Execute SQL remediation for 3 ghost entities (operations task, documented in sysndd-administration#2)
 
 ---
@@ -94,9 +63,9 @@ Decisions are logged in PROJECT.md Key Decisions table.
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Completed Phase 86 (plan 86-01 complete)
-**Resume file:** .planning/phases/86-dismiss-autodismiss-pending/86-01-SUMMARY.md
+**Stopped at:** v10.6 milestone archived
+**Next step:** `/gsd:new-milestone` for next milestone
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Completed Phase 86: Dismiss & auto-dismiss for pending statuses/reviews (7 backend/frontend files, 40 integration tests, full E2E Playwright verification)*
+*Last updated: 2026-02-10 — v10.6 milestone complete and archived*

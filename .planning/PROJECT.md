@@ -2,30 +2,29 @@
 
 ## What This Is
 
-Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. v10.6 focuses on curation UX regressions and security — restoring "approve both" functionality for review+status, fixing unnecessary status approval when unchanged, resolving ghost entities blocking creation (GAP43, FGF14), fixing HTTP 500 on status change for older entities, and patching axios DoS vulnerability (#181). Building on v10.5's bug fixes, v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
+Developer experience infrastructure for SysNDD, a neurodevelopmental disorders database. Shipped through v10.6 with complete curation workflow fixes, security hardening, and pending queue management. Building on v10.5's bug fixes, v10.4's OMIM optimization, v10.3's bug fixes, v10.2's performance optimization, v10's AI insights, v9's production readiness, v8's gene page, v7's curation workflows, v6's admin panel, v5's visualizations, v4's backend, v3's Vue 3, v2's Docker, and v1's developer tooling.
 
-## Current State (v10.5 shipped 2026-02-09)
+## Current State (v10.6 shipped 2026-02-10)
 
-**Recent Milestone:** v10.5 Bug Fixes & Data Integrity
+**Recent Milestone:** v10.6 Curation UX Fixes & Security
 
 **Delivered:**
-- Fixed CurationComparisons cross-database max category aggregation (#173)
-- Fixed AdminStatistics re-review approval sync, KPI race condition, date calculations, request cancellation (#172)
-- Fixed entity trend chart sparse time-series aggregation (#171)
-- Fixed PubTator incremental annotation storage with LEFT JOIN optimization (#170)
-- Fixed Traefik TLS cert selection and startup warnings (#169)
-- Rewrote BioCJSON parsing pipeline (72% annotation loss fixed, 110 to 491 PMIDs)
-- Fixed 18 broken db_with_transaction callers (zero atomicity → correct function pattern)
-- Added entity trend chart filter controls (NDD/Non-NDD/All, Combined/By Category)
+- Fixed HTTP 500 on status change caused by modal lifecycle race condition
+- Patched axios CVE-2026-25639 DoS vulnerability (1.13.4 → 1.13.5)
+- Added change detection to all 3 curation views (prevents unnecessary status/review creation)
+- Verified ghost entity prevention via atomic svc_entity_create_full() transaction wrapper
+- Built dismiss & auto-dismiss for pending statuses/reviews (40 integration tests, full E2E)
+- Restored "approve both" checkbox functionality
 
 **Target issues (RESOLVED):**
-- #173: CurationComparisons cross-database max category aggregation
-- #172: AdminStatistics re-review approval sync and sub-bugs
-- #171: AdminStatistics entity trend chart aggregation
-- #170: PubTator annotation storage failure
-- #169: Traefik TLS cert selection and startup warnings
+- HTTP 500 on status change for ATOH1 entities
+- "Approve both" checkbox not appearing
+- Status requiring approval even when unchanged
+- Ghost entity prevention verified
+- axios DoS vulnerability CVE-2026-25639
+- Pending queue cluttered with no dismiss capability
 
-**Not shipped:** #167 entity data integrity audit (INTEG-01 through INTEG-06) — not included in execution scope
+**Deferred:** SQL remediation for 3 ghost entities (operations task in sysndd-administration#2)
 
 ## Core Value
 
@@ -46,7 +45,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 - 0 lintr issues, 0 TODO comments
 - External API proxy layer (gnomAD, UniProt, Ensembl, AlphaFold, MGI, RGD) with disk caching
 
-**Backend Testing:** 687 tests + 11 E2E passing, 20.3% coverage, 24 integration tests
+**Backend Testing:** 789 tests + 11 E2E + 40 dismiss/autodismiss passing, 20.3%+ coverage, 24 integration tests
 
 **Frontend Stack:** 10/10
 - Vue 3.5.25 with Composition API (pure, no compat layer)
@@ -64,7 +63,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 - Module-level caching pattern for admin tables
 - URL-synced filter state with VueUse
 
-**Frontend Testing:** 190 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
+**Frontend Testing:** 244 tests + 6 accessibility test suites with Vitest + Vue Test Utils + vitest-axe
 
 **Docker Infrastructure:** 9/10
 - Traefik v3.6 reverse proxy with Docker auto-discovery
@@ -322,6 +321,15 @@ A new developer can clone the repo and be productive within minutes, with confid
 - ✓ Rewrite BioCJSON parsing pipeline (72% annotation loss fixed) — v10.5
 - ✓ Entity trend chart filter controls (NDD/Non-NDD/All, By Category) — v10.5
 
+<!-- Shipped in v10.6 -->
+
+- ✓ Fix HTTP 500 on status change for older entities (modal lifecycle race condition) — v10.6
+- ✓ Restore "approve both" (review + status) from ApproveReview view — v10.6
+- ✓ Fix status requiring approval even when unchanged (change detection) — v10.6
+- ✓ Ghost entity prevention verified (atomic creation) — v10.6
+- ✓ Fix axios DoS vulnerability via __proto__ key in mergeConfig (#181) — v10.6
+- ✓ Dismiss & auto-dismiss pending statuses/reviews — v10.6
+
 <!-- Shipped in v10.2 -->
 
 - ✓ Configurable mirai workers via MIRAI_WORKERS (1-8) — v10.2
@@ -339,13 +347,7 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ### Active
 
-<!-- v10.6 Curation UX Fixes & Security -->
-
-- [ ] Fix axios DoS vulnerability via __proto__ key in mergeConfig (#181)
-- [ ] Restore "approve both" (review + status) from ApproveReview view
-- [ ] Fix status requiring approval even when unchanged
-- [ ] Delete ghost entities (GAP43, FGF14) blocking new creation
-- [ ] Fix HTTP 500 on status change for older entities (ATOH1 deafness, ATOH1 intellectual disability)
+(No active requirements — next milestone not yet planned)
 
 ### Out of Scope
 
@@ -364,17 +366,21 @@ A new developer can clone the repo and be productive within minutes, with confid
 
 ## Context
 
+**After v10.6:**
+- All curation UX regressions fixed (HTTP 500, unnecessary approvals, ghost entity prevention)
+- Change detection across all 3 curation views (ModifyEntity, ApproveReview, ApproveStatus)
+- Dismiss & auto-dismiss for pending queue management
+- axios security vulnerability patched
+- 789+ R tests, 244 frontend tests, 40 dismiss/autodismiss integration tests
+- 31 Vue 3 composables total
+
 **After v10:**
 - Complete LLM cluster summary pipeline with Gemini API integration
 - LLM admin dashboard for model management, cache control, and log viewing
 - All 8 major bugs fixed, literature tools enhanced
-- 1,381 tests passing across R API and Vue frontend
-- 31 Vue 3 composables total
 
 **After v9:**
 - Production-ready with automated database migrations, backup management, and E2E tested user workflows
-- Migration runner with schema_version tracking and idempotent execution
-- Backup management API and admin UI with type-to-confirm safety for restore
 
 **Minor tech debt (non-blocking):**
 - FDR column sorting needs sortCompare for scientific notation
@@ -470,6 +476,14 @@ A new developer can clone the repo and be productive within minutes, with confid
 | noble P3M URL for Docker | rocker/r-ver:4.4.3 uses Ubuntu 24.04 with ICU 74 | ✓ Good |
 | DBI NULL to NA conversion | DBI::dbBind requires length 1 for parameters | ✓ Good |
 | Plumber array unwrapping helper | R/Plumber wraps scalars in arrays | ✓ Good |
+| Reset form before data load (not @show) | Modal @show fires async, destroys loaded data | ✓ Good |
+| Compact NULLs before tibble conversion | JSON null → R NULL breaks tibble construction | ✓ Good |
+| Exact comparison for change detection | Users expect whitespace changes to count | ✓ Good |
+| Snapshot loaded data immediately after load | loadedData must reflect server state | ✓ Good |
+| Local change detection for Options API forms | ApproveReview/ApproveStatus use raw classes | ✓ Good |
+| approving_user_id as dismiss marker | No schema migration needed, column exists | ✓ Good |
+| Auto-dismiss only same-entity siblings | Cross-entity isolation prevents side effects | ✓ Good |
+| Rollback contract tests via mocking | Faster, more reliable than integration tests | ✓ Good |
 
 ---
-*Last updated: 2026-02-10 after v10.6 milestone started*
+*Last updated: 2026-02-10 after v10.6 milestone complete*
