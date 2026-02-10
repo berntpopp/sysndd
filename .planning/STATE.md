@@ -19,21 +19,21 @@ See: .planning/PROJECT.md (updated 2026-02-10)
 
 ## Current Position
 
-**Phase:** 84 — Status Change Detection (Complete)
-**Plan:** 3/3 complete (84-01, 84-02, 84-03)
-**Status:** All curation views wired with change detection
-**Progress:** v10.6 [███████████░░░░░░░░░] 55%
+**Phase:** 85 — Ghost Entity Cleanup & Prevention (Complete)
+**Plan:** 1/1 complete (85-01)
+**Status:** Prevention verified, GitHub issue updated, tests enhanced
+**Progress:** v10.6 [███████████░░░░░░░░░] 60%
 
-**Last activity:** 2026-02-10 — Completed 84-02: ModifyEntity change detection (status & review forms)
+**Last activity:** 2026-02-10 — Completed 85-01: Ghost entity cleanup closeout (prevention verification + test enhancement)
 
 ---
 
 ## Performance Metrics
 
 **Velocity (across all milestones):**
-- Total plans completed: 338 (from v1-v10.6)
+- Total plans completed: 339 (from v1-v10.6)
 - Milestones shipped: 15 (v1-v10.5)
-- Phases completed: 84
+- Phases completed: 85
 
 **Current Stats:**
 
@@ -64,6 +64,8 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | D84-03-01 | Store loaded data snapshots in component state | ApproveReview/ApproveStatus use raw classes, not composables | 84-03 |
 | D84-03-02 | Use exact array comparison (sorted) for phenotypes/variation | Order shouldn't matter for change detection | 84-03 |
 | D84-03-03 | Check !isBusy in modal hide handler | Prevent unsaved-changes warning during successful submit | 84-03 |
+| D85-01-01 | Test rollback contracts via mocking rather than integration tests | Error-handling logic is deterministic and doesn't require database access. Unit tests with mocks are faster, more reliable. | 85-01 |
+| D85-01-02 | Document prevention implementation in GitHub issue rather than code comments | GitHub issue is source of truth for operations team. Code comments would duplicate what's clear from transaction wrapper. | 85-01 |
 
 ### Investigation Results (2026-02-10)
 
@@ -72,23 +74,24 @@ Decisions are logged in PROJECT.md Key Decisions table.
 | HTTP 500 status change | Modal `@show` resets formData AFTER load + backend NULL→tibble crash | Frontend + backend fix | ✅ Fixed |
 | "Approve both" missing | SYMPTOM of 500 bug — `status_change` always 0 because status creation fails | None — fixes itself | ✅ Fixed |
 | Status always created | `submitStatusForm(false, false)` — no change detection | Medium — add hasChanges() | ✅ Fixed (Phase 84) |
-| Ghost entities | entities 4469, 4474 have `is_active=1` but no status record | Simple — deactivate + prevention | Phase 85 |
+| Ghost entities | entities 4469, 4474, 4188 have `is_active=1` but no status record | Simple — SQL remediation | ✅ Prevention complete (Phase 85), cleanup pending |
 | Axios DoS | CVE-2026-25639 in 1.13.4 | Trivial — npm update | ✅ Fixed |
 
 ### Blockers/Concerns
 
 - ~~Christiane actively curating — regressions impacting her workflow daily~~ **RESOLVED** (Phase 83 complete)
 - ~~Status change detection~~ **COMPLETE** (Phase 84)
-- Remaining work: Ghost entity cleanup (85)
+- ~~Ghost entity prevention~~ **COMPLETE** (Phase 85)
+- Remaining work: Execute SQL remediation for 3 ghost entities (operations task, documented in sysndd-administration#2)
 
 ---
 
 ## Session Continuity
 
 **Last session:** 2026-02-10
-**Stopped at:** Completed Phase 84 (all 3 plans complete)
-**Resume file:** .planning/phases/84-status-change-detection/84-02-SUMMARY.md
+**Stopped at:** Completed Phase 85 (plan 85-01 complete)
+**Resume file:** .planning/phases/85-ghost-entity-cleanup-prevention/85-01-SUMMARY.md
 
 ---
 *State initialized: 2026-01-20*
-*Last updated: 2026-02-10 — Completed Phase 84: Status change detection across all curation views (composables + ModifyEntity + table views)*
+*Last updated: 2026-02-10 — Completed Phase 85: Ghost entity prevention verified (transaction wrapper), GitHub issue updated with remediation SQL, entity service tests enhanced*
