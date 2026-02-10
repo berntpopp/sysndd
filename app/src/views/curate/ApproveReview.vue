@@ -549,6 +549,7 @@
         header-close-label="Close"
         :busy="loading_review_modal"
         @ok="submitReviewChange"
+        @hide="onReviewModalHide"
       >
         <template #title>
           <div class="d-flex align-items-center">
@@ -804,6 +805,7 @@
         header-close-label="Close"
         :busy="loading_status_modal"
         @ok="submitStatusChange"
+        @hide="onStatusModalHide"
       >
         <template #title>
           <div class="d-flex align-items-center">
@@ -1068,6 +1070,8 @@ export default {
   },
   data() {
     return {
+      statusLoadedData: null, // Snapshot of status values when loaded
+      reviewLoadedData: null, // Snapshot of review values when loaded
       legendItems: [
         { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
         { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
@@ -1265,6 +1269,37 @@ export default {
     };
   },
   computed: {
+    hasStatusChanges() {
+      if (!this.statusLoadedData) return false;
+      return (
+        this.status_info.category_id !== this.statusLoadedData.category_id ||
+        this.status_info.comment !== this.statusLoadedData.comment ||
+        this.status_info.problematic !== this.statusLoadedData.problematic
+      );
+    },
+    hasReviewChanges() {
+      if (!this.reviewLoadedData) return false;
+      return (
+        this.review_info.synopsis !== this.reviewLoadedData.synopsis ||
+        this.review_info.comment !== this.reviewLoadedData.comment ||
+        !this.arraysAreEqual(
+          [...this.select_phenotype].sort(),
+          [...this.reviewLoadedData.phenotypes].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_variation].sort(),
+          [...this.reviewLoadedData.variationOntology].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_additional_references].sort(),
+          [...this.reviewLoadedData.publications].sort()
+        ) ||
+        !this.arraysAreEqual(
+          [...this.select_gene_reviews].sort(),
+          [...this.reviewLoadedData.genereviews].sort()
+        )
+      );
+    },
     // Category filter options from unique values in items
     categoryFilterOptions() {
       const categories = [
@@ -1521,6 +1556,15 @@ export default {
         this.review_info.review_user_name = response_review.data[0].review_user_name;
         this.review_info.review_user_role = response_review.data[0].review_user_role;
 
+        this.reviewLoadedData = {
+          synopsis: this.review_info.synopsis || '',
+          comment: this.review_info.comment || '',
+          phenotypes: [...this.select_phenotype],
+          variationOntology: [...this.select_variation],
+          publications: [...this.select_additional_references],
+          genereviews: [...this.select_gene_reviews],
+        };
+
         this.loading_review_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1548,6 +1592,12 @@ export default {
         this.status_info.status_date = response.data[0].status_date;
         this.status_info.status_approved = response.data[0].status_approved;
 
+        this.statusLoadedData = {
+          category_id: this.status_info.category_id,
+          comment: this.status_info.comment || '',
+          problematic: this.status_info.problematic || false,
+        };
+
         this.loading_status_modal = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1566,6 +1616,11 @@ export default {
       }
     },
     async submitReviewChange() {
+      // Silent skip when nothing changed
+      if (!this.hasReviewChanges) {
+        this.$refs[this.reviewModal.id].hide();
+        return;
+      }
       this.isBusy = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/update`;
 
@@ -1621,6 +1676,11 @@ export default {
       }
     },
     async submitStatusChange() {
+      // Silent skip when nothing changed
+      if (!this.hasStatusChanges) {
+        this.$refs[this.statusModal.id].hide();
+        return;
+      }
       if (this.status_info.status_approved === 0) {
         // PUT to update if not approved
         const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
@@ -1801,6 +1861,8 @@ export default {
       this.select_variation = [];
       this.select_additional_references = [];
       this.select_gene_reviews = [];
+      this.statusLoadedData = null;
+      this.reviewLoadedData = null;
     },
     infoStatus(item, _index, _button) {
       this.statusModal.title = `sysndd:${item.entity_id}`;
@@ -1810,6 +1872,22 @@ export default {
     },
     resetApproveModal() {
       this.status_approved = false;
+    },
+    onStatusModalHide(event) {
+      if (this.hasStatusChanges && !this.isBusy) {
+        const confirmed = window.confirm('You have unsaved status changes. Discard them?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
+    },
+    onReviewModalHide(event) {
+      if (this.hasReviewChanges && !this.isBusy) {
+        const confirmed = window.confirm('You have unsaved review changes. Discard them?');
+        if (!confirmed) {
+          event.preventDefault();
+        }
+      }
     },
     tagValidatorPMID(tag) {
       // Individual PMID tag validator function
