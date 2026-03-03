@@ -235,7 +235,7 @@ jobs:
         run: npm run build:docker
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-build
           path: app/dist
