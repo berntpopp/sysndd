@@ -621,9 +621,15 @@ function(req, res) {
     collect() %>%
     filter(entity_id == deactivate_data$entity$entity_id)
 
+  incoming_is_active <- as.integer(deactivate_data$entity$is_active)
+  incoming_replaced_by <- deactivate_data$entity$replaced_by
+  if (is.character(incoming_replaced_by) && toupper(trimws(incoming_replaced_by)) == "NULL") {
+    incoming_replaced_by <- NA_integer_
+  }
+
   ndd_entity_replaced <- ndd_entity_original %>%
-    mutate(is_active = deactivate_data$entity$is_active) %>%
-    mutate(replaced_by = deactivate_data$entity$replaced_by)
+    mutate(is_active = incoming_is_active) %>%
+    mutate(replaced_by = incoming_replaced_by)
 
   if (
     deactivate_data$entity$hgnc_id == ndd_entity_replaced$hgnc_id &&
