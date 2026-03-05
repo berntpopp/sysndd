@@ -621,7 +621,7 @@ function(req, res) {
     timestamp_request <- Sys.time()
     timestamp_iat <- as.integer(timestamp_request)
     timestamp_exp <- as.integer(timestamp_request) + dw$refresh
-    key <- charToRaw(dw$secret)
+    key <- charToRaw(if (is.list(dw$secret)) as.character(dw$secret[[1]]) else as.character(dw$secret))
 
     # Update password reset timestamp
     user_update(user_id_from_email[1], list(password_reset_date = as.character(timestamp_request)))

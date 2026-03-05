@@ -111,7 +111,7 @@ require_auth <- function(req, res) {
   token <- stringr::str_remove(req$HTTP_AUTHORIZATION, "^Bearer\\s+")
 
   # Decode JWT using global secret (dw$secret is approved global)
-  key <- charToRaw(dw$secret)
+  key <- charToRaw(if (is.list(dw$secret)) as.character(dw$secret[[1]]) else as.character(dw$secret))
 
   tryCatch({
     user <- jose::jwt_decode_hmac(token, secret = key)

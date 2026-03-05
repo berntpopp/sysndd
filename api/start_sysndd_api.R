@@ -97,6 +97,13 @@ dw <- config::get(Sys.getenv("API_CONFIG"))
 # Above line reads from config.yml the environment block
 # e.g. sysndd_db_local or sysndd_db
 
+# Validate dw$secret: config::get() may parse unquoted YAML values as lists
+if (is.list(dw$secret)) {
+  dw$secret <- as.character(dw$secret[[1]])
+  message("WARNING: dw$secret was list, coerced to character. Check config.yml quoting.")
+}
+stopifnot("dw$secret must be a non-empty string" = is.character(dw$secret) && nchar(dw$secret) > 0)
+
 # If you have a field 'workdir' in the config, do:
 if (!is.null(dw$workdir)) {
   message(paste("Setting working directory to:", dw$workdir))
@@ -641,7 +648,7 @@ corsFilter <- function(req, res) {
 # DEPRECATED: Use require_auth filter instead.
 # This will be removed after Phase 22 endpoint migration.
 checkSignInFilter <- function(req, res) {
-  key <- charToRaw(dw$secret)
+  key <- charToRaw(if (is.list(dw$secret)) as.character(dw$secret[[1]]) else as.character(dw$secret))
 
   # GET without auth => forward
   if (req$REQUEST_METHOD == "GET" && is.null(req$HTTP_AUTHORIZATION)) {
