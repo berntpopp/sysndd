@@ -1330,11 +1330,11 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/deactivate`;
 
       // assign new is_active
-      this.entity_info.is_active = this.deactivate_check ? '0' : '1';
+      this.entity_info.is_active = this.deactivate_check ? 0 : 1;
 
       // assign replace_entity_input
       this.entity_info.replaced_by =
-        this.replace_entity_input === null ? 'NULL' : this.replace_entity_input;
+        this.replace_entity_input === null ? null : this.replace_entity_input;
 
       // compose submission
       const submission = new Submission(this.entity_info);

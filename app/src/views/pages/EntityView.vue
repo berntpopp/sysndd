@@ -157,7 +157,7 @@
                         :variant="publication_style[publication.publication_type]"
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                          publication.publication_id.replace('PMID:', '')
+                          publication.publication_id.replace(/^PMID:\s*/, '')
                         "
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
@@ -182,7 +182,7 @@
                         :variant="publication_style[publication.publication_type]"
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
-                          publication.publication_id.replace('PMID:', '')
+                          publication.publication_id.replace(/^PMID:\s*/, '')
                         "
                         target="_blank"
                         :title="publication_hover_text[publication.publication_type]"
