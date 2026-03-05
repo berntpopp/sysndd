@@ -91,8 +91,8 @@ function handlePageUpdate(newPage: number) {
 /**
  * Handle per-page update from BFormSelect
  */
-function handlePerPageUpdate(newPerPage: number | string) {
-  const perPage = typeof newPerPage === 'string' ? parseInt(newPerPage, 10) : newPerPage;
+function handlePerPageUpdate(newPerPage: number | number[]) {
+  const perPage = Array.isArray(newPerPage) ? newPerPage[0] : newPerPage;
   if (!isNaN(perPage) && perPage !== localPerPage.value) {
     localPerPage.value = perPage;
     // Reset to page 1 when changing page size
