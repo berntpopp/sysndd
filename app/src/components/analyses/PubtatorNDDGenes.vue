@@ -241,15 +241,15 @@
                   variant="outline-primary"
                   @click="
                     handleRowExpand(data.item as GeneItem);
-                    data.toggleDetails();
+                    data.toggleExpansion();
                   "
                 >
-                  {{ data.detailsShowing ? 'Hide' : 'Show' }}
+                  {{ data.expansionShowing ? 'Hide' : 'Show' }}
                 </BButton>
               </template>
 
               <!-- Row details - expanded view with rich publication data -->
-              <template #row-details="data">
+              <template #row-expansion="data">
                 <div class="publication-details">
                   <!-- Loading spinner -->
                   <div
