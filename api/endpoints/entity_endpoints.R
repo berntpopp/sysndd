@@ -363,6 +363,9 @@ function(req, res, direct_approval = FALSE) {
   # Map service result to HTTP response
   if (result$status == 200) {
     res$status <- 201L
+    # Invalidate cached statistics after successful entity creation
+    if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
+    if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
   } else {
     res$status <- result$status
   }
@@ -643,6 +646,12 @@ function(req, res) {
       deactivate_data$entity$entity_id,
       ndd_entity_replaced$replaced_by
     )
+
+    # Invalidate cached statistics after successful entity deactivation
+    if (response_new_entity$status == 200) {
+      if (exists("generate_gene_news_tibble_mem")) memoise::forget(generate_gene_news_tibble_mem)
+      if (exists("generate_stat_tibble_mem")) memoise::forget(generate_stat_tibble_mem)
+    }
 
     res$status <- response_new_entity$status
     return(list(
