@@ -65,7 +65,7 @@
                     </template>
 
                     <template #cell(n)="data">
-                      <BLink :href="'/Entities?filter=any(category,' + data.item.category + ')'">
+                      <BLink :to="'/Entities?filter=any(category,' + data.item.category + ')'">
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
@@ -73,13 +73,13 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
-                        {{ row.detailsShowing ? 'hide' : 'show' }}
+                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+                        {{ row.expansionShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
 
                     <!-- These are the details that appear when a row in the entities table is clicked. -->
-                    <template #row-details="row">
+                    <template #row-expansion="row">
                       <BCard>
                         <BTable
                           :items="row.item.groups"
@@ -107,7 +107,7 @@
 
                           <template #cell(n)="data">
                             <BLink
-                              :href="
+                              :to="
                                 '/Entities?filter=any(category,' +
                                 data.item.category +
                                 '),any(hpo_mode_of_inheritance_term_name,' +
@@ -150,7 +150,7 @@
                     </template>
 
                     <template #cell(n)="data">
-                      <BLink :href="'/Panels/' + data.item.category + '/' + data.item.inheritance">
+                      <BLink :to="'/Panels/' + data.item.category + '/' + data.item.inheritance">
                         <div style="cursor: pointer">
                           {{ data.item.n }}
                         </div>
@@ -158,13 +158,13 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
-                        {{ row.detailsShowing ? 'hide' : 'show' }}
+                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+                        {{ row.expansionShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
 
                     <!-- These are the details that appear when a row in the genes table is clicked. -->
-                    <template #row-details="row">
+                    <template #row-expansion="row">
                       <BCard>
                         <BTable
                           :items="row.item.groups"
@@ -192,7 +192,7 @@
 
                           <template #cell(n)="data">
                             <BLink
-                              :href="'/Panels/' + data.item.category + '/' + data.item.inheritance"
+                              :to="'/Panels/' + data.item.category + '/' + data.item.inheritance"
                             >
                               <div style="cursor: pointer">
                                 {{ data.item.n }}

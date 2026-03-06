@@ -304,12 +304,12 @@
               </template>
 
               <template #cell(details)="row">
-                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
-                  {{ row.detailsShowing ? 'Hide' : 'Show' }}
+                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+                  {{ row.expansionShowing ? 'Hide' : 'Show' }}
                 </BButton>
               </template>
 
-              <template #row-details="row">
+              <template #row-expansion="row">
                 <BCard>
                   <BTable :items="[row.item]" :fields="fields_details" stacked small />
                 </BCard>

@@ -331,14 +331,14 @@
 
     <!-- Details column -->
     <template #cell(details)="row">
-      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleDetails">
-        {{ row.detailsShowing ? 'Hide' : 'Show' }}
+      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+        {{ row.expansionShowing ? 'Hide' : 'Show' }}
       </BButton>
     </template>
 
-    <!-- Row details - allows custom slot override -->
-    <template #row-details="row">
-      <slot name="row-details" :row="row.item" :toggle="row.toggleDetails">
+    <!-- Row expansion - allows custom slot override -->
+    <template #row-expansion="row">
+      <slot name="row-expansion" :row="row.item" :toggle="row.toggleExpansion">
         <BCard>
           <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
         </BCard>

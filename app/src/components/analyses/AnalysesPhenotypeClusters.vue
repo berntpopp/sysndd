@@ -86,7 +86,7 @@
 
             <template #footer>
               <div class="d-flex justify-content-between align-items-center">
-                <BLink :href="entitiesLink">
+                <BLink :to="entitiesLink">
                   Entities for cluster {{ selectedCluster.cluster }}
                 </BLink>
                 <small class="text-muted">

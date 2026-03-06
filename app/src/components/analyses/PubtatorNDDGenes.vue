@@ -420,7 +420,6 @@ interface GeneItem {
   oldest_pub_date?: string;
   is_novel: number;
   pmids?: string;
-  _showDetails?: boolean;
 }
 
 interface PublicationData {

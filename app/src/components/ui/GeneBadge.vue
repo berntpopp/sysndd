@@ -1,7 +1,7 @@
 <!-- components/ui/GeneBadge.vue -->
 <!-- Professional 3D-styled gene symbol badge -->
 <template>
-  <component :is="linkTo ? 'BLink' : 'span'" :href="linkTo" class="gene-badge-link">
+  <component :is="linkTo ? 'BLink' : 'span'" :to="linkTo" class="gene-badge-link">
     <span
       v-b-tooltip.hover.bottom
       class="gene-badge"

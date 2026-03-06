@@ -351,10 +351,10 @@
                   variant="outline-primary"
                   title="Toggle details"
                   :aria-label="`Toggle details for entity ${row.item.entity_id}`"
-                  @click="row.toggleDetails"
+                  @click="row.toggleExpansion"
                 >
                   <i
-                    :class="'bi bi-' + (row.detailsShowing ? 'eye-slash' : 'eye')"
+                    :class="'bi bi-' + (row.expansionShowing ? 'eye-slash' : 'eye')"
                     aria-hidden="true"
                   />
                 </BButton>
@@ -418,7 +418,7 @@
                 </BButton>
               </template>
 
-              <template #row-details="row">
+              <template #row-expansion="row">
                 <BCard class="mb-2 border-0 shadow-sm" body-class="p-3">
                   <div class="row g-3">
                     <!-- Status Info Section -->
