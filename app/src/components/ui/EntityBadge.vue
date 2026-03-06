@@ -1,7 +1,7 @@
 <!-- components/ui/EntityBadge.vue -->
 <!-- Professional 3D-styled entity identifier badge -->
 <template>
-  <component :is="linkTo ? 'BLink' : 'span'" :href="linkTo" class="entity-badge-link">
+  <component :is="linkTo ? 'BLink' : 'span'" :to="linkTo" class="entity-badge-link">
     <span
       class="entity-badge"
       :class="[`entity-badge--${variant}`, `entity-badge--${size}`]"

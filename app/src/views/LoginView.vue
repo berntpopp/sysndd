@@ -50,11 +50,11 @@
               <!-- Additional Links -->
               <div>
                 Don't have an account yet and want to help?
-                <BLink :href="'/Register'"> Register now. </BLink>
+                <BLink :to="'/Register'"> Register now. </BLink>
               </div>
               <div>
                 Forgot your password?
-                <BLink :href="'/PasswordReset'"> Reset now. </BLink>
+                <BLink :to="'/PasswordReset'"> Reset now. </BLink>
               </div>
             </BCardText>
           </BCard>

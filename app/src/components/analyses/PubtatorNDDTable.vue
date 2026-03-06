@@ -187,7 +187,7 @@
               </template>
 
               <!-- Row details slot for expanded annotation view -->
-              <template #row-details="{ row }">
+              <template #row-expansion="{ row }">
                 <div class="publication-details">
                   <div class="details-section">
                     <!-- Title -->

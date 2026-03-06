@@ -42,7 +42,7 @@
                     @click="navigateTo(item.link)"
                   >
                     <td class="search-results-table__td">
-                      <BLink :href="item.link" class="search-results-table__match-link" @click.stop>
+                      <BLink :to="item.link" class="search-results-table__match-link" @click.stop>
                         <BBadge
                           :variant="result_variant[item.search]"
                           class="search-results-table__match-badge"

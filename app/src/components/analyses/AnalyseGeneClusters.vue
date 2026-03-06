@@ -275,7 +275,7 @@
                       @mouseenter="handleTableRowHover(row.hgnc_id)"
                       @mouseleave="handleTableRowHover(null)"
                     >
-                      <BLink :href="'/Genes/' + row.hgnc_id">
+                      <BLink :to="'/Genes/' + row.hgnc_id">
                         <BBadge
                           v-b-tooltip.hover.leftbottom
                           pill

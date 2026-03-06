@@ -179,7 +179,7 @@
               </template>
 
               <!-- Custom row details for expanded publication info -->
-              <template #row-details="{ row }">
+              <template #row-expansion="{ row }">
                 <div class="publication-details">
                   <!-- Abstract -->
                   <div v-if="row.Abstract" class="details-section">
