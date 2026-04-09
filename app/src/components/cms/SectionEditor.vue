@@ -49,9 +49,14 @@
         <BFormGroup label="Icon" label-cols="2" class="mb-3">
           <BFormSelect
             :model-value="localSection.icon"
-            :options="(iconOptions as any)"
+            :options="iconOptions as any"
             size="sm"
-            @update:model-value="(val: string) => { localSection.icon = val; emitUpdate(); }"
+            @update:model-value="
+              (val: string) => {
+                localSection.icon = val;
+                emitUpdate();
+              }
+            "
           />
         </BFormGroup>
 
