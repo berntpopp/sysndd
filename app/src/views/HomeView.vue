@@ -73,7 +73,11 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+                      <BButton
+                        class="btn-xs"
+                        variant="outline-primary"
+                        @click="row.toggleExpansion"
+                      >
                         {{ row.expansionShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
@@ -158,7 +162,11 @@
                     </template>
 
                     <template #cell(actions)="row">
-                      <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
+                      <BButton
+                        class="btn-xs"
+                        variant="outline-primary"
+                        @click="row.toggleExpansion"
+                      >
                         {{ row.expansionShowing ? 'hide' : 'show' }}
                       </BButton>
                     </template>
