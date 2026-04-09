@@ -62,7 +62,7 @@ services:
     # For single-container dev, uncomment: ports: ["127.0.0.1:7778:7777"]
     labels:
       # Override: allow localhost in addition to production host for local dev
-      - "traefik.http.routers.api.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/api`)"
     environment:
       # Override to use development config (Mailpit SMTP, not Strato)
       ENVIRONMENT: development
@@ -78,7 +78,7 @@ services:
     # Override Traefik port for Vite dev server (production uses nginx on 8080)
     labels:
       # Override: allow localhost in addition to production host for local dev
-      - "traefik.http.routers.app.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`)) && PathPrefix(`/`)"
+      - "traefik.http.routers.app.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/`)"
       - "traefik.http.services.app.loadbalancer.server.port=5173"
     # Override healthcheck for development
     healthcheck:

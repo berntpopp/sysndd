@@ -118,6 +118,7 @@ export default defineConfig({
     host: '0.0.0.0', // Docker requirement
     port: 5173, // Vite default, avoids conflict with Vue CLI 8080
     strictPort: true, // Fail if port unavailable
+    allowedHosts: true, // Allow Docker/Traefik proxy hosts
     watch: {
       usePolling: true, // CRITICAL for Docker HMR
       interval: 100,
