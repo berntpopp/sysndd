@@ -154,6 +154,20 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
       fi
     fi
 
+    # v11.0/phase-c/* exemption: B1 infrastructure smoke test updates.
+    # Allows modifications to app/src/test-utils/mocks/*.spec.ts files on
+    # phase-c branches. These are Phase B's B1 handler smoke tests that
+    # assert handler wire shapes. When a Phase C batch-review Q3 finds a
+    # B1 shape drift (e.g. reviewByIdOk returning a bare object where
+    # the real R/Plumber API returns a 1-row array), fixing the drift
+    # in handlers.ts necessarily cascades to updating the corresponding
+    # smoke-test assertion. The scope is narrow (test-utils/mocks only)
+    # so it can't cover up view-spec tautology.
+    if [[ "$BRANCH" == v11.0/phase-c/* ]] && \
+       [[ "$f" == app/src/test-utils/mocks/*.spec.ts ]]; then
+      continue
+    fi
+
     # v11.0/phase-c/* exemption: default-on rollback audit.
     # Allows pre-existing test-integration-*.R files to be annotated with
     # any skip_if_*() call (skip_if_no_test_db, skip_if_api_not_running,

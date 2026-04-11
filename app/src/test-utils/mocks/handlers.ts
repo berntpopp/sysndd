@@ -506,9 +506,13 @@ export const handlers = [
   // master), we accept either shape.
   http.post('/api/entity/rename', async ({ request }) => {
     const body = await readJsonBody(request);
-    const entity = body?.rename_json?.entity;
-    const hasNewWireShape = entity && entity.entity_id;
-    const hasLegacyFlatShape = body?.sysndd_id && body?.new_symbol;
+    const renameJson = body?.rename_json as
+      | { entity?: { entity_id?: unknown } }
+      | undefined;
+    const hasNewWireShape =
+      renameJson?.entity?.entity_id !== undefined &&
+      renameJson.entity.entity_id !== null;
+    const hasLegacyFlatShape = Boolean(body?.sysndd_id) && Boolean(body?.new_symbol);
     if (!hasNewWireShape && !hasLegacyFlatShape) {
       return HttpResponse.json(entityRenameBadRequest, { status: 400 });
     }
