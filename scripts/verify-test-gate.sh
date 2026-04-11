@@ -162,9 +162,21 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
       # touching their behavioral lines.
       case "$f" in
         api/tests/testthat/test-integration-*.R)
+          # Whitelist rules for ADDED lines:
+          #   1. Blank diff lines  (^\+\s*$)
+          #   2. Blank comment lines  (^\+\s*#\s*$)
+          #   3. Comment lines whose content matches the rollback-audit
+          #      token whitelist. Tokens cover the audit vocabulary
+          #      (exempt / rollback / non-transactional / audit / in-
+          #      memory / read-only / http-only / Phase C / plan) plus
+          #      a small set of semantic terms that naturally appear in
+          #      rollback-audit header comments (DBI / pool / HTTP /
+          #      httr / skip_if / transaction / tibble / dplyr).
+          # Everything else counts as noise and fails the exemption.
           exemption3_added_noise=$(
             echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
-                          | grep -vE '^\+[[:space:]]*#.*(exempt|rollback|non-transactional|audit|in-memory|read-only|http-only|Phase[- ]C|plan)' \
+                          | grep -vE '^\+[[:space:]]*#[[:space:]]*$' \
+                          | grep -vE '^\+[[:space:]]*#.*(exempt|rollback|non-transactional|audit|in-memory|read-only|http-only|Phase[- ]C|plan|DBI|pool|HTTP|httr|skip_if|transaction|tibble|dplyr)' \
                           | grep -c '.' || true
           )
           exemption3_removed_noise=$(
