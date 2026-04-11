@@ -307,14 +307,11 @@ jobs:
             jpeg-turbo \
             pandoc
 
-      # Docker on macOS runners: use Colima (standard approach for GH Actions macOS).
-      # Required so that `make doctor`'s `docker info` check passes.
-      - name: Install and start Docker (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install colima docker
-          colima start --cpu 2 --memory 4 --disk 10
-          docker info
+      # Note: Docker daemon is NOT started on macOS runners. Colima is flaky on
+      # GH arm64 Sequoia runners and adds ~2min of variance for little gain.
+      # `make doctor` treats Docker as a soft check (warning on missing daemon),
+      # so the matrix still validates everything else: install-dev, nvmrc pin,
+      # R+renv, dev-package importability.
 
       - uses: r-lib/actions/setup-renv@v2
         with:

@@ -345,12 +345,16 @@ doctor: ## [env] Verify local environment is healthy (docker, git, node, R, renv
 	@printf "$(CYAN)==> Running environment checks...$(RESET)\n"
 	@set +e; \
 	FAIL=0; \
-	printf "\n$(CYAN)[1/5] Docker reachable...$(RESET)\n"; \
+	printf "\n$(CYAN)[1/5] Docker reachable (soft check)...$(RESET)\n"; \
 	if docker info > /dev/null 2>&1; then \
 		printf "$(GREEN)✓ Docker is reachable$(RESET)\n"; \
+	elif command -v docker > /dev/null 2>&1; then \
+		printf "$(YELLOW)⚠ docker CLI installed but daemon not reachable$(RESET)\n"; \
+		printf "$(YELLOW)  (non-fatal: docker is only needed for 'make dev' and 'make ci-local'.$(RESET)\n"; \
+		printf "$(YELLOW)   Start Docker Desktop / colima to use those targets.)$(RESET)\n"; \
 	else \
-		printf "$(RED)✗ Docker is not reachable (start Docker Desktop or the docker daemon)$(RESET)\n"; \
-		FAIL=1; \
+		printf "$(YELLOW)⚠ docker CLI not installed$(RESET)\n"; \
+		printf "$(YELLOW)  (non-fatal: needed for 'make dev' and 'make ci-local'.)$(RESET)\n"; \
 	fi; \
 	printf "\n$(CYAN)[2/5] Git version >= 2.5 (worktree support)...$(RESET)\n"; \
 	if command -v git > /dev/null 2>&1; then \
