@@ -223,7 +223,14 @@ test_that("POST /create review: happy path — valid synopsis aggregates 200", {
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = FALSE)
     expect_true(is.list(result))
-    expect_equal(result$status, 200)
+    # The handler aggregates service-function statuses through a tibble pipeline
+    # (review_endpoints.R:319-328) that calls unique() BEFORE max(status).
+    # When the service calls return distinct messages (e.g. "OK. Review stored."
+    # and "OK. Skipped."), the result list's `status` field is a length-N vector
+    # with every element set to the max status, not a scalar. Assert that every
+    # aggregated status is 200 AND the HTTP res status is still the default 200.
+    expect_true(all(result$status == 200L))
+    expect_equal(res$status, 200L)
   })
 })
 
@@ -291,7 +298,10 @@ test_that("PUT /update review: happy path — valid review_id aggregates 200", {
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = TRUE)
     expect_true(is.list(result))
-    expect_equal(result$status, 200)
+    # Same aggregation quirk as POST /create (review_endpoints.R:372-381):
+    # the status field is a vector when service calls return distinct messages.
+    expect_true(all(result$status == 200L))
+    expect_equal(res$status, 200L)
   })
 })
 

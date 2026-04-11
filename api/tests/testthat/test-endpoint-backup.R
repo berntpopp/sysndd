@@ -111,6 +111,17 @@ make_backup_sandbox <- function(role = "Administrator") {
   # container, so we don't fake it — tests that trip an error path that
   # calls `logger::log_error` simply get a real log line on stderr.
 
+  # Plumber's `serializer_json()` is only available when Plumber is loaded
+  # as a package (via `library(plumber)` or the plumber router). Our sandbox
+  # extracts handler function literals directly via `extract_plumber_handler`,
+  # so Plumber is NOT loaded and `serializer_json()` is undefined. The
+  # GET /download/<filename> error branches (400 path traversal, 400 invalid
+  # extension, 404 missing) call `res$serializer <- serializer_json()` to
+  # switch the response from octet to JSON before returning. For tests, we
+  # stub it to a no-op: the assertion is on `res$status` and `result$error`,
+  # not the serializer identity.
+  env$serializer_json <- function(...) identity
+
   env$dw <- list(
     dbname = "sysndd_test",
     host = "127.0.0.1",
