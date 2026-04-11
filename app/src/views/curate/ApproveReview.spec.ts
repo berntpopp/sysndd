@@ -325,7 +325,12 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
 
     const review = await axios.get(`/api/review/${id}`);
     expect(review.status).toBe(200);
-    expect(review.data.review_id).toBe(id);
+    // Phase C R1 fix: the B1 handler now returns a 1-row array to match the
+    // real R/Plumber wire shape (see `handlers.ts` inline note). The view's
+    // `loadReviewInfo` indexes `response.data[0].synopsis`, so the probe
+    // asserts the array shape and the first row's review_id.
+    expect(Array.isArray(review.data)).toBe(true);
+    expect(review.data[0].review_id).toBe(id);
 
     const phenotypes = await axios.get(`/api/review/${id}/phenotypes`);
     expect(phenotypes.status).toBe(200);

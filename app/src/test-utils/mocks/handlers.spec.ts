@@ -254,7 +254,12 @@ describe('MSW handlers — Phase B.B1 smoke tests', () => {
       const res = await fetch('/api/review/101');
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.review_id).toBe(101);
+      // Phase C R1 fix: R/Plumber returns single-row results as a 1-element
+      // array, not a bare object. The handler was corrected to match real
+      // wire shape; the smoke test indexes [0] accordingly. Consumer code
+      // in views (e.g. `loadReviewInfo`) does `response.data[0].synopsis`.
+      expect(Array.isArray(body)).toBe(true);
+      expect(body[0].review_id).toBe(101);
     });
 
     it('GET /api/review/:id returns 404 for sentinel 999', async () => {
