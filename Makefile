@@ -131,9 +131,13 @@ coverage: check-r ## [test] Generate test coverage report with covr
 # =============================================================================
 # Linting Targets
 # =============================================================================
-lint-api: check-r ## [lint] Check R code with lintr
+lint-api: check-r ## [lint] Check R code with lintr + migration prefix check
 	@printf "$(CYAN)==> Checking R code with lintr...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && Rscript scripts/lint-check.R && \
+		printf "$(GREEN)✓ lintr complete$(RESET)\n" || \
+		(printf "$(RED)✗ lintr failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Checking migration prefixes...$(RESET)\n"
+	@cd $(ROOT_DIR) && ./scripts/check-migration-prefixes.sh && \
 		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
 
