@@ -194,6 +194,7 @@ test_that("check_pmid handles PMID: prefix correctly", {
 
   # Test that the function processes input correctly
   # (actual API test skipped if no network)
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({
@@ -209,6 +210,7 @@ test_that("check_pmid handles PMID: prefix correctly", {
 })
 
 test_that("check_pmid validates single PMID", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({
@@ -223,6 +225,7 @@ test_that("check_pmid validates single PMID", {
 })
 
 test_that("check_pmid handles list of PMIDs", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({
