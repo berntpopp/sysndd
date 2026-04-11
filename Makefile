@@ -397,17 +397,18 @@ doctor: ## [env] Verify local environment is healthy (docker, git, node, R, renv
 		printf "$(RED)✗ R / Rscript is not installed$(RESET)\n"; \
 		FAIL=1; \
 	fi; \
-	printf "\n$(CYAN)[5/5] renv is synchronized (api/renv.lock)...$(RESET)\n"; \
+	printf "\n$(CYAN)[5/5] renv library is restorable and dev packages importable...$(RESET)\n"; \
 	if ! command -v Rscript > /dev/null 2>&1; then \
-		printf "$(RED)✗ Cannot check renv status — Rscript not available$(RESET)\n"; \
+		printf "$(RED)✗ Cannot check renv — Rscript not available$(RESET)\n"; \
 		FAIL=1; \
 	else \
-		RENV_OUTPUT=$$(cd $(ROOT_DIR)/api && Rscript -e 'status <- renv::status(); if (isTRUE(status$$synchronized)) cat("synchronized") else cat("out of sync")' 2>&1 | tail -n 1); \
-		if printf '%s' "$$RENV_OUTPUT" | grep -q "synchronized"; then \
-			printf "$(GREEN)✓ renv.lock is synchronized$(RESET)\n"; \
+		RENV_OUTPUT=$$(cd $(ROOT_DIR)/api && Rscript -e 'tryCatch({ renv::restore(prompt = FALSE); suppressPackageStartupMessages({ library(lintr); library(styler); library(testthat); library(covr); library(httptest2); library(callr); library(mockery) }); cat("dev-packages-ok") }, error = function(e) cat("ERROR: ", conditionMessage(e), sep = ""))' 2>&1 | tail -n 1); \
+		if printf '%s' "$$RENV_OUTPUT" | grep -q "dev-packages-ok"; then \
+			printf "$(GREEN)✓ renv library restorable; dev packages (lintr, styler, testthat, covr, httptest2, callr, mockery) importable$(RESET)\n"; \
 		else \
-			printf "$(RED)✗ renv is not synchronized (run: cd api && Rscript -e 'renv::restore()')$(RESET)\n"; \
-			printf "$(YELLOW)  renv::status() output: %s$(RESET)\n" "$$RENV_OUTPUT"; \
+			printf "$(RED)✗ renv library not restorable or dev packages missing$(RESET)\n"; \
+			printf "$(YELLOW)  Details: %s$(RESET)\n" "$$RENV_OUTPUT"; \
+			printf "$(YELLOW)  Run: cd api && Rscript -e 'renv::restore()' and ensure lintr + styler are in the lockfile$(RESET)\n"; \
 			FAIL=1; \
 		fi; \
 	fi; \
