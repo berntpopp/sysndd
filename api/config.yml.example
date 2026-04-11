@@ -1,0 +1,131 @@
+##
+## SysNDD API — config.yml template (Phase B B4 — CI-safe dummy values)
+##
+## Copy this file to `api/config.yml` and fill in real credentials BEFORE
+## running the stack against a real database. The real `api/config.yml` is
+## gitignored (`.gitignore` has `config.yml` under `api/`) so you never
+## accidentally commit secrets.
+##
+## This template exists because the prod Dockerfile does
+## `COPY config.yml config.yml` at build time, so every Docker build — local
+## dev, CI smoke-test, release — needs SOMETHING at `api/config.yml` or the
+## build fails. `scripts/ci-smoke.sh` copies this file to
+## `api/config.yml` when none exists, which is exactly what CI needs.
+##
+## NOTHING in this file should contain a real credential. The MySQL
+## password here is the same as `MYSQL_PASSWORD` in `.env.example` and is a
+## well-known placeholder; a real deployment replaces it with a rotated
+## secret from the ops vault. See `.env.example` for the matching env vars
+## and `.plans/v11.0/phase-b.md` §3 Phase B.B4 for the CI smoke-test
+## rationale.
+##
+## Mirrors the structure of the real `config.yml` (sysndd_db,
+## sysndd_db_local, sysndd_db_test, sysndd_db_dev environments) so
+## `config::get("sysndd_db")` always returns a list of the correct shape.
+
+default:
+  sysndd_db:
+    workdir: "/app"
+    dbtype: mysql
+    dbname: sysndd_db
+    user: "your_username_here"
+    password: "your_secure_password_here"
+    salt: "ci_dummy_salt_must_be_replaced_in_production"
+    server: "0.0.0.0"
+    host: "mysql"
+    port: "3306"
+    port_self: "7777"
+    # 64-char dummy JWT signing secret. Replace with a high-entropy secret
+    # from the ops vault in any environment that processes real logins.
+    secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
+    refresh: 3600
+    base_url: "http://localhost"
+    api_base_url: "http://localhost/api"
+    mail_noreply_user: "noreply@example.com"
+    mail_noreply_host: "mailpit"
+    mail_noreply_port: 1025
+    mail_noreply_use_ssl: FALSE
+    mail_noreply_overwrite: TRUE
+    mail_noreply_password: ""
+    archive_access_key: "ci_dummy_access_key"
+    archive_secret_key: "ci_dummy_secret_key"
+    archive_base_url: "https://example.com/"
+    omim_token: "ci_dummy_omim_token"
+
+  sysndd_db_local:
+    workdir: "/app"
+    dbtype: mysql
+    dbname: sysndd_db
+    user: "your_username_here"
+    password: "your_secure_password_here"
+    salt: "ci_dummy_salt_must_be_replaced_in_production"
+    server: "0.0.0.0"
+    host: "127.0.0.1"
+    port: "7654"
+    port_self: "7778"
+    secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
+    refresh: 3600
+    base_url: "http://127.0.0.1"
+    api_base_url: "http://127.0.0.1:7778"
+    mail_noreply_user: "noreply@example.com"
+    mail_noreply_host: "127.0.0.1"
+    mail_noreply_port: 1025
+    mail_noreply_use_ssl: FALSE
+    mail_noreply_overwrite: TRUE
+    mail_noreply_password: ""
+    archive_access_key: "ci_dummy_access_key"
+    archive_secret_key: "ci_dummy_secret_key"
+    archive_base_url: "https://example.com/"
+    omim_token: "ci_dummy_omim_token"
+
+  sysndd_db_test:
+    workdir: "/app"
+    dbtype: mysql
+    dbname: sysndd_db_test
+    user: "your_username_here"
+    password: "your_secure_password_here"
+    salt: "ci_dummy_salt_must_be_replaced_in_production"
+    server: "0.0.0.0"
+    host: "127.0.0.1"
+    port: "7655"
+    port_self: "7779"
+    secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
+    refresh: 3600
+    base_url: "http://127.0.0.1"
+    api_base_url: "http://127.0.0.1:7779"
+    mail_noreply_user: "noreply@example.com"
+    mail_noreply_host: "127.0.0.1"
+    mail_noreply_port: 1025
+    mail_noreply_use_ssl: FALSE
+    mail_noreply_overwrite: TRUE
+    mail_noreply_password: ""
+    archive_access_key: "ci_dummy_access_key"
+    archive_secret_key: "ci_dummy_secret_key"
+    archive_base_url: "https://example.com/"
+    omim_token: "ci_dummy_omim_token"
+
+  sysndd_db_dev:
+    workdir: "/app"
+    dbtype: mysql
+    dbname: sysndd_db
+    user: "your_username_here"
+    password: "your_secure_password_here"
+    salt: "ci_dummy_salt_must_be_replaced_in_production"
+    server: "0.0.0.0"
+    host: "mysql"
+    port: "3306"
+    port_self: "7777"
+    secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
+    refresh: 3600
+    base_url: "http://localhost"
+    api_base_url: "http://localhost:7777"
+    mail_noreply_user: "noreply@example.com"
+    mail_noreply_host: "mailpit"
+    mail_noreply_port: 1025
+    mail_noreply_use_ssl: FALSE
+    mail_noreply_overwrite: TRUE
+    mail_noreply_password: ""
+    archive_access_key: "ci_dummy_access_key"
+    archive_secret_key: "ci_dummy_secret_key"
+    archive_base_url: "https://example.com/"
+    omim_token: "ci_dummy_omim_token"

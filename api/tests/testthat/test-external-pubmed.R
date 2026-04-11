@@ -27,6 +27,22 @@ skip_if_not_installed("httptest2")
 skip_if_not_installed("easyPubMed")
 
 # ============================================================================
+# Fixture presence gate (Phase B B2)
+#
+# The first test_that() in this file fails loudly if the PubMed fixture
+# directory is empty or .gitkeep-only. This is a deliberate replacement for
+# the old silent skip-on-missing-fixtures behaviour so that accidentally
+# emptying the fixture directory (e.g. a botched `make refresh-fixtures` or an
+# incomplete merge) shows up as a red test rather than a green no-op run.
+# See api/tests/testthat/helper-fixtures.R and fixtures/README.md.
+# ============================================================================
+
+test_that("PubMed fixtures are present (fail-loud gate for Phase B B2)", {
+  skip_if_no_fixtures("pubmed")
+  succeed()
+})
+
+# ============================================================================
 # Pure Function Tests (no network required)
 # ============================================================================
 
@@ -178,6 +194,7 @@ test_that("check_pmid handles PMID: prefix correctly", {
 
   # Test that the function processes input correctly
   # (actual API test skipped if no network)
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({
@@ -193,6 +210,7 @@ test_that("check_pmid handles PMID: prefix correctly", {
 })
 
 test_that("check_pmid validates single PMID", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({
@@ -207,6 +225,7 @@ test_that("check_pmid validates single PMID", {
 })
 
 test_that("check_pmid handles list of PMIDs", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubmed"))
 
   with_pubmed_mock({

@@ -28,6 +28,22 @@ skip_if_not_installed("httptest2")
 skip_if_not_installed("jsonlite")
 
 # ============================================================================
+# Fixture presence gate (Phase B B2)
+#
+# The first test_that() in this file fails loudly if the PubTator fixture
+# directory is empty or .gitkeep-only. This is a deliberate replacement for
+# the old silent skip-on-missing-fixtures behaviour so that accidentally
+# emptying the fixture directory (e.g. a botched `make refresh-fixtures` or an
+# incomplete merge) shows up as a red test rather than a green no-op run.
+# See api/tests/testthat/helper-fixtures.R and fixtures/README.md.
+# ============================================================================
+
+test_that("PubTator fixtures are present (fail-loud gate for Phase B B2)", {
+  skip_if_no_fixtures("pubtator")
+  succeed()
+})
+
+# ============================================================================
 # Pure Function Tests (no network required)
 # ============================================================================
 
@@ -116,6 +132,7 @@ test_that("build_pmid_annotations_table handles missing required fields", {
 # ============================================================================
 
 test_that("pubtator_v3_total_pages_from_query returns page count", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({
@@ -135,6 +152,7 @@ test_that("pubtator_v3_total_pages_from_query returns page count", {
 })
 
 test_that("pubtator_v3_total_pages_from_query handles empty results", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({
@@ -151,6 +169,7 @@ test_that("pubtator_v3_total_pages_from_query handles empty results", {
 })
 
 test_that("pubtator_v3_pmids_from_request returns tibble", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({

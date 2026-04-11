@@ -110,6 +110,7 @@ get_admin_token <- function() {
 # =============================================================================
 
 test_that("user registration sends confirmation email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -148,6 +149,7 @@ test_that("user registration sends confirmation email", {
 
 
 test_that("duplicate registration is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -177,14 +179,21 @@ test_that("duplicate registration is rejected", {
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
-  # Should not send additional email on duplicate attempt
-  Sys.sleep(1)
-  final_count <- mailpit_message_count()
+  # Should not send additional email on duplicate attempt.
+  # Event-based assertion: poll the Mailpit count for 1s and fail as soon
+  # as it diverges from the initial count, instead of blindly burning a
+  # second before a single count check.
+  final_count <- wait_stable(
+    probe = function() mailpit_message_count(),
+    duration = 1,
+    label = "mailpit count after duplicate signup (expected: unchanged)"
+  )
   expect_equal(final_count, initial_count)
 })
 
 
 test_that("invalid registration data is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
 
@@ -211,9 +220,14 @@ test_that("invalid registration data is rejected", {
   # Should return error status (404 per endpoint code)
   expect_equal(httr2::resp_status(resp), 404)
 
-  # No email should be sent
-  Sys.sleep(1)
-  count <- mailpit_message_count()
+  # No email should be sent. Poll the count for 1s; wait_stable fails
+  # immediately (with a diagnostic) if a rogue email arrives during the
+  # window, instead of burning a full second before checking once.
+  count <- wait_stable(
+    probe = function() mailpit_message_count(),
+    duration = 1,
+    label = "mailpit count after invalid signup (expected: 0)"
+  )
   expect_equal(count, 0)
 })
 
@@ -223,6 +237,7 @@ test_that("invalid registration data is rejected", {
 # =============================================================================
 
 test_that("curator approval sends password email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -278,6 +293,7 @@ test_that("curator approval sends password email", {
 
 
 test_that("curator rejection deletes user without email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -319,9 +335,14 @@ test_that("curator rejection deletes user without email", {
   user_after <- get_user_by_email(test_user$email)
   expect_null(user_after)
 
-  # No rejection email should be sent
-  Sys.sleep(1)
-  count <- mailpit_message_count()
+  # No rejection email should be sent. wait_stable polls for 1s and
+  # fails the moment a rogue rejection email arrives, rather than
+  # uniformly sleeping before a single count assertion.
+  count <- wait_stable(
+    probe = function() mailpit_message_count(),
+    duration = 1,
+    label = "mailpit count after curator rejection (expected: 0)"
+  )
   expect_equal(count, 0)
 })
 
@@ -331,6 +352,7 @@ test_that("curator rejection deletes user without email", {
 # =============================================================================
 
 test_that("password reset request sends email with reset link", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -385,6 +407,7 @@ test_that("password reset request sends email with reset link", {
 
 
 test_that("password reset with valid token changes password", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -450,6 +473,7 @@ test_that("password reset with valid token changes password", {
 
 
 test_that("password reset with invalid token is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_api()
 
   # Use a made-up invalid JWT
@@ -468,6 +492,7 @@ test_that("password reset with invalid token is rejected", {
 
 
 test_that("password reset with weak password is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -520,6 +545,7 @@ test_that("password reset with weak password is rejected", {
 
 
 test_that("password reset for non-existent email silently succeeds", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
 
@@ -535,14 +561,21 @@ test_that("password reset for non-existent email silently succeeds", {
   # Should return 200 (security: don't reveal if email exists)
   expect_equal(httr2::resp_status(resp), 200)
 
-  # No email should be sent
-  Sys.sleep(2)
-  count <- mailpit_message_count()
+  # No email should be sent. Poll for 2s (longer than other cases because
+  # password-reset enumeration protection is silent — the API intentionally
+  # does the same work as a real reset to equalize timing, so we need to
+  # tolerate a slightly longer "quiet window" before asserting zero).
+  count <- wait_stable(
+    probe = function() mailpit_message_count(),
+    duration = 2,
+    label = "mailpit count after reset for nonexistent email (expected: 0)"
+  )
   expect_equal(count, 0)
 })
 
 
 test_that("password reset token cannot be reused", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()

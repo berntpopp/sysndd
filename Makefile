@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -141,11 +141,15 @@ lint-api: check-r ## [lint] Check R code with lintr + migration prefix check
 		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
 
-lint-app: check-npm ## [lint] Check frontend code with ESLint
+lint-app: check-npm ## [lint] Check frontend code with ESLint and MSW↔OpenAPI drift
 	@printf "$(CYAN)==> Checking frontend code with ESLint...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run lint && \
+		printf "$(GREEN)✓ eslint complete$(RESET)\n" || \
+		(printf "$(RED)✗ eslint failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Verifying MSW handlers against OpenAPI annotations...$(RESET)\n"
+	@$(ROOT_DIR)/scripts/verify-msw-against-openapi.sh && \
 		printf "$(GREEN)✓ lint-app complete$(RESET)\n" || \
-		(printf "$(RED)✗ lint-app failed$(RESET)\n" && exit 1)
+		(printf "$(RED)✗ verify-msw-against-openapi failed$(RESET)\n" && exit 1)
 
 format-api: check-r ## [lint] Format R code with styler
 	@printf "$(CYAN)==> Formatting R code with styler...$(RESET)\n"
@@ -214,9 +218,27 @@ _ci-cleanup:
 	@printf "\n$(CYAN)Cleaning up test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml stop mysql-test 2>/dev/null || true
 
+verify-gate: ## [quality] Run verify-test-gate.sh + its bash harness (Phase B B4)
+	@printf "$(CYAN)==> Running verify-test-gate.sh harness...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/tests/test-verify-test-gate.sh && \
+		printf "$(GREEN)✓ verify-test-gate harness green$(RESET)\n" || \
+		(printf "$(RED)✗ verify-test-gate harness failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Running verify-test-gate.sh on current branch...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/verify-test-gate.sh && \
+		printf "$(GREEN)✓ verify-test-gate clean on current branch$(RESET)\n" || \
+		(printf "$(RED)✗ verify-test-gate rejected current branch$(RESET)\n" && exit 1)
+
 # Configuration for preflight validation
+#
+# The prod docker-compose.yml routes traefik by `Host(`sysndd.dbmr.unibe.ch`)`
+# ONLY — the dev override file relaxes it to also accept `localhost` /
+# `127.0.0.1`, but preflight uses the prod compose file without the override,
+# so we MUST curl with the real prod Host header (via -H) or traefik returns
+# 404. PREFLIGHT_HOST_HEADER is the Host header curl will send; override it
+# with `make preflight PREFLIGHT_HOST_HEADER=example.com` if needed.
 PREFLIGHT_TIMEOUT := 120
 PREFLIGHT_HEALTH_ENDPOINT := http://localhost/api/health/ready
+PREFLIGHT_HOST_HEADER := sysndd.dbmr.unibe.ch
 
 preflight: check-docker ## [quality] Run production preflight validation
 	@printf "$(CYAN)==> Running production preflight validation...$(RESET)\n"
@@ -229,10 +251,9 @@ preflight: check-docker ## [quality] Run production preflight validation
 		(printf "$(RED)Container startup failed$(RESET)\n" && exit 1)
 	@printf "$(GREEN)Containers started$(RESET)\n"
 	@printf "\n$(CYAN)[3/4] Waiting for health check (timeout: $(PREFLIGHT_TIMEOUT)s)...$(RESET)\n"
-	@SECONDS=0; \
-	while [ $$SECONDS -lt $(PREFLIGHT_TIMEOUT) ]; do \
-		RESPONSE=$$(curl -sf $(PREFLIGHT_HEALTH_ENDPOINT) 2>/dev/null); \
-		if [ $$? -eq 0 ]; then \
+	@SECONDS_ELAPSED=0; HEALTH_OK=0; \
+	while [ $$SECONDS_ELAPSED -lt $(PREFLIGHT_TIMEOUT) ]; do \
+		if RESPONSE=$$(curl -sf -H "Host: $(PREFLIGHT_HOST_HEADER)" $(PREFLIGHT_HEALTH_ENDPOINT) 2>/dev/null); then \
 			printf "$(GREEN)Health check passed!$(RESET)\n"; \
 			printf "Response: $$RESPONSE\n"; \
 			HEALTH_OK=1; \
@@ -240,9 +261,9 @@ preflight: check-docker ## [quality] Run production preflight validation
 		fi; \
 		printf "."; \
 		sleep 2; \
-		SECONDS=$$((SECONDS+2)); \
+		SECONDS_ELAPSED=$$((SECONDS_ELAPSED+2)); \
 	done; \
-	if [ -z "$$HEALTH_OK" ]; then \
+	if [ "$$HEALTH_OK" -eq 0 ]; then \
 		printf "\n$(RED)Health check timed out after $(PREFLIGHT_TIMEOUT)s$(RESET)\n"; \
 		printf "\n$(YELLOW)Last 50 lines of API logs:$(RESET)\n"; \
 		docker compose -f docker-compose.yml logs api --tail=50; \
@@ -472,3 +493,43 @@ worktree-prune: ## [env] Prune stale worktree references and list remaining work
 		(printf "$(RED)✗ worktree prune failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Remaining worktrees:$(RESET)\n"
 	@git -C $(ROOT_DIR) worktree list
+
+# =============================================================================
+# Phase B B2: fixture refresh
+# =============================================================================
+# `make refresh-fixtures` records fresh httptest2 captures of the live NCBI
+# eUtils PubMed API and the PubTator3 API into
+# `api/tests/testthat/fixtures/{pubmed,pubtator}/`.
+#
+# - This target is DEVELOPER-ONLY. It is intentionally NOT invoked from
+#   `make ci-local`, `make pre-commit`, or any CI job. Fixtures are committed
+#   artefacts; we never let CI silently rewrite them by hitting the upstream
+#   APIs.
+# - The capture runs inside the `sysndd-api:latest` Docker image because the
+#   Ubuntu questing host cannot install `httr2` + `httptest2` + `easyPubMed`
+#   cleanly (see CLAUDE.md "Host-Env Workaround"). The image already has
+#   them; we bind-mount the fixtures directory so writes land in-tree.
+# - The capture script is `api/scripts/capture-external-fixtures.R`. See
+#   `api/tests/testthat/fixtures/README.md` for the full inventory and the
+#   exact request URLs each fixture corresponds to.
+
+# Image used for fixture capture. Override with FIXTURE_IMAGE=... to pin a
+# specific tag (default: whatever the local `sysndd-api` prod image tag is).
+FIXTURE_IMAGE ?= sysndd-api:latest
+
+refresh-fixtures: check-docker ## [test] Refresh live PubMed/PubTator httptest2 fixtures (dev-only, NOT run in CI)
+	@printf "$(CYAN)==> Refreshing external-API test fixtures (Phase B B2)$(RESET)\n"
+	@printf "$(YELLOW)This hits the live NCBI PubMed and PubTator APIs.$(RESET)\n"
+	@printf "$(YELLOW)It is intentionally NOT part of make ci-local.$(RESET)\n"
+	@printf "\n$(CYAN)Image:$(RESET) $(FIXTURE_IMAGE)\n"
+	@printf "$(CYAN)Target:$(RESET) $(ROOT_DIR)/api/tests/testthat/fixtures/{pubmed,pubtator}/\n\n"
+	@docker run --rm --network=host \
+		-v "$(ROOT_DIR)/api/tests/testthat/fixtures:/fixtures" \
+		-v "$(ROOT_DIR)/api/scripts:/scripts:ro" \
+		$(FIXTURE_IMAGE) \
+		Rscript /scripts/capture-external-fixtures.R /fixtures && \
+		printf "\n$(GREEN)✓ refresh-fixtures complete$(RESET)\n" || \
+		(printf "\n$(RED)✗ refresh-fixtures failed$(RESET)\n" && exit 1)
+	@printf "\n$(CYAN)Next steps:$(RESET)\n"
+	@printf "  git status api/tests/testthat/fixtures/\n"
+	@printf "  git diff   api/tests/testthat/fixtures/README.md   # update inventory if fixture set changed\n"
