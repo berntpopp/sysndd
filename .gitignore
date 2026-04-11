@@ -27,3 +27,6 @@ coverage/
 # Local plan data (database backups)
 .plan/
 __pycache__/
+
+# Parallel worktree workflow (v11.0+ phase worktrees)
+/worktrees/
