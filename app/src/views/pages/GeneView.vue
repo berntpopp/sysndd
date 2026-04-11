@@ -189,8 +189,10 @@ const filterInput = computed(() =>
   geneData.value.length > 0 ? `equals(symbol,${geneData.value[0].symbol})` : ''
 );
 
-// gnomAD constraint data from gene endpoint (pre-annotated in DB)
-const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints?.[0] || null);
+// gnomAD constraint data from gene endpoint (pre-annotated in DB).
+// The gnomad_constraints column is a JSON string; the API no longer runs it
+// through str_split, so it arrives as a plain scalar (see Phase A A2).
+const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints ?? null);
 
 // AlphaFold model identifier from gene endpoint (used by Phase 45 3D protein structure viewer)
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
