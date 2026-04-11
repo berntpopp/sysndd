@@ -16,6 +16,10 @@
 # - TST-07: Integration tests verify database query execution
 # - TST-08: Integration tests verify pagination returns different pages
 # - TST-09: Regression check for existing endpoints
+# Phase C7 rollback-audit exempt: non-transactional HTTP-only integration file.
+# rollback: none needed — every test issues read-only HTTP GETs, no mutation.
+# non-transactional: skip_if_no_test_db() token below is documentation-only.
+# exempt rationale: see .plans/v11.0/phase-c.md §3 Phase C.4 / §4.5.
 
 library(testthat)
 library(httr2)
