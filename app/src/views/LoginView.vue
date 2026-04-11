@@ -136,9 +136,15 @@ export default {
       })();
     },
     async loadJWT() {
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/authenticate?user_name=${this.user_name}&password=${this.password}`;
+      // OWASP: credentials MUST go in the JSON body, never in URL query params
+      // (query strings leak into access logs, Traefik logs, and browser history).
+      // See api/endpoints/authentication_endpoints.R `@post authenticate`.
+      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/authenticate`;
       try {
-        const response_authenticate = await this.axios.get(apiAuthenticateURL);
+        const response_authenticate = await this.axios.post(apiAuthenticateURL, {
+          user_name: this.user_name,
+          password: this.password,
+        });
         localStorage.setItem('token', response_authenticate.data[0]);
         this.makeToast(
           `You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`,
