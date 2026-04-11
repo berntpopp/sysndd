@@ -309,13 +309,44 @@ jobs:
       - name: make doctor
         run: make doctor
 
+  # =================== Phase B B4: smoke-test ===================
+  # End-to-end production smoke test (Phase B4, v11.0). Builds the prod API
+  # image, brings the full docker-compose stack up, and hits /api/health/ready
+  # via scripts/ci-smoke.sh. This is the primary acceptance signal that the
+  # production boot path still works.
+  #
+  # Disjoint from B3's `slow-tests-nightly` job (which uses `schedule:`). Merge
+  # rule (.plans/v11.0/phase-b.md §2.4): if B3 and B4 land close in time and
+  # conflict inside `jobs:`, keep both job blocks — never drop a job.
+  smoke-test:
+    name: Smoke Test (prod stack)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify docker is available
+        run: |
+          docker --version
+          docker compose version
+
+      - name: Run ci-smoke.sh
+        run: ./scripts/ci-smoke.sh
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml logs --tail=200 || true
+          docker ps -a || true
+  # =================== end Phase B B4: smoke-test ===============
+
   # ============================================================================
   # Summary Job (ensures required checks pass)
   # ============================================================================
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, lint-api, test-api, check-app, build-app, make-doctor]
+    needs: [changes, lint-api, test-api, check-app, build-app, make-doctor, smoke-test]
     if: always()
     steps:
       - name: Check all jobs passed
@@ -328,16 +359,19 @@ jobs:
           build_ok="${{ needs.build-app.result == 'success' || needs.build-app.result == 'skipped' }}"
           # Doctor matrix (Phase A7): must succeed on both ubuntu-latest and macos-latest.
           doctor_ok="${{ needs.make-doctor.result == 'success' }}"
+          # Smoke test (Phase B B4): must succeed on every PR that boots the stack.
+          smoke_ok="${{ needs.smoke-test.result == 'success' }}"
 
           if [[ "$api_ok" != "true" ]] || [[ "$test_ok" != "true" ]] || \
              [[ "$app_ok" != "true" ]] || [[ "$build_ok" != "true" ]] || \
-             [[ "$doctor_ok" != "true" ]]; then
+             [[ "$doctor_ok" != "true" ]] || [[ "$smoke_ok" != "true" ]]; then
             echo "One or more jobs failed"
             echo "lint-api: ${{ needs.lint-api.result }}"
             echo "test-api: ${{ needs.test-api.result }}"
             echo "check-app: ${{ needs.check-app.result }}"
             echo "build-app: ${{ needs.build-app.result }}"
             echo "make-doctor: ${{ needs.make-doctor.result }}"
+            echo "smoke-test: ${{ needs.smoke-test.result }}"
             exit 1
           fi
           echo "All CI checks passed!"
