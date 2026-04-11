@@ -218,6 +218,16 @@ _ci-cleanup:
 	@printf "\n$(CYAN)Cleaning up test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml stop mysql-test 2>/dev/null || true
 
+verify-gate: ## [quality] Run verify-test-gate.sh + its bash harness (Phase B B4)
+	@printf "$(CYAN)==> Running verify-test-gate.sh harness...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/tests/test-verify-test-gate.sh && \
+		printf "$(GREEN)✓ verify-test-gate harness green$(RESET)\n" || \
+		(printf "$(RED)✗ verify-test-gate harness failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Running verify-test-gate.sh on current branch...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/verify-test-gate.sh && \
+		printf "$(GREEN)✓ verify-test-gate clean on current branch$(RESET)\n" || \
+		(printf "$(RED)✗ verify-test-gate rejected current branch$(RESET)\n" && exit 1)
+
 # Configuration for preflight validation
 PREFLIGHT_TIMEOUT := 120
 PREFLIGHT_HEALTH_ENDPOINT := http://localhost/api/health/ready
