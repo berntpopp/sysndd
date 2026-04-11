@@ -8,6 +8,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet. See `.plans/v11.0/` for work in progress._
 
+## [0.11.5] — 2026-04-11
+
+Phase B of the v11.0 test foundation initiative — Tier A test infrastructure that unblocks every Phase C / D / E unit. All 5 units (B1–B5) landed as one combined release. **No runtime code changed**; this is exclusively dev/test infrastructure (MSW handlers, httptest2 fixtures, CI jobs, test helpers, verify-test-gate logic). Patch bump per SemVer.
+
+### Added
+
+- **B1 — MSW handler expansion (app/src/test-utils/mocks/).** The vitest MSW layer now covers every handler in the locked Phase B.B1 table: 38 handlers across 6 view families (Auth, User admin, Review workflow, Status workflow, Entity curation, Annotation jobs). Every handler has a 2xx happy path and at least one 4xx branch distinguishable by request shape, and every handler carries an OpenAPI-path comment above it.
+  - New fixture modules under `app/src/test-utils/mocks/data/`: `auth.ts`, `users.ts`, `reviews.ts`, `statuses.ts`, `entities.ts`, `jobs.ts` (split by response family, each under 300 LoC).
+  - New smoke spec `app/src/test-utils/mocks/handlers.spec.ts` — 77 assertions, one 2xx and one 4xx case per handler, catches handler drift on first run.
+  - New shell script `scripts/verify-msw-against-openapi.sh` — greps every handler path against the real `@get`/`@post`/`@put`/`@delete` annotations in `api/endpoints/*.R` and reports drift. Wired into `make lint-app`.
+  - New `scripts/msw-openapi-exceptions.txt` — whitelists 4 entries where the locked spec table points at endpoints that don't exist (yet) on master. Each entry is a spec-bug flag for Phase C to resolve, not a handler bug: `PUT /api/user/delete` (real annotation is `@delete delete`), `PUT /api/review/approve/all` (no bulk route), `PUT /api/status/approve/all` (no bulk route), `GET /api/entity/:sysndd_id` (no bare getter — only sub-path routes). The verify script exits non-zero on any unlisted drift.
+- **B2 — real PubMed/PubTator httptest2 fixtures.** Replaced the previously empty `api/tests/testthat/fixtures/{pubmed,pubtator}/` directories with 6 real captures (3 pubmed + 3 pubtator, 32.7 KB total), recorded via a new `make refresh-fixtures` target against the live NCBI eUtils and PubTator3 BioCJSON APIs on 2026-04-11. Captured via `httptest2::save_response(..., simplify = FALSE)` to preserve the full `httr2_response` object; not handcrafted JSON.
+  - New helper `api/tests/testthat/helper-fixtures.R` — `skip_if_no_fixtures(subdir)` fails **loudly** on missing/empty fixture directories (both `testthat::fail()` and `stop()`, with an actionable message pointing at `make refresh-fixtures`). `.gitkeep`-only directories are treated as missing. Per spec §4.4 rule 1: the point is to make the silent-skip failure mode impossible to miss.
+  - New `api/tests/testthat/fixtures/README.md` — documents every committed fixture with filename, recording date, API version, and exact capture command.
+  - New `make refresh-fixtures` target (disjoint section from A7/A4/A6 Makefile edits) — invokes the capture commands against live APIs when explicitly run; **not** invoked from `make ci-local`.
+  - `test-external-pubmed.R` and `test-external-pubtator.R` now call `skip_if_no_fixtures()` at the first `test_that()` of each file.
+- **B3 — skip-slow-wiring.** Wired `skip_if_not_slow_tests()` (previously defined in `helper-skip.R` but never called) into 22 `test_that()` blocks across 4 audited files that actually hit Mailpit or live external APIs: `test-integration-email.R` (5 blocks), `test-external-pubtator.R` (3), `test-e2e-user-lifecycle.R` (11), `test-external-pubmed.R` (3). The other 4 files flagged by the audit grep (`test-unit-publication-functions.R`, `test-unit-pubtator-parse.R`, `test-unit-genereviews-functions.R`, `test-unit-pubtator-functions.R`) were classified MOCK — they contain the search terms only in comments, string assertions, or mocked bindings — and left untouched.
+  - New `slow-tests-nightly` CI job in `.github/workflows/ci.yml` — cron `0 3 * * *` plus `workflow_dispatch`, runs `RUN_SLOW_TESTS=true make test-api-full` with MySQL + Mailpit service containers. Correctly skipped on normal PR runs (verified: the pull_request run's `Slow Tests (nightly)` resolves to `skipping` while `Test R API` runs green in ~23 min without Mailpit). Bannered as `# ===== Phase B B3: slow-tests-nightly =====` to make the combined-merge with B4's `smoke-test` job trivial.
+- **B4 — CI smoke test + real verify-test-gate.sh.** New `smoke-test` CI job in `.github/workflows/ci.yml` (triggered on `push` and `pull_request`) runs `scripts/ci-smoke.sh` which wraps `make preflight` plus a `curl -f` retry loop against `/api/health/ready`. Bannered as `# ===== Phase B B4: smoke-test =====` (disjoint from B3's nightly block). `ci-success` gates on `smoke-test` (but not `slow-tests-nightly`, which is schedule-only).
+  - New `scripts/ci-smoke.sh` — boots the full prod stack via `make preflight` and verifies readiness.
+  - Replaced the A6 `scripts/verify-test-gate.sh` stub (2-line echo) with 121 lines of real logic. Protects Phase D / Phase E PRs from silently mutating pre-existing test files to "pin" them to whatever the refactor produced. Rule summary: new `*.spec.ts` / `test-*.R` files are allowed; modifications to pre-existing spec/test files are rejected **unless** one of two branch-gated exemptions applies — (a) adding `skip_if_not_slow_tests()` on `v11.0/phase-b/*` only (for B3), or (b) replacing `Sys.sleep(N)` with `wait_for(..., timeout = N)` on `v11.0/phase-b/*` only (for B5). `--extended` mode also greps every `api/tests/testthat/test-integration-*.R` file and asserts it opens with `with_test_db_transaction` or a documented `skip_if_no_test_db()` exemption.
+  - New bash unit-test harness `scripts/tests/test-verify-test-gate.sh` — 7 cases (new-spec-allowed, pre-existing-spec-rejected, phase-b skip exemption allowed, phase-b wait_for exemption allowed, phase-b exemption does NOT leak into phase-d, extended-mode rejects integration test missing rollback, extended-mode accepts well-formed repo). All 7 cases pass.
+  - New `make verify-gate` target wires the harness into CI without an R dependency.
+- **B5 — Sys.sleep eviction.** Evicted every real `Sys.sleep(N)` from the R test suite (4 call sites in `test-e2e-user-lifecycle.R` at lines 181/215/323/539, 1 in `helper-mailpit.R` at line 116 — the other `Sys.sleep` occurrences in `test-unit-*.R` are `mockery::stub` bindings or `test-publication-refresh.R` comments and were correctly left untouched).
+  - New helper `api/tests/testthat/helper-wait.R` (297 lines) — defines `wait_for(condition, timeout, label)` (event-based polling, fails loudly on timeout with a diagnostic including last observed state) and a sibling `wait_stable(probe, duration, label)` for the negative-assertion case ("no change should occur for N seconds"; fails immediately on any change, strictly faster than a fixed sleep + single check on failure).
+  - `helper-mailpit.R::mailpit_wait_for_message` refactored to delegate to `wait_for()` — no more internal `Sys.sleep` polling.
+  - The 4 e2e call sites were all "no email should arrive" negative assertions, now using `wait_stable(mailpit_message_count, N)` with a baseline captured just before the action. The `wait_stable` approach fails immediately on any unexpected email rather than waiting the full sleep window.
+  - 10-iteration flake check passed 10/10 in the prod sysndd-api Docker container (helper-wait self-tests: 10/10, 190/190 assertions; test-e2e-user-lifecycle.R load + dispatch: 10/10, all 11 `test_that` blocks reach `skip_if_no_mailpit()`/`skip_if_no_api()` cleanly).
+
+### Changed
+
+- `app/vitest.setup.ts` — MSW `onUnhandledRequest` flipped from `'warn'` to `'error'`. Every unmocked request now hard-fails the test, making any handler gap impossible to miss. Acceptance criterion: no pre-existing vitest was left failing because of this switch (full suite of 321 tests still green on the combined branch).
+- `app/vitest.config.ts` — coverage thresholds bumped 40 → 45 for `lines` / `functions` / `branches` / `statements`, matching the broader MSW coverage enabled by B1.
+
+### Internal / dev tooling
+
+- Bumped `app/package.json` and `api/version_spec.json` to `0.11.5`.
+- Phase B work was developed across 5 parallel git worktrees (`v11.0/phase-b/*`) off Phase-A-merged master (`db18cb51`) and combined into a single PR for review, following the Phase A pattern. B5 merged first on the test-file conflicts (per the tiebreaker rule); B3 and B4's disjoint `ci.yml` job blocks merged cleanly with both banners intact; `ci-success.needs` correctly unions to include `smoke-test` (PR-gating) but not `slow-tests-nightly` (schedule-only).
+- End-to-end verification on the combined branch was done via a Playwright monkey-walk against the full dev stack (traefik + api + app + mysql + mailpit) bound to the combined worktree. Walked 13 routes including unauth public views (Genes, Entities, Phenotypes, Panels, PublicationsNDD, Gene detail, About), the post-A1 `POST /api/auth/authenticate` login flow end-to-end against the live API (not a mock), and 4 authed views covering B1's mocked handler families (`/`, `/ManageUser`, `/ManageAnnotations`, `/ApproveReview`, `/ApproveStatus`). Zero Phase-B-introduced regressions; the only console errors encountered were (a) the expected 401 on `/api/auth/signin` for unauthenticated visitors and (b) two pre-existing 404s on `/api/external/{mgi,rgd}/phenotypes/A2ML1` that reflect a data gap in the upstream MGI/RGD records, unrelated to Phase B.
+- Per-endpoint sanity-check (§7 of `.plans/v11.0/phase-b.md`): curled 4 handler-table endpoints against the live API on the combined worktree and confirmed B1's mock shapes are faithful — `GET /api/status/1` returns a full status record matching the mock shape; `POST /api/auth/authenticate` with bad creds returns HTTP 400 with the documented "Please provide valid username and password." body (matches B1's 4xx branch); `GET /api/user/role_list` and `GET /api/jobs/history` return 403 without a JWT (consistent with the `require_auth` middleware behaviour B1 assumes).
+
+### Known limitations
+
+- Same host-env constraint as 0.11.4: `make ci-local` still fails at the R lint/test steps on Ubuntu 25.10 "questing" hosts running Conda/miniforge R. Phase B's entire R test verification was done via the `sysndd-api` Docker container or deferred to CI on `ubuntu-latest`, which is the authoritative baseline. See the "Host-Env Workaround" section of `CLAUDE.md` for the details.
+- `B1` flagged 4 drifts where the locked handler table points at endpoints that do not exist on master (whitelisted in `scripts/msw-openapi-exceptions.txt`). These are spec bugs for Phase C to resolve, not handler bugs — either the handler table needs updating or the missing endpoints need to be added in Phase C / D when the views actually consume them. See `scripts/msw-openapi-exceptions.txt` for the full list with rationale.
+
+### References
+
+- PR: [#230](https://github.com/berntpopp/sysndd/pull/230) — B3 skip-slow-wiring (individual, superseded by combined)
+- PR: [#231](https://github.com/berntpopp/sysndd/pull/231) — B4 ci-smoke-test (individual, superseded by combined)
+- PR: [#232](https://github.com/berntpopp/sysndd/pull/232) — B2 pubmed-pubtator-fixtures (individual, superseded by combined)
+- PR: [#233](https://github.com/berntpopp/sysndd/pull/233) — B5 sys-sleep-eviction (individual, superseded by combined)
+- PR: [#234](https://github.com/berntpopp/sysndd/pull/234) — B1 msw-handler-expansion (individual, superseded by combined)
+- Plan: `.plans/v11.0/phase-b.md`
+- Spec: `docs/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase B
+
 ## [0.11.4] — 2026-04-11
 
 Phase A of the v11.0 test foundation initiative. A1–A7 plus a focused follow-up, landed as one release.
@@ -98,6 +154,7 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.4...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.5...HEAD
+[0.11.5]: https://github.com/berntpopp/sysndd/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/berntpopp/sysndd/compare/v0.11.3...v0.11.4
 [0.11.3]: https://github.com/berntpopp/sysndd/releases/tag/v0.11.3
