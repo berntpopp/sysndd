@@ -20,7 +20,7 @@ Optional but recommended:
 - `gh` — the GitHub CLI, required if you want to open PRs from the command line or poll CI with `gh pr checks`.
 - A MySQL client (`mysql` or `mycli`) — useful for inspecting the dev/test databases on ports 7654/7655.
 
-If you are on Ubuntu 25.10 "questing" with a Conda/miniforge R, read the **"Host-Env Workaround"** section at the bottom of `CLAUDE.md` before trying to run R tests on the host. The CI matrix (`ubuntu-latest` + `macos-latest`) is the authoritative baseline for anything R-related until Ubuntu 25.10 receives official Posit Package Manager binaries.
+If you are on Ubuntu 25.10 "questing" with a Conda/miniforge R, read the **"Host-Env Workaround"** section at the bottom of `CLAUDE.md` before trying to run R tests on the host. The gating CI job for dev-env health is `make doctor` on `ubuntu-latest`. macOS is supported for development but is currently **not** gated in CI — see the comment header on the `make-doctor` job in `.github/workflows/ci.yml` for the reasoning and the linked lockfile-refresh follow-up.
 
 ## 2. Quickstart
 
