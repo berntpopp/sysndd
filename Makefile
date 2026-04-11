@@ -229,8 +229,16 @@ verify-gate: ## [quality] Run verify-test-gate.sh + its bash harness (Phase B B4
 		(printf "$(RED)✗ verify-test-gate rejected current branch$(RESET)\n" && exit 1)
 
 # Configuration for preflight validation
+#
+# The prod docker-compose.yml routes traefik by `Host(`sysndd.dbmr.unibe.ch`)`
+# ONLY — the dev override file relaxes it to also accept `localhost` /
+# `127.0.0.1`, but preflight uses the prod compose file without the override,
+# so we MUST curl with the real prod Host header (via -H) or traefik returns
+# 404. PREFLIGHT_HOST_HEADER is the Host header curl will send; override it
+# with `make preflight PREFLIGHT_HOST_HEADER=example.com` if needed.
 PREFLIGHT_TIMEOUT := 120
 PREFLIGHT_HEALTH_ENDPOINT := http://localhost/api/health/ready
+PREFLIGHT_HOST_HEADER := sysndd.dbmr.unibe.ch
 
 preflight: check-docker ## [quality] Run production preflight validation
 	@printf "$(CYAN)==> Running production preflight validation...$(RESET)\n"
@@ -243,10 +251,9 @@ preflight: check-docker ## [quality] Run production preflight validation
 		(printf "$(RED)Container startup failed$(RESET)\n" && exit 1)
 	@printf "$(GREEN)Containers started$(RESET)\n"
 	@printf "\n$(CYAN)[3/4] Waiting for health check (timeout: $(PREFLIGHT_TIMEOUT)s)...$(RESET)\n"
-	@SECONDS=0; \
-	while [ $$SECONDS -lt $(PREFLIGHT_TIMEOUT) ]; do \
-		RESPONSE=$$(curl -sf $(PREFLIGHT_HEALTH_ENDPOINT) 2>/dev/null); \
-		if [ $$? -eq 0 ]; then \
+	@SECONDS_ELAPSED=0; HEALTH_OK=0; \
+	while [ $$SECONDS_ELAPSED -lt $(PREFLIGHT_TIMEOUT) ]; do \
+		if RESPONSE=$$(curl -sf -H "Host: $(PREFLIGHT_HOST_HEADER)" $(PREFLIGHT_HEALTH_ENDPOINT) 2>/dev/null); then \
 			printf "$(GREEN)Health check passed!$(RESET)\n"; \
 			printf "Response: $$RESPONSE\n"; \
 			HEALTH_OK=1; \
@@ -254,9 +261,9 @@ preflight: check-docker ## [quality] Run production preflight validation
 		fi; \
 		printf "."; \
 		sleep 2; \
-		SECONDS=$$((SECONDS+2)); \
+		SECONDS_ELAPSED=$$((SECONDS_ELAPSED+2)); \
 	done; \
-	if [ -z "$$HEALTH_OK" ]; then \
+	if [ "$$HEALTH_OK" -eq 0 ]; then \
 		printf "\n$(RED)Health check timed out after $(PREFLIGHT_TIMEOUT)s$(RESET)\n"; \
 		printf "\n$(YELLOW)Last 50 lines of API logs:$(RESET)\n"; \
 		docker compose -f docker-compose.yml logs api --tail=50; \

@@ -54,6 +54,12 @@ seed_from_template "$REPO_ROOT/api/config.yml" "$REPO_ROOT/api/config.yml.exampl
 seed_from_template "$REPO_ROOT/.env"           "$REPO_ROOT/.env.example"
 
 HEALTH_URL="${SMOKE_HEALTH_URL:-http://localhost/api/health/ready}"
+# Traefik Host header. The prod docker-compose.yml routes by Host(...) ONLY
+# on the real hostname — without this header curl hits traefik but gets a
+# 404 because no router matches. See the preflight block in the Makefile
+# for the matching config. Override with SMOKE_HOST_HEADER=... if you
+# re-point HEALTH_URL at a different stack.
+HEALTH_HOST_HEADER="${SMOKE_HOST_HEADER:-sysndd.dbmr.unibe.ch}"
 # Total retries = RETRIES, sleep = RETRY_SLEEP_SECONDS.
 RETRIES="${SMOKE_RETRIES:-30}"
 RETRY_SLEEP_SECONDS="${SMOKE_RETRY_SLEEP_SECONDS:-2}"
@@ -80,10 +86,10 @@ if ! (cd "$REPO_ROOT" && docker compose -f docker-compose.yml up -d); then
 fi
 trap '(cd "$REPO_ROOT" && docker compose -f docker-compose.yml down) || true' EXIT
 
-log "step 3/3: curl -f $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
+log "step 3/3: curl -f -H 'Host: $HEALTH_HOST_HEADER' $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
 i=0
 while [ "$i" -lt "$RETRIES" ]; do
-  if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
+  if curl -fsS -H "Host: $HEALTH_HOST_HEADER" "$HEALTH_URL" >/dev/null 2>&1; then
     log "health endpoint OK on attempt $((i + 1))"
     exit 0
   fi
