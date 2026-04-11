@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -131,9 +131,13 @@ coverage: check-r ## [test] Generate test coverage report with covr
 # =============================================================================
 # Linting Targets
 # =============================================================================
-lint-api: check-r ## [lint] Check R code with lintr
+lint-api: check-r ## [lint] Check R code with lintr + migration prefix check
 	@printf "$(CYAN)==> Checking R code with lintr...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && Rscript scripts/lint-check.R && \
+		printf "$(GREEN)✓ lintr complete$(RESET)\n" || \
+		(printf "$(RED)✗ lintr failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Checking migration prefixes...$(RESET)\n"
+	@cd $(ROOT_DIR) && ./scripts/check-migration-prefixes.sh && \
 		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
 
@@ -452,3 +456,19 @@ worktree-setup: ## [env] Create a parallel worktree. Usage: make worktree-setup 
 	printf "  cd %s\n" "$$WORKTREE_PATH"; \
 	printf "  make install-dev\n"; \
 	printf "  make doctor\n"
+
+# =============================================================================
+# Worktree Cleanup (Phase A6)
+# =============================================================================
+# Canonical git cleanup for parallel worktrees. Idempotent — safe to run on a
+# clean tree. Removes references to worktrees whose directories have been
+# deleted (e.g. after `rm -rf worktrees/phase-a/foo` without `git worktree
+# remove`), then prints the remaining list so you can see what's left.
+
+worktree-prune: ## [env] Prune stale worktree references and list remaining worktrees
+	@printf "$(CYAN)==> Pruning stale worktree references...$(RESET)\n"
+	@git -C $(ROOT_DIR) worktree prune -v && \
+		printf "$(GREEN)✓ worktree prune complete$(RESET)\n" || \
+		(printf "$(RED)✗ worktree prune failed$(RESET)\n" && exit 1)
+	@printf "\n$(CYAN)Remaining worktrees:$(RESET)\n"
+	@git -C $(ROOT_DIR) worktree list

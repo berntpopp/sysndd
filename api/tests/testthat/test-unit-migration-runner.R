@@ -298,3 +298,219 @@ describe("edge cases", {
     expect_true(length(non_empty) >= 1)
   })
 })
+
+# ============================================================================
+# reconcile_schema_version_renames() Tests
+# ============================================================================
+# Phase A.A4 rename of 008_hgnc_symbol_lookup.sql -> 018_hgnc_symbol_lookup.sql
+# introduced a hazard: on long-lived deployments, schema_version still records
+# the file under its old name, so the runner would re-execute the renamed file
+# and duplicate rows. `reconcile_schema_version_renames` handles that before
+# the pending-migration diff runs. These tests mock DBI to verify behavior in
+# each of the four possible states without needing a live database.
+
+describe("MIGRATION_RENAMES", {
+  it("is a named list mapping old -> new filenames", {
+    expect_true(is.list(MIGRATION_RENAMES))
+    expect_true(!is.null(names(MIGRATION_RENAMES)))
+    expect_true(all(nzchar(names(MIGRATION_RENAMES))))
+    for (nm in names(MIGRATION_RENAMES)) {
+      expect_true(is.character(MIGRATION_RENAMES[[nm]]))
+      expect_true(nzchar(MIGRATION_RENAMES[[nm]]))
+      expect_match(nm, "\\.sql$")
+      expect_match(MIGRATION_RENAMES[[nm]], "\\.sql$")
+    }
+  })
+
+  it("records the A4 rename: 008_hgnc_symbol_lookup -> 018_hgnc_symbol_lookup", {
+    expect_equal(
+      MIGRATION_RENAMES[["008_hgnc_symbol_lookup.sql"]],
+      "018_hgnc_symbol_lookup.sql"
+    )
+  })
+})
+
+describe("reconcile_schema_version_renames", {
+  # Helper: build a fake connection that records SELECTs and UPDATEs against
+  # a stub schema_version "table" represented as a character vector.
+  make_fake_conn <- function(initial_rows) {
+    rows_env <- new.env(parent = emptyenv())
+    rows_env$rows <- initial_rows
+    rows_env$executes <- list()
+    structure(
+      list(rows_env = rows_env),
+      class = c("FakeConn", "DBIConnection")
+    )
+  }
+
+  fake_dbGetQuery <- function(conn, sql, params = list()) {
+    filename <- params[[1]]
+    if (filename %in% conn$rows_env$rows) {
+      data.frame(filename = filename, stringsAsFactors = FALSE)
+    } else {
+      data.frame(filename = character(0), stringsAsFactors = FALSE)
+    }
+  }
+
+  fake_dbExecute <- function(conn, sql, params = list()) {
+    conn$rows_env$executes <- c(
+      conn$rows_env$executes,
+      list(list(sql = sql, params = params))
+    )
+    if (grepl("UPDATE schema_version SET filename", sql)) {
+      new_name <- params[[1]]
+      old_name <- params[[2]]
+      conn$rows_env$rows <- c(
+        setdiff(conn$rows_env$rows, old_name),
+        new_name
+      )
+    } else if (grepl("DELETE FROM schema_version", sql)) {
+      old_name <- params[[1]]
+      conn$rows_env$rows <- setdiff(conn$rows_env$rows, old_name)
+    }
+    1L
+  }
+
+  fake_list_migration_files <- function(migrations_dir) {
+    c(
+      "001_initial.sql",
+      "002_seed.sql",
+      "018_hgnc_symbol_lookup.sql"
+    )
+  }
+
+  it("rewrites schema_version when old name is present and new name is not", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("001_initial.sql", "002_seed.sql", "008_hgnc_symbol_lookup.sql"))
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    result <- reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations")
+
+    expect_length(result, 1)
+    expect_match(result[1], "008_hgnc_symbol_lookup.sql -> 018_hgnc_symbol_lookup.sql")
+    expect_true("018_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_false("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_length(conn$rows_env$executes, 1)
+    expect_match(conn$rows_env$executes[[1]]$sql, "UPDATE schema_version")
+  })
+
+  it("is a no-op when the new name is already recorded (idempotent)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("001_initial.sql", "018_hgnc_symbol_lookup.sql"))
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    result <- reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations")
+
+    expect_length(result, 0)
+    expect_length(conn$rows_env$executes, 0)
+    expect_true("018_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+  })
+
+  it("drops stale old row when both old and new are recorded (dedup)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c(
+      "001_initial.sql",
+      "008_hgnc_symbol_lookup.sql",
+      "018_hgnc_symbol_lookup.sql"
+    ))
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    result <- reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations")
+
+    expect_length(result, 1)
+    expect_match(result[1], "dedup")
+    expect_false("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_true("018_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_length(conn$rows_env$executes, 1)
+    expect_match(conn$rows_env$executes[[1]]$sql, "DELETE FROM schema_version")
+  })
+
+  it("is a no-op when neither name is recorded (fresh DB)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("001_initial.sql"))
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    result <- reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations")
+
+    expect_length(result, 0)
+    expect_length(conn$rows_env$executes, 0)
+  })
+
+  it("skips the rename when the new file is not yet on disk", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("008_hgnc_symbol_lookup.sql"))
+
+    fake_files_without_new <- function(migrations_dir) {
+      c("001_initial.sql", "008_hgnc_symbol_lookup.sql")
+    }
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_files_without_new)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    result <- reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations")
+
+    expect_length(result, 0)
+    expect_length(conn$rows_env$executes, 0)
+    expect_true("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+  })
+
+  # Fail-fast tests — Risk 5 mitigation. The reconciliation must crash
+  # startup on DB errors rather than silently skipping, otherwise the
+  # renamed migration would re-run in run_migrations()' main loop and
+  # duplicate non-idempotent rows. Copilot flagged the original swallowing
+  # tryCatch wrappers on PR #228; these tests lock in the corrected behavior.
+
+  it("fail-fast: propagates dbGetQuery errors (does not silently skip)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("008_hgnc_symbol_lookup.sql"))
+
+    raising_dbGetQuery <- function(conn, sql, params = list()) {
+      stop("simulated: connection broken during schema_version SELECT")
+    }
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", raising_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    expect_error(
+      reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations"),
+      "simulated: connection broken during schema_version SELECT"
+    )
+    # No UPDATE/DELETE should have been attempted before the SELECT crash.
+    expect_length(conn$rows_env$executes, 0)
+  })
+
+  it("fail-fast: propagates dbExecute errors from UPDATE (does not silently skip)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("001_initial.sql", "008_hgnc_symbol_lookup.sql"))
+
+    raising_dbExecute <- function(conn, sql, params = list()) {
+      stop("simulated: UPDATE rejected by constraint")
+    }
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", raising_dbExecute)
+
+    expect_error(
+      reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations"),
+      "simulated: UPDATE rejected by constraint"
+    )
+    # The fake row was not rewritten (the raising stub doesn't mutate rows).
+    expect_true("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_false("018_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+  })
+})

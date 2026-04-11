@@ -24,6 +24,8 @@ AUTH_ALLOWLIST <- c(
   "/api/jobs/phenotype_clustering/submit",
   "/api/jobs/phenotype_clustering/submit/",
   "/api/user/password/reset/request",
+  "/api/auth/authenticate",
+  "/api/auth/authenticate/",
   "/api/auth/signin",
   "/api/auth/signup",
   "/api/auth/verify",
