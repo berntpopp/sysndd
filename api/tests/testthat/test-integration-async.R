@@ -7,12 +7,12 @@
 # - Non-existent jobs return 404
 #
 # Phase C / C8 rollback audit (plan §3 Phase C.4 / §4.5): exempt — http-only.
-# Every test_that block hits a running API via httr2 (localhost:8000) and
-# skips when the server is unreachable. No direct DBI / pool / SQL writes
-# are issued from the test process, so there is no local transaction to
-# roll back. The server under test manages its own persistence and is
-# expected to be pointed at a disposable test DB when this suite runs.
-# The audit catalogs this file as non-transactional / http-only.
+# Every test_that block in this audit-exempt file hits a running API via
+# httr2 (localhost:8000) and skips when the HTTP endpoint is unreachable
+# via skip_if. No direct DBI / pool / SQL writes are issued from the test
+# process, so there is no local transaction to rollback from the client
+# side. The HTTP server under test owns its own persistence; the audit
+# catalogs this file as non-transactional / http-only / read-only.
 
 library(testthat)
 library(httr2)

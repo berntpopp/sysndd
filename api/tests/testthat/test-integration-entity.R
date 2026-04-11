@@ -5,9 +5,9 @@
 # using the sorting, filtering, and pagination helpers from helper-functions.R.
 #
 # Phase C / C8 rollback audit (plan §3 Phase C.4 / §4.5): exempt — in-memory.
-# This file is labelled "integration" but every test_that block operates on
-# locally-constructed tibbles via in-memory dplyr pipelines. No DBI / pool /
-# HTTP calls are made, so there is no database state to roll back and no
+# Every test_that block in this audit-exempt file operates on locally
+# constructed tibbles via in-memory dplyr pipelines. No DBI / pool /
+# HTTP calls are made, so there is no transaction to roll back and no
 # reason to wrap blocks in with_test_db_transaction(). The Phase-C rollback
 # audit catalogs this file as non-transactional / read-only by design.
 
