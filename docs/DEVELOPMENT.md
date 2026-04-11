@@ -99,7 +99,7 @@ Rules of the road:
 
 1. **Pick a unique ownership set.** Each worktree in a phase owns an explicit, disjoint list of files. See the phase plans under `.plans/v11.0/` for the table. Two worktrees never write the same file in the same phase.
 2. **Branch off `master`, not each other.** `make worktree-setup` branches from `master` for this reason.
-3. **Prune as you go.** Use `make worktree-prune` (added by Phase A6) or `git worktree remove` after a branch merges. The `/worktrees/` directory is gitignored at repo root.
+3. **Prune as you go.** After a branch merges, use `git worktree remove`. Once Phase A6 lands in your branch, the `make worktree-prune` convenience target is available as well. The `/worktrees/` directory is gitignored at repo root.
 4. **Sticky Makefile.** When three sibling worktrees all touch `Makefile`, each owner adds a new, non-overlapping section — never edits another unit's block.
 
 See `.plans/v11.0/phase-a.md` for a concrete example of the parallel dispatch and ownership table.

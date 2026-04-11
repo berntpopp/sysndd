@@ -7,7 +7,7 @@ Thanks for your interest in contributing. The full developer guide lives in **[d
 1. Clone the repo and run `make install-dev` followed by `make doctor`.
 2. Create a branch off `master` (or a new worktree via `make worktree-setup NAME=<scope>/<unit>`).
 3. Make your change, keeping commits atomic and using conventional-commit style (`feat(...)`, `fix(...)`, `chore(...)`, `docs(...)`).
-4. Run `make ci-local` before pushing. CI path filters may skip jobs locally that are triggered in GitHub Actions, so `make ci-local` is the authoritative pre-push check.
+4. Run `make ci-local` before pushing. GitHub Actions CI may skip some jobs based on path filters, so `make ci-local` is the authoritative pre-push check.
 5. Open a pull request. Describe the **why**, not just the **what**. Reference the relevant issue, plan file, or review when applicable.
 
 ## Ground rules

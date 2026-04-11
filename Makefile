@@ -401,18 +401,18 @@ doctor: ## [env] Verify local environment is healthy (docker, git, node, R, renv
 		printf "$(RED)✗ R / Rscript is not installed$(RESET)\n"; \
 		FAIL=1; \
 	fi; \
-	printf "\n$(CYAN)[5/5] renv library is restorable and dev packages importable...$(RESET)\n"; \
+	printf "\n$(CYAN)[5/5] Dev packages importable...$(RESET)\n"; \
 	if ! command -v Rscript > /dev/null 2>&1; then \
-		printf "$(RED)✗ Cannot check renv — Rscript not available$(RESET)\n"; \
+		printf "$(RED)✗ Cannot check dev packages — Rscript not available$(RESET)\n"; \
 		FAIL=1; \
 	else \
-		RENV_OUTPUT=$$(cd $(ROOT_DIR)/api && Rscript -e 'tryCatch({ renv::restore(prompt = FALSE); suppressPackageStartupMessages({ library(lintr); library(styler); library(testthat); library(covr); library(httptest2); library(callr); library(mockery) }); cat("dev-packages-ok") }, error = function(e) cat("ERROR: ", conditionMessage(e), sep = ""))' 2>&1 | tail -n 1); \
+		RENV_OUTPUT=$$(cd $(ROOT_DIR)/api && Rscript -e 'tryCatch({ suppressPackageStartupMessages({ library(lintr); library(styler); library(testthat); library(covr); library(httptest2); library(callr); library(mockery) }); cat("dev-packages-ok") }, error = function(e) cat("ERROR: ", conditionMessage(e), sep = ""))' 2>&1 | tail -n 1); \
 		if printf '%s' "$$RENV_OUTPUT" | grep -q "dev-packages-ok"; then \
-			printf "$(GREEN)✓ renv library restorable; dev packages (lintr, styler, testthat, covr, httptest2, callr, mockery) importable$(RESET)\n"; \
+			printf "$(GREEN)✓ dev packages (lintr, styler, testthat, covr, httptest2, callr, mockery) importable$(RESET)\n"; \
 		else \
-			printf "$(RED)✗ renv library not restorable or dev packages missing$(RESET)\n"; \
+			printf "$(RED)✗ dev packages not importable$(RESET)\n"; \
 			printf "$(YELLOW)  Details: %s$(RESET)\n" "$$RENV_OUTPUT"; \
-			printf "$(YELLOW)  Run: cd api && Rscript -e 'renv::restore()' and ensure lintr + styler are in the lockfile$(RESET)\n"; \
+			printf "$(YELLOW)  Run 'make install-dev' to restore the library and retry$(RESET)\n"; \
 			FAIL=1; \
 		fi; \
 	fi; \
@@ -436,13 +436,14 @@ worktree-setup: ## [env] Create a parallel worktree. Usage: make worktree-setup 
 	BRANCH="v11.0/$(NAME)"; \
 	if [ -e "$$WORKTREE_PATH" ]; then \
 		printf "$(RED)ERROR: worktree path already exists: %s$(RESET)\n" "$$WORKTREE_PATH"; \
-		printf "Remove it first (make worktree-prune or git worktree remove) before recreating.\n"; \
+		printf "Remove it first (git worktree remove) before recreating.\n"; \
 		exit 1; \
 	fi; \
 	if git -C $(ROOT_DIR) show-ref --verify --quiet "refs/heads/$$BRANCH"; then \
 		printf "$(RED)ERROR: branch already exists: %s$(RESET)\n" "$$BRANCH"; \
 		exit 1; \
 	fi; \
+	mkdir -p "$$(dirname "$$WORKTREE_PATH")"; \
 	printf "$(CYAN)==> Creating worktree at %s on branch %s...$(RESET)\n" "$$WORKTREE_PATH" "$$BRANCH"; \
 	git -C $(ROOT_DIR) worktree add "$$WORKTREE_PATH" -b "$$BRANCH" master && \
 		printf "$(GREEN)✓ worktree-setup complete$(RESET)\n" || \
