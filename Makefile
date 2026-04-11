@@ -34,14 +34,16 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup
 
 # =============================================================================
 # Help Target (Self-documenting)
 # =============================================================================
 help: ## Show this help message
 	@printf "SysNDD Development Commands\n\n"
-	@printf "$(CYAN)Development:$(RESET)\n"
+	@printf "$(CYAN)Environment:$(RESET)\n"
+	@grep -E '^[a-zA-Z_-]+:.*?## \[env\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[env\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
+	@printf "\n$(CYAN)Development:$(RESET)\n"
 	@grep -E '^[a-zA-Z_-]+:.*?## \[dev\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[dev\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
 	@printf "\n$(CYAN)Testing:$(RESET)\n"
 	@grep -E '^[a-zA-Z_-]+:.*?## \[test\]' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## \\[test\\] "}; {printf "  \033[0;36m%-20s\033[0m %s\n", $$1, $$2}' || true
@@ -321,3 +323,132 @@ docker-logs: check-docker ## [docker] View container logs (follow mode)
 docker-status: check-docker ## [docker] Show container status and ports
 	@cd $(ROOT_DIR) && $(COMPOSE_DEV) ps 2>/dev/null || \
 		docker compose ps
+
+# =============================================================================
+# Developer Environment (Phase A7)
+# =============================================================================
+# One-command bootstrap, environment verification, and worktree scaffolding.
+# See docs/DEVELOPMENT.md for the human-facing guide.
+
+install-dev: check-r check-npm ## [env] Idempotent bootstrap: install API + frontend dependencies
+	@printf "$(CYAN)==> Bootstrapping developer environment...$(RESET)\n"
+	@printf "\n$(CYAN)[1/2] Installing R API dependencies...$(RESET)\n"
+	@$(MAKE) install-api
+	@printf "\n$(CYAN)[2/2] Installing frontend dependencies...$(RESET)\n"
+	@$(MAKE) install-app
+	@printf "\n$(GREEN)✓ install-dev complete$(RESET)\n"
+	@printf "\n$(CYAN)Next steps:$(RESET)\n"
+	@printf "  make doctor   Verify the environment is healthy\n"
+	@printf "  make dev      Start the full Docker dev stack\n"
+
+doctor: ## [env] Verify local environment is healthy (docker, git, node, R, renv)
+	@printf "$(CYAN)==> Running environment checks...$(RESET)\n"
+	@set +e; \
+	FAIL=0; \
+	printf "\n$(CYAN)[1/5] Docker reachable (soft check)...$(RESET)\n"; \
+	if docker info > /dev/null 2>&1; then \
+		printf "$(GREEN)✓ Docker is reachable$(RESET)\n"; \
+	elif command -v docker > /dev/null 2>&1; then \
+		printf "$(YELLOW)⚠ docker CLI installed but daemon not reachable$(RESET)\n"; \
+		printf "$(YELLOW)  (non-fatal: docker is only needed for 'make dev' and 'make ci-local'.$(RESET)\n"; \
+		printf "$(YELLOW)   Start Docker Desktop / colima to use those targets.)$(RESET)\n"; \
+	else \
+		printf "$(YELLOW)⚠ docker CLI not installed$(RESET)\n"; \
+		printf "$(YELLOW)  (non-fatal: needed for 'make dev' and 'make ci-local'.)$(RESET)\n"; \
+	fi; \
+	printf "\n$(CYAN)[2/5] Git version >= 2.5 (worktree support)...$(RESET)\n"; \
+	if command -v git > /dev/null 2>&1; then \
+		GIT_VERSION=$$(git --version | awk '{print $$3}'); \
+		GIT_MAJOR=$$(printf '%s' "$$GIT_VERSION" | awk -F. '{print $$1}'); \
+		GIT_MINOR=$$(printf '%s' "$$GIT_VERSION" | awk -F. '{print $$2}'); \
+		if [ "$$GIT_MAJOR" -gt 2 ] || { [ "$$GIT_MAJOR" -eq 2 ] && [ "$$GIT_MINOR" -ge 5 ]; }; then \
+			printf "$(GREEN)✓ git %s$(RESET)\n" "$$GIT_VERSION"; \
+		else \
+			printf "$(RED)✗ git %s is too old (need >= 2.5 for worktrees)$(RESET)\n" "$$GIT_VERSION"; \
+			FAIL=1; \
+		fi; \
+	else \
+		printf "$(RED)✗ git is not installed$(RESET)\n"; \
+		FAIL=1; \
+	fi; \
+	printf "\n$(CYAN)[3/5] Node major matches app/.nvmrc...$(RESET)\n"; \
+	if [ ! -f $(ROOT_DIR)/app/.nvmrc ]; then \
+		printf "$(RED)✗ app/.nvmrc is missing$(RESET)\n"; \
+		FAIL=1; \
+	elif ! command -v node > /dev/null 2>&1; then \
+		printf "$(RED)✗ node is not installed$(RESET)\n"; \
+		FAIL=1; \
+	else \
+		EXPECTED_NODE=$$(tr -d ' \t\r\n' < $(ROOT_DIR)/app/.nvmrc); \
+		ACTUAL_NODE=$$(node --version | sed 's/^v//' | awk -F. '{print $$1}'); \
+		if [ "$$ACTUAL_NODE" = "$$EXPECTED_NODE" ]; then \
+			printf "$(GREEN)✓ node v%s matches .nvmrc ($$EXPECTED_NODE)$(RESET)\n" "$$ACTUAL_NODE"; \
+		else \
+			printf "$(RED)✗ node major v%s does not match app/.nvmrc (%s)$(RESET)\n" "$$ACTUAL_NODE" "$$EXPECTED_NODE"; \
+			FAIL=1; \
+		fi; \
+	fi; \
+	printf "\n$(CYAN)[4/5] R is callable...$(RESET)\n"; \
+	if command -v Rscript > /dev/null 2>&1; then \
+		R_VERSION=$$(Rscript -e 'cat(as.character(getRversion()))' 2>/dev/null); \
+		if [ -n "$$R_VERSION" ]; then \
+			printf "$(GREEN)✓ R %s$(RESET)\n" "$$R_VERSION"; \
+		else \
+			printf "$(RED)✗ Rscript is installed but failed to report a version$(RESET)\n"; \
+			FAIL=1; \
+		fi; \
+	else \
+		printf "$(RED)✗ R / Rscript is not installed$(RESET)\n"; \
+		FAIL=1; \
+	fi; \
+	printf "\n$(CYAN)[5/5] Dev packages importable...$(RESET)\n"; \
+	if ! command -v Rscript > /dev/null 2>&1; then \
+		printf "$(RED)✗ Cannot check dev packages — Rscript not available$(RESET)\n"; \
+		FAIL=1; \
+	else \
+		RENV_OUTPUT=$$(cd $(ROOT_DIR)/api && Rscript -e 'tryCatch({ suppressPackageStartupMessages({ library(lintr); library(styler); library(testthat); library(covr); library(httptest2); library(callr); library(mockery) }); cat("dev-packages-ok") }, error = function(e) cat("ERROR: ", conditionMessage(e), sep = ""))' 2>&1 | tail -n 1); \
+		if printf '%s' "$$RENV_OUTPUT" | grep -q "dev-packages-ok"; then \
+			printf "$(GREEN)✓ dev packages (lintr, styler, testthat, covr, httptest2, callr, mockery) importable$(RESET)\n"; \
+		else \
+			printf "$(RED)✗ dev packages not importable$(RESET)\n"; \
+			printf "$(YELLOW)  Details: %s$(RESET)\n" "$$RENV_OUTPUT"; \
+			printf "$(YELLOW)  Run 'make install-dev' to restore the library and retry$(RESET)\n"; \
+			FAIL=1; \
+		fi; \
+	fi; \
+	printf "\n"; \
+	if [ "$$FAIL" -ne 0 ]; then \
+		printf "$(RED)✗ doctor found problems — fix the items above and re-run$(RESET)\n"; \
+		exit 1; \
+	fi; \
+	printf "Environment healthy\n"
+
+# NAME variable used by worktree-setup; default empty so --warn-undefined-variables stays quiet
+NAME ?=
+
+worktree-setup: ## [env] Create a parallel worktree. Usage: make worktree-setup NAME=phase-a/my-unit
+	@if [ -z "$(NAME)" ]; then \
+		printf "$(RED)ERROR: NAME is required$(RESET)\n"; \
+		printf "Usage: make worktree-setup NAME=phase-a/my-unit\n"; \
+		exit 1; \
+	fi
+	@WORKTREE_PATH="$(ROOT_DIR)/worktrees/$(NAME)"; \
+	BRANCH="v11.0/$(NAME)"; \
+	if [ -e "$$WORKTREE_PATH" ]; then \
+		printf "$(RED)ERROR: worktree path already exists: %s$(RESET)\n" "$$WORKTREE_PATH"; \
+		printf "Remove it first (git worktree remove) before recreating.\n"; \
+		exit 1; \
+	fi; \
+	if git -C $(ROOT_DIR) show-ref --verify --quiet "refs/heads/$$BRANCH"; then \
+		printf "$(RED)ERROR: branch already exists: %s$(RESET)\n" "$$BRANCH"; \
+		exit 1; \
+	fi; \
+	mkdir -p "$$(dirname "$$WORKTREE_PATH")"; \
+	printf "$(CYAN)==> Creating worktree at %s on branch %s...$(RESET)\n" "$$WORKTREE_PATH" "$$BRANCH"; \
+	git -C $(ROOT_DIR) worktree add "$$WORKTREE_PATH" -b "$$BRANCH" master && \
+		printf "$(GREEN)✓ worktree-setup complete$(RESET)\n" || \
+		(printf "$(RED)✗ worktree-setup failed$(RESET)\n" && exit 1); \
+	printf "\n$(CYAN)Next steps:$(RESET)\n"; \
+	printf "  cd %s\n" "$$WORKTREE_PATH"; \
+	printf "  make install-dev\n"; \
+	printf "  make doctor\n"
