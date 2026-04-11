@@ -389,6 +389,11 @@ function(req, res, roles = "Viewer") {
 #* # `Details`
 #* Validates old password, checks new password complexity, updates DB.
 #*
+#* Accepts password fields either as a JSON request body (preferred — OWASP:
+#* secrets MUST NOT appear in URLs) or as URL query parameters (legacy path,
+#* preserved during the Phase A hotfix rollout and slated for removal in
+#* Phase E auth consolidation). When both are present, JSON body values win.
+#*
 #* @tag user
 #* @put password/update
 function(
@@ -399,6 +404,24 @@ function(
   new_pass_1 = "",
   new_pass_2 = ""
 ) {
+  # Parse credentials from JSON body if present (OWASP: prefer body over URL)
+  body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) list()
+  )
+  if (!is.null(body$user_id_pass_change)) {
+    user_id_pass_change <- body$user_id_pass_change
+  }
+  if (!is.null(body$old_pass)) {
+    old_pass <- body$old_pass
+  }
+  if (!is.null(body$new_pass_1)) {
+    new_pass_1 <- body$new_pass_1
+  }
+  if (!is.null(body$new_pass_2)) {
+    new_pass_2 <- body$new_pass_2
+  }
+
   user <- req$user_id
   user_id_pass_change <- as.integer(user_id_pass_change)
 
