@@ -637,11 +637,21 @@ export default {
       }
     },
     async changePassword() {
-      const apiChangePasswordURL = `${import.meta.env.VITE_API_URL}/api/user/password/update?user_id_pass_change=${this.user.user_id[0]}&old_pass=${this.currentPassword}&new_pass_1=${this.newPasswordEntry}&new_pass_2=${this.newPasswordRepeat}`;
+      // OWASP: password fields MUST go in the JSON body, never in URL query
+      // params (query strings leak into access logs, Traefik logs, and browser
+      // history). The API handler `@put password/update` in
+      // api/endpoints/user_endpoints.R accepts both forms during the Phase A
+      // hotfix rollout; the JSON body variant is the only one we send.
+      const apiChangePasswordURL = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
       try {
         const response_password_change = await this.axios.put(
           apiChangePasswordURL,
-          {},
+          {
+            user_id_pass_change: this.user.user_id[0],
+            old_pass: this.currentPassword,
+            new_pass_1: this.newPasswordEntry,
+            new_pass_2: this.newPasswordRepeat,
+          },
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('token')}`,
