@@ -1,8 +1,10 @@
 # Fix str_split("\\|") Applied to JSON Column
 
-**Priority:** Medium (latent — works currently but fragile)
+**Priority:** High
 **Category:** Data Integrity / API
 **Created:** 2026-01-28
+**Re-triaged:** 2026-04-11 — verified still present at `api/endpoints/gene_endpoints.R:238`
+and `app/src/types/gene.ts:26`; prioritized for next milestone
 **Status:** Backlog
 **Source:** Code audit of HGNC update pipeline (C1)
 
