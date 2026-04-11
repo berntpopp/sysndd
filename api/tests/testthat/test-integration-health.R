@@ -3,6 +3,16 @@
 # Integration tests for health endpoints.
 # These tests verify /health and /health/ready endpoints work correctly.
 # Run with: cd api && Rscript -e "testthat::test_file('tests/testthat/test-integration-health.R')"
+#
+# Rollback audit (Phase C unit C9, v11.0):
+#   This file is exempt from wrapping in `with_test_db_transaction`
+#   because the tests are read-only HTTP probes against /health and
+#   /health/ready: they never write to any SysNDD table. The ready
+#   endpoint reads migration and pool status via its own connection
+#   (outside the test process), so there is no test-owned DB session
+#   to roll back. No rollback scope is applicable. The C9 orphan
+#   absorption keeps this file green under
+#   `scripts/verify-test-gate.sh --extended`.
 
 library(testthat)
 library(httr)
