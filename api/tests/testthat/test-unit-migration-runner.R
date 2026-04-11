@@ -466,4 +466,51 @@ describe("reconcile_schema_version_renames", {
     expect_length(conn$rows_env$executes, 0)
     expect_true("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
   })
+
+  # Fail-fast tests — Risk 5 mitigation. The reconciliation must crash
+  # startup on DB errors rather than silently skipping, otherwise the
+  # renamed migration would re-run in run_migrations()' main loop and
+  # duplicate non-idempotent rows. Copilot flagged the original swallowing
+  # tryCatch wrappers on PR #228; these tests lock in the corrected behavior.
+
+  it("fail-fast: propagates dbGetQuery errors (does not silently skip)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("008_hgnc_symbol_lookup.sql"))
+
+    raising_dbGetQuery <- function(conn, sql, params = list()) {
+      stop("simulated: connection broken during schema_version SELECT")
+    }
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", raising_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", fake_dbExecute)
+
+    expect_error(
+      reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations"),
+      "simulated: connection broken during schema_version SELECT"
+    )
+    # No UPDATE/DELETE should have been attempted before the SELECT crash.
+    expect_length(conn$rows_env$executes, 0)
+  })
+
+  it("fail-fast: propagates dbExecute errors from UPDATE (does not silently skip)", {
+    skip_if_not_installed("mockery")
+    conn <- make_fake_conn(c("001_initial.sql", "008_hgnc_symbol_lookup.sql"))
+
+    raising_dbExecute <- function(conn, sql, params = list()) {
+      stop("simulated: UPDATE rejected by constraint")
+    }
+
+    mockery::stub(reconcile_schema_version_renames, "list_migration_files", fake_list_migration_files)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbGetQuery", fake_dbGetQuery)
+    mockery::stub(reconcile_schema_version_renames, "DBI::dbExecute", raising_dbExecute)
+
+    expect_error(
+      reconcile_schema_version_renames(conn = conn, migrations_dir = "db/migrations"),
+      "simulated: UPDATE rejected by constraint"
+    )
+    # The fake row was not rewritten (the raising stub doesn't mutate rows).
+    expect_true("008_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+    expect_false("018_hgnc_symbol_lookup.sql" %in% conn$rows_env$rows)
+  })
 })

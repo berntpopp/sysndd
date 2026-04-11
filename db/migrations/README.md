@@ -72,8 +72,9 @@ Filenames must match `<NNN>_<short_description>.sql`, e.g.
 ```
 
 - Three-digit zero-padded prefix so sort order matches apply order.
-- Prefixes must be unique. A7's `scripts/check-migration-prefixes.sh`
-  (enforced in `make lint-api`) fails CI if two files share a prefix.
+- Prefixes must be unique. Phase A.A4's
+  `scripts/check-migration-prefixes.sh` (enforced in `make lint-api`)
+  fails CI if two files share a prefix.
 - Lowercase snake_case after the prefix; no spaces.
 - One logical change per file. Mixing unrelated DDL makes rollback
   (see §5) painful.

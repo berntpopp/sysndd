@@ -201,17 +201,22 @@ reconcile_schema_version_renames <- function(conn = NULL, migrations_dir = "db/m
     use_conn <- use_pool
   }
 
-  # Read the on-disk file set once.
-  on_disk <- tryCatch(
-    list_migration_files(migrations_dir),
-    error = function(e) {
-      log_debug("reconcile_schema_version_renames: list_migration_files failed: {e$message}")
-      character(0)
-    }
-  )
+  # Read the on-disk file set once. If this fails, let the error propagate:
+  # the outer run_migrations() will hit the same failure on its own call to
+  # list_migration_files() right after, so swallowing it here only obscures the
+  # diagnostic.
+  on_disk <- list_migration_files(migrations_dir)
 
   rewritten <- character(0)
 
+  # For each rename, SELECT + UPDATE/DELETE run without tryCatch. Errors
+  # propagate because the schema_version table is guaranteed to exist at this
+  # point (ensure_schema_version_table() ran above in run_migrations(), which
+  # is the only caller). A genuine DB error here means the connection is
+  # broken — that must crash startup rather than silently skip reconciliation,
+  # otherwise the renamed migration would re-run in the main loop and
+  # duplicate non-idempotent rows (exactly the hazard this function exists
+  # to prevent).
   for (old_name in names(MIGRATION_RENAMES)) {
     new_name <- MIGRATION_RENAMES[[old_name]]
 
@@ -222,68 +227,55 @@ reconcile_schema_version_renames <- function(conn = NULL, migrations_dir = "db/m
     }
 
     # Check current schema_version state for both rows.
-    old_row <- tryCatch(
-      DBI::dbGetQuery(
-        use_conn,
-        "SELECT filename FROM schema_version WHERE filename = ? LIMIT 1",
-        params = list(old_name)
-      ),
-      error = function(e) NULL
+    old_row <- DBI::dbGetQuery(
+      use_conn,
+      "SELECT filename FROM schema_version WHERE filename = ? LIMIT 1",
+      params = list(old_name)
     )
-    new_row <- tryCatch(
-      DBI::dbGetQuery(
-        use_conn,
-        "SELECT filename FROM schema_version WHERE filename = ? LIMIT 1",
-        params = list(new_name)
-      ),
-      error = function(e) NULL
+    new_row <- DBI::dbGetQuery(
+      use_conn,
+      "SELECT filename FROM schema_version WHERE filename = ? LIMIT 1",
+      params = list(new_name)
     )
 
     old_present <- !is.null(old_row) && nrow(old_row) > 0
     new_present <- !is.null(new_row) && nrow(new_row) > 0
 
     if (old_present && !new_present) {
-      # Rewrite the row.
+      # Rewrite the row. UPDATE failures propagate (no tryCatch) so that the
+      # API startup aborts before run_migrations() reaches its setdiff() loop
+      # with an unreconciled schema_version state. Proceeding in that state
+      # would re-execute the renamed migration and duplicate rows.
       log_info(paste0(
         "reconcile_schema_version_renames: rewriting schema_version.filename ",
         "'", old_name, "' -> '", new_name, "'"
       ))
-      tryCatch({
-        DBI::dbExecute(
-          use_conn,
-          "UPDATE schema_version SET filename = ? WHERE filename = ?",
-          params = list(new_name, old_name)
-        )
-        rewritten <- c(rewritten, paste0(old_name, " -> ", new_name))
-      }, error = function(e) {
-        log_error(paste0(
-          "reconcile_schema_version_renames: failed to rewrite '", old_name,
-          "' -> '", new_name, "': ", conditionMessage(e)
-        ))
-      })
+      DBI::dbExecute(
+        use_conn,
+        "UPDATE schema_version SET filename = ? WHERE filename = ?",
+        params = list(new_name, old_name)
+      )
+      rewritten <- c(rewritten, paste0(old_name, " -> ", new_name))
     } else if (old_present && new_present) {
       # Both present — this is a soft anomaly (A4's 018 re-ran before this
       # reconciliation was deployed, OR the rename ran twice). Keep the new
       # row and drop the old row so future checks are clean. Do not touch
       # any other table; the duplicate-row cleanup (if any) is a manual
       # follow-up.
+      #
+      # DELETE failures propagate for the same reason as UPDATE above: we
+      # must not leave schema_version in an inconsistent state and then fall
+      # through into the main migration loop.
       log_info(paste0(
         "reconcile_schema_version_renames: both '", old_name, "' and '", new_name,
         "' present in schema_version; dropping stale old row"
       ))
-      tryCatch({
-        DBI::dbExecute(
-          use_conn,
-          "DELETE FROM schema_version WHERE filename = ?",
-          params = list(old_name)
-        )
-        rewritten <- c(rewritten, paste0(old_name, " -> ", new_name, " (dedup)"))
-      }, error = function(e) {
-        log_error(paste0(
-          "reconcile_schema_version_renames: failed to drop stale '", old_name,
-          "': ", conditionMessage(e)
-        ))
-      })
+      DBI::dbExecute(
+        use_conn,
+        "DELETE FROM schema_version WHERE filename = ?",
+        params = list(old_name)
+      )
+      rewritten <- c(rewritten, paste0(old_name, " -> ", new_name, " (dedup)"))
     }
     # Else: nothing to do (old_name not recorded; new_name already recorded, or
     # neither present — the rename PR has not been applied to this deployment
