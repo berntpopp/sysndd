@@ -12,6 +12,7 @@ library(testthat)
 # =============================================================================
 
 test_that("Mailpit is accessible", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
 
   # Should be able to get messages (even if empty)
@@ -23,6 +24,7 @@ test_that("Mailpit is accessible", {
 
 
 test_that("Mailpit can delete all messages", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
 
   # Delete should not error
@@ -41,6 +43,7 @@ test_that("Mailpit can delete all messages", {
 # =============================================================================
 
 test_that("send_noreply_email delivers to Mailpit", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
 
   # Clean inbox first
@@ -95,6 +98,7 @@ test_that("send_noreply_email delivers to Mailpit", {
 # =============================================================================
 
 test_that("SMTP test endpoint function exists", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
 
   # The endpoint is in admin_endpoints.R
@@ -150,6 +154,7 @@ test_that("SMTP connection fails gracefully for invalid host", {
 # =============================================================================
 
 test_that("Mailpit search finds messages by recipient", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
 
   # This test verifies search works
