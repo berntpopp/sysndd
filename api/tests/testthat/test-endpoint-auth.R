@@ -14,42 +14,51 @@
 
 library(testthat)
 
-# Helper: extract the handler function for a given verb + path out of a
-# plumber::pr() object. Works across plumber versions by walking the
-# internal `routes` list when the public accessors (`plumber::routes`,
-# `plumber::endpoints`) are not present.
-get_plumber_handler <- function(pr_obj, verb, path) {
-  verb <- toupper(verb)
-  routes <- NULL
-  if (!is.null(pr_obj$routes)) {
-    routes <- pr_obj$routes
-  } else if (!is.null(pr_obj$endpoints)) {
-    # Newer plumber versions store per-verb endpoint lists instead of a flat
-    # `routes` list; flatten them into a route-like structure.
-    for (verb_key in names(pr_obj$endpoints)) {
-      for (endpoint in pr_obj$endpoints[[verb_key]]) {
-        routes[[length(routes) + 1L]] <- list(
-          verbs = verb_key,
-          path = endpoint$path,
-          exec = endpoint$exec
-        )
-      }
-    }
-  }
-
-  for (route in routes) {
-    # plumber 1.x: `verbs` is a character vector or scalar; path starts with "/"
-    verbs <- route$verbs %||% route$endpoint$verbs
-    rpath <- route$path %||% route$endpoint$path
-    if (is.null(verbs) || is.null(rpath)) next
-    if (verb %in% toupper(verbs) && sub("^/", "", rpath) == sub("^/", "", path)) {
-      return(route$exec %||% route$endpoint$func)
-    }
-  }
-  NULL
-}
-
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+# Helper: extract the anonymous handler function that immediately follows
+# a given plumber decorator line (e.g. `#* @post authenticate`) in an
+# endpoint source file, and eval it into the supplied environment.
+#
+# This avoids depending on plumber's internal Route / PlumberEndpoint
+# layout (which shifts between 1.x minor versions). We parse the file
+# with base R and pick out the top-level `function(...) { ... }` expression
+# that follows the decorator. The returned closure has its enclosing
+# environment set to `envir`, so any stubs assigned there (auth_signin,
+# pool, dw, ...) are visible when the handler is called.
+extract_plumber_handler <- function(file_path, decorator_regex, envir) {
+  src_lines <- readLines(file_path, warn = FALSE)
+  dec_line <- grep(decorator_regex, src_lines)
+  if (length(dec_line) == 0L) {
+    stop("Decorator not found: ", decorator_regex)
+  }
+  dec_line <- dec_line[[1L]]
+
+  # Parse the entire file to get top-level expressions with their source refs
+  parsed <- parse(file = file_path, keep.source = TRUE)
+  srcrefs <- attr(parsed, "srcref")
+  if (is.null(srcrefs)) {
+    stop("Unable to read source refs for ", file_path)
+  }
+
+  # Find the first top-level expression whose starting line is > dec_line.
+  # Plumber writes the handler as a bare `function(...)` on the line(s)
+  # immediately after the decorator block, so that expression is our handler.
+  handler_expr <- NULL
+  for (i in seq_along(parsed)) {
+    start_line <- srcrefs[[i]][1L]
+    if (start_line > dec_line) {
+      handler_expr <- parsed[[i]]
+      break
+    }
+  }
+  if (is.null(handler_expr)) {
+    stop("No top-level expression found after decorator line ", dec_line)
+  }
+
+  # Eval the function literal into `envir` so it captures the stubs.
+  eval(handler_expr, envir = envir)
+}
 
 # Build a mock plumber `res` object that behaves like the real one for the
 # narrow set of properties our handlers touch (`status` / `body`).
@@ -174,149 +183,110 @@ test_that("no auth endpoint still reads credentials from URL query params only",
 # Handler-level invocation (behavioural)
 # -----------------------------------------------------------------------------
 #
-# These load the endpoint file via plumber::pr() with dependencies stubbed in
-# the global environment (plumber 1.x closures resolve free variables via the
-# standard R scoping chain, which eventually hits globalenv()). Stubs are
-# installed per-test via `with_global_stubs()` and torn down on exit so the
-# suite leaves globalenv() unchanged.
+# These extract the handler function literal directly from the endpoint source
+# (via `extract_plumber_handler`) and eval it into a sandbox environment that
+# contains stubs for the production dependencies (`auth_signin`, `pool`, `dw`,
+# `%||%`). This avoids depending on plumber's internal PlumberEndpoint /
+# Route layout, which varies across 1.x minor versions. The structural tests
+# above already prove the decorator / signature surface; these tests exercise
+# the handler body itself.
 
-with_global_stubs <- function(stubs, code) {
-  ge <- globalenv()
-  saved <- list()
-  was_bound <- character(0)
-  for (nm in names(stubs)) {
-    if (exists(nm, envir = ge, inherits = FALSE)) {
-      saved[[nm]] <- get(nm, envir = ge, inherits = FALSE)
-      was_bound <- c(was_bound, nm)
-    }
-    assign(nm, stubs[[nm]], envir = ge)
-  }
-  on.exit({
-    for (nm in names(stubs)) {
-      if (nm %in% was_bound) {
-        assign(nm, saved[[nm]], envir = ge)
-      } else {
-        if (exists(nm, envir = ge, inherits = FALSE)) {
-          rm(list = nm, envir = ge)
-        }
-      }
-    }
-  }, add = TRUE)
-  force(code)
+make_auth_sandbox <- function(auth_signin_fn) {
+  env <- new.env(parent = globalenv())
+  env$auth_signin <- auth_signin_fn
+  env$pool <- "STUB_POOL"
+  env$dw <- list(secret = "test-secret", refresh = 3600)
+  env$`%||%` <- function(a, b) if (is.null(a)) b else a
+  env
 }
 
-make_auth_stubs <- function(auth_signin_fn) {
-  list(
-    auth_signin = auth_signin_fn,
-    pool = "STUB_POOL",
-    dw = list(secret = "test-secret", refresh = 3600),
-    `%||%` = function(a, b) if (is.null(a)) b else a
+auth_file_path <- function() {
+  file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
+}
+
+extract_post_authenticate <- function(envir) {
+  extract_plumber_handler(
+    auth_file_path(),
+    decorator_regex = "^#\\*\\s+@post\\s+authenticate\\s*$",
+    envir = envir
   )
 }
 
 test_that("POST authenticate returns access token from auth_signin on success", {
-  skip_if_not_installed("plumber")
   skip_if_not_installed("jsonlite")
 
-  stubs <- make_auth_stubs(function(user_name, password, pool, config) {
+  env <- make_auth_sandbox(function(user_name, password, pool, config) {
     list(access_token = "fake.jwt.token", refresh_token = "fake.jwt.token")
   })
+  handler <- extract_post_authenticate(env)
+  expect_true(is.function(handler))
 
-  with_global_stubs(stubs, {
-    pr_obj <- plumber::pr(
-      file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
-    )
-    handler <- get_plumber_handler(pr_obj, "POST", "authenticate")
-    expect_false(is.null(handler))
-
-    req <- list(
-      postBody = '{"user_name":"valid_user","password":"valid_pass_123"}'
-    )
-    res <- make_mock_res()
-    result <- handler(req = req, res = res)
-    expect_equal(result, "fake.jwt.token")
-    expect_equal(res$status, 200L)
-  })
+  req <- list(
+    postBody = '{"user_name":"valid_user","password":"valid_pass_123"}'
+  )
+  res <- make_mock_res()
+  result <- handler(req = req, res = res)
+  expect_equal(result, "fake.jwt.token")
+  expect_equal(res$status, 200L)
 })
 
 test_that("POST authenticate returns 400 on short or missing credentials", {
-  skip_if_not_installed("plumber")
   skip_if_not_installed("jsonlite")
 
-  stubs <- make_auth_stubs(function(...) {
+  env <- make_auth_sandbox(function(...) {
     stop("should not be called on invalid input")
   })
+  handler <- extract_post_authenticate(env)
+  expect_true(is.function(handler))
 
-  with_global_stubs(stubs, {
-    pr_obj <- plumber::pr(
-      file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
-    )
-    handler <- get_plumber_handler(pr_obj, "POST", "authenticate")
-    expect_false(is.null(handler))
+  # Empty body -> empty user_name/password -> 400
+  req_empty <- list(postBody = "{}")
+  res_empty <- make_mock_res()
+  handler(req = req_empty, res = res_empty)
+  expect_equal(res_empty$status, 400L)
 
-    # Empty body -> empty user_name/password -> 400
-    req_empty <- list(postBody = "{}")
-    res_empty <- make_mock_res()
-    handler(req = req_empty, res = res_empty)
-    expect_equal(res_empty$status, 400L)
+  # Username too short -> 400
+  req_short <- list(postBody = '{"user_name":"x","password":"validpass"}')
+  res_short <- make_mock_res()
+  handler(req = req_short, res = res_short)
+  expect_equal(res_short$status, 400L)
 
-    # Username too short -> 400
-    req_short <- list(postBody = '{"user_name":"x","password":"validpass"}')
-    res_short <- make_mock_res()
-    handler(req = req_short, res = res_short)
-    expect_equal(res_short$status, 400L)
-
-    # Password too short -> 400
-    req_shortpass <- list(postBody = '{"user_name":"valid_user","password":"x"}')
-    res_shortpass <- make_mock_res()
-    handler(req = req_shortpass, res = res_shortpass)
-    expect_equal(res_shortpass$status, 400L)
-  })
+  # Password too short -> 400
+  req_shortpass <- list(postBody = '{"user_name":"valid_user","password":"x"}')
+  res_shortpass <- make_mock_res()
+  handler(req = req_shortpass, res = res_shortpass)
+  expect_equal(res_shortpass$status, 400L)
 })
 
 test_that("POST authenticate returns 401 when auth_signin raises", {
-  skip_if_not_installed("plumber")
   skip_if_not_installed("jsonlite")
 
-  stubs <- make_auth_stubs(function(user_name, password, pool, config) {
+  env <- make_auth_sandbox(function(user_name, password, pool, config) {
     stop("Invalid username or password")
   })
+  handler <- extract_post_authenticate(env)
+  expect_true(is.function(handler))
 
-  with_global_stubs(stubs, {
-    pr_obj <- plumber::pr(
-      file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
-    )
-    handler <- get_plumber_handler(pr_obj, "POST", "authenticate")
-    expect_false(is.null(handler))
-
-    req <- list(
-      postBody = '{"user_name":"valid_user","password":"wrong_pass"}'
-    )
-    res <- make_mock_res()
-    handler(req = req, res = res)
-    expect_equal(res$status, 401L)
-  })
+  req <- list(
+    postBody = '{"user_name":"valid_user","password":"wrong_pass"}'
+  )
+  res <- make_mock_res()
+  handler(req = req, res = res)
+  expect_equal(res$status, 401L)
 })
 
 test_that("POST authenticate returns 400 on malformed JSON", {
-  skip_if_not_installed("plumber")
   skip_if_not_installed("jsonlite")
 
-  stubs <- make_auth_stubs(function(...) {
+  env <- make_auth_sandbox(function(...) {
     stop("should not be called on invalid JSON")
   })
+  handler <- extract_post_authenticate(env)
+  expect_true(is.function(handler))
 
-  with_global_stubs(stubs, {
-    pr_obj <- plumber::pr(
-      file.path(get_api_dir(), "endpoints", "authentication_endpoints.R")
-    )
-    handler <- get_plumber_handler(pr_obj, "POST", "authenticate")
-    expect_false(is.null(handler))
-
-    req <- list(postBody = "this is not json{{")
-    res <- make_mock_res()
-    handler(req = req, res = res)
-    # Malformed JSON -> empty fields -> validation fails -> 400
-    expect_equal(res$status, 400L)
-  })
+  req <- list(postBody = "this is not json{{")
+  res <- make_mock_res()
+  handler(req = req, res = res)
+  # Malformed JSON -> empty fields -> validation fails -> 400
+  expect_equal(res$status, 400L)
 })
