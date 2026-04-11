@@ -235,7 +235,13 @@ function(gene_input, input_type = "hgnc") {
     arrange(hgnc_id) %>%
     collect() %>%
     mutate(
-      across(everything(), ~ str_split(., pattern = "\\|"))
+      # Exclude gnomad_constraints from pipe-splitting: it stores a JSON
+      # object as a single TEXT blob. Running str_split("|") over it would
+      # silently mangle any future JSON field that contains a "|" character
+      # and — more immediately — wraps the scalar JSON string in a list,
+      # forcing the frontend to dereference `[0]`. See
+      # .plans/v11.0/phase-a.md §3 A2.
+      across(-any_of("gnomad_constraints"), ~ str_split(., pattern = "\\|"))
     )
 }
 
