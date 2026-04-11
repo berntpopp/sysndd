@@ -116,6 +116,7 @@ test_that("build_pmid_annotations_table handles missing required fields", {
 # ============================================================================
 
 test_that("pubtator_v3_total_pages_from_query returns page count", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({
@@ -135,6 +136,7 @@ test_that("pubtator_v3_total_pages_from_query returns page count", {
 })
 
 test_that("pubtator_v3_total_pages_from_query handles empty results", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({
@@ -151,6 +153,7 @@ test_that("pubtator_v3_total_pages_from_query handles empty results", {
 })
 
 test_that("pubtator_v3_pmids_from_request returns tibble", {
+  skip_if_not_slow_tests()
   skip_if_no_fixtures_or_network(test_path("fixtures", "pubtator"))
 
   with_pubtator_mock({

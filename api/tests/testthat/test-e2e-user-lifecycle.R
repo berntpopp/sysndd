@@ -110,6 +110,7 @@ get_admin_token <- function() {
 # =============================================================================
 
 test_that("user registration sends confirmation email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -148,6 +149,7 @@ test_that("user registration sends confirmation email", {
 
 
 test_that("duplicate registration is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -185,6 +187,7 @@ test_that("duplicate registration is rejected", {
 
 
 test_that("invalid registration data is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
 
@@ -223,6 +226,7 @@ test_that("invalid registration data is rejected", {
 # =============================================================================
 
 test_that("curator approval sends password email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -278,6 +282,7 @@ test_that("curator approval sends password email", {
 
 
 test_that("curator rejection deletes user without email", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -331,6 +336,7 @@ test_that("curator rejection deletes user without email", {
 # =============================================================================
 
 test_that("password reset request sends email with reset link", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -385,6 +391,7 @@ test_that("password reset request sends email with reset link", {
 
 
 test_that("password reset with valid token changes password", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -450,6 +457,7 @@ test_that("password reset with valid token changes password", {
 
 
 test_that("password reset with invalid token is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_api()
 
   # Use a made-up invalid JWT
@@ -468,6 +476,7 @@ test_that("password reset with invalid token is rejected", {
 
 
 test_that("password reset with weak password is rejected", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
@@ -520,6 +529,7 @@ test_that("password reset with weak password is rejected", {
 
 
 test_that("password reset for non-existent email silently succeeds", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
 
@@ -543,6 +553,7 @@ test_that("password reset for non-existent email silently succeeds", {
 
 
 test_that("password reset token cannot be reused", {
+  skip_if_not_slow_tests()
   skip_if_no_mailpit()
   skip_if_no_api()
   skip_if_no_test_db()
