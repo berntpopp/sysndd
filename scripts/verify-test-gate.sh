@@ -17,6 +17,13 @@
 #   - On v11.0/phase-b/* branches only: replacing Sys.sleep(N) with
 #     wait_for(..., timeout = N) in pre-existing test-*.R or helper-*.R files
 #     is allowed. This exemption exists for B5.
+#   - On v11.0/phase-c/test-endpoint-* branches only: adding rollback-audit
+#     header comments to pre-existing api/tests/testthat/test-integration-*.R
+#     files is allowed. This exemption exists for the Phase C C7-C9 default-on
+#     transaction rollback audit (plan §3 Phase C.4 / §4.5) — the additions
+#     must be comment lines beginning with `#` whose content matches the
+#     rollback-audit whitelist (exempt/rollback/non-transactional/audit/etc.),
+#     and there must be zero REMOVED lines.
 #
 # Extended mode (--extended): grep every api/tests/testthat/test-integration-*.R
 # file and assert each opens with EITHER `with_test_db_transaction` OR a
@@ -137,6 +144,40 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
          [ "${added_noise}" -eq 0 ]; then
         continue
       fi
+    fi
+
+    # Exemptions: only on v11.0/phase-c/test-endpoint-* branches.
+    if [[ "$BRANCH" == v11.0/phase-c/test-endpoint-* ]]; then
+      ADDED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^\+[^+]' || true)
+      REMOVED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^-[^-]' || true)
+
+      # Exemption 3: Phase-C rollback audit (plan §3 Phase C.4 / §4.5). Every
+      # ADDED line must be a comment line whose content mentions at least one
+      # of the rollback-audit tokens (exempt, rollback, non-transactional,
+      # audit, in-memory, read-only, http-only). Every REMOVED line must be
+      # blank. The scope is deliberately limited to
+      # api/tests/testthat/test-integration-*.R files — the audit targets
+      # integration tests, not unit tests. Rationale: this is the safest
+      # way to "document and wrap" pre-existing integration suites without
+      # touching their behavioral lines.
+      case "$f" in
+        api/tests/testthat/test-integration-*.R)
+          exemption3_added_noise=$(
+            echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
+                          | grep -vE '^\+[[:space:]]*#.*(exempt|rollback|non-transactional|audit|in-memory|read-only|http-only|Phase[- ]C|plan)' \
+                          | grep -c '.' || true
+          )
+          exemption3_removed_noise=$(
+            echo "$REMOVED" | grep -vE '^-[[:space:]]*$' \
+                            | grep -c '.' || true
+          )
+          if [ "${exemption3_added_noise}" -eq 0 ] && \
+             [ "${exemption3_removed_noise}" -eq 0 ] && \
+             [ -n "$ADDED" ]; then
+            continue
+          fi
+          ;;
+      esac
     fi
 
     printf 'gate: REJECT pre-existing spec/test file modified: %s (status=%s, branch=%s)\n' \
