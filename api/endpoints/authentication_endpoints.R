@@ -112,10 +112,16 @@ function(signup_data) {
 }
 
 
-#* Authenticate a User with Login
+#* Authenticate a User with Login (DEPRECATED query-string form)
 #*
 #* Checks username & password against the DB for an approved user. If correct,
 #* returns a JWT. Otherwise, returns an error.
+#*
+#* DEPRECATED: This `@get` form accepts credentials as URL query parameters,
+#* which leak into access logs, Traefik logs, and browser history. Use the
+#* `@post authenticate` handler below with a JSON body instead. This handler is
+#* preserved only so existing clients do not break during the Phase A hotfix
+#* rollout; Phase E (auth consolidation) will remove it.
 #*
 #* # `Details`
 #* Uses auth_signin service function for authentication logic.
@@ -150,6 +156,66 @@ function(req, res, user_name, password) {
     {
       result <- auth_signin(user_name, password, pool, dw)
       # Return just the access token for backward compatibility
+      result$access_token
+    },
+    error = function(e) {
+      res$status <- 401
+      res$body <- "User or password wrong."
+      return(res)
+    }
+  )
+}
+
+
+#* Authenticate a User with Login (JSON body)
+#*
+#* OWASP-compliant variant of the `@get authenticate` handler: credentials are
+#* submitted as a JSON body (POST) instead of query parameters so they never
+#* land in access logs, Traefik logs, or browser history. This is the handler
+#* the frontend should call; the `@get` form above remains only for transitional
+#* backwards compatibility and will be removed in Phase E.
+#*
+#* # `Details`
+#* Parses `user_name` and `password` from the JSON request body and delegates
+#* to `auth_signin`. Returns the JWT access token as a JSON string so the
+#* wire format is identical to the legacy `@get` handler — clients only need
+#* to switch HTTP method and payload location, not response parsing.
+#*
+#* # `Return`
+#* JWT string on success, error message otherwise.
+#*
+#* @tag authentication
+#* @serializer json list(na="string")
+#*
+#* @response 200 OK. Returns the JWT.
+#* @response 400 Bad Request. If JSON body is missing or malformed.
+#* @response 401 Unauthorized. If user or password is wrong or user not approved.
+#*
+#* @post authenticate
+function(req, res) {
+  # Parse credentials from JSON body (OWASP: secrets MUST NOT be in URLs)
+  body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) list()
+  )
+  user_name <- body$user_name %||% ""
+  password <- body$password %||% ""
+
+  # Validate inputs before calling service
+  if (
+    nchar(user_name) < 5 || nchar(user_name) > 20 ||
+      nchar(password) < 5 || nchar(password) > 50
+  ) {
+    res$status <- 400
+    res$body <- "Please provide valid username and password."
+    return(res)
+  }
+
+  # Call auth service (returns structured response)
+  tryCatch(
+    {
+      result <- auth_signin(user_name, password, pool, dw)
+      # Return just the access token for backward compatibility with @get shape
       result$access_token
     },
     error = function(e) {
