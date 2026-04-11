@@ -4,6 +4,16 @@
 # These tests verify that send_noreply_email() correctly delivers
 # emails to the Mailpit testing server. Requires Mailpit running:
 #   docker compose -f docker-compose.dev.yml up -d mailpit
+#
+# Rollback audit (Phase C unit C9, v11.0):
+#   This file is exempt from wrapping in `with_test_db_transaction`
+#   because it is non-transactional and does not write to SysNDD
+#   tables: tests exercise the SMTP transport (Mailpit HTTP API +
+#   socketConnection()) and blastula email formatting rather than
+#   any DB-backed user-email flow. Mailpit inbox state is managed
+#   by `mailpit_delete_all()` between tests; no rollback scope is
+#   applicable to the relational DB. The C9 orphan absorption keeps
+#   this file green under `scripts/verify-test-gate.sh --extended`.
 
 library(testthat)
 
