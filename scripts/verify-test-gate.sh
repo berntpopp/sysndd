@@ -17,6 +17,12 @@
 #   - On v11.0/phase-b/* branches only: replacing Sys.sleep(N) with
 #     wait_for(..., timeout = N) in pre-existing test-*.R or helper-*.R files
 #     is allowed. This exemption exists for B5.
+#   - On v11.0/phase-c/test-endpoint-* branches only: adding a rollback-audit
+#     comment block (referencing `with_test_db_transaction`) to pre-existing
+#     test-integration-*.R files is allowed. This is a comment-only
+#     mutation: every ADDED line must be a shell/R comment (starts with `#`)
+#     and there must be zero REMOVED lines. This exemption exists so C7/C8/C9
+#     can mark each orphan integration file as rollback-audited.
 #
 # Extended mode (--extended): grep every api/tests/testthat/test-integration-*.R
 # file and assert each opens with EITHER `with_test_db_transaction` OR a
@@ -135,6 +141,30 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
          echo "$ADDED"   | grep -qE '(wait_for|wait_stable)\(' && \
          [ "${removed_noise}" -eq 0 ] && \
          [ "${added_noise}" -eq 0 ]; then
+        continue
+      fi
+    fi
+
+    # C7/C8/C9 rollback-audit exemption: on v11.0/phase-c/test-endpoint-*
+    # branches, allow comment-only additions to pre-existing
+    # test-integration-*.R files. Every ADDED line must be an R comment
+    # (leading `+#`) or a blank `+` line, and there must be zero REMOVED
+    # lines. This is deliberately the narrowest possible carve-out so the
+    # orphan rollback audit can mark each integration file as audited
+    # without widening the Phase C gate surface.
+    if [[ "$BRANCH" == v11.0/phase-c/test-endpoint-* ]] && \
+       [[ "$f" == api/tests/testthat/test-integration-*.R ]]; then
+      ADDED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^\+[^+]' || true)
+      REMOVED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^-[^-]' || true)
+
+      exemption_added_noise=$(
+        echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
+                      | grep -vE '^\+[[:space:]]*#' \
+                      | grep -c '.' || true
+      )
+      if [ -z "$REMOVED" ] && \
+         echo "$ADDED" | grep -qE 'with_test_db_transaction' && \
+         [ "${exemption_added_noise}" -eq 0 ]; then
         continue
       fi
     fi
