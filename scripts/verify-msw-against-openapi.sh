@@ -24,6 +24,17 @@
 
 set -euo pipefail
 
+# Require Bash 3.2+ (the floor that still ships as /bin/bash on macOS). The
+# script deliberately avoids Bash 4+ associative arrays so it runs unmodified
+# on a stock macOS developer machine. The version check here is defensive —
+# if a future edit introduces a Bash 4-only construct, the error message
+# points the user at the fix instead of throwing a cryptic syntax error.
+if (( BASH_VERSINFO[0] < 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] < 2) )); then
+  echo "verify-msw-against-openapi: requires Bash 3.2+ (detected ${BASH_VERSION})" >&2
+  echo "  macOS users: install a newer bash via 'brew install bash' and re-run with it." >&2
+  exit 2
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 HANDLERS_FILE="${REPO_ROOT}/app/src/test-utils/mocks/handlers.ts"
@@ -79,18 +90,36 @@ declare -a MOUNTS=(
 )
 
 # --- Load exceptions ---------------------------------------------------------
-declare -A EXCEPTIONS
+#
+# Uses a plain indexed array, not an associative array (declare -A), so this
+# script works on Bash 3.2 — still the default /bin/bash on macOS as of 2025.
+# Lookup is O(n) but n is tiny (4 entries today, a handful max ever). See
+# Copilot review comment #4 on PR #236 for the rationale.
+EXCEPTIONS=()
 if [[ -f "${EXCEPTIONS_FILE}" ]]; then
   while IFS= read -r line; do
     [[ -z "${line// }" ]] && continue
     [[ "${line:0:1}" == "#" ]] && continue
     # Format: METHOD /api/<path>#reason
     key="${line%%#*}"
-    # Trim trailing spaces on key
+    # Trim trailing whitespace (spaces and tabs).
     key="${key%"${key##*[![:space:]]}"}"
-    EXCEPTIONS["${key}"]=1
+    EXCEPTIONS+=("${key}")
   done < "${EXCEPTIONS_FILE}"
 fi
+
+# Portable membership check: returns 0 if $1 is an element of EXCEPTIONS, 1 otherwise.
+# Works on Bash 3.2+ (no associative arrays).
+is_exception() {
+  local needle="$1"
+  local e
+  for e in "${EXCEPTIONS[@]:-}"; do
+    if [[ "${e}" == "${needle}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 # --- Extract handlers from handlers.ts --------------------------------------
 # Match lines like:   http.get('/api/auth/signin', ... )
@@ -207,7 +236,7 @@ for record in "${HANDLER_LINES[@]}"; do
   key="${method_upper} ${path}"
 
   # 1. Allowed via exception?
-  if [[ -n "${EXCEPTIONS[${key}]+x}" ]]; then
+  if is_exception "${key}"; then
     continue
   fi
 

@@ -24,13 +24,39 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 
+log() { printf '[ci-smoke] %s\n' "$*"; }
+fail() { printf '[ci-smoke] FAIL: %s\n' "$*" >&2; }
+
+# Seed gitignored files from their committed templates if missing. This is
+# what lets `make preflight` build the prod Docker image on a fresh CI
+# checkout: the Dockerfile does `COPY config.yml config.yml` and the
+# compose file consumes env vars from `.env`, but both `api/config.yml` and
+# `.env` are gitignored because they hold real credentials on dev machines.
+# The templates (`api/config.yml.example`, `.env.example`) ship safe dummy
+# values; a developer running this script locally with real secrets in
+# place will NOT have either file overwritten.
+seed_from_template() {
+  # seed_from_template <target> <template>
+  local target="$1"
+  local template="$2"
+  if [ -f "$target" ]; then
+    return 0
+  fi
+  if [ ! -f "$template" ]; then
+    fail "neither $target nor its template $template exists"
+    return 1
+  fi
+  log "seeding $target from $template (missing on this checkout)"
+  cp "$template" "$target"
+}
+
+seed_from_template "$REPO_ROOT/api/config.yml" "$REPO_ROOT/api/config.yml.example"
+seed_from_template "$REPO_ROOT/.env"           "$REPO_ROOT/.env.example"
+
 HEALTH_URL="${SMOKE_HEALTH_URL:-http://localhost/api/health/ready}"
 # Total retries = RETRIES, sleep = RETRY_SLEEP_SECONDS.
 RETRIES="${SMOKE_RETRIES:-30}"
 RETRY_SLEEP_SECONDS="${SMOKE_RETRY_SLEEP_SECONDS:-2}"
-
-log() { printf '[ci-smoke] %s\n' "$*"; }
-fail() { printf '[ci-smoke] FAIL: %s\n' "$*" >&2; }
 
 dump_context() {
   fail "dumping diagnostic context"

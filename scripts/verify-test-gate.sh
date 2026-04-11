@@ -73,23 +73,68 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
 
     # Exemptions: only on v11.0/phase-b/* branches.
     if [[ "$BRANCH" == v11.0/phase-b/* ]]; then
-      # Consider the per-file diff — if every ADDED line matches a permitted
-      # pattern and every REMOVED line matches its paired pattern, exempt.
+      # Consider the per-file diff — every ADDED and REMOVED line must match
+      # a whitelist for the exemption to apply. This is intentionally a
+      # whitelist, not a blacklist: if a PR mixes legitimate Phase-B edits
+      # with unrelated changes, the unrelated lines don't match the whitelist
+      # and the gate rejects the file. See Copilot review comment #6 on
+      # PR #236 for the rationale.
       ADDED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^\+[^+]' || true)
       REMOVED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^-[^-]' || true)
 
-      # Exemption 1: skip_if_not_slow_tests() additions, no corresponding deletions.
-      if [ -z "$REMOVED" ] && echo "$ADDED" | grep -qE 'skip_if_not_slow_tests\(' && \
-         ! echo "$ADDED" | grep -vE '^\+\s*$|skip_if_not_slow_tests\(' | grep -q .; then
+      # Exemption 1: skip_if_not_slow_tests() additions only. Every non-blank,
+      # non-comment ADDED line must contain `skip_if_not_slow_tests(`, and
+      # there must be zero REMOVED lines.
+      exemption1_added_noise=$(
+        echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
+                      | grep -vE '^\+[[:space:]]*#' \
+                      | grep -vE 'skip_if_not_slow_tests\(' \
+                      | grep -c '.' || true
+      )
+      if [ -z "$REMOVED" ] && \
+         echo "$ADDED" | grep -qE 'skip_if_not_slow_tests\(' && \
+         [ "${exemption1_added_noise}" -eq 0 ]; then
         continue
       fi
 
-      # Exemption 2: Sys.sleep(N) -> wait_for(..., timeout = N) replacement.
-      # The regex matches any wait_for(...) call with a timeout= kwarg; we
-      # deliberately don't constrain the args, since the condition expression
-      # may itself contain parentheses.
+      # Exemption 2: Sys.sleep(N) -> wait_for/wait_stable(..., timeout|duration = N)
+      # replacement. Every REMOVED non-blank/non-comment line must be a
+      # `Sys.sleep(` call or a probe call that moved into a wait_* probe
+      # argument. Every ADDED non-blank/non-comment line must match one of the
+      # wait helper's own tokens (function call, named arg, closing paren,
+      # baseline assignment, or mailpit helper). The REMOVED diff must contain
+      # at least one Sys.sleep and the ADDED diff must contain at least one
+      # wait_for or wait_stable call.
+      #
+      # The token whitelist is deliberately conservative — it covers the
+      # actual B5 diff shape ({baseline_var} <- wait_stable(probe = function()
+      # mailpit_message_count(), duration = N, label = "..."),
+      # mailpit_wait_for_message(...)) plus straightforward wait_for(...)
+      # variants. Future B5-style changes that need a new whitelisted token
+      # should update this list explicitly rather than widen via regex.
+      removed_noise=$(
+        echo "$REMOVED" | grep -vE '^-[[:space:]]*$' \
+                        | grep -vE '^-[[:space:]]*#' \
+                        | grep -vE 'Sys\.sleep\(' \
+                        | grep -vE '(final_count|count|message)[[:space:]]*<-[[:space:]]*mailpit_' \
+                        | grep -c '.' || true
+      )
+      added_noise=$(
+        echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
+                      | grep -vE '^\+[[:space:]]*#' \
+                      | grep -vE 'wait_for\(' \
+                      | grep -vE 'wait_stable\(' \
+                      | grep -vE '^\+[[:space:]]*\)[,[:space:]]*$' \
+                      | grep -vE '^\+[[:space:]]+(probe|timeout|duration|label|interval|tolerate)[[:space:]]*=' \
+                      | grep -vE '^\+[[:space:]]+function\(\)[[:space:]]*mailpit_' \
+                      | grep -vE '^\+[[:space:]]+mailpit_[A-Za-z_]+\(' \
+                      | grep -vE '(final_count|count|message)[[:space:]]*<-[[:space:]]*wait_' \
+                      | grep -c '.' || true
+      )
       if echo "$REMOVED" | grep -qE 'Sys\.sleep\(' && \
-         echo "$ADDED"   | grep -qE 'wait_for\(.*timeout[[:space:]]*='; then
+         echo "$ADDED"   | grep -qE '(wait_for|wait_stable)\(' && \
+         [ "${removed_noise}" -eq 0 ] && \
+         [ "${added_noise}" -eq 0 ]; then
         continue
       fi
     fi

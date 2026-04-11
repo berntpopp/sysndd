@@ -34,13 +34,33 @@ suppressPackageStartupMessages({
 
 # -----------------------------------------------------------------------------
 # CLI arg: output directory (defaults to api/tests/testthat/fixtures)
+#
+# Fallback resolution when no arg is given: prefer the script's own directory
+# via sys.frame(1)$ofile (works when sourced); fall back to Rscript's own
+# --file= argument (works when invoked as `Rscript path/to/script.R`); fall
+# back to "." as a last resort. We deliberately avoid the `%||%` rlang helper
+# here so the script has zero R-package dependencies beyond what's imported
+# at the top of the file (httr2, httptest2, jsonlite) — see Copilot review
+# comment #2 on PR #236.
 # -----------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
-fixtures_root <- if (length(args) >= 1) {
-  normalizePath(args[1], mustWork = FALSE)
+if (length(args) >= 1) {
+  fixtures_root <- normalizePath(args[1], mustWork = FALSE)
 } else {
-  normalizePath(
-    file.path(dirname(sys.frame(1)$ofile %||% "."), "..", "tests", "testthat", "fixtures"),
+  # Resolve the script file path without depending on rlang's %||%.
+  script_file <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+  if (is.null(script_file) || !nzchar(script_file)) {
+    # Rscript sets its own `--file=` entry in commandArgs(trailingOnly = FALSE).
+    full_args <- commandArgs(trailingOnly = FALSE)
+    file_arg <- grep("^--file=", full_args, value = TRUE)
+    if (length(file_arg) >= 1) {
+      script_file <- sub("^--file=", "", file_arg[1])
+    } else {
+      script_file <- "."
+    }
+  }
+  fixtures_root <- normalizePath(
+    file.path(dirname(script_file), "..", "tests", "testthat", "fixtures"),
     mustWork = FALSE
   )
 }

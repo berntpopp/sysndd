@@ -218,6 +218,43 @@ EOF
   rm -rf "$dir"
 }
 
+case_phase_b_exemption_rejects_unrelated_edit() {
+  # On a phase-b branch, a legitimate Sys.sleep -> wait_for replacement paired
+  # with an UNRELATED edit (e.g. changing an assertion) must still be rejected
+  # by the tightened exemption check. This pins Copilot review #6 on PR #236:
+  # the old check only required one Sys.sleep removal and one wait_for
+  # addition, so unrelated lines could slip through.
+  local dir
+  dir=$(mktemp -d)
+  make_fixture_repo "$dir"
+  (
+    cd "$dir"
+    cat > api/tests/testthat/test-existing.R <<'EOF'
+# Pre-existing R test file checked into master.
+test_that("does the thing", {
+  Sys.sleep(5)
+  expect_equal(1 + 1, 2)
+})
+EOF
+    git add api/tests/testthat/test-existing.R
+    git commit -q -m "reset base to sleepy version"
+    git checkout -q -b v11.0/phase-b/sneaky
+    # Replace Sys.sleep with wait_for (legal) AND mutate the assertion (illegal).
+    cat > api/tests/testthat/test-existing.R <<'EOF'
+# Pre-existing R test file checked into master.
+test_that("does the thing", {
+  wait_for(function() TRUE, timeout = 5)
+  expect_equal(1 + 1, 999)
+})
+EOF
+    git add api/tests/testthat/test-existing.R
+    git commit -q -m "sneak an assertion mutation in alongside wait_for"
+  )
+  run_gate "$dir" "v11.0/phase-b/sneaky" >/dev/null 2>&1
+  assert_equal 1 "$?" "phase-b exemption rejects unrelated edits paired with Sys.sleep->wait_for"
+  rm -rf "$dir"
+}
+
 case_skip_slow_rejected_on_phase_d() {
   # Sanity: the skip exemption must NOT leak into phase-d.
   local dir
@@ -284,6 +321,7 @@ case_new_spec_allowed
 case_preexisting_spec_rejected
 case_skip_slow_exemption_phase_b
 case_sys_sleep_exemption_phase_b
+case_phase_b_exemption_rejects_unrelated_edit
 case_skip_slow_rejected_on_phase_d
 case_extended_mode_catches_missing_rollback
 case_extended_mode_accepts_good_repo

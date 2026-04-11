@@ -40,6 +40,32 @@
 
 import { http, HttpResponse } from 'msw';
 
+// ---------------------------------------------------------------------------
+// Error trigger sentinels (self-review S1 on PR #236)
+// ---------------------------------------------------------------------------
+// Every handler in this file branches from its 2xx happy path to a 4xx error
+// shape when the incoming request carries one of these distinguished shapes.
+// Keeping them in one place lets tests import them (instead of hard-coding
+// literals scattered across specs) and makes the contract between handlers
+// and spec files discoverable. Handlers and specs currently use the literal
+// values below; future handlers/specs SHOULD import from here.
+//
+// Usage from a spec file:
+//   import { ERROR_SENTINELS } from '@/test-utils/mocks/handlers';
+//   await fetch(`/api/entity/${ERROR_SENTINELS.NOT_FOUND_ID}`); // → 404
+export const ERROR_SENTINELS = {
+  /** Path-param sentinel that triggers a 404. Used by entity/review/status endpoints. */
+  NOT_FOUND_ID: '999',
+  /** POST /api/auth/authenticate user_name that triggers a 401. */
+  WRONG_USER: 'wrong_user',
+  /** Query string that triggers a 500-class error on endpoints that opt in. */
+  TRIGGER_ERROR_QUERY: 'trigger_error=1',
+  /** Authorization header that triggers 401 (omit header entirely instead of setting this). */
+  NO_AUTH_HEADER: '',
+  /** x-user-role header that triggers 403 on endpoints that branch on role. */
+  VIEWER_ROLE: 'Viewer',
+} as const;
+
 import {
   signinOk,
   signinUnauthorized,

@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
 
 # =============================================================================
 # Help Target (Self-documenting)

@@ -36,12 +36,22 @@
 #' value the moment it becomes truthy. On timeout, raises an error whose
 #' message identifies the label, elapsed time, and last observed value.
 #'
-#' A value is considered "truthy" if it is non-NULL, has length > 0, and
-#' `isTRUE(as.logical(value))` OR is any non-empty list / non-empty data
-#' frame / non-NA single atomic TRUE. The common happy path — the caller
-#' returns TRUE or a non-NULL object — is handled directly; the extended
-#' list/data.frame handling supports "wait until the DB query returns a
-#' non-empty row set" usage.
+#' A value is considered "truthy" if it is:
+#'   - an `isTRUE(v)` single logical TRUE (the canonical happy path),
+#'   - a non-empty list (so "wait until the DB query returns a non-empty
+#'     row set" returns the list directly),
+#'   - a non-empty data frame (row count > 0).
+#'
+#' Deliberately NOT truthy (so callers can use them as "not ready" sentinels
+#' without wait_for returning prematurely):
+#'   - `NULL`, `NA`, an empty vector/list/data frame,
+#'   - `FALSE`, `0`, `""`, and any non-logical atomic scalar.
+#'
+#' If you need `wait_for` to resolve on a non-logical value (e.g. "return the
+#' parsed JSON when it arrives"), wrap the probe in a function that returns
+#' a one-element list, a data frame, or explicitly wraps in `isTRUE()`. The
+#' previous behaviour of returning early on any atomic value was Copilot
+#' review #3 on PR #236 — see that review for the rationale.
 #'
 #' @param condition Zero-arg function returning the value to test.
 #' @param timeout Maximum seconds to wait (default 10).
@@ -84,10 +94,13 @@ wait_for <- function(
     if (is.null(v)) return(FALSE)
     if (length(v) == 0) return(FALSE)
     if (is.data.frame(v)) return(nrow(v) > 0)
-    if (is.list(v)) return(TRUE)
-    if (is.logical(v) && length(v) == 1 && !is.na(v)) return(isTRUE(v))
-    if (is.atomic(v)) return(TRUE)
-    TRUE
+    if (is.list(v)) return(length(v) > 0)
+    # Single logical: honour isTRUE semantics (rejects NA, FALSE).
+    if (is.logical(v) && length(v) == 1) return(isTRUE(v))
+    # For any other atomic (numeric, character, …) do NOT treat as truthy.
+    # Callers that want to wait for e.g. "a non-empty string" must wrap the
+    # probe to return a list or an isTRUE() wrapper — see function docstring.
+    FALSE
   }
 
   repeat {
@@ -269,6 +282,35 @@ if (identical(Sys.getenv("TESTTHAT"), "true")) {
       )
       testthat::expect_true(isTRUE(result))
       testthat::expect_gte(counter, 3L)
+    })
+
+    testthat::test_that("wait_for does NOT treat atomic 0/NA/empty-string as truthy (Copilot review #3)", {
+      # Each probe returns a "not ready" sentinel — the old code returned
+      # these as truthy because of the `is.atomic(v) -> TRUE` branch. New
+      # code requires explicit isTRUE or non-empty list/data.frame. Use a
+      # short timeout so the test fails fast on regression.
+      expect_times_out <- function(probe, label) {
+        err <- tryCatch(
+          wait_for(probe, timeout = 0.1, label = label, interval = 0.02),
+          error = function(e) e
+        )
+        testthat::expect_s3_class(err, "error")
+        testthat::expect_match(conditionMessage(err), "wait_for timeout")
+      }
+      expect_times_out(function() 0L, "zero int probe")
+      expect_times_out(function() 0, "zero double probe")
+      expect_times_out(function() NA, "NA probe")
+      expect_times_out(function() "", "empty string probe")
+      expect_times_out(function() "x", "non-empty string probe")
+      expect_times_out(function() list(), "empty list probe")
+      expect_times_out(function() data.frame(), "empty data.frame probe")
+    })
+
+    testthat::test_that("wait_for accepts non-empty list and non-empty data.frame", {
+      lst <- wait_for(function() list(a = 1), timeout = 1, label = "list")
+      testthat::expect_equal(lst$a, 1)
+      df <- wait_for(function() data.frame(x = 1:2), timeout = 1, label = "df")
+      testthat::expect_equal(nrow(df), 2)
     })
 
     testthat::test_that("wait_for fails loudly on timeout with a clear message", {
