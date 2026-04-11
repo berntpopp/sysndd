@@ -17,6 +17,14 @@
 #   - On v11.0/phase-b/* branches only: replacing Sys.sleep(N) with
 #     wait_for(..., timeout = N) in pre-existing test-*.R or helper-*.R files
 #     is allowed. This exemption exists for B5.
+#   - On v11.0/phase-c/test-endpoint-* branches only: the default-on transaction
+#     rollback audit (plan §3 Phase C.4 / §4.5) is allowed to add
+#     skip_if_no_test_db() calls and exemption comments matching the keywords
+#     rollback/non-transactional/exempt/catalog to pre-existing
+#     test-integration-*.R files. Wrapping existing test_that/it blocks in
+#     with_test_db_transaction({...}) is also allowed. This exemption exists
+#     for C7/C8/C9 to satisfy Layer B's rollback invariant without mutating
+#     test assertions.
 #
 # Extended mode (--extended): grep every api/tests/testthat/test-integration-*.R
 # file and assert each opens with EITHER `with_test_db_transaction` OR a
@@ -135,6 +143,34 @@ if [ "$BRANCH" != "$BASE_REF" ] && [ "$BRANCH" != "master" ]; then
          echo "$ADDED"   | grep -qE '(wait_for|wait_stable)\(' && \
          [ "${removed_noise}" -eq 0 ] && \
          [ "${added_noise}" -eq 0 ]; then
+        continue
+      fi
+    fi
+
+    # v11.0/phase-c/test-endpoint-* exemption: default-on rollback audit.
+    # Allows pre-existing test-integration-*.R files to be annotated with
+    # skip_if_no_test_db() + an exemption comment (rollback/non-transactional/
+    # exempt/catalog) and/or wrapped in with_test_db_transaction({...}). No
+    # lines may be REMOVED (pure additive audit) and every non-blank/non-comment
+    # ADDED line must match a whitelisted token. See plan §3 Phase C.4 / §4.5.
+    if [[ "$BRANCH" == v11.0/phase-c/test-endpoint-* ]]; then
+      ADDED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^\+[^+]' || true)
+      REMOVED=$(git diff "$MERGE_BASE"..HEAD -- "$f" | grep -E '^-[^-]' || true)
+
+      # Whitelist: skip_if_no_test_db() calls, with_test_db_transaction openings
+      # and closings, and exemption comments. Blank lines and generic comments
+      # are allowed if they contain one of the exemption keywords.
+      exemption_c7_added_noise=$(
+        echo "$ADDED" | grep -vE '^\+[[:space:]]*$' \
+                      | grep -vE '^\+[[:space:]]*#.*(exempt|rollback|non-transactional|catalog)' \
+                      | grep -vE 'skip_if_no_test_db\(' \
+                      | grep -vE 'with_test_db_transaction\(' \
+                      | grep -vE '^\+[[:space:]]*\}\)[[:space:]]*$' \
+                      | grep -c '.' || true
+      )
+      if [ -z "$REMOVED" ] && \
+         echo "$ADDED" | grep -qE '(skip_if_no_test_db\(|with_test_db_transaction\()' && \
+         [ "${exemption_c7_added_noise}" -eq 0 ]; then
         continue
       fi
     fi
