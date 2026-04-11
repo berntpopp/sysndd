@@ -28,11 +28,13 @@ export default mergeConfig(
           '**/test-utils/**',
           '**/types/**',
         ],
+        // Phase B.B1 bumped these from 40 → 45 in line with §3 Phase B.B1.
+        // Phase C will bump them again once the view-level spec suite lands.
         thresholds: {
-          lines: 40,
-          functions: 40,
-          branches: 40,
-          statements: 40,
+          lines: 45,
+          functions: 45,
+          branches: 45,
+          statements: 45,
         },
       },
     },

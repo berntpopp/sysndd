@@ -56,9 +56,14 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 import { server } from './src/test-utils/mocks/server';
 
-// Start MSW server before all tests
+// Start MSW server before all tests.
+// Phase B.B1: `onUnhandledRequest: 'error'` — any spec that reaches an
+// un-mocked API path fails loudly instead of silently hitting the real
+// network. If a new spec needs a handler that isn't in
+// src/test-utils/mocks/handlers.ts, add it there first (with a 2xx + 4xx
+// branch and an OpenAPI path comment); do not weaken this back to 'warn'.
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'warn' });
+  server.listen({ onUnhandledRequest: 'error' });
 });
 
 // =============================================================================
