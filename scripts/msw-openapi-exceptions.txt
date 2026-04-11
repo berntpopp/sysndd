@@ -1,0 +1,36 @@
+# scripts/msw-openapi-exceptions.txt
+#
+# Phase B.B1 allow-list for MSW handlers whose path+method pair is listed in
+# the locked Phase B.B1 handler table (.plans/v11.0/phase-b.md §3 Phase B.B1)
+# but does NOT have a matching @get/@post/@put/@delete annotation in the
+# corresponding api/endpoints/*.R file.
+#
+# Each line is: METHOD /api/<path>#reason
+# Lines starting with `#` are comments. Case-sensitive on the METHOD.
+#
+# The table in §3 Phase B.B1 is marked "DO NOT REOPEN" in the spec — these
+# drifts are deliberate, documented spec bugs carried forward so downstream
+# view-level specs can still mount against the mock shape they expect. The
+# underlying R endpoint must be added or the locked table must be re-opened
+# in a later phase before this allow-list can shrink.
+#
+# ---------------------------------------------------------------------------
+# Current exceptions (4 entries):
+# ---------------------------------------------------------------------------
+
+# Spec table says PUT /api/user/delete; real annotation is @delete delete
+# (api/endpoints/user_endpoints.R:773). Drift: HTTP method.
+PUT /api/user/delete#spec bug: real endpoint is DELETE, not PUT (user_endpoints.R:773)
+
+# Spec table says PUT /api/review/approve/all; no bulk approve endpoint
+# exists in api/endpoints/review_endpoints.R. Only PUT /approve/<id>.
+PUT /api/review/approve/all#spec bug: no bulk-approve annotation in review_endpoints.R
+
+# Spec table says PUT /api/status/approve/all; no bulk approve endpoint
+# exists in api/endpoints/status_endpoints.R. Only PUT /approve/<id>.
+PUT /api/status/approve/all#spec bug: no bulk-approve annotation in status_endpoints.R
+
+# Spec table says GET /api/entity/<sysndd_id>; entity_endpoints.R defines only
+# @get / (list) and @get /<sysndd_id>/<sub> paths. There is no bare
+# @get /<sysndd_id> annotation on master.
+GET /api/entity/:sysndd_id#spec bug: no bare @get /<sysndd_id> annotation in entity_endpoints.R

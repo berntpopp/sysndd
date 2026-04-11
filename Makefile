@@ -141,11 +141,15 @@ lint-api: check-r ## [lint] Check R code with lintr + migration prefix check
 		printf "$(GREEN)✓ lint-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ lint-api failed$(RESET)\n" && exit 1)
 
-lint-app: check-npm ## [lint] Check frontend code with ESLint
+lint-app: check-npm ## [lint] Check frontend code with ESLint and MSW↔OpenAPI drift
 	@printf "$(CYAN)==> Checking frontend code with ESLint...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run lint && \
+		printf "$(GREEN)✓ eslint complete$(RESET)\n" || \
+		(printf "$(RED)✗ eslint failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)==> Verifying MSW handlers against OpenAPI annotations...$(RESET)\n"
+	@$(ROOT_DIR)/scripts/verify-msw-against-openapi.sh && \
 		printf "$(GREEN)✓ lint-app complete$(RESET)\n" || \
-		(printf "$(RED)✗ lint-app failed$(RESET)\n" && exit 1)
+		(printf "$(RED)✗ verify-msw-against-openapi failed$(RESET)\n" && exit 1)
 
 format-api: check-r ## [lint] Format R code with styler
 	@printf "$(CYAN)==> Formatting R code with styler...$(RESET)\n"
