@@ -1,0 +1,16 @@
+structure(list(method = "GET", url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=xyzzy12345nonexistent98765%5BPMID%5D&retmode=xml", 
+    status_code = 200L, headers = structure(list(`strict-transport-security` = "max-age=31536000; includeSubDomains; preload", 
+        `content-security-policy` = "upgrade-insecure-requests", 
+        `referrer-policy` = "origin-when-cross-origin", date = "Sat, 11 Apr 2026 16:13:26 GMT", 
+        server = "Finatra", `ncbi-sid` = "A536E83C4A844EB5_2D95SID", 
+        `ncbi-phid` = "1D328F3B415F3AE5000016C15A701C58.1.1.m_1", 
+        `content-type` = "text/xml; charset=UTF-8", `cache-control` = "private", 
+        `content-encoding` = "gzip", `x-ratelimit-limit` = "3", 
+        `x-ratelimit-remaining` = "1", `access-control-allow-origin` = "*", 
+        `access-control-expose-headers` = "X-RateLimit-Limit,X-RateLimit-Remaining", 
+        `set-cookie` = "ncbi_sid=A536E83C4A844EB5_2D95SID; domain=.nih.gov; path=/; expires=Sun, 11 Apr 2027 16:13:27 GMT", 
+        `x-ua-compatible` = "IE=Edge", `x-xss-protection` = "1; mode=block"), class = "httr2_headers"), 
+    body = charToRaw("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<!DOCTYPE eSearchResult PUBLIC \"-//NLM//DTD esearch 20060628//EN\" \"https://eutils.ncbi.nlm.nih.gov/eutils/dtd/20060628/esearch.dtd\">\n<eSearchResult><Count>0</Count><RetMax>0</RetMax><RetStart>0</RetStart><IdList/><TranslationSet/><QueryTranslation>xyzzy12345nonexistent98765[PMID]</QueryTranslation><WarningList><OutputMessage>No items found.</OutputMessage></WarningList></eSearchResult>\n"), 
+    timing = c(redirect = 0, namelookup = 1.7e-05, connect = 0, 
+    pretransfer = 8.9e-05, starttransfer = 0.208625, total = 0.20873
+    ), cache = new.env(parent = emptyenv())), class = "httr2_response")

@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -472,3 +472,43 @@ worktree-prune: ## [env] Prune stale worktree references and list remaining work
 		(printf "$(RED)✗ worktree prune failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Remaining worktrees:$(RESET)\n"
 	@git -C $(ROOT_DIR) worktree list
+
+# =============================================================================
+# Phase B B2: fixture refresh
+# =============================================================================
+# `make refresh-fixtures` records fresh httptest2 captures of the live NCBI
+# eUtils PubMed API and the PubTator3 API into
+# `api/tests/testthat/fixtures/{pubmed,pubtator}/`.
+#
+# - This target is DEVELOPER-ONLY. It is intentionally NOT invoked from
+#   `make ci-local`, `make pre-commit`, or any CI job. Fixtures are committed
+#   artefacts; we never let CI silently rewrite them by hitting the upstream
+#   APIs.
+# - The capture runs inside the `sysndd-api:latest` Docker image because the
+#   Ubuntu questing host cannot install `httr2` + `httptest2` + `easyPubMed`
+#   cleanly (see CLAUDE.md "Host-Env Workaround"). The image already has
+#   them; we bind-mount the fixtures directory so writes land in-tree.
+# - The capture script is `api/scripts/capture-external-fixtures.R`. See
+#   `api/tests/testthat/fixtures/README.md` for the full inventory and the
+#   exact request URLs each fixture corresponds to.
+
+# Image used for fixture capture. Override with FIXTURE_IMAGE=... to pin a
+# specific tag (default: whatever the local `sysndd-api` prod image tag is).
+FIXTURE_IMAGE ?= sysndd-api:latest
+
+refresh-fixtures: check-docker ## [test] Refresh live PubMed/PubTator httptest2 fixtures (dev-only, NOT run in CI)
+	@printf "$(CYAN)==> Refreshing external-API test fixtures (Phase B B2)$(RESET)\n"
+	@printf "$(YELLOW)This hits the live NCBI PubMed and PubTator APIs.$(RESET)\n"
+	@printf "$(YELLOW)It is intentionally NOT part of make ci-local.$(RESET)\n"
+	@printf "\n$(CYAN)Image:$(RESET) $(FIXTURE_IMAGE)\n"
+	@printf "$(CYAN)Target:$(RESET) $(ROOT_DIR)/api/tests/testthat/fixtures/{pubmed,pubtator}/\n\n"
+	@docker run --rm --network=host \
+		-v "$(ROOT_DIR)/api/tests/testthat/fixtures:/fixtures" \
+		-v "$(ROOT_DIR)/api/scripts:/scripts:ro" \
+		$(FIXTURE_IMAGE) \
+		Rscript /scripts/capture-external-fixtures.R /fixtures && \
+		printf "\n$(GREEN)✓ refresh-fixtures complete$(RESET)\n" || \
+		(printf "\n$(RED)✗ refresh-fixtures failed$(RESET)\n" && exit 1)
+	@printf "\n$(CYAN)Next steps:$(RESET)\n"
+	@printf "  git status api/tests/testthat/fixtures/\n"
+	@printf "  git diff   api/tests/testthat/fixtures/README.md   # update inventory if fixture set changed\n"
