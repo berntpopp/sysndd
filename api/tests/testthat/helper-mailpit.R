@@ -99,23 +99,32 @@ mailpit_message_count <- function(mailpit_url = "http://localhost:8025") {
 #' Polls Mailpit until a message matching the query appears or timeout.
 #' Useful when email sending is asynchronous.
 #'
+#' Delegates to `wait_for()` from `helper-wait.R` so that the poll cadence
+#' is uniform across the test suite and timeouts produce diagnostic errors
+#' (attempt count, last observed value) rather than a bare "Timeout" string.
+#'
 #' @param query Search query (typically recipient email)
 #' @param timeout_seconds Maximum time to wait (default: 10)
 #' @param mailpit_url Base URL for Mailpit
+#' @param interval Poll interval in seconds (default: 0.1)
 #' @return First matching message, or error on timeout
 mailpit_wait_for_message <- function(
     query,
     timeout_seconds = 10,
-    mailpit_url = "http://localhost:8025") {
-  start_time <- Sys.time()
-  while (difftime(Sys.time(), start_time, units = "secs") < timeout_seconds) {
-    result <- mailpit_search(query, mailpit_url)
-    if (!is.null(result$total) && result$total > 0) {
-      return(result$messages[[1]])
-    }
-    Sys.sleep(0.5)
-  }
-  stop(paste("Timeout waiting for email matching:", query))
+    mailpit_url = "http://localhost:8025",
+    interval = 0.1) {
+  wait_for(
+    condition = function() {
+      result <- mailpit_search(query, mailpit_url)
+      if (!is.null(result$total) && result$total > 0) {
+        return(result$messages[[1]])
+      }
+      NULL
+    },
+    timeout = timeout_seconds,
+    label = paste0("mailpit message matching '", query, "' at ", mailpit_url),
+    interval = interval
+  )
 }
 
 
