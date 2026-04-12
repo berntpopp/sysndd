@@ -217,15 +217,17 @@ function(req, res) {
 function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, offset = 0) {
   require_role(req, res, "Administrator")
 
-  # Convert to integer (Plumber passes query params as strings)
-  limit  <- as.integer(limit)
-  offset <- as.integer(offset)
+  # Convert & clamp pagination inputs
+  limit  <- min(max(as.integer(limit), 1L), 500L)
+  offset <- max(as.integer(offset), 0L)
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
   if (!is.null(validation_status) && validation_status == "") validation_status <- NULL
 
-  # Delegate to repository; translate limit/offset to page/per_page for existing function
+  # Translate limit/offset to page/per_page for existing repository function.
+  # NOTE: page translation is only exact when offset is a multiple of limit;
+  # non-aligned offsets are rounded down to the nearest page boundary.
   page     <- floor(offset / max(limit, 1L)) + 1L
   per_page <- limit
 
@@ -237,7 +239,9 @@ function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, of
   )
 
   # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) result$total else length(result$data)
+  total <- if (!is.null(result$total)) result$total else {
+    if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
+  }
   next_offset <- offset + limit
   next_link <- if (next_offset < total) {
     paste0("?limit=", limit, "&offset=", next_offset)
@@ -522,9 +526,9 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
          limit = 50, offset = 0) {
   require_role(req, res, "Administrator")
 
-  # Convert to integer
-  limit  <- as.integer(limit)
-  offset <- as.integer(offset)
+  # Convert & clamp pagination inputs
+  limit  <- min(max(as.integer(limit), 1L), 500L)
+  offset <- max(as.integer(offset), 0L)
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
@@ -532,7 +536,9 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   if (!is.null(from_date) && from_date == "") from_date <- NULL
   if (!is.null(to_date) && to_date == "") to_date <- NULL
 
-  # Translate limit/offset to page/per_page for existing repository function
+  # Translate limit/offset to page/per_page for existing repository function.
+  # NOTE: page translation is only exact when offset is a multiple of limit;
+  # non-aligned offsets are rounded down to the nearest page boundary.
   page     <- floor(offset / max(limit, 1L)) + 1L
   per_page <- limit
 
@@ -546,7 +552,9 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   )
 
   # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) result$total else length(result$data)
+  total <- if (!is.null(result$total)) result$total else {
+    if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
+  }
   next_offset <- offset + limit
   next_link <- if (next_offset < total) {
     paste0("?limit=", limit, "&offset=", next_offset)

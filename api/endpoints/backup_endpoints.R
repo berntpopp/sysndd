@@ -22,16 +22,17 @@
 #* Requires Administrator role.
 #*
 #* # `Parameters`
-#* - page: Integer - Page number (default: 1)
+#* - limit: Integer - Maximum number of items per page (default: 50, max: 500)
+#* - offset: Integer - Number of items to skip (default: 0)
+#* - page: Integer - Page number, backward-compatible alias (default: 1);
+#*   converted to offset internally. Ignored when limit/offset are provided.
 #* - sort: String - Sort order: "newest" (default) or "oldest"
 #*
 #* # `Response`
 #* Paginated response with:
 #* - data: Array of backup objects (filename, size_bytes, created_at, table_count)
-#* - total: Total number of backups
-#* - page: Current page number
-#* - page_size: Number of items per page (20)
-#* - meta: Directory metadata (total_count, total_size_bytes)
+#* - links: Object with `next` URL string (or null when no more pages)
+#* - meta: Object with total, limit, offset, page, page_size, directory metadata
 #*
 #* @tag backup
 #* @serializer json list(na="string")
