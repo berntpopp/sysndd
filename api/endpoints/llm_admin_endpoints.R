@@ -247,7 +247,7 @@ function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, of
 
   list(
     data  = result$data,
-    links = list(next = next_link),
+    links = list("next" = next_link),
     meta  = list(total = total, limit = limit, offset = offset)
   )
 }
@@ -556,7 +556,7 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
 
   list(
     data  = result$data,
-    links = list(next = next_link),
+    links = list("next" = next_link),
     meta  = list(total = total, limit = limit, offset = offset)
   )
 }
