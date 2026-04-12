@@ -168,7 +168,7 @@ paginate_offset <- function(data, limit = 50, offset = 0, base_url = NULL) {
 
   list(
     data  = sliced,
-    links = list(next = next_link),
+    links = list(`next` = next_link),
     meta  = list(total = total, limit = limit, offset = offset)
   )
 }
