@@ -9,17 +9,19 @@ require(logger)
 require(DBI)
 log_threshold(INFO)
 
-# Load split modules if not already sourced (standalone loading, e.g. from tests)
+# Load split modules if not already sourced (standalone loading, e.g. from tests).
+# Use get_api_dir() (from test helper-paths.R) when available; fall back to
+# relative "functions/" (works when wd is api/, i.e. normal API startup).
+.funcs_dir <- tryCatch(file.path(get_api_dir(), "functions"), error = function(e) "functions")
 if (!exists("pubtator_rate_limited_call", mode = "function")) {
-  if (file.exists("functions/pubtator-client.R")) {
-    source("functions/pubtator-client.R", local = FALSE)
-  }
+  .p <- file.path(.funcs_dir, "pubtator-client.R")
+  if (file.exists(.p)) source(.p, local = FALSE)
 }
 if (!exists("pubtator_parse_biocjson", mode = "function")) {
-  if (file.exists("functions/pubtator-parser.R")) {
-    source("functions/pubtator-parser.R", local = FALSE)
-  }
+  .p <- file.path(.funcs_dir, "pubtator-parser.R")
+  if (file.exists(.p)) source(.p, local = FALSE)
 }
+rm(.funcs_dir, .p)
 
 # Load database helper functions for repository layer access (if not already loaded)
 if (!exists("db_execute_query", mode = "function")) {
