@@ -278,17 +278,29 @@ function logout(): void {
 async function refresh(): Promise<string> {
   const apiUrl = `${import.meta.env.VITE_API_URL ?? ''}/api/auth/refresh`;
   const response = await axios.get(apiUrl);
-  // Plumber returns `["..."]`; tolerate either shape so this keeps working
-  // if the API ever un-wraps scalars.
+  // Strict shape validation (Copilot Fix 3)
+  // ---------------------------------------
+  // Plumber returns `["..."]`; master's implementation also tolerated a bare
+  // string. Accept either of those shapes explicitly and reject anything
+  // else (`{}`, `{ foo: 'bar' }`, `[]`, `[123]`, `null`, numbers, etc.)
+  // BEFORE persisting.
+  //
+  // The earlier I2 guard used `String(raw)` / `String(raw[0])` and then
+  // checked the coerced string against `"undefined"`/`"null"`. That still
+  // let an object like `{}` through as the literal string "[object Object]"
+  // — not caught by the sentinel check — and poisoned the session until a
+  // 401 fired. This type-level check supersedes the I2 guard.
   const raw: unknown = response.data;
-  const nextToken = Array.isArray(raw) ? String(raw[0]) : String(raw);
-
-  // Guard against malformed 200 responses (null, {}, [null], non-coercible
-  // payloads). Without this check, `String(undefined)` persists the literal
-  // string "undefined" as the new token, which would masquerade as a valid
-  // session until the next request fires a 401.
-  if (!nextToken || nextToken === 'undefined' || nextToken === 'null') {
-    throw new Error('Refresh returned invalid token');
+  let nextToken: string;
+  if (typeof raw === 'string') {
+    nextToken = raw;
+  } else if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'string') {
+    nextToken = raw[0];
+  } else {
+    throw new Error('Refresh returned invalid token shape');
+  }
+  if (!nextToken) {
+    throw new Error('Refresh returned empty token');
   }
 
   tokenRef.value = nextToken;

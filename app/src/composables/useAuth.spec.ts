@@ -241,10 +241,9 @@ describe('useAuth', () => {
     });
 
     it('refresh() rejects on a malformed 200 body ([null]) and does NOT mutate token/localStorage/header', async () => {
-      // A 200 with [null] (or similar shapes where the Plumber scalar-array
-      // unwraps to undefined/null) must not poison the session with the
-      // literal string "undefined"/"null". useAuth.refresh() guards against
-      // this before persisting.
+      // A 200 with [null] must not poison the session. Copilot Fix 3 tightens
+      // this from the earlier string-coercion check to an explicit type
+      // check: `[null]` fails `typeof raw[0] === 'string'` up front.
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
@@ -252,12 +251,59 @@ describe('useAuth', () => {
         http.get('/api/auth/refresh', () => HttpResponse.json([null]))
       );
 
-      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token');
+      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
       // Nothing must have been mutated.
       expect(auth.token.value).toBe(FRESH_TOKEN);
       expect(localStorage.getItem('token')).toBe(FRESH_TOKEN);
       expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
+    });
+
+    it('refresh() rejects a plain object body (`{}`) — not a string and not an array', async () => {
+      // Copilot Fix 3: without a proper type check, `String({})` would yield
+      // "[object Object]" and pass the earlier I2 sentinel check (not
+      // "undefined" / "null" / empty), poisoning the session until a 401.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      server.use(
+        http.get('/api/auth/refresh', () => HttpResponse.json({ foo: 'bar' }))
+      );
+
+      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
+
+      expect(auth.token.value).toBe(FRESH_TOKEN);
+      expect(localStorage.getItem('token')).toBe(FRESH_TOKEN);
+      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
+    });
+
+    it('refresh() rejects an array whose first element is not a string (`[123]`)', async () => {
+      // Copilot Fix 3: even if the body is an array, element[0] must be a
+      // string. A numeric 0th element (or any non-string) is rejected.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      server.use(
+        http.get('/api/auth/refresh', () => HttpResponse.json([123]))
+      );
+
+      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
+
+      expect(auth.token.value).toBe(FRESH_TOKEN);
+    });
+
+    it('refresh() rejects an empty array (`[]`)', async () => {
+      // Copilot Fix 3: `[]` has no `[0]` to read. Reject before persisting.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      server.use(
+        http.get('/api/auth/refresh', () => HttpResponse.json([]))
+      );
+
+      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
+
+      expect(auth.token.value).toBe(FRESH_TOKEN);
     });
   });
 
