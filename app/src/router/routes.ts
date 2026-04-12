@@ -1,8 +1,42 @@
 // src/router/routes.ts
 
 import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+import { useAuth } from '@/composables/useAuth';
 
-// TODO: remove redundance in localStorage setting/reading
+/**
+ * Role-based route-guard factory (Phase E.E7).
+ *
+ * Replaces an 18x-duplicated pattern that hand-parsed `localStorage.token`
+ * and `localStorage.user` inside every `beforeEnter` hook. The new flow
+ * delegates every auth decision to the `useAuth()` composable:
+ *
+ *   - `isAuthenticated` covers the "have both token and user" check that
+ *     the old guards wrote as `!localStorage.user`.
+ *   - `isExpired` replaces the inline `timestamp > expires` comparison
+ *     (and picks up the corrupt-payload handling in `useAuth` for free —
+ *     a bad JSON blob now fails closed to logged-out instead of throwing
+ *     inside navigation).
+ *   - `hasRole(role)` unwraps the R/Plumber scalar-array (`user_role[0]`)
+ *     that the old guards did inline.
+ *
+ * Each call site still supplies its own `allowed_roles` list; behaviour is
+ * otherwise identical to the pre-refactor guards.
+ */
+function createAuthGuard(allowed_roles: readonly string[]) {
+  return (
+    _to: RouteLocationNormalized,
+    _from: RouteLocationNormalized,
+    next: NavigationGuardNext
+  ) => {
+    const { isAuthenticated, isExpired, hasRole } = useAuth();
+    const isAllowed = allowed_roles.some((role) => hasRole(role));
+    if (!isAuthenticated.value || isExpired.value || !isAllowed) {
+      next({ name: 'Login' });
+    } else {
+      next();
+    }
+  };
+}
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -335,26 +369,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'User',
     component: () => import('@/views/UserView.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator', 'Reviewer']),
   },
   {
     path: '/PasswordReset/:request_jwt?',
@@ -367,312 +382,84 @@ export const routes: RouteRecordRaw[] = [
     name: 'Review',
     component: () => import('@/views/review/Review.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator', 'Reviewer']),
   },
   {
     path: '/ReviewInstructions',
     name: 'ReviewInstructions',
     component: () => import('@/views/review/ReviewInstructions.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator', 'Reviewer'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator', 'Reviewer']),
   },
   {
     path: '/CreateEntity',
     name: 'CreateEntity',
     component: () => import('@/views/curate/CreateEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ModifyEntity',
     name: 'ModifyEntity',
     component: () => import('@/views/curate/ModifyEntity.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ApproveReview',
     name: 'ApproveReview',
     component: () => import('@/views/curate/ApproveReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ApproveStatus',
     name: 'ApproveStatus',
     component: () => import('@/views/curate/ApproveStatus.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ApproveUser',
     name: 'ApproveUser',
     component: () => import('@/views/curate/ApproveUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ManageReReview',
     name: 'ManageReReview',
     component: () => import('@/views/curate/ManageReReview.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator', 'Curator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
   {
     path: '/ManageUser',
     name: 'ManageUser',
     component: () => import('@/views/admin/ManageUser.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManageAnnotations',
     name: 'ManageAnnotations',
     component: () => import('@/views/admin/ManageAnnotations.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManageOntology',
     name: 'ManageOntology',
     component: () => import('@/views/admin/ManageOntology.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManageAbout',
     name: 'ManageAbout',
     component: () => import('@/views/admin/ManageAbout.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else next();
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ViewLogs',
@@ -687,140 +474,35 @@ export const routes: RouteRecordRaw[] = [
       fspec: route.query.fspec || undefined,
     }),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else {
-        next();
-      }
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/AdminStatistics',
     name: 'AdminStatistics',
     component: () => import('@/views/admin/AdminStatistics.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else {
-        next();
-      }
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManageBackups',
     name: 'ManageBackups',
     component: () => import('@/views/admin/ManageBackups.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else {
-        next();
-      }
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManagePubtator',
     name: 'ManagePubtator',
     component: () => import('@/views/admin/ManagePubtator.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else {
-        next();
-      }
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/ManageLLM',
     name: 'ManageLLM',
     component: () => import('@/views/admin/ManageLLM.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
-      const allowed_roles = ['Administrator'];
-      let expires = 0;
-      let timestamp = 0;
-      let user_role = 'Viewer';
-
-      if (localStorage.token) {
-        expires = JSON.parse(localStorage.user).exp;
-        user_role = JSON.parse(localStorage.user).user_role;
-        timestamp = Math.floor(new Date().getTime() / 1000);
-      }
-
-      if (!localStorage.user || timestamp > expires || !allowed_roles.includes(user_role[0])) {
-        next({ name: 'Login' });
-      } else {
-        next();
-      }
-    },
+    beforeEnter: createAuthGuard(['Administrator']),
   },
   {
     path: '/Entities/:entity_id',
