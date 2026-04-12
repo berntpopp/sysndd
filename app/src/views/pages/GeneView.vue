@@ -276,7 +276,7 @@ async function loadGeneInfo() {
       geneData.value = hgncRows;
     }
   } catch (e) {
-    makeToast(e as string, 'Error', 'danger');
+    makeToast(e, 'Error', 'danger');
   }
   loading.value = false;
 
