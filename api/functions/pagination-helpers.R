@@ -159,7 +159,15 @@ paginate_offset <- function(data, limit = 50, offset = 0, base_url = NULL) {
   # Build next link
   next_offset <- offset + limit
   if (next_offset < total && !is.null(base_url)) {
-    next_link <- paste0(base_url, "&limit=", limit, "&offset=", next_offset)
+    # Detect correct query-string separator for base_url
+    query_sep <- if (grepl("\\?$|&$", base_url)) {
+      ""
+    } else if (grepl("\\?", base_url)) {
+      "&"
+    } else {
+      "?"
+    }
+    next_link <- paste0(base_url, query_sep, "limit=", limit, "&offset=", next_offset)
   } else if (next_offset < total) {
     next_link <- paste0("?limit=", limit, "&offset=", next_offset)
   } else {
