@@ -22,29 +22,52 @@
 #* Requires Administrator role.
 #*
 #* # `Parameters`
-#* - page: Integer - Page number (default: 1)
+#* Two mutually-exclusive pagination modes:
+#*   1. Legacy page-based (default): `page` (default: 1) with fixed
+#*      `page_size=20`. Used when `limit` is not provided.
+#*   2. New offset-based: `limit` (default: 50 when used, max: 500) +
+#*      `offset` (default: 0). Takes precedence when `limit` is provided.
 #* - sort: String - Sort order: "newest" (default) or "oldest"
 #*
 #* # `Response`
 #* Paginated response with:
 #* - data: Array of backup objects (filename, size_bytes, created_at, table_count)
-#* - total: Total number of backups
-#* - page: Current page number
-#* - page_size: Number of items per page (20)
+#* - total: Integer total count of backups
+#* - page: Current page number (legacy)
+#* - page_size: Number of items per page (legacy)
+#* - limit: Integer effective page size
+#* - offset: Integer rows skipped
+#* - links: Object with `next` URL string (or null when no more pages)
 #* - meta: Directory metadata (total_count, total_size_bytes)
 #*
 #* @tag backup
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
+#*
 #* @get /list
-function(req, res, page = 1, sort = "newest") {
+function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Validate and coerce page parameter
-  page <- suppressWarnings(as.integer(page))
-  if (is.na(page) || page < 1) {
-    page <- 1
+  # Pagination: support both page-based (legacy) and limit/offset (new).
+  # Coerce via suppressWarnings so non-numeric inputs degrade to NA, then
+  # fall back to defaults. Clamp to reasonable bounds to prevent invalid
+  # slicing.
+  page_size <- 20L
+  limit_raw  <- suppressWarnings(as.integer(limit))
+  offset_raw <- suppressWarnings(as.integer(offset))
+
+  if (!is.null(limit) && !is.na(limit_raw) && limit_raw >= 1L) {
+    limit     <- min(limit_raw, 500L)
+    offset    <- if (!is.null(offset) && !is.na(offset_raw) && offset_raw >= 0L) offset_raw else 0L
+    page_size <- limit
+  } else {
+    page <- suppressWarnings(as.integer(page))
+    if (is.na(page) || page < 1L) page <- 1L
+    limit  <- page_size
+    offset <- (page - 1L) * page_size
   }
 
   # Validate sort parameter
@@ -57,9 +80,6 @@ function(req, res, page = 1, sort = "newest") {
     ))
   }
 
-  # Page size per CONTEXT.md
-  page_size <- 20
-
   # Get backup list from business logic
   tryCatch(
     {
@@ -69,37 +89,41 @@ function(req, res, page = 1, sort = "newest") {
       if (sort == "oldest") {
         backups <- dplyr::arrange(backups, created_at)
       }
-      # else keep default: newest first (already sorted by list_backup_files)
 
-      # Calculate pagination
+      # Inline pagination (no external helper dependency)
       total <- nrow(backups)
-      offset <- (page - 1) * page_size
-
-      # Slice data for current page
       if (total == 0) {
-        data <- backups # Empty tibble with correct structure
+        data <- backups
       } else {
-        start_idx <- offset + 1
-        end_idx <- min(offset + page_size, total)
-
-        if (start_idx > total) {
-          # Page beyond available data - return empty
-          data <- backups[0, ]
-        } else {
-          data <- dplyr::slice(backups, start_idx:end_idx)
-        }
+        start_idx <- offset + 1L
+        end_idx   <- min(offset + limit, total)
+        data <- if (start_idx > total) backups[0, ] else dplyr::slice(backups, start_idx:end_idx)
+      }
+      # Preserve active query params (sort) when building links.next so that
+      # following the link keeps the caller on the same sort order.
+      next_offset <- offset + limit
+      next_link   <- if (next_offset < total) {
+        paste0("?limit=", limit, "&offset=", next_offset, "&sort=", sort)
+      } else {
+        NULL
       }
 
       # Get directory metadata
-      meta <- get_backup_metadata("/backup")
+      dir_meta <- get_backup_metadata("/backup")
 
-      # Return paginated response
+      # Return paginated response.
+      # Top-level legacy fields (total/page/page_size) are preserved for
+      # backward compatibility with existing callers. `links` and `limit`/
+      # `offset` are added for the new pagination contract.
       list(
-        data = data,
-        total = total,
-        page = page,
+        data      = data,
+        total     = total,
+        page      = floor(offset / page_size) + 1L,
         page_size = page_size,
-        meta = meta
+        limit     = limit,
+        offset    = offset,
+        links     = list("next" = next_link),
+        meta      = dir_meta
       )
     },
     error = function(e) {

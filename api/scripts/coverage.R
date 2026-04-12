@@ -17,7 +17,7 @@ suppressPackageStartupMessages({
   library(tibble)
   library(stringr)
   library(tidyr)
-  library(openssl)  # Required for sha256() in helper-functions.R
+  library(openssl)  # Required for sha256() in data-helpers.R
   library(jsonlite)
   library(purrr)
   library(xml2)     # Required for publication-functions.R

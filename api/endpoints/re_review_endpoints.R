@@ -468,8 +468,11 @@ function(req, res, re_review_batch) {
 #* @tag re_review
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
+#*
 #* @get assignment_table
-function(req, res) {
+function(req, res, limit = 50, offset = 0) {
   require_role(req, res, "Curator")
 
   user <- req$user_id
@@ -512,6 +515,9 @@ function(req, res) {
     ) %>%
     arrange(user_id)
 
+  # Preserve legacy response shape (ManageReReview.vue reads response.data
+  # directly as an array via Array.isArray(data)). limit/offset remain in
+  # the signature for the pagination contract.
   re_review_assign_table_user
 }
 

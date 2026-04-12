@@ -321,3 +321,180 @@ svc_review_add_variation_ontology <- function(vario_data, entity_id, review_id, 
     ))
   }
 }
+
+# ---------------------------------------------------------------------------
+# Migrated from legacy-wrappers.R (Phase D, D4)
+# These functions retain their original names because endpoint handlers and
+# Phase C test sandboxes reference them by name. They are thin orchestrators
+# that delegate to the repository layer.
+# ---------------------------------------------------------------------------
+
+#' Create or update review (migrated from legacy-wrappers.R)
+#'
+#' @param method "POST" for create, "PUT" for update
+#' @param review_data Tibble with review fields
+#' @param re_review Logical indicating re-review operation
+#' @return List with status, message, and entry
+put_post_db_review <- function(method, review_data, re_review = FALSE) {
+  logger::log_debug("put_post_db_review: {method} review (re_review={re_review})")
+
+  if (is.data.frame(review_data)) {
+    review_data <- as.list(review_data[1, ])
+  }
+
+  tryCatch(
+    {
+      if (toupper(method) == "POST") {
+        review_id <- review_create(review_data)
+        logger::log_info("put_post_db_review: Created review {review_id}")
+        if (re_review && !is.null(review_data$entity_id)) {
+          tryCatch(
+            review_update_re_review_status(review_data$entity_id, review_id),
+            error = function(e) logger::log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+          )
+        }
+        return(list(status = 200, message = "OK. Review created.",
+                    entry = tibble::tibble(review_id = review_id)))
+      } else {
+        if (is.null(review_data$review_id)) {
+          return(list(status = 405, message = "review_id is required for PUT operation", entry = NA))
+        }
+        review_update(review_data$review_id, review_data)
+        logger::log_info("put_post_db_review: Updated review {review_data$review_id}")
+        if (re_review && !is.null(review_data$entity_id)) {
+          tryCatch(
+            review_update_re_review_status(review_data$entity_id, review_data$review_id),
+            error = function(e) logger::log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+          )
+        }
+        return(list(status = 200, message = "OK. Review updated.",
+                    entry = tibble::tibble(review_id = review_data$review_id)))
+      }
+    },
+    error = function(e) {
+      logger::log_error("put_post_db_review: Error: {e$message}")
+      return(list(status = 500, message = "Error processing review.", entry = NA, error = e$message))
+    }
+  )
+}
+
+#' Connect publications to review (migrated from legacy-wrappers.R)
+#'
+#' @param method "POST" to add, "PUT" to replace
+#' @param publications Tibble with publication data
+#' @param entity_id Integer entity ID
+#' @param review_id Integer review ID
+#' @return List with status and message
+put_post_db_pub_con <- function(method, publications, entity_id, review_id) {
+  logger::log_debug("put_post_db_pub_con: {method} publications for review {review_id}")
+
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        publication_replace_for_review(review_id, entity_id, publications)
+      } else {
+        publication_connect_to_review(review_id, entity_id, publications)
+      }
+      logger::log_info("put_post_db_pub_con: Connected publications to review {review_id}")
+      return(list(status = 200, message = "OK. Publications connected."))
+    },
+    error = function(e) {
+      logger::log_error("put_post_db_pub_con: Error: {e$message}")
+      return(list(status = 500, message = "Error connecting publications.", error = e$message))
+    }
+  )
+}
+
+#' Connect phenotypes to review (migrated from legacy-wrappers.R)
+#'
+#' @param method "POST" to add, "PUT" to replace
+#' @param phenotypes Tibble with phenotype data
+#' @param entity_id Integer entity ID
+#' @param review_id Integer review ID
+#' @return List with status and message
+put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
+  logger::log_debug("put_post_db_phen_con: {method} phenotypes for review {review_id}")
+
+  if ("value" %in% colnames(phenotypes)) {
+    phenotypes_transformed <- phenotypes %>%
+      dplyr::mutate(
+        phenotype_id = sapply(value, function(x) {
+          parts <- strsplit(as.character(x), "-")[[1]]
+          if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
+        }),
+        modifier_id = sapply(value, function(x) {
+          parts <- strsplit(as.character(x), "-")[[1]]
+          if (length(parts) >= 1) parts[1] else NA
+        })
+      ) %>%
+      dplyr::select(phenotype_id, modifier_id)
+  } else if ("phenotype_id" %in% colnames(phenotypes) && "modifier_id" %in% colnames(phenotypes)) {
+    phenotypes_transformed <- phenotypes
+  } else {
+    return(list(status = 405, message = "Invalid phenotypes format",
+                error = "Expected 'value' or 'phenotype_id'/'modifier_id' columns"))
+  }
+
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        phenotype_replace_for_review(review_id, entity_id, phenotypes_transformed)
+      } else {
+        phenotype_connect_to_review(review_id, entity_id, phenotypes_transformed)
+      }
+      logger::log_info("put_post_db_phen_con: Connected phenotypes to review {review_id}")
+      return(list(status = 200, message = "OK. Phenotypes connected."))
+    },
+    error = function(e) {
+      logger::log_error("put_post_db_phen_con: Error: {e$message}")
+      return(list(status = 500, message = "Error connecting phenotypes.", error = e$message))
+    }
+  )
+}
+
+#' Connect variation ontology to review (migrated from legacy-wrappers.R)
+#'
+#' @param method "POST" to add, "PUT" to replace
+#' @param variation_ontology Tibble with variation ontology data
+#' @param entity_id Integer entity ID
+#' @param review_id Integer review ID
+#' @return List with status and message
+put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, review_id) {
+  logger::log_debug("put_post_db_var_ont_con: {method} variation ontology for review {review_id}")
+
+  if ("value" %in% colnames(variation_ontology)) {
+    vario_transformed <- variation_ontology %>%
+      dplyr::mutate(
+        vario_id = sapply(value, function(x) {
+          parts <- strsplit(as.character(x), "-")[[1]]
+          if (length(parts) >= 2) paste(parts[2:length(parts)], collapse = "-") else x
+        }),
+        modifier_id = sapply(value, function(x) {
+          parts <- strsplit(as.character(x), "-")[[1]]
+          if (length(parts) >= 1) parts[1] else NA
+        })
+      ) %>%
+      dplyr::select(vario_id, modifier_id)
+  } else if ("vario_id" %in% colnames(variation_ontology) && "modifier_id" %in% colnames(variation_ontology)) {
+    vario_transformed <- variation_ontology
+  } else {
+    return(list(status = 405, message = "Invalid variation ontology format",
+                error = "Expected 'value' or 'vario_id'/'modifier_id' columns"))
+  }
+
+  tryCatch(
+    {
+      if (toupper(method) == "PUT") {
+        variation_ontology_replace_for_review(review_id, entity_id, vario_transformed)
+      } else {
+        variation_ontology_connect_to_review(review_id, entity_id, vario_transformed)
+      }
+      logger::log_info("put_post_db_var_ont_con: Connected variation ontology to review {review_id}")
+      return(list(status = 200, message = "OK. Variation ontology connected."))
+    },
+    error = function(e) {
+      logger::log_error("put_post_db_var_ont_con: Error: {e$message}")
+      return(list(status = 500, message = "Error connecting variation ontology.", error = e$message))
+    }
+  )
+}

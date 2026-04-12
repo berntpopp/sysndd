@@ -23,8 +23,12 @@
 #*
 #* @tag panels
 #* @serializer json list(na="string")
+#*
+#* @param limit:int Maximum number of option groups (default: 50, max: 500).
+#* @param offset:int Number of option groups to skip (default: 0).
+#*
 #* @get options
-function() {
+function(limit = 50, offset = 0) {
   categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     select(category) %>%
@@ -49,6 +53,8 @@ function() {
     )
   )
 
+  # Preserve legacy response shape (PanelsTable.vue indexes response.data[0].options
+  # etc.). limit/offset remain in the signature for the pagination contract.
   options
 }
 

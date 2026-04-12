@@ -112,3 +112,71 @@ generate_cursor_pag_inf_safe <- function(
     pagination_identifier
   )
 }
+
+
+#' Offset-based Pagination
+#'
+#' Applies simple offset/limit pagination to a data frame or tibble.
+#' Returns a standardised response envelope with data, links, and meta.
+#'
+#' @param data A data frame or tibble to paginate.
+#' @param limit Maximum number of rows to return (default 50, max 500).
+#' @param offset Number of rows to skip (default 0).
+#' @param base_url Base URL for building links.next (optional).
+#'
+#' @return A list with:
+#'   \item{data}{The sliced data frame.}
+#'   \item{links}{A list with \code{next} (URL string or NULL).}
+#'   \item{meta}{A list with \code{total}, \code{limit}, and \code{offset}.}
+#'
+#' @examples
+#' paginate_offset(mtcars, limit = 10, offset = 0)
+paginate_offset <- function(data, limit = 50, offset = 0, base_url = NULL) {
+  # Coerce & validate
+  limit  <- suppressWarnings(as.integer(limit))
+  offset <- suppressWarnings(as.integer(offset))
+
+  if (is.na(limit) || limit < 1)   limit  <- 50L
+  if (is.na(offset) || offset < 0) offset <- 0L
+
+  # Cap at PAGINATION_MAX_SIZE
+  if (limit > PAGINATION_MAX_SIZE) {
+    limit <- PAGINATION_MAX_SIZE
+  }
+
+  total <- nrow(data)
+
+  # Slice the data
+  start_row <- offset + 1L
+  end_row   <- min(offset + limit, total)
+
+  if (start_row > total) {
+    sliced <- data[0, , drop = FALSE]
+  } else {
+    sliced <- data[start_row:end_row, , drop = FALSE]
+  }
+
+  # Build next link
+  next_offset <- offset + limit
+  if (next_offset < total && !is.null(base_url)) {
+    # Detect correct query-string separator for base_url
+    query_sep <- if (grepl("\\?$|&$", base_url)) {
+      ""
+    } else if (grepl("\\?", base_url)) {
+      "&"
+    } else {
+      "?"
+    }
+    next_link <- paste0(base_url, query_sep, "limit=", limit, "&offset=", next_offset)
+  } else if (next_offset < total) {
+    next_link <- paste0("?limit=", limit, "&offset=", next_offset)
+  } else {
+    next_link <- NULL
+  }
+
+  list(
+    data  = sliced,
+    links = list(`next` = next_link),
+    meta  = list(total = total, limit = limit, offset = offset)
+  )
+}

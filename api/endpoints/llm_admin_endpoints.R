@@ -200,37 +200,78 @@ function(req, res) {
 #* # `Query Parameters`
 #* @param cluster_type:character Filter by "functional" or "phenotype"
 #* @param validation_status:character Filter by "pending", "validated", "rejected"
-#* @param page:int Page number (1-indexed, default: 1)
-#* @param per_page:int Entries per page (default: 20)
+#* @param page:int Page number (default: 1)
+#* @param per_page:int Items per page (default: 50, max: 500)
+#* @param limit:int Alias for per_page (D5 pagination contract, default: 50)
+#* @param offset:int Alias for (page-1) * per_page; rounded DOWN to the
+#*   nearest page boundary when not a multiple of per_page (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
+#* Legacy pagination envelope expected by `useLlmAdmin.ts` /
+#* `types/llm.ts::PaginatedCacheSummaries`:
 #* - data: Array of cache entries
-#* - total: Integer, total matching entries
-#* - page: Integer, current page
-#* - per_page: Integer, entries per page
+#* - total: Integer total count
+#* - page: Current page number
+#* - per_page: Items per page
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")
 #* @get /cache/summaries
-function(req, res, cluster_type = NULL, validation_status = NULL, page = 1, per_page = 20) {
+function(req, res, cluster_type = NULL, validation_status = NULL,
+         page = NULL, per_page = NULL, limit = NULL, offset = NULL) {
   require_role(req, res, "Administrator")
 
-  # Convert to integer (Plumber passes query params as strings)
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
+  # Frontend uses page/per_page; limit/offset are aliases added by D5 for the
+  # pagination contract. Coerce via suppressWarnings so non-numeric inputs
+  # degrade to NA (then fall back to defaults) rather than propagating NA.
+  page_val     <- suppressWarnings(as.integer(page))
+  per_page_val <- suppressWarnings(as.integer(per_page))
+  limit_val    <- suppressWarnings(as.integer(limit))
+  offset_val   <- suppressWarnings(as.integer(offset))
+
+  # Resolve effective page/per_page (legacy contract wins; fall back to
+  # limit/offset, then defaults).
+  if (is.na(per_page_val) || per_page_val < 1L) {
+    per_page_val <- if (!is.na(limit_val) && limit_val >= 1L) min(limit_val, 500L) else 50L
+  } else {
+    per_page_val <- min(per_page_val, 500L)
+  }
+  if (is.na(page_val) || page_val < 1L) {
+    page_val <- if (!is.na(offset_val) && offset_val >= 0L) {
+      floor(offset_val / max(per_page_val, 1L)) + 1L
+    } else {
+      1L
+    }
+  }
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
   if (!is.null(validation_status) && validation_status == "") validation_status <- NULL
 
-  get_cached_summaries_paginated(
+  result <- get_cached_summaries_paginated(
     cluster_type = cluster_type,
     validation_status = validation_status,
-    page = page,
-    per_page = per_page
+    page = page_val,
+    per_page = per_page_val
+  )
+
+  # Preserve legacy response shape {data, total, page, per_page} expected by
+  # useLlmAdmin.ts / types/llm.ts::PaginatedCacheSummaries.
+  total_val <- if (!is.null(result$total)) {
+    result$total
+  } else if (is.data.frame(result$data)) {
+    nrow(result$data)
+  } else {
+    length(result$data)
+  }
+  list(
+    data     = result$data,
+    total    = total_val,
+    page     = page_val,
+    per_page = per_page_val
   )
 }
 
@@ -486,28 +527,52 @@ function(req, res, cluster_type = "all", force = FALSE) {
 #* @param status:character Filter by "success", "validation_failed", "api_error", "timeout"
 #* @param from_date:character Start date filter (YYYY-MM-DD)
 #* @param to_date:character End date filter (YYYY-MM-DD)
-#* @param page:int Page number (1-indexed, default: 1)
-#* @param per_page:int Entries per page (default: 50)
+#* @param page:int Page number (default: 1)
+#* @param per_page:int Items per page (default: 50, max: 500)
+#* @param limit:int Alias for per_page (D5 pagination contract, default: 50)
+#* @param offset:int Alias for (page-1) * per_page; rounded DOWN to the
+#*   nearest page boundary when not a multiple of per_page (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
+#* Legacy pagination envelope expected by `useLlmAdmin.ts` /
+#* `types/llm.ts::PaginatedLogs`:
 #* - data: Array of log entries
-#* - total: Integer, total matching entries
-#* - page: Integer, current page
-#* - per_page: Integer, entries per page
+#* - total: Integer total count
+#* - page: Current page number
+#* - per_page: Items per page
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")
 #* @get /logs
 function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date = NULL,
-         page = 1, per_page = 50) {
+         page = NULL, per_page = NULL, limit = NULL, offset = NULL) {
   require_role(req, res, "Administrator")
 
-  # Convert to integer
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
+  # Frontend uses page/per_page; limit/offset are aliases added by D5 for the
+  # pagination contract. Coerce via suppressWarnings so non-numeric inputs
+  # degrade to NA (then fall back to defaults) rather than propagating NA.
+  page_val     <- suppressWarnings(as.integer(page))
+  per_page_val <- suppressWarnings(as.integer(per_page))
+  limit_val    <- suppressWarnings(as.integer(limit))
+  offset_val   <- suppressWarnings(as.integer(offset))
+
+  # Resolve effective page/per_page (legacy contract wins; fall back to
+  # limit/offset, then defaults).
+  if (is.na(per_page_val) || per_page_val < 1L) {
+    per_page_val <- if (!is.na(limit_val) && limit_val >= 1L) min(limit_val, 500L) else 50L
+  } else {
+    per_page_val <- min(per_page_val, 500L)
+  }
+  if (is.na(page_val) || page_val < 1L) {
+    page_val <- if (!is.na(offset_val) && offset_val >= 0L) {
+      floor(offset_val / max(per_page_val, 1L)) + 1L
+    } else {
+      1L
+    }
+  }
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
@@ -515,13 +580,30 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   if (!is.null(from_date) && from_date == "") from_date <- NULL
   if (!is.null(to_date) && to_date == "") to_date <- NULL
 
-  get_generation_logs_paginated(
+  result <- get_generation_logs_paginated(
     cluster_type = cluster_type,
     status = status,
     from_date = from_date,
     to_date = to_date,
-    page = page,
-    per_page = per_page
+    page = page_val,
+    per_page = per_page_val
+  )
+
+  # Preserve legacy response shape {data, total, page} expected by
+  # useLlmAdmin.ts / types/llm.ts::PaginatedLogs. per_page included for
+  # parity with /cache/summaries.
+  total_val <- if (!is.null(result$total)) {
+    result$total
+  } else if (is.data.frame(result$data)) {
+    nrow(result$data)
+  } else {
+    length(result$data)
+  }
+  list(
+    data     = result$data,
+    total    = total_val,
+    page     = page_val,
+    per_page = per_page_val
   )
 }
 

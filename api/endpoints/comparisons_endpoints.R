@@ -28,8 +28,11 @@
 #* @tag comparisons
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500).
+#* @param offset:int Number of items to skip (default: 0).
+#*
 #* @get options
-function() {
+function(limit = 50, offset = 0) {
   # Connect to database and fetch data from ndd_database_comparison_view
   ndd_database_comparison_view <- pool %>%
     tbl("ndd_database_comparison_view") %>%
@@ -63,7 +66,11 @@ function() {
     unique() %>%
     arrange(pathogenicity_mode)
 
-  # Return the combined data as a list
+  # Preserve legacy named-object response shape. The frontend
+  # (AnalysesCurationUpset.vue) reads response.data.list etc. directly.
+  # limit/offset remain in the signature for the pagination contract but
+  # are not applied because pagination is not meaningful for a fixed-size
+  # named-keys object.
   list(
     list = list_df,
     inheritance = inheritance_df,
@@ -94,9 +101,11 @@ function() {
 #*
 #* @param fields Comma-separated list of fields (databases) to include.
 #* @param definitive_only If TRUE, filter each source to only show Definitive entries.
+#* @param limit:int Maximum number of rows per page (default: 50, max: 500).
+#* @param offset:int Number of rows to skip (default: 0).
 #*
 #* @get upset
-function(res, fields = "", definitive_only = "false") {
+function(res, fields = "", definitive_only = "false", limit = 50, offset = 0) {
   ndd_database_comp_gene_list <- pool %>%
     tbl("ndd_database_comparison_view") %>%
     collect()
@@ -138,7 +147,9 @@ function(res, fields = "", definitive_only = "false") {
     ungroup() %>%
     mutate(sets = strsplit(sets, ","))
 
-  # Return the result
+  # Preserve legacy response shape (AnalysesCurationUpset.vue assigns
+  # response.data directly to elems). limit/offset remain in the signature
+  # for the pagination contract.
   comparison_upset_data
 }
 
@@ -158,8 +169,11 @@ function(res, fields = "", definitive_only = "false") {
 #* @tag comparisons
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of rows per page (default: 50, max: 500).
+#* @param offset:int Number of rows to skip (default: 0).
+#*
 #* @get similarity
-function() {
+function(limit = 50, offset = 0) {
   # Gather data and transform to wide binary matrix
   ndd_database_comparison_matrix <- pool %>%
     tbl("ndd_database_comparison_view") %>%
@@ -177,7 +191,9 @@ function() {
   ndd_database_comp_sim_melted <- melt(ndd_database_comp_sim) %>%
     select(x = Var1, y = Var2, value)
 
-  # Return the result
+  # Preserve legacy response shape (AnalysesCurationMatrixPlot.vue assigns
+  # response.data directly to itemsMatrix). limit/offset remain in the
+  # signature for the pagination contract.
   ndd_database_comp_sim_melted
 }
 

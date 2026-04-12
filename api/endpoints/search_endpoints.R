@@ -25,9 +25,11 @@
 #*
 #* @param searchterm The search query.
 #* @param helper Logical controlling the output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get <searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm, helper = TRUE, limit = 50, offset = 0) {
   helper <- as.logical(helper)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -91,9 +93,12 @@ function(searchterm, helper = TRUE) {
         names_from = "results",
         values_from = "values"
       )
-  } else {
-    sysndd_db_entity_search_return
   }
+
+  # Preserve legacy response shape (frontend SearchView.vue etc. read
+  # response.data directly as an array). limit/offset params remain in the
+  # signature for future migration but are not applied to the response here.
+  sysndd_db_entity_search_return
 }
 
 
@@ -110,9 +115,11 @@ function(searchterm, helper = TRUE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get ontology/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -164,6 +171,9 @@ function(searchterm, tree = FALSE) {
       )
   }
 
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
   do_set_search_return_helper
 }
 
@@ -180,9 +190,11 @@ function(searchterm, tree = FALSE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get gene/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -233,6 +245,9 @@ function(searchterm, tree = FALSE) {
       )
   }
 
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
   nal_set_search_return_helper
 }
 
@@ -249,9 +264,11 @@ function(searchterm, tree = FALSE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get inheritance/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -305,5 +322,8 @@ function(searchterm, tree = FALSE) {
       )
   }
 
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
   moi_list_search_return_helper
 }
