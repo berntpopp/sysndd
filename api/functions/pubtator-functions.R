@@ -21,7 +21,7 @@ if (!exists("pubtator_parse_biocjson", mode = "function")) {
   .p <- file.path(.funcs_dir, "pubtator-parser.R")
   if (file.exists(.p)) source(.p, local = FALSE)
 }
-rm(.funcs_dir, .p)
+rm(list = intersect(c(".funcs_dir", ".p"), ls()), envir = environment())
 
 # Load database helper functions for repository layer access (if not already loaded)
 if (!exists("db_execute_query", mode = "function")) {

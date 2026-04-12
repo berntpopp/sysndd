@@ -169,7 +169,7 @@ pubtator_v3_pmids_from_request <- function(query,
     while (retries <= max_retries && !success) {
       tryCatch(
         {
-          # Rate limiting: 2.5s between requests (~24 req/min, under 30/min limit)
+          # Rate limiting: PUBTATOR_RATE_LIMIT_DELAY between requests (see constant above)
           if (page > start_page || retries > 0) {
             delay <- if (retries > 0) {
               PUBTATOR_BACKOFF_BASE^retries + runif(1, 0, 1)
