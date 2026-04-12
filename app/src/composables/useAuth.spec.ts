@@ -189,6 +189,17 @@ describe('useAuth', () => {
       expect(auth.isAuthenticated.value).toBe(true);
     });
 
+    it('flags isExpired=true at exactly exp (RFC 7519: token is invalid at or after exp)', () => {
+      // Lock in the `>=` semantics in useAuth.ts. Master's implementation used
+      // `>` which leaves a one-second window where a just-expired token still
+      // reads as valid. A future well-meaning refactor that "fixes" this back
+      // to `>` will flip this test red.
+      const auth = useAuth();
+      const nowSec = Math.floor(Date.now() / 1000);
+      auth.login(FRESH_TOKEN, makeFreshUser({ exp: [nowSec] }));
+      expect(auth.isExpired.value).toBe(true);
+    });
+
     it('refresh() calls GET /api/auth/refresh and stores the new token', async () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
@@ -227,6 +238,26 @@ describe('useAuth', () => {
       await expect(auth.refresh()).rejects.toThrow();
       // Token is unchanged; the axios 401 interceptor handles state cleanup.
       expect(auth.token.value).toBe(FRESH_TOKEN);
+    });
+
+    it('refresh() rejects on a malformed 200 body ([null]) and does NOT mutate token/localStorage/header', async () => {
+      // A 200 with [null] (or similar shapes where the Plumber scalar-array
+      // unwraps to undefined/null) must not poison the session with the
+      // literal string "undefined"/"null". useAuth.refresh() guards against
+      // this before persisting.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      server.use(
+        http.get('/api/auth/refresh', () => HttpResponse.json([null]))
+      );
+
+      await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token');
+
+      // Nothing must have been mutated.
+      expect(auth.token.value).toBe(FRESH_TOKEN);
+      expect(localStorage.getItem('token')).toBe(FRESH_TOKEN);
+      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
     });
   });
 
