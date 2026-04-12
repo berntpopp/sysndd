@@ -1,4 +1,5 @@
 // useAuth.ts
+// SPA-only context; localStorage is always available at module load (Vite SPA, no SSR).
 /**
  * Single owner of auth / session state for the SPA (Phase E.E7).
  *
@@ -135,8 +136,8 @@ function safeParseUser(raw: string | null): UserPayload | null {
  * interceptor clears state.
  */
 function syncFromStorage(): void {
-  const rawToken = typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
-  const rawUser = typeof localStorage !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+  const rawToken = localStorage.getItem(TOKEN_KEY);
+  const rawUser = localStorage.getItem(USER_KEY);
 
   tokenRef.value = rawToken;
   userRef.value = safeParseUser(rawUser);
@@ -145,7 +146,7 @@ function syncFromStorage(): void {
   // always pairs them, and a dangling token would fail every downstream
   // role check anyway. Clear localStorage too so the state matches on
   // every observer.
-  if (tokenRef.value && !userRef.value && typeof localStorage !== 'undefined') {
+  if (tokenRef.value && !userRef.value) {
     localStorage.removeItem(TOKEN_KEY);
     tokenRef.value = null;
   }
