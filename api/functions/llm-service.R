@@ -23,32 +23,30 @@ require(jsonlite)
 
 log_threshold(INFO)
 
+# Resolve function directory: use get_api_dir() (test helper) if available,
+# otherwise fall back to relative "functions/" (API startup with wd = api/).
+.funcs_dir <- tryCatch(file.path(get_api_dir(), "functions"), error = function(e) "functions")
+
 # Load cache repository functions (if not already loaded)
 if (!exists("generate_cluster_hash", mode = "function")) {
-  if (file.exists("functions/llm-cache-repository.R")) {
-    source("functions/llm-cache-repository.R", local = TRUE)
-  }
+  .p <- file.path(.funcs_dir, "llm-cache-repository.R")
+  if (file.exists(.p)) source(.p, local = FALSE)
 }
 
 # Load validation functions (if not already loaded)
 if (!exists("validate_summary_entities", mode = "function")) {
-  if (file.exists("functions/llm-validation.R")) {
-    source("functions/llm-validation.R", local = TRUE)
-  }
+  .p <- file.path(.funcs_dir, "llm-validation.R")
+  if (file.exists(.p)) source(.p, local = FALSE)
 }
 
 # Load split modules (if not already loaded)
 if (!exists("get_default_gemini_model", mode = "function")) {
-  if (file.exists("functions/llm-rate-limiter.R")) {
-    source("functions/llm-rate-limiter.R", local = TRUE)
-  }
-  if (file.exists("functions/llm-types.R")) {
-    source("functions/llm-types.R", local = TRUE)
-  }
-  if (file.exists("functions/llm-client.R")) {
-    source("functions/llm-client.R", local = TRUE)
+  for (.f in c("llm-rate-limiter.R", "llm-types.R", "llm-client.R")) {
+    .p <- file.path(.funcs_dir, .f)
+    if (file.exists(.p)) source(.p, local = FALSE)
   }
 }
+rm(.funcs_dir, .p, .f)
 
 
 #' Get or generate cluster summary
