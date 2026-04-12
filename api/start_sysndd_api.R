@@ -153,6 +153,8 @@ source("functions/llm-client.R", local = TRUE)
 source("functions/llm-rate-limiter.R", local = TRUE)
 source("functions/llm-types.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
+source("functions/pubtator-client.R", local = TRUE)
+source("functions/pubtator-parser.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
 source("functions/job-manager.R", local = TRUE)
@@ -512,7 +514,9 @@ everywhere({
   source("/app/functions/job-progress.R", local = FALSE)
   # Source db-helpers for parameterized queries
   source("/app/functions/db-helpers.R", local = FALSE)
-  # Source PubTator functions for async update jobs
+  # Source PubTator functions for async update jobs (client + parser before orchestrator)
+  source("/app/functions/pubtator-client.R", local = FALSE)
+  source("/app/functions/pubtator-parser.R", local = FALSE)
   source("/app/functions/pubtator-functions.R", local = FALSE)
   # Source OMIM functions (download_genemap2, parse_genemap2, download_hpoa) for comparisons
   source("/app/functions/omim-functions.R", local = FALSE)
