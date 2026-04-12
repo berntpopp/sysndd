@@ -94,18 +94,19 @@ function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
       # Get directory metadata
       dir_meta <- get_backup_metadata("/backup")
 
-      # Return paginated response
+      # Return paginated response.
+      # Top-level legacy fields (total/page/page_size) are preserved for
+      # backward compatibility with existing callers. `links` and `limit`/
+      # `offset` are added for the new pagination contract.
       list(
-        data  = data,
-        links = list("next" = next_link),
-        meta  = list(
-          total     = total,
-          limit     = limit,
-          offset    = offset,
-          page      = floor(offset / page_size) + 1L,
-          page_size = page_size,
-          directory = dir_meta
-        )
+        data      = data,
+        total     = total,
+        page      = floor(offset / page_size) + 1L,
+        page_size = page_size,
+        limit     = limit,
+        offset    = offset,
+        links     = list("next" = next_link),
+        meta      = dir_meta
       )
     },
     error = function(e) {
