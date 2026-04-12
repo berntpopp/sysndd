@@ -151,9 +151,35 @@ export default {
           user_name: this.user_name,
           password: this.password,
         });
-        // R/Plumber wraps the scalar token in a single-element array — unwrap
-        // before handing it to useAuth / the /signin call.
-        const token = response_authenticate.data[0];
+        // R/Plumber wraps the scalar token in a single-element array, but
+        // master also tolerated a bare string body. Validate the shape before
+        // calling signinWithJWT — without this guard (Copilot Fix 4), a
+        // malformed 200 response would hand `undefined` to signinWithJWT,
+        // which would then send "Bearer undefined" to /signin and call
+        // `auth.login(undefined, ...)` after it (eventually) succeeded or
+        // failed with a confusing 401.
+        const raw = response_authenticate.data;
+        let token;
+        if (typeof raw === 'string') {
+          token = raw;
+        } else if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'string') {
+          token = raw[0];
+        } else {
+          this.makeToast(
+            'Authentication failed: invalid token shape from server',
+            'Error',
+            'danger'
+          );
+          return;
+        }
+        if (!token) {
+          this.makeToast(
+            'Authentication failed: empty token from server',
+            'Error',
+            'danger'
+          );
+          return;
+        }
         this.makeToast(
           `You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`,
           'Success',
