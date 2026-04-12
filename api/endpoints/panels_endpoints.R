@@ -23,8 +23,12 @@
 #*
 #* @tag panels
 #* @serializer json list(na="string")
+#*
+#* @param limit:int Maximum number of option groups (default: 50, max: 500).
+#* @param offset:int Number of option groups to skip (default: 0).
+#*
 #* @get options
-function() {
+function(limit = 50, offset = 0) {
   categories_list <- pool %>%
     tbl("ndd_entity_status_categories_list") %>%
     select(category) %>%
@@ -49,7 +53,8 @@ function() {
     )
   )
 
-  options
+  # Apply offset-based pagination
+  paginate_offset(options, limit = limit, offset = offset)
 }
 
 
