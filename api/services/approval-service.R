@@ -147,3 +147,55 @@ svc_approval_status_approve <- function(status_id, user_id, approve = FALSE, poo
     entry = status_ids
   ))
 }
+
+# ---------------------------------------------------------------------------
+# Migrated from legacy-wrappers.R (Phase D, D4)
+# ---------------------------------------------------------------------------
+
+#' Approve review (migrated from legacy-wrappers.R)
+#'
+#' @param review_id Integer review ID to approve
+#' @param approving_user_id Integer user ID of approver
+#' @param approved Logical TRUE to approve, FALSE to reject
+#' @return List with status and message
+put_db_review_approve <- function(review_id, approving_user_id, approved = TRUE) {
+  log_debug("put_db_review_approve: {ifelse(approved, 'Approving', 'Rejecting')} review {review_id}")
+
+  tryCatch(
+    {
+      review_approve(review_id, approving_user_id, approved)
+      log_info("put_db_review_approve: Review {review_id} {ifelse(approved, 'approved', 'rejected')}")
+      return(list(status = 200, message = paste0("OK. Review ", ifelse(approved, "approved", "rejected"), ".")))
+    },
+    error = function(e) {
+      log_error("put_db_review_approve: Error: {e$message}")
+      return(list(status = 500, message = "Error approving review.", error = e$message))
+    }
+  )
+}
+
+#' Approve status (migrated from legacy-wrappers.R)
+#'
+#' @param status_id Integer status ID (or tibble/list containing it)
+#' @param approving_user_id Integer user ID of approver
+#' @param approved Logical TRUE to approve, FALSE to reject
+#' @return List with status and message
+put_db_status_approve <- function(status_id, approving_user_id, approved = TRUE) {
+  if (is.list(status_id) || is.data.frame(status_id)) {
+    status_id <- as.integer(status_id[[1]])
+  }
+
+  log_debug("put_db_status_approve: {ifelse(approved, 'Approving', 'Rejecting')} status {status_id}")
+
+  tryCatch(
+    {
+      status_approve(status_id, approving_user_id, approved)
+      log_info("put_db_status_approve: Status {status_id} {ifelse(approved, 'approved', 'rejected')}")
+      return(list(status = 200, message = paste0("OK. Status ", ifelse(approved, "approved", "rejected"), ".")))
+    },
+    error = function(e) {
+      log_error("put_db_status_approve: Error: {e$message}")
+      return(list(status = 500, message = "Error approving status.", error = e$message))
+    }
+  )
+}
