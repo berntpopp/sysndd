@@ -115,18 +115,52 @@ const userRef = ref<UserPayload | null>(null);
 /**
  * Parse a JSON string and return `null` on any failure. Shared by
  * `syncFromStorage()` and used to keep the parse site in one place.
+ *
+ * Shape validation
+ * ----------------
+ * A successful `JSON.parse` is necessary but not sufficient: the SPA reads
+ * `user.exp[0]` (expiry check) and `user.user_role[0]` (role gating) on
+ * every navigation. If `localStorage.user` is set to a valid-but-wrong JSON
+ * value (for example `'[]'` from a dev-tools typo, or `'null'`, or an object
+ * missing `exp`/`user_role`), those reads would silently return `undefined`
+ * and the session would appear authenticated to `isAuthenticated` while
+ * failing every role check and exp calculation. We defensively require the
+ * minimal shape the call sites rely on:
+ *   - non-null, non-array object
+ *   - `exp` is a non-empty `number[]` (expiry computations)
+ *   - `user_role` is a non-empty `string[]` (router guards, badges)
+ * Any failure is treated the same as corrupt JSON: `null`, handled upstream
+ * as a logged-out state.
  */
 function safeParseUser(raw: string | null): UserPayload | null {
   if (!raw) return null;
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw) as UserPayload;
-    // Defence-in-depth: parsed non-objects (numbers, strings, null) are
-    // treated as corrupt so later `.exp` / `.user_role` reads don't NPE.
-    if (!parsed || typeof parsed !== 'object') return null;
-    return parsed;
+    parsed = JSON.parse(raw);
   } catch {
     return null;
   }
+  // Reject null, primitives, and arrays (`typeof [] === 'object'`, so the
+  // array guard is not redundant).
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return null;
+  }
+  const candidate = parsed as Record<string, unknown>;
+  // `exp` must be a non-empty numeric array — `[0]` is what `isExpired`
+  // reads. A missing or empty exp would make `isExpired` always false and
+  // silently keep an expired session alive.
+  const exp = candidate.exp;
+  if (!Array.isArray(exp) || exp.length === 0 || typeof exp[0] !== 'number') {
+    return null;
+  }
+  // `user_role` must be a non-empty string array — router guards resolve
+  // `roles[0]`; an empty array would fail every guard anyway, so rejecting
+  // here keeps `isAuthenticated` honest.
+  const roles = candidate.user_role;
+  if (!Array.isArray(roles) || roles.length === 0 || typeof roles[0] !== 'string') {
+    return null;
+  }
+  return parsed as UserPayload;
 }
 
 /**

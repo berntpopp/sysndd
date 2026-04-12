@@ -282,6 +282,51 @@ describe('useAuth', () => {
       expect(auth.hasRole('Administrator')).toBe(false);
     });
 
+    it('rejects a JSON array in localStorage.user (`[]` is valid JSON but not a user payload)', () => {
+      // Copilot Fix 1: `JSON.parse('[]')` yields an array, and `typeof [] ===
+      // 'object'`. Without an explicit `Array.isArray` guard, safeParseUser()
+      // would have accepted `[]`, leaving userRef truthy with neither `.exp`
+      // nor `.user_role` — callers downstream would see isAuthenticated=true
+      // while every role/expiry check silently returned undefined.
+      localStorage.setItem('token', FRESH_TOKEN);
+      localStorage.setItem('user', '[]');
+
+      const auth = useAuth();
+      auth.syncFromStorage();
+
+      expect(auth.user.value).toBeNull();
+      expect(auth.isAuthenticated.value).toBe(false);
+    });
+
+    it('rejects an object with a missing/empty `exp` array', () => {
+      // Copilot Fix 1: without a usable exp[0], isExpired can never fire, so
+      // a just-expired session would linger until the next 401. Reject at
+      // parse time instead.
+      localStorage.setItem('token', FRESH_TOKEN);
+      localStorage.setItem('user', JSON.stringify({ exp: [], user_role: ['Administrator'] }));
+
+      const auth = useAuth();
+      auth.syncFromStorage();
+
+      expect(auth.user.value).toBeNull();
+      expect(auth.isAuthenticated.value).toBe(false);
+    });
+
+    it('rejects an object with a missing/empty `user_role` array', () => {
+      // Copilot Fix 1: an empty user_role array would fail every router
+      // guard's hasRole() check anyway (roles[0] === undefined), so reject
+      // early rather than letting isAuthenticated masquerade as true.
+      const nowSec = Math.floor(Date.now() / 1000);
+      localStorage.setItem('token', FRESH_TOKEN);
+      localStorage.setItem('user', JSON.stringify({ exp: [nowSec + 3600], user_role: [] }));
+
+      const auth = useAuth();
+      auth.syncFromStorage();
+
+      expect(auth.user.value).toBeNull();
+      expect(auth.isAuthenticated.value).toBe(false);
+    });
+
     it('treats missing localStorage.user (token-only) as logged-out', () => {
       localStorage.setItem('token', FRESH_TOKEN);
       // no user key
