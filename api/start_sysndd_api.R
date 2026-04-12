@@ -115,6 +115,7 @@ if (!is.null(dw$workdir)) {
 ## -------------------------------------------------------------------##
 # 4) Load Additional Scripts (Helper Functions)
 ## -------------------------------------------------------------------##
+# --- function source list (v11.0) ---
 source("functions/config-functions.R", local = TRUE)
 source("functions/logging-functions.R", local = TRUE)
 source("functions/db-helpers.R", local = TRUE)
@@ -148,6 +149,9 @@ source("functions/file-functions.R", local = TRUE)
 source("functions/hpo-functions.R", local = TRUE)
 source("functions/hgnc-functions.R", local = TRUE)
 source("functions/hgnc-enrichment-gnomad.R", local = TRUE)
+source("functions/llm-client.R", local = TRUE)
+source("functions/llm-rate-limiter.R", local = TRUE)
+source("functions/llm-types.R", local = TRUE)
 source("functions/ontology-functions.R", local = TRUE)
 source("functions/pubtator-functions.R", local = TRUE)
 source("functions/ensembl-functions.R", local = TRUE)
@@ -156,6 +160,7 @@ source("functions/job-progress.R", local = TRUE)
 source("functions/backup-functions.R", local = TRUE)
 source("functions/ols-functions.R", local = TRUE)
 source("functions/openapi-helpers.R")  # OpenAPI schema enhancement (global scope needed for pr_set_api_spec callback)
+# --- end source list ---
 
 # Core security and error handling modules
 source("core/security.R", local = TRUE)
@@ -517,6 +522,9 @@ everywhere({
   # Source LLM-related functions for async LLM batch generation jobs
   source("/app/functions/llm-cache-repository.R", local = FALSE)
   source("/app/functions/llm-validation.R", local = FALSE)
+  source("/app/functions/llm-rate-limiter.R", local = FALSE)
+  source("/app/functions/llm-types.R", local = FALSE)
+  source("/app/functions/llm-client.R", local = FALSE)
   source("/app/functions/llm-service.R", local = FALSE)
   source("/app/functions/llm-judge.R", local = FALSE)
   source("/app/functions/llm-batch-generator.R", local = FALSE)
