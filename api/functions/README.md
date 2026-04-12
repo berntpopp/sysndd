@@ -11,7 +11,10 @@ This subfolder contains various R scripts that provide essential functionalities
 - `endpoint-functions.R`: Functions related to API endpoints.
 - `external-functions.R`: Functions for interactions with external resources.
 - `genereviews-functionsy.R`: Functions specific to GeneReviews.
-- `helper-functions.R`: General helper functions.
+- `account-helpers.R`: User/account helpers (password, email, initials).
+- `data-helpers.R`: Hashing, file generation, and data utilities.
+- `entity-helpers.R`: Entity/gene data transformation helpers.
+- `response-helpers.R`: Query building, sorting, filtering, pagination.
 - `logging-functions.R`: Functions for logging activities.
 - `publication-functions.R`: Functions related to publications and GeneReviews.
 
