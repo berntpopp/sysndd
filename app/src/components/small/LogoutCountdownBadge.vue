@@ -8,12 +8,18 @@
 
 <script>
 import useToast from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 
 export default {
   name: 'LogoutCountdownBadge',
   setup() {
     const { makeToast } = useToast();
-    return { makeToast };
+    // Phase E.E7: source-of-truth for token / user / expiry is now
+    // `useAuth()`. The stale "TODO: move to a mixin" comments that were
+    // sprinkled across this file have been deleted — the mixin they asked
+    // for is, in effect, this composable.
+    const auth = useAuth();
+    return { makeToast, auth };
   },
   data() {
     return {
@@ -34,9 +40,8 @@ export default {
   },
   methods: {
     doUserLogOut() {
-      if (localStorage.user || localStorage.token) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+      if (this.auth.isAuthenticated.value) {
+        this.auth.logout();
 
         // based on https://stackoverflow.com/questions/57837758/navigationduplicated-navigating-to-current-location-search-is-not-allowed
         // to avoid double navigation
@@ -50,76 +55,71 @@ export default {
         }
       }
     },
-    // TODO: move to a mixin to be used in other components (DRY)
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/refresh`;
       try {
-        const response_refresh = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        localStorage.setItem('token', response_refresh.data[0]);
+        await this.auth.refresh();
         this.signinWithJWT();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    // TODO: move to a mixin to be used in other components (DRY)
     async signinWithJWT() {
+      // `useAuth` already maintains the axios default Authorization header,
+      // so we no longer pass it per-request. The response body is the user
+      // payload that login() expects.
       const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
 
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        localStorage.setItem('user', JSON.stringify(response_signin.data));
+        const response_signin = await this.axios.get(apiAuthenticateURL);
+        if (this.auth.token.value) {
+          this.auth.login(this.auth.token.value, response_signin.data);
+        }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    // TODO: move to a mixin to be used in other components (DRY)
     updateDiffs() {
       // TODO: remove magic numbers and put them in constants in a config file
-      const timestampMillisecondDivider = 1000;
       const secondToMinuteDivider = 60;
       const warningTimePoints = [60, 180, 300];
-      if (localStorage.token) {
-        const expires = JSON.parse(localStorage.user).exp;
-        const timestamp = Math.floor(new Date().getTime() / timestampMillisecondDivider);
+      const user = this.auth.user.value;
+      if (!this.auth.isAuthenticated.value || !user) {
+        return;
+      }
 
-        if (expires > timestamp) {
-          this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
-          if (warningTimePoints.includes(expires - timestamp)) {
-            // Use a shorter name for this.$createElement
-            const h = this.$createElement;
+      const expires = user.exp?.[0];
+      if (typeof expires !== 'number') {
+        return;
+      }
+      const timestamp = Math.floor(Date.now() / 1000);
 
-            // compose the logout message
-            const vNodesMsg = h('p', { class: ['text-center', 'mb-0'] }, [
-              'Token ',
-              h(
-                'b-badge',
-                {
-                  props: { variant: 'success', href: '#' },
-                  // TODO: make the modal close after clicking on the badge
-                  on: { click: () => this.refreshWithJWT() },
-                },
-                'refresh now'
-              ),
-            ]);
+      if (expires > timestamp) {
+        this.time_to_logout = ((expires - timestamp) / secondToMinuteDivider).toFixed(2);
+        if (warningTimePoints.includes(expires - timestamp)) {
+          // Use a shorter name for this.$createElement
+          const h = this.$createElement;
 
-            this.makeToast(
-              [vNodesMsg],
-              `Warning: Logout in ${expires - timestamp} seconds`,
-              'danger'
-            );
-          }
-        } else {
-          this.doUserLogOut();
+          // compose the logout message
+          const vNodesMsg = h('p', { class: ['text-center', 'mb-0'] }, [
+            'Token ',
+            h(
+              'b-badge',
+              {
+                props: { variant: 'success', href: '#' },
+                on: { click: () => this.refreshWithJWT() },
+              },
+              'refresh now'
+            ),
+          ]);
+
+          this.makeToast(
+            [vNodesMsg],
+            `Warning: Logout in ${expires - timestamp} seconds`,
+            'danger'
+          );
         }
+      } else {
+        this.doUserLogOut();
       }
     },
   },
