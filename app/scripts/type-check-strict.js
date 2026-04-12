@@ -17,8 +17,10 @@
  *   - invokes vue-tsc -p <tsconfig> for each configured scope
  *   - partitions diagnostic lines by file prefix
  *   - prints in-scope errors to stderr and exits non-zero if any are found
- *   - skips the composables-auth scope silently when no useAuth*.ts files
- *     exist yet (E7 creates useAuth.ts in parallel)
+ *   - logs a skip notice and continues (exits 0) for the composables-auth
+ *     scope when no useAuth*.ts files exist yet (E7 creates useAuth.ts in
+ *     parallel); the notice is intentional so CI logs show why the scope
+ *     was deferred rather than silently missed
  */
 
 import { spawnSync } from 'node:child_process';
