@@ -87,9 +87,38 @@ for (const scope of scopes) {
       console.error(line);
     }
     failed = true;
-  } else {
-    console.log(`[type-check:strict] ${scope.name}: OK`);
+    continue;
   }
+
+  // Catch unexpected tool failures: vue-tsc exited non-zero with no in-scope
+  // errors, but also produced no recognizable out-of-scope diagnostics.
+  //
+  // vue-tsc normally exits non-zero when ANY file in the import graph has
+  // errors — out-of-scope diagnostics are expected and intentionally ignored.
+  // They look like: `src/foo/bar.vue(12,3): error TS2322: ...`.
+  //
+  // If the exit is non-zero but NO line matches that shape, vue-tsc itself
+  // failed to run (binary missing, tsconfig-level error like TS5058 emitted
+  // without a path prefix, process crash, npm ERR!). Without this guard
+  // every scope would report "OK" with exit 0 — a silent green pass that
+  // hides real failures.
+  if (result.status !== 0) {
+    // Match any line that looks like a normal TS diagnostic:
+    // `path/to/file.ext(line,col): error TSxxxx: message`
+    const diagnosticPattern = /^\S+\.\w+\(\d+,\d+\): (?:error|warning) TS\d+:/;
+    const hasAnyDiagnostic = lines.some((line) => diagnosticPattern.test(line));
+    if (!hasAnyDiagnostic) {
+      const rawOutput = output.trim();
+      console.error(
+        `[type-check:strict] ${scope.name}: UNEXPECTED TOOL FAILURE (vue-tsc exit ${result.status})`
+      );
+      console.error(rawOutput.length > 0 ? rawOutput : '(no output)');
+      failed = true;
+      continue;
+    }
+  }
+
+  console.log(`[type-check:strict] ${scope.name}: OK`);
 }
 
 process.exit(failed ? 1 : 0);
