@@ -727,7 +727,7 @@ svc_entity_create_full <- function(entity_data, review_data, status_data,
 #' @param entity_data Tibble or list with entity fields
 #' @return List with status, message, entry, and error
 post_db_entity <- function(entity_data) {
-  log_debug("post_db_entity: Creating new entity")
+  logger::log_debug("post_db_entity: Creating new entity")
 
   if (is.data.frame(entity_data)) {
     entity_data <- as.list(entity_data[1, ])
@@ -741,7 +741,7 @@ post_db_entity <- function(entity_data) {
   missing_fields <- missing_fields[!sapply(entity_data[missing_fields], function(x) !is.null(x) && !is.na(x))]
 
   if (length(missing_fields) > 0) {
-    log_warn("post_db_entity: Missing required fields: {paste(missing_fields, collapse = ', ')}")
+    logger::log_warn("post_db_entity: Missing required fields: {paste(missing_fields, collapse = ', ')}")
     return(list(status = 405, message = paste("Missing required fields:", paste(missing_fields, collapse = ", ")),
                 entry = NA, error = paste("Missing fields:", paste(missing_fields, collapse = ", "))))
   }
@@ -749,12 +749,12 @@ post_db_entity <- function(entity_data) {
   tryCatch(
     {
       entity_id <- entity_create(entity_data)
-      log_info("post_db_entity: Created entity {entity_id}")
+      logger::log_info("post_db_entity: Created entity {entity_id}")
       return(list(status = 200, message = "OK. Entry created.",
                   entry = tibble::tibble(entity_id = entity_id), error = NULL))
     },
     error = function(e) {
-      log_error("post_db_entity: Error creating entity: {e$message}")
+      logger::log_error("post_db_entity: Error creating entity: {e$message}")
       return(list(status = 500, message = "Error creating entity.", entry = NA, error = e$message))
     }
   )
@@ -766,16 +766,16 @@ post_db_entity <- function(entity_data) {
 #' @param replacement_id Integer replacement entity ID (or NULL)
 #' @return List with status and message
 put_db_entity_deactivation <- function(entity_id, replacement_id = NULL) {
-  log_debug("put_db_entity_deactivation: Deactivating entity {entity_id}")
+  logger::log_debug("put_db_entity_deactivation: Deactivating entity {entity_id}")
 
   tryCatch(
     {
       entity_deactivate(entity_id, replacement_id)
-      log_info("put_db_entity_deactivation: Deactivated entity {entity_id}")
+      logger::log_info("put_db_entity_deactivation: Deactivated entity {entity_id}")
       return(list(status = 200, message = "OK. Entity deactivated."))
     },
     error = function(e) {
-      log_error("put_db_entity_deactivation: Error: {e$message}")
+      logger::log_error("put_db_entity_deactivation: Error: {e$message}")
       return(list(status = 500, message = "Error deactivating entity.", error = e$message))
     }
   )

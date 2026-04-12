@@ -213,7 +213,7 @@ service_status_update <- function(status_data, pool) {
 #' @param re_review Logical indicating re-review operation
 #' @return List with status, message, and entry
 put_post_db_status <- function(method, status_data, re_review = FALSE) {
-  log_debug("put_post_db_status: {method} status (re_review={re_review})")
+  logger::log_debug("put_post_db_status: {method} status (re_review={re_review})")
 
   if (is.data.frame(status_data)) {
     status_data <- as.list(status_data[1, ])
@@ -223,11 +223,11 @@ put_post_db_status <- function(method, status_data, re_review = FALSE) {
     {
       if (toupper(method) == "POST") {
         status_id <- status_create(status_data)
-        log_info("put_post_db_status: Created status {status_id}")
+        logger::log_info("put_post_db_status: Created status {status_id}")
         if (re_review && !is.null(status_data$entity_id)) {
           tryCatch(
             status_update_re_review_status(status_data$entity_id, status_id),
-            error = function(e) log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+            error = function(e) logger::log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
           )
         }
         return(list(status = 200, message = "OK. Status created.", entry = status_id))
@@ -236,18 +236,18 @@ put_post_db_status <- function(method, status_data, re_review = FALSE) {
           return(list(status = 405, message = "status_id is required for PUT operation", entry = NA))
         }
         status_update(status_data$status_id, status_data)
-        log_info("put_post_db_status: Updated status {status_data$status_id}")
+        logger::log_info("put_post_db_status: Updated status {status_data$status_id}")
         if (re_review && !is.null(status_data$entity_id)) {
           tryCatch(
             status_update_re_review_status(status_data$entity_id, status_data$status_id),
-            error = function(e) log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
+            error = function(e) logger::log_warn("put_post_db_status: Failed to update re_review status: {e$message}")
           )
         }
         return(list(status = 200, message = "OK. Status updated.", entry = status_data$status_id))
       }
     },
     error = function(e) {
-      log_error("put_post_db_status: Error: {e$message}")
+      logger::log_error("put_post_db_status: Error: {e$message}")
       return(list(status = 500, message = "Error processing status.", entry = NA, error = e$message))
     }
   )

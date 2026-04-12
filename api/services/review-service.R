@@ -336,7 +336,7 @@ svc_review_add_variation_ontology <- function(vario_data, entity_id, review_id, 
 #' @param re_review Logical indicating re-review operation
 #' @return List with status, message, and entry
 put_post_db_review <- function(method, review_data, re_review = FALSE) {
-  log_debug("put_post_db_review: {method} review (re_review={re_review})")
+  logger::log_debug("put_post_db_review: {method} review (re_review={re_review})")
 
   if (is.data.frame(review_data)) {
     review_data <- as.list(review_data[1, ])
@@ -346,11 +346,11 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
     {
       if (toupper(method) == "POST") {
         review_id <- review_create(review_data)
-        log_info("put_post_db_review: Created review {review_id}")
+        logger::log_info("put_post_db_review: Created review {review_id}")
         if (re_review && !is.null(review_data$entity_id)) {
           tryCatch(
             review_update_re_review_status(review_data$entity_id, review_id),
-            error = function(e) log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+            error = function(e) logger::log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
           )
         }
         return(list(status = 200, message = "OK. Review created.",
@@ -360,11 +360,11 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
           return(list(status = 405, message = "review_id is required for PUT operation", entry = NA))
         }
         review_update(review_data$review_id, review_data)
-        log_info("put_post_db_review: Updated review {review_data$review_id}")
+        logger::log_info("put_post_db_review: Updated review {review_data$review_id}")
         if (re_review && !is.null(review_data$entity_id)) {
           tryCatch(
             review_update_re_review_status(review_data$entity_id, review_data$review_id),
-            error = function(e) log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
+            error = function(e) logger::log_warn("put_post_db_review: Failed to update re_review status: {e$message}")
           )
         }
         return(list(status = 200, message = "OK. Review updated.",
@@ -372,7 +372,7 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
       }
     },
     error = function(e) {
-      log_error("put_post_db_review: Error: {e$message}")
+      logger::log_error("put_post_db_review: Error: {e$message}")
       return(list(status = 500, message = "Error processing review.", entry = NA, error = e$message))
     }
   )
@@ -386,7 +386,7 @@ put_post_db_review <- function(method, review_data, re_review = FALSE) {
 #' @param review_id Integer review ID
 #' @return List with status and message
 put_post_db_pub_con <- function(method, publications, entity_id, review_id) {
-  log_debug("put_post_db_pub_con: {method} publications for review {review_id}")
+  logger::log_debug("put_post_db_pub_con: {method} publications for review {review_id}")
 
   tryCatch(
     {
@@ -395,11 +395,11 @@ put_post_db_pub_con <- function(method, publications, entity_id, review_id) {
       } else {
         publication_connect_to_review(review_id, entity_id, publications)
       }
-      log_info("put_post_db_pub_con: Connected publications to review {review_id}")
+      logger::log_info("put_post_db_pub_con: Connected publications to review {review_id}")
       return(list(status = 200, message = "OK. Publications connected."))
     },
     error = function(e) {
-      log_error("put_post_db_pub_con: Error: {e$message}")
+      logger::log_error("put_post_db_pub_con: Error: {e$message}")
       return(list(status = 500, message = "Error connecting publications.", error = e$message))
     }
   )
@@ -413,7 +413,7 @@ put_post_db_pub_con <- function(method, publications, entity_id, review_id) {
 #' @param review_id Integer review ID
 #' @return List with status and message
 put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
-  log_debug("put_post_db_phen_con: {method} phenotypes for review {review_id}")
+  logger::log_debug("put_post_db_phen_con: {method} phenotypes for review {review_id}")
 
   if ("value" %in% colnames(phenotypes)) {
     phenotypes_transformed <- phenotypes %>%
@@ -442,11 +442,11 @@ put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
       } else {
         phenotype_connect_to_review(review_id, entity_id, phenotypes_transformed)
       }
-      log_info("put_post_db_phen_con: Connected phenotypes to review {review_id}")
+      logger::log_info("put_post_db_phen_con: Connected phenotypes to review {review_id}")
       return(list(status = 200, message = "OK. Phenotypes connected."))
     },
     error = function(e) {
-      log_error("put_post_db_phen_con: Error: {e$message}")
+      logger::log_error("put_post_db_phen_con: Error: {e$message}")
       return(list(status = 500, message = "Error connecting phenotypes.", error = e$message))
     }
   )
@@ -460,7 +460,7 @@ put_post_db_phen_con <- function(method, phenotypes, entity_id, review_id) {
 #' @param review_id Integer review ID
 #' @return List with status and message
 put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, review_id) {
-  log_debug("put_post_db_var_ont_con: {method} variation ontology for review {review_id}")
+  logger::log_debug("put_post_db_var_ont_con: {method} variation ontology for review {review_id}")
 
   if ("value" %in% colnames(variation_ontology)) {
     vario_transformed <- variation_ontology %>%
@@ -489,11 +489,11 @@ put_post_db_var_ont_con <- function(method, variation_ontology, entity_id, revie
       } else {
         variation_ontology_connect_to_review(review_id, entity_id, vario_transformed)
       }
-      log_info("put_post_db_var_ont_con: Connected variation ontology to review {review_id}")
+      logger::log_info("put_post_db_var_ont_con: Connected variation ontology to review {review_id}")
       return(list(status = 200, message = "OK. Variation ontology connected."))
     },
     error = function(e) {
-      log_error("put_post_db_var_ont_con: Error: {e$message}")
+      logger::log_error("put_post_db_var_ont_con: Error: {e$message}")
       return(list(status = 500, message = "Error connecting variation ontology.", error = e$message))
     }
   )
