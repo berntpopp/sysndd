@@ -104,10 +104,6 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 #' @note
 #' Error handling and validation implemented for malformed expressions and missing columns.
 #' Column type handling uses string comparison for all operations (sufficient for current use cases).
-#'
-#' @seealso
-#' For more information on the filtering semantics, see the following resource:
-#' \url{https://www.jsonapi.net/usage/reading/filtering.html}
 generate_filter_expressions <- function(
   filter_string,
   operations_allowed =

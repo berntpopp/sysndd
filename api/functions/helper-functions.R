@@ -4,7 +4,10 @@
 # The actual implementations live in:
 #   account-helpers.R, data-helpers.R, entity-helpers.R, response-helpers.R
 
-if (!exists("random_password", mode = "function")) {
+if (!exists("random_password", mode = "function") ||
+    !exists("generate_filter_expressions", mode = "function") ||
+    !exists("nest_gene_tibble", mode = "function") ||
+    !exists("generate_panel_hash", mode = "function")) {
   # Use get_api_dir() (test helper) if available; fall back to relative path.
   .funcs_dir <- tryCatch(file.path(get_api_dir(), "functions"), error = function(e) "functions")
   for (.f in c("account-helpers.R", "data-helpers.R", "entity-helpers.R", "response-helpers.R")) {
