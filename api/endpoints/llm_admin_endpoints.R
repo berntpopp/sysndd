@@ -239,7 +239,9 @@ function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, of
   )
 
   # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) result$total else {
+  total <- if (!is.null(result$total)) {
+    result$total
+  } else {
     if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
   }
   next_offset <- offset + limit
@@ -552,7 +554,9 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   )
 
   # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) result$total else {
+  total <- if (!is.null(result$total)) {
+    result$total
+  } else {
     if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
   }
   next_offset <- offset + limit
