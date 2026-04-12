@@ -571,4 +571,3 @@ CRITICAL: Mentioning genes, pathways, or molecular mechanisms will cause IMMEDIA
 
   return(prompt)
 }
-
