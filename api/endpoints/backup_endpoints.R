@@ -40,15 +40,23 @@
 #* @param offset:int Number of items to skip (default: 0)
 #*
 #* @get /list
-function(req, res, limit = 50, offset = 0, sort = "newest", page = NULL) {
-  # Backward compatibility: convert page-based to offset-based pagination
-  if (!is.null(page)) {
-    page <- as.integer(page)
-    offset <- (page - 1L) * as.integer(limit)
-  }
-
+function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
   # Require Administrator role
   require_role(req, res, "Administrator")
+
+  # Pagination: support both page-based (legacy) and limit/offset (new).
+  # If limit/offset provided, use them; otherwise convert page to offset.
+  page_size <- 20L
+  if (!is.null(limit)) {
+    limit  <- min(as.integer(limit), 500L)
+    offset <- if (!is.null(offset)) as.integer(offset) else 0L
+    page_size <- limit
+  } else {
+    page <- suppressWarnings(as.integer(page))
+    if (is.na(page) || page < 1) page <- 1
+    limit  <- page_size
+    offset <- (page - 1L) * page_size
+  }
 
   # Validate sort parameter
   if (!sort %in% c("newest", "oldest")) {
@@ -69,19 +77,34 @@ function(req, res, limit = 50, offset = 0, sort = "newest", page = NULL) {
       if (sort == "oldest") {
         backups <- dplyr::arrange(backups, created_at)
       }
-      # else keep default: newest first (already sorted by list_backup_files)
 
-      # Apply offset-based pagination using helper
-      pag <- paginate_offset(backups, limit = limit, offset = offset)
+      # Inline pagination (no external helper dependency)
+      total <- nrow(backups)
+      if (total == 0) {
+        data <- backups
+      } else {
+        start_idx <- offset + 1L
+        end_idx   <- min(offset + limit, total)
+        data <- if (start_idx > total) backups[0, ] else dplyr::slice(backups, start_idx:end_idx)
+      }
+      next_offset <- offset + limit
+      next_link   <- if (next_offset < total) paste0("?limit=", limit, "&offset=", next_offset) else NULL
 
       # Get directory metadata
       dir_meta <- get_backup_metadata("/backup")
 
       # Return paginated response
       list(
-        data = pag$data,
-        links = pag$links,
-        meta = c(pag$meta, list(directory = dir_meta))
+        data  = data,
+        links = list("next" = next_link),
+        meta  = list(
+          total     = total,
+          limit     = limit,
+          offset    = offset,
+          page      = floor(offset / page_size) + 1L,
+          page_size = page_size,
+          directory = dir_meta
+        )
       )
     },
     error = function(e) {
