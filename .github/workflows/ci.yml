@@ -319,6 +319,9 @@ jobs:
       - name: Run TypeScript check
         run: npm run type-check
 
+      - name: Run TypeScript check (strict scopes)
+        run: npm run type-check:strict
+
       - name: Run Vitest tests
         run: npm run test:unit
 
