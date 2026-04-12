@@ -4,6 +4,15 @@
 # These tests validate JWT token generation and validation logic.
 # They test the auth logic at the function level rather than HTTP level
 # to avoid requiring a running API server during tests.
+#
+# Rollback audit (Phase C unit C9, v11.0):
+#   This file is exempt from wrapping in `with_test_db_transaction`
+#   because the tests are non-transactional and never write to the
+#   database: they exercise JWT crypto primitives (create_test_jwt,
+#   jose::jwt_decode_hmac, auth_header) that read the shared secret
+#   from config but do not touch any SysNDD tables. No rollback
+#   scope is therefore applicable. The C9 orphan absorption keeps
+#   this file green under `scripts/verify-test-gate.sh --extended`.
 
 library(testthat)
 library(jose)

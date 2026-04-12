@@ -3,6 +3,15 @@
 # Integration tests for LLM summary endpoints.
 # Tests the refactored functional_cluster_summary and phenotype_cluster_summary endpoints.
 # Run with: cd api && Rscript -e "testthat::test_file('tests/testthat/test-integration-llm-endpoints.R')"
+#
+# Phase C / C8 rollback audit (plan §3 Phase C.4 / §4.5): exempt — http-only.
+# Every describe/it block hits a running API via httr (localhost:7778) and
+# skips via skip_if_no_api() when the server is unreachable. No direct
+# DBI / pool / SQL writes are issued from the test process, so there is
+# no local transaction to roll back. The server under test owns its own
+# persistence; rollback of any LLM-cache side effects is the server's
+# responsibility. The audit catalogs this file as non-transactional /
+# http-only / read-only (the endpoints under test are GETs).
 
 library(testthat)
 library(httr)

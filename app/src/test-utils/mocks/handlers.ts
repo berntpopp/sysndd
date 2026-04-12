@@ -327,11 +327,18 @@ export const handlers = [
 
   // OpenAPI: GET /api/review/:id
   // api/endpoints/review_endpoints.R @get /<review_id_requested>
+  //
+  // Wire shape note (Phase C batch review Q3 FAIL fix): the real R/Plumber
+  // endpoint returns a 1-row array, not a bare object — `loadReviewInfo` in
+  // `ApproveReview.vue` indexes `response.data[0].synopsis`. The fixture type
+  // `ReviewRow` stays as a bare object for direct-import consumers (spec
+  // field references), but the handler wraps it in an array to match the
+  // real API wire contract.
   http.get('/api/review/:id', ({ params }) => {
     if (params.id === '999') {
       return HttpResponse.json(reviewByIdNotFound, { status: 404 });
     }
-    return HttpResponse.json(reviewByIdOk);
+    return HttpResponse.json([reviewByIdOk]);
   }),
 
   // OpenAPI: GET /api/review/:id/phenotypes
@@ -408,11 +415,15 @@ export const handlers = [
 
   // OpenAPI: GET /api/status/:id
   // api/endpoints/status_endpoints.R @get /<status_id_requested>
+  //
+  // Wire shape note (Phase C batch review Q3 FAIL fix): same R/Plumber
+  // 1-row-array convention as GET /api/review/:id above. `loadStatusInfo`
+  // in `ApproveStatus.vue` indexes `response.data[0].category_id`.
   http.get('/api/status/:id', ({ params }) => {
     if (params.id === '999') {
       return HttpResponse.json(statusByIdNotFound, { status: 404 });
     }
-    return HttpResponse.json(statusByIdOk);
+    return HttpResponse.json([statusByIdOk]);
   }),
 
   // OpenAPI: POST /api/status/create
@@ -483,10 +494,26 @@ export const handlers = [
   }),
 
   // OpenAPI: POST /api/entity/rename
-  // api/endpoints/entity_endpoints.R @post /rename
+  // api/endpoints/entity_endpoints.R @post /rename  (line 408-419)
+  //
+  // Wire shape fix (Phase C batch review Q3 FAIL): the real endpoint reads
+  // `req$argsBody$rename_json$entity$entity_id`, NOT a flat
+  // `{sysndd_id, new_symbol}` body. The old handler would 400 every legit
+  // request because `body.sysndd_id` is always undefined on the real wire.
+  // The new validation mirrors the real endpoint: the payload envelope is
+  // `{ rename_json: { entity: { entity_id, ... } } }`. For backwards
+  // compatibility with any spec that still uses the flat form (none on
+  // master), we accept either shape.
   http.post('/api/entity/rename', async ({ request }) => {
     const body = await readJsonBody(request);
-    if (!body.sysndd_id || !body.new_symbol) {
+    const renameJson = body?.rename_json as
+      | { entity?: { entity_id?: unknown } }
+      | undefined;
+    const hasNewWireShape =
+      renameJson?.entity?.entity_id !== undefined &&
+      renameJson.entity.entity_id !== null;
+    const hasLegacyFlatShape = Boolean(body?.sysndd_id) && Boolean(body?.new_symbol);
+    if (!hasNewWireShape && !hasLegacyFlatShape) {
       return HttpResponse.json(entityRenameBadRequest, { status: 400 });
     }
     return HttpResponse.json(entityRenameOk);

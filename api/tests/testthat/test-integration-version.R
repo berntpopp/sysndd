@@ -3,6 +3,14 @@
 #
 # These tests verify that the version endpoint returns correct structure
 # and works without authentication (public endpoint).
+#
+# Rollback audit (Phase C unit C9, v11.0):
+#   This file is exempt from wrapping in `with_test_db_transaction`
+#   because the tests are read-only HTTP probes against /api/version,
+#   a public endpoint that reads version_spec.json from disk and does
+#   not touch the database at all. No rollback scope is applicable.
+#   The C9 orphan absorption keeps this file green under
+#   `scripts/verify-test-gate.sh --extended`.
 
 library(testthat)
 library(httr2)
