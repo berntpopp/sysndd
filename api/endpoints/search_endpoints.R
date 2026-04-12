@@ -25,9 +25,11 @@
 #*
 #* @param searchterm The search query.
 #* @param helper Logical controlling the output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get <searchterm>
-function(searchterm, helper = TRUE) {
+function(searchterm, helper = TRUE, limit = 50, offset = 0) {
   helper <- as.logical(helper)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -91,9 +93,10 @@ function(searchterm, helper = TRUE) {
         names_from = "results",
         values_from = "values"
       )
-  } else {
-    sysndd_db_entity_search_return
   }
+
+  # Apply offset-based pagination
+  paginate_offset(sysndd_db_entity_search_return, limit = limit, offset = offset)
 }
 
 
@@ -110,9 +113,11 @@ function(searchterm, helper = TRUE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get ontology/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -164,7 +169,8 @@ function(searchterm, tree = FALSE) {
       )
   }
 
-  do_set_search_return_helper
+  # Apply offset-based pagination
+  paginate_offset(do_set_search_return_helper, limit = limit, offset = offset)
 }
 
 
@@ -180,9 +186,11 @@ function(searchterm, tree = FALSE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get gene/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -233,7 +241,8 @@ function(searchterm, tree = FALSE) {
       )
   }
 
-  nal_set_search_return_helper
+  # Apply offset-based pagination
+  paginate_offset(nal_set_search_return_helper, limit = limit, offset = offset)
 }
 
 
@@ -249,9 +258,11 @@ function(searchterm, tree = FALSE) {
 #*
 #* @param searchterm The query string.
 #* @param tree Logical controlling output format.
+#* @param limit:int Maximum number of results (default: 50, max: 500).
+#* @param offset:int Number of results to skip (default: 0).
 #*
 #* @get inheritance/<searchterm>
-function(searchterm, tree = FALSE) {
+function(searchterm, tree = FALSE, limit = 50, offset = 0) {
   tree <- as.logical(tree)
   searchterm <- URLdecode(searchterm) %>%
     str_squish()
@@ -305,5 +316,6 @@ function(searchterm, tree = FALSE) {
       )
   }
 
-  moi_list_search_return_helper
+  # Apply offset-based pagination
+  paginate_offset(moi_list_search_return_helper, limit = limit, offset = offset)
 }
