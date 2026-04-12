@@ -236,6 +236,14 @@ async function refresh(): Promise<string> {
   const raw: unknown = response.data;
   const nextToken = Array.isArray(raw) ? String(raw[0]) : String(raw);
 
+  // Guard against malformed 200 responses (null, {}, [null], non-coercible
+  // payloads). Without this check, `String(undefined)` persists the literal
+  // string "undefined" as the new token, which would masquerade as a valid
+  // session until the next request fires a 401.
+  if (!nextToken || nextToken === 'undefined' || nextToken === 'null') {
+    throw new Error('Refresh returned invalid token');
+  }
+
   tokenRef.value = nextToken;
   localStorage.setItem(TOKEN_KEY, nextToken);
   axios.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
