@@ -75,12 +75,21 @@ import ROLES from '@/assets/js/constants/role_constants';
 import packageInfo from '../../package.json';
 import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
+import { useAuth } from '@/composables/useAuth';
 
 export default {
   name: 'AppNavbar',
   components: {
     SearchCombobox,
     IconPairDropdownMenu,
+  },
+  setup() {
+    // Phase E.E7: route all auth-state reads through the shared composable
+    // instead of reaching into localStorage. The Bearer header is already
+    // set by `@/plugins/axios` whenever `useAuth` mutates the token, so the
+    // navbar no longer has to read `localStorage.getItem('token')` itself.
+    const auth = useAuth();
+    return { auth };
   },
   data() {
     return {
@@ -133,21 +142,22 @@ export default {
   },
   methods: {
     isUserLoggedIn() {
-      if (localStorage.user && localStorage.token) {
+      // Phase E.E7: `isAuthenticated` covers both "token present" and
+      // "user payload parsed cleanly" — the composable already refused a
+      // corrupt localStorage blob. No direct `localStorage.token` read.
+      if (this.auth.isAuthenticated.value) {
         this.checkSigninWithJWT();
       } else {
         this.clearUserData();
       }
     },
     async checkSigninWithJWT() {
+      // The `@/plugins/axios` default Authorization header is kept in
+      // lockstep with `useAuth`, so we don't override it per-request here.
       const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
 
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response_signin = await this.axios.get(apiAuthenticateURL);
 
         this.user_from_jwt = response_signin.data;
         this.setUserFromJWT();
@@ -156,12 +166,16 @@ export default {
       }
     },
     setUserFromJWT() {
-      const localStorageUser = JSON.parse(localStorage.user);
-      if (this.user_from_jwt.user_name[0] === localStorageUser.user_name[0]) {
-        const [user] = localStorageUser.user_name;
+      const authUser = this.auth.user.value;
+      if (!authUser) {
+        this.clearUserData();
+        return;
+      }
+      if (this.user_from_jwt.user_name[0] === authUser.user_name[0]) {
+        const [user] = authUser.user_name;
         this.user = user;
 
-        const user_role = localStorageUser.user_role[0];
+        const user_role = authUser.user_role[0];
         const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
 
         this.userAllowence = {
@@ -175,8 +189,9 @@ export default {
       }
     },
     clearUserData() {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+      // Delegates the localStorage + axios-header cleanup to useAuth so the
+      // navbar never touches those keys directly.
+      this.auth.logout();
       this.user = null;
       this.userAllowence = {
         view: false,
