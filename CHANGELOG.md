@@ -8,6 +8,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet. See `.plans/v11.0/` for work in progress._
 
+## [0.11.7] — 2026-04-12
+
+Phase D of the v11.0 test foundation initiative — backend structural refactors protected by the Phase C test net. Five parallel worktree units (D1–D5) consolidated here; D6 (`extract-bootstrap`) follows in a subsequent PR. **No new runtime behavior**; this is exclusively source-structure refactoring protected by pre-existing Phase C tests.
+
+### Changed
+
+- **D1 — Split `api/functions/llm-service.R` (1,748 LoC) into focused modules.**
+  - `llm-client.R` (318 LoC) — Gemini HTTP/SDK calls: `get_default_gemini_model()`, `generate_cluster_summary()`, `is_gemini_configured()`, `list_gemini_models()`.
+  - `llm-types.R` (572 LoC) — ellmer `type_object` specs + prompt builders.
+  - `llm-rate-limiter.R` (184 LoC) — `GEMINI_RATE_LIMIT` config + `calculate_derived_confidence()`.
+  - `llm-service.R` (726 LoC orchestrator) — `get_or_generate_summary()`, cluster data fetchers, prompt template CRUD.
+  - Conditional source guards let the orchestrator load its dependencies when sourced standalone (e.g., from `test-llm-batch.R`). `get_api_dir()` fallback handles testthat's working-directory switches.
+- **D2 — Split `api/functions/helper-functions.R` (1,440 LoC) into 4 focused modules.**
+  - `account-helpers.R` (194 LoC) — `random_password`, `is_valid_email`, `generate_initials`, `send_noreply_email`.
+  - `entity-helpers.R` (222 LoC) — `nest_gene_tibble`, `nest_pubtator_gene_tibble`, `extract_vario_filter`, `get_entity_ids_by_vario`.
+  - `response-helpers.R` (766 LoC) — `generate_sort_expressions`, `generate_filter_expressions`, `select_tibble_fields`, `generate_cursor_pag_inf`, `generate_tibble_fspec`. Exceeds the 500 LoC target because `generate_filter_expressions()` alone is ~340 LoC; splitting it would fragment cohesive dispatch-table logic.
+  - `data-helpers.R` (291 LoC) — `generate_panel_hash`, `generate_json_hash`, `generate_function_hash`, `generate_xlsx_bin`, `post_db_hash`.
+  - `helper-functions.R` retained as a 14-line compatibility shim — pre-existing tests source it directly; shim conditionally loads the 4 split modules.
+- **D3 — Split `api/functions/pubtator-functions.R` (1,269 LoC) into 3 focused modules.**
+  - `pubtator-client.R` (351 LoC) — BioCJSON API calls + rate limiting (`pubtator_rate_limited_call`, `pubtator_v3_*`).
+  - `pubtator-parser.R` (380 LoC) — JSON parsing + 3-approach gene-symbol computation (`pubtator_parse_biocjson`, `compute_pubtator_gene_symbols`, flatteners, `generate_query_hash`).
+  - `pubtator-functions.R` (548 LoC orchestrator) — `pubtator_db_update()` (sync) + `pubtator_db_update_async()` (mirai workers).
+- **D4 — Deleted `api/functions/legacy-wrappers.R` (630 LoC).** All 10 wrapper functions migrated to their natural service layer homes with their original names preserved (endpoint handlers and Phase C test sandboxes reference them by name):
+  - `put_post_db_review`, `put_post_db_pub_con`, `put_post_db_phen_con`, `put_post_db_var_ont_con` → `api/services/review-service.R`.
+  - `put_post_db_status` → `api/services/status-service.R`.
+  - `post_db_entity`, `put_db_entity_deactivation` → `api/services/entity-service.R`.
+  - `put_db_review_approve`, `put_db_status_approve` → `api/services/approval-service.R`.
+  - `new_publication` → already existed in `publication-functions.R`; legacy version removed.
+  - All migrated wrapper functions use `logger::log_*` namespacing for consistency with the rest of the service files.
+- **D5 — Pagination sweep on 14 GET endpoints across 7 endpoint files.** New `paginate_offset()` helper in `api/functions/pagination-helpers.R` returns a standardized `{data, links, meta}` envelope with input validation (`limit` clamped to `[1, 500]`, `offset >= 0`) and safe URL-separator handling for `links.next`.
+  - Paginated: `backup/list`, `llm_admin/cache/summaries`, `llm_admin/logs`, `re_review/assignment_table`, all 4 `search/*` routes, `variant/correlation`, `variant/count`, `panels/options`, `comparisons/options`, `comparisons/upset`, `comparisons/similarity`.
+  - `backup/list` preserves legacy top-level `total`/`page`/`page_size` fields for backward compatibility with pre-existing callers while adding `links`/`limit`/`offset` for the new contract.
+  - `about/{draft,published}` and `hash/create` intentionally untouched (single-item/non-list endpoints).
+  - New `api/tests/testthat/test-pagination-contract.R` (332 LoC, 26 tests) — net-new contract surface allowed by the test gate; validates `paginate_offset()` correctness plus static signature extraction confirming all 14 target handlers accept `limit`/`offset`.
+
+### Source list
+- `api/start_sysndd_api.R` — Source block wrapped in `# --- function source list (v11.0) ---` / `# --- end source list ---` markers. `legacy-wrappers.R` and `helper-functions.R` source lines removed/adjusted; new split module source lines added in alphabetical order. `everywhere({...})` mirai worker block updated to match.
+
+### Verified
+- Docker container restart smoke — mirai workers load the refactored function set without `could not find function` errors.
+- All 5 unit PRs (D1–D5) green on CI: `Lint R API`, `Test R API`, `Smoke Test (prod stack)`, `make doctor`, `Detect Changes`.
+- `test-endpoint-backup.R` (76/76), `test-endpoint-search.R`, `test-endpoint-variant.R`, `test-pagination-contract.R` all green in a live Docker container run.
+- File size gates: all new files under plan targets except the documented `response-helpers.R` and `llm-service.R` orchestrator exceptions.
+
+### Outstanding (for v0.11.x follow-ups or v11.1)
+- D6 (extract-bootstrap) — splits `api/start_sysndd_api.R` into `api/bootstrap/` modules. Follows in a sequenced PR after this one lands.
+- Missing `base_url` on several `paginate_offset()` call sites means `links.next` drops active query params; flagged by Copilot, deferred to avoid expanding Phase D scope.
+- Weak `post_db_entity()` missing-field detection (NULL/NA values) — pre-existing behavior, preserved intentionally by D4 migration.
+
 ## [0.11.6] — 2026-04-12
 
 Phase C of the v11.0 test foundation initiative — the Tier B safety net that Phase D/E rewrites depend on. 11 new test files landed across 6 view functional specs, 2 composable spec pairs, and 3 R endpoint test batches, plus the default-on transaction rollback audit across every pre-existing `test-integration-*.R` file. **No runtime code changed**; this is exclusively test authoring plus narrowly-scoped B1 MSW drift fixes uncovered by Checkpoint #2's batch review.
