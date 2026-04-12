@@ -200,16 +200,22 @@ function(req, res) {
 #* # `Query Parameters`
 #* @param cluster_type:character Filter by "functional" or "phenotype"
 #* @param validation_status:character Filter by "pending", "validated", "rejected"
-#* @param limit:int Maximum number of items per page (default: 50, max: 500)
-#* @param offset:int Number of items to skip (default: 0)
+#* @param page:int Page number (default: 1)
+#* @param per_page:int Items per page (default: 50, max: 500)
+#* @param limit:int Alias for per_page (D5 pagination contract, default: 50)
+#* @param offset:int Alias for (page-1) * per_page; rounded DOWN to the
+#*   nearest page boundary when not a multiple of per_page (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
+#* Legacy pagination envelope expected by `useLlmAdmin.ts` /
+#* `types/llm.ts::PaginatedCacheSummaries`:
 #* - data: Array of cache entries
-#* - links: Object with next URL (or null)
-#* - meta: Object with total, limit, offset
+#* - total: Integer total count
+#* - page: Current page number
+#* - per_page: Items per page
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")
@@ -521,16 +527,22 @@ function(req, res, cluster_type = "all", force = FALSE) {
 #* @param status:character Filter by "success", "validation_failed", "api_error", "timeout"
 #* @param from_date:character Start date filter (YYYY-MM-DD)
 #* @param to_date:character End date filter (YYYY-MM-DD)
-#* @param limit:int Maximum number of items per page (default: 50, max: 500)
-#* @param offset:int Number of items to skip (default: 0)
+#* @param page:int Page number (default: 1)
+#* @param per_page:int Items per page (default: 50, max: 500)
+#* @param limit:int Alias for per_page (D5 pagination contract, default: 50)
+#* @param offset:int Alias for (page-1) * per_page; rounded DOWN to the
+#*   nearest page boundary when not a multiple of per_page (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
+#* Legacy pagination envelope expected by `useLlmAdmin.ts` /
+#* `types/llm.ts::PaginatedLogs`:
 #* - data: Array of log entries
-#* - links: Object with next URL (or null)
-#* - meta: Object with total, limit, offset
+#* - total: Integer total count
+#* - page: Current page number
+#* - per_page: Items per page
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")

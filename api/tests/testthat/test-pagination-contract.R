@@ -169,23 +169,30 @@ extract_get_handler_params <- function(file_path) {
       }
 
       if (j <= length(lines)) {
-        # Gather the full function signature (may span multiple lines)
+        # Gather the full function signature (may span multiple lines).
+        # Grow until the line's `{` balances past zero and the paren count
+        # reaches zero, so we capture multi-line signatures correctly.
         sig <- ""
         k <- j
-        while (k <= length(lines) && !grepl("\\{", lines[k])) {
-          sig <- paste0(sig, lines[k])
+        while (k <= length(lines)) {
+          sig <- paste0(sig, lines[k], "\n")
+          # Stop once we have a complete function(...) { — use R's parser
+          # to detect a balanced signature by attempting to parse
+          # "<sig> NULL }". If it parses, we're done; otherwise keep going.
+          parseable <- tryCatch(
+            parse(text = paste0(sig, "NULL\n}")),
+            error = function(e) NULL
+          )
+          if (!is.null(parseable)) break
           k <- k + 1
         }
-        sig <- paste0(sig, lines[min(k, length(lines))])
 
-        # Extract parameter names from function(param1, param2 = default, ...)
-        params_str <- sub(".*function\\s*\\(", "", sig)
-        params_str <- sub("\\)\\s*\\{.*", "", params_str)
-        params <- trimws(strsplit(params_str, ",")[[1]])
-        param_names <- sub("\\s*=.*", "", params)
-        param_names <- sub("^`", "", param_names)
-        param_names <- sub("`$", "", param_names)
-        param_names <- param_names[param_names != "" & param_names != "..."]
+        # Use R's parser to get formals — robust against commas inside
+        # string defaults like `filter = "a,b,c"`.
+        param_names <- tryCatch({
+          fn <- eval(parse(text = paste0(sig, "NULL\n}")))
+          setdiff(names(formals(fn)), "...")
+        }, error = function(e) character(0))
 
         handlers[[route]] <- param_names
       }

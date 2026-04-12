@@ -82,14 +82,14 @@ generate_cluster_summary <- function(
     model <- get_default_gemini_model()
   }
   # Debug logging for daemon execution
-  message("[LLM-Service] generate_cluster_summary called for ", cluster_type, " cluster")
+  logger::log_debug("generate_cluster_summary called for {cluster_type} cluster")
 
-  # Check for API key
+  # Check for API key (presence only — never log length or value).
   api_key <- Sys.getenv("GEMINI_API_KEY")
-  message("[LLM-Service] GEMINI_API_KEY present: ", nchar(api_key) > 0, " (length=", nchar(api_key), ")")
+  logger::log_debug("GEMINI_API_KEY present: {nzchar(api_key)}")
 
   if (api_key == "" || is.na(api_key)) {
-    message("[LLM-Service] ERROR: GEMINI_API_KEY not set!")
+    logger::log_error("GEMINI_API_KEY not set")
     rlang::abort(
       "GEMINI_API_KEY environment variable is not set. Please set it to your Gemini API key.",
       class = "llm_service_error"

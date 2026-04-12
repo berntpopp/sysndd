@@ -22,10 +22,11 @@
 #* Requires Administrator role.
 #*
 #* # `Parameters`
-#* - limit: Integer - Maximum number of items per page (default: 50, max: 500)
-#* - offset: Integer - Number of items to skip (default: 0)
-#* - page: Integer - Page number, backward-compatible alias (default: 1);
-#*   converted to offset internally. Ignored when limit/offset are provided.
+#* Two mutually-exclusive pagination modes:
+#*   1. Legacy page-based (default): `page` (default: 1) with fixed
+#*      `page_size=20`. Used when `limit` is not provided.
+#*   2. New offset-based: `limit` (default: 50 when used, max: 500) +
+#*      `offset` (default: 0). Takes precedence when `limit` is provided.
 #* - sort: String - Sort order: "newest" (default) or "oldest"
 #*
 #* # `Response`
