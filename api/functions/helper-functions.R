@@ -5,10 +5,11 @@
 #   account-helpers.R, data-helpers.R, entity-helpers.R, response-helpers.R
 
 if (!exists("random_password", mode = "function")) {
-  .dir <- if (file.exists("functions/account-helpers.R")) "functions" else dirname(sys.frame(1)$ofile)
-  source(file.path(.dir, "account-helpers.R"), local = FALSE)
-  source(file.path(.dir, "data-helpers.R"), local = FALSE)
-  source(file.path(.dir, "entity-helpers.R"), local = FALSE)
-  source(file.path(.dir, "response-helpers.R"), local = FALSE)
-  rm(.dir)
+  # Use get_api_dir() (test helper) if available; fall back to relative path.
+  .funcs_dir <- tryCatch(file.path(get_api_dir(), "functions"), error = function(e) "functions")
+  for (.f in c("account-helpers.R", "data-helpers.R", "entity-helpers.R", "response-helpers.R")) {
+    .p <- file.path(.funcs_dir, .f)
+    if (file.exists(.p)) source(.p, local = FALSE)
+  }
+  rm(.funcs_dir, .f, .p)
 }
