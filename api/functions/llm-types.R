@@ -4,8 +4,7 @@
 # Contains ellmer type_object specifications for structured output and
 # prompt construction functions for both functional and phenotype clusters.
 #
-# Also includes prompt template database CRUD functions for admin-editable
-# prompt management.
+# Prompt template database CRUD functions live in llm-service.R, not here.
 #
 # Split from llm-service.R as part of v11.0 Phase D (D1).
 

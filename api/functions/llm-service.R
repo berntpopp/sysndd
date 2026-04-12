@@ -11,7 +11,7 @@
 #
 # Dependencies (sourced before this file):
 # - llm-client.R: generate_cluster_summary(), is_gemini_configured(), etc.
-# - llm-types.R: type specs, prompt builders, prompt template CRUD
+# - llm-types.R: type specs and prompt builders
 # - llm-rate-limiter.R: GEMINI_RATE_LIMIT, calculate_derived_confidence()
 # - llm-cache-repository.R: generate_cluster_hash(), get_cached_summary(), save_summary_to_cache()
 # - llm-validation.R: validate_summary_entities()
@@ -46,7 +46,7 @@ if (!exists("get_default_gemini_model", mode = "function")) {
     if (file.exists(.p)) source(.p, local = FALSE)
   }
 }
-rm(.funcs_dir, .p, .f)
+rm(list = intersect(c(".funcs_dir", ".p", ".f"), ls()), envir = environment())
 
 
 #' Get or generate cluster summary
