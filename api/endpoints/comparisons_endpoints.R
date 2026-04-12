@@ -28,8 +28,11 @@
 #* @tag comparisons
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500).
+#* @param offset:int Number of items to skip (default: 0).
+#*
 #* @get options
-function() {
+function(limit = 50, offset = 0) {
   # Connect to database and fetch data from ndd_database_comparison_view
   ndd_database_comparison_view <- pool %>%
     tbl("ndd_database_comparison_view") %>%
@@ -63,13 +66,14 @@ function() {
     unique() %>%
     arrange(pathogenicity_mode)
 
-  # Return the combined data as a list
-  list(
-    list = list_df,
-    inheritance = inheritance_df,
-    category = category_df,
-    pathogenicity_mode = pathogenicity_mode_df
+  # Combine into a flat tibble for consistent pagination
+  options_tbl <- tibble::tibble(
+    option_group = c("list", "inheritance", "category", "pathogenicity_mode"),
+    values = list(list_df, inheritance_df, category_df, pathogenicity_mode_df)
   )
+
+  # Apply offset-based pagination
+  paginate_offset(options_tbl, limit = limit, offset = offset)
 }
 
 
@@ -94,9 +98,11 @@ function() {
 #*
 #* @param fields Comma-separated list of fields (databases) to include.
 #* @param definitive_only If TRUE, filter each source to only show Definitive entries.
+#* @param limit:int Maximum number of rows per page (default: 50, max: 500).
+#* @param offset:int Number of rows to skip (default: 0).
 #*
 #* @get upset
-function(res, fields = "", definitive_only = "false") {
+function(res, fields = "", definitive_only = "false", limit = 50, offset = 0) {
   ndd_database_comp_gene_list <- pool %>%
     tbl("ndd_database_comparison_view") %>%
     collect()
@@ -138,8 +144,8 @@ function(res, fields = "", definitive_only = "false") {
     ungroup() %>%
     mutate(sets = strsplit(sets, ","))
 
-  # Return the result
-  comparison_upset_data
+  # Apply offset-based pagination
+  paginate_offset(comparison_upset_data, limit = limit, offset = offset)
 }
 
 
@@ -158,8 +164,11 @@ function(res, fields = "", definitive_only = "false") {
 #* @tag comparisons
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of rows per page (default: 50, max: 500).
+#* @param offset:int Number of rows to skip (default: 0).
+#*
 #* @get similarity
-function() {
+function(limit = 50, offset = 0) {
   # Gather data and transform to wide binary matrix
   ndd_database_comparison_matrix <- pool %>%
     tbl("ndd_database_comparison_view") %>%
@@ -177,8 +186,8 @@ function() {
   ndd_database_comp_sim_melted <- melt(ndd_database_comp_sim) %>%
     select(x = Var1, y = Var2, value)
 
-  # Return the result
-  ndd_database_comp_sim_melted
+  # Apply offset-based pagination
+  paginate_offset(ndd_database_comp_sim_melted, limit = limit, offset = offset)
 }
 
 
