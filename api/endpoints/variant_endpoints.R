@@ -90,10 +90,14 @@ function(req,
 #*
 #* @param filter:str A string representing a filter query to use
 #*                  when selecting data from the database.
+#* @param limit:int Maximum number of rows per page (default: 50, max: 500).
+#* @param offset:int Number of rows to skip (default: 0).
 #*
 #* @get correlation
 function(res,
-         filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
+         filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)",
+         limit = 50,
+         offset = 0) {
   # 1) Use helper to get a data frame with columns (entity_id, modifier_variant_id, etc.)
   variant_entities_data <- generate_variant_entities_list(filter = filter)$data %>%
     # Convert comma-separated variant IDs to separate rows
@@ -159,7 +163,8 @@ function(res,
       value
     )
 
-  variants_corr_melted_ids
+  # Apply offset-based pagination
+  paginate_offset(variants_corr_melted_ids, limit = limit, offset = offset)
 }
 
 
@@ -179,10 +184,14 @@ function(res,
 #* @serializer json list(na="string")
 #*
 #* @param filter:str Filter expression to restrict the entity set.
+#* @param limit:int Maximum number of items per page (default: 50, max: 500).
+#* @param offset:int Number of items to skip (default: 0).
 #*
 #* @get count
 function(res,
-         filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
+         filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)",
+         limit = 50,
+         offset = 0) {
   # 1) Use helper to get entity-variant associations
   variant_entities_data <- generate_variant_entities_list(filter = filter)$data %>%
     separate_rows(modifier_variant_id, sep = ",") %>%
@@ -209,5 +218,6 @@ function(res,
     # rename for clarity: we store vario_id + variant_name + count
     select(vario_id, variant_name, count = n)
 
-  db_variants_count
+  # Apply offset-based pagination
+  paginate_offset(db_variants_count, limit = limit, offset = offset)
 }
