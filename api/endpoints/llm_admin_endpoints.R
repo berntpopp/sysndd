@@ -200,37 +200,55 @@ function(req, res) {
 #* # `Query Parameters`
 #* @param cluster_type:character Filter by "functional" or "phenotype"
 #* @param validation_status:character Filter by "pending", "validated", "rejected"
-#* @param page:int Page number (1-indexed, default: 1)
-#* @param per_page:int Entries per page (default: 20)
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
 #* - data: Array of cache entries
-#* - total: Integer, total matching entries
-#* - page: Integer, current page
-#* - per_page: Integer, entries per page
+#* - links: Object with next URL (or null)
+#* - meta: Object with total, limit, offset
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")
 #* @get /cache/summaries
-function(req, res, cluster_type = NULL, validation_status = NULL, page = 1, per_page = 20) {
+function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, offset = 0) {
   require_role(req, res, "Administrator")
 
   # Convert to integer (Plumber passes query params as strings)
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
+  limit  <- as.integer(limit)
+  offset <- as.integer(offset)
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
   if (!is.null(validation_status) && validation_status == "") validation_status <- NULL
 
-  get_cached_summaries_paginated(
+  # Delegate to repository; translate limit/offset to page/per_page for existing function
+  page     <- floor(offset / max(limit, 1L)) + 1L
+  per_page <- limit
+
+  result <- get_cached_summaries_paginated(
     cluster_type = cluster_type,
     validation_status = validation_status,
     page = page,
     per_page = per_page
+  )
+
+  # Re-wrap into standard pagination envelope
+  total <- if (!is.null(result$total)) result$total else length(result$data)
+  next_offset <- offset + limit
+  next_link <- if (next_offset < total) {
+    paste0("?limit=", limit, "&offset=", next_offset)
+  } else {
+    NULL
+  }
+
+  list(
+    data  = result$data,
+    links = list(next = next_link),
+    meta  = list(total = total, limit = limit, offset = offset)
   )
 }
 
@@ -486,28 +504,27 @@ function(req, res, cluster_type = "all", force = FALSE) {
 #* @param status:character Filter by "success", "validation_failed", "api_error", "timeout"
 #* @param from_date:character Start date filter (YYYY-MM-DD)
 #* @param to_date:character End date filter (YYYY-MM-DD)
-#* @param page:int Page number (1-indexed, default: 1)
-#* @param per_page:int Entries per page (default: 50)
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
 #*
 #* # `Return`
 #* - data: Array of log entries
-#* - total: Integer, total matching entries
-#* - page: Integer, current page
-#* - per_page: Integer, entries per page
+#* - links: Object with next URL (or null)
+#* - meta: Object with total, limit, offset
 #*
 #* @tag llm-admin
 #* @serializer json list(na="string")
 #* @get /logs
 function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date = NULL,
-         page = 1, per_page = 50) {
+         limit = 50, offset = 0) {
   require_role(req, res, "Administrator")
 
   # Convert to integer
-  page <- as.integer(page)
-  per_page <- as.integer(per_page)
+  limit  <- as.integer(limit)
+  offset <- as.integer(offset)
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
@@ -515,13 +532,32 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   if (!is.null(from_date) && from_date == "") from_date <- NULL
   if (!is.null(to_date) && to_date == "") to_date <- NULL
 
-  get_generation_logs_paginated(
+  # Translate limit/offset to page/per_page for existing repository function
+  page     <- floor(offset / max(limit, 1L)) + 1L
+  per_page <- limit
+
+  result <- get_generation_logs_paginated(
     cluster_type = cluster_type,
     status = status,
     from_date = from_date,
     to_date = to_date,
     page = page,
     per_page = per_page
+  )
+
+  # Re-wrap into standard pagination envelope
+  total <- if (!is.null(result$total)) result$total else length(result$data)
+  next_offset <- offset + limit
+  next_link <- if (next_offset < total) {
+    paste0("?limit=", limit, "&offset=", next_offset)
+  } else {
+    NULL
+  }
+
+  list(
+    data  = result$data,
+    links = list(next = next_link),
+    meta  = list(total = total, limit = limit, offset = offset)
   )
 }
 
