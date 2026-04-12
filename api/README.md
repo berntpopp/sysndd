@@ -54,7 +54,10 @@ The API is written in R using the plumber package to generate an OpenAPI/ Swagge
 │       endpoint-functions.R
 │       external-functions.R
 │       genereviews-functionsy.R
-│       helper-functions.R
+│       account-helpers.R
+│       data-helpers.R
+│       entity-helpers.R
+│       response-helpers.R
 │       logging-functions.R
 │       publication-functions.R
 │
