@@ -9,6 +9,18 @@ require(logger)
 require(DBI)
 log_threshold(INFO)
 
+# Load split modules if not already sourced (standalone loading, e.g. from tests)
+if (!exists("pubtator_rate_limited_call", mode = "function")) {
+  if (file.exists("functions/pubtator-client.R")) {
+    source("functions/pubtator-client.R", local = FALSE)
+  }
+}
+if (!exists("pubtator_parse_biocjson", mode = "function")) {
+  if (file.exists("functions/pubtator-parser.R")) {
+    source("functions/pubtator-parser.R", local = FALSE)
+  }
+}
+
 # Load database helper functions for repository layer access (if not already loaded)
 if (!exists("db_execute_query", mode = "function")) {
   if (file.exists("functions/db-helpers.R")) {
