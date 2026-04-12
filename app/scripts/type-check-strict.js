@@ -77,6 +77,24 @@ for (const scope of scopes) {
     { cwd: appDir, encoding: 'utf8' }
   );
 
+  // Spawn failed outright (e.g. npx not on PATH, ENOENT, permission denied).
+  // `result.status` is null in this case, so fall-through would surface as
+  // "UNEXPECTED TOOL FAILURE (vue-tsc exit null)" and bury the real cause.
+  if (result.error) {
+    console.error(`[type-check:strict] ${scope.name}: SPAWN FAILED — ${result.error.message}`);
+    console.error(result.error.stack ?? '(no stack)');
+    failed = true;
+    continue;
+  }
+  // Process was terminated by a signal (e.g. SIGKILL from OOM killer).
+  // Again, `result.status` is null here, so we need to surface the signal
+  // explicitly before the generic guard below misreports it.
+  if (result.signal) {
+    console.error(`[type-check:strict] ${scope.name}: KILLED BY SIGNAL ${result.signal}`);
+    failed = true;
+    continue;
+  }
+
   const output = `${result.stdout || ''}${result.stderr || ''}`;
   const lines = output.split('\n');
   const inScopeErrors = lines.filter((line) => line.startsWith(scope.prefix));
