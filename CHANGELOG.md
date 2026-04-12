@@ -8,6 +8,52 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet. See `.plans/v11.0/` for work in progress._
 
+## [0.11.8] — 2026-04-12
+
+Closes Phase D of the v11.0 test foundation initiative by landing D6 (`extract-bootstrap`), plus a reinforcing Phase B worktree that closes six MSW handler-table gaps Phase C batch review identified. **No new runtime behavior**; D6 is a pure structural refactor of the startup path and reinforcing-B adds test-only MSW stubs.
+
+### Changed
+
+- **D6 — Extract `api/start_sysndd_api.R` into `api/bootstrap/` module set.** Rewrote the 992-LoC startup script with 21 `<<-` super-assignments into a 137-LoC thin composer over 8 bootstrap modules. Every `<<-` is eliminated — `bootstrap_*()` functions return their results and the composer binds them at the top level of `start_sysndd_api.R` (which IS `.GlobalEnv`), so endpoint handlers, filters, and middleware that still look up `pool` / `serializers` / `migration_status` / `root` / etc. as globals keep working unchanged.
+  - `api/bootstrap/init_libraries.R` (76 LoC) — `library()` attachment order (STRINGdb/biomaRt first so `dplyr`'s masks win).
+  - `api/bootstrap/load_modules.R` (144 LoC) — sources repositories → services → core → filters in the order the Phase C source-order test expects.
+  - `api/bootstrap/create_pool.R` (50 LoC) — builds the DBI pool, returns it.
+  - `api/bootstrap/run_migrations.R` (159 LoC) — runs pending migrations, returns status list.
+  - `api/bootstrap/init_globals.R` (63 LoC) — serializers, inheritance/output/user allow-lists, `version_json` / `sysndd_api_version`.
+  - `api/bootstrap/init_cache.R` (103 LoC) — disk-backed `memoise` cache + 9 memoised helpers.
+  - `api/bootstrap/setup_workers.R` (132 LoC) — mirai daemon pool + `everywhere({...})` worker-side source block (unchanged function set and order, verified against the pre-D6 block).
+  - `api/bootstrap/mount_endpoints.R` (191 LoC) — all `pr_mount()` calls + filter wiring, returns the root router.
+  - `api/core/filters.R` (294 LoC, new) — extracted Plumber filter definitions (cors, auth, logging, error handler) from `start_sysndd_api.R`.
+  - `api/Dockerfile` — added `COPY services/` (pre-existing gap — container was relying on bind-mount alone, which would break production builds) and `COPY bootstrap/` lines so the built image includes the new module directory.
+  - `docker-compose.yml` — added `./api/bootstrap:/app/bootstrap` bind-mount and a matching `docker compose watch` sync target.
+
+### Added
+
+- **Reinforcing Phase B — 13 new MSW handlers covering six B1 gaps Phase C specs worked around via per-test `installAuxHandlers` stubs.** These are test-infrastructure-only changes; Phase E rewriting agents can now rely on shared mocks instead of duplicating per-spec stubs.
+  - Gap 1: `GET /api/entity?filter=...` (Review.vue step 1).
+  - Gap 2-4: `GET /api/list/entity`, `/list/gene`, `/list/disease` (dropdown stubs — these routes are Phase E contracts that `list_endpoints.R` doesn't implement yet; handler shapes follow the `{id, label}` tree-mode convention).
+  - Gap 5: `GET /api/re_review/table` (cursor envelope mirroring `re_review_endpoints.R @get table`).
+  - Gap 6: `ManageAnnotations.vue` aux endpoints — `GET /api/admin/annotation_dates`, `/admin/deprecated_entities` (with Viewer 403 branch); `PUT /api/admin/update_ontology_async` (Viewer 403 branch), `/admin/force_apply_ontology` (400 when `blocked_job_id` missing); `POST /api/admin/publications/refresh` (400 when body missing); `GET /api/publication/stats`, `/publication`, `/publication/pubtator/genes`, `/publication/pubtator/table`, `/comparisons/metadata`.
+  - New fixture files under `app/src/test-utils/mocks/data/`: `lists.ts`, `re_review.ts`, `annotations.ts`.
+  - No existing B1 handlers modified; 33 test files still pass (439 passed + 6 todo).
+
+### Verified
+
+- `wc -l api/start_sysndd_api.R` → **137** (plan target ≤200).
+- `grep -c "<<-" api/start_sysndd_api.R` → **0**.
+- `grep -rn "<<-" api/start_sysndd_api.R api/bootstrap/` → **0 hits**.
+- `Rscript --no-init-file api/scripts/lint-check.R` → 90 files, 0 issues.
+- Full backend test suite inside the api container: **70 files, 0 failures, 2338 passed, 247 skipped** (the skips are the documented DB-gated / slow tests).
+- `docker compose restart api` → boots in 3 attempts, zero "could not find function" or fatal-error entries in startup logs.
+- Critical endpoints all return 200: `/api/health/ready`, `/api/version/`, `/api/llm/prompts` (D1-regression guard), `/api/backup/list?page=1` (D5-shape guard), `/api/search/CUL1?helper=true`.
+- CI on PR #256 (D6): `Detect Changes`, `make doctor`, `Smoke Test (prod stack)`, `Lint R API`, `Test R API` all SUCCESS; frontend jobs correctly skipped (no frontend changes).
+
+### Phase D gate (§8) — all green
+
+- Local and remote `v11.0/phase-d/*` branches: **0**.
+- Legacy wrapper file (`api/functions/legacy-wrappers.R`): **deleted**.
+- All D1/D2/D3 split-file size targets met; the two documented overruns (`response-helpers.R` 762 LoC, `llm-service.R` orchestrator 724 LoC) remain because splitting further would fragment cohesive logic.
+
 ## [0.11.7] — 2026-04-12
 
 Phase D of the v11.0 test foundation initiative — backend structural refactors protected by the Phase C test net. Five parallel worktree units (D1–D5) consolidated here; D6 (`extract-bootstrap`) follows in a subsequent PR. **No new runtime behavior**; this is exclusively source-structure refactoring protected by pre-existing Phase C tests.
