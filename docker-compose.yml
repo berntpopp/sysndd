@@ -141,6 +141,7 @@ services:
       - ./api/functions:/app/functions
       - ./api/core:/app/core
       - ./api/services:/app/services
+      - ./api/bootstrap:/app/bootstrap
       - ./api/config:/app/config
       - ./api/data:/app/data
       - ./api/results:/app/results
@@ -191,6 +192,9 @@ services:
         - action: sync
           path: ./api/services
           target: /app/services
+        - action: sync
+          path: ./api/bootstrap
+          target: /app/bootstrap
         - action: rebuild
           path: ./api/renv.lock
     labels:
