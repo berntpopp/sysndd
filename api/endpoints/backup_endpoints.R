@@ -40,7 +40,13 @@
 #* @param offset:int Number of items to skip (default: 0)
 #*
 #* @get /list
-function(req, res, limit = 50, offset = 0, sort = "newest") {
+function(req, res, limit = 50, offset = 0, sort = "newest", page = NULL) {
+  # Backward compatibility: convert page-based to offset-based pagination
+  if (!is.null(page)) {
+    page <- as.integer(page)
+    offset <- (page - 1L) * as.integer(limit)
+  }
+
   # Require Administrator role
   require_role(req, res, "Administrator")
 
