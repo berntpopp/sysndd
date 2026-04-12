@@ -468,8 +468,11 @@ function(req, res, re_review_batch) {
 #* @tag re_review
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
+#*
 #* @get assignment_table
-function(req, res) {
+function(req, res, limit = 50, offset = 0) {
   require_role(req, res, "Curator")
 
   user <- req$user_id
@@ -512,7 +515,8 @@ function(req, res) {
     ) %>%
     arrange(user_id)
 
-  re_review_assign_table_user
+  # Apply offset-based pagination
+  paginate_offset(re_review_assign_table_user, limit = limit, offset = offset)
 }
 
 
