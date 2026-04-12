@@ -515,8 +515,10 @@ function(req, res, limit = 50, offset = 0) {
     ) %>%
     arrange(user_id)
 
-  # Apply offset-based pagination
-  paginate_offset(re_review_assign_table_user, limit = limit, offset = offset)
+  # Preserve legacy response shape (ManageReReview.vue reads response.data
+  # directly as an array via Array.isArray(data)). limit/offset remain in
+  # the signature for the pagination contract.
+  re_review_assign_table_user
 }
 
 

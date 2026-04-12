@@ -31,8 +31,13 @@
 #* # `Response`
 #* Paginated response with:
 #* - data: Array of backup objects (filename, size_bytes, created_at, table_count)
+#* - total: Integer total count of backups
+#* - page: Current page number (legacy)
+#* - page_size: Number of items per page (legacy)
+#* - limit: Integer effective page size
+#* - offset: Integer rows skipped
 #* - links: Object with `next` URL string (or null when no more pages)
-#* - meta: Object with total, limit, offset, page, page_size, directory metadata
+#* - meta: Directory metadata (total_count, total_size_bytes)
 #*
 #* @tag backup
 #* @serializer json list(na="string")
