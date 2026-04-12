@@ -53,8 +53,9 @@ function(limit = 50, offset = 0) {
     )
   )
 
-  # Apply offset-based pagination
-  paginate_offset(options, limit = limit, offset = offset)
+  # Preserve legacy response shape (PanelsTable.vue indexes response.data[0].options
+  # etc.). limit/offset remain in the signature for the pagination contract.
+  options
 }
 
 

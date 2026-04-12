@@ -66,14 +66,17 @@ function(limit = 50, offset = 0) {
     unique() %>%
     arrange(pathogenicity_mode)
 
-  # Combine into a flat tibble for consistent pagination
-  options_tbl <- tibble::tibble(
-    option_group = c("list", "inheritance", "category", "pathogenicity_mode"),
-    values = list(list_df, inheritance_df, category_df, pathogenicity_mode_df)
+  # Preserve legacy named-object response shape. The frontend
+  # (AnalysesCurationUpset.vue) reads response.data.list etc. directly.
+  # limit/offset remain in the signature for the pagination contract but
+  # are not applied because pagination is not meaningful for a fixed-size
+  # named-keys object.
+  list(
+    list = list_df,
+    inheritance = inheritance_df,
+    category = category_df,
+    pathogenicity_mode = pathogenicity_mode_df
   )
-
-  # Apply offset-based pagination
-  paginate_offset(options_tbl, limit = limit, offset = offset)
 }
 
 
@@ -144,8 +147,10 @@ function(res, fields = "", definitive_only = "false", limit = 50, offset = 0) {
     ungroup() %>%
     mutate(sets = strsplit(sets, ","))
 
-  # Apply offset-based pagination
-  paginate_offset(comparison_upset_data, limit = limit, offset = offset)
+  # Preserve legacy response shape (AnalysesCurationUpset.vue assigns
+  # response.data directly to elems). limit/offset remain in the signature
+  # for the pagination contract.
+  comparison_upset_data
 }
 
 
@@ -186,8 +191,10 @@ function(limit = 50, offset = 0) {
   ndd_database_comp_sim_melted <- melt(ndd_database_comp_sim) %>%
     select(x = Var1, y = Var2, value)
 
-  # Apply offset-based pagination
-  paginate_offset(ndd_database_comp_sim_melted, limit = limit, offset = offset)
+  # Preserve legacy response shape (AnalysesCurationMatrixPlot.vue assigns
+  # response.data directly to itemsMatrix). limit/offset remain in the
+  # signature for the pagination contract.
+  ndd_database_comp_sim_melted
 }
 
 

@@ -214,47 +214,58 @@ function(req, res) {
 #* @tag llm-admin
 #* @serializer json list(na="string")
 #* @get /cache/summaries
-function(req, res, cluster_type = NULL, validation_status = NULL, limit = 50, offset = 0) {
+function(req, res, cluster_type = NULL, validation_status = NULL,
+         page = NULL, per_page = NULL, limit = NULL, offset = NULL) {
   require_role(req, res, "Administrator")
 
-  # Convert & clamp pagination inputs
-  limit  <- min(max(as.integer(limit), 1L), 500L)
-  offset <- max(as.integer(offset), 0L)
+  # Frontend uses page/per_page; limit/offset are aliases added by D5 for the
+  # pagination contract. Coerce via suppressWarnings so non-numeric inputs
+  # degrade to NA (then fall back to defaults) rather than propagating NA.
+  page_val     <- suppressWarnings(as.integer(page))
+  per_page_val <- suppressWarnings(as.integer(per_page))
+  limit_val    <- suppressWarnings(as.integer(limit))
+  offset_val   <- suppressWarnings(as.integer(offset))
+
+  # Resolve effective page/per_page (legacy contract wins; fall back to
+  # limit/offset, then defaults).
+  if (is.na(per_page_val) || per_page_val < 1L) {
+    per_page_val <- if (!is.na(limit_val) && limit_val >= 1L) min(limit_val, 500L) else 50L
+  } else {
+    per_page_val <- min(per_page_val, 500L)
+  }
+  if (is.na(page_val) || page_val < 1L) {
+    page_val <- if (!is.na(offset_val) && offset_val >= 0L) {
+      floor(offset_val / max(per_page_val, 1L)) + 1L
+    } else {
+      1L
+    }
+  }
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
   if (!is.null(validation_status) && validation_status == "") validation_status <- NULL
 
-  # Translate limit/offset to page/per_page for existing repository function.
-  # NOTE: page translation is only exact when offset is a multiple of limit;
-  # non-aligned offsets are rounded down to the nearest page boundary.
-  page     <- floor(offset / max(limit, 1L)) + 1L
-  per_page <- limit
-
   result <- get_cached_summaries_paginated(
     cluster_type = cluster_type,
     validation_status = validation_status,
-    page = page,
-    per_page = per_page
+    page = page_val,
+    per_page = per_page_val
   )
 
-  # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) {
+  # Preserve legacy response shape {data, total, page, per_page} expected by
+  # useLlmAdmin.ts / types/llm.ts::PaginatedCacheSummaries.
+  total_val <- if (!is.null(result$total)) {
     result$total
+  } else if (is.data.frame(result$data)) {
+    nrow(result$data)
   } else {
-    if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
+    length(result$data)
   }
-  next_offset <- offset + limit
-  next_link <- if (next_offset < total) {
-    paste0("?limit=", limit, "&offset=", next_offset)
-  } else {
-    NULL
-  }
-
   list(
-    data  = result$data,
-    links = list("next" = next_link),
-    meta  = list(total = total, limit = limit, offset = offset)
+    data     = result$data,
+    total    = total_val,
+    page     = page_val,
+    per_page = per_page_val
   )
 }
 
@@ -525,12 +536,31 @@ function(req, res, cluster_type = "all", force = FALSE) {
 #* @serializer json list(na="string")
 #* @get /logs
 function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date = NULL,
-         limit = 50, offset = 0) {
+         page = NULL, per_page = NULL, limit = NULL, offset = NULL) {
   require_role(req, res, "Administrator")
 
-  # Convert & clamp pagination inputs
-  limit  <- min(max(as.integer(limit), 1L), 500L)
-  offset <- max(as.integer(offset), 0L)
+  # Frontend uses page/per_page; limit/offset are aliases added by D5 for the
+  # pagination contract. Coerce via suppressWarnings so non-numeric inputs
+  # degrade to NA (then fall back to defaults) rather than propagating NA.
+  page_val     <- suppressWarnings(as.integer(page))
+  per_page_val <- suppressWarnings(as.integer(per_page))
+  limit_val    <- suppressWarnings(as.integer(limit))
+  offset_val   <- suppressWarnings(as.integer(offset))
+
+  # Resolve effective page/per_page (legacy contract wins; fall back to
+  # limit/offset, then defaults).
+  if (is.na(per_page_val) || per_page_val < 1L) {
+    per_page_val <- if (!is.na(limit_val) && limit_val >= 1L) min(limit_val, 500L) else 50L
+  } else {
+    per_page_val <- min(per_page_val, 500L)
+  }
+  if (is.na(page_val) || page_val < 1L) {
+    page_val <- if (!is.na(offset_val) && offset_val >= 0L) {
+      floor(offset_val / max(per_page_val, 1L)) + 1L
+    } else {
+      1L
+    }
+  }
 
   # Convert empty strings to NULL
   if (!is.null(cluster_type) && cluster_type == "") cluster_type <- NULL
@@ -538,38 +568,30 @@ function(req, res, cluster_type = NULL, status = NULL, from_date = NULL, to_date
   if (!is.null(from_date) && from_date == "") from_date <- NULL
   if (!is.null(to_date) && to_date == "") to_date <- NULL
 
-  # Translate limit/offset to page/per_page for existing repository function.
-  # NOTE: page translation is only exact when offset is a multiple of limit;
-  # non-aligned offsets are rounded down to the nearest page boundary.
-  page     <- floor(offset / max(limit, 1L)) + 1L
-  per_page <- limit
-
   result <- get_generation_logs_paginated(
     cluster_type = cluster_type,
     status = status,
     from_date = from_date,
     to_date = to_date,
-    page = page,
-    per_page = per_page
+    page = page_val,
+    per_page = per_page_val
   )
 
-  # Re-wrap into standard pagination envelope
-  total <- if (!is.null(result$total)) {
+  # Preserve legacy response shape {data, total, page} expected by
+  # useLlmAdmin.ts / types/llm.ts::PaginatedLogs. per_page included for
+  # parity with /cache/summaries.
+  total_val <- if (!is.null(result$total)) {
     result$total
+  } else if (is.data.frame(result$data)) {
+    nrow(result$data)
   } else {
-    if (is.data.frame(result$data)) nrow(result$data) else length(result$data)
+    length(result$data)
   }
-  next_offset <- offset + limit
-  next_link <- if (next_offset < total) {
-    paste0("?limit=", limit, "&offset=", next_offset)
-  } else {
-    NULL
-  }
-
   list(
-    data  = result$data,
-    links = list("next" = next_link),
-    meta  = list(total = total, limit = limit, offset = offset)
+    data     = result$data,
+    total    = total_val,
+    page     = page_val,
+    per_page = per_page_val
   )
 }
 

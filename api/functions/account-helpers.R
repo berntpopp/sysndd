@@ -14,7 +14,7 @@
 #' @description
 #' This function generates a random password of length 12
 #' by selecting characters from a vector of possible characters
-#' that includes digits, lowercase letters, #' uppercase letters,
+#' that includes digits, lowercase letters, uppercase letters,
 #' exclamation mark, and dollar sign. The steps are as follows:
 #' 1. Create a vector named 'possible_characters' containing digits, lowercase
 #'    letters, uppercase letters, exclamation mark, and dollar sign.

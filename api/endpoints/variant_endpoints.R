@@ -163,8 +163,10 @@ function(res,
       value
     )
 
-  # Apply offset-based pagination
-  paginate_offset(variants_corr_melted_ids, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend AnalysesVariantCorrelogram.vue
+  # assigns response.data directly to itemsMatrix). limit/offset remain in
+  # the signature for the pagination contract.
+  variants_corr_melted_ids
 }
 
 
@@ -218,6 +220,8 @@ function(res,
     # rename for clarity: we store vario_id + variant_name + count
     select(vario_id, variant_name, count = n)
 
-  # Apply offset-based pagination
-  paginate_offset(db_variants_count, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend AnalysesVariantCounts.vue reads
+  # response.data directly). limit/offset remain in the signature for the
+  # pagination contract.
+  db_variants_count
 }

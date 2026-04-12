@@ -46,15 +46,20 @@ function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
   require_role(req, res, "Administrator")
 
   # Pagination: support both page-based (legacy) and limit/offset (new).
-  # If limit/offset provided, use them; otherwise convert page to offset.
+  # Coerce via suppressWarnings so non-numeric inputs degrade to NA, then
+  # fall back to defaults. Clamp to reasonable bounds to prevent invalid
+  # slicing.
   page_size <- 20L
-  if (!is.null(limit)) {
-    limit  <- min(as.integer(limit), 500L)
-    offset <- if (!is.null(offset)) as.integer(offset) else 0L
+  limit_raw  <- suppressWarnings(as.integer(limit))
+  offset_raw <- suppressWarnings(as.integer(offset))
+
+  if (!is.null(limit) && !is.na(limit_raw) && limit_raw >= 1L) {
+    limit     <- min(limit_raw, 500L)
+    offset    <- if (!is.null(offset) && !is.na(offset_raw) && offset_raw >= 0L) offset_raw else 0L
     page_size <- limit
   } else {
     page <- suppressWarnings(as.integer(page))
-    if (is.na(page) || page < 1) page <- 1
+    if (is.na(page) || page < 1L) page <- 1L
     limit  <- page_size
     offset <- (page - 1L) * page_size
   }
@@ -88,8 +93,14 @@ function(req, res, page = 1, sort = "newest", limit = NULL, offset = NULL) {
         end_idx   <- min(offset + limit, total)
         data <- if (start_idx > total) backups[0, ] else dplyr::slice(backups, start_idx:end_idx)
       }
+      # Preserve active query params (sort) when building links.next so that
+      # following the link keeps the caller on the same sort order.
       next_offset <- offset + limit
-      next_link   <- if (next_offset < total) paste0("?limit=", limit, "&offset=", next_offset) else NULL
+      next_link   <- if (next_offset < total) {
+        paste0("?limit=", limit, "&offset=", next_offset, "&sort=", sort)
+      } else {
+        NULL
+      }
 
       # Get directory metadata
       dir_meta <- get_backup_metadata("/backup")

@@ -95,8 +95,10 @@ function(searchterm, helper = TRUE, limit = 50, offset = 0) {
       )
   }
 
-  # Apply offset-based pagination
-  paginate_offset(sysndd_db_entity_search_return, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend SearchView.vue etc. read
+  # response.data directly as an array). limit/offset params remain in the
+  # signature for future migration but are not applied to the response here.
+  sysndd_db_entity_search_return
 }
 
 
@@ -169,8 +171,10 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
       )
   }
 
-  # Apply offset-based pagination
-  paginate_offset(do_set_search_return_helper, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
+  do_set_search_return_helper
 }
 
 
@@ -241,8 +245,10 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
       )
   }
 
-  # Apply offset-based pagination
-  paginate_offset(nal_set_search_return_helper, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
+  nal_set_search_return_helper
 }
 
 
@@ -316,6 +322,8 @@ function(searchterm, tree = FALSE, limit = 50, offset = 0) {
       )
   }
 
-  # Apply offset-based pagination
-  paginate_offset(moi_list_search_return_helper, limit = limit, offset = offset)
+  # Preserve legacy response shape (frontend curate views read response.data
+  # directly; wrapping in envelope would break them). limit/offset remain in
+  # the signature for the pagination contract.
+  moi_list_search_return_helper
 }
