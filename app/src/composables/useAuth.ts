@@ -176,13 +176,26 @@ function syncFromStorage(): void {
   tokenRef.value = rawToken;
   userRef.value = safeParseUser(rawUser);
 
-  // A token without a (readable) user is treated as no session — the SPA
-  // always pairs them, and a dangling token would fail every downstream
-  // role check anyway. Clear localStorage too so the state matches on
-  // every observer.
+  // Both-or-neither invariant
+  // -------------------------
+  // A session is only coherent when BOTH localStorage keys are present and
+  // valid. Any half-state (dangling token, dangling user) is treated as
+  // logged-out and actively cleaned up, so every observer sees the same
+  // cleared state.
+  //
+  // - Dangling token (user missing/corrupt) would fail every role check
+  //   and expiry calculation downstream.
+  // - Dangling user (token missing) would trick components that only check
+  //   `auth.user.value` (for example UserView.vue's mount hook) into firing
+  //   unauthenticated API calls with no Bearer header. Pre-Copilot-Fix-2,
+  //   syncFromStorage() only cleaned up the dangling-token case; Copilot
+  //   flagged the asymmetry as a real leak path for stale user payloads.
   if (tokenRef.value && !userRef.value) {
     localStorage.removeItem(TOKEN_KEY);
     tokenRef.value = null;
+  } else if (!tokenRef.value && userRef.value) {
+    localStorage.removeItem(USER_KEY);
+    userRef.value = null;
   }
 
   // Keep the axios default header in lockstep with the current token.

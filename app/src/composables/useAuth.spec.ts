@@ -338,6 +338,30 @@ describe('useAuth', () => {
       expect(auth.isAuthenticated.value).toBe(false);
     });
 
+    it('enforces both-or-neither: a dangling user (no token) is cleared from localStorage and state', () => {
+      // Copilot Fix 2: the pre-fix syncFromStorage() only cleaned up a
+      // dangling token; a dangling user survived. Components that read
+      // `auth.user.value` directly (e.g. UserView.vue's mount hook) would
+      // then hit the API without a Bearer header. Symmetric cleanup is now
+      // enforced so every observer sees the same cleared state.
+      const user = makeFreshUser();
+      localStorage.setItem('user', JSON.stringify(user));
+      // no token key — simulates a crash between the two setItem calls,
+      // or a dev-tools manipulation.
+      axios.defaults.headers.common.Authorization = 'Bearer stale';
+
+      const auth = useAuth();
+
+      expect(auth.user.value).toBeNull();
+      expect(auth.token.value).toBeNull();
+      expect(auth.isAuthenticated.value).toBe(false);
+      // Stored user must be cleaned up too, not just the in-memory ref.
+      expect(localStorage.getItem('user')).toBeNull();
+      // And the axios default header must be cleared so the next request
+      // cannot send a stale Bearer.
+      expect(axios.defaults.headers.common.Authorization).toBeUndefined();
+    });
+
     it('rehydrates cleanly when both token and user are present', () => {
       const user = makeFreshUser();
       localStorage.setItem('token', FRESH_TOKEN);
