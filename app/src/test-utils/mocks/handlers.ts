@@ -142,6 +142,14 @@ import {
   listGeneOk,
   listDiseaseOk,
 } from './data/lists';
+import {
+  geneLookupOk,
+  geneLookupEmpty,
+  geneListOk,
+  uniprotDomainsOk,
+  uniprotDomainsNotFound,
+  UNIPROT_NOT_FOUND_SYMBOL,
+} from './data/genes';
 import { reReviewTableOk } from './data/re_review';
 import {
   annotationDatesOk,
@@ -754,6 +762,49 @@ export const handlers = [
   // OpenAPI: GET /api/comparisons/metadata
   // api/endpoints/comparisons_endpoints.R @get /metadata
   http.get('/api/comparisons/metadata', () => HttpResponse.json(comparisonsMetadataOk)),
+
+  // ---------------------------------------------------------------------------
+  // Phase E.E3 — GeneView.vue migration (first-client-migration)
+  //
+  // These handlers back the `api/genes.ts` + `api/external.ts` typed helpers
+  // that Phase E.E3 introduces to replace the raw `axios.get` calls in
+  // `GeneView.vue`. Registered here so the `genes.spec.ts` helper unit tests
+  // and any future GeneView.vue component spec can rely on MSW interception.
+  // See `.plans/v11.0/phase-e.md` §3 Phase E.E3 exit criterion #14.
+  // ---------------------------------------------------------------------------
+
+  // OpenAPI: GET /api/gene  (cursor-paginated listing)
+  // api/endpoints/gene_endpoints.R @get /
+  // Registered BEFORE `/api/gene/:gene_input` so the literal match wins over
+  // the parameterised one in MSW's first-match-wins ordering.
+  http.get('/api/gene', () => HttpResponse.json(geneListOk)),
+
+  // OpenAPI: GET /api/gene/:gene_input?input_type=hgnc|symbol
+  // api/endpoints/gene_endpoints.R @get /<gene_input>
+  //
+  // Wire shape: 1-row array when found, empty `[]` when unknown. `GeneView`
+  // dispatches two lookups in parallel (hgnc + symbol) and picks whichever
+  // comes back with rows. Use the sentinel value `UNKNOWN_GENE` to trigger
+  // the empty branch regardless of input_type.
+  http.get('/api/gene/:gene_input', ({ params }) => {
+    if (params.gene_input === 'UNKNOWN_GENE') {
+      return HttpResponse.json(geneLookupEmpty);
+    }
+    return HttpResponse.json(geneLookupOk);
+  }),
+
+  // OpenAPI: GET /api/external/uniprot/domains/:symbol
+  // api/endpoints/external_endpoints.R @get uniprot/domains/<symbol>
+  //
+  // 404 branch uses the sentinel symbol `NO_UNIPROT` (mirrors the "gene not
+  // in UniProt" path of the real endpoint). The body follows the
+  // `application/problem+json` shape the endpoint emits on error.
+  http.get('/api/external/uniprot/domains/:symbol', ({ params }) => {
+    if (params.symbol === UNIPROT_NOT_FOUND_SYMBOL) {
+      return HttpResponse.json(uniprotDomainsNotFound, { status: 404 });
+    }
+    return HttpResponse.json(uniprotDomainsOk);
+  }),
 ];
 
 export default handlers;
