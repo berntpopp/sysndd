@@ -136,7 +136,9 @@ import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
 import { useGeneExternalData } from '@/composables/useGeneExternalData';
 import { useModelOrganismData } from '@/composables/useModelOrganismData';
-import axios from 'axios';
+import { getGene, getGeneBySymbol } from '@/api/genes';
+import { getUniprotDomains, type UniProtData } from '@/api/external';
+import { isApiError } from '@/api/client';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
@@ -147,27 +149,9 @@ import GenomicVisualizationTabs from '@/components/gene/GenomicVisualizationTabs
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import type { GeneApiData } from '@/types/gene';
 
-/**
- * UniProt domain feature from the API response
- */
-interface UniProtDomainFeature {
-  type: string;
-  description?: string;
-  begin: number | string;
-  end: number | string;
-}
-
-/**
- * UniProt API response structure from /api/external/uniprot/domains/<symbol>
- */
-interface UniProtData {
-  source: string;
-  gene_symbol: string;
-  accession: string;
-  protein_name: string;
-  protein_length: number | string;
-  domains: UniProtDomainFeature[];
-}
+// UniProtData + UniProtDomainFeature are now exported from `@/api/external`
+// (Phase E.E3 migration). Importing them keeps one source of truth between
+// the api/ helper and this view's prop-forwarding to GenomicVisualizationTabs.
 
 const route = useRoute();
 const router = useRouter();
@@ -230,22 +214,16 @@ async function fetchUniprotData(): Promise<void> {
   uniprotError.value = null;
 
   try {
-    const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(
-      `${apiBase}/api/external/uniprot/domains/${geneSymbol.value}`,
-      {
-        withCredentials: true,
-      }
-    );
+    const data = await getUniprotDomains(geneSymbol.value);
 
     // Check for valid response with domains
-    if (response.data && response.data.domains) {
-      uniprotData.value = response.data;
+    if (data && data.domains) {
+      uniprotData.value = data;
     } else {
       uniprotData.value = null;
     }
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response?.status === 404) {
+    if (isApiError(err) && err.response?.status === 404) {
       // Gene not found in UniProt - not an error, just no data
       uniprotData.value = null;
       uniprotError.value = null;
@@ -278,26 +256,27 @@ async function retryAllExternalData(): Promise<void> {
 async function loadGeneInfo() {
   loading.value = true;
   const symbol = route.params.symbol as string;
-  const apiBase = import.meta.env.VITE_API_URL;
-  const apiGeneURL = `${apiBase}/api/gene/${symbol}?input_type=hgnc`;
-  const apiGeneSymbolURL = `${apiBase}/api/gene/${symbol}?input_type=symbol`;
 
   try {
-    // Parallel fetch: both gene API calls run concurrently
-    const [responseGene, responseSymbol] = await Promise.all([
-      axios.get(apiGeneURL, { withCredentials: true }),
-      axios.get(apiGeneSymbolURL, { withCredentials: true }),
+    // Parallel fetch: both gene API calls run concurrently. `getGene` /
+    // `getGeneBySymbol` (from `@/api/genes`) return the 1-row-array lookup
+    // shape directly — the legacy `?input_type=...` query string is folded
+    // into the helper signature, and the `apiBase` prepend is handled by
+    // the configured axios singleton under `@/plugins/axios`.
+    const [hgncRows, symbolRows] = await Promise.all([
+      getGene(symbol, 'hgnc'),
+      getGeneBySymbol(symbol),
     ]);
 
-    if (responseGene.data.length === 0 && responseSymbol.data.length === 0) {
+    if (hgncRows.length === 0 && symbolRows.length === 0) {
       router.push('/PageNotFound');
-    } else if (responseGene.data.length === 0) {
-      geneData.value = responseSymbol.data;
+    } else if (hgncRows.length === 0) {
+      geneData.value = symbolRows;
     } else {
-      geneData.value = responseGene.data;
+      geneData.value = hgncRows;
     }
   } catch (e) {
-    makeToast(e as string, 'Error', 'danger');
+    makeToast(e, 'Error', 'danger');
   }
   loading.value = false;
 
