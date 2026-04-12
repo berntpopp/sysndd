@@ -15,8 +15,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { http, HttpResponse } from 'msw';
 import { apiClient, isApiError, unwrapScalar } from './client';
 import { ERROR_SENTINELS } from '@/test-utils/mocks/handlers';
+import { server } from '@/test-utils/mocks/server';
 
 describe('api/client — typed wrapper smoke tests', () => {
   // ---------------------------------------------------------------------------
@@ -54,17 +56,21 @@ describe('api/client — typed wrapper smoke tests', () => {
     });
 
     it('apiClient.delete returns response.data directly', async () => {
-      // /api/user/delete is PUT in the B1 handler table (spec bug); use the
-      // jobs history GET as a more faithful delete-ish smoke target — the
-      // wrapper just proxies to axios.delete, so the path that matters is
-      // "does it unwrap?" not "does the server accept DELETE".
-      // For actual DELETE-verb coverage without a real handler, we'd need
-      // an override; skip here because no MSW handler matches a DELETE verb
-      // on a stable path. The 4xx branch covers the axios.delete code path
-      // via the interceptor logic instead.
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      apiClient.delete;
-      expect(typeof apiClient.delete).toBe('function');
+      // The B1 handler table has no stable DELETE-verb route (`/api/user/delete`
+      // is registered as `http.put(...)` — annotated spec bug). Install a
+      // per-test override so we can exercise the DELETE code path end-to-end.
+      // `afterEach` in vitest.setup.ts calls `server.resetHandlers()`, which
+      // removes this override automatically — no cleanup needed here.
+      server.use(
+        http.delete('/api/test-only/delete-smoke/:id', ({ params }) => {
+          return HttpResponse.json({ deleted_id: params.id, ok: true });
+        }),
+      );
+
+      const body = await apiClient.delete<{ deleted_id: string; ok: boolean }>(
+        '/api/test-only/delete-smoke/42',
+      );
+      expect(body).toEqual({ deleted_id: '42', ok: true });
     });
   });
 
@@ -87,8 +93,13 @@ describe('api/client — typed wrapper smoke tests', () => {
   // ---------------------------------------------------------------------------
 
   describe('isApiError', () => {
-    it('recognises an AxiosError thrown from a 401 auth response', async () => {
-      // Trigger the MSW 401 branch via the wrong_user sentinel.
+    it('returns false for the tagged Error synthesised by the 401 interceptor', async () => {
+      // The axios 401 interceptor in `plugins/axios.ts` swaps the original
+      // AxiosError for a tagged plain Error (`__handled401: true`) to
+      // coalesce concurrent login redirects. `isApiError` must return
+      // `false` for that tagged error — by the time a call site sees a 401
+      // rejection, the redirect is already in flight and there is no
+      // AxiosError left to inspect. This assertion pins that contract.
       let caught: unknown;
       try {
         await apiClient.post('/api/auth/authenticate', {
@@ -100,11 +111,6 @@ describe('api/client — typed wrapper smoke tests', () => {
       }
 
       expect(caught).toBeDefined();
-      // The axios 401 interceptor in plugins/axios.ts replaces the real
-      // AxiosError with a tagged plain Error for login-redirect coalescing.
-      // The guard must return false for that tagged error (it isn't an
-      // AxiosError any more); the guard's value is in call sites that throw
-      // from non-401 paths.
       expect(isApiError(caught)).toBe(false);
     });
 

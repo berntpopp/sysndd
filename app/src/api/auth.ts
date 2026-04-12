@@ -16,6 +16,7 @@
  * repo-root `CLAUDE.md`).
  */
 
+import type { AxiosRequestConfig } from 'axios';
 import { apiClient, unwrapScalar } from './client';
 
 // ---------------------------------------------------------------------------
@@ -67,10 +68,12 @@ export async function authenticate(user_name: string, password: string): Promise
 /**
  * GET /api/auth/signin
  * Call with the token already installed on the default `Authorization`
- * header (see `@/plugins/axios`), or pass a fresh one via `config.headers`.
+ * header (see `@/plugins/axios`), or pass a fresh one via `config.headers`
+ * — the LoginView flow does exactly that immediately after `authenticate`
+ * returns, before the plugin's default header has been refreshed.
  */
-export async function signin(): Promise<UserProfile> {
-  return apiClient.get<UserProfile>('/api/auth/signin');
+export async function signin(config?: AxiosRequestConfig): Promise<UserProfile> {
+  return apiClient.get<UserProfile>('/api/auth/signin', config);
 }
 
 /**
