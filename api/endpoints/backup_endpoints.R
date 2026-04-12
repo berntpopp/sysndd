@@ -36,16 +36,13 @@
 #* @tag backup
 #* @serializer json list(na="string")
 #*
+#* @param limit:int Maximum number of items per page (default: 50, max: 500)
+#* @param offset:int Number of items to skip (default: 0)
+#*
 #* @get /list
-function(req, res, page = 1, sort = "newest") {
+function(req, res, limit = 50, offset = 0, sort = "newest") {
   # Require Administrator role
   require_role(req, res, "Administrator")
-
-  # Validate and coerce page parameter
-  page <- suppressWarnings(as.integer(page))
-  if (is.na(page) || page < 1) {
-    page <- 1
-  }
 
   # Validate sort parameter
   if (!sort %in% c("newest", "oldest")) {
@@ -56,9 +53,6 @@ function(req, res, page = 1, sort = "newest") {
       valid_values = c("newest", "oldest")
     ))
   }
-
-  # Page size per CONTEXT.md
-  page_size <- 20
 
   # Get backup list from business logic
   tryCatch(
@@ -71,35 +65,17 @@ function(req, res, page = 1, sort = "newest") {
       }
       # else keep default: newest first (already sorted by list_backup_files)
 
-      # Calculate pagination
-      total <- nrow(backups)
-      offset <- (page - 1) * page_size
-
-      # Slice data for current page
-      if (total == 0) {
-        data <- backups # Empty tibble with correct structure
-      } else {
-        start_idx <- offset + 1
-        end_idx <- min(offset + page_size, total)
-
-        if (start_idx > total) {
-          # Page beyond available data - return empty
-          data <- backups[0, ]
-        } else {
-          data <- dplyr::slice(backups, start_idx:end_idx)
-        }
-      }
+      # Apply offset-based pagination using helper
+      pag <- paginate_offset(backups, limit = limit, offset = offset)
 
       # Get directory metadata
-      meta <- get_backup_metadata("/backup")
+      dir_meta <- get_backup_metadata("/backup")
 
       # Return paginated response
       list(
-        data = data,
-        total = total,
-        page = page,
-        page_size = page_size,
-        meta = meta
+        data = pag$data,
+        links = pag$links,
+        meta = c(pag$meta, list(directory = dir_meta))
       )
     },
     error = function(e) {
