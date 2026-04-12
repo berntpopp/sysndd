@@ -135,7 +135,30 @@ import {
   entityReviewListNotFound,
   entityStatusListOk,
   entityStatusListNotFound,
+  entityFilterOk,
 } from './data/entities';
+import {
+  listEntityOk,
+  listGeneOk,
+  listDiseaseOk,
+} from './data/lists';
+import { reReviewTableOk } from './data/re_review';
+import {
+  annotationDatesOk,
+  deprecatedEntitiesOk,
+  deprecatedEntitiesForbidden,
+  pubtatorGenesOk,
+  pubtatorTableOk,
+  publicationStatsOk,
+  comparisonsMetadataOk,
+  publicationListOk,
+  updateOntologyAsyncOk,
+  updateOntologyAsyncForbidden,
+  forceApplyOntologyOk,
+  forceApplyOntologyBadRequest,
+  publicationsRefreshOk,
+  publicationsRefreshBadRequest,
+} from './data/annotations';
 import {
   jobsHistoryOk,
   jobsHistoryForbidden,
@@ -615,6 +638,122 @@ export const handlers = [
     }
     return HttpResponse.json(phenotypeClusteringSubmitOk, { status: 202 });
   }),
+
+  // ---------------------------------------------------------------------------
+  // Phase B.B1 handler-gap follow-up (reinforcing-phase-b)
+  //
+  // The handlers below close six drift gaps identified during the Phase C
+  // Checkpoint #2 batch review: Review.vue, ManageReReview.vue, and
+  // ManageAnnotations.vue each touched endpoints that were missing from the
+  // B1 locked table and the specs worked around them with per-test
+  // `server.use(...)` shells.  Closing the gaps here lets Phase E rewriting
+  // agents rely on MSW interception for the common call sites without
+  // re-inventing fixtures per spec.  These are ADDITIVE — the 40 B1
+  // handlers above are unchanged, and the B1 smoke test
+  // (`handlers.spec.ts`) is scoped to the original table.
+  // ---------------------------------------------------------------------------
+
+  // OpenAPI: GET /api/entity  (cursor-paginated listing with `?filter=` expr)
+  // api/endpoints/entity_endpoints.R @get /
+  // Review.vue:1194 — `getEntity(entity_input)` filters by
+  // `equals(entity_id,<n>)` and reads `response.data.data[0]`.
+  //
+  // Registered BEFORE `/api/entity/:sysndd_id` so the literal match wins.
+  // MSW is first-match-wins, and `/api/entity` with a query string still
+  // gets matched by the parameterised `:sysndd_id` handler otherwise.
+  http.get('/api/entity', () => HttpResponse.json(entityFilterOk)),
+
+  // OpenAPI: GET /api/list/entity
+  // Convention: follow list_endpoints.R tree-mode shape (bare array, no
+  // pagination envelope).  The real route is not implemented upstream yet;
+  // Phase E rewrites will target this contract.
+  http.get('/api/list/entity', () => HttpResponse.json(listEntityOk)),
+
+  // OpenAPI: GET /api/list/gene
+  // Bare array of `{hgnc_id, symbol}` items for gene dropdowns.
+  http.get('/api/list/gene', () => HttpResponse.json(listGeneOk)),
+
+  // OpenAPI: GET /api/list/disease
+  // Bare array of `{disease_ontology_id_version, disease_ontology_name}`.
+  http.get('/api/list/disease', () => HttpResponse.json(listDiseaseOk)),
+
+  // OpenAPI: GET /api/re_review/table
+  // api/endpoints/re_review_endpoints.R @get table
+  // Review.vue:1175 and ManageReReview.vue consume `response.data.data`.
+  // Returns the `{links, meta, data}` cursor envelope.
+  http.get('/api/re_review/table', () => HttpResponse.json(reReviewTableOk)),
+
+  // ---------------------------------------------------------------------------
+  // ManageAnnotations.vue aux endpoints (non-B1, onMounted + action handlers)
+  // ---------------------------------------------------------------------------
+
+  // OpenAPI: GET /api/admin/annotation_dates
+  // api/endpoints/admin_endpoints.R @get annotation_dates
+  http.get('/api/admin/annotation_dates', () => HttpResponse.json(annotationDatesOk)),
+
+  // OpenAPI: GET /api/admin/deprecated_entities
+  // api/endpoints/admin_endpoints.R @get deprecated_entities
+  http.get('/api/admin/deprecated_entities', ({ request }) => {
+    if (request.headers.get('x-user-role') === 'Viewer') {
+      return HttpResponse.json(deprecatedEntitiesForbidden, { status: 403 });
+    }
+    return HttpResponse.json(deprecatedEntitiesOk);
+  }),
+
+  // OpenAPI: PUT /api/admin/update_ontology_async
+  // api/endpoints/admin_endpoints.R @put update_ontology_async
+  http.put('/api/admin/update_ontology_async', ({ request }) => {
+    if (request.headers.get('x-user-role') === 'Viewer') {
+      return HttpResponse.json(updateOntologyAsyncForbidden, { status: 403 });
+    }
+    return HttpResponse.json(updateOntologyAsyncOk, { status: 202 });
+  }),
+
+  // OpenAPI: PUT /api/admin/force_apply_ontology
+  // api/endpoints/admin_endpoints.R @put force_apply_ontology
+  // Requires `blocked_job_id` query parameter; returns 400 when absent.
+  http.put('/api/admin/force_apply_ontology', ({ request }) => {
+    const url = new URL(request.url);
+    const blockedJobId = url.searchParams.get('blocked_job_id');
+    if (!blockedJobId) {
+      return HttpResponse.json(forceApplyOntologyBadRequest, { status: 400 });
+    }
+    return HttpResponse.json(forceApplyOntologyOk, { status: 202 });
+  }),
+
+  // OpenAPI: POST /api/admin/publications/refresh
+  // api/endpoints/admin_endpoints.R @post /publications/refresh
+  // Requires at least one of `pmids` or `not_updated_since` in the body.
+  http.post('/api/admin/publications/refresh', async ({ request }) => {
+    const body = await readJsonBody(request);
+    const pmids = Array.isArray(body.pmids) ? body.pmids : [];
+    const notUpdatedSince =
+      typeof body.not_updated_since === 'string' ? body.not_updated_since : '';
+    if (pmids.length === 0 && notUpdatedSince === '') {
+      return HttpResponse.json(publicationsRefreshBadRequest, { status: 400 });
+    }
+    return HttpResponse.json(publicationsRefreshOk, { status: 202 });
+  }),
+
+  // OpenAPI: GET /api/publication/stats
+  // api/endpoints/publication_endpoints.R @get /stats
+  http.get('/api/publication/stats', () => HttpResponse.json(publicationStatsOk)),
+
+  // OpenAPI: GET /api/publication  (cursor-paginated listing)
+  // api/endpoints/publication_endpoints.R @get /
+  http.get('/api/publication', () => HttpResponse.json(publicationListOk)),
+
+  // OpenAPI: GET /api/publication/pubtator/genes  (cursor-paginated listing)
+  // api/endpoints/publication_endpoints.R @get /pubtator/genes
+  http.get('/api/publication/pubtator/genes', () => HttpResponse.json(pubtatorGenesOk)),
+
+  // OpenAPI: GET /api/publication/pubtator/table  (cursor-paginated listing)
+  // api/endpoints/publication_endpoints.R @get /pubtator/table
+  http.get('/api/publication/pubtator/table', () => HttpResponse.json(pubtatorTableOk)),
+
+  // OpenAPI: GET /api/comparisons/metadata
+  // api/endpoints/comparisons_endpoints.R @get /metadata
+  http.get('/api/comparisons/metadata', () => HttpResponse.json(comparisonsMetadataOk)),
 ];
 
 export default handlers;

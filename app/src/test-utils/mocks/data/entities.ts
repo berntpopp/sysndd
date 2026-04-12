@@ -110,3 +110,53 @@ export const entityStatusListOk = [
 export const entityStatusListNotFound = {
   error: 'Entity not found.',
 };
+
+/**
+ * GET /api/entity?filter=... — cursor-paginated envelope emitted by
+ * `entity_endpoints.R @get /`.  Review.vue's synopsis editor step 1 reads
+ * `response.data.data[0]` after filtering by `entity_id`, so the stub
+ * returns a single-row `data` array inside the `{links, meta, data}`
+ * envelope.
+ */
+export const entityFilterOk: {
+  links: Array<Record<string, string>>;
+  meta: Array<Record<string, unknown>>;
+  data: Array<Record<string, unknown>>;
+} = {
+  links: [
+    {
+      self: 'null',
+      prev: 'null',
+      next: 'null',
+    },
+  ],
+  meta: [
+    {
+      perPage: 10,
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 1,
+      pageItems: 1,
+      sort: 'entity_id',
+      filter: '',
+      fields: '',
+    },
+  ],
+  data: [
+    {
+      entity_id: 501,
+      symbol: 'TEST1',
+      hgnc_id: 'HGNC:12345',
+      disease_ontology_id_version: 'MONDO:0000123_2025-01-01',
+      disease_ontology_name: 'Test Disease',
+      hpo_mode_of_inheritance_term: 'HP:0000006',
+      hpo_mode_of_inheritance_term_name: 'Autosomal dominant',
+      category_id: 1,
+      category: 'Definitive',
+      ndd_phenotype: 1,
+      ndd_phenotype_word: 'NDD',
+      synopsis: 'Example synopsis.',
+      details: null,
+    },
+  ],
+};
