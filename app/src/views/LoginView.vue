@@ -70,6 +70,7 @@ import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -80,6 +81,8 @@ export default {
   name: 'LoginView',
   setup() {
     const { makeToast } = useToast();
+    // Phase E.E7: delegate all auth state reads/writes to `useAuth()`.
+    const auth = useAuth();
     useHead({
       title: 'Login',
       meta: [
@@ -121,10 +124,13 @@ export default {
       handleSubmit,
       resetVeeForm,
       makeToast,
+      auth,
     };
   },
   mounted() {
-    if (localStorage.user) {
+    // If the Login view is reached while still authenticated, clear the
+    // session before showing the form (matches the pre-refactor behaviour).
+    if (this.auth.isAuthenticated.value) {
       this.doUserLogOut();
     }
     this.loading = false;
@@ -145,27 +151,34 @@ export default {
           user_name: this.user_name,
           password: this.password,
         });
-        localStorage.setItem('token', response_authenticate.data[0]);
+        // R/Plumber wraps the scalar token in a single-element array — unwrap
+        // before handing it to useAuth / the /signin call.
+        const token = response_authenticate.data[0];
         this.makeToast(
           `You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`,
           'Success',
           'success'
         );
-        this.signinWithJWT();
+        this.signinWithJWT(token);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
     },
-    async signinWithJWT() {
+    async signinWithJWT(token) {
+      // Two-step login: (1) POST /authenticate returned the JWT above;
+      // (2) GET /signin exchanges it for the full user payload. We set the
+      // Authorization header manually for this single call because
+      // `auth.login()` only fires after we have both pieces — splitting
+      // login into "set token" + "set user" would expose an intermediate
+      // half-logged-in state other tabs/components could observe.
       const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            Authorization: `Bearer ${token}`,
           },
         });
-        this.user = response_signin.data;
-        localStorage.setItem('user', JSON.stringify(response_signin.data));
+        this.auth.login(token, response_signin.data);
         this.$router.push('/');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -177,10 +190,8 @@ export default {
       this.resetVeeForm();
     },
     doUserLogOut() {
-      if (localStorage.user || localStorage.token) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        this.user = null;
+      if (this.auth.isAuthenticated.value) {
+        this.auth.logout();
         this.$router.push('/');
       }
     },
