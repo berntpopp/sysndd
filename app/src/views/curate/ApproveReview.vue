@@ -137,6 +137,7 @@
       </BRow>
 
       <ApproveReviewModal
+        :ref="approveModal.id"
         :modal-id="approveModal.id"
         :entity-title="approveModal.title"
         :is-duplicate="entity.duplicate === 'yes'"
@@ -147,6 +148,7 @@
       />
 
       <EditReviewModal
+        :ref="reviewModal.id"
         :modal-id="reviewModal.id"
         :loading="loading_review_modal"
         :review-info="review_info"
@@ -169,6 +171,7 @@
       />
 
       <EditStatusModal
+        :ref="statusModal.id"
         :modal-id="statusModal.id"
         :loading="loading_status_modal"
         :status-info="status_info"
@@ -181,12 +184,14 @@
       />
 
       <DismissReviewModal
+        :ref="dismissModal.id"
         :modal-id="dismissModal.id"
         :entity-title="dismissModal.title"
         @ok="handleDismissOk"
       />
 
       <ApproveAllModal
+        ref="approveAllModal"
         modal-id="approveAllModal"
         :total-rows="totalRows"
         :selected="approve_all_selected"

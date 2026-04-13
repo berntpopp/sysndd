@@ -376,6 +376,7 @@
 
     <!-- Edit status modal (status-specific EditStatusModal from E5) -->
     <EditStatusModal
+      :ref="editModalId"
       :modal-id="editModalId"
       :loading="loadingEdit"
       :status-info="statusInfo"

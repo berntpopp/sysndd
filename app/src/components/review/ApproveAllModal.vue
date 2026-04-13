@@ -2,7 +2,7 @@
 <template>
   <BModal
     :id="modalId"
-    :ref="modalId"
+    ref="modalRef"
     size="md"
     centered
     ok-title="Approve All"
@@ -18,7 +18,7 @@
     <template #title>
       <div class="d-flex align-items-center">
         <i class="bi bi-check2-all me-2 text-danger" />
-        <span class="fw-semibold">Approve All Reviews</span>
+        <span class="fw-semibold">{{ title }}</span>
       </div>
     </template>
 
@@ -31,9 +31,11 @@
           <i class="bi bi-exclamation-triangle" />
         </span>
       </div>
-      <p class="mb-2">Are you sure you want to approve <strong>ALL</strong> reviews?</p>
+      <p class="mb-2">
+        Are you sure you want to approve <strong>ALL</strong> {{ resourceLabel }}?
+      </p>
       <p class="text-muted small mb-3">
-        This will approve {{ totalRows }} pending reviews at once.
+        This will approve {{ totalRows }} pending {{ resourceLabel }} at once.
       </p>
     </div>
 
@@ -53,14 +55,26 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 defineProps({
   modalId: { type: String, default: 'approveAllModal' },
   totalRows: { type: Number, default: 0 },
   selected: { type: Boolean, default: false },
+  /** Heading text ("Approve All Reviews" / "Approve All Statuses"). */
+  title: { type: String, default: 'Approve All Reviews' },
+  /** Plural resource noun used in the body ("reviews" / "statuses"). */
+  resourceLabel: { type: String, default: 'reviews' },
 });
 
 defineEmits<{
   (e: 'ok'): void;
   (e: 'update:selected', value: boolean): void;
 }>();
+
+const modalRef = ref<{ show?: () => void; hide?: () => void } | null>(null);
+defineExpose({
+  show: (): void => modalRef.value?.show?.(),
+  hide: (): void => modalRef.value?.hide?.(),
+});
 </script>

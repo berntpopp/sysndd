@@ -7,7 +7,7 @@
 <template>
   <BModal
     :id="modalId"
-    :ref="modalId"
+    ref="modalRef"
     size="xl"
     centered
     ok-title="Submit"
@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from 'vue';
+import { ref, type PropType } from 'vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
@@ -186,4 +186,12 @@ defineEmits<{
   (e: 'update:selectAdditionalReferences', value: string[]): void;
   (e: 'update:selectGeneReviews', value: string[]): void;
 }>();
+
+// See EditStatusModal for rationale; parent calls `.show()`/`.hide()` through
+// the wrapper's template ref.
+const modalRef = ref<{ show?: () => void; hide?: () => void } | null>(null);
+defineExpose({
+  show: (): void => modalRef.value?.show?.(),
+  hide: (): void => modalRef.value?.hide?.(),
+});
 </script>

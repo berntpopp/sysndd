@@ -2,7 +2,7 @@
 <template>
   <BModal
     :id="modalId"
-    :ref="modalId"
+    ref="modalRef"
     size="md"
     centered
     ok-title="Approve"
@@ -67,6 +67,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 defineProps({
   modalId: { type: String, default: 'approve-modal' },
   entityTitle: { type: String, default: '' },
@@ -79,4 +81,10 @@ defineEmits<{
   (e: 'ok'): void;
   (e: 'update:statusApproved', value: boolean): void;
 }>();
+
+const modalRef = ref<{ show?: () => void; hide?: () => void } | null>(null);
+defineExpose({
+  show: (): void => modalRef.value?.show?.(),
+  hide: (): void => modalRef.value?.hide?.(),
+});
 </script>

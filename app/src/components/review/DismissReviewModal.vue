@@ -2,7 +2,7 @@
 <template>
   <BModal
     :id="modalId"
-    :ref="modalId"
+    ref="modalRef"
     size="md"
     centered
     ok-title="Dismiss"
@@ -40,10 +40,18 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 defineProps({
   modalId: { type: String, default: 'dismiss-modal' },
   entityTitle: { type: String, default: '' },
 });
 
 defineEmits<{ (e: 'ok'): void }>();
+
+const modalRef = ref<{ show?: () => void; hide?: () => void } | null>(null);
+defineExpose({
+  show: (): void => modalRef.value?.show?.(),
+  hide: (): void => modalRef.value?.hide?.(),
+});
 </script>

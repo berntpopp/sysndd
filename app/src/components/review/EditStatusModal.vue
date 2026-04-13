@@ -2,7 +2,7 @@
 <template>
   <BModal
     :id="modalId"
-    :ref="modalId"
+    ref="modalRef"
     size="lg"
     centered
     ok-title="Submit"
@@ -180,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue';
+import { computed, ref, type PropType } from 'vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
@@ -250,4 +250,15 @@ const updateStatusInfo = (
 ): void => {
   emit('update:statusInfo', { ...props.statusInfo, [field]: value });
 };
+
+// Inner BModal ref scoped to this component.  We re-expose show/hide on the
+// wrapper so the parent can use `<EditStatusModal ref="..."/>` + call
+// `.show()` / `.hide()` through the template ref — without this bridge the
+// parent's `$refs[id].show()` path silently no-ops because the BModal ref
+// only exists inside this component's template scope.
+const modalRef = ref<{ show?: () => void; hide?: () => void } | null>(null);
+defineExpose({
+  show: (): void => modalRef.value?.show?.(),
+  hide: (): void => modalRef.value?.hide?.(),
+});
 </script>
