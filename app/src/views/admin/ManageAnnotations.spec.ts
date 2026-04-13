@@ -556,9 +556,122 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
   // Locked handshake for Phase E4 (exact string from Appendix C)
   // -------------------------------------------------------------------------
   // Phase E4 (`rewrite-manage-annotations`) unpins this after rewriting the
-  // view with `useAsyncJob` + `useTableData`.  Do NOT rename or fulfil it
-  // here — it is the handshake contract for the downstream phase.
-  it.todo(
-    'TODO: verify the force-apply flow fires PUT /api/admin/force_apply_ontology with the correct blocked_job_id'
-  );
+  // view with `useAsyncJob` + `useTableData`.  The assertion below observes
+  // the force-apply PUT via an MSW handler that captures its query string
+  // and asserts `blocked_job_id` matches the blocked job the view staged.
+  it('verify the force-apply flow fires PUT /api/admin/force_apply_ontology with the correct blocked_job_id', async () => {
+    // Same blocked-flow preamble as the error path: submit ontology, poll to
+    // a Phase 76 "blocked" terminal state, then click Force Apply and assert
+    // the resulting PUT carries the right blocked_job_id.
+    const BLOCKED_JOB_ID = 'ontology-blocked-job-1';
+
+    server.use(
+      http.put('/api/admin/update_ontology_async', () =>
+        HttpResponse.json({
+          message: 'Ontology update job submitted.',
+          job_id: [BLOCKED_JOB_ID],
+        })
+      ),
+      http.get('/api/user/list', () => HttpResponse.json([])),
+      http.get('/api/jobs/history', () =>
+        HttpResponse.json({ data: [], meta: { count: [0], limit: [50] } })
+      )
+    );
+
+    let pollCount = 0;
+    const completedBlockedResponse = {
+      job_id: [BLOCKED_JOB_ID],
+      status: ['completed'],
+      step: ['Blocked — manual review required'],
+      result: {
+        status: ['blocked'],
+        blocked_job_id: [BLOCKED_JOB_ID],
+        critical_count: [1],
+        auto_fixable_count: [0],
+        total_affected: [1],
+        critical_entities: [
+          {
+            disease_ontology_id_version: ['OMIM:123456.2020-01-01'],
+            disease_ontology_name: ['Rare Disease A'],
+            hgnc_id: ['HGNC:1001'],
+            hpo_mode_of_inheritance_term: ['Autosomal dominant'],
+          },
+        ],
+        auto_fixes: [],
+      },
+    };
+    server.use(
+      http.get('/api/jobs/:job_id/status', () => {
+        pollCount += 1;
+        if (pollCount === 1) {
+          return HttpResponse.json({
+            job_id: [BLOCKED_JOB_ID],
+            status: ['queued'],
+            step: ['Waiting...'],
+          });
+        }
+        if (pollCount === 2) {
+          return HttpResponse.json({
+            job_id: [BLOCKED_JOB_ID],
+            status: ['running'],
+            step: ['Scanning...'],
+          });
+        }
+        return HttpResponse.json(completedBlockedResponse);
+      })
+    );
+
+    // Capture the force-apply PUT.  axios sends query params as the URL
+    // search-string, so the handler inspects `request.url` directly.
+    const forceApplyCalls: Array<{ url: string; blockedJobId: string | null }> = [];
+    server.use(
+      http.put('/api/admin/force_apply_ontology', ({ request }) => {
+        const url = new URL(request.url);
+        forceApplyCalls.push({
+          url: request.url,
+          blockedJobId: url.searchParams.get('blocked_job_id'),
+        });
+        return HttpResponse.json({
+          message: 'Force-apply job submitted.',
+          job_id: ['force-apply-job-1'],
+        });
+      })
+    );
+
+    const wrapper = await mountView();
+
+    const buttons = wrapper.findAll('button');
+    const ontologyButton = buttons.find((b) =>
+      b.text().includes('Update Ontology Annotations')
+    );
+    await ontologyButton!.trigger('click');
+    await flushPromises();
+
+    await vi.advanceTimersByTimeAsync(3000); // poll #1
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(3000); // poll #2
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(3000); // poll #3 — blocked
+    await flushPromises();
+    await flushPromises();
+
+    // Sanity: the blocked alert must be rendered before we click Force Apply.
+    expect(wrapper.html()).toContain('Ontology Update Blocked');
+
+    const forceApplyButton = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Force Apply'));
+    expect(
+      forceApplyButton,
+      'expected a "Force Apply" button inside the blocked alert'
+    ).toBeDefined();
+
+    await forceApplyButton!.trigger('click');
+    await flushPromises();
+
+    // The PUT must have been made, with blocked_job_id set to the id we
+    // staged — i.e. the Phase 76 contract for force_apply_ontology.
+    expect(forceApplyCalls.length).toBe(1);
+    expect(forceApplyCalls[0].blockedJobId).toBe(BLOCKED_JOB_ID);
+  });
 });
