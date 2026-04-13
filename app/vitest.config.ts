@@ -2,8 +2,14 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, mergeConfig } from 'vitest/config';
 import viteConfig from './vite.config';
 
+// Vite 8 + Vitest 4: the inferred type of `viteConfig` pulls in every
+// possible `defineConfig` overload shape (Promise/Fn/etc.), which trips
+// `mergeConfig`'s generic inference. Narrowing to `any` here preserves
+// runtime behaviour — Vitest only reads known keys — without re-expressing
+// the entire vite config shape just to satisfy the type signature.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default mergeConfig(
-  viteConfig,
+  viteConfig as any,
   defineConfig({
     test: {
       globals: true,
