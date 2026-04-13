@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
-    "@unhead/vue": "^2.1.10",
+    "@unhead/vue": "^3.0.3",
     "@upsetjs/bundle": "^1.11.0",
     "@vee-validate/rules": "^4.15.1",
     "@vueuse/core": "^14.2.1",
