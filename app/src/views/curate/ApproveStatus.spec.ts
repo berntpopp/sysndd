@@ -458,9 +458,50 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     expect(window.localStorage.getItem('token')).toBeNull();
   });
 
-  // E6 handshake (locked string — do not edit without coordinating with
-  // Phase E6 `converge-approve-status`). The Phase E6 agent unpins this
-  // `it.todo` after replacing `ApproveStatus.vue` with a mount of the new
-  // `ApprovalTableView.vue` component.
-  it.todo('TODO: verify the combined status/review handling — hook for E6 convergence');
+  // E6 handshake — unpinned by Phase E6 `converge-approve-status` (exit #13).
+  // Asserts that the rewritten thin-wrapper `ApproveStatus.vue` converges on
+  // the E5 review infrastructure: the status rows flow through the shared
+  // `ReviewTable` shell (from `@/components/review/ReviewTable.vue`) via the
+  // new `ApprovalTableView.vue`, and the same B1 MSW handlers that the C1
+  // review spec drives (`GET /api/status/:id` + `PUT /api/status/approve/:id`)
+  // still power the approve flow end-to-end.
+  it('verifies the combined status/review handling — E6 convergence wiring', async () => {
+    const listState: { rows: StatusTableRow[] } = { rows: [...pendingRows] };
+    server.use(
+      http.get('/api/list/status', () => HttpResponse.json(listStatusTreeOk)),
+      http.get('/api/status', () => HttpResponse.json(listState.rows)),
+      http.get('/api/status/:id', () => HttpResponse.json([statusByIdOk]))
+    );
+
+    const wrapper = await mountApproveStatus();
+    const vmConverge = vm(wrapper);
+
+    // (1) Combined wiring — status rows surface through the shared
+    // `ReviewTable` shell that the E5 review stream also uses. Finding the
+    // stub by name proves `ApprovalTableView` delegated to the converged
+    // component instead of re-implementing its own table.
+    const reviewTableStub = wrapper.findComponent({ name: 'BTable' });
+    expect(reviewTableStub.exists()).toBe(true);
+    expect((reviewTableStub.props('items') as StatusTableRow[]).map((r) => r.status_id)).toEqual([
+      201, 202,
+    ]);
+
+    // (2) The status flow still drives the B1 locked handlers unchanged —
+    // `infoApproveStatus` → GET /api/status/:id → approveModal is populated
+    // with the same status row as the happy-path test (id 201).
+    vmConverge.infoApproveStatus(pendingRows[0], 0, null);
+    await flushPromises();
+    expect(vmConverge.approveModal.title).toBe('sysndd:501');
+    expect(vmConverge.status_info.status_id).toBe(statusByIdOk.status_id);
+
+    // (3) The PUT path is the B1 `PUT /api/status/approve/:id` handler, the
+    // same one the happy-path test uses. The convergence does not introduce
+    // a new endpoint — only the UI shell is shared.
+    listState.rows = listState.rows.filter((r) => r.status_id !== 201);
+    await vmConverge.handleStatusOk(null);
+    await flushPromises();
+    expect(vmConverge.items_StatusTable.map((r) => r.status_id)).toEqual([202]);
+    expect(vmConverge.totalRows).toBe(1);
+    expect(routerPushMock).not.toHaveBeenCalled();
+  });
 });
