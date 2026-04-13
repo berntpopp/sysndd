@@ -53,6 +53,16 @@
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref } from 'vue';
 import axios from 'axios';
+// Ensure the axios plugin's initialisation side effects (baseURL, 401
+// interceptor, default Authorization seeding) have run before any of our
+// axios.get / axios.defaults.* calls fire. `api/client.ts` does the same
+// for the typed helpers; the explicit import here keeps useAuth correct
+// regardless of import order (Copilot review).
+import '@/plugins/axios';
+// Delegate HTTP for refresh to the typed api/auth helper so all callers
+// flow through one code path (apiClient + unwrapScalar + baseURL). Aliased
+// to avoid shadowing the local `refresh` action exported by useAuth.
+import { refresh as apiAuthRefresh } from '@/api/auth';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -220,11 +230,29 @@ const isAuthenticated = computed<boolean>(
   () => tokenRef.value !== null && userRef.value !== null
 );
 
+// Reactive wall-clock ref
+// -----------------------
+// `isExpired` compares `Date.now()` against `user.exp[0]`, but `Date.now()`
+// is not reactive. Vue's computed caches its result until a tracked dep
+// changes — without a reactive time source, `isExpired.value` would stay
+// cached at its first-read result even as wall-clock time passes. Route
+// guards avoided this because `useAuth()` → `syncFromStorage()` reassigns
+// `userRef` on every navigation, invalidating the cache. Long-lived
+// template bindings (v-if, display badges) would see stale values.
+//
+// Drive it from a 1-second tick so `isExpired.value` flips to true as
+// real time passes (Copilot review). The 1-second cadence matches the
+// existing ticker in `LogoutCountdownBadge.vue` and is overwhelmingly
+// cheap compared to a navigation cycle.
+const nowSecRef = ref<number>(Math.floor(Date.now() / 1000));
+setInterval(() => {
+  nowSecRef.value = Math.floor(Date.now() / 1000);
+}, 1000);
+
 const isExpired = computed<boolean>(() => {
   const exp = userRef.value?.exp?.[0];
   if (typeof exp !== 'number') return false;
-  const nowSec = Math.floor(Date.now() / 1000);
-  return nowSec >= exp;
+  return nowSecRef.value >= exp;
 });
 
 // ---------------------------------------------------------------------------
@@ -276,32 +304,25 @@ function logout(): void {
  * @returns The new token string.
  */
 async function refresh(): Promise<string> {
-  const apiUrl = `${import.meta.env.VITE_API_URL ?? ''}/api/auth/refresh`;
-  const response = await axios.get(apiUrl);
-  // Strict shape validation (Copilot Fix 3)
-  // ---------------------------------------
-  // Plumber returns `["..."]`; master's implementation also tolerated a bare
-  // string. Accept either of those shapes explicitly and reject anything
-  // else (`{}`, `{ foo: 'bar' }`, `[]`, `[123]`, `null`, numbers, etc.)
-  // BEFORE persisting.
+  // Delegate the HTTP call to `api/auth.refresh` so every refresh flows
+  // through one code path (apiClient → configured axios singleton → 401
+  // interceptor → baseURL). Previously this function built an absolute
+  // URL from `VITE_API_URL` and called `axios.get` directly, duplicating
+  // logic that `api/auth.ts` already owned; Copilot flagged the
+  // duplication as drift-prone. The helper runs the response through
+  // `unwrapScalar`, so a well-formed `["token"]` comes back as the bare
+  // string and a well-formed `"token"` is unchanged.
   //
-  // The earlier I2 guard used `String(raw)` / `String(raw[0])` and then
-  // checked the coerced string against `"undefined"`/`"null"`. That still
-  // let an object like `{}` through as the literal string "[object Object]"
-  // — not caught by the sentinel check — and poisoned the session until a
-  // 401 fired. This type-level check supersedes the I2 guard.
-  const raw: unknown = response.data;
-  let nextToken: string;
-  if (typeof raw === 'string') {
-    nextToken = raw;
-  } else if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'string') {
-    nextToken = raw[0];
-  } else {
+  // Runtime shape validation still belongs here: `unwrapScalar` does NOT
+  // type-check its argument, so a malformed 200 body (`{}`, `[null]`,
+  // `[123]`, `[]`, numbers, nested arrays) returns whatever the coercion
+  // path yields. Reject anything that is not a non-empty string BEFORE
+  // mutating refs, localStorage, or the axios default header.
+  const raw: unknown = await apiAuthRefresh();
+  if (typeof raw !== 'string' || raw.length === 0) {
     throw new Error('Refresh returned invalid token shape');
   }
-  if (!nextToken) {
-    throw new Error('Refresh returned empty token');
-  }
+  const nextToken = raw;
 
   tokenRef.value = nextToken;
   localStorage.setItem(TOKEN_KEY, nextToken);
