@@ -2,997 +2,108 @@
 <template>
   <div class="container-fluid">
     <BContainer fluid>
-      <!-- Updating Ontology Annotations Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
           <h3>Manage Annotations</h3>
-          <BCard
-            header-tag="header"
-            body-class="p-1"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">
-                Updating Ontology Annotations
-                <span v-if="annotationDates.omim_update" class="badge bg-secondary ms-2 fw-normal">
-                  Last: {{ formatDate(annotationDates.omim_update) }}
-                </span>
-              </h5>
-            </template>
 
-            <BButton
-              variant="primary"
-              :disabled="ontologyJob.isLoading.value"
-              @click="updateOntologyAnnotations"
-            >
-              <BSpinner v-if="ontologyJob.isLoading.value" small type="grow" class="me-2" />
-              {{ ontologyJob.isLoading.value ? 'Updating...' : 'Update Ontology Annotations' }}
-            </BButton>
-
-            <!-- Progress display -->
-            <div
-              v-if="ontologyJob.isLoading.value || ontologyJob.status.value !== 'idle'"
-              class="mt-3"
-            >
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="ontologyJob.statusBadgeClass.value">
-                  {{ ontologyJob.status.value }}
-                </span>
-                <span class="text-muted">{{ ontologyJob.step.value }}</span>
-              </div>
-
-              <BProgress
-                v-if="ontologyJob.isLoading.value"
-                :value="ontologyJob.hasRealProgress.value ? ontologyJob.progressPercent.value : 100"
-                :max="100"
-                :animated="true"
-                :striped="!ontologyJob.hasRealProgress.value"
-                :variant="ontologyJob.progressVariant.value"
-                height="1.5rem"
-              >
-                <template #default>
-                  <span v-if="ontologyJob.hasRealProgress.value"
-                    >{{ ontologyJob.progressPercent.value }}% - {{ ontologyStepLabel }}</span
-                  >
-                  <span v-else
-                    >{{ ontologyStepLabel }} ({{ ontologyJob.elapsedTimeDisplay.value }})</span
-                  >
-                </template>
-              </BProgress>
-
-              <div
-                v-if="ontologyJob.progress.value.current && ontologyJob.progress.value.total"
-                class="small text-muted mt-1"
-              >
-                {{ ontologyJob.progress.value.current.toLocaleString() }} /
-                {{ ontologyJob.progress.value.total.toLocaleString() }} ({{
-                  ontologyJob.elapsedTimeDisplay.value
-                }})
-              </div>
-              <div v-else-if="ontologyJob.isLoading.value" class="small text-muted mt-1">
-                Elapsed: {{ ontologyJob.elapsedTimeDisplay.value }} - This may take several
-                minutes...
-              </div>
-            </div>
-
-            <!-- Blocked ontology update warning -->
-            <BAlert v-if="ontologyBlocked" variant="warning" show class="mt-3 mb-0">
-              <h6 class="alert-heading d-flex align-items-center gap-2">
-                Ontology Update Blocked
-                <span class="badge bg-danger"> {{ ontologyBlocked.critical_count }} critical </span>
-                <span v-if="ontologyBlocked.auto_fixable_count > 0" class="badge bg-info">
-                  {{ ontologyBlocked.auto_fixable_count }} auto-fixable
-                </span>
-              </h6>
-              <p class="mb-2 small">
-                The ontology update detected {{ ontologyBlocked.critical_count }} entity-referenced
-                version(s) that would disappear with no automatic remapping. These entities need
-                manual review after force-applying.
-              </p>
-
-              <!-- Critical entities table -->
-              <div v-if="ontologyBlocked.critical_entities.length > 0" class="mb-3">
-                <strong class="small">Critical entities:</strong>
-                <BTable
-                  :items="ontologyBlocked.critical_entities"
-                  :fields="[
-                    { key: 'disease_ontology_id_version', label: 'Version', sortable: true },
-                    { key: 'disease_ontology_name', label: 'Disease', sortable: true },
-                    { key: 'hgnc_id', label: 'Gene', sortable: true },
-                    { key: 'hpo_mode_of_inheritance_term', label: 'Inheritance', sortable: false },
-                  ]"
-                  striped
-                  hover
-                  small
-                  responsive
-                  class="mb-0 mt-1"
-                />
-              </div>
-
-              <!-- Auto-fixable remappings (collapsible) -->
-              <div v-if="ontologyBlocked.auto_fixes.length > 0" class="mb-3">
-                <BButton
-                  variant="link"
-                  size="sm"
-                  class="p-0 text-decoration-none"
-                  @click="showAutoFixes = !showAutoFixes"
-                >
-                  {{ showAutoFixes ? 'Hide' : 'Show' }}
-                  {{ ontologyBlocked.auto_fixable_count }} auto-fixable remappings
-                </BButton>
-                <BTable
-                  v-if="showAutoFixes"
-                  :items="ontologyBlocked.auto_fixes"
-                  :fields="[
-                    { key: 'old_version', label: 'Old Version' },
-                    { key: 'new_version', label: 'New Version' },
-                    { key: 'fix_type', label: 'Match Type' },
-                  ]"
-                  striped
-                  small
-                  responsive
-                  class="mb-0 mt-1"
-                />
-              </div>
-
-              <!-- Action buttons -->
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <BFormSelect
-                  v-model="forceApplySelectedUserId"
-                  :disabled="forceApplyJob.isLoading.value || loadingForceApplyUsers"
-                  size="sm"
-                  style="max-width: 200px"
-                >
-                  <BFormSelectOption :value="null">
-                    {{ loadingForceApplyUsers ? 'Loading...' : 'Assign to (me)' }}
-                  </BFormSelectOption>
-                  <BFormSelectOption
-                    v-for="user in forceApplyUserOptions"
-                    :key="user.value"
-                    :value="user.value"
-                  >
-                    {{ user.text }}
-                  </BFormSelectOption>
-                </BFormSelect>
-                <BButton
-                  variant="danger"
-                  size="sm"
-                  :disabled="forceApplyJob.isLoading.value"
-                  @click="forceApplyOntology"
-                >
-                  <BSpinner v-if="forceApplyJob.isLoading.value" small class="me-1" />
-                  {{ forceApplyJob.isLoading.value ? 'Applying...' : 'Force Apply' }}
-                </BButton>
-                <BButton
-                  variant="outline-secondary"
-                  size="sm"
-                  :disabled="forceApplyJob.isLoading.value"
-                  @click="dismissBlockedOntology"
-                >
-                  Dismiss
-                </BButton>
-              </div>
-
-              <!-- Force-apply progress -->
-              <div v-if="forceApplyJob.isLoading.value" class="mt-2">
-                <BProgress
-                  :value="100"
-                  :max="100"
-                  :animated="true"
-                  :striped="true"
-                  variant="danger"
-                  height="1rem"
-                >
-                  <template #default>
-                    Force applying... ({{ forceApplyJob.elapsedTimeDisplay.value }})
-                  </template>
-                </BProgress>
-              </div>
-            </BAlert>
-          </BCard>
+          <OntologyAnnotationsCard
+            :ontology-job="ontologyJob"
+            :force-apply-job="forceApplyJob"
+            :blocked="ontologyBlocked"
+            :last-updated="annotationDates.omim_update"
+            :user-options="forceApplyUserOptions"
+            :loading-users="loadingForceApplyUsers"
+            @start-ontology="onStartOntology"
+            @force-apply="onForceApply"
+            @dismiss-blocked="dismissBlockedOntology"
+          />
         </BCol>
       </BRow>
 
-      <!-- Updating HGNC Data Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-1"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">
-                Updating HGNC Data
-                <span v-if="annotationDates.hgnc_update" class="badge bg-secondary ms-2 fw-normal">
-                  Last: {{ formatDate(annotationDates.hgnc_update) }}
-                </span>
-              </h5>
-            </template>
-
-            <BButton variant="primary" :disabled="hgncJob.isLoading.value" @click="updateHgncData">
-              <BSpinner v-if="hgncJob.isLoading.value" small type="grow" class="me-2" />
-              {{ hgncJob.isLoading.value ? 'Updating...' : 'Update HGNC Data' }}
-            </BButton>
-
-            <!-- HGNC Progress display -->
-            <div v-if="hgncJob.isLoading.value || hgncJob.status.value !== 'idle'" class="mt-3">
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="hgncJob.statusBadgeClass.value">
-                  {{ hgncJob.status.value }}
-                </span>
-                <span class="text-muted">{{ hgncJob.step.value }}</span>
-              </div>
-
-              <BProgress
-                v-if="hgncJob.isLoading.value"
-                :value="hgncJob.hasRealProgress.value ? hgncJob.progressPercent.value : 100"
-                :max="100"
-                :animated="true"
-                :striped="!hgncJob.hasRealProgress.value"
-                :variant="hgncJob.progressVariant.value"
-                height="1.5rem"
-              >
-                <template #default>
-                  <span v-if="hgncJob.hasRealProgress.value"
-                    >{{ hgncJob.progressPercent.value }}% - {{ hgncStepLabel }}</span
-                  >
-                  <span v-else>{{ hgncStepLabel }} ({{ hgncJob.elapsedTimeDisplay.value }})</span>
-                </template>
-              </BProgress>
-
-              <div
-                v-if="hgncJob.progress.value.current && hgncJob.progress.value.total"
-                class="small text-muted mt-1"
-              >
-                {{ hgncJob.progress.value.current.toLocaleString() }} /
-                {{ hgncJob.progress.value.total.toLocaleString() }} ({{
-                  hgncJob.elapsedTimeDisplay.value
-                }})
-              </div>
-              <div v-else-if="hgncJob.isLoading.value" class="small text-muted mt-1">
-                Elapsed: {{ hgncJob.elapsedTimeDisplay.value }} - Downloading HGNC data and
-                enriching with gnomAD constraints (this may take hours on first run)...
-              </div>
-            </div>
-          </BCard>
+          <HgncAnnotationsCard
+            :hgnc-job="hgncJob"
+            :last-updated="annotationDates.hgnc_update"
+            @start-hgnc="onStartHgnc"
+          />
         </BCol>
       </BRow>
 
-      <!-- Pubtator Cache Management Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-1"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">
-                Pubtator Cache Management
-                <span
-                  v-if="pubtatorStats.publication_count !== null"
-                  class="badge bg-info ms-2 fw-normal"
-                >
-                  {{ pubtatorStats.publication_count?.toLocaleString() }} publications
-                </span>
-                <span v-if="pubtatorStats.gene_count !== null" class="badge bg-info ms-2 fw-normal">
-                  {{ pubtatorStats.gene_count?.toLocaleString() }} genes
-                </span>
-                <span
-                  v-if="pubtatorStats.novel_count !== null && pubtatorStats.novel_count > 0"
-                  class="badge bg-info ms-2 fw-normal"
-                >
-                  {{ pubtatorStats.novel_count?.toLocaleString() }} literature only
-                </span>
-              </h5>
-            </template>
-
-            <div class="mb-2">
-              <BButton
-                variant="outline-secondary"
-                size="sm"
-                :disabled="loadingPubtatorStats"
-                @click="fetchPubtatorStats"
-              >
-                <BSpinner v-if="loadingPubtatorStats" small type="grow" class="me-1" />
-                <i v-else class="bi bi-arrow-clockwise me-1" />
-                {{ loadingPubtatorStats ? 'Loading...' : 'Refresh Stats' }}
-              </BButton>
-              <small class="text-muted ms-2">
-                Shows cached Pubtator gene-publication data for NDD literature
-              </small>
-            </div>
-
-            <div v-if="pubtatorStats.gene_count !== null" class="mt-2">
-              <p class="text-muted small mb-2">
-                The Pubtator cache contains gene-publication associations from NCBI's PubTator
-                text-mining service. "Literature Only" genes are those mentioned in NDD publications
-                but not yet curated in SysNDD.
-              </p>
-              <div class="d-flex flex-wrap gap-2">
-                <router-link
-                  :to="{ name: 'PubtatorNDDStats' }"
-                  class="btn btn-sm btn-outline-primary"
-                >
-                  <i class="bi bi-bar-chart me-1" />
-                  View Pubtator Analysis
-                </router-link>
-                <router-link
-                  :to="{ name: 'ManagePubtator' }"
-                  class="btn btn-sm btn-outline-secondary"
-                >
-                  <i class="bi bi-gear me-1" />
-                  Manage Cache
-                </router-link>
-              </div>
-            </div>
-
-            <BAlert v-if="pubtatorStats.gene_count === 0" variant="warning" show class="mt-2 mb-0">
-              No Pubtator data cached.
-              <router-link :to="{ name: 'ManagePubtator' }"> Manage Cache </router-link>
-              to fetch publications.
-            </BAlert>
-          </BCard>
+          <PubtatorStatsCard
+            :stats="pubtatorStats"
+            :loading="loadingPubtatorStats"
+            @refresh="loadPubtatorStats"
+          />
         </BCol>
       </BRow>
 
-      <!-- Comparisons Data Refresh Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                Comparisons Data Refresh
-                <span
-                  v-if="comparisonsMetadata.last_full_refresh"
-                  class="badge bg-secondary ms-2 fw-normal"
-                >
-                  Last: {{ formatDate(comparisonsMetadata.last_full_refresh) }}
-                </span>
-                <span
-                  v-if="comparisonsMetadata.sources_count > 0"
-                  class="badge bg-info ms-2 fw-normal"
-                >
-                  {{ comparisonsMetadata.sources_count }} sources
-                </span>
-                <span
-                  v-if="comparisonsMetadata.rows_imported > 0"
-                  class="badge bg-info ms-2 fw-normal"
-                >
-                  {{ comparisonsMetadata.rows_imported.toLocaleString() }} rows
-                </span>
-              </h5>
-            </template>
-
-            <div class="mb-3">
-              <p class="text-muted small mb-2">
-                Refresh comparisons data from 7 external NDD databases: Radboudumc, Gene2Phenotype,
-                PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads
-                fresh data and updates the database. Any failure aborts the entire refresh.
-              </p>
-            </div>
-
-            <div class="d-flex gap-2 mb-3">
-              <BButton
-                variant="outline-secondary"
-                size="sm"
-                :disabled="loadingComparisonsMetadata"
-                @click="fetchComparisonsMetadata"
-              >
-                <BSpinner v-if="loadingComparisonsMetadata" small type="grow" class="me-1" />
-                {{ loadingComparisonsMetadata ? 'Loading...' : 'Refresh Stats' }}
-              </BButton>
-              <BButton
-                variant="primary"
-                :disabled="comparisonsJob.isLoading.value"
-                @click="refreshComparisons"
-              >
-                <BSpinner v-if="comparisonsJob.isLoading.value" small type="grow" class="me-2" />
-                {{ comparisonsJob.isLoading.value ? 'Updating...' : 'Refresh Comparisons Data' }}
-              </BButton>
-            </div>
-
-            <!-- Progress display -->
-            <div
-              v-if="comparisonsJob.isLoading.value || comparisonsJob.status.value !== 'idle'"
-              class="mt-3"
-            >
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="comparisonsJob.statusBadgeClass.value">
-                  {{ comparisonsJob.status.value }}
-                </span>
-                <span class="text-muted">{{ comparisonsJob.step.value }}</span>
-              </div>
-
-              <BProgress
-                v-if="comparisonsJob.isLoading.value"
-                :value="
-                  comparisonsJob.hasRealProgress.value ? comparisonsJob.progressPercent.value : 100
-                "
-                :max="100"
-                :animated="true"
-                :striped="!comparisonsJob.hasRealProgress.value"
-                :variant="comparisonsJob.progressVariant.value"
-                height="1.5rem"
-              >
-                <template #default>
-                  <span v-if="comparisonsJob.hasRealProgress.value">
-                    {{ comparisonsJob.progressPercent.value }}% - {{ comparisonsStepLabel }}
-                  </span>
-                  <span v-else>
-                    {{ comparisonsStepLabel }} ({{ comparisonsJob.elapsedTimeDisplay.value }})
-                  </span>
-                </template>
-              </BProgress>
-
-              <div
-                v-if="comparisonsJob.progress.value.current && comparisonsJob.progress.value.total"
-                class="small text-muted mt-1"
-              >
-                {{ comparisonsJob.progress.value.current.toLocaleString() }} /
-                {{ comparisonsJob.progress.value.total.toLocaleString() }} ({{
-                  comparisonsJob.elapsedTimeDisplay.value
-                }})
-              </div>
-              <div v-else-if="comparisonsJob.isLoading.value" class="small text-muted mt-1">
-                Elapsed: {{ comparisonsJob.elapsedTimeDisplay.value }} - Downloading and processing
-                external databases (this may take several minutes)...
-              </div>
-            </div>
-
-            <BAlert
-              v-if="comparisonsJob.status.value === 'completed'"
-              variant="success"
-              show
-              class="mt-2 mb-0"
-            >
-              Comparisons data refreshed successfully. Check job history for details.
-            </BAlert>
-
-            <BAlert
-              v-if="comparisonsJob.status.value === 'failed'"
-              variant="danger"
-              show
-              class="mt-2 mb-0"
-            >
-              {{
-                comparisonsJob.error.value ||
-                'Comparisons refresh failed. Check job history for details.'
-              }}
-            </BAlert>
-          </BCard>
+          <ComparisonsRefreshCard
+            :job="comparisonsJob"
+            :metadata="comparisonsMetadata"
+            :loading-metadata="loadingComparisonsMetadata"
+            @refresh-metadata="loadComparisonsMetadata"
+            @start-refresh="onStartComparisons"
+          />
         </BCol>
       </BRow>
 
-      <!-- Publication Metadata Refresh Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                Publication Metadata Refresh
-                <span v-if="publicationStats.total !== null" class="badge bg-info ms-2 fw-normal">
-                  {{ publicationStats.total?.toLocaleString() }} publications
-                </span>
-                <span
-                  v-if="publicationStats.oldest_update"
-                  class="badge bg-warning text-dark ms-2 fw-normal"
-                >
-                  Oldest: {{ formatDate(publicationStats.oldest_update) }}
-                </span>
-                <span
-                  v-if="publicationStats.outdated_count && publicationStats.outdated_count > 0"
-                  class="badge bg-danger ms-2 fw-normal"
-                >
-                  {{ publicationStats.outdated_count.toLocaleString() }} outdated
-                </span>
-              </h5>
-            </template>
-
-            <div class="mb-3">
-              <p class="text-muted small mb-2">
-                Refresh publication metadata from PubMed. Publications are updated in place (no
-                deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
-              </p>
-            </div>
-
-            <!-- Filter controls -->
-            <div class="mb-3">
-              <label class="form-label small text-muted mb-1">Filter by last update:</label>
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <BButtonGroup size="sm">
-                  <BButton
-                    :variant="selectedPreset === 'all' ? 'primary' : 'outline-secondary'"
-                    @click="setPreset('all')"
-                  >
-                    All
-                  </BButton>
-                  <BButton
-                    :variant="selectedPreset === '1year' ? 'primary' : 'outline-secondary'"
-                    @click="setPreset('1year')"
-                  >
-                    &gt;1 year
-                  </BButton>
-                  <BButton
-                    :variant="selectedPreset === '6months' ? 'primary' : 'outline-secondary'"
-                    @click="setPreset('6months')"
-                  >
-                    &gt;6 months
-                  </BButton>
-                  <BButton
-                    :variant="selectedPreset === '3months' ? 'primary' : 'outline-secondary'"
-                    @click="setPreset('3months')"
-                  >
-                    &gt;3 months
-                  </BButton>
-                  <BButton
-                    :variant="selectedPreset === 'custom' ? 'primary' : 'outline-secondary'"
-                    @click="setPreset('custom')"
-                  >
-                    Custom
-                  </BButton>
-                </BButtonGroup>
-
-                <!-- Custom date picker -->
-                <input
-                  v-if="selectedPreset === 'custom'"
-                  v-model="customDate"
-                  type="date"
-                  class="form-control form-control-sm"
-                  style="max-width: 160px"
-                  :max="todayDate"
-                />
-
-                <!-- Filtered count badge -->
-                <span
-                  v-if="selectedPreset !== 'all' && filteredCount !== null"
-                  class="badge bg-info"
-                >
-                  <BSpinner v-if="loadingFilteredCount" small class="me-1" />
-                  {{ filteredCount?.toLocaleString() }} publications match filter
-                </span>
-              </div>
-            </div>
-
-            <!-- Action buttons -->
-            <div class="d-flex gap-2 mb-3">
-              <BButton
-                variant="outline-secondary"
-                size="sm"
-                :disabled="loadingPublicationStats"
-                @click="fetchPublicationStats"
-              >
-                <BSpinner v-if="loadingPublicationStats" small type="grow" class="me-1" />
-                {{ loadingPublicationStats ? 'Loading...' : 'Refresh Stats' }}
-              </BButton>
-              <BButton
-                v-if="selectedPreset !== 'all' && filteredCount !== null && filteredCount > 0"
-                variant="success"
-                :disabled="publicationRefreshJob.isLoading.value || filteredCount === 0"
-                @click="refreshFilteredPublications"
-              >
-                <BSpinner
-                  v-if="publicationRefreshJob.isLoading.value"
-                  small
-                  type="grow"
-                  class="me-2"
-                />
-                {{
-                  publicationRefreshJob.isLoading.value
-                    ? 'Refreshing...'
-                    : `Refresh ${filteredCount?.toLocaleString()} Publications`
-                }}
-              </BButton>
-              <BButton
-                variant="primary"
-                :disabled="publicationRefreshJob.isLoading.value || publicationStats.total === null"
-                @click="refreshAllPublications"
-              >
-                <BSpinner
-                  v-if="publicationRefreshJob.isLoading.value"
-                  small
-                  type="grow"
-                  class="me-2"
-                />
-                {{
-                  publicationRefreshJob.isLoading.value
-                    ? 'Refreshing...'
-                    : 'Refresh All Publications'
-                }}
-              </BButton>
-            </div>
-
-            <!-- Progress display -->
-            <div
-              v-if="
-                publicationRefreshJob.isLoading.value ||
-                publicationRefreshJob.status.value !== 'idle'
-              "
-              class="mt-3"
-            >
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="publicationRefreshJob.statusBadgeClass.value">
-                  {{ publicationRefreshJob.status.value }}
-                </span>
-                <span class="text-muted">{{ publicationRefreshJob.step.value }}</span>
-              </div>
-
-              <BProgress
-                v-if="publicationRefreshJob.isLoading.value"
-                :value="
-                  publicationRefreshJob.hasRealProgress.value
-                    ? publicationRefreshJob.progressPercent.value
-                    : 100
-                "
-                :max="100"
-                :animated="true"
-                :striped="!publicationRefreshJob.hasRealProgress.value"
-                :variant="publicationRefreshJob.progressVariant.value"
-                height="1.5rem"
-              >
-                <template #default>
-                  <span v-if="publicationRefreshJob.hasRealProgress.value">
-                    {{ publicationRefreshJob.progressPercent.value }}% -
-                    {{ publicationRefreshJob.step.value }}
-                  </span>
-                  <span v-else>
-                    {{ publicationRefreshJob.step.value }}
-                    ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
-                  </span>
-                </template>
-              </BProgress>
-
-              <div
-                v-if="
-                  publicationRefreshJob.progress.value.current &&
-                  publicationRefreshJob.progress.value.total
-                "
-                class="small text-muted mt-1"
-              >
-                {{ publicationRefreshJob.progress.value.current.toLocaleString() }} /
-                {{ publicationRefreshJob.progress.value.total.toLocaleString() }}
-                ({{ publicationRefreshJob.elapsedTimeDisplay.value }})
-              </div>
-
-              <!-- Show result summary on completion -->
-              <BAlert
-                v-if="publicationRefreshJob.status.value === 'completed'"
-                variant="success"
-                show
-                class="mt-2 mb-0"
-              >
-                Refresh complete. Check job history for details.
-              </BAlert>
-
-              <BAlert
-                v-if="publicationRefreshJob.status.value === 'failed'"
-                variant="danger"
-                show
-                class="mt-2 mb-0"
-              >
-                {{
-                  publicationRefreshJob.error.value ||
-                  'Refresh failed. Check job history for details.'
-                }}
-              </BAlert>
-            </div>
-          </BCard>
+          <PublicationRefreshCard
+            :job="publicationRefreshJob"
+            :stats="publicationStats"
+            :loading-stats="loadingPublicationStats"
+            :preset="selectedPreset"
+            :custom-date="customDate"
+            :today-date="todayDate"
+            :filtered-count="filteredCount"
+            :loading-filtered-count="loadingFilteredCount"
+            @update:preset="setPreset"
+            @update:custom-date="(value: string) => (customDate = value)"
+            @refresh-stats="loadPublicationStats"
+            @refresh-filtered="onRefreshFilteredPublications"
+            @refresh-all="onRefreshAllPublications"
+          />
         </BCol>
       </BRow>
 
-      <!-- Deprecated OMIM Entities Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                Deprecated OMIM Entities
-                <span v-if="deprecatedData.mim2gene_date" class="badge bg-secondary ms-2 fw-normal">
-                  mim2gene: {{ deprecatedData.mim2gene_date }}
-                </span>
-                <span
-                  v-if="deprecatedData.affected_entity_count > 0"
-                  class="badge bg-warning text-dark ms-2 fw-normal"
-                >
-                  {{ deprecatedData.affected_entity_count }} entities need review
-                </span>
-                <span
-                  v-else-if="!loadingDeprecated && deprecatedData.deprecated_count !== null"
-                  class="badge bg-success ms-2 fw-normal"
-                >
-                  No affected entities
-                </span>
-              </h5>
-            </template>
-
-            <div class="mb-3">
-              <BButton
-                variant="outline-secondary"
-                size="sm"
-                :disabled="loadingDeprecated"
-                @click="fetchDeprecatedEntities"
-              >
-                <BSpinner v-if="loadingDeprecated" small type="grow" class="me-1" />
-                {{ loadingDeprecated ? 'Checking...' : 'Check for Deprecated Entities' }}
-              </BButton>
-              <small class="text-muted ms-2">
-                Compares database entities against OMIM moved/removed entries
-              </small>
-            </div>
-
-            <div v-if="deprecatedData.message && !deprecatedData.affected_entities?.length">
-              <BAlert variant="info" show>
-                {{ deprecatedData.message }}
-              </BAlert>
-            </div>
-
-            <div v-if="deprecatedData.affected_entities?.length > 0">
-              <p class="text-muted small mb-2">
-                The following entities reference OMIM IDs that have been marked as moved/removed.
-                MONDO mappings and replacement suggestions are fetched from the EBI OLS4 API.
-              </p>
-              <BTable
-                :items="deprecatedData.affected_entities"
-                :fields="deprecatedTableFields"
-                striped
-                hover
-                small
-                responsive
-                class="mb-0"
-              >
-                <template #cell(entity_id)="data">
-                  <router-link
-                    :to="{ name: 'Entity', params: { entity_id: String(data.value) } }"
-                    class="text-decoration-none"
-                  >
-                    <span class="badge bg-primary">sysndd:{{ data.value }}</span>
-                  </router-link>
-                </template>
-                <template #cell(symbol)="data">
-                  <router-link
-                    :to="{ name: 'Gene', params: { symbol: String(data.value) } }"
-                    class="text-decoration-none fw-bold"
-                  >
-                    {{ data.value }}
-                  </router-link>
-                </template>
-                <template #cell(disease_ontology_id)="data">
-                  <div class="d-flex flex-column">
-                    <a
-                      :href="`https://omim.org/entry/${String(data.value).replace('OMIM:', '')}`"
-                      target="_blank"
-                      class="text-danger text-decoration-none"
-                    >
-                      {{ data.value }}
-                      <small class="text-muted">(deprecated)</small>
-                    </a>
-                    <small v-if="data.item.mondo_id" class="text-muted">
-                      <a
-                        :href="`https://monarchinitiative.org/disease/${data.item.mondo_id}`"
-                        target="_blank"
-                        class="text-decoration-none"
-                      >
-                        {{ data.item.mondo_id }}
-                      </a>
-                    </small>
-                  </div>
-                </template>
-                <template #cell(replacement_suggestion)="data">
-                  <div
-                    v-if="data.item.replacement_omim_id || data.item.replacement_mondo_id"
-                    class="d-flex flex-column"
-                  >
-                    <span v-if="data.item.replacement_omim_id" class="d-flex align-items-center">
-                      <span class="badge bg-success me-1">Suggested</span>
-                      <a
-                        :href="`https://omim.org/entry/${String(data.item.replacement_omim_id).replace('OMIM:', '')}`"
-                        target="_blank"
-                        class="text-decoration-none text-success fw-bold"
-                      >
-                        {{ data.item.replacement_omim_id }}
-                      </a>
-                    </span>
-                    <small v-if="data.item.replacement_mondo_id" class="text-muted">
-                      via
-                      <a
-                        :href="`https://monarchinitiative.org/disease/${data.item.replacement_mondo_id}`"
-                        target="_blank"
-                        class="text-decoration-none"
-                      >
-                        {{ data.item.replacement_mondo_id }}
-                      </a>
-                      <span v-if="data.item.replacement_mondo_label">
-                        ({{ truncateText(String(data.item.replacement_mondo_label), 30) }})
-                      </span>
-                    </small>
-                  </div>
-                  <span v-else-if="data.item.mondo_id" class="text-muted small">
-                    No replacement found
-                  </span>
-                  <span v-else class="text-muted small"> No MONDO mapping </span>
-                </template>
-                <template #cell(deprecation_reason)="data">
-                  <small
-                    v-if="data.value"
-                    class="text-muted deprecation-reason"
-                    :title="String(data.value)"
-                  >
-                    {{ truncateText(String(data.value), 80) }}
-                  </small>
-                  <span v-else class="text-muted small"> - </span>
-                </template>
-                <template #cell(category)="data">
-                  <span class="badge" :class="categoryBadgeClass(String(data.value))">
-                    {{ data.value }}
-                  </span>
-                </template>
-              </BTable>
-            </div>
-          </BCard>
+          <DeprecatedEntitiesCard
+            :data="deprecatedData"
+            :loading="loadingDeprecated"
+            @check="onCheckDeprecated"
+          />
         </BCol>
       </BRow>
 
-      <!-- Job History Section -->
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-2"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="mb-0 font-weight-bold">
-                  Job History
-                  <span class="badge bg-secondary ms-2 fw-normal">
-                    {{ filteredJobHistory.length }} jobs
-                  </span>
-                </h5>
-                <div class="d-flex align-items-center gap-2">
-                  <BButton
-                    size="sm"
-                    variant="outline-secondary"
-                    :disabled="jobHistoryLoading"
-                    @click="fetchJobHistory"
-                  >
-                    <BSpinner v-if="jobHistoryLoading" small class="me-1" />
-                    <i v-else class="bi bi-arrow-clockwise me-1" />
-                    Refresh
-                  </BButton>
-                </div>
-              </div>
-            </template>
-
-            <!-- Table controls row -->
-            <div class="p-2 border-bottom bg-light">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                  <TableSearchInput
-                    v-model="searchFilter"
-                    placeholder="Search jobs..."
-                    @update="handleSearchChange"
-                  />
-                  <span v-if="searchFilter" class="badge bg-primary d-flex align-items-center">
-                    Search: {{ searchFilter }}
-                    <button
-                      type="button"
-                      class="btn-close btn-close-white ms-2"
-                      style="font-size: 0.6rem"
-                      aria-label="Clear search"
-                      @click="clearSearch"
-                    />
-                  </span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <TableDownloadLinkCopyButtons
-                    @request-excel="downloadJobHistory"
-                    @copy-link="copyPageLink"
-                    @remove-filters="clearAllFilters"
-                  />
-                  <TablePaginationControls
-                    :current-page="currentPage"
-                    :total-rows="filteredJobHistory.length"
-                    :initial-per-page="pageSize"
-                    :page-options="pageSizeOptions"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePageSizeChange"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <GenericTable
-              :items="paginatedJobHistory"
-              :fields="jobHistoryFields"
-              :is-busy="jobHistoryLoading"
-              :sort-by="sortBy"
-              @update-sort="handleSortUpdate"
-            >
-              <template #cell-operation="{ row }">
-                <span class="badge bg-info text-dark">
-                  {{ formatOperationType(row.operation) }}
-                </span>
-              </template>
-
-              <template #cell-status="{ row }">
-                <span class="badge" :class="getStatusBadgeClass(row.status)">
-                  {{ row.status }}
-                </span>
-              </template>
-
-              <template #cell-submitted_at="{ row }">
-                {{ formatDateTime(row.submitted_at) }}
-              </template>
-
-              <template #cell-duration_seconds="{ row }">
-                {{ formatDuration(row.duration_seconds) }}
-              </template>
-
-              <template #cell-error_message="{ row }">
-                <span
-                  v-if="row.error_message"
-                  v-b-tooltip.hover.top
-                  class="text-danger error-text"
-                  :title="row.error_message"
-                >
-                  {{ truncateText(row.error_message, 50) }}
-                </span>
-                <span v-else class="text-muted"> — </span>
-              </template>
-            </GenericTable>
-
-            <div
-              v-if="!jobHistoryLoading && filteredJobHistory.length === 0"
-              class="text-center text-muted py-4"
-            >
-              <i class="bi bi-inbox fs-1 d-block mb-2" />
-              <span v-if="searchFilter">No jobs match your search criteria.</span>
-              <span v-else
-                >No job history available. Jobs appear here after they are submitted.</span
-              >
-            </div>
-
-            <!-- Bottom pagination for longer lists -->
-            <div v-if="filteredJobHistory.length > pageSize" class="p-2 border-top bg-light">
-              <div class="d-flex justify-content-end">
-                <TablePaginationControls
-                  :current-page="currentPage"
-                  :total-rows="filteredJobHistory.length"
-                  :initial-per-page="pageSize"
-                  :page-options="pageSizeOptions"
-                  @page-change="handlePageChange"
-                  @per-page-change="handlePageSizeChange"
-                />
-              </div>
-            </div>
-          </BCard>
+          <JobHistoryCard
+            :filtered-job-history="filteredJobHistory"
+            :paginated-job-history="paginatedJobHistory"
+            :loading="jobHistoryLoading"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :page-size-options="pageSizeOptions"
+            :sort-by="sortBy"
+            :search-filter="searchFilter"
+            :job-history-fields="jobHistoryFields"
+            @refresh="loadJobHistory"
+            @download="downloadJobHistory"
+            @copy-link="copyPageLink"
+            @clear-filters="clearAllFilters"
+            @clear-search="clearSearch"
+            @update:search-filter="handleSearchChange"
+            @page-change="handlePageChange"
+            @per-page-change="handlePageSizeChange"
+            @update-sort="handleSortUpdate"
+          />
         </BCol>
       </BRow>
     </BContainer>
@@ -1002,161 +113,104 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import axios from 'axios';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
-import GenericTable from '@/components/small/GenericTable.vue';
-import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
-import TableSearchInput from '@/components/small/TableSearchInput.vue';
-import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import { unwrapValue } from '@/composables/annotations/useAnnotationFormatters';
+import * as api from '@/composables/annotations/useAnnotationsApi';
+import { useJobHistoryUrlState } from '@/composables/annotations/useJobHistoryUrlState';
+import OntologyAnnotationsCard, {
+  type OntologyBlockedState,
+  type UserOption,
+} from '@/components/annotations/OntologyAnnotationsCard.vue';
+import HgncAnnotationsCard from '@/components/annotations/HgncAnnotationsCard.vue';
+import PubtatorStatsCard, {
+  type PubtatorStats,
+} from '@/components/annotations/PubtatorStatsCard.vue';
+import ComparisonsRefreshCard, {
+  type ComparisonsMetadata,
+} from '@/components/annotations/ComparisonsRefreshCard.vue';
+import PublicationRefreshCard, {
+  type FilterPreset,
+  type PublicationStats,
+} from '@/components/annotations/PublicationRefreshCard.vue';
+import DeprecatedEntitiesCard, {
+  type DeprecatedData,
+} from '@/components/annotations/DeprecatedEntitiesCard.vue';
+import JobHistoryCard, {
+  type JobHistoryItem,
+} from '@/components/annotations/JobHistoryCard.vue';
 
-// Types
-interface JobHistoryItem {
-  job_id: string;
-  operation: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  submitted_at: string;
-  completed_at: string | null;
-  duration_seconds: number;
-  error_message: string | null;
-}
-
+// ---------------------------------------------------------------------------
 // Composables
+// ---------------------------------------------------------------------------
 const route = useRoute();
 const { makeToast } = useToast();
 
-// URL state parameters
-const currentPage = ref(1);
-const pageSize = ref(10);
-const sortField = ref('submitted_at');
-const sortOrder = ref<'asc' | 'desc'>('desc');
-const searchFilter = ref('');
+const jobStatusUrl = (jobId: string): string =>
+  `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`;
 
-// Page size options for dropdown
-const pageSizeOptions = [10, 25, 50, 100];
+const ontologyJob = useAsyncJob(jobStatusUrl);
+const forceApplyJob = useAsyncJob(jobStatusUrl);
+const hgncJob = useAsyncJob(jobStatusUrl);
+const comparisonsJob = useAsyncJob(jobStatusUrl);
+const publicationRefreshJob = useAsyncJob(jobStatusUrl);
 
-// Create job instances for ontology, HGNC, publication refresh, comparisons, and force-apply
-const ontologyJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
-);
-const forceApplyJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
-);
-const hgncJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
-);
-const comparisonsJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
-);
-const publicationRefreshJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
-);
-
-// Reactive state
-const annotationDates = ref({
-  omim_update: null as string | null,
-  hgnc_update: null as string | null,
-  mondo_update: null as string | null,
-  disease_ontology_update: null as string | null,
+// ---------------------------------------------------------------------------
+// Page-level state
+// ---------------------------------------------------------------------------
+const annotationDates = ref<api.AnnotationDates>({
+  omim_update: null,
+  hgnc_update: null,
+  mondo_update: null,
+  disease_ontology_update: null,
 });
 
-// Blocked ontology update state
-interface OntologyBlockedResult {
-  blocked_job_id: string;
-  critical_count: number;
-  auto_fixable_count: number;
-  total_affected: number;
-  critical_entities: Array<Record<string, unknown>>;
-  auto_fixes: Array<Record<string, unknown>>;
-}
-const ontologyBlocked = ref<OntologyBlockedResult | null>(null);
-const showAutoFixes = ref(false);
-
-// User list for re-review batch assignment
-interface UserOption {
-  value: number;
-  text: string;
-}
+const ontologyBlocked = ref<OntologyBlockedState | null>(null);
 const forceApplyUserOptions = ref<UserOption[]>([]);
-const forceApplySelectedUserId = ref<number | null>(null);
 const loadingForceApplyUsers = ref(false);
 
-async function loadForceApplyUsers() {
-  loadingForceApplyUsers.value = true;
-  try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`,
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        withCredentials: true,
-      }
-    );
-    forceApplyUserOptions.value = Array.isArray(response.data)
-      ? response.data.map((item: Record<string, unknown>) => ({
-          value: item.user_id as number,
-          text: item.user_name as string,
-        }))
-      : [];
-  } catch {
-    forceApplyUserOptions.value = [];
-  }
-  loadingForceApplyUsers.value = false;
-}
-
 const loadingDeprecated = ref(false);
-const deprecatedData = ref({
-  deprecated_count: null as number | null,
+const deprecatedData = ref<DeprecatedData>({
+  deprecated_count: null,
   affected_entity_count: 0,
-  affected_entities: [] as Array<Record<string, unknown>>,
-  mim2gene_date: null as string | null,
-  message: null as string | null,
+  affected_entities: [],
+  mim2gene_date: null,
+  message: null,
 });
 
-// Pubtator stats state
-const pubtatorStats = ref({
-  publication_count: null as number | null,
-  gene_count: null as number | null,
-  novel_count: null as number | null,
+const pubtatorStats = ref<PubtatorStats>({
+  publication_count: null,
+  gene_count: null,
+  novel_count: null,
 });
 const loadingPubtatorStats = ref(false);
 
-// Publication refresh stats state
-const publicationStats = ref({
-  total: null as number | null,
-  oldest_update: null as string | null,
-  outdated_count: null as number | null,
+const publicationStats = ref<PublicationStats>({
+  total: null,
+  oldest_update: null,
+  outdated_count: null,
 });
 const loadingPublicationStats = ref(false);
 
-// Comparisons metadata state
-const comparisonsMetadata = ref({
-  last_full_refresh: null as string | null,
-  last_refresh_status: 'never' as string,
-  last_refresh_error: null as string | null,
+const comparisonsMetadata = ref<ComparisonsMetadata>({
+  last_full_refresh: null,
+  last_refresh_status: 'never',
+  last_refresh_error: null,
   sources_count: 0,
   rows_imported: 0,
 });
 const loadingComparisonsMetadata = ref(false);
 
-// Publication filter state
-type FilterPreset = 'all' | '1year' | '6months' | '3months' | 'custom';
 const selectedPreset = ref<FilterPreset>('all');
 const customDate = ref<string>('');
 const filteredCount = ref<number | null>(null);
 const loadingFilteredCount = ref(false);
 
-// Compute today's date for max attribute on date input
-const todayDate = computed(() => {
-  const today = new Date();
-  return today.toISOString().split('T')[0];
-});
+const todayDate = computed(() => new Date().toISOString().split('T')[0]);
 
-// Compute the not_updated_since date based on selected preset
 const notUpdatedSince = computed<string | null>(() => {
   const now = new Date();
   switch (selectedPreset.value) {
-    case 'all':
-      return null;
     case '1year':
       now.setFullYear(now.getFullYear() - 1);
       return now.toISOString().split('T')[0];
@@ -1168,21 +222,28 @@ const notUpdatedSince = computed<string | null>(() => {
       return now.toISOString().split('T')[0];
     case 'custom':
       return customDate.value || null;
+    case 'all':
     default:
       return null;
   }
 });
 
-const deprecatedTableFields = [
-  { key: 'entity_id', label: 'Entity', sortable: true },
-  { key: 'symbol', label: 'Gene', sortable: true },
-  { key: 'disease_ontology_id', label: 'Deprecated OMIM', sortable: true },
-  { key: 'replacement_suggestion', label: 'Replacement', sortable: false },
-  { key: 'deprecation_reason', label: 'Reason', sortable: false },
-  { key: 'category', label: 'Category', sortable: true },
-];
+// Job history / table-controls state (URL sync extracted to composable)
+const {
+  currentPage,
+  pageSize,
+  searchFilter,
+  pageSizeOptions,
+  sortBy,
+  initFromUrl,
+  handlePageChange,
+  handlePageSizeChange,
+  handleSortUpdate,
+  handleSearchChange,
+  clearSearch,
+  clearAllFilters: resetTableState,
+} = useJobHistoryUrlState(route);
 
-// Job history state
 const jobHistory = ref<JobHistoryItem[]>([]);
 const jobHistoryLoading = ref(false);
 
@@ -1194,19 +255,13 @@ const jobHistoryFields = [
   { key: 'error_message', label: 'Error', sortable: false },
 ];
 
-// Computed: sort string for GenericTable
-const sortBy = computed(() => [
-  {
-    key: sortField.value,
-    order: sortOrder.value,
-  },
-]);
+function clearAllFilters(): void {
+  resetTableState();
+  makeToast('All filters cleared', 'Filters Reset', 'info');
+}
 
-// Computed: filtered job history based on search
-const filteredJobHistory = computed(() => {
-  if (!searchFilter.value.trim()) {
-    return jobHistory.value;
-  }
+const filteredJobHistory = computed<JobHistoryItem[]>(() => {
+  if (!searchFilter.value.trim()) return jobHistory.value;
   const search = searchFilter.value.toLowerCase();
   return jobHistory.value.filter(
     (job) =>
@@ -1216,115 +271,63 @@ const filteredJobHistory = computed(() => {
   );
 });
 
-// Computed: paginated job history
-const paginatedJobHistory = computed(() => {
-  const filtered = filteredJobHistory.value;
+const paginatedJobHistory = computed<JobHistoryItem[]>(() => {
   const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filtered.slice(start, end);
+  return filteredJobHistory.value.slice(start, start + pageSize.value);
 });
 
-// Computed properties for step labels
-const ontologyStepLabel = computed(() => {
-  if (!ontologyJob.step.value) return 'Initializing...';
-  if (ontologyJob.step.value.length > 40) {
-    return ontologyJob.step.value.substring(0, 37) + '...';
-  }
-  return ontologyJob.step.value;
-});
+// ---------------------------------------------------------------------------
+// Toast-and-history wiring for each job watcher
+// ---------------------------------------------------------------------------
+function toastDone(msg: string): void {
+  makeToast(msg, 'Success', 'success');
+}
+function toastFail(msg: string): void {
+  makeToast(msg, 'Error', 'danger');
+}
 
-const hgncStepLabel = computed(() => {
-  if (!hgncJob.step.value) return 'Initializing...';
-  if (hgncJob.step.value.length > 40) {
-    return hgncJob.step.value.substring(0, 37) + '...';
-  }
-  return hgncJob.step.value;
-});
-
-const comparisonsStepLabel = computed(() => {
-  if (!comparisonsJob.step.value) return 'Initializing...';
-  if (comparisonsJob.step.value.length > 40) {
-    return comparisonsJob.step.value.substring(0, 37) + '...';
-  }
-  return comparisonsJob.step.value;
-});
-
-// Watch for job completion/failure
 watch(
   () => ontologyJob.status.value,
   async (newStatus) => {
     if (newStatus === 'completed') {
-      // Check if the job result signals a blocked update
       try {
         const jobId = ontologyJob.jobId.value;
         if (jobId) {
-          const statusResp = await axios.get(
-            `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`,
-            {
-              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-              withCredentials: true,
+          const result = await api.fetchOntologyJobResult(jobId);
+          if (result && result.kind === 'blocked') {
+            ontologyBlocked.value = result.state;
+            forceApplyUserOptions.value = [];
+            loadingForceApplyUsers.value = true;
+            try {
+              forceApplyUserOptions.value = await api.fetchForceApplyUsers();
+            } catch {
+              forceApplyUserOptions.value = [];
+            } finally {
+              loadingForceApplyUsers.value = false;
             }
-          );
-          const result = statusResp.data?.result;
-          const resultStatus = unwrapValue(result?.status);
-
-          if (resultStatus === 'blocked') {
-            // Populate blocked state
-            ontologyBlocked.value = {
-              blocked_job_id: unwrapValue(jobId) as string,
-              critical_count: unwrapValue(result.critical_count) || 0,
-              auto_fixable_count: unwrapValue(result.auto_fixable_count) || 0,
-              total_affected: unwrapValue(result.total_affected) || 0,
-              critical_entities: (result.critical_entities || []).map(
-                (e: Record<string, unknown>) => {
-                  const obj: Record<string, unknown> = {};
-                  Object.keys(e).forEach((k) => {
-                    obj[k] = unwrapValue(e[k]);
-                  });
-                  return obj;
-                }
-              ),
-              auto_fixes: (result.auto_fixes || []).map((f: Record<string, unknown>) => {
-                const obj: Record<string, unknown> = {};
-                Object.keys(f).forEach((k) => {
-                  obj[k] = unwrapValue(f[k]);
-                });
-                return obj;
-              }),
-            };
-            // Load user list for batch assignment dropdown
-            loadForceApplyUsers();
-            forceApplySelectedUserId.value = null;
             makeToast(
-              `Ontology update blocked: ${ontologyBlocked.value.critical_count} critical changes`,
+              `Ontology update blocked: ${result.state.critical_count} critical changes`,
               'Update Blocked',
               'warning'
             );
-            fetchJobHistory();
+            loadJobHistory();
             return;
           }
-
-          // Check for auto-fixes applied
-          const autoFixes = unwrapValue(result?.auto_fixes_applied);
-          if (autoFixes && Number(autoFixes) > 0) {
-            makeToast(
-              `Ontology updated. ${autoFixes} entity version(s) auto-fixed.`,
-              'Success',
-              'success'
-            );
+          const autoFixes = result && result.kind === 'ok' ? result.autoFixesApplied : 0;
+          if (autoFixes > 0) {
+            toastDone(`Ontology updated. ${autoFixes} entity version(s) auto-fixed.`);
           } else {
-            makeToast('Ontology annotations updated successfully', 'Success', 'success');
+            toastDone('Ontology annotations updated successfully');
           }
         }
       } catch {
-        makeToast('Ontology annotations updated successfully', 'Success', 'success');
+        toastDone('Ontology annotations updated successfully');
       }
-      fetchAnnotationDates();
-      fetchJobHistory();
+      loadAnnotationDates();
+      loadJobHistory();
     } else if (newStatus === 'failed') {
-      const errorMsg = ontologyJob.error.value || 'Ontology update failed';
-      makeToast(errorMsg, 'Error', 'danger');
-      fetchJobHistory();
+      toastFail(ontologyJob.error.value || 'Ontology update failed');
+      loadJobHistory();
     }
   }
 );
@@ -1333,18 +336,15 @@ watch(
   () => forceApplyJob.status.value,
   (newStatus) => {
     if (newStatus === 'completed') {
-      makeToast(
-        'Ontology force-applied successfully. Re-review batch created for critical entities.',
-        'Success',
-        'success'
+      toastDone(
+        'Ontology force-applied successfully. Re-review batch created for critical entities.'
       );
       ontologyBlocked.value = null;
-      fetchAnnotationDates();
-      fetchJobHistory();
+      loadAnnotationDates();
+      loadJobHistory();
     } else if (newStatus === 'failed') {
-      const errorMsg = forceApplyJob.error.value || 'Force-apply failed';
-      makeToast(errorMsg, 'Error', 'danger');
-      fetchJobHistory();
+      toastFail(forceApplyJob.error.value || 'Force-apply failed');
+      loadJobHistory();
     }
   }
 );
@@ -1353,13 +353,12 @@ watch(
   () => hgncJob.status.value,
   (newStatus) => {
     if (newStatus === 'completed') {
-      makeToast('HGNC data updated successfully', 'Success', 'success');
-      fetchAnnotationDates();
-      fetchJobHistory();
+      toastDone('HGNC data updated successfully');
+      loadAnnotationDates();
+      loadJobHistory();
     } else if (newStatus === 'failed') {
-      const errorMsg = hgncJob.error.value || 'HGNC update failed';
-      makeToast(errorMsg, 'Error', 'danger');
-      fetchJobHistory();
+      toastFail(hgncJob.error.value || 'HGNC update failed');
+      loadJobHistory();
     }
   }
 );
@@ -1368,14 +367,13 @@ watch(
   () => publicationRefreshJob.status.value,
   (newStatus) => {
     if (newStatus === 'completed') {
-      makeToast('Publications refreshed successfully', 'Success', 'success');
-      fetchPublicationStats();
-      fetchFilteredCount();
-      fetchJobHistory();
+      toastDone('Publications refreshed successfully');
+      loadPublicationStats();
+      loadFilteredCount();
+      loadJobHistory();
     } else if (newStatus === 'failed') {
-      const errorMsg = publicationRefreshJob.error.value || 'Publication refresh failed';
-      makeToast(errorMsg, 'Error', 'danger');
-      fetchJobHistory();
+      toastFail(publicationRefreshJob.error.value || 'Publication refresh failed');
+      loadJobHistory();
     }
   }
 );
@@ -1384,338 +382,51 @@ watch(
   () => comparisonsJob.status.value,
   (newStatus) => {
     if (newStatus === 'completed') {
-      makeToast('Comparisons data refreshed successfully', 'Success', 'success');
-      fetchComparisonsMetadata();
-      fetchJobHistory();
+      toastDone('Comparisons data refreshed successfully');
+      loadComparisonsMetadata();
+      loadJobHistory();
     } else if (newStatus === 'failed') {
-      const errorMsg = comparisonsJob.error.value || 'Comparisons refresh failed';
-      makeToast(errorMsg, 'Error', 'danger');
-      fetchJobHistory();
+      toastFail(comparisonsJob.error.value || 'Comparisons refresh failed');
+      loadJobHistory();
     }
   }
 );
 
-// Watch for filter changes to update filtered count
-watch(
-  () => notUpdatedSince.value,
-  () => {
-    if (notUpdatedSince.value) {
-      fetchFilteredCount();
-    } else {
-      filteredCount.value = null;
-    }
+watch(notUpdatedSince, () => {
+  if (notUpdatedSince.value) {
+    loadFilteredCount();
+  } else {
+    filteredCount.value = null;
   }
-);
+});
 
-// URL state synchronization
-function initFromUrl() {
-  const query = route.query;
-  if (query.page) {
-    currentPage.value = parseInt(String(query.page), 10) || 1;
-  }
-  if (query.page_size) {
-    const ps = parseInt(String(query.page_size), 10);
-    if (pageSizeOptions.includes(ps)) {
-      pageSize.value = ps;
-    }
-  }
-  if (query.sort) {
-    const sortStr = String(query.sort);
-    if (sortStr.startsWith('-')) {
-      sortField.value = sortStr.slice(1);
-      sortOrder.value = 'desc';
-    } else if (sortStr.startsWith('+')) {
-      sortField.value = sortStr.slice(1);
-      sortOrder.value = 'asc';
-    } else {
-      sortField.value = sortStr;
-      sortOrder.value = 'asc';
-    }
-  }
-  if (query.search) {
-    searchFilter.value = String(query.search);
-  }
-}
-
-function updateUrl() {
-  const query: Record<string, string> = {};
-  if (currentPage.value !== 1) {
-    query.page = String(currentPage.value);
-  }
-  if (pageSize.value !== 10) {
-    query.page_size = String(pageSize.value);
-  }
-  const sortPrefix = sortOrder.value === 'desc' ? '-' : '+';
-  if (sortField.value !== 'submitted_at' || sortOrder.value !== 'desc') {
-    query.sort = `${sortPrefix}${sortField.value}`;
-  }
-  if (searchFilter.value.trim()) {
-    query.search = searchFilter.value.trim();
-  }
-  // Use replaceState to avoid adding history entries
-  const url = new URL(window.location.href);
-  url.search = new URLSearchParams(query).toString();
-  window.history.replaceState({}, '', url.toString());
-}
-
-function handlePageChange(page: number) {
-  currentPage.value = page;
-  updateUrl();
-}
-
-function handlePageSizeChange(size: number) {
-  pageSize.value = size;
-  currentPage.value = 1; // Reset to first page
-  updateUrl();
-}
-
-function handleSortUpdate(event: { sortBy: string; sortDesc: boolean }) {
-  sortField.value = event.sortBy;
-  sortOrder.value = event.sortDesc ? 'desc' : 'asc';
-  updateUrl();
-}
-
-function handleSearchChange(value: string) {
-  searchFilter.value = value;
-  currentPage.value = 1; // Reset to first page on search
-  updateUrl();
-}
-
-function clearSearch() {
-  searchFilter.value = '';
-  currentPage.value = 1;
-  updateUrl();
-}
-
-function clearAllFilters() {
-  searchFilter.value = '';
-  sortField.value = 'submitted_at';
-  sortOrder.value = 'desc';
-  currentPage.value = 1;
-  pageSize.value = 10;
-  updateUrl();
-  makeToast('All filters cleared', 'Filters Reset', 'info');
-}
-
-async function downloadJobHistory() {
+// ---------------------------------------------------------------------------
+// Loaders
+// ---------------------------------------------------------------------------
+async function loadAnnotationDates(): Promise<void> {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/jobs/history`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      params: {
-        limit: 1000,
-      },
-      withCredentials: true,
-    });
-    const data = response.data?.data || [];
-    if (data.length === 0) {
-      makeToast('No job history to download', 'Info', 'info');
-      return;
-    }
-    // Convert to CSV
-    const headers = ['Job ID', 'Operation', 'Status', 'Started', 'Duration (s)', 'Error'];
-    const rows = data.map((job: Record<string, unknown>) => [
-      unwrapValue(job.job_id),
-      unwrapValue(job.operation),
-      unwrapValue(job.status),
-      unwrapValue(job.submitted_at),
-      unwrapValue(job.duration_seconds) ?? '',
-      unwrapValue(job.error_message) ?? '',
-    ]);
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row: (string | number)[]) =>
-        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
-      ),
-    ].join('\n');
-    // Download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `job_history_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    makeToast('Job history downloaded', 'Download Complete', 'success');
+    annotationDates.value = await api.fetchAnnotationDates();
   } catch (error) {
-    makeToast('Failed to download job history', 'Error', 'danger');
-    console.error('Download error:', error);
-  }
-}
-
-function copyPageLink() {
-  navigator.clipboard
-    .writeText(window.location.href)
-    .then(() => {
-      makeToast('Page link copied to clipboard', 'Copied', 'success');
-    })
-    .catch(() => {
-      makeToast('Failed to copy link', 'Error', 'danger');
-    });
-}
-
-// Methods
-async function fetchAnnotationDates() {
-  try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/annotation_dates`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      withCredentials: true,
-    });
-    const data = response.data;
-    annotationDates.value = {
-      omim_update: Array.isArray(data.omim_update) ? data.omim_update[0] : data.omim_update,
-      hgnc_update: Array.isArray(data.hgnc_update) ? data.hgnc_update[0] : data.hgnc_update,
-      mondo_update: Array.isArray(data.mondo_update) ? data.mondo_update[0] : data.mondo_update,
-      disease_ontology_update: Array.isArray(data.disease_ontology_update)
-        ? data.disease_ontology_update[0]
-        : data.disease_ontology_update,
-    };
-  } catch (error) {
-    // Silently fail - dates are optional enhancement
     console.warn('Failed to fetch annotation dates:', error);
   }
 }
 
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  // Handle both date-only (YYYY-MM-DD) and datetime formats
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleDateString();
-}
-
-function formatDateTime(dateString: string | null): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  return date.toLocaleString();
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds === undefined) return '—';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins > 0) {
-    return `${mins}m ${secs}s`;
-  }
-  return `${secs}s`;
-}
-
-function formatOperationType(operation: string): string {
-  const labels: Record<string, string> = {
-    clustering: 'Clustering',
-    phenotype_clustering: 'Phenotype Clustering',
-    ontology_update: 'Ontology Update',
-    omim_update: 'Ontology Update',
-    force_apply_ontology: 'Force Apply Ontology',
-    hgnc_update: 'HGNC Update',
-    pubtator_update: 'Pubtator Update',
-    publication_refresh: 'Publication Refresh',
-    comparisons_update: 'Comparisons Update',
-  };
-  return labels[operation] || operation;
-}
-
-function getStatusBadgeClass(status: string): string {
-  const classes: Record<string, string> = {
-    completed: 'bg-success',
-    failed: 'bg-danger',
-    running: 'bg-primary',
-    pending: 'bg-info',
-  };
-  return classes[status] || 'bg-secondary';
-}
-
-async function fetchJobHistory() {
+async function loadJobHistory(): Promise<void> {
   jobHistoryLoading.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/jobs/history`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      params: {
-        limit: 20,
-      },
-      withCredentials: true,
-    });
-    // Handle R/Plumber response structure
-    const data = response.data;
-    if (data && Array.isArray(data.data)) {
-      // Unwrap single-element arrays from R/Plumber
-      jobHistory.value = data.data.map((job: Record<string, unknown>) => ({
-        job_id: unwrapValue(job.job_id),
-        operation: unwrapValue(job.operation),
-        status: unwrapValue(job.status),
-        submitted_at: unwrapValue(job.submitted_at),
-        completed_at: unwrapValue(job.completed_at),
-        duration_seconds: unwrapValue(job.duration_seconds),
-        error_message: unwrapValue(job.error_message),
-      })) as JobHistoryItem[];
-    } else {
-      jobHistory.value = [];
-    }
+    jobHistory.value = await api.fetchJobHistory(20);
   } catch (error) {
     console.warn('Failed to fetch job history:', error);
-    // Don't show toast - job history is optional enhancement
     jobHistory.value = [];
   } finally {
     jobHistoryLoading.value = false;
   }
 }
 
-function categoryBadgeClass(category: string): string {
-  const classes: Record<string, string> = {
-    Definitive: 'bg-success',
-    Moderate: 'bg-info',
-    Limited: 'bg-warning text-dark',
-    Refuted: 'bg-danger',
-  };
-  return classes[category] || 'bg-secondary';
-}
-
-function truncateText(text: string | null, maxLength: number): string {
-  if (!text || text.length <= maxLength) return text || '';
-  return `${text.substring(0, maxLength)}...`;
-}
-
-// Helper to unwrap R/Plumber array values (scalars come as single-element arrays)
-function unwrapValue<T>(val: T | T[]): T {
-  return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
-}
-
-async function fetchDeprecatedEntities() {
+async function onCheckDeprecated(): Promise<void> {
   loadingDeprecated.value = true;
   try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/admin/deprecated_entities`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-    const data = response.data;
-    // Unwrap entity fields (R/Plumber returns scalars as single-element arrays)
-    const unwrappedEntities = (data.affected_entities || []).map(
-      (entity: Record<string, unknown>) => {
-        const unwrapped: Record<string, unknown> = {};
-        Object.keys(entity).forEach((key) => {
-          unwrapped[key] = unwrapValue(entity[key]);
-        });
-        return unwrapped;
-      }
-    );
-    deprecatedData.value = {
-      deprecated_count: unwrapValue(data.deprecated_count),
-      affected_entity_count: unwrapValue(data.affected_entity_count) || 0,
-      affected_entities: unwrappedEntities,
-      mim2gene_date: unwrapValue(data.mim2gene_date),
-      message: unwrapValue(data.message),
-    };
+    deprecatedData.value = await api.fetchDeprecatedEntities();
     if (deprecatedData.value.affected_entity_count > 0) {
       makeToast(
         `Found ${deprecatedData.value.affected_entity_count} entities using deprecated OMIM IDs`,
@@ -1726,196 +437,33 @@ async function fetchDeprecatedEntities() {
       makeToast('No entities affected by deprecated OMIM IDs', 'Check Complete', 'success');
     }
   } catch (error) {
-    makeToast('Failed to check deprecated entities', 'Error', 'danger');
+    toastFail('Failed to check deprecated entities');
     console.error('Failed to fetch deprecated entities:', error);
   } finally {
     loadingDeprecated.value = false;
   }
 }
 
-async function updateOntologyAnnotations() {
-  // Reset and prepare job
-  ontologyJob.reset();
-
-  try {
-    // Call async endpoint
-    const response = await axios.put(
-      `${import.meta.env.VITE_API_URL}/api/admin/update_ontology_async`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.data.error) {
-      makeToast(response.data.message || 'Failed to start update', 'Error', 'danger');
-      return;
-    }
-
-    // Start tracking the job
-    ontologyJob.startJob(response.data.job_id);
-  } catch (_error) {
-    makeToast('Failed to start ontology update', 'Error', 'danger');
-  }
-}
-
-async function forceApplyOntology() {
-  if (!ontologyBlocked.value) return;
-
-  forceApplyJob.reset();
-
-  try {
-    const response = await axios.put(
-      `${import.meta.env.VITE_API_URL}/api/admin/force_apply_ontology`,
-      {},
-      {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        params: {
-          blocked_job_id: ontologyBlocked.value.blocked_job_id,
-          ...(forceApplySelectedUserId.value
-            ? { assigned_user_id: forceApplySelectedUserId.value }
-            : {}),
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.data.error) {
-      makeToast(response.data.message || response.data.error, 'Error', 'danger');
-      return;
-    }
-
-    forceApplyJob.startJob(response.data.job_id);
-  } catch {
-    makeToast('Failed to start force-apply', 'Error', 'danger');
-  }
-}
-
-function dismissBlockedOntology() {
-  ontologyBlocked.value = null;
-}
-
-async function updateHgncData() {
-  // Reset and prepare job
-  hgncJob.reset();
-
-  try {
-    // Call async endpoint
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/jobs/hgnc_update/submit`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.data.error) {
-      makeToast(response.data.message || 'Failed to start HGNC update', 'Error', 'danger');
-      return;
-    }
-
-    // Start tracking the job
-    hgncJob.startJob(response.data.job_id);
-  } catch (_error) {
-    makeToast('Failed to start HGNC update', 'Error', 'danger');
-  }
-}
-
-async function fetchPubtatorStats() {
+async function loadPubtatorStats(): Promise<void> {
   loadingPubtatorStats.value = true;
   try {
-    // Fetch gene count and novel count from pubtator/genes endpoint
-    const genesResponse = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
-      {
-        params: {
-          page_size: 1,
-          fields: 'gene_symbol',
-        },
-        withCredentials: true,
-      }
-    );
-
-    // Get total gene count from meta (meta is array-wrapped by R/plumber)
-    const geneMeta = Array.isArray(genesResponse.data?.meta)
-      ? genesResponse.data.meta[0]
-      : genesResponse.data?.meta;
-    const geneCount = geneMeta?.totalItems ?? null;
-
-    // Fetch publication count from pubtator/table endpoint
-    const pubsResponse = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table`,
-      {
-        params: {
-          page_size: 1,
-          fields: 'search_id',
-        },
-        withCredentials: true,
-      }
-    );
-
-    // Get total publication count from meta (meta is array-wrapped by R/plumber)
-    const pubMeta = Array.isArray(pubsResponse.data?.meta)
-      ? pubsResponse.data.meta[0]
-      : pubsResponse.data?.meta;
-    const pubCount = pubMeta?.totalItems ?? null;
-
-    // Fetch novel gene count (is_novel=1)
-    const novelResponse = await axios.get(
-      `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`,
-      {
-        params: {
-          page_size: 1,
-          filter: 'is_novel==1',
-          fields: 'gene_symbol',
-        },
-        withCredentials: true,
-      }
-    );
-
-    // meta is array-wrapped by R/plumber
-    const novelMeta = Array.isArray(novelResponse.data?.meta)
-      ? novelResponse.data.meta[0]
-      : novelResponse.data?.meta;
-    const novelCount = novelMeta?.totalItems ?? null;
-
-    pubtatorStats.value = {
-      publication_count: pubCount,
-      gene_count: geneCount,
-      novel_count: novelCount,
-    };
+    pubtatorStats.value = await api.fetchPubtatorStats();
   } catch (error) {
     console.warn('Failed to fetch Pubtator stats:', error);
-    // Don't show toast - stats are optional enhancement
-    pubtatorStats.value = {
-      publication_count: null,
-      gene_count: null,
-      novel_count: null,
-    };
+    pubtatorStats.value = { publication_count: null, gene_count: null, novel_count: null };
   } finally {
     loadingPubtatorStats.value = false;
   }
 }
 
-async function fetchPublicationStats() {
+async function loadPublicationStats(): Promise<void> {
   loadingPublicationStats.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      withCredentials: true,
-    });
+    const stats = await api.fetchPublicationStats();
     publicationStats.value = {
-      total: unwrapValue(response.data.total),
-      oldest_update: unwrapValue(response.data.oldest_update),
-      outdated_count: unwrapValue(response.data.outdated_count),
+      total: stats.total,
+      oldest_update: stats.oldest_update,
+      outdated_count: stats.outdated_count,
     };
   } catch (error) {
     console.warn('Failed to fetch publication stats:', error);
@@ -1924,86 +472,26 @@ async function fetchPublicationStats() {
   }
 }
 
-async function fetchComparisonsMetadata() {
+async function loadComparisonsMetadata(): Promise<void> {
   loadingComparisonsMetadata.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`, {
-      withCredentials: true,
-    });
-    comparisonsMetadata.value = {
-      last_full_refresh: unwrapValue(response.data.last_full_refresh),
-      last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
-      last_refresh_error: unwrapValue(response.data.last_refresh_error),
-      sources_count: unwrapValue(response.data.sources_count) ?? 0,
-      rows_imported: unwrapValue(response.data.rows_imported) ?? 0,
-    };
+    comparisonsMetadata.value = await api.fetchComparisonsMetadata();
   } catch (error) {
     console.warn('Failed to fetch comparisons metadata:', error);
-    // Don't show toast - metadata is optional enhancement
   } finally {
     loadingComparisonsMetadata.value = false;
   }
 }
 
-async function refreshComparisons() {
-  comparisonsJob.reset();
-
-  try {
-    const response = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/jobs/comparisons_update/submit`,
-      {},
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (response.data.error) {
-      if (response.data.error === 'DUPLICATE_JOB') {
-        makeToast('A comparisons update job is already running', 'Info', 'info');
-        // Track the existing job
-        comparisonsJob.startJob(response.data.existing_job_id);
-      } else {
-        makeToast(response.data.message || 'Failed to start comparisons update', 'Error', 'danger');
-      }
-      return;
-    }
-
-    // Start tracking the job
-    comparisonsJob.startJob(response.data.job_id);
-  } catch (error) {
-    makeToast('Failed to start comparisons update', 'Error', 'danger');
-    console.error('Comparisons refresh error:', error);
-  }
-}
-
-function setPreset(preset: FilterPreset) {
-  selectedPreset.value = preset;
-  if (preset !== 'custom') {
-    customDate.value = '';
-  }
-}
-
-async function fetchFilteredCount() {
+async function loadFilteredCount(): Promise<void> {
   if (!notUpdatedSince.value) {
     filteredCount.value = null;
     return;
   }
-
   loadingFilteredCount.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication/stats`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      params: {
-        not_updated_since: notUpdatedSince.value,
-      },
-      withCredentials: true,
-    });
-    filteredCount.value = unwrapValue(response.data.filtered_count) ?? null;
+    const stats = await api.fetchPublicationStats(notUpdatedSince.value);
+    filteredCount.value = stats.filtered_count;
   } catch (error) {
     console.warn('Failed to fetch filtered count:', error);
     filteredCount.value = null;
@@ -2012,148 +500,191 @@ async function fetchFilteredCount() {
   }
 }
 
-async function refreshFilteredPublications() {
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+function startJobIfOk(
+  job: ReturnType<typeof useAsyncJob>,
+  data: api.JobSubmissionResponse,
+  fallbackMsg: string
+): void {
+  if (data.error) {
+    toastFail(data.message || fallbackMsg);
+    return;
+  }
+  if (data.job_id !== undefined) {
+    job.startJob(unwrapValue(data.job_id) as string);
+  }
+}
+
+async function onStartOntology(): Promise<void> {
+  ontologyJob.reset();
+  try {
+    startJobIfOk(ontologyJob, await api.submitOntologyUpdate(), 'Failed to start update');
+  } catch {
+    toastFail('Failed to start ontology update');
+  }
+}
+
+async function onForceApply(payload: {
+  blocked_job_id: string;
+  assigned_user_id: number | null;
+}): Promise<void> {
+  forceApplyJob.reset();
+  try {
+    const data = await api.submitForceApplyOntology(
+      payload.blocked_job_id,
+      payload.assigned_user_id
+    );
+    startJobIfOk(forceApplyJob, data, data.error ?? 'Force-apply failed');
+  } catch {
+    toastFail('Failed to start force-apply');
+  }
+}
+
+function dismissBlockedOntology(): void {
+  ontologyBlocked.value = null;
+}
+
+async function onStartHgnc(): Promise<void> {
+  hgncJob.reset();
+  try {
+    startJobIfOk(hgncJob, await api.submitHgncUpdate(), 'Failed to start HGNC update');
+  } catch {
+    toastFail('Failed to start HGNC update');
+  }
+}
+
+async function onStartComparisons(): Promise<void> {
+  comparisonsJob.reset();
+  try {
+    const data = await api.submitComparisonsRefresh();
+    if (data.error === 'DUPLICATE_JOB') {
+      makeToast('A comparisons update job is already running', 'Info', 'info');
+      if (data.existing_job_id !== undefined) {
+        comparisonsJob.startJob(unwrapValue(data.existing_job_id) as string);
+      }
+      return;
+    }
+    startJobIfOk(comparisonsJob, data, 'Failed to start comparisons update');
+  } catch (error) {
+    toastFail('Failed to start comparisons update');
+    console.error('Comparisons refresh error:', error);
+  }
+}
+
+function setPreset(preset: FilterPreset): void {
+  selectedPreset.value = preset;
+  if (preset !== 'custom') customDate.value = '';
+}
+
+async function onRefreshFilteredPublications(): Promise<void> {
   if (!notUpdatedSince.value) {
     makeToast('No filter selected', 'Info', 'info');
     return;
   }
-
   publicationRefreshJob.reset();
-
   try {
-    // Start refresh job with date filter
-    const jobResponse = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
-      { not_updated_since: notUpdatedSince.value },
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (jobResponse.data.error) {
-      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
+    const data = await api.submitPublicationRefresh({
+      not_updated_since: notUpdatedSince.value,
+    });
+    if (data.error) {
+      toastFail(data.message || 'Failed to start refresh');
       return;
     }
-
-    // Handle no publications to refresh
-    if (jobResponse.data.count === 0) {
-      makeToast(jobResponse.data.message || 'No publications need refreshing', 'Info', 'info');
+    if (data.count === 0) {
+      makeToast(data.message || 'No publications need refreshing', 'Info', 'info');
       return;
     }
-
-    // Handle already running job
-    if (jobResponse.data.status === 'already_running') {
+    if (data.status === 'already_running') {
       makeToast('A refresh job is already running', 'Info', 'info');
-      publicationRefreshJob.startJob(jobResponse.data.job_id);
-      return;
     }
-
-    // Start tracking the new job
-    publicationRefreshJob.startJob(jobResponse.data.job_id);
+    if (data.job_id !== undefined) {
+      publicationRefreshJob.startJob(unwrapValue(data.job_id) as string);
+    }
   } catch (error) {
-    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    toastFail('Failed to start publication refresh');
     console.error('Publication refresh error:', error);
   }
 }
 
-async function refreshAllPublications() {
+async function onRefreshAllPublications(): Promise<void> {
   publicationRefreshJob.reset();
-
   try {
-    // Get all publication PMIDs via the publications endpoint
-    const pubResponse = await axios.get(`${import.meta.env.VITE_API_URL}/api/publication`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      params: {
-        fields: 'publication_id',
-        page_size: 10000, // Get all publications
-      },
-      withCredentials: true,
-    });
-
-    // Extract PMIDs from the cursor-paginated response
-    const publications = pubResponse.data?.data || [];
-
-    const pmids = publications.map((p: { publication_id: string | string[] }) =>
-      unwrapValue(p.publication_id)
-    );
-
+    const pmids = await api.fetchAllPublicationPmids();
     if (pmids.length === 0) {
       makeToast('No publications to refresh', 'Info', 'info');
       return;
     }
-
-    // Start refresh job
-    const jobResponse = await axios.post(
-      `${import.meta.env.VITE_API_URL}/api/admin/publications/refresh`,
-      { pmids },
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        withCredentials: true,
-      }
-    );
-
-    if (jobResponse.data.error) {
-      makeToast(jobResponse.data.message || 'Failed to start refresh', 'Error', 'danger');
+    const data = await api.submitPublicationRefresh({ pmids });
+    if (data.error) {
+      toastFail(data.message || 'Failed to start refresh');
       return;
     }
-
-    // Handle already running job
-    if (jobResponse.data.status === 'already_running') {
+    if (data.status === 'already_running') {
       makeToast('A refresh job is already running', 'Info', 'info');
-      publicationRefreshJob.startJob(jobResponse.data.job_id);
-      return;
     }
-
-    // Start tracking the new job
-    publicationRefreshJob.startJob(jobResponse.data.job_id);
+    if (data.job_id !== undefined) {
+      publicationRefreshJob.startJob(unwrapValue(data.job_id) as string);
+    }
   } catch (error) {
-    makeToast('Failed to start publication refresh', 'Error', 'danger');
+    toastFail('Failed to start publication refresh');
     console.error('Publication refresh error:', error);
   }
 }
 
+async function downloadJobHistory(): Promise<void> {
+  try {
+    const rows = await api.fetchJobHistoryRaw(1000);
+    if (rows.length === 0) {
+      makeToast('No job history to download', 'Info', 'info');
+      return;
+    }
+    const headers = ['Job ID', 'Operation', 'Status', 'Started', 'Duration (s)', 'Error'];
+    const csvRows = rows.map((job) => [
+      unwrapValue(job.job_id),
+      unwrapValue(job.operation),
+      unwrapValue(job.status),
+      unwrapValue(job.submitted_at),
+      unwrapValue(job.duration_seconds) ?? '',
+      unwrapValue(job.error_message) ?? '',
+    ]);
+    const csv = [
+      headers.join(','),
+      ...csvRows.map((row) =>
+        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `job_history_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toastDone('Job history downloaded');
+  } catch (error) {
+    toastFail('Failed to download job history');
+    console.error('Download error:', error);
+  }
+}
+
+function copyPageLink(): void {
+  navigator.clipboard
+    .writeText(window.location.href)
+    .then(() => makeToast('Page link copied to clipboard', 'Copied', 'success'))
+    .catch(() => toastFail('Failed to copy link'));
+}
+
+// ---------------------------------------------------------------------------
 // Lifecycle
+// ---------------------------------------------------------------------------
 onMounted(() => {
   initFromUrl();
-  fetchAnnotationDates();
-  fetchJobHistory();
-  fetchPubtatorStats();
-  fetchPublicationStats();
-  fetchComparisonsMetadata();
+  loadAnnotationDates();
+  loadJobHistory();
+  loadPubtatorStats();
+  loadPublicationStats();
+  loadComparisonsMetadata();
 });
 </script>
-
-<style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
-
-.deprecation-reason {
-  display: block;
-  max-width: 250px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: help;
-}
-
-.error-text {
-  display: block;
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  cursor: help;
-}
-</style>
