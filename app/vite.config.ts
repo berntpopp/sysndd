@@ -162,16 +162,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 500, // Warn on chunks > 500KB (bootstrap is close at 300KB raw)
     rollupOptions: {
       output: {
-        // Vite 8 / Rollup 4 tightened the ManualChunks type — the object form
-        // is still supported at runtime but its shape is now inferred more
-        // strictly. Use the function form so the TypeScript check passes
-        // without hiding the chunking logic behind a cast.
-        manualChunks: (id: string): string | undefined => {
-          if (/node_modules\/(vue|vue-router|pinia)\//.test(id)) return 'vendor';
-          if (/node_modules\/(bootstrap|bootstrap-vue-next)\//.test(id)) return 'bootstrap';
-          if (/node_modules\/(d3|@upsetjs\/bundle|gsap)\//.test(id)) return 'viz';
-          if (/node_modules\/ngl\//.test(id)) return 'ngl';
-          return undefined;
+        manualChunks: {
+          // Critical path chunks (loaded on initial page load)
+          vendor: ['vue', 'vue-router', 'pinia'],
+          bootstrap: ['bootstrap', 'bootstrap-vue-next'],
+          // Heavy visualization libraries (lazy-loaded)
+          viz: ['d3', '@upsetjs/bundle', 'gsap'],
+          // 3D structure viewer (lazy-loaded via BTab lazy)
+          ngl: ['ngl'],
         },
       },
     },

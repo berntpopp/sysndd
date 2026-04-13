@@ -252,7 +252,13 @@ setInterval(() => {
 const isExpired = computed<boolean>(() => {
   const exp = userRef.value?.exp?.[0];
   if (typeof exp !== 'number') return false;
-  return nowSecRef.value >= exp;
+  // Reads both the reactive tick (so the computed invalidates every second)
+  // AND a fresh `Date.now()` — the setInterval may not have fired yet if
+  // `login()` happens within the same second as module load, which would
+  // otherwise leave `nowSecRef.value` one second behind real time and make
+  // boundary tests (nowSec === exp) flake under fast CI runners.
+  const nowSec = Math.max(nowSecRef.value, Math.floor(Date.now() / 1000));
+  return nowSec >= exp;
 });
 
 // ---------------------------------------------------------------------------
