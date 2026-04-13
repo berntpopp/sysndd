@@ -435,10 +435,13 @@ async function loadReviewTableData(): Promise<void> {
     });
     items_ReviewTable.value = r.data;
     totalRows.value = r.data.length;
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
-  uiStore.requestScrollbarUpdate();
-  isBusy.value = false;
-  loadingReviewApprove.value = false;
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  } finally {
+    uiStore.requestScrollbarUpdate();
+    isBusy.value = false;
+    loadingReviewApprove.value = false;
+  }
 }
 
 async function loadReviewInfo(review_id: number): Promise<void> {

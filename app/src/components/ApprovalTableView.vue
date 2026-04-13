@@ -561,12 +561,14 @@ const filterText = ref<string | null>(null);
 const fields = statusTableFields as unknown as TableField[];
 const legendItems = statusLegendItems;
 
-// Sync parent-provided items into the composable's items ref.
+// Sync parent-provided items into the composable's items ref.  The
+// `filteredItems` watch below keeps `totalRows` in sync (filteredItems
+// depends on items + filters, so an items-only write here would be a
+// double-write that Copilot's follow-up review flagged as dead surface).
 watch(
   () => props.items,
   (next) => {
     tableItems.value = next ?? [];
-    totalRows.value = (next ?? []).length;
     emit('items-synced', next ?? []);
   },
   { immediate: true }
