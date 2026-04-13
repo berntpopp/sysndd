@@ -582,7 +582,7 @@ async function handleApproveOk(): Promise<void> {
 }
 async function handleAllReviewsOk(): Promise<void> {
   if (!approve_all_selected.value) return;
-  try { approveAllReviews(getAxios()); loadReviewTableData(); }
+  try { await approveAllReviews(getAxios()); loadReviewTableData(); }
   catch (e) { makeToast(e, 'Error', 'danger'); }
 }
 
