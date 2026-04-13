@@ -231,11 +231,20 @@ export async function submitPublicationRefresh(
 }
 
 export async function fetchAllPublicationPmids(): Promise<unknown[]> {
-  const response = await axios.get(`${API()}/api/publication`, {
-    ...authRequestConfig(),
-    params: { fields: 'publication_id', page_size: 10000 },
-  });
-  const publications: Array<{ publication_id: string | string[] }> = response.data?.data || [];
+  const publications: Array<{ publication_id: string | string[] }> = [];
+  let nextUrl: string | null = `${API()}/api/publication`;
+  let isFirstPage = true;
+  while (nextUrl) {
+    const response = await axios.get(nextUrl, {
+      ...authRequestConfig(),
+      params: isFirstPage ? { fields: 'publication_id', page_size: 10000 } : undefined,
+    });
+    const pageRows: Array<{ publication_id: string | string[] }> = response.data?.data || [];
+    publications.push(...pageRows);
+    const link = response.data?.links?.next;
+    nextUrl = typeof link === 'string' && link.length > 0 ? link : null;
+    isFirstPage = false;
+  }
   return publications.map((p) => unwrapValue(p.publication_id));
 }
 
@@ -262,10 +271,15 @@ export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJob
         });
         return out;
       });
+    const payloadBlockedId = unwrapValue(result?.blocked_job_id);
+    const blockedJobId =
+      typeof payloadBlockedId === 'string' && payloadBlockedId.length > 0
+        ? payloadBlockedId
+        : (unwrapValue(jobId) as string);
     return {
       kind: 'blocked',
       state: {
-        blocked_job_id: unwrapValue(jobId) as string,
+        blocked_job_id: blockedJobId,
         critical_count: (unwrapValue(result.critical_count) as number) || 0,
         auto_fixable_count: (unwrapValue(result.auto_fixable_count) as number) || 0,
         total_affected: (unwrapValue(result.total_affected) as number) || 0,

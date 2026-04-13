@@ -33,6 +33,9 @@
   <div>
     <ReviewTable
       title="Approve Status"
+      total-rows-label="statuses"
+      approve-all-title="Approve all pending statuses"
+      approve-all-aria-label="Approve all statuses"
       :items="filteredItems"
       :fields="fields"
       :total-rows="totalRows"
@@ -466,8 +469,6 @@ export interface StatusRowLike extends Record<string, unknown> {
 const props = defineProps({
   /** Pending-status rows (owner-supplied). */
   items: { type: Array as PropType<StatusRowLike[]>, required: true },
-  /** Total row count. Parent can override when it filters server-side. */
-  totalRowsOverride: { type: Number, default: null },
   /** Loading flag for the main spinner. */
   loading: { type: Boolean, default: false },
   /** Busy flag for the BTable body. */

@@ -644,6 +644,10 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     const ontologyButton = buttons.find((b) =>
       b.text().includes('Update Ontology Annotations')
     );
+    expect(
+      ontologyButton,
+      'expected an "Update Ontology Annotations" button to trigger the blocked flow'
+    ).toBeDefined();
     await ontologyButton!.trigger('click');
     await flushPromises();
 

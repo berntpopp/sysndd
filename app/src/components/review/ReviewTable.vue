@@ -13,7 +13,7 @@
         <BCol>
           <h5 class="mb-0 text-start fw-bold">
             {{ title }}
-            <BBadge variant="primary" class="ms-2"> {{ totalRows }} reviews </BBadge>
+            <BBadge variant="primary" class="ms-2"> {{ totalRows }} {{ totalRowsLabel }} </BBadge>
           </h5>
         </BCol>
         <BCol class="text-end">
@@ -22,8 +22,8 @@
               v-b-tooltip.hover.bottom
               variant="danger"
               size="sm"
-              title="Approve all pending reviews"
-              aria-label="Approve all reviews"
+              :title="approveAllTitle"
+              :aria-label="approveAllAriaLabel"
               @click="$emit('approve-all')"
             >
               <i class="bi bi-check2-all me-1" aria-hidden="true" />
@@ -238,6 +238,12 @@ export interface LegendItem {
 
 defineProps({
   title: { type: String, default: 'Approve Reviews' },
+  /** Plural resource noun rendered in the "X reviews" badge — override for status/other streams. */
+  totalRowsLabel: { type: String, default: 'reviews' },
+  /** Tooltip text on the "Approve All" button. */
+  approveAllTitle: { type: String, default: 'Approve all pending reviews' },
+  /** aria-label on the "Approve All" button. */
+  approveAllAriaLabel: { type: String, default: 'Approve all reviews' },
   items: { type: Array as PropType<unknown[]>, required: true },
   fields: { type: Array as PropType<TableField[]>, required: true },
   totalRows: { type: Number, required: true },
