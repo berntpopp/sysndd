@@ -11,6 +11,7 @@
     "build:docker": "vite build --mode docker",
     "build:production": "vite build --mode production",
     "type-check": "vue-tsc --noEmit",
+    "type-check:strict": "node scripts/type-check-strict.js",
     "lint": "eslint . --ext .vue,.js,.ts,.tsx",
     "lint:fix": "eslint . --ext .vue,.js,.ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{js,ts,vue,json,css,scss}\"",

@@ -14,6 +14,17 @@
  * separate `axios.create({...})` would skip that interceptor chain and
  * silently bypass the login-redirect behaviour. Every method below delegates
  * to the configured default instance so the wrapper inherits all of it.
+ *
+ * `withCredentials` is NOT enabled by default on the shared singleton
+ * (`@/plugins/axios` does not set `axios.defaults.withCredentials`). The vast
+ * majority of endpoints are Bearer-authenticated and either idempotent or
+ * backend-memoised, so they do not need cookies. Call sites that DO depend on
+ * sticky-session cookies — notably long-running async-job polling against the
+ * load-balanced API, which relies on Traefik's `sysndd_api_sticky` cookie to
+ * keep hitting the container that owns the job — must opt in explicitly by
+ * passing `withCredentials: true` via the `config` argument to
+ * `apiClient.get/post/put/patch/delete`. See `@/composables/useAsyncJob.ts`
+ * (`checkJobStatus`) for the canonical example.
  */
 
 import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';

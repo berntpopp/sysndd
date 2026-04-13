@@ -178,7 +178,7 @@ pre-commit: ## [quality] Run all quality checks before committing
 
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
 	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
-	@printf "\n$(CYAN)[1/5] Starting test database...$(RESET)\n"
+	@printf "\n$(CYAN)[1/6] Starting test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d mysql-test && \
 		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
@@ -193,14 +193,17 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		sleep 1; \
 		SECONDS=$$((SECONDS+1)); \
 	done
-	@printf "\n$(CYAN)[2/5] Linting R code...$(RESET)\n"
+	@printf "\n$(CYAN)[2/6] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[3/5] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[3/6] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app || ($(MAKE) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[4/5] Type-checking frontend...$(RESET)\n"
+	@printf "\n$(CYAN)[4/6] Type-checking frontend...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[5/5] Running R API tests (with database)...$(RESET)\n"
+	@printf "\n$(CYAN)[5/6] Type-checking frontend (strict scopes)...$(RESET)\n"
+	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) _ci-cleanup && exit 1)
+	@printf "$(GREEN)✓ Strict type check passed$(RESET)\n"
+	@printf "\n$(CYAN)[6/6] Running R API tests (with database)...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \

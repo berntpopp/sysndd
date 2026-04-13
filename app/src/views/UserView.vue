@@ -404,6 +404,7 @@
 import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max, confirmed } from '@vee-validate/rules';
 import { useToast, useColorAndSymbols } from '@/composables';
+import { useAuth } from '@/composables/useAuth';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -426,6 +427,9 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
+    // Phase E.E7: shared auth state — replaces every direct localStorage
+    // read in this view (user payload, expiry, Bearer header).
+    const auth = useAuth();
 
     // Setup form validation with vee-validate 4
     const { handleSubmit, resetForm } = useForm();
@@ -463,6 +467,7 @@ export default {
       newPasswordRepeat,
       confirmPasswordError,
       confirmPasswordMeta,
+      auth,
     };
   },
   data() {
@@ -547,8 +552,13 @@ export default {
     },
   },
   mounted() {
-    if (localStorage.user) {
-      this.user = JSON.parse(localStorage.user);
+    // Hydrate the view from the shared auth state (already parsed + guarded
+    // against corrupt localStorage.user by `useAuth`). If the composable
+    // reports no user (e.g. a route-guard race or cleared state), skip the
+    // subsequent calls rather than hitting the API with a stale token.
+    const authUser = this.auth.user.value;
+    if (authUser) {
+      this.user = { ...authUser };
 
       this.interval = setInterval(() => {
         this.updateDiffs();
@@ -581,21 +591,24 @@ export default {
       this.resetPasswordForm();
     },
     updateDiffs() {
-      if (localStorage.token) {
-        const expires = JSON.parse(localStorage.user).exp;
-        const timestamp = Math.floor(new Date().getTime() / 1000);
-        this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
+      const authUser = this.auth.user.value;
+      if (!this.auth.isAuthenticated.value || !authUser) {
+        return;
       }
+      const expires = authUser.exp?.[0];
+      if (typeof expires !== 'number') {
+        return;
+      }
+      const timestamp = Math.floor(Date.now() / 1000);
+      this.time_to_logout = ((expires - timestamp) / 60).toFixed(2);
     },
     async getUserContributions() {
+      // `useAuth` already seeded the axios default Authorization header, so
+      // per-request Bearer overrides are no longer needed here.
       const apiContributionsURL = `${import.meta.env.VITE_API_URL}/api/user/${this.user.user_id[0]}/contributions`;
 
       try {
-        const response_contributions = await this.axios.get(apiContributionsURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response_contributions = await this.axios.get(apiContributionsURL);
         [this.user.active_reviews] = response_contributions.data.active_reviews;
         [this.user.active_status] = response_contributions.data.active_status;
       } catch (e) {
@@ -603,17 +616,11 @@ export default {
       }
     },
     async refreshWithJWT() {
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/refresh`;
-
       try {
-        const response_refresh = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        localStorage.setItem('token', response_refresh.data[0]);
-        this.signinWithJWT();
+        // `auth.refresh()` owns the /api/auth/refresh call, stores the new
+        // token, and re-seeds the axios default Authorization header.
+        await this.auth.refresh();
+        await this.signinWithJWT();
         this.makeToast('Session refreshed successfully', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -623,14 +630,15 @@ export default {
       const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
 
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-
-        localStorage.setItem('user', JSON.stringify(response_signin.data));
-        this.user = response_signin.data;
+        const response_signin = await this.axios.get(apiAuthenticateURL);
+        // Persist the refreshed user payload via the composable so every
+        // subscriber (navbar, countdown badge, route guards) sees the new
+        // `exp` immediately.
+        const token = this.auth.token.value;
+        if (token) {
+          this.auth.login(token, response_signin.data);
+        }
+        this.user = { ...response_signin.data };
         this.updateDiffs();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -644,20 +652,14 @@ export default {
       // hotfix rollout; the JSON body variant is the only one we send.
       const apiChangePasswordURL = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
       try {
-        const response_password_change = await this.axios.put(
-          apiChangePasswordURL,
-          {
-            user_id_pass_change: this.user.user_id[0],
-            old_pass: this.currentPassword,
-            new_pass_1: this.newPasswordEntry,
-            new_pass_2: this.newPasswordRepeat,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        // `useAuth` keeps the axios default Authorization header current;
+        // no per-request override needed.
+        const response_password_change = await this.axios.put(apiChangePasswordURL, {
+          user_id_pass_change: this.user.user_id[0],
+          old_pass: this.currentPassword,
+          new_pass_1: this.newPasswordEntry,
+          new_pass_2: this.newPasswordRepeat,
+        });
         this.makeToast(
           `${response_password_change.data.message} (status ${response_password_change.status})`,
           'Success',
@@ -740,7 +742,6 @@ export default {
 
         const response = await this.axios.put(apiProfileURL, payload, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json',
           },
         });
@@ -753,8 +754,12 @@ export default {
           this.user.orcid = [orcidTrimmed];
         }
 
-        // Update localStorage
-        localStorage.setItem('user', JSON.stringify(this.user));
+        // Persist the updated profile through `useAuth` so the navbar and
+        // other observers see the new email/ORCID without a page refresh.
+        const token = this.auth.token.value;
+        if (token) {
+          this.auth.login(token, this.user);
+        }
 
         this.makeToast(
           `Profile updated successfully. ${response.data.updated_fields?.join(', ') || ''}`,
