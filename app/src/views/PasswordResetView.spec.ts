@@ -33,17 +33,26 @@
  *
  *   1. The Bearer on the password-change POST is `$route.params.request_jwt`
  *      — a route-param read, never a storage read. A refactor that "caches"
- *      the JWT in localStorage.token would silently break this.
+ *      the JWT in localStorage.token would silently break this. (Case 1)
  *
  *   2. `localStorage.token` and `localStorage.user` are null throughout the
  *      flow. Password reset must NOT create a session. Any future code path
  *      that calls `useAuth().login(...)` from this view would fail this
- *      assertion.
+ *      assertion — `login()` writes both keys, so non-null after the flow
+ *      means a session was created. Case 2 is the authoritative guard
+ *      against session creation. (Case 2)
  *
- *   3. `useAuth()` itself is NEVER invoked. The composable is the session
- *      layer; a one-shot credential flow has no business touching it. Spying
- *      on `login` and asserting `not.toHaveBeenCalled()` makes this
- *      machine-checkable.
+ *   3. No `useAuth()` wrapper obtained inside this spec has its `login`
+ *      called. PasswordResetView.vue today does not import `useAuth` at
+ *      all, so Case 3 holds vacuously and is a regression guard against
+ *      anyone later wiring `useAuth` into this view. Note: because
+ *      `useAuth()` returns a fresh object literal per call (while the
+ *      underlying refs are singletons), a future view that imports and
+ *      calls `useAuth()` on its own wrapper would NOT route through this
+ *      spec's spy — Case 2's localStorage invariant is the load-bearing
+ *      check for session creation. Case 3 exists as a cheap, narrow guard
+ *      that catches "the view now holds a wrapper whose login this spec
+ *      can see" regressions, and as a readable contract assertion.
  *
  * See `docs/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §3.4
  * for the full exception policy; `.plans/v11.0/closeout.md` §3 F2e for the
@@ -254,11 +263,16 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
   // Case 3: useAuth() is never invoked from this view.
   // -------------------------------------------------------------------------
 
-  it('E2 route-param: useAuth().login is never called during the reset flow', async () => {
-    // Spy on the module-level singleton BEFORE mounting the view. If the
-    // view ever reached into `useAuth().login(...)` (the only supported
-    // way to create a session), the spy would fire. The E2 contract says
-    // this flow must NOT create a session — it's a one-shot credential.
+  it('E2 route-param: no direct login() runs against this spec\'s useAuth() wrapper', async () => {
+    // `useAuth()` returns a fresh object literal each call with `.login`
+    // pointing at the module-level function. Spying on `authInstance.login`
+    // only intercepts calls routed through this exact wrapper. Today
+    // PasswordResetView.vue does not import `useAuth` at all, so the spy
+    // holds vacuously — this test is a narrow regression guard against
+    // "the view now stashes a wrapper visible to this spec and calls
+    // login() on it." The authoritative session-creation guard is Case 2
+    // (login() writes localStorage.token + user, both of which must stay
+    // null through the flow).
     const authInstance = useAuth();
     const loginSpy = vi.spyOn(authInstance, 'login');
 
