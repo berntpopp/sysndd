@@ -52,9 +52,6 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/components/small/IconPairDropdownMenu.vue',
     'src/components/tables/TablesLogs.vue',
 
-    // F2c pending migration (1 file)
-    'src/views/review/Review.vue',
-
     // F2d pending migration (1 file)
     'src/views/curate/ManageReReview.vue',
   ],
