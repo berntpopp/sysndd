@@ -768,16 +768,19 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     expect(vm.curator_mode).toBe(0);
   });
 
-  it('mount with session: hydrates `user` from useAuth() and sets curator_mode from user_role[0]', async () => {
+  it('mount with session: hydrates `user` via useAuth() which re-syncs from localStorage on every call', async () => {
     const axiosMock = await getSharedAxiosMock();
     wireHappyPathResponses(axiosMock);
 
-    // Seed through the composable, not through `localStorage.setItem('user', ...)`.
-    // `primeAuth()` writes both the reactive ref and localStorage, but the
-    // migrated mounted() now pulls from the ref exclusively. To prove that,
-    // we overwrite the localStorage key AFTER priming so the two sources
-    // disagree — the view must pick the ref.
-    const { token, user } = primeAuth('token-from-primeAuth');
+    // `primeAuth()` writes the reactive ref + localStorage. To prove the
+    // view pulls through useAuth() (which re-runs `syncFromStorage()` on
+    // every call, per useAuth.ts:396), we overwrite the `user` key AFTER
+    // priming with a DIFFERENT, valid payload. The view's `mounted()`
+    // calls `useAuth()`, which re-syncs, so the stale value deterministic-
+    // ally wins. The negative would be: mounted() reads some cached
+    // ref-only state and ignores storage — the stale payload would NOT
+    // appear in `vm.user`.
+    const { token } = primeAuth('token-from-primeAuth');
     window.localStorage.setItem(
       'user',
       JSON.stringify({
@@ -796,31 +799,20 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     const vm = wrapper.vm as unknown as ReviewVm;
     await flushPromises();
 
-    // The view read through useAuth(), which re-syncs from storage on each
-    // call. Because the stale localStorage user we just wrote IS a valid
-    // payload shape, a subsequent `useAuth()` call (like the one mounted()
-    // triggers) will pick it up — but our primed token is still the source
-    // of truth for Bearer injection, and the user it mirrored when
-    // `primeAuth()` ran was the default admin payload. We therefore assert
-    // that the hydrated `vm.user` reflects either the primed payload or the
-    // later localStorage write; both paths route through useAuth() and are
-    // the F2c migration's correct behaviour — the key negative assertion is
-    // that it is NOT the `data()` default (empty arrays).
-    expect(vm.user).not.toMatchObject({
-      user_id: [],
-      user_name: [],
-      user_role: [],
-    });
-    // Either the primed admin payload (curator_mode === true, coerced from
-    // strict-equality on the role string) or the Viewer re-sync (curator_mode
-    // === false). Both are valid outputs of the migrated hook.
-    expect([true, false]).toContain(vm.curator_mode as unknown as boolean);
-    // And the Bearer token primed via useAuth is still the one the
-    // interceptor will read — independent of the localStorage.user mutation.
+    // Deterministic contract:
+    //   - useAuth() re-syncs on every call, so the LATE localStorage write
+    //     wins over the earlier primeAuth() payload.
+    //   - curator_mode depends on `user_role[0] === 'Administrator'` (see
+    //     Review.vue's computed); the stale Viewer payload yields false.
+    // Regression mode caught: if mounted() falls back to `data()` defaults
+    // or caches a pre-sync wrapper, `user_name[0]` would not equal
+    // 'stale-from-localStorage' and this assertion would red-fail.
+    expect(vm.user.user_name[0]).toBe('stale-from-localStorage');
+    expect(vm.user.user_role[0]).toBe('Viewer');
+    expect(vm.curator_mode).toBe(false);
+    // The primed Bearer token is independent of the user-payload mutation,
+    // so the interceptor source is still what primeAuth() wrote.
     expect(useAuth().token.value).toBe(token);
-    // And the helper returned the sessioned user (spot-check the shape
-    // locally so a regression in primeAuth surfaces here too).
-    expect(user.user_role[0]).toBe('Administrator');
   });
 
   it('apiClient interceptor injects Bearer header for loadReReviewData (GET /api/re_review/table)', async () => {
