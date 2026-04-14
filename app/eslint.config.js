@@ -25,12 +25,11 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/test-utils/**',
     '**/*.spec.ts',
 
-    // F2a + F2b migrations landed — the 23 Tier-1/Tier-2 files now route
+    // F2a + F2b + F2c + F2d migrations landed — all 25 files now route
     // through `useAuth()` / `apiClient` and no longer need the ignore
-    // entries. See `.plans/v11.0/closeout.md` §3 F2a and §3 F2b.
-
-    // F2d pending migration (1 file)
-    'src/views/curate/ManageReReview.vue',
+    // entries. The ignore list collapses to just the permitted owners
+    // (useAuth.ts, plugins/axios.ts, test-utils, specs). See
+    // `.plans/v11.0/closeout.md` §3 F2a–F2d.
   ],
   rules: {
     // The selectors cover three surface forms so the guardrail cannot be
