@@ -6,6 +6,77 @@ import pluginVue from 'eslint-plugin-vue';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 
+// v11.0 closeout §8.1: forbid direct localStorage token/user reads outside
+// the permitted owners (useAuth.ts, plugins/axios.ts, test-utils, specs).
+// The apiClient request interceptor is the single injection point for the
+// Bearer header; call sites must route through `useAuth()` or `apiClient`.
+//
+// F1 scope note: the guardrail is `error` so regressions fail lint.
+// The `ignores` below include the 24 files that F2a–F2e will migrate —
+// each F2 worktree removes its target files from this list as it lands.
+// When the last F2 worktree merges, the list collapses to just the
+// permitted owners. See `.plans/v11.0/closeout.md` §3 F2a–F2e.
+const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
+  files: ['src/**/*.{ts,vue}'],
+  ignores: [
+    // Permitted owners (§2 goal 1 + test-utils + specs)
+    'src/composables/useAuth.ts',
+    'src/plugins/axios.ts',
+    'src/test-utils/**',
+    '**/*.spec.ts',
+
+    // F2a pending migrations (14 files)
+    'src/views/admin/AdminStatistics.vue',
+    'src/views/admin/ManageLLM.vue',
+    'src/views/curate/ApproveStatus.vue',
+    'src/views/curate/ApproveReview.vue',
+    'src/views/curate/CreateEntity.vue',
+    'src/composables/useAsyncJob.ts',
+    'src/composables/annotations/useAnnotationFormatters.ts',
+    'src/composables/review/useReviewApprovalActions.ts',
+    'src/composables/useCmsContent.ts',
+    'src/views/curate/composables/useReviewForm.ts',
+    'src/views/curate/composables/useStatusForm.ts',
+    'src/components/llm/LlmCacheManager.vue',
+    'src/components/llm/LlmLogViewer.vue',
+    'src/composables/useLlmAdmin.ts',
+
+    // F2b pending migrations (9 files)
+    'src/views/RegisterView.vue',
+    'src/views/admin/ManageOntology.vue',
+    'src/views/admin/ManageUser.vue',
+    'src/views/admin/ManageBackups.vue',
+    'src/views/curate/ApproveUser.vue',
+    'src/views/curate/ModifyEntity.vue',
+    'src/composables/useBatchForm.ts',
+    'src/components/small/IconPairDropdownMenu.vue',
+    'src/components/tables/TablesLogs.vue',
+
+    // F2c pending migration (1 file)
+    'src/views/review/Review.vue',
+
+    // F2d pending migration (1 file)
+    'src/views/curate/ManageReReview.vue',
+  ],
+  rules: {
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "MemberExpression[object.name='localStorage'][property.name=/^(token|user)$/]",
+        message:
+          'Direct localStorage.token / localStorage.user access is forbidden outside app/src/composables/useAuth.ts. Use useAuth() or apiClient.',
+      },
+      {
+        selector:
+          "CallExpression[callee.object.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem)$/][arguments.0.value=/^(token|user)$/]",
+        message:
+          "Direct localStorage.{get,set,remove}Item('token'|'user') access is forbidden outside app/src/composables/useAuth.ts. Use useAuth() or apiClient.",
+      },
+    ],
+  },
+};
+
 export default [
   // Global ignores
   {
@@ -111,6 +182,9 @@ export default [
       },
     },
   },
+
+  // v11.0 closeout F1: localStorage token/user guardrail (§8.1).
+  CLOSEOUT_NO_LOCAL_STORAGE_TOKEN,
 
   // Prettier integration (disables conflicting rules)
   eslintConfigPrettier,

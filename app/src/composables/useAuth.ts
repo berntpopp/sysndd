@@ -18,8 +18,10 @@
  * reactive refs are declared at module scope. Every `useAuth()` call returns
  * references to the same underlying state, so a `logout()` from the navbar
  * is immediately visible to a route guard on the next `isAuthenticated`
- * read. On first import, state is hydrated from `localStorage` and the axios
- * default Authorization header is seeded if a token exists.
+ * read. On first import, state is hydrated from `localStorage`. The Bearer
+ * header is NOT written to `axios.defaults` — v11.0 closeout F1 moves the
+ * header injection to the `apiClient` request interceptor, which reads
+ * `useAuth().token.value` on every outbound call.
  *
  * Coordination with the axios 401 interceptor
  * -------------------------------------------
@@ -52,12 +54,12 @@
 
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref } from 'vue';
-import axios from 'axios';
 // Ensure the axios plugin's initialisation side effects (baseURL, 401
-// interceptor, default Authorization seeding) have run before any of our
-// axios.get / axios.defaults.* calls fire. `api/client.ts` does the same
-// for the typed helpers; the explicit import here keeps useAuth correct
-// regardless of import order (Copilot review).
+// interceptor) have run before any outbound HTTP fires. After v11.0
+// closeout F1 this plugin no longer seeds `axios.defaults.headers.common
+// .Authorization`; the single source of truth for the Bearer header is
+// the `apiClient` request interceptor in `@/api/client`, which reads
+// `useAuth().token.value`.
 import '@/plugins/axios';
 // Delegate HTTP for refresh to the typed api/auth helper so all callers
 // flow through one code path (apiClient + unwrapScalar + baseURL). Aliased
@@ -208,12 +210,10 @@ function syncFromStorage(): void {
     userRef.value = null;
   }
 
-  // Keep the axios default header in lockstep with the current token.
-  if (tokenRef.value) {
-    axios.defaults.headers.common.Authorization = `Bearer ${tokenRef.value}`;
-  } else {
-    delete axios.defaults.headers.common.Authorization;
-  }
+  // v11.0 closeout F1: no `axios.defaults.headers.common.Authorization`
+  // mutation here — the `apiClient` request interceptor (`@/api/client`)
+  // is the single source of truth, reading `useAuth().token.value` on
+  // every outbound call.
 }
 
 // Hydrate once at import time so the Bearer header is set before the first
@@ -267,7 +267,9 @@ const isExpired = computed<boolean>(() => {
 
 /**
  * Persist a fresh login: token + user payload → localStorage + reactive
- * state + axios default Authorization header.
+ * state. The apiClient request interceptor (`@/api/client`) reads
+ * `useAuth().token.value` on every outbound call, so setting the ref
+ * here is the single source of truth for the Authorization header.
  *
  * @param token - The raw JWT string. `LoginView.vue` reads the Plumber
  *                scalar-array at `response.data[0]`; callers are expected
@@ -280,21 +282,29 @@ function login(token: string, user: UserPayload): void {
   userRef.value = user;
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-  axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+  // v11.0 closeout F1: the `apiClient` request interceptor reads
+  // `useAuth().token.value` and injects the Authorization header on
+  // every outbound call. No axios default header mutation here.
 }
 
 /**
- * Clear the session: both localStorage keys, both refs, and the axios
- * default header. Does NOT navigate — call sites that want a redirect
- * handle `$router.push(...)` themselves so this composable stays router-
- * agnostic and testable without mounting a router.
+ * Clear the session: both localStorage keys and both refs. The apiClient
+ * interceptor reads `useAuth().token.value` on the next outbound call,
+ * so clearing the ref stops the Bearer header naturally — no axios
+ * default header mutation required.
+ *
+ * Does NOT navigate — call sites that want a redirect handle
+ * `$router.push(...)` themselves so this composable stays router-agnostic
+ * and testable without mounting a router.
  */
 function logout(): void {
   tokenRef.value = null;
   userRef.value = null;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-  delete axios.defaults.headers.common.Authorization;
+  // v11.0 closeout F1: no axios default header mutation here — the
+  // `apiClient` request interceptor reads `useAuth().token.value`, which
+  // is now `null`, so subsequent calls naturally carry no Authorization.
 }
 
 /**
@@ -332,17 +342,20 @@ async function refresh(): Promise<string> {
 
   tokenRef.value = nextToken;
   localStorage.setItem(TOKEN_KEY, nextToken);
-  axios.defaults.headers.common.Authorization = `Bearer ${nextToken}`;
+  // v11.0 closeout F1: no axios default header mutation — the
+  // `apiClient` interceptor reads `useAuth().token.value` on the next
+  // outbound call and picks up `nextToken` automatically.
   return nextToken;
 }
 
 /**
  * Called (explicitly or implicitly) when a 401 is observed — re-reads
- * `localStorage` to mirror whatever the axios interceptor wrote, then
- * clears the axios default header so in-flight or queued requests stop
- * sending the stale Bearer. Safe to call multiple times; if the
- * interceptor hasn't cleared localStorage yet, we still fall through to
- * the "cleared" state via `logout()` semantics on re-sync.
+ * `localStorage` to mirror whatever the axios interceptor wrote, so the
+ * apiClient request interceptor (which reads `useAuth().token.value`)
+ * stops sending the stale Bearer on queued requests. Safe to call
+ * multiple times; if the interceptor hasn't cleared localStorage yet, we
+ * still fall through to the "cleared" state via `logout()` semantics on
+ * re-sync.
  */
 function handle401(): void {
   // The interceptor removes the keys directly; re-reading puts refs back
@@ -352,10 +365,11 @@ function handle401(): void {
   const rawToken = localStorage.getItem(TOKEN_KEY);
   const rawUser = localStorage.getItem(USER_KEY);
   if (rawToken === null && rawUser === null) {
-    // Interceptor-cleared path: just sync.
+    // Interceptor-cleared path: just sync the refs. The apiClient request
+    // interceptor reads `useAuth().token.value`, which is now null, so
+    // queued requests stop carrying the stale Bearer automatically.
     tokenRef.value = null;
     userRef.value = null;
-    delete axios.defaults.headers.common.Authorization;
     return;
   }
   // Defensive path: caller invoked handle401() without the interceptor

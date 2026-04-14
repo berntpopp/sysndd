@@ -27,14 +27,50 @@
  * (`checkJobStatus`) for the canonical example.
  */
 
-import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosHeaders,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
 
 // Re-export the configured singleton from the existing plugin so anyone who
 // imports it via `@/api/client` ends up on the same instance as `@/plugins/
 // axios` consumers.  Importing the plugin here ensures its initialisation
-// side-effects (Authorization header, 401 interceptor) have run before any
+// side-effects (baseURL, 401 interceptor) have run before any
 // api/ call site fires.
 import '@/plugins/axios';
+
+// v11.0 closeout F1: single injection point for the Authorization header
+// on authenticated app-session requests. The interceptor reads
+// `useAuth().token.value` on every outbound call, so mutations to
+// `axios.defaults.headers.common.Authorization` are forbidden outside
+// the two enumerated exceptions (§3.4: LoginView bootstrap handshake and
+// PasswordResetView route-param JWT).
+//
+// Import cycle note: `useAuth` imports `@/api/auth` (for refresh) which
+// imports `apiClient` from this file. That cycle is resolved at runtime
+// because `useAuth()` is only called inside the interceptor callback —
+// never at this module's top-level evaluation. When a request fires,
+// both modules are fully initialised.
+import { useAuth } from '@/composables/useAuth';
+
+axios.interceptors.request.use((config) => {
+  const auth = useAuth();
+  const token = auth.token.value;
+  if (token) {
+    // Axios v1 normalises `config.headers` to `AxiosHeaders` before the
+    // interceptor fires, but the type annotation allows `undefined`. Use
+    // the `AxiosHeaders.set` API so the header survives the downstream
+    // transformRequest pass without depending on the Record-cast escape
+    // hatch.
+    if (!config.headers) {
+      config.headers = new AxiosHeaders();
+    }
+    config.headers.set('Authorization', `Bearer ${token}`);
+  }
+  return config;
+});
 
 // ---------------------------------------------------------------------------
 // Public API

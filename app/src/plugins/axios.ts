@@ -4,11 +4,11 @@ import router from '@/router';
 // Configure axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
 
-// Only set Authorization header if a token actually exists
-const token = localStorage.getItem('token');
-if (token) {
-  axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-}
+// v11.0 closeout F1: the init-time `localStorage.getItem('token')` →
+// `axios.defaults.headers.common.Authorization` seeding has been removed.
+// The `apiClient` request interceptor (`@/api/client`) is now the single
+// injection point for the Bearer header; it reads `useAuth().token.value`
+// on every outbound call, so there is nothing to seed here.
 
 // Guard flag to prevent duplicate 401 redirects
 let isLoggingOut = false;
@@ -20,10 +20,13 @@ axios.interceptors.response.use(
     if (error.response?.status === 401 && !isLoggingOut) {
       isLoggingOut = true;
 
-      // Clear auth state
+      // Clear auth state. The localStorage writes remain this plugin's
+      // owned responsibility (v11.0 closeout spec §2 goal 1). The
+      // `apiClient` request interceptor reads `useAuth().token.value`,
+      // which re-reads localStorage via `syncFromStorage()` on every
+      // `useAuth()` call, so no axios default header mutation is needed.
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      delete axios.defaults.headers.common.Authorization;
 
       // Redirect to login with return path
       const currentPath = router.currentRoute.value.fullPath;
