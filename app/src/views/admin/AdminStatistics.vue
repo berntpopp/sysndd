@@ -266,10 +266,16 @@ const { makeToast } = useToast();
 // API base URL
 const apiUrl = import.meta.env.VITE_API_URL;
 
-function getAuthHeaders() {
-  return {
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  };
+// v11.0 closeout F2a: the `apiClient` request interceptor (`@/api/client`)
+// now injects the Authorization header on every outbound call, reading
+// `useAuth().token.value`. The sub-composables (`useAdminTrendData`,
+// `useLeaderboardData`, `useKPIStats`) accept a `getAuthHeaders` callback
+// for historical reasons; we pass an empty-object factory so they emit no
+// explicit `Authorization` header — the interceptor then injects the
+// session token. Those composables are outside F2a's ownership; changing
+// their signatures is F2b/F2c's scope.
+function getAuthHeaders(): Record<string, string> {
+  return {};
 }
 
 // Date range (default: last 12 months)

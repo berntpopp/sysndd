@@ -221,12 +221,10 @@ import { ref, reactive, onMounted } from 'vue';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import type { GenerationLog, ClusterType, LogStatus } from '@/types/llm';
 
+// v11.0 closeout F2a: `useLlmAdmin` no longer takes a token parameter — the
+// `apiClient` request interceptor injects the Bearer header on every
+// outbound call. See `.plans/v11.0/closeout.md` §3 F2a.
 const { fetchLogs: fetchLogsApi } = useLlmAdmin();
-
-// Helper to get auth token from localStorage
-function getToken(): string | null {
-  return localStorage.getItem('token');
-}
 
 const logs = ref<GenerationLog[]>([]);
 const loading = ref(false);
@@ -307,12 +305,9 @@ function viewDetails(log: GenerationLog) {
 }
 
 async function loadLogs() {
-  const token = getToken();
-  if (!token) return;
-
   loading.value = true;
   try {
-    const result = await fetchLogsApi(token, {
+    const result = await fetchLogsApi({
       cluster_type: filters.cluster_type,
       status: filters.status,
       from_date: filters.from_date,

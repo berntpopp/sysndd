@@ -418,13 +418,15 @@ export default defineComponent({
         const submission = buildSubmissionObject();
         const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/create?direct_approval=${directApproval.value}`;
 
+        // v11.0 closeout F2a: the inline Authorization header construction
+        // here has been removed. The `apiClient` request interceptor
+        // (`@/api/client`) reads `useAuth().token.value` and injects the
+        // Bearer header on every outbound call against the shared axios
+        // singleton.
         const response = await axios.post(
           apiUrl,
           { create_json: submission },
           {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
             withCredentials: true,
           }
         );

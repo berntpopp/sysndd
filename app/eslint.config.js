@@ -25,22 +25,6 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/test-utils/**',
     '**/*.spec.ts',
 
-    // F2a pending migrations (14 files)
-    'src/views/admin/AdminStatistics.vue',
-    'src/views/admin/ManageLLM.vue',
-    'src/views/curate/ApproveStatus.vue',
-    'src/views/curate/ApproveReview.vue',
-    'src/views/curate/CreateEntity.vue',
-    'src/composables/useAsyncJob.ts',
-    'src/composables/annotations/useAnnotationFormatters.ts',
-    'src/composables/review/useReviewApprovalActions.ts',
-    'src/composables/useCmsContent.ts',
-    'src/views/curate/composables/useReviewForm.ts',
-    'src/views/curate/composables/useStatusForm.ts',
-    'src/components/llm/LlmCacheManager.vue',
-    'src/components/llm/LlmLogViewer.vue',
-    'src/composables/useLlmAdmin.ts',
-
     // F2b pending migrations (9 files)
     'src/views/RegisterView.vue',
     'src/views/admin/ManageOntology.vue',

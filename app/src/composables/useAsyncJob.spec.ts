@@ -38,7 +38,16 @@ import axios from 'axios';
 
 import { withSetup } from '@/test-utils';
 import { server } from '@/test-utils/mocks/server';
+// v11.0 closeout F2a: Bearer-header assertion helpers. `primeAuth` seeds
+// `useAuth` so the apiClient request interceptor injects the Bearer on
+// every outbound axios call; `expectBearerHeader` fails inside the MSW
+// resolver if the header drifts from the seeded token.
+import { primeAuth } from '@/test-utils/primeAuth';
+import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
+import useAuth from '@/composables/useAuth';
 import useAsyncJob from './useAsyncJob';
+
+const SEEDED_TOKEN = 'test-token';
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -85,10 +94,17 @@ describe('useAsyncJob', () => {
     // Fake only the interval timers. Microtasks (promises / MSW / axios) stay
     // real so advanceTimersByTimeAsync drives the poll without deadlocking.
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    // v11.0 closeout F2a: seed the session so the apiClient request
+    // interceptor injects `Authorization: Bearer <SEEDED_TOKEN>` on the
+    // polling GET. The Bearer assertion is added to the happy-path
+    // resolver below; the other lifecycle tests exercise non-auth
+    // branches (blocked/404/500) that don't depend on the token.
+    primeAuth(SEEDED_TOKEN);
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    useAuth().logout();
   });
 
   // -------------------------------------------------------------------------
@@ -102,7 +118,10 @@ describe('useAsyncJob', () => {
       // convention (see jobs.ts fixture for jobStatusOk).
       let pollCount = 0;
       server.use(
-        http.get('/api/jobs/:job_id/status', ({ params }) => {
+        http.get('/api/jobs/:job_id/status', ({ request, params }) => {
+          // v11.0 closeout F2a: every poll carries the Bearer header
+          // injected by the apiClient request interceptor.
+          expectBearerHeader(request, SEEDED_TOKEN);
           pollCount += 1;
           const jobId = String(params.job_id);
           if (pollCount === 1) {
@@ -376,7 +395,11 @@ describe('useAsyncJob', () => {
       // Array.isArray ? [0] : value. We replicate here so the spec doubles as
       // living documentation.
       server.use(
-        http.get('/api/jobs/:job_id/status', ({ params }) => {
+        http.get('/api/jobs/:job_id/status', ({ request, params }) => {
+          // v11.0 closeout F2a: the polling GET carries the Bearer header
+          // injected by the apiClient request interceptor (seeded by
+          // `primeAuth` in beforeEach).
+          expectBearerHeader(request, SEEDED_TOKEN);
           return HttpResponse.json({
             job_id: [String(params.job_id)],
             status: ['completed'],
@@ -386,10 +409,12 @@ describe('useAsyncJob', () => {
         })
       );
 
+      // The POST below goes through the shared axios singleton; the
+      // apiClient interceptor will inject the Bearer (SEEDED_TOKEN) so we
+      // no longer need to supply an explicit `authorization` header here.
       const submitResponse = await axios.post(
         '/api/jobs/hgnc_update/submit',
-        {},
-        { headers: { authorization: 'Bearer test-token' } }
+        {}
       );
       const rawJobId = submitResponse.data.job_id;
       const unwrappedJobId = Array.isArray(rawJobId) ? rawJobId[0] : rawJobId;
