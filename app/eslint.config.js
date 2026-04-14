@@ -54,9 +54,6 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
 
     // F2c pending migration (1 file)
     'src/views/review/Review.vue',
-
-    // F2d pending migration (1 file)
-    'src/views/curate/ManageReReview.vue',
   ],
   rules: {
     // The selectors cover three surface forms so the guardrail cannot be

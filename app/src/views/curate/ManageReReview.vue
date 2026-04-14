@@ -571,6 +571,12 @@ import BatchCriteriaForm from '@/components/forms/BatchCriteriaForm.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
 
+// v11.0 closeout F2d: typed api client. The request interceptor in
+// `@/api/client` reads `useAuth().token.value` on every outbound call and
+// injects `Authorization: Bearer <token>` — no inline header construction
+// here.
+import { apiClient } from '@/api/client';
+
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
@@ -762,12 +768,7 @@ export default {
     async loadUserList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const data = response.data;
+        const data = await apiClient.get(apiUrl);
         this.user_options = Array.isArray(data)
           ? data.map((item) => ({
               value: item.user_id,
@@ -784,12 +785,7 @@ export default {
       this.loadingReReviewManagment = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/assignment_table`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const data = response.data;
+        const data = await apiClient.get(apiUrl);
         if (Array.isArray(data)) {
           this.items_ReReviewTable = data;
           this.totalRows = data.length;
@@ -817,15 +813,7 @@ export default {
       }`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        await apiClient.put(apiUrl, {});
         this.makeToast('New batch assigned successfully.', 'Success', 'success');
         this.announce('New batch assigned successfully');
       } catch (e) {
@@ -844,11 +832,7 @@ export default {
       }/api/re_review/batch/unassign?re_review_batch=${batch_id}`;
 
       try {
-        await this.axios.delete(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        await apiClient.delete(apiUrl);
         this.makeToast('Batch unassigned successfully.', 'Success', 'success');
         this.announce('Batch unassigned successfully');
       } catch (e) {
@@ -881,16 +865,8 @@ export default {
 
       try {
         // Get entities not in any active batch (preview with no criteria = all available)
-        const response = await this.axios.post(
-          apiUrl,
-          { batch_size: 100 },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-        this.availableEntities = response.data.data || [];
+        const responseData = await apiClient.post(apiUrl, { batch_size: 100 });
+        this.availableEntities = responseData.data || [];
         this.selectedEntityIds = [];
       } catch (_e) {
         this.makeToast('Failed to load available entities', 'Error', 'danger');
@@ -919,21 +895,13 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/entities/assign`;
 
       try {
-        const response = await this.axios.put(
-          apiUrl,
-          {
-            entity_ids: this.selectedEntityIds,
-            user_id: this.entityAssignUserId,
-            batch_name: this.entityAssignBatchName || null,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        const responseData = await apiClient.put(apiUrl, {
+          entity_ids: this.selectedEntityIds,
+          user_id: this.entityAssignUserId,
+          batch_name: this.entityAssignBatchName || null,
+        });
 
-        const result = response.data.entry;
+        const result = responseData.entry;
         this.makeToast(
           `Created batch ${result.batch_id} with ${result.entity_count} entities`,
           'Success',
@@ -971,15 +939,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/reassign?re_review_batch=${this.reassignBatchId}&user_id=${this.reassignNewUserId}`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        await apiClient.put(apiUrl, {});
         this.makeToast('Batch reassigned successfully', 'Success', 'success');
         this.announce('Batch reassigned successfully');
         this.reassignModalShow = false;
@@ -1022,13 +982,9 @@ export default {
           payload.status_filter = this.recalculateCriteria.status_filter;
         }
 
-        const response = await this.axios.put(apiUrl, payload, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const responseData = await apiClient.put(apiUrl, payload);
 
-        const result = response.data.entry;
+        const result = responseData.entry;
         this.makeToast(
           `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`,
           'Success',
@@ -1051,12 +1007,7 @@ export default {
     async loadStatusOptions() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        const responseData = response.data;
+        const responseData = await apiClient.get(apiUrl);
         // Handle paginated response format
         const data = responseData?.data || responseData;
         this.status_options = Array.isArray(data)
