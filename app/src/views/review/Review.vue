@@ -735,6 +735,8 @@
 
 <script>
 import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
+import { useAuth } from '@/composables/useAuth';
+import { apiClient } from '@/api/client';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
 import useReviewForm from '@/views/curate/composables/useReviewForm';
 import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
@@ -1029,8 +1031,15 @@ export default {
     },
   },
   mounted() {
-    if (localStorage.user) {
-      this.user = JSON.parse(localStorage.user);
+    // v11.0 closeout F2c: session hydration routed through `useAuth()` so
+    // corrupt-payload resilience + the both-or-neither persistence invariant
+    // are handled centrally in the composable. Preserves the pre-migration
+    // guard shape: if there is no session, the component keeps its `data()`
+    // default `user` object and `curator_mode = 0`.
+    const auth = useAuth();
+    const sessionUser = auth.user.value;
+    if (sessionUser) {
+      this.user = sessionUser;
       this.curator_mode =
         this.user.user_role[0] === 'Administrator' || this.user.user_role[0] === 'Curator';
       console.log(this.user.user_role[0]);
@@ -1176,14 +1185,16 @@ export default {
         this.curation_selected
       }`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        // v11.0 closeout F2c: Bearer injection handled by the apiClient
+        // request interceptor; no inline Authorization header needed.
+        // `apiClient.get` unwraps to `response.data`, so `payload` IS the
+        // R/Plumber JSON body (a `{ data, meta }` envelope on this endpoint).
+        // (TypeScript generic parameter omitted — Review.vue's <script> is
+        // plain JS, not `<script lang="ts">`.)
+        const payload = await apiClient.get(apiUrl);
 
-        this.items = response.data.data || [];
-        this.totalRows = response.data.data?.length || 0;
+        this.items = payload.data || [];
+        this.totalRows = payload.data?.length || 0;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1305,15 +1316,8 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/submit`;
       try {
-        await this.axios.put(
-          apiUrl,
-          { submit_json: re_review_submission },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
+        await apiClient.put(apiUrl, { submit_json: re_review_submission });
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1326,15 +1330,8 @@ export default {
       }?status_ok=${this.status_approved}&review_ok=${this.review_approved}`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
+        await apiClient.put(apiUrl, {});
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1348,15 +1345,8 @@ export default {
       }`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
+        await apiClient.put(apiUrl, {});
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1368,11 +1358,8 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/apply`;
 
       try {
-        await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
+        await apiClient.get(apiUrl);
         this.makeToast('Application send.', 'Success', 'success');
         this.announce('Batch application sent successfully');
       } catch (e) {

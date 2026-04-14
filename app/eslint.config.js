@@ -29,9 +29,6 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     // through `useAuth()` / `apiClient` and no longer need the ignore
     // entries. See `.plans/v11.0/closeout.md` §3 F2a and §3 F2b.
 
-    // F2c pending migration (1 file)
-    'src/views/review/Review.vue',
-
     // F2d pending migration (1 file)
     'src/views/curate/ManageReReview.vue',
   ],
