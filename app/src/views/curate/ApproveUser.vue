@@ -509,6 +509,11 @@
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+// v11.0 closeout F2b: apiClient replaces `this.axios` + manual Bearer
+// header construction. The request interceptor reads
+// `useAuth().token.value` and injects `Authorization: Bearer <token>`
+// on every outbound call.
+import { apiClient } from '@/api/client';
 
 export default {
   name: 'ApproveUser',
@@ -641,11 +646,7 @@ export default {
       this.loadingUsersApprove = true;
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response = await apiClient.raw.get(apiUrl);
         const data = response.data;
         let users = [];
         if (Array.isArray(data)) {
@@ -670,11 +671,7 @@ export default {
     async loadRoleList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        const response = await apiClient.raw.get(apiUrl);
         const data = response.data;
         this.role_options = Array.isArray(data)
           ? data.map((item) => ({ value: item.role, text: item.role }))
@@ -749,15 +746,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/approval?user_id=${userId}&status_approval=${approved}`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        await apiClient.raw.put(apiUrl, {});
         const message = approved ? 'User approved successfully.' : 'User application rejected.';
         this.makeToast(message, 'Success', approved ? 'success' : 'info');
         this.announce(message);
@@ -771,15 +760,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/change_role?user_id=${userId}&role_assigned=${userRole}`;
 
       try {
-        await this.axios.put(
-          apiUrl,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        await apiClient.raw.put(apiUrl, {});
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

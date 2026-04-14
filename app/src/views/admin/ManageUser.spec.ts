@@ -46,6 +46,14 @@ import {
   userUpdateForbidden,
   type UserTableRow,
 } from '@/test-utils/mocks/data/users';
+// v11.0 closeout F2b — apiClient helpers for the 9 new Bearer-header
+// tests below. The Phase C tests above stay on `localStorage.setItem`
+// seeding to keep their assertions stable; the new block uses the
+// composable abstraction (`primeAuth()`) so regressions in F1 plumbing
+// (useAuth / apiClient interceptor) surface here too.
+import { primeAuth } from '@/test-utils/primeAuth';
+import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
+import { useAuth } from '@/composables/useAuth';
 
 // -----------------------------------------------------------------------------
 // Toast spy — the view surfaces its error "banner" as a danger-variant toast.
@@ -170,14 +178,18 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
     // the MSW-intercepted relative path (`/api/...`).  `vi.stubEnv` is the
     // Vitest-sanctioned way to mutate `import.meta.env` inside a test.
     vi.stubEnv('VITE_API_URL', '');
-    // Seed a token so the axios calls include the Authorization header the
-    // /role_list and /list handlers require (B1 handler table rejects with
-    // 401 when the header is missing).
-    window.localStorage.setItem('token', 'test-token');
+    // Seed a session so the B1 handler table accepts requests. Pre-F2b
+    // this used `localStorage.setItem('token', 'test-token')` directly;
+    // post-F2b the view reads its Bearer from `useAuth().token.value`
+    // through the apiClient interceptor, so we prime the composable
+    // instead. Behaviour is identical — a 'test-token' Bearer on every
+    // outbound call — but the abstraction seam is the correct one.
+    primeAuth('test-token');
     makeToastSpy.mockClear();
   });
 
   afterEach(() => {
+    useAuth().logout();
     vi.unstubAllEnvs();
   });
 
@@ -314,4 +326,253 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
   it.todo(
     'TODO: verify the search-and-filter state persists across role edits and user_role bulk assignments via POST /api/user/bulk_assign_role'
   );
+});
+
+// ===========================================================================
+// v11.0 closeout F2b — apiClient Bearer header contract (9 new tests)
+// ===========================================================================
+// Nine authed call sites in ManageUser.vue were migrated from hand-built
+// `Authorization: Bearer ${localStorage.getItem('token')}` headers onto
+// `apiClient.raw.*`. Each test below pins one migrated call site with
+// `primeAuth() + expectBearerHeader()` so any regression in either this
+// view or the F1 plumbing (useAuth / apiClient interceptor) surfaces as
+// an observable test failure — not just an ESLint warning.
+describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_API_URL', '');
+    makeToastSpy.mockClear();
+  });
+
+  afterEach(() => {
+    useAuth().logout();
+    vi.unstubAllEnvs();
+  });
+
+  async function mountWithToken(token: string) {
+    primeAuth(token);
+    // Keep the initial mount loads quiet and valid.
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json(userTableOk)),
+      http.get('/api/user/role_list', () =>
+        HttpResponse.json([
+          { role: 'Administrator' },
+          { role: 'Curator' },
+          { role: 'Viewer' },
+        ])
+      ),
+      http.get('/api/user/list', () => HttpResponse.json([]))
+    );
+    return mountComponent();
+  }
+
+
+  it('1. confirmBulkApprove → POST /api/user/bulk_approve carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.post('/api/user/bulk_approve', ({ request }) => {
+        expectBearerHeader(request, 'bulk-approve-token');
+        sawBearer = true;
+        return HttpResponse.json({ processed: 2 });
+      })
+    );
+
+    const wrapper = await mountWithToken('bulk-approve-token');
+    // Feed the selection the view reads via `getSelectedArray()`.
+    (
+      wrapper.vm as unknown as {
+        getSelectedArray?: () => number[];
+        selected?: Record<number, boolean>;
+      }
+    ).selected = { 1: true, 2: true };
+    (
+      wrapper.vm as unknown as {
+        getSelectedArray: () => number[];
+      }
+    ).getSelectedArray = () => [1, 2];
+
+    await (wrapper.vm as unknown as { confirmBulkApprove: () => Promise<void> }).confirmBulkApprove();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('2. confirmBulkRoleAssignment → POST /api/user/bulk_assign_role carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.post('/api/user/bulk_assign_role', ({ request }) => {
+        expectBearerHeader(request, 'bulk-role-token');
+        sawBearer = true;
+        return HttpResponse.json({ processed: 1 });
+      })
+    );
+
+    const wrapper = await mountWithToken('bulk-role-token');
+    (
+      wrapper.vm as unknown as {
+        getSelectedArray: () => number[];
+        bulkRoleSelection: string;
+      }
+    ).getSelectedArray = () => [2];
+    (wrapper.vm as unknown as { bulkRoleSelection: string }).bulkRoleSelection = 'Curator';
+
+    await (
+      wrapper.vm as unknown as { confirmBulkRoleAssignment: () => Promise<void> }
+    ).confirmBulkRoleAssignment();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('3. confirmBulkDelete → POST /api/user/bulk_delete carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.post('/api/user/bulk_delete', ({ request }) => {
+        expectBearerHeader(request, 'bulk-delete-token');
+        sawBearer = true;
+        return HttpResponse.json({ processed: 1 });
+      })
+    );
+
+    const wrapper = await mountWithToken('bulk-delete-token');
+    (
+      wrapper.vm as unknown as { getSelectedArray: () => number[] }
+    ).getSelectedArray = () => [2];
+
+    await (
+      wrapper.vm as unknown as { confirmBulkDelete: () => Promise<void> }
+    ).confirmBulkDelete();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('4. doLoadData → GET /api/user/table carries the Bearer header', async () => {
+    // Install the Bearer-checking handler BEFORE mountWithToken so the
+    // initial mount fetch gets intercepted. The view has a 500ms
+    // module-level "same-params skip" guard on doLoadData; wait it out
+    // so the initial mount actually fires a fresh network request
+    // instead of re-using a cached response from an earlier test in
+    // this describe block.
+    await new Promise((resolve) => setTimeout(resolve, 520));
+    primeAuth('user-table-token');
+    let sawBearer = false;
+    server.use(
+      http.get('/api/user/table', ({ request }) => {
+        expectBearerHeader(request, 'user-table-token');
+        sawBearer = true;
+        return HttpResponse.json(userTableOk);
+      }),
+      http.get('/api/user/role_list', () => HttpResponse.json([])),
+      http.get('/api/user/list', () => HttpResponse.json([]))
+    );
+    await mountComponent();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('5. loadRoleList → GET /api/user/role_list carries the Bearer header', async () => {
+    primeAuth('role-list-token');
+    let sawBearer = false;
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json(userTableOk)),
+      http.get('/api/user/role_list', ({ request }) => {
+        expectBearerHeader(request, 'role-list-token');
+        sawBearer = true;
+        return HttpResponse.json([{ role: 'Administrator' }]);
+      }),
+      http.get('/api/user/list', () => HttpResponse.json([]))
+    );
+    await mountComponent();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('6. loadUserList → GET /api/user/list carries the Bearer header', async () => {
+    primeAuth('user-list-token');
+    let sawBearer = false;
+    server.use(
+      http.get('/api/user/table', () => HttpResponse.json(userTableOk)),
+      http.get('/api/user/role_list', () => HttpResponse.json([])),
+      http.get('/api/user/list', ({ request }) => {
+        expectBearerHeader(request, 'user-list-token');
+        sawBearer = true;
+        return HttpResponse.json([]);
+      })
+    );
+    await mountComponent();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('7. confirmDeleteUser → DELETE /api/user/delete carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.delete('/api/user/delete', ({ request }) => {
+        expectBearerHeader(request, 'delete-user-token');
+        sawBearer = true;
+        return HttpResponse.json({ message: 'Deleted' });
+      })
+    );
+
+    const wrapper = await mountWithToken('delete-user-token');
+    (wrapper.vm as unknown as { userToDelete: { user_id: number } }).userToDelete = {
+      user_id: 2,
+    };
+
+    await (
+      wrapper.vm as unknown as { confirmDeleteUser: () => Promise<void> }
+    ).confirmDeleteUser();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('8. updateUserData → PUT /api/user/update carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.put('/api/user/update', ({ request }) => {
+        expectBearerHeader(request, 'update-user-token');
+        sawBearer = true;
+        return HttpResponse.json({ message: 'Updated' });
+      })
+    );
+
+    const wrapper = await mountWithToken('update-user-token');
+    const bob = (userTableOk.data as UserTableRow[]).find((u) => u.user_id === 2)!;
+    (wrapper.vm as unknown as { userToUpdate: UserTableRow }).userToUpdate = { ...bob };
+
+    await (wrapper.vm as unknown as { updateUserData: () => Promise<void> }).updateUserData();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
+
+  it('9. changeUserPassword → PUT /api/user/password/update carries the Bearer header', async () => {
+    let sawBearer = false;
+    server.use(
+      http.put('/api/user/password/update', ({ request }) => {
+        expectBearerHeader(request, 'pass-update-token');
+        sawBearer = true;
+        return HttpResponse.json({ message: 'Password updated' });
+      })
+    );
+
+    const wrapper = await mountWithToken('pass-update-token');
+    (wrapper.vm as unknown as { userToUpdate: UserTableRow }).userToUpdate = {
+      ...(userTableOk.data as UserTableRow[])[0],
+    };
+    const vm = wrapper.vm as unknown as {
+      passwordChange: {
+        newPassword: string;
+        confirmPassword: string;
+        showPassword: boolean;
+        isChanging: boolean;
+      };
+      passwordValidation: { isValid: boolean };
+      changeUserPassword: () => Promise<void>;
+    };
+    vm.passwordChange.newPassword = 'NewPass1!abcdefgh';
+    vm.passwordChange.confirmPassword = 'NewPass1!abcdefgh';
+    // Force the validation guard true so the code path proceeds to the PUT.
+    Object.defineProperty(vm, 'passwordValidation', {
+      value: { isValid: true },
+      configurable: true,
+    });
+
+    await vm.changeUserPassword();
+    await flushPromises();
+    expect(sawBearer).toBe(true);
+  });
 });

@@ -258,4 +258,82 @@ describe('useStatusForm', () => {
       expect(hasChanges.value).toBe(false);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // v11.0 closeout F2a: authenticated submit no longer attaches an inline
+  // Authorization header — the apiClient request interceptor
+  // (`@/api/client`) injects the Bearer token on every outbound call against
+  // the shared axios singleton. `useStatusForm.ts` used to read
+  // `localStorage.getItem('token')` twice (update + create paths) and
+  // attach `Authorization: Bearer <token>` via the request config; both of
+  // those are gone. Because this file mocks the axios module wholesale we
+  // cannot test interceptor behaviour directly; we assert the *source-
+  // level* contract instead — the config passed to axios.put/post has no
+  // `headers` field. A regression that re-adds the inline header would
+  // fail this assertion.
+  // ---------------------------------------------------------------------------
+  describe('F2a: submit no longer supplies an inline Authorization header', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    async function primeAxiosWithStatusRow() {
+      const axiosMod = await import('axios');
+      const mockAxios = axiosMod.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+        put: ReturnType<typeof vi.fn>;
+        post: ReturnType<typeof vi.fn>;
+      };
+      mockAxios.get.mockResolvedValue({
+        data: [
+          {
+            status_id: 1,
+            entity_id: 99,
+            category_id: 2,
+            comment: 'load',
+            problematic: false,
+          },
+        ],
+      });
+      mockAxios.put.mockResolvedValue({ data: { success: true } });
+      mockAxios.post.mockResolvedValue({ data: { success: true } });
+      return mockAxios;
+    }
+
+    it('axios.put config (update path) has no headers field', async () => {
+      const mockAxios = await primeAxiosWithStatusRow();
+      const { loadStatusData, submitForm } = useStatusForm();
+
+      await loadStatusData(1, 0);
+      await flushPromises();
+      await submitForm(true, false);
+      await flushPromises();
+
+      expect(mockAxios.put).toHaveBeenCalledTimes(1);
+      const config = mockAxios.put.mock.calls[0][2] as
+        | { headers?: Record<string, string>; withCredentials?: boolean }
+        | undefined;
+      expect(config).toBeDefined();
+      expect(config?.withCredentials).toBe(true);
+      expect(config?.headers).toBeUndefined();
+    });
+
+    it('axios.post config (create path) has no headers field', async () => {
+      const mockAxios = await primeAxiosWithStatusRow();
+      const { loadStatusData, submitForm } = useStatusForm();
+
+      await loadStatusData(1, 0);
+      await flushPromises();
+      await submitForm(false, false);
+      await flushPromises();
+
+      expect(mockAxios.post).toHaveBeenCalledTimes(1);
+      const config = mockAxios.post.mock.calls[0][2] as
+        | { headers?: Record<string, string>; withCredentials?: boolean }
+        | undefined;
+      expect(config).toBeDefined();
+      expect(config?.withCredentials).toBe(true);
+      expect(config?.headers).toBeUndefined();
+    });
+  });
 });

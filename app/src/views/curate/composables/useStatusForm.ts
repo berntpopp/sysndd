@@ -256,7 +256,11 @@ export default function useStatusForm(entityId?: string | number) {
     statusObj.status_user_role = null;
     statusObj.re_review_status_saved = null;
 
-    const token = localStorage.getItem('token');
+    // v11.0 closeout F2a: the inline localStorage token read and the
+    // per-call Authorization header plumbing have been removed. The
+    // `apiClient` request interceptor (`@/api/client`) reads
+    // `useAuth().token.value` and injects the Bearer header on every
+    // outbound call against the shared axios singleton.
 
     // Determine API endpoint
     let apiUrl: string;
@@ -277,23 +281,13 @@ export default function useStatusForm(entityId?: string | number) {
         await axios.put(
           apiUrl,
           { status_json: statusObj },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
       } else {
         await axios.post(
           apiUrl,
           { status_json: statusObj },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
       }
 

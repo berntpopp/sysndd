@@ -25,38 +25,11 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/test-utils/**',
     '**/*.spec.ts',
 
-    // F2a pending migrations (14 files)
-    'src/views/admin/AdminStatistics.vue',
-    'src/views/admin/ManageLLM.vue',
-    'src/views/curate/ApproveStatus.vue',
-    'src/views/curate/ApproveReview.vue',
-    'src/views/curate/CreateEntity.vue',
-    'src/composables/useAsyncJob.ts',
-    'src/composables/annotations/useAnnotationFormatters.ts',
-    'src/composables/review/useReviewApprovalActions.ts',
-    'src/composables/useCmsContent.ts',
-    'src/views/curate/composables/useReviewForm.ts',
-    'src/views/curate/composables/useStatusForm.ts',
-    'src/components/llm/LlmCacheManager.vue',
-    'src/components/llm/LlmLogViewer.vue',
-    'src/composables/useLlmAdmin.ts',
-
-    // F2b pending migrations (9 files)
-    'src/views/RegisterView.vue',
-    'src/views/admin/ManageOntology.vue',
-    'src/views/admin/ManageUser.vue',
-    'src/views/admin/ManageBackups.vue',
-    'src/views/curate/ApproveUser.vue',
-    'src/views/curate/ModifyEntity.vue',
-    'src/composables/useBatchForm.ts',
-    'src/components/small/IconPairDropdownMenu.vue',
-    'src/components/tables/TablesLogs.vue',
-
-    // F2c pending migration (1 file)
-    'src/views/review/Review.vue',
-
-    // F2d pending migration (1 file)
-    'src/views/curate/ManageReReview.vue',
+    // F2a + F2b + F2c + F2d migrations landed — all 25 files now route
+    // through `useAuth()` / `apiClient` and no longer need the ignore
+    // entries. The ignore list collapses to just the permitted owners
+    // (useAuth.ts, plugins/axios.ts, test-utils, specs). See
+    // `.plans/v11.0/closeout.md` §3 F2a–F2d.
   ],
   rules: {
     // The selectors cover three surface forms so the guardrail cannot be

@@ -387,9 +387,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import axios from 'axios';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
+// v11.0 closeout F2b: every authed call now flows through the shared
+// apiClient so the request interceptor injects the Bearer from
+// `useAuth().token.value` — no direct localStorage reads.
+import { apiClient } from '@/api/client';
 
 // Types
 interface BackupItem {
@@ -600,10 +603,10 @@ function onSortChanged(ctx: { sortBy: string; sortDesc: boolean }) {
 async function fetchBackupList() {
   loading.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/backup/list`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+    const response = await apiClient.raw.get<{
+      data?: Record<string, unknown>[];
+      meta?: Record<string, unknown>;
+    }>(`${import.meta.env.VITE_API_URL}/api/backup/list`, {
       withCredentials: true,
     });
 
@@ -638,15 +641,13 @@ async function fetchBackupList() {
 // Download backup file
 async function downloadBackup(filename: string) {
   try {
-    const response = await axios({
-      url: `${import.meta.env.VITE_API_URL}/api/backup/download/${filename}`,
-      method: 'GET',
-      responseType: 'blob',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      withCredentials: true,
-    });
+    const response = await apiClient.raw.get<Blob>(
+      `${import.meta.env.VITE_API_URL}/api/backup/download/${filename}`,
+      {
+        responseType: 'blob',
+        withCredentials: true,
+      }
+    );
 
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
@@ -684,12 +685,15 @@ async function confirmRestore() {
   showRestoreModal.value = false;
 
   try {
-    const response = await axios.post(
+    const response = await apiClient.raw.post<{
+      error?: unknown;
+      message?: string;
+      job_id: string;
+    }>(
       `${import.meta.env.VITE_API_URL}/api/backup/restore`,
       { filename: selectedBackup.value.filename },
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
         withCredentials: true,
@@ -716,11 +720,13 @@ async function confirmDelete() {
   const filename = selectedBackup.value.filename;
 
   try {
-    const response = await axios.delete(
+    const response = await apiClient.raw.delete<{
+      error?: unknown;
+      message?: string;
+    }>(
       `${import.meta.env.VITE_API_URL}/api/backup/delete/${filename}`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
         data: { confirm: 'DELETE' },
@@ -746,13 +752,14 @@ async function triggerBackup() {
   backupJob.reset();
 
   try {
-    const response = await axios.post(
+    const response = await apiClient.raw.post<{
+      error?: unknown;
+      message?: string;
+      job_id: string;
+    }>(
       `${import.meta.env.VITE_API_URL}/api/backup/create`,
       {},
       {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
         withCredentials: true,
       }
     );

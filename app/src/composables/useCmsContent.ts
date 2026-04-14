@@ -28,13 +28,12 @@ export function useCmsContent() {
     return lastSavedAt.value === null && sections.value.length > 0;
   });
 
-  /**
-   * Get auth header from localStorage.
-   */
-  function getAuthHeader() {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
+  // v11.0 closeout F2a: the inline `getAuthHeader()` helper that read
+  // the session token from localStorage has been removed. The `apiClient`
+  // request interceptor (`@/api/client`) reads `useAuth().token.value`
+  // and injects the Bearer header on every outbound call against the
+  // shared axios singleton — which is what the raw `axios` import below
+  // resolves to. See `.plans/v11.0/closeout.md` §3 F2a.
 
   /**
    * Load draft or published content for editing.
@@ -46,7 +45,6 @@ export function useCmsContent() {
 
     try {
       const response = await axios.get<AboutContent>(`${API_URL}/api/about/draft`, {
-        headers: getAuthHeader(),
         timeout: 5000,
         withCredentials: true,
       });
@@ -99,7 +97,7 @@ export function useCmsContent() {
       await axios.put(
         `${API_URL}/api/about/draft`,
         { sections: sections.value },
-        { headers: getAuthHeader(), withCredentials: true }
+        { withCredentials: true }
       );
 
       lastSavedAt.value = new Date();
@@ -130,7 +128,7 @@ export function useCmsContent() {
       const response = await axios.post<{ message: string; version: number }>(
         `${API_URL}/api/about/publish`,
         { sections: sections.value },
-        { headers: getAuthHeader(), withCredentials: true }
+        { withCredentials: true }
       );
 
       currentVersion.value = response.data.version;

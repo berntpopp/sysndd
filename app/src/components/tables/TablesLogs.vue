@@ -392,6 +392,11 @@ import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
+// v11.0 closeout F2b: apiClient is the single outbound surface — the
+// request interceptor injects `Authorization: Bearer <token>` from
+// `useAuth().token.value`, so this component stops building the header
+// by hand.
+import { apiClient } from '@/api/client';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
@@ -715,9 +720,7 @@ export default {
     // Load user list for filter dropdown
     async loadUserList() {
       try {
-        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/user/list`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/user/list`);
         this.user_options = response.data.map((item) => ({
           value: item.user_name,
           text: `${item.user_name} (${item.user_role})`,
@@ -763,15 +766,12 @@ export default {
       this.isBusy = true;
 
       try {
-        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
+        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             sort: this.sort,
             filter: this.filter_string,
             page_after: this.currentItemID,
             page_size: this.perPage,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
@@ -926,16 +926,13 @@ export default {
       }
 
       try {
-        const response = await this.axios.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
+        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             page_after: 0,
             page_size: 'all',
             format: 'xlsx',
             filter: this.filter_string, // Apply current filters
             sort: this.sort,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
           responseType: 'blob', // Important for binary download
         });
@@ -1058,12 +1055,9 @@ export default {
       this.isDeleting = true;
       try {
         const olderThanDays = this.deleteMode === 'all' ? 0 : parseInt(this.deleteMode, 10);
-        const response = await this.axios.delete(`${import.meta.env.VITE_API_URL}/api/logs/`, {
+        const response = await apiClient.raw.delete(`${import.meta.env.VITE_API_URL}/api/logs/`, {
           params: {
             older_than_days: olderThanDays,
-          },
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
 

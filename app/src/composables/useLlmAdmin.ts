@@ -1,8 +1,16 @@
 // app/src/composables/useLlmAdmin.ts
-// Composable for LLM Administration API calls
+// Composable for LLM Administration API calls.
+//
+// v11.0 closeout F2a: the `token: string` parameter has been dropped from
+// every exported method. The `apiClient` request interceptor
+// (`@/api/client`) reads `useAuth().token.value` on every outbound call and
+// injects the `Authorization: Bearer <token>` header. Call sites are
+// therefore no longer responsible for sourcing the token from localStorage
+// and passing it through — they just call `fetchConfig()` / `fetchPrompts()`
+// / etc. directly. See `.plans/v11.0/closeout.md` §3 F2a.
 
 import { ref, type Ref } from 'vue';
-import axios from 'axios';
+import { apiClient } from '@/api/client';
 import type {
   LlmConfig,
   PromptTemplates,
@@ -67,13 +75,12 @@ export interface UseLlmAdminReturn {
   error: Ref<string | null>;
 
   // Config actions
-  fetchConfig: (token: string) => Promise<void>;
-  updateModel: (token: string, model: string) => Promise<ModelUpdateResponse>;
+  fetchConfig: () => Promise<void>;
+  updateModel: (model: string) => Promise<ModelUpdateResponse>;
 
   // Prompt actions
-  fetchPrompts: (token: string) => Promise<void>;
+  fetchPrompts: () => Promise<void>;
   updatePrompt: (
-    token: string,
     type: PromptType,
     template: string,
     version: string,
@@ -81,42 +88,34 @@ export interface UseLlmAdminReturn {
   ) => Promise<PromptUpdateResponse>;
 
   // Cache actions
-  fetchCacheStats: (token: string) => Promise<void>;
-  fetchCachedSummaries: (
-    token: string,
-    params?: {
-      cluster_type?: ClusterType;
-      validation_status?: ValidationStatus;
-      page?: number;
-      per_page?: number;
-    }
-  ) => Promise<PaginatedCacheSummaries>;
-  clearCache: (token: string, clusterType: ClusterType | 'all') => Promise<CacheClearResponse>;
+  fetchCacheStats: () => Promise<void>;
+  fetchCachedSummaries: (params?: {
+    cluster_type?: ClusterType;
+    validation_status?: ValidationStatus;
+    page?: number;
+    per_page?: number;
+  }) => Promise<PaginatedCacheSummaries>;
+  clearCache: (clusterType: ClusterType | 'all') => Promise<CacheClearResponse>;
   updateValidationStatus: (
-    token: string,
     cacheId: number,
     action: 'validate' | 'reject'
   ) => Promise<ValidationUpdateResponse>;
 
   // Regeneration actions
   triggerRegeneration: (
-    token: string,
     clusterType: ClusterType | 'all',
     force?: boolean
   ) => Promise<RegenerationJobResponse>;
 
   // Log actions
-  fetchLogs: (
-    token: string,
-    params?: {
-      cluster_type?: ClusterType;
-      status?: LogStatus;
-      from_date?: string;
-      to_date?: string;
-      page?: number;
-      per_page?: number;
-    }
-  ) => Promise<PaginatedLogs>;
+  fetchLogs: (params?: {
+    cluster_type?: ClusterType;
+    status?: LogStatus;
+    from_date?: string;
+    to_date?: string;
+    page?: number;
+    per_page?: number;
+  }) => Promise<PaginatedLogs>;
 }
 
 export function useLlmAdmin(): UseLlmAdminReturn {
@@ -127,25 +126,19 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // Helper for auth headers
-  const authHeaders = (token: string) => ({
-    Authorization: `Bearer ${token}`,
-  });
-
   // ─────────────────────────────────────────────────────────────────────────────
   // Config Actions
   // ─────────────────────────────────────────────────────────────────────────────
 
-  async function fetchConfig(token: string): Promise<void> {
+  async function fetchConfig(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get<LlmConfig>(`${API_BASE}/config`, {
-        headers: authHeaders(token),
+      const data = await apiClient.get<LlmConfig>(`${API_BASE}/config`, {
         withCredentials: true,
       });
       // Unwrap Plumber's array-wrapped scalar values
-      config.value = unwrapPlumberValue(response.data);
+      config.value = unwrapPlumberValue(data);
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch config';
       throw e;
@@ -154,19 +147,18 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     }
   }
 
-  async function updateModel(token: string, model: string): Promise<ModelUpdateResponse> {
+  async function updateModel(model: string): Promise<ModelUpdateResponse> {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put<ModelUpdateResponse>(`${API_BASE}/config`, null, {
-        headers: authHeaders(token),
+      const data = await apiClient.put<ModelUpdateResponse>(`${API_BASE}/config`, null, {
         params: { model },
         withCredentials: true,
       });
       if (config.value) {
         config.value.current_model = model;
       }
-      return response.data;
+      return data;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to update model';
       throw e;
@@ -179,15 +171,14 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   // Prompt Actions
   // ─────────────────────────────────────────────────────────────────────────────
 
-  async function fetchPrompts(token: string): Promise<void> {
+  async function fetchPrompts(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get<PromptTemplates>(`${API_BASE}/prompts`, {
-        headers: authHeaders(token),
+      const data = await apiClient.get<PromptTemplates>(`${API_BASE}/prompts`, {
         withCredentials: true,
       });
-      prompts.value = response.data;
+      prompts.value = data;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch prompts';
       throw e;
@@ -197,7 +188,6 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   }
 
   async function updatePrompt(
-    token: string,
     type: PromptType,
     template: string,
     version: string,
@@ -206,12 +196,12 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put<PromptUpdateResponse>(
+      const data = await apiClient.put<PromptUpdateResponse>(
         `${API_BASE}/prompts/${type}`,
         { template, version, description },
-        { headers: authHeaders(token), withCredentials: true }
+        { withCredentials: true }
       );
-      return response.data;
+      return data;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to update prompt';
       throw e;
@@ -224,15 +214,14 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   // Cache Actions
   // ─────────────────────────────────────────────────────────────────────────────
 
-  async function fetchCacheStats(token: string): Promise<void> {
+  async function fetchCacheStats(): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get<CacheStats>(`${API_BASE}/cache/stats`, {
-        headers: authHeaders(token),
+      const data = await apiClient.get<CacheStats>(`${API_BASE}/cache/stats`, {
         withCredentials: true,
       });
-      cacheStats.value = response.data;
+      cacheStats.value = data;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch cache stats';
       throw e;
@@ -242,7 +231,6 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   }
 
   async function fetchCachedSummaries(
-    token: string,
     params: {
       cluster_type?: ClusterType;
       validation_status?: ValidationStatus;
@@ -250,41 +238,33 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       per_page?: number;
     } = {}
   ): Promise<PaginatedCacheSummaries> {
-    const response = await axios.get<PaginatedCacheSummaries>(`${API_BASE}/cache/summaries`, {
-      headers: authHeaders(token),
+    return apiClient.get<PaginatedCacheSummaries>(`${API_BASE}/cache/summaries`, {
       params,
       withCredentials: true,
     });
-    return response.data;
   }
 
   async function clearCache(
-    token: string,
     clusterType: ClusterType | 'all'
   ): Promise<CacheClearResponse> {
-    const response = await axios.delete<CacheClearResponse>(`${API_BASE}/cache`, {
-      headers: authHeaders(token),
+    return apiClient.delete<CacheClearResponse>(`${API_BASE}/cache`, {
       params: { cluster_type: clusterType },
       withCredentials: true,
     });
-    return response.data;
   }
 
   async function updateValidationStatus(
-    token: string,
     cacheId: number,
     action: 'validate' | 'reject'
   ): Promise<ValidationUpdateResponse> {
-    const response = await axios.post<ValidationUpdateResponse>(
+    return apiClient.post<ValidationUpdateResponse>(
       `${API_BASE}/cache/${cacheId}/validate`,
       null,
       {
-        headers: authHeaders(token),
         params: { action },
         withCredentials: true,
       }
     );
-    return response.data;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -292,16 +272,13 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async function triggerRegeneration(
-    token: string,
     clusterType: ClusterType | 'all',
     force = false
   ): Promise<RegenerationJobResponse> {
-    const response = await axios.post<RegenerationJobResponse>(`${API_BASE}/regenerate`, null, {
-      headers: authHeaders(token),
+    return apiClient.post<RegenerationJobResponse>(`${API_BASE}/regenerate`, null, {
       params: { cluster_type: clusterType, force },
       withCredentials: true,
     });
-    return response.data;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -309,7 +286,6 @@ export function useLlmAdmin(): UseLlmAdminReturn {
   // ─────────────────────────────────────────────────────────────────────────────
 
   async function fetchLogs(
-    token: string,
     params: {
       cluster_type?: ClusterType;
       status?: LogStatus;
@@ -319,12 +295,10 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       per_page?: number;
     } = {}
   ): Promise<PaginatedLogs> {
-    const response = await axios.get<PaginatedLogs>(`${API_BASE}/logs`, {
-      headers: authHeaders(token),
+    return apiClient.get<PaginatedLogs>(`${API_BASE}/logs`, {
       params,
       withCredentials: true,
     });
-    return response.data;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

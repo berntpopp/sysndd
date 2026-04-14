@@ -312,6 +312,10 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import useToast from '@/composables/useToast';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
+// v11.0 closeout F2b: reach for `apiClient` instead of the raw axios
+// instance so the request interceptor injects the Bearer header from
+// `useAuth().token.value` (single source of truth for session auth).
+import { apiClient } from '@/api/client';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -663,11 +667,10 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/ontology/variant/table?${urlParam}`;
 
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        // v11.0 closeout F2b: `apiClient.raw` returns the full AxiosResponse
+        // so the existing `response.data` unpacking stays intact; the
+        // request interceptor adds the Bearer header automatically.
+        const response = await apiClient.raw.get(apiUrl);
         moduleApiCallInProgress = false;
         moduleLastApiResponse = response.data;
         this.applyApiResponse(response.data);
@@ -744,15 +747,11 @@ export default {
     async updateOntologyData() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/ontology/variant/update`;
       try {
-        const response = await this.axios.put(
-          apiUrl,
-          { ontology_details: this.ontologyToEdit },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        // v11.0 closeout F2b: Bearer header flows through the apiClient
+        // request interceptor from `useAuth().token.value`.
+        const response = await apiClient.raw.put(apiUrl, {
+          ontology_details: this.ontologyToEdit,
+        });
         this.makeToast(response.data.message, 'Success', 'success');
         // Update the ontology in the local state
         const index = this.ontologies.findIndex((o) => o.vario_id === this.ontologyToEdit.vario_id);

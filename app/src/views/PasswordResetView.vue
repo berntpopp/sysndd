@@ -229,7 +229,7 @@ export default {
           },
           {
             headers: {
-              Authorization: `Bearer ${this.$route.params.request_jwt}`,
+              Authorization: `Bearer ${this.$route.params.request_jwt}`, // closeout-exception-E2: route-param one-shot JWT from email link; not a session token (§3.4)
             },
           }
         );
