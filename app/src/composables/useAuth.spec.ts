@@ -36,8 +36,8 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import axios from 'axios';
 
+import { apiClient } from '@/api/client';
 import { server } from '@/test-utils/mocks/server';
 import { refreshTokenOk } from '@/test-utils/mocks/data/auth';
 import useAuth, { type UserPayload } from './useAuth';
@@ -92,7 +92,6 @@ describe('useAuth', () => {
     // `vitest.setup.ts` clears localStorage before every test; explicitly
     // re-sync the composable so module-level refs start null.
     useAuth().syncFromStorage();
-    delete axios.defaults.headers.common.Authorization;
   });
 
   afterEach(() => {
@@ -131,11 +130,67 @@ describe('useAuth', () => {
       expect(typeof auth.token.value).toBe('string');
     });
 
-    it('sets the axios default Authorization header so subsequent calls send the Bearer token', () => {
+    it('apiClient carries Authorization: Bearer <token> after login()', async () => {
+      // v11.0 closeout F1: the apiClient request interceptor reads
+      // useAuth().token.value and injects the Bearer header. This assertion
+      // is strictly stronger than the previous `axios.defaults.headers.common`
+      // state check: it observes outbound behaviour (what the server actually
+      // sees), not an internal axios field.
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
-      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
+    });
+
+    it('apiClient carries no Authorization after logout()', async () => {
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+      auth.logout();
+
+      let capturedAuth: string | null = 'UNSET';
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBeNull();
+    });
+
+    it('apiClient preserves a per-request Authorization override', async () => {
+      // The closeout spec §3.4 enumerates two exceptions whose flows MUST
+      // construct their own Bearer header (LoginView bootstrap handshake and
+      // PasswordResetView route-param JWT). The interceptor must yield to an
+      // explicit per-call header, never overwrite it with the session token.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      const OVERRIDE_TOKEN = 'route-param-jwt';
+      await apiClient.get('/api/ping', {
+        headers: { Authorization: `Bearer ${OVERRIDE_TOKEN}` },
+      });
+      expect(capturedAuth).toBe(`Bearer ${OVERRIDE_TOKEN}`);
+      // The session token must NOT leak into the header.
+      expect(capturedAuth).not.toBe(`Bearer ${FRESH_TOKEN}`);
     });
 
     it('exposes hasRole() for role-gated UI (matches the A1 scalar-array payload)', () => {
@@ -153,7 +208,7 @@ describe('useAuth', () => {
   // -------------------------------------------------------------------------
 
   describe('logout', () => {
-    it('clears token, user, axios header, and reactive state', () => {
+    it('clears token, user, and reactive state', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
@@ -164,7 +219,6 @@ describe('useAuth', () => {
       expect(auth.token.value).toBeNull();
       expect(auth.user.value).toBeNull();
       expect(auth.isAuthenticated.value).toBe(false);
-      expect(axios.defaults.headers.common.Authorization).toBeUndefined();
     });
 
     it('is idempotent when no session is active', () => {
@@ -208,7 +262,19 @@ describe('useAuth', () => {
 
       expect(auth.token.value).toBe(REFRESHED_TOKEN);
       expect(localStorage.getItem('token')).toBe(REFRESHED_TOKEN);
-      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${REFRESHED_TOKEN}`);
+
+      // v11.0 closeout F1: outbound assertion — apiClient now carries the
+      // refreshed Bearer on the next request (stronger than the old
+      // `axios.defaults.headers.common` state check).
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBe(`Bearer ${REFRESHED_TOKEN}`);
     });
 
     it('refresh() forwards the current Bearer token on the request', async () => {
@@ -253,10 +319,19 @@ describe('useAuth', () => {
 
       await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
-      // Nothing must have been mutated.
+      // Nothing must have been mutated. Verify the outbound Bearer on a
+      // subsequent apiClient call is still the original FRESH_TOKEN.
       expect(auth.token.value).toBe(FRESH_TOKEN);
       expect(localStorage.getItem('token')).toBe(FRESH_TOKEN);
-      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
     });
 
     it('refresh() rejects a plain object body (`{}`) — not a string and not an array', async () => {
@@ -274,7 +349,6 @@ describe('useAuth', () => {
 
       expect(auth.token.value).toBe(FRESH_TOKEN);
       expect(localStorage.getItem('token')).toBe(FRESH_TOKEN);
-      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
     });
 
     it('refresh() rejects an array whose first element is not a string (`[123]`)', async () => {
@@ -384,7 +458,7 @@ describe('useAuth', () => {
       expect(auth.isAuthenticated.value).toBe(false);
     });
 
-    it('enforces both-or-neither: a dangling user (no token) is cleared from localStorage and state', () => {
+    it('enforces both-or-neither: a dangling user (no token) is cleared from localStorage and state', async () => {
       // Copilot Fix 2: the pre-fix syncFromStorage() only cleaned up a
       // dangling token; a dangling user survived. Components that read
       // `auth.user.value` directly (e.g. UserView.vue's mount hook) would
@@ -394,7 +468,6 @@ describe('useAuth', () => {
       localStorage.setItem('user', JSON.stringify(user));
       // no token key — simulates a crash between the two setItem calls,
       // or a dev-tools manipulation.
-      axios.defaults.headers.common.Authorization = 'Bearer stale';
 
       const auth = useAuth();
 
@@ -403,9 +476,20 @@ describe('useAuth', () => {
       expect(auth.isAuthenticated.value).toBe(false);
       // Stored user must be cleaned up too, not just the in-memory ref.
       expect(localStorage.getItem('user')).toBeNull();
-      // And the axios default header must be cleared so the next request
-      // cannot send a stale Bearer.
-      expect(axios.defaults.headers.common.Authorization).toBeUndefined();
+      // v11.0 closeout F1: outbound assertion — the apiClient request
+      // interceptor reads useAuth().token.value; with no token, no
+      // Authorization header is sent. Strictly stronger than the old
+      // `expect(axios.defaults.headers.common.Authorization).toBeUndefined()`
+      // which only inspected axios internal state.
+      let capturedAuth: string | null = 'UNSET';
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBeNull();
     });
 
     it('rehydrates cleanly when both token and user are present', () => {
@@ -446,18 +530,39 @@ describe('useAuth', () => {
       expect(auth.isAuthenticated.value).toBe(false);
     });
 
-    it('handle401() clears the axios default header so queued requests stop sending the stale Bearer', () => {
+    it('handle401() stops apiClient from sending the stale Bearer on queued requests', async () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
-      expect(axios.defaults.headers.common.Authorization).toBe(`Bearer ${FRESH_TOKEN}`);
 
-      // interceptor path: it already deletes the default header but we test
-      // that handle401() tolerates either order (idempotent cleanup).
+      // Sanity: before handle401() the apiClient interceptor sends Bearer.
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
+
+      // interceptor path: it already deletes the localStorage keys, but we
+      // test that handle401() tolerates either order (idempotent cleanup).
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       auth.handle401();
 
-      expect(axios.defaults.headers.common.Authorization).toBeUndefined();
+      // v11.0 closeout F1: observable outbound behaviour — the request
+      // interceptor reads useAuth().token.value, so after handle401()
+      // no Bearer is sent.
+      capturedAuth = 'UNSET';
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+      await apiClient.get('/api/ping');
+      expect(capturedAuth).toBeNull();
     });
 
     it('multiple useAuth() calls share the same reactive state (module-level singleton)', () => {

@@ -27,14 +27,80 @@
  * (`checkJobStatus`) for the canonical example.
  */
 
-import axios, { AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosHeaders,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
 
 // Re-export the configured singleton from the existing plugin so anyone who
 // imports it via `@/api/client` ends up on the same instance as `@/plugins/
 // axios` consumers.  Importing the plugin here ensures its initialisation
-// side-effects (Authorization header, 401 interceptor) have run before any
+// side-effects (baseURL, 401 interceptor) have run before any
 // api/ call site fires.
 import '@/plugins/axios';
+
+// v11.0 closeout F1: single injection point for the Authorization header
+// on authenticated app-session requests. The interceptor reads
+// `useAuth().token.value` on every outbound call, so mutations to
+// `axios.defaults.headers.common.Authorization` are forbidden outside
+// the two enumerated exceptions (§3.4: LoginView bootstrap handshake and
+// PasswordResetView route-param JWT).
+//
+// Import cycle note: `useAuth` imports `@/api/auth` (for refresh) which
+// imports `apiClient` from this file. That cycle is resolved at runtime
+// because `useAuth()` is only called inside the interceptor callback —
+// never at this module's top-level evaluation. When a request fires,
+// both modules are fully initialised.
+import { useAuth } from '@/composables/useAuth';
+
+// Does the request config already carry an `Authorization` header?
+// Handles both `AxiosHeaders` and plain-object shapes, matches the
+// header name case-insensitively (HTTP headers are case-insensitive and
+// axios normalises on flight, but a call site may write any case).
+function hasAuthorizationHeader(
+  headers: AxiosRequestConfig['headers'],
+): boolean {
+  if (!headers) {
+    return false;
+  }
+  if (headers instanceof AxiosHeaders) {
+    return headers.has('Authorization');
+  }
+  return Object.keys(headers).some(
+    (key) => key.toLowerCase() === 'authorization',
+  );
+}
+
+axios.interceptors.request.use((config) => {
+  // Preserve any explicit per-request `Authorization` header (for example,
+  // the closeout's enumerated exception flows — `LoginView` bootstrap
+  // handshake and `PasswordResetView` route-param JWT — which must supply
+  // their own Bearer token). Only inject the app-session token when the
+  // call site did not already specify one.
+  if (hasAuthorizationHeader(config.headers)) {
+    return config;
+  }
+  const auth = useAuth();
+  const token = auth.token.value;
+  if (token) {
+    // Axios v1 normalises `config.headers` to `AxiosHeaders` before the
+    // interceptor fires, but the type annotation allows `undefined`. Use
+    // the `AxiosHeaders.set` API so the header survives the downstream
+    // transformRequest pass without depending on the Record-cast escape
+    // hatch.
+    if (!config.headers) {
+      config.headers = new AxiosHeaders();
+    }
+    if (config.headers instanceof AxiosHeaders) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 // ---------------------------------------------------------------------------
 // Public API

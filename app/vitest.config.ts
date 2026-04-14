@@ -54,6 +54,9 @@ export default mergeConfig(
         // explicit approval. Phase D is expected to push this into the
         // 20–30 range; Phase E further. When a phase does not raise
         // coverage, add a comment here explaining why.
+        //
+        // Closeout F3 pins the post-migration ratchet (§6 spec). Numbers
+        // below stay at the Phase C floor until F3 measures and rebumps.
         thresholds: {
           lines: 13,
           functions: 9,

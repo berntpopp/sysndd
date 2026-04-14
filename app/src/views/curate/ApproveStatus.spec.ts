@@ -185,8 +185,14 @@ const originalViteApiUrl = envBag.VITE_API_URL;
 beforeEach(() => {
   setActivePinia(createPinia());
   envBag.VITE_API_URL = '';
+  // ApproveStatus.vue still constructs its Authorization header inline via
+  // `Bearer ${localStorage.getItem('token')}`, so seeding `localStorage` is
+  // sufficient. v11.0 closeout F1 removed the parallel
+  // `axios.defaults.headers.common.Authorization` seeding that this test
+  // used to set — the apiClient request interceptor now reads
+  // `useAuth().token.value` on every outbound call. F2a migrates the view
+  // to apiClient and the spec to `primeAuth()`.
   window.localStorage.setItem('token', 'test-token');
-  axios.defaults.headers.common.Authorization = 'Bearer test-token';
   routerPushMock.mockClear();
 });
 
@@ -197,7 +203,6 @@ afterEach(() => {
     envBag.VITE_API_URL = originalViteApiUrl;
   }
   window.localStorage.clear();
-  delete axios.defaults.headers.common.Authorization;
 });
 
 // ---------------------------------------------------------------------------
@@ -442,8 +447,13 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
 
     // Interceptor contract from `src/plugins/axios.ts`:
     //   - calls `router.push({ path: '/Login', query: { redirect: ... } })`
-    //   - clears the Authorization default header
-    //   - wipes `localStorage.token`
+    //   - wipes `localStorage.token` and `localStorage.user`
+    //
+    // v11.0 closeout F1 note: the interceptor no longer deletes
+    // `axios.defaults.headers.common.Authorization` — that field is no
+    // longer the source of truth for the Bearer header. The `apiClient`
+    // request interceptor reads `useAuth().token.value` on every
+    // outbound call, so clearing localStorage is sufficient.
     expect(routerPushMock).toHaveBeenCalledTimes(1);
     const pushArg = routerPushMock.mock.calls[0][0] as {
       path: string;
@@ -454,7 +464,6 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     // interceptor must include it as the `redirect` query.
     expect(pushArg.query).toEqual({ redirect: '/curate/approve-status' });
 
-    expect(axios.defaults.headers.common.Authorization).toBeUndefined();
     expect(window.localStorage.getItem('token')).toBeNull();
   });
 
