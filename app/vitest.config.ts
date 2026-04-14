@@ -55,13 +55,22 @@ export default mergeConfig(
         // 20–30 range; Phase E further. When a phase does not raise
         // coverage, add a comment here explaining why.
         //
-        // Closeout F3 pins the post-migration ratchet (§6 spec). Numbers
-        // below stay at the Phase C floor until F3 measures and rebumps.
+        // Closeout F3 (2026-04-14+): ratchet reconciled to post-migration
+        // measured floor. Measured on the combined v11.0/closeout branch
+        // (PR #283 — F2a/F2b/F2c/F2d/F2e + F1 test-followup):
+        //   lines:      25.45% → 25
+        //   functions:  19.32% → 19
+        //   branches:   19.42% → 19
+        //   statements: 24.89% → 24
+        // Rounded down per the integer rule (never round up). v11.1 target
+        // is 30/25/25/30 (advisory — per-resource `api/*.ts` fill-out and
+        // httpOnly-cookie migration lift the numerator). See
+        // `docs/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §6.
         thresholds: {
-          lines: 13,
-          functions: 9,
-          branches: 12,
-          statements: 13,
+          lines: 25,
+          functions: 19,
+          branches: 19,
+          statements: 24,
         },
       },
     },
