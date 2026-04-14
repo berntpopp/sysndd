@@ -25,16 +25,9 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/test-utils/**',
     '**/*.spec.ts',
 
-    // F2b pending migrations (9 files)
-    'src/views/RegisterView.vue',
-    'src/views/admin/ManageOntology.vue',
-    'src/views/admin/ManageUser.vue',
-    'src/views/admin/ManageBackups.vue',
-    'src/views/curate/ApproveUser.vue',
-    'src/views/curate/ModifyEntity.vue',
-    'src/composables/useBatchForm.ts',
-    'src/components/small/IconPairDropdownMenu.vue',
-    'src/components/tables/TablesLogs.vue',
+    // F2a + F2b migrations landed — the 23 Tier-1/Tier-2 files now route
+    // through `useAuth()` / `apiClient` and no longer need the ignore
+    // entries. See `.plans/v11.0/closeout.md` §3 F2a and §3 F2b.
 
     // F2c pending migration (1 file)
     'src/views/review/Review.vue',

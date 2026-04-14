@@ -769,6 +769,11 @@ import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
+// v11.0 closeout F2b: apiClient handles Bearer header injection via the
+// shared request interceptor; call sites no longer read localStorage
+// directly.
+import { apiClient } from '@/api/client';
+
 export default {
   name: 'ModifyEntity',
   components: {
@@ -1299,15 +1304,7 @@ export default {
       const submission = new Submission(this.entity_info);
 
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          { rename_json: submission },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, { rename_json: submission });
 
         this.makeToast(
           `${'The new disease name for this entity has been submitted ' + '(status '}${
@@ -1340,15 +1337,7 @@ export default {
       const submission = new Submission(this.entity_info);
 
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          { deactivate_json: submission },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, { deactivate_json: submission });
 
         this.makeToast(
           `${'The deactivation for this entity has been submitted ' + '(status '}${
@@ -1408,15 +1397,7 @@ export default {
 
       // perform update POST request
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          { review_json: this.review_info },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, { review_json: this.review_info });
 
         this.makeToast(
           `${'The new review for this entity has been submitted ' + '(status '}${

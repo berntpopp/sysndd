@@ -741,6 +741,12 @@ import {
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
+// v11.0 closeout F2b: every authed call below routes through apiClient.
+// The request interceptor injects `Authorization: Bearer <token>` from
+// `useAuth().token.value`, so this view no longer reads the session
+// token from storage in 9 separate call sites.
+import { apiClient } from '@/api/client';
+
 // Define validation rules globally
 defineRule('required', required);
 defineRule('min', min);
@@ -1147,15 +1153,9 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_approve`;
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          {
-            user_ids: userIds,
-          },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, {
+          user_ids: userIds,
+        });
 
         if (response.status === 200) {
           this.makeToast(
@@ -1200,16 +1200,10 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_assign_role`;
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          {
-            user_ids: userIds,
-            role: selectedRole,
-          },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, {
+          user_ids: userIds,
+          role: selectedRole,
+        });
 
         if (response.status === 200) {
           this.makeToast(
@@ -1261,15 +1255,9 @@ export default {
 
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/bulk_delete`;
       try {
-        const response = await this.axios.post(
-          apiUrl,
-          {
-            user_ids: userIds,
-          },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
+        const response = await apiClient.raw.post(apiUrl, {
+          user_ids: userIds,
+        });
 
         if (response.status === 200) {
           this.makeToast(
@@ -1389,9 +1377,7 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/table?${urlParam}`;
 
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await apiClient.raw.get(apiUrl);
         moduleApiCallInProgress = false;
         moduleLastApiResponse = response.data;
         this.applyApiResponse(response.data);
@@ -1487,9 +1473,7 @@ export default {
     async loadRoleList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/role_list`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await apiClient.raw.get(apiUrl);
         this.role_options = response.data.map((item) => ({ value: item.role, text: item.role }));
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -1498,9 +1482,7 @@ export default {
     async loadUserList() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        });
+        const response = await apiClient.raw.get(apiUrl);
         this.user_options = response.data.map((item) => ({
           value: item.user_id,
           text: item.user_name,
@@ -1518,9 +1500,8 @@ export default {
     async confirmDeleteUser() {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/delete`;
       try {
-        const response = await this.axios.delete(apiUrl, {
+        const response = await apiClient.raw.delete(apiUrl, {
           data: { user_id: this.userToDelete.user_id },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         if (response.status === 200) {
           this.makeToast('User deleted successfully', 'Success', 'success');
@@ -1576,13 +1557,7 @@ export default {
         updatePayload.comment = this.userToUpdate.comment;
       }
       try {
-        const response = await this.axios.put(
-          apiUrl,
-          { user_details: updatePayload },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
+        const response = await apiClient.raw.put(apiUrl, { user_details: updatePayload });
         if (response.status === 200) {
           this.makeToast('User updated successfully', 'Success', 'success');
           this.loadData(); // Reload the table data
@@ -1682,18 +1657,12 @@ export default {
       const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
 
       try {
-        const response = await this.axios.put(
-          apiUrl,
-          {
-            user_id_pass_change: this.userToUpdate.user_id,
-            old_pass: '', // Admin can change password without knowing old password
-            new_pass_1: this.passwordChange.newPassword,
-            new_pass_2: this.passwordChange.confirmPassword,
-          },
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          }
-        );
+        const response = await apiClient.raw.put(apiUrl, {
+          user_id_pass_change: this.userToUpdate.user_id,
+          old_pass: '', // Admin can change password without knowing old password
+          new_pass_1: this.passwordChange.newPassword,
+          new_pass_2: this.passwordChange.confirmPassword,
+        });
 
         if (response.status === 200) {
           this.makeToast(
