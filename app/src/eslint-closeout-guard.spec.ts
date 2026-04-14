@@ -26,7 +26,11 @@
 // File path used for `lintText` is important: the fixture path must sit
 // under `src/` and NOT match any entry in the config's `ignores` array
 // (so not a spec file, not composables/useAuth.ts, etc.). We use
-// `src/__closeout-guard-fixture__.ts` which passes all those filters.
+// `src/api/client.ts` — an existing TypeScript source file that is in
+// tsconfig, matches the rule's `files` glob, and is NOT in its
+// `ignores` list. typescript-eslint's `parserOptions.project`
+// requires the path to exist in the TS project; `lintText` reads the
+// AST from the passed-in code string regardless.
 
 import { describe, it, expect, beforeAll } from 'vitest';
 import { ESLint } from 'eslint';
@@ -62,7 +66,7 @@ async function lintSnippet(code: string): Promise<ESLint.LintResult> {
   return result;
 }
 
-function hasClosoutViolation(result: ESLint.LintResult): boolean {
+function hasCloseoutViolation(result: ESLint.LintResult): boolean {
   return result.messages.some(
     (m) =>
       m.ruleId === 'no-restricted-syntax' &&
@@ -74,105 +78,105 @@ function hasClosoutViolation(result: ESLint.LintResult): boolean {
 describe('closeout §8.1 guardrail — MemberExpression selectors', () => {
   it('flags `localStorage.token` (direct, static)', async () => {
     const r = await lintSnippet('if (localStorage.token) { /* noop */ }');
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it('flags `localStorage.user` (direct, static)', async () => {
     const r = await lintSnippet('const u = localStorage.user;');
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `localStorage['token']` (direct, computed)", async () => {
     const r = await lintSnippet(`const t = localStorage['token'];`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `localStorage['user']` (direct, computed)", async () => {
     const r = await lintSnippet(`const u = localStorage['user'];`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it('flags `window.localStorage.token` (window-qualified, static)', async () => {
     const r = await lintSnippet('const t = window.localStorage.token;');
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `window.localStorage['token']` (window-qualified, computed)", async () => {
     const r = await lintSnippet(`const t = window.localStorage['token'];`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it('flags `globalThis.localStorage.user` (globalThis-qualified, static)', async () => {
     const r = await lintSnippet('const u = globalThis.localStorage.user;');
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `globalThis.localStorage['user']` (globalThis-qualified, computed)", async () => {
     const r = await lintSnippet(`const u = globalThis.localStorage['user'];`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it('does NOT flag non-token/user keys (e.g. `localStorage.banner_acknowledged`)', async () => {
     const r = await lintSnippet('const b = localStorage.banner_acknowledged;');
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 
   it('does NOT flag non-localStorage receivers (e.g. `sessionStorage.token`)', async () => {
     const r = await lintSnippet('const t = sessionStorage.token;');
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 });
 
 describe('closeout §8.1 guardrail — CallExpression selectors', () => {
   it("flags `localStorage.getItem('token')`", async () => {
     const r = await lintSnippet(`const t = localStorage.getItem('token');`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `localStorage.setItem('user', '…')`", async () => {
     const r = await lintSnippet(`localStorage.setItem('user', '{}');`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `localStorage.removeItem('token')`", async () => {
     const r = await lintSnippet(`localStorage.removeItem('token');`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `window.localStorage.getItem('token')`", async () => {
     const r = await lintSnippet(
       `const t = window.localStorage.getItem('token');`,
     );
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `window.localStorage.setItem('user', …)`", async () => {
     const r = await lintSnippet(`window.localStorage.setItem('user', '{}');`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `globalThis.localStorage.getItem('user')`", async () => {
     const r = await lintSnippet(
       `const u = globalThis.localStorage.getItem('user');`,
     );
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("flags `globalThis.localStorage.removeItem('token')`", async () => {
     const r = await lintSnippet(`globalThis.localStorage.removeItem('token');`);
-    expect(hasClosoutViolation(r)).toBe(true);
+    expect(hasCloseoutViolation(r)).toBe(true);
   });
 
   it("does NOT flag `localStorage.getItem('banner_acknowledged')` (non-sensitive key)", async () => {
     const r = await lintSnippet(
       `const b = localStorage.getItem('banner_acknowledged');`,
     );
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 
   it('does NOT flag `sessionStorage.getItem(\'token\')`', async () => {
     const r = await lintSnippet(`const t = sessionStorage.getItem('token');`);
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 });
 
@@ -182,11 +186,11 @@ describe('closeout §8.1 guardrail — clean code passes', () => {
       `import useAuth from '@/composables/useAuth';
        const t = useAuth().token.value;`,
     );
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 
   it('accepts code that does not touch localStorage at all', async () => {
     const r = await lintSnippet('const x = 42; export { x };');
-    expect(hasClosoutViolation(r)).toBe(false);
+    expect(hasCloseoutViolation(r)).toBe(false);
   });
 });
