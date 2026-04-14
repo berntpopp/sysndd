@@ -231,12 +231,10 @@ defineEmits<{
   (e: 'regenerate', type: ClusterType): void;
 }>();
 
+// v11.0 closeout F2a: `useLlmAdmin` no longer takes a token parameter — the
+// `apiClient` request interceptor injects the Bearer header on every
+// outbound call. See `.plans/v11.0/closeout.md` §3 F2a.
 const { fetchCachedSummaries } = useLlmAdmin();
-
-// Helper to get auth token from localStorage
-function getToken(): string | null {
-  return localStorage.getItem('token');
-}
 
 const summaries = ref<CachedSummary[]>([]);
 const loading = ref(false);
@@ -301,12 +299,9 @@ function viewDetails(summary: CachedSummary) {
 }
 
 async function loadSummaries() {
-  const token = getToken();
-  if (!token) return;
-
   loading.value = true;
   try {
-    const result = await fetchCachedSummaries(token, {
+    const result = await fetchCachedSummaries({
       cluster_type: filters.cluster_type,
       validation_status: filters.validation_status,
       page: page.value,

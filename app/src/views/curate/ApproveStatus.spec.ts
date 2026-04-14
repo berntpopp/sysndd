@@ -36,6 +36,14 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/test-utils/mocks/server';
 import { statusByIdOk } from '@/test-utils/mocks/data/statuses';
 import { authenticateUnauthorized } from '@/test-utils/mocks/data/auth';
+// v11.0 closeout F2a: Bearer-header assertion helpers added alongside the
+// pre-existing C3 behaviour. `primeAuth` seeds `useAuth` (not localStorage
+// directly) so the F1 interceptor injects the token on every outbound
+// call; `expectBearerHeader` fails the test from inside the MSW resolver
+// if the header value drifts from the seeded one.
+import { primeAuth } from '@/test-utils/primeAuth';
+import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
+import useAuth from '@/composables/useAuth';
 
 // ---------------------------------------------------------------------------
 // Composable mocks (mirrors the stub set used by ApproveStatus.a11y.spec.ts)
@@ -182,17 +190,19 @@ const listStatusTreeOk = [
 const envBag = import.meta.env as unknown as Record<string, string>;
 const originalViteApiUrl = envBag.VITE_API_URL;
 
+const SEEDED_TOKEN = 'test-token';
+
 beforeEach(() => {
   setActivePinia(createPinia());
   envBag.VITE_API_URL = '';
-  // ApproveStatus.vue still constructs its Authorization header inline via
-  // `Bearer ${localStorage.getItem('token')}`, so seeding `localStorage` is
-  // sufficient. v11.0 closeout F1 removed the parallel
-  // `axios.defaults.headers.common.Authorization` seeding that this test
-  // used to set — the apiClient request interceptor now reads
-  // `useAuth().token.value` on every outbound call. F2a migrates the view
-  // to apiClient and the spec to `primeAuth()`.
-  window.localStorage.setItem('token', 'test-token');
+  // v11.0 closeout F2a: ApproveStatus.vue no longer constructs its
+  // `Authorization: Bearer …` header inline. We seed the session via
+  // `primeAuth()` so `useAuth().token.value === SEEDED_TOKEN`; the
+  // apiClient request interceptor (`@/api/client`) then injects the
+  // Bearer on every outbound call. The previous localStorage.setItem
+  // call has been replaced — the abstraction seam, not the storage
+  // backend, is the test contract now.
+  primeAuth(SEEDED_TOKEN);
   routerPushMock.mockClear();
 });
 
@@ -202,6 +212,7 @@ afterEach(() => {
   } else {
     envBag.VITE_API_URL = originalViteApiUrl;
   }
+  useAuth().logout();
   window.localStorage.clear();
 });
 
@@ -354,11 +365,18 @@ const installListLoadingStubs = (listRows: StatusTableRow[]): void => {
     http.get('/api/list/status', () => HttpResponse.json(listStatusTreeOk)),
     // GET /api/status — the main pending-status list. Always returns the
     // current `listRows` snapshot so sequential calls (initial load +
-    // post-approve reload) see the caller's latest mutation.
-    http.get('/api/status', () => HttpResponse.json(listRows)),
+    // post-approve reload) see the caller's latest mutation. v11.0
+    // closeout F2a: asserts the interceptor-injected Bearer header.
+    http.get('/api/status', ({ request }) => {
+      expectBearerHeader(request, SEEDED_TOKEN);
+      return HttpResponse.json(listRows);
+    }),
     // GET /api/status/:id — override to the R/Plumber 1-element-array shape
     // that `loadStatusInfo` expects (`response.data[0].category_id`).
-    http.get('/api/status/:id', () => HttpResponse.json([statusByIdOk]))
+    http.get('/api/status/:id', ({ request }) => {
+      expectBearerHeader(request, SEEDED_TOKEN);
+      return HttpResponse.json([statusByIdOk]);
+    })
   );
 };
 
@@ -373,10 +391,22 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     const listState: { rows: StatusTableRow[] } = { rows: [...pendingRows] };
     server.use(
       http.get('/api/list/status', () => HttpResponse.json(listStatusTreeOk)),
-      http.get('/api/status', () => HttpResponse.json(listState.rows)),
+      // v11.0 closeout F2a: every resolver now verifies the Bearer header
+      // injected by the apiClient request interceptor.
+      http.get('/api/status', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json(listState.rows);
+      }),
       // Override GET /api/status/:id (B1 table) to return the R/Plumber
       // 1-element-array shape `loadStatusInfo` expects.
-      http.get('/api/status/:id', () => HttpResponse.json([statusByIdOk]))
+      http.get('/api/status/:id', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json([statusByIdOk]);
+      }),
+      http.put('/api/status/approve/:id', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json({ ok: true });
+      })
     );
 
     const wrapper = await mountApproveStatus();
@@ -478,8 +508,19 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
     const listState: { rows: StatusTableRow[] } = { rows: [...pendingRows] };
     server.use(
       http.get('/api/list/status', () => HttpResponse.json(listStatusTreeOk)),
-      http.get('/api/status', () => HttpResponse.json(listState.rows)),
-      http.get('/api/status/:id', () => HttpResponse.json([statusByIdOk]))
+      // v11.0 closeout F2a: same Bearer assertion as the happy-path test.
+      http.get('/api/status', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json(listState.rows);
+      }),
+      http.get('/api/status/:id', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json([statusByIdOk]);
+      }),
+      http.put('/api/status/approve/:id', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json({ ok: true });
+      })
     );
 
     const wrapper = await mountApproveStatus();

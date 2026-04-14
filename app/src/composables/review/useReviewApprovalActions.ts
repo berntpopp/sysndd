@@ -21,9 +21,15 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 type AxiosLike = AxiosInstance | Record<string, unknown>;
 
-const authHeaders = (): { Authorization: string } => ({
-  Authorization: `Bearer ${localStorage.getItem('token')}`,
-});
+// v11.0 closeout F2a: the inline `authHeaders()` helper that read the
+// session token from localStorage and emitted it as an Authorization
+// header has been removed. Every PUT/POST below used to pass
+// `{ headers: authHeaders() }`; those explicit header options are gone.
+// The `apiClient` request interceptor (`@/api/client`) reads
+// `useAuth().token.value` and injects the Bearer header on every outbound
+// call against the shared axios singleton — which the spec-provided
+// `axiosClient` (either the real singleton or a Vitest mock)
+// participates in.
 
 export interface ReviewInfoPartial {
   review_id?: number | null;
@@ -189,8 +195,7 @@ export function approveReview(axiosClient: AxiosLike, reviewId: number | string 
   const ax = axiosClient as AxiosInstance;
   return ax.put(
     `${apiBase()}/api/review/approve/${reviewId}?review_ok=true`,
-    {},
-    { headers: authHeaders() }
+    {}
   );
 }
 
@@ -199,8 +204,7 @@ export function dismissReview(axiosClient: AxiosLike, reviewId: number | string 
   const ax = axiosClient as AxiosInstance;
   return ax.put(
     `${apiBase()}/api/review/approve/${reviewId}?review_ok=false`,
-    {},
-    { headers: authHeaders() }
+    {}
   );
 }
 
@@ -209,8 +213,7 @@ export function approveStatus(axiosClient: AxiosLike, statusId: number | string 
   const ax = axiosClient as AxiosInstance;
   return ax.put(
     `${apiBase()}/api/status/approve/${statusId}?status_ok=true`,
-    {},
-    { headers: authHeaders() }
+    {}
   );
 }
 
@@ -219,8 +222,7 @@ export function approveAllReviews(axiosClient: AxiosLike) {
   const ax = axiosClient as AxiosInstance;
   return ax.put(
     `${apiBase()}/api/review/approve/all?review_ok=true`,
-    {},
-    { headers: authHeaders() }
+    {}
   );
 }
 
@@ -254,8 +256,7 @@ export function submitReviewUpdate(axiosClient: AxiosLike, payload: ReviewSubmit
   payload.reviewInfo.variation_ontology = variation;
   return ax.put(
     `${apiBase()}/api/review/update`,
-    { review_json: payload.reviewInfo },
-    { headers: authHeaders() }
+    { review_json: payload.reviewInfo }
   );
 }
 
@@ -264,8 +265,7 @@ export function submitStatusUpdate(axiosClient: AxiosLike, statusInfo: StatusInf
   const ax = axiosClient as AxiosInstance;
   return ax.put(
     `${apiBase()}/api/status/update`,
-    { status_json: statusInfo },
-    { headers: authHeaders() }
+    { status_json: statusInfo }
   );
 }
 
@@ -274,7 +274,6 @@ export function submitStatusCreate(axiosClient: AxiosLike, statusInfo: StatusInf
   const ax = axiosClient as AxiosInstance;
   return ax.post(
     `${apiBase()}/api/status/create`,
-    { status_json: statusInfo },
-    { headers: authHeaders() }
+    { status_json: statusInfo }
   );
 }

@@ -115,18 +115,23 @@ export function shortStepLabel(step: string | null | undefined): string {
 }
 
 /**
- * Build the bearer-token + withCredentials axios config used by every
- * authenticated call on the Manage Annotations view.  Reads the token
- * from localStorage at call time — auth consolidation continues in E7.
+ * Build the axios config used by every authenticated call on the Manage
+ * Annotations view.
+ *
+ * v11.0 closeout F2a: the inline Authorization header that used to be
+ * populated here has been removed. The `apiClient` request interceptor
+ * (`@/api/client`) now reads `useAuth().token.value` and injects the
+ * Bearer header on every outbound call against the shared axios
+ * singleton, so call sites (in `useAnnotationsApi.ts` and elsewhere) no
+ * longer need to supply one.
+ *
+ * The return type stays a `withCredentials: true` opt-in so existing
+ * spread-into-config call sites keep compiling unchanged.
  */
 export function authRequestConfig(): {
-  headers: Record<string, string>;
   withCredentials: true;
 } {
   return {
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('token') ?? ''}`,
-    },
     withCredentials: true,
   };
 }

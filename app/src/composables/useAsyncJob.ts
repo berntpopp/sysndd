@@ -207,10 +207,14 @@ export function useAsyncJob(
     if (!jobId.value) return;
 
     try {
+      // v11.0 closeout F2a: the inline Authorization header construction
+      // here has been removed. The `apiClient` request interceptor
+      // (`@/api/client`) reads `useAuth().token.value` and injects the
+      // Bearer header on every outbound call against the shared axios
+      // singleton. The `withCredentials` opt-in remains — Traefik's
+      // sticky-session cookie (`sysndd_api_sticky`) is what keeps polling
+      // pinned to the container that owns the job.
       const response = await axios.get(statusEndpoint(jobId.value), {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
         withCredentials: true, // Required for sticky session cookies with load balancer
       });
 

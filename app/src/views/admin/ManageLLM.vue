@@ -207,11 +207,6 @@ import LlmCacheManager from '@/components/llm/LlmCacheManager.vue';
 import LlmLogViewer from '@/components/llm/LlmLogViewer.vue';
 import type { PromptType, ClusterType } from '@/types/llm';
 
-// Helper to get auth token from localStorage
-function getToken(): string | null {
-  return localStorage.getItem('token');
-}
-
 const { makeToast } = useToast();
 const {
   config,
@@ -248,24 +243,23 @@ onMounted(async () => {
   await refreshAll();
 });
 
-// Methods
+// Methods.
+// v11.0 closeout F2a: the `useLlmAdmin` composable no longer accepts a
+// `token` parameter — the `apiClient` request interceptor reads
+// `useAuth().token.value` on every outbound call and injects the Bearer
+// header. Call sites therefore just call `fetchConfig()` / `fetchPrompts()`
+// / etc. directly. See `.plans/v11.0/closeout.md` §3 F2a.
 async function refreshAll() {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    await Promise.all([fetchConfig(token), fetchPrompts(token), fetchCacheStats(token)]);
+    await Promise.all([fetchConfig(), fetchPrompts(), fetchCacheStats()]);
   } catch {
     makeToast('Failed to load LLM configuration', 'Error', 'danger');
   }
 }
 
 async function handleModelUpdate(model: string) {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    await updateModel(token, model);
+    await updateModel(model);
     makeToast(`Model updated to ${model}`, 'Success', 'success');
   } catch {
     makeToast('Failed to update model', 'Error', 'danger');
@@ -273,37 +267,28 @@ async function handleModelUpdate(model: string) {
 }
 
 async function handlePromptSave(type: PromptType, template: string, version: string) {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    await updatePrompt(token, type, template, version);
+    await updatePrompt(type, template, version);
     makeToast('Prompt template saved', 'Success', 'success');
-    await fetchPrompts(token);
+    await fetchPrompts();
   } catch {
     makeToast('Failed to save prompt', 'Error', 'danger');
   }
 }
 
 async function handleCacheClear(type: ClusterType | 'all') {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    const result = await clearCache(token, type);
+    const result = await clearCache(type);
     makeToast(`Cleared ${result.cleared_count} cached summaries`, 'Success', 'success');
-    await fetchCacheStats(token);
+    await fetchCacheStats();
   } catch {
     makeToast('Failed to clear cache', 'Error', 'danger');
   }
 }
 
 async function handleRegenerate(type: ClusterType | 'all', force = false) {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    const result = await triggerRegeneration(token, type, force);
+    const result = await triggerRegeneration(type, force);
     regenerationJob.startJob(result.job_id);
     makeToast('Regeneration job started', 'Info', 'info');
   } catch {
@@ -318,13 +303,10 @@ async function handleClearAndRegenerate() {
 }
 
 async function handleValidate(cacheId: number, action: 'validate' | 'reject') {
-  const token = getToken();
-  if (!token) return;
-
   try {
-    await updateValidationStatus(token, cacheId, action);
+    await updateValidationStatus(cacheId, action);
     makeToast(`Summary ${action}d successfully`, 'Success', 'success');
-    await fetchCacheStats(token);
+    await fetchCacheStats();
   } catch {
     makeToast(`Failed to ${action} summary`, 'Error', 'danger');
   }

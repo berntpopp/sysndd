@@ -435,9 +435,13 @@ async function loadVariationOntologyList(): Promise<void> {
 async function loadReviewTableData(): Promise<void> {
   isBusy.value = true;
   try {
-    const r = await getAxios().get(`${import.meta.env.VITE_API_URL}/api/review`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
+    // v11.0 closeout F2a: the inline Authorization header construction
+    // here has been removed. The `apiClient` request interceptor
+    // (`@/api/client`) reads `useAuth().token.value` and injects the
+    // Bearer header on every outbound call against the shared axios
+    // singleton. `getAxios()` resolves to either the `this.axios` test
+    // proxy or the singleton, both of which flow through the interceptor.
+    const r = await getAxios().get(`${import.meta.env.VITE_API_URL}/api/review`);
     items_ReviewTable.value = r.data;
     totalRows.value = r.data.length;
   } catch (e) {

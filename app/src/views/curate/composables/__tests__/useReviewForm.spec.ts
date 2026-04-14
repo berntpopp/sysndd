@@ -493,4 +493,53 @@ describe('useReviewForm', () => {
       expect(hasChanges.value).toBe(false);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // v11.0 closeout F2a: authenticated submit no longer attaches an inline
+  // Authorization header — the apiClient request interceptor
+  // (`@/api/client`) injects the Bearer token on every outbound call against
+  // the shared axios singleton. The existing tests above mock the axios
+  // module wholesale, which means the interceptor never fires (we're not
+  // talking to the real axios). We can still assert the *source-level*
+  // contract: the PUT config passed to axios.put() no longer carries a
+  // `headers` field. If a future regression re-adds the inline header,
+  // this assertion fails — which is exactly the tighter Layer 2 contract
+  // the closeout plan requires. No existing assertion is weakened.
+  // ---------------------------------------------------------------------------
+  describe('F2a: submit no longer supplies an inline Authorization header', () => {
+    it('axios.put config passed by submitForm has no headers field', async () => {
+      const axiosMod = await import('axios');
+      const mockAxios = axiosMod.default as unknown as {
+        get: ReturnType<typeof vi.fn>;
+        put: ReturnType<typeof vi.fn>;
+      };
+
+      mockAxios.get.mockImplementation((url: string) => {
+        if (url.includes('/publications')) return Promise.resolve({ data: [] });
+        if (url.includes('/phenotypes')) return Promise.resolve({ data: [] });
+        if (url.includes('/variation')) return Promise.resolve({ data: [] });
+        return Promise.resolve({
+          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
+        });
+      });
+      mockAxios.put.mockResolvedValue({ data: { success: true } });
+
+      const { loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      await submitForm(true, false);
+      await flushPromises();
+
+      expect(mockAxios.put).toHaveBeenCalledTimes(1);
+      const config = mockAxios.put.mock.calls[0][2] as
+        | { headers?: Record<string, string>; withCredentials?: boolean }
+        | undefined;
+      // The migrated call passes `{ withCredentials: true }` with no
+      // `headers` — the interceptor is the single header source now.
+      expect(config).toBeDefined();
+      expect(config?.withCredentials).toBe(true);
+      expect(config?.headers).toBeUndefined();
+    });
+  });
 });

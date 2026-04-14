@@ -48,7 +48,18 @@ import {
   reviewByIdOk,
   reviewApproveByIdOk,
 } from '@/test-utils/mocks/data/reviews';
+// v11.0 closeout F2a: Bearer-header assertion helpers added alongside the
+// pre-existing C1 behaviour. `primeAuth` seeds `useAuth` so the apiClient
+// request interceptor injects the token on every outbound axios call;
+// `expectBearerHeader` fails inside the MSW resolver if the header value
+// drifts from the seeded one.
+import { primeAuth } from '@/test-utils/primeAuth';
+import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
+import useAuth from '@/composables/useAuth';
+import { http, HttpResponse } from 'msw';
 import ApproveReview from './ApproveReview.vue';
+
+const SEEDED_TOKEN = 'test-token';
 
 // ---------------------------------------------------------------------------
 // Composable mocks (match the a11y spec's shape so both specs stay symmetric).
@@ -297,10 +308,17 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
     vi.stubEnv('VITE_API_URL', '');
     announceSpy.mockClear();
     makeToastSpy.mockClear();
+    // v11.0 closeout F2a: seed useAuth so the apiClient request
+    // interceptor injects `Authorization: Bearer <SEEDED_TOKEN>` on every
+    // outbound axios call. The previous specs never asserted this; after
+    // F2a the assertion is tightened — every authed outbound request
+    // must carry the Bearer.
+    primeAuth(SEEDED_TOKEN);
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    useAuth().logout();
   });
 
   // ---------------------------------------------------------------------------
@@ -354,6 +372,17 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
   // Happy path
   // ---------------------------------------------------------------------------
   it('happy path: approves a review row, fires PUT /api/review/approve/:id, refreshes the table, and announces success', async () => {
+    // v11.0 closeout F2a addition: intercept the approve PUT with a
+    // resolver that asserts the Bearer header injected by the apiClient
+    // request interceptor. The outer B1 handler in `handlers.ts` remains
+    // untouched — this is a per-test override, allowed by Layer 2.
+    server.use(
+      http.put('/api/review/approve/:id', ({ request }) => {
+        expectBearerHeader(request, SEEDED_TOKEN);
+        return HttpResponse.json(reviewApproveByIdOk);
+      }),
+    );
+
     const { wrapper, routedAxios } = await mountView();
 
     // Seed the table row (the view fetched `/api/review` on mount via the
