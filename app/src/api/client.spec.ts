@@ -14,11 +14,14 @@
  * actually reaches through the axios plugin and its 401 interceptor chain.
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
+import { AxiosHeaders } from 'axios';
 import { apiClient, isApiError, unwrapScalar } from './client';
 import { ERROR_SENTINELS } from '@/test-utils/mocks/handlers';
 import { server } from '@/test-utils/mocks/server';
+import { primeAuth } from '@/test-utils/primeAuth';
+import useAuth from '@/composables/useAuth';
 
 describe('api/client — typed wrapper smoke tests', () => {
   // ---------------------------------------------------------------------------
@@ -161,6 +164,150 @@ describe('api/client — typed wrapper smoke tests', () => {
       // Multi-element arrays are real arrays, not plumber scalar shims.
       const multi = ['a', 'b', 'c'];
       expect(unwrapScalar(multi as unknown as [string])).toEqual(multi);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Request interceptor — Bearer injection & per-call override preservation
+  // ---------------------------------------------------------------------------
+  //
+  // v11.0 closeout F1 (PR #276) moved Bearer injection from
+  // `axios.defaults.headers.common.Authorization` into a request interceptor
+  // that reads `useAuth().token.value`. A Copilot review on that PR surfaced
+  // that the naive interceptor overwrote explicit per-call `Authorization`
+  // headers — which would break the two enumerated exceptions in closeout
+  // spec §3.4 (LoginView bootstrap, PasswordResetView route-param JWT). The
+  // fixed interceptor checks `hasAuthorizationHeader(config.headers)` first
+  // and yields to explicit overrides regardless of case or header shape.
+  //
+  // These tests pin that contract against the real `apiClient` by sending
+  // requests through MSW and observing what the server sees.
+  //
+  describe('request interceptor — Bearer header', () => {
+    afterEach(() => {
+      useAuth().logout();
+    });
+
+    it('injects Bearer from useAuth().token.value when no explicit header is set', async () => {
+      const { token } = primeAuth('session-token-1');
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping');
+      expect(captured).toBe(`Bearer ${token}`);
+    });
+
+    it('omits Authorization when no session token exists', async () => {
+      let captured: string | null = 'UNSET';
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping');
+      expect(captured).toBeNull();
+    });
+
+    it('preserves AxiosHeaders-shaped explicit Authorization override', async () => {
+      primeAuth('session-token-axh');
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      const headers = new AxiosHeaders();
+      headers.set('Authorization', 'Bearer explicit-axh');
+      await apiClient.get('/api/ping', { headers });
+
+      expect(captured).toBe('Bearer explicit-axh');
+      expect(captured).not.toContain('session-token-axh');
+    });
+
+    it('preserves plain-object explicit Authorization override (PascalCase key)', async () => {
+      primeAuth('session-token-po-pascal');
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping', {
+        headers: { Authorization: 'Bearer explicit-pascal' },
+      });
+
+      expect(captured).toBe('Bearer explicit-pascal');
+      expect(captured).not.toContain('session-token-po-pascal');
+    });
+
+    it('preserves plain-object explicit Authorization override (lowercase key)', async () => {
+      // HTTP headers are case-insensitive; axios may receive either casing
+      // from a call site. `hasAuthorizationHeader` walks `Object.keys` and
+      // lowercases each key, so lowercase and upper/mixed case must all be
+      // treated as "already set".
+      primeAuth('session-token-po-lower');
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping', {
+        headers: { authorization: 'Bearer explicit-lower' },
+      });
+
+      expect(captured).toBe('Bearer explicit-lower');
+      expect(captured).not.toContain('session-token-po-lower');
+    });
+
+    it('preserves plain-object explicit Authorization override (UPPERCASE key)', async () => {
+      primeAuth('session-token-po-upper');
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping', {
+        headers: { AUTHORIZATION: 'Bearer explicit-upper' },
+      });
+
+      expect(captured).toBe('Bearer explicit-upper');
+      expect(captured).not.toContain('session-token-po-upper');
+    });
+
+    it('honours explicit Authorization even without a session token', async () => {
+      // Session absent, but the call site supplies its own Bearer — e.g.
+      // LoginView bootstrap uses the just-received JWT locally, before
+      // `useAuth().login()` is called. The interceptor must not strip it.
+      let captured: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          captured = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      await apiClient.get('/api/ping', {
+        headers: { Authorization: 'Bearer bootstrap-jwt' },
+      });
+
+      expect(captured).toBe('Bearer bootstrap-jwt');
     });
   });
 });
