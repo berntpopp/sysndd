@@ -1187,10 +1187,14 @@ export default {
       try {
         // v11.0 closeout F2c: Bearer injection handled by the apiClient
         // request interceptor; no inline Authorization header needed.
-        const data = await apiClient.get(apiUrl);
+        // `apiClient.get` unwraps to `response.data`, so `payload` IS the
+        // R/Plumber JSON body (a `{ data, meta }` envelope on this endpoint).
+        // (TypeScript generic parameter omitted — Review.vue's <script> is
+        // plain JS, not `<script lang="ts">`.)
+        const payload = await apiClient.get(apiUrl);
 
-        this.items = data.data || [];
-        this.totalRows = data.data?.length || 0;
+        this.items = payload.data || [];
+        this.totalRows = payload.data?.length || 0;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

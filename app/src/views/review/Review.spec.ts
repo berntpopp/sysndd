@@ -502,7 +502,11 @@ interface ReviewVm {
   isBusy: boolean;
   loading: boolean;
   user: Record<string, unknown> | null;
-  curator_mode: number;
+  // `data()` initialises `curator_mode: 0`, but `mounted()` reassigns it to
+  // the boolean result of `this.user.user_role[0] === 'Administrator' || ...`
+  // (see Review.vue mounted()). The runtime type is therefore `boolean |
+  // number`; tests must assert against the correct post-mount shape.
+  curator_mode: boolean | number;
   entity: Array<{ re_review_entity_id: number }>;
   status_approved: boolean;
   review_approved: boolean;
@@ -692,35 +696,81 @@ describe('Review.vue — classification wizard (functional)', () => {
 // `useAuth().token.value`.
 // ---------------------------------------------------------------------------
 
-// The apiClient's request interceptor uses AxiosHeaders-or-plain-object
-// branches; for test simulation we hand it a plain object so the mock's
-// `FakeAxiosHeaders` class path is bypassed and the fallback (setting a
-// property directly on the object) is what we assert against. This matches
-// the real apiClient's graceful-degradation path for callers that hand in a
-// bare `headers: {}`.
+// The apiClient request interceptor has two branches for `config.headers`:
+//
+//   if (config.headers instanceof AxiosHeaders) { config.headers.set(...) }
+//   else { (config.headers as Record<string, string>).Authorization = ... }
+//
+// In production, axios v1 normalises `config.headers` to `AxiosHeaders`
+// before interceptors run, so the `instanceof` branch is what fires.
+// Test-simulation must exercise BOTH branches to pin the contract — a
+// regression in either path would be invisible if we only hit one.
+//
+// PR #278 (F1 test-followup) covers the full AxiosHeaders path end-to-end
+// via real apiClient + MSW in `app/src/api/client.spec.ts`. These two
+// helpers cover the F2c-specific interceptor-capture surface.
+
 function simulateApiClientInterceptor(
   axiosMock: CapturedAxiosMock,
   url: string
 ): Request {
+  // Plain-object headers branch: hand the interceptor `{ headers: {} }`
+  // so `instanceof AxiosHeaders` is false and the fallback Record-cast
+  // assignment runs.
   const cb = axiosMock.interceptors.request._cb;
   if (!cb) {
     throw new Error(
       'apiClient request interceptor was never registered — did @/api/client fail to import?'
     );
   }
-  // Start from a bare config, mirroring the shape the real axios normalises
-  // into before running interceptors. Pass a plain-object headers bag so the
-  // fallback branch (`headers as Record<string, string>`) is what we read
-  // from.
   const config: RequestConfigLike = { url, headers: {} };
   const enriched = cb(config);
   const headers = (enriched.headers ?? {}) as Record<string, string>;
-  // Adapt the enriched config back to a fetch-style Request so the shared
-  // `expectBearerHeader()` helper (which targets MSW resolvers) can assert
-  // against the same surface it will use in the rest of the codebase.
   return new Request(`http://localhost${url}`, {
     method: 'GET',
     headers,
+  });
+}
+
+async function simulateApiClientInterceptorWithAxiosHeaders(
+  axiosMock: CapturedAxiosMock,
+  url: string
+): Promise<Request> {
+  // `AxiosHeaders` branch: hand the interceptor a `FakeAxiosHeaders`
+  // instance (from the shared `vi.mock('axios')` factory — re-imported
+  // here via dynamic import so the same mocked module is used). The
+  // interceptor should call `.set('Authorization', …)` on it; we read
+  // the value back via `.get('authorization')` and adapt to a fetch
+  // Request for the shared `expectBearerHeader()` helper.
+  const cb = axiosMock.interceptors.request._cb;
+  if (!cb) {
+    throw new Error(
+      'apiClient request interceptor was never registered — did @/api/client fail to import?'
+    );
+  }
+  const axiosModule = (await import('axios')) as unknown as {
+    AxiosHeaders: new () => {
+      has(k: string): boolean;
+      get(k: string): string | null;
+      set(k: string, v: string): unknown;
+    };
+  };
+  const axiosHeaders = new axiosModule.AxiosHeaders();
+  const config: RequestConfigLike = {
+    url,
+    headers: axiosHeaders as unknown as Record<string, string>,
+  };
+  const enriched = cb(config);
+  const enrichedHeaders = enriched.headers as unknown as {
+    get(name: string): string | null;
+  };
+  const authorization = enrichedHeaders.get('Authorization');
+  const headersBag: Record<string, string> = authorization
+    ? { Authorization: authorization }
+    : {};
+  return new Request(`http://localhost${url}`, {
+    method: 'GET',
+    headers: headersBag,
   });
 }
 
@@ -968,5 +1018,25 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     // announcement (the handler reports "Application send.").
     expect(makeToastSpy).toHaveBeenCalledWith('Application send.', 'Success', 'success');
     expect(announceSpy).toHaveBeenCalledWith('Batch application sent successfully');
+  });
+
+  it('apiClient interceptor injects Bearer header via AxiosHeaders branch (matches axios v1 runtime shape)', async () => {
+    // Copilot review (#280): in production axios v1 normalises
+    // `config.headers` to an `AxiosHeaders` instance before the
+    // interceptor fires, so the `instanceof AxiosHeaders` branch in
+    // `api/client.ts:95-97` is the real code path. The other F2c tests
+    // above exercise the plain-object fallback; this one pins the
+    // `AxiosHeaders` branch from the F2c interceptor-capture surface so a
+    // regression in either branch is visible.
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+
+    const { token } = primeAuth('token-axiosheaders-branch');
+
+    const simulatedRequest = await simulateApiClientInterceptorWithAxiosHeaders(
+      axiosMock,
+      '/api/re_review/table'
+    );
+    expectBearerHeader(simulatedRequest, token);
   });
 });
