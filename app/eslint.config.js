@@ -59,17 +59,30 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/views/curate/ManageReReview.vue',
   ],
   rules: {
+    // The selectors cover three surface forms so the guardrail cannot be
+    // bypassed by qualifying the global:
+    //   - `localStorage.token`          (direct)
+    //   - `window.localStorage.token`   (window-qualified)
+    //   - `globalThis.localStorage.token` (globalThis-qualified)
+    // Both static and computed property syntax (`localStorage['token']`) are
+    // matched for the direct member-access rule.
     'no-restricted-syntax': [
       'error',
       {
-        selector:
-          "MemberExpression[object.name='localStorage'][property.name=/^(token|user)$/]",
+        selector: [
+          "MemberExpression[object.name='localStorage'][computed=false][property.name=/^(token|user)$/]",
+          "MemberExpression[object.name='localStorage'][computed=true][property.value=/^(token|user)$/]",
+          "MemberExpression[object.object.name=/^(window|globalThis)$/][object.property.name='localStorage'][computed=false][property.name=/^(token|user)$/]",
+          "MemberExpression[object.object.name=/^(window|globalThis)$/][object.property.name='localStorage'][computed=true][property.value=/^(token|user)$/]",
+        ].join(', '),
         message:
           'Direct localStorage.token / localStorage.user access is forbidden outside app/src/composables/useAuth.ts. Use useAuth() or apiClient.',
       },
       {
-        selector:
+        selector: [
           "CallExpression[callee.object.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem)$/][arguments.0.value=/^(token|user)$/]",
+          "CallExpression[callee.object.object.name=/^(window|globalThis)$/][callee.object.property.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem)$/][arguments.0.value=/^(token|user)$/]",
+        ].join(', '),
         message:
           "Direct localStorage.{get,set,remove}Item('token'|'user') access is forbidden outside app/src/composables/useAuth.ts. Use useAuth() or apiClient.",
       },

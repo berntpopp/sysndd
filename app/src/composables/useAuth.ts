@@ -216,10 +216,12 @@ function syncFromStorage(): void {
   // every outbound call.
 }
 
-// Hydrate once at import time so the Bearer header is set before the first
-// request fires. `@/plugins/axios` does the same seeding; running this here
-// is redundant but harmless, and protects callers who import this module
-// before `@/plugins/axios`.
+// Hydrate the reactive refs from `localStorage` once at module import time so
+// `useAuth().token.value` and `.user.value` are in sync with the persisted
+// session before the first outbound request fires. The Bearer header itself
+// is no longer seeded anywhere — v11.0 closeout F1 moved that responsibility
+// to the `apiClient` request interceptor (`@/api/client`), which reads
+// `useAuth().token.value` on every outbound call.
 syncFromStorage();
 
 // ---------------------------------------------------------------------------

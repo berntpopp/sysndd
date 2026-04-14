@@ -168,6 +168,31 @@ describe('useAuth', () => {
       expect(capturedAuth).toBeNull();
     });
 
+    it('apiClient preserves a per-request Authorization override', async () => {
+      // The closeout spec §3.4 enumerates two exceptions whose flows MUST
+      // construct their own Bearer header (LoginView bootstrap handshake and
+      // PasswordResetView route-param JWT). The interceptor must yield to an
+      // explicit per-call header, never overwrite it with the session token.
+      const auth = useAuth();
+      auth.login(FRESH_TOKEN, makeFreshUser());
+
+      let capturedAuth: string | null = null;
+      server.use(
+        http.get('*/api/ping', ({ request }) => {
+          capturedAuth = request.headers.get('authorization');
+          return HttpResponse.json({ ok: true });
+        }),
+      );
+
+      const OVERRIDE_TOKEN = 'route-param-jwt';
+      await apiClient.get('/api/ping', {
+        headers: { Authorization: `Bearer ${OVERRIDE_TOKEN}` },
+      });
+      expect(capturedAuth).toBe(`Bearer ${OVERRIDE_TOKEN}`);
+      // The session token must NOT leak into the header.
+      expect(capturedAuth).not.toBe(`Bearer ${FRESH_TOKEN}`);
+    });
+
     it('exposes hasRole() for role-gated UI (matches the A1 scalar-array payload)', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser({ user_role: ['Curator'] }));

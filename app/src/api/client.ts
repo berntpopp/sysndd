@@ -55,7 +55,33 @@ import '@/plugins/axios';
 // both modules are fully initialised.
 import { useAuth } from '@/composables/useAuth';
 
+// Does the request config already carry an `Authorization` header?
+// Handles both `AxiosHeaders` and plain-object shapes, matches the
+// header name case-insensitively (HTTP headers are case-insensitive and
+// axios normalises on flight, but a call site may write any case).
+function hasAuthorizationHeader(
+  headers: AxiosRequestConfig['headers'],
+): boolean {
+  if (!headers) {
+    return false;
+  }
+  if (headers instanceof AxiosHeaders) {
+    return headers.has('Authorization');
+  }
+  return Object.keys(headers).some(
+    (key) => key.toLowerCase() === 'authorization',
+  );
+}
+
 axios.interceptors.request.use((config) => {
+  // Preserve any explicit per-request `Authorization` header (for example,
+  // the closeout's enumerated exception flows — `LoginView` bootstrap
+  // handshake and `PasswordResetView` route-param JWT — which must supply
+  // their own Bearer token). Only inject the app-session token when the
+  // call site did not already specify one.
+  if (hasAuthorizationHeader(config.headers)) {
+    return config;
+  }
   const auth = useAuth();
   const token = auth.token.value;
   if (token) {
@@ -67,7 +93,11 @@ axios.interceptors.request.use((config) => {
     if (!config.headers) {
       config.headers = new AxiosHeaders();
     }
-    config.headers.set('Authorization', `Bearer ${token}`);
+    if (config.headers instanceof AxiosHeaders) {
+      config.headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
