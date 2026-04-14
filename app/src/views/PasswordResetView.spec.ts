@@ -73,17 +73,12 @@ import useAuth from '@/composables/useAuth';
 // Axios plugin imports `@/router`; replace with a stub so the 401
 // interceptor's `router.push(...)` doesn't blow up if the backend returns
 // 401 on an expired reset JWT.
-vi.mock('@/router', () => {
-  const push = vi.fn();
-  (globalThis as unknown as { __resetRouterPushMock: ReturnType<typeof vi.fn> }).__resetRouterPushMock =
-    push;
-  return {
-    default: {
-      push,
-      currentRoute: { value: { fullPath: '/PasswordReset' } },
-    },
-  };
-});
+vi.mock('@/router', () => ({
+  default: {
+    push: vi.fn(),
+    currentRoute: { value: { fullPath: '/PasswordReset' } },
+  },
+}));
 
 vi.mock('@unhead/vue', () => ({
   useHead: vi.fn(),

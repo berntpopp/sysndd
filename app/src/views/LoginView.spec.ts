@@ -71,17 +71,12 @@ import useAuth from '@/composables/useAuth';
 // mounting `@/router` would drag in the full route table, auth guards, and a
 // real history stack. Replace it with a minimal stub so the axios 401
 // interceptor can call `router.push(...)` without blowing up.
-vi.mock('@/router', () => {
-  const push = vi.fn();
-  (globalThis as unknown as { __loginRouterPushMock: ReturnType<typeof vi.fn> }).__loginRouterPushMock =
-    push;
-  return {
-    default: {
-      push,
-      currentRoute: { value: { fullPath: '/Login' } },
-    },
-  };
-});
+vi.mock('@/router', () => ({
+  default: {
+    push: vi.fn(),
+    currentRoute: { value: { fullPath: '/Login' } },
+  },
+}));
 
 // `@unhead/vue`'s `useHead()` requires a `createHead()` plugin to be
 // registered on the app. Replace it with a no-op so the LoginView `setup()`
