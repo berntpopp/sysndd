@@ -32,10 +32,18 @@
 // requires the path to exist in the TS project; `lintText` reads the
 // AST from the passed-in code string regardless.
 
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import { ESLint } from 'eslint';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+// Each `lintText` call loads the full ESLint config (typescript-eslint
+// parser + Vue plugin + project-wide rules), which can take 5–15 seconds
+// on a cold CI runner. Vitest's default 5s per-test timeout fires before
+// the first test's `lintText` completes. Bump the per-test ceiling
+// generously; a `beforeAll` warm-up below also primes the parser so every
+// subsequent test finishes within a few hundred ms.
+vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -54,10 +62,17 @@ const FIXTURE_FILEPATH = path.resolve(APP_ROOT, 'src/api/client.ts');
 
 let eslint: ESLint;
 
-beforeAll(() => {
+beforeAll(async () => {
   eslint = new ESLint({
     overrideConfigFile: CONFIG_PATH,
     cwd: APP_ROOT,
+  });
+  // Warm-up lint: `new ESLint(...)` constructs lazily; the first
+  // `lintText` call triggers config loading + typescript-eslint parser
+  // init. Paying that cost in the hook keeps every individual `it`
+  // under the per-test budget on slow CI runners.
+  await eslint.lintText('export const __warmup__ = 1;', {
+    filePath: FIXTURE_FILEPATH,
   });
 });
 
