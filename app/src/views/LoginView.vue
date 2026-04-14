@@ -201,7 +201,7 @@ export default {
       try {
         const response_signin = await this.axios.get(apiAuthenticateURL, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`, // closeout-exception-E1: bootstrap two-step handshake; useAuth.login() requires both token+user atomically (§3.4)
           },
         });
         this.auth.login(token, response_signin.data);
