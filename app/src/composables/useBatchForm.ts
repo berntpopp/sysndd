@@ -5,7 +5,12 @@
  * Follows single-form interface pattern from CONTEXT.md decisions.
  */
 import { ref, reactive, computed } from 'vue';
-import axios from 'axios';
+// v11.0 closeout F2b: route authed calls through the apiClient — the
+// request interceptor injects the Bearer from `useAuth().token.value`,
+// so this composable no longer reads the session token from storage.
+// `isApiError` is re-exported from `@/api/client` for the error branches
+// that previously relied on `axios.isAxiosError`.
+import { apiClient, isApiError } from '@/api/client';
 import useToast from './useToast';
 
 // Types for batch criteria
@@ -115,7 +120,6 @@ export function useBatchForm() {
 
     isEntitySearching.value = true;
     const apiUrl = import.meta.env.VITE_API_URL;
-    const token = localStorage.getItem('token');
 
     try {
       // Build filter: search by entity_id (if numeric), symbol, or disease name
@@ -124,17 +128,27 @@ export function useBatchForm() {
         ? `equals(entity_id,${query})`
         : `or(contains(symbol,${query}),contains(disease_ontology_name,${query}))`;
 
-      // Search entities using the API filter syntax
-      const response = await axios.get(`${apiUrl}/api/entity/`, {
-        params: {
-          filter,
-          page_size: 15,
-        },
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        withCredentials: true,
-      });
-      const data = response.data?.data || response.data || [];
-      entitySearchResults.value = Array.isArray(data) ? data : [];
+      // Search entities using the API filter syntax. The apiClient request
+      // interceptor injects the Bearer header when a session is present;
+      // calls without a token simply fire no Authorization, matching the
+      // pre-F2b behaviour (the ternary used to skip the header).
+      const response = await apiClient.raw.get<{ data?: unknown } | unknown[]>(
+        `${apiUrl}/api/entity/`,
+        {
+          params: {
+            filter,
+            page_size: 15,
+          },
+          withCredentials: true,
+        }
+      );
+      const payload = response.data as { data?: unknown[] } | unknown[] | null;
+      const data = Array.isArray(payload)
+        ? payload
+        : (payload?.data ?? []);
+      entitySearchResults.value = Array.isArray(data)
+        ? (data as EntitySearchResult[])
+        : [];
     } catch (error) {
       console.error('Entity search failed:', error);
       entitySearchResults.value = [];
@@ -202,48 +216,52 @@ export function useBatchForm() {
   // Load dropdown options
   const loadOptions = async () => {
     const apiUrl = import.meta.env.VITE_API_URL;
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      // Load users (Curators and Reviewers)
-      const usersResponse = await axios.get(`${apiUrl}/api/user/list?roles=Curator,Reviewer`, {
-        headers,
-        withCredentials: true,
-      });
+      // Load users (Curators and Reviewers). The apiClient request
+      // interceptor attaches the Bearer header from `useAuth().token.value`
+      // — no manual header construction below.
+      const usersResponse = await apiClient.raw.get<unknown>(
+        `${apiUrl}/api/user/list?roles=Curator,Reviewer`,
+        { withCredentials: true }
+      );
       const usersData = usersResponse.data;
       userOptions.value = Array.isArray(usersData)
-        ? usersData.map((u: { user_id: number; user_name: string }) => ({
+        ? (usersData as { user_id: number; user_name: string }[]).map((u) => ({
             value: u.user_id,
             text: u.user_name,
           }))
         : [];
 
       // Load status categories from /api/list/status
-      const statusResponse = await axios.get(`${apiUrl}/api/list/status`, {
-        headers,
-        withCredentials: true,
-      });
-      const statusData = statusResponse.data;
+      const statusResponse = await apiClient.raw.get<unknown>(
+        `${apiUrl}/api/list/status`,
+        { withCredentials: true }
+      );
+      const statusData = statusResponse.data as { data?: unknown } | unknown[] | null;
       // Handle paginated response format
-      const statusArray = statusData?.data || statusData;
+      const statusArray = Array.isArray(statusData)
+        ? statusData
+        : (statusData?.data ?? statusData);
       statusOptions.value = Array.isArray(statusArray)
-        ? statusArray.map((s: { category_id: number; category: string }) => ({
+        ? (statusArray as { category_id: number; category: string }[]).map((s) => ({
             value: s.category_id,
             text: s.category,
           }))
         : [];
 
       // Load genes from /api/gene/ (get all genes for selection)
-      const genesResponse = await axios.get(
+      const genesResponse = await apiClient.raw.get<unknown>(
         `${apiUrl}/api/gene/?page_size=all&fields=symbol,hgnc_id`,
-        { headers, withCredentials: true }
+        { withCredentials: true }
       );
-      const genesData = genesResponse.data;
+      const genesData = genesResponse.data as { data?: unknown } | unknown[] | null;
       // Handle paginated response format
-      const genesArray = genesData?.data || genesData;
+      const genesArray = Array.isArray(genesData)
+        ? genesData
+        : (genesData?.data ?? genesData);
       geneOptions.value = Array.isArray(genesArray)
-        ? genesArray.map((g: { hgnc_id: number; symbol: string }) => ({
+        ? (genesArray as { hgnc_id: number; symbol: string }[]).map((g) => ({
             value: g.hgnc_id,
             text: g.symbol,
           }))
@@ -263,18 +281,18 @@ export function useBatchForm() {
 
     isPreviewLoading.value = true;
     const apiUrl = import.meta.env.VITE_API_URL;
-    const token = localStorage.getItem('token');
 
     try {
-      const response = await axios.post(`${apiUrl}/api/re_review/batch/preview`, buildCriteria(), {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const response = await apiClient.raw.post<{ data?: PreviewEntity[] }>(
+        `${apiUrl}/api/re_review/batch/preview`,
+        buildCriteria(),
+        { withCredentials: true }
+      );
 
       previewEntities.value = response.data.data || [];
       showPreviewModal.value = true;
     } catch (error: unknown) {
-      const message = axios.isAxiosError(error)
+      const message = isApiError<{ message?: string }>(error)
         ? error.response?.data?.message || error.message
         : 'Preview failed';
       makeToast(message, 'Error', 'danger');
@@ -292,7 +310,6 @@ export function useBatchForm() {
 
     isLoading.value = true;
     const apiUrl = import.meta.env.VITE_API_URL;
-    const token = localStorage.getItem('token');
 
     try {
       const payload = {
@@ -301,10 +318,11 @@ export function useBatchForm() {
         assigned_user_id: formData.assigned_user_id,
       };
 
-      const response = await axios.post(`${apiUrl}/api/re_review/batch/create`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-        withCredentials: true,
-      });
+      const response = await apiClient.raw.post<{ entry: { entity_count: number } }>(
+        `${apiUrl}/api/re_review/batch/create`,
+        payload,
+        { withCredentials: true }
+      );
 
       const result = response.data.entry;
       makeToast(`Batch created with ${result.entity_count} entities`, 'Success', 'success');
@@ -313,7 +331,7 @@ export function useBatchForm() {
       resetForm();
       return true;
     } catch (error: unknown) {
-      const message = axios.isAxiosError(error)
+      const message = isApiError<{ message?: string }>(error)
         ? error.response?.data?.message || error.message
         : 'Batch creation failed';
       makeToast(message, 'Error', 'danger');

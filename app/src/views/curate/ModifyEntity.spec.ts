@@ -32,10 +32,21 @@
  *     path only. Covering the other three modals is a future phase concern.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
 import { createPinia } from 'pinia';
+import { http, HttpResponse } from 'msw';
 import { bootstrapStubs } from '@/test-utils';
+// v11.0 closeout F2b migrated the three write calls
+// (`POST /api/entity/rename`, `/api/entity/deactivate`, `/api/review/create`)
+// from `this.axios.post(...)` onto the shared apiClient. Loading `@/plugins/
+// axios` attaches the 401 interceptor and ensures the apiClient request
+// interceptor is initialised before the first outbound call.
+import '@/plugins/axios';
+import { server } from '@/test-utils/mocks/server';
+import { primeAuth } from '@/test-utils/primeAuth';
+import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
+import { useAuth } from '@/composables/useAuth';
 import ModifyEntity from './ModifyEntity.vue';
 import { entityByIdOk, entityCreateConflict } from '@/test-utils/mocks/data/entities';
 
@@ -213,11 +224,38 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
   beforeEach(() => {
     makeToastSpy.mockClear();
     announceSpy.mockClear();
+    vi.stubEnv('VITE_API_URL', '');
+    // Seed a session so the apiClient request interceptor injects the
+    // Bearer on the migrated POSTs. The existing tests don't pin the
+    // header — the new F2b tests below do.
+    primeAuth('modify-entity-token');
+  });
+
+  afterEach(() => {
+    useAuth().logout();
+    vi.unstubAllEnvs();
   });
 
   describe('happy path — rename entity disease', () => {
     it('POSTs /api/entity/rename, surfaces success, and clears the selection (cache invalidation)', async () => {
+      // Loaders still run through `this.axios.get(...)` / `this.axios.put(...)`
+      // (those call sites are out of F2b scope); the axiosMock covers them.
+      // The MIGRATED write (rename POST) now goes through apiClient → the
+      // shared axios singleton → MSW. We capture the body via MSW and assert
+      // the same `rename_json.entity` shape the original spec checked.
       const axiosMock = createAxiosMock();
+
+      let capturedBody: unknown = null;
+      server.use(
+        http.post('/api/entity/rename', async ({ request }) => {
+          capturedBody = await request.json();
+          return HttpResponse.json(
+            { message: 'Entity successfully renamed.', entity_id: 501 },
+            { status: 200, statusText: 'OK' }
+          );
+        })
+      );
+
       const wrapper = await mountModifyEntity(axiosMock);
       await seedLoadedEntity(wrapper);
 
@@ -225,21 +263,15 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
       await vm.submitEntityRename();
       await flushPromises();
 
-      // 1. Exactly one POST went to /api/entity/rename with a wrapped payload
+      // 1. The POST hit /api/entity/rename with a wrapped payload
       //    (`rename_json`) shaped by the submissionSubmission class.
-      const renameCalls = axiosMock.post.mock.calls.filter((call) =>
-        String(call[0]).endsWith('/api/entity/rename')
-      );
-      expect(renameCalls).toHaveLength(1);
-
-      const [, payload] = renameCalls[0];
+      expect(capturedBody).not.toBeNull();
+      const payload = capturedBody as { rename_json: { entity: Record<string, unknown> } };
       expect(payload).toHaveProperty('rename_json');
-      const renameJson = (payload as { rename_json: { entity: Record<string, unknown> } })
-        .rename_json;
-      expect(renameJson).toHaveProperty('entity');
+      expect(payload.rename_json).toHaveProperty('entity');
       // The view mutates `entity_info.disease_ontology_id_version = ontology_input`
       // before wrapping — confirm the new ontology id is on the wire.
-      expect(renameJson.entity).toMatchObject({
+      expect(payload.rename_json.entity).toMatchObject({
         entity_id: entityByIdOk.entity_id,
         disease_ontology_id_version: 'MONDO:0000456_2025-01-01',
       });
@@ -264,19 +296,14 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
 
   describe('error path — duplicate entity (409 conflict)', () => {
     it('surfaces the 409 conflict description via the toast composable and keeps the selection intact', async () => {
-      const axiosMock = createAxiosMock();
-      // Reject the rename POST with an axios-shaped 409 carrying the
-      // conflict description from the B1 entity fixtures.
-      const conflictError = Object.assign(new Error('Request failed with status code 409'), {
-        isAxiosError: true,
-        response: {
-          status: 409,
-          statusText: 'Conflict',
-          data: entityCreateConflict,
-        },
-      });
-      axiosMock.post.mockRejectedValueOnce(conflictError);
+      // Reject the migrated rename POST with the conflict shape from B1.
+      server.use(
+        http.post('/api/entity/rename', () =>
+          HttpResponse.json(entityCreateConflict, { status: 409 })
+        )
+      );
 
+      const axiosMock = createAxiosMock();
       const wrapper = await mountModifyEntity(axiosMock);
       await seedLoadedEntity(wrapper);
 
@@ -284,13 +311,7 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
       await vm.submitEntityRename();
       await flushPromises();
 
-      // 1. The rename POST was still attempted (otherwise the 409 never fires).
-      const renameCalls = axiosMock.post.mock.calls.filter((call) =>
-        String(call[0]).endsWith('/api/entity/rename')
-      );
-      expect(renameCalls).toHaveLength(1);
-
-      // 2. makeToast was called with the error variant and the rejected
+      // 1. makeToast was called with the error variant and the rejected
       //    axios error object (the view forwards `e` through to the toast
       //    composable, which typically renders `e.response.data.error`).
       const dangerToasts = makeToastSpy.mock.calls.filter((call) => call[2] === 'danger');
@@ -303,14 +324,120 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
       expect(dangerArg.response?.status).toBe(409);
       expect(dangerArg.response?.data?.error).toBe(entityCreateConflict.error);
 
-      // 3. Screen reader was told the operation failed (assertive politeness).
+      // 2. Screen reader was told the operation failed (assertive politeness).
       expect(announceSpy).toHaveBeenCalledWith('Failed to update disease name', 'assertive');
 
-      // 4. On failure, the view does NOT resetForm — the selection must
+      // 3. On failure, the view does NOT resetForm — the selection must
       //    survive so the user can fix the input and retry. Verify the
       //    entity is still loaded post-failure.
       expect(vm.entity_loaded).toBe(true);
       expect(vm.entity_info).toMatchObject({ entity_id: entityByIdOk.entity_id });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // v11.0 closeout F2b — Bearer-header contract on each of the three migrated
+  // write paths. Pins the apiClient interceptor injection so regressions in
+  // this view (or in F1's `apiClient`/`useAuth()` plumbing) surface loudly.
+  // -------------------------------------------------------------------------
+  describe('v11.0 closeout F2b — apiClient Bearer header contract', () => {
+    it('submitEntityRename() carries Authorization: Bearer <token>', async () => {
+      let sawBearer = false;
+      server.use(
+        http.post('/api/entity/rename', ({ request }) => {
+          expectBearerHeader(request, 'modify-entity-token');
+          sawBearer = true;
+          return HttpResponse.json({ message: 'ok', entity_id: 501 });
+        })
+      );
+
+      const axiosMock = createAxiosMock();
+      const wrapper = await mountModifyEntity(axiosMock);
+      await seedLoadedEntity(wrapper);
+
+      await (wrapper.vm as unknown as ModifyEntityVM).submitEntityRename();
+      await flushPromises();
+      expect(sawBearer).toBe(true);
+    });
+
+    it('submitEntityDeactivation() carries Authorization: Bearer <token>', async () => {
+      let sawBearer = false;
+      server.use(
+        http.post('/api/entity/deactivate', ({ request }) => {
+          expectBearerHeader(request, 'modify-entity-token');
+          sawBearer = true;
+          return HttpResponse.json({ message: 'ok' });
+        })
+      );
+
+      const axiosMock = createAxiosMock();
+      const wrapper = await mountModifyEntity(axiosMock);
+      await seedLoadedEntity(wrapper);
+
+      const vm = wrapper.vm as unknown as ModifyEntityVM & {
+        submitEntityDeactivation: () => Promise<void>;
+        deactivate_check: boolean;
+        replace_entity_input: number | null;
+      };
+      vm.deactivate_check = true;
+      vm.replace_entity_input = null;
+
+      await vm.submitEntityDeactivation();
+      await flushPromises();
+      expect(sawBearer).toBe(true);
+    });
+
+    it('submitReviewChange() carries Authorization: Bearer <token>', async () => {
+      let sawBearer = false;
+      server.use(
+        http.post('/api/review/create', ({ request }) => {
+          expectBearerHeader(request, 'modify-entity-token');
+          sawBearer = true;
+          return HttpResponse.json({ message: 'ok' });
+        })
+      );
+
+      const axiosMock = createAxiosMock();
+      const wrapper = await mountModifyEntity(axiosMock);
+      await seedLoadedEntity(wrapper);
+
+      // Loose cast: the component exposes a narrower `review_info` type
+      // on its instance, but we only need to set the fields the view's
+      // `submitReviewChange()` reads before the POST. `unknown` as an
+      // intermediate escape hatch keeps vue-tsc quiet.
+      const vm = wrapper.vm as unknown as {
+        submitReviewChange: () => Promise<void>;
+        hasReviewChanges: boolean;
+        review_info: unknown;
+        select_additional_references: string[];
+        select_gene_reviews: string[];
+        select_phenotype: string[];
+        select_variation: string[];
+        $refs: Record<string, { hide: () => void }>;
+      };
+      // Bypass the silent-skip early return that fires when hasReviewChanges
+      // is false. We reach into the instance here (same pattern the happy-
+      // path test uses to seed `entity_info`).
+      Object.defineProperty(vm, 'hasReviewChanges', {
+        value: true,
+        configurable: true,
+      });
+      vm.review_info = {
+        entity_id: entityByIdOk.entity_id,
+        literature: {},
+        phenotypes: [],
+        variation_ontology: [],
+        synopsis: '',
+        comment: '',
+      };
+      vm.select_additional_references = [];
+      vm.select_gene_reviews = [];
+      vm.select_phenotype = [];
+      vm.select_variation = [];
+
+      await vm.submitReviewChange();
+      await flushPromises();
+      expect(sawBearer).toBe(true);
     });
   });
 

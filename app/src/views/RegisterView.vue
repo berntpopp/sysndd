@@ -130,6 +130,10 @@ import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max, email, regex } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
+// v11.0 closeout F2b: `useAuth()` is the single owner of auth state. This
+// view only needs the `isAuthenticated` guard (to clear a stale session
+// on the register route) and `logout()` (to perform that clear).
+import { useAuth } from '@/composables/useAuth';
 
 // Define validation rules
 defineRule('required', required);
@@ -143,6 +147,7 @@ export default {
   name: 'RegisterView',
   setup() {
     const { makeToast } = useToast();
+    const auth = useAuth();
     useHead({
       title: 'Register',
       meta: [
@@ -241,10 +246,16 @@ export default {
       handleSubmit,
       resetVeeForm,
       makeToast,
+      auth,
     };
   },
   mounted() {
-    if (localStorage.user) {
+    // v11.0 closeout F2b: the register route must never run while a stale
+    // session is present — clear through `useAuth().logout()` so the
+    // composable's single source of truth owns the cleanup. Reading
+    // `auth.isAuthenticated.value` replaces the previous dot-access read
+    // that the ESLint guardrail now forbids.
+    if (this.auth.isAuthenticated.value) {
       this.doUserLogOut();
     }
     this.loading = false;
@@ -306,9 +317,12 @@ export default {
       }, 1000);
     },
     doUserLogOut() {
-      if (localStorage.user || localStorage.token) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+      // v11.0 closeout F2b: delegate to `useAuth().logout()` instead of
+      // poking localStorage directly. The composable clears both keys and
+      // drops the reactive refs, so the apiClient request interceptor
+      // stops injecting the stale Bearer on the very next outbound call.
+      if (this.auth.isAuthenticated.value) {
+        this.auth.logout();
         this.user = null;
         this.$router.push('/');
       }

@@ -41,16 +41,8 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     'src/components/llm/LlmLogViewer.vue',
     'src/composables/useLlmAdmin.ts',
 
-    // F2b pending migrations (9 files)
-    'src/views/RegisterView.vue',
-    'src/views/admin/ManageOntology.vue',
-    'src/views/admin/ManageUser.vue',
-    'src/views/admin/ManageBackups.vue',
-    'src/views/curate/ApproveUser.vue',
-    'src/views/curate/ModifyEntity.vue',
-    'src/composables/useBatchForm.ts',
-    'src/components/small/IconPairDropdownMenu.vue',
-    'src/components/tables/TablesLogs.vue',
+    // F2b migrations landed in PR #277 — the 9 files now route through
+    // `useAuth()` / `apiClient` and no longer need the ignore entries.
 
     // F2c pending migration (1 file)
     'src/views/review/Review.vue',
