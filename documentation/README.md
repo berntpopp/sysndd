@@ -1,24 +1,17 @@
-# SysNDD-Documentation
+# SysNDD Documentation
 
-The repository subfolder for the SysNDD documentation.
+This directory contains the Quarto-based human-facing SysNDD documentation site.
 
-First change the work directory:
+Build it from this directory:
 
-```
-## workfolder <- "path/to/the/documentation/"
-setwd(workfolder)
-```
-
-Then build the documentation:
-
-```
-bookdown::render_book("index.Rmd", "all")
+```bash
+quarto render
 ```
 
-Rendering HTML widgets for PDF requires webshot and phantomjs [FROM:](https://bookdown.org/yihui/bookdown/html-widgets.html).
-```
-install.packages("webshot")
-webshot::install_phantomjs()
-```
+Key source files:
 
-The CSL file is [American Psychological Association 7th edition, from Zotero](https://www.zotero.org/styles/apa).
+- `index.qmd` and the numbered `.qmd` chapters for published content
+- `08-development.qmd` for concise developer onboarding
+- `09-deployment.qmd` for concise deployment guidance
+
+Planning and LLM-oriented documentation does not belong here. Keep that material under `.planning/`.

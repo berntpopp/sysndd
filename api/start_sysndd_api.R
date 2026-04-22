@@ -103,7 +103,7 @@ version_json               <- globals$version_json
 sysndd_api_version         <- globals$sysndd_api_version
 
 ## -------------------------------------------------------------------##
-# 7) Disk-backed memoise cache (see docs/DEPLOYMENT.md for CACHE_VERSION).
+# 7) Disk-backed memoise cache (see documentation/09-deployment.qmd for CACHE_VERSION).
 ## -------------------------------------------------------------------##
 bootstrap_init_cache_version()
 

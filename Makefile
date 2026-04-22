@@ -356,7 +356,7 @@ docker-status: check-docker ## [docker] Show container status and ports
 # Developer Environment (Phase A7)
 # =============================================================================
 # One-command bootstrap, environment verification, and worktree scaffolding.
-# See docs/DEVELOPMENT.md for the human-facing guide.
+# See documentation/08-development.qmd for the human-facing guide.
 
 install-dev: check-r check-npm ## [env] Idempotent bootstrap: install API + frontend dependencies
 	@printf "$(CYAN)==> Bootstrapping developer environment...$(RESET)\n"

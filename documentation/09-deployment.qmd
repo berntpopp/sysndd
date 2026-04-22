@@ -1,0 +1,56 @@
+---
+title: "Deployment"
+---
+
+# Deployment
+
+This page is the concise operator-facing entry point for SysNDD deployment.
+
+## Quick Start
+
+```bash
+git clone https://github.com/berntpopp/sysndd.git
+cd sysndd
+cp .env.example .env
+# edit .env
+docker compose up -d
+```
+
+## Key Runtime Settings
+
+### `MIRAI_WORKERS`
+
+Controls background worker count for long-running jobs.
+
+- small server: `1`
+- medium server: `2`
+- large server: `4`
+
+Rule of thumb:
+
+```text
+Peak memory ~= 500 MB base + workers x 2 GB
+```
+
+### `DB_POOL_SIZE`
+
+Controls the database connection pool.
+
+Recommended baseline:
+
+- `MIRAI_WORKERS=1` -> `DB_POOL_SIZE=3-5`
+- `MIRAI_WORKERS=2` -> `DB_POOL_SIZE=5-7`
+- `MIRAI_WORKERS=4` -> `DB_POOL_SIZE=10-12`
+
+### `CACHE_VERSION`
+
+Increment `CACHE_VERSION` when cached function behavior or cached result shape changes and you need cache invalidation on next startup.
+
+## Operations Notes
+
+- The API uses `mirai` workers for background tasks.
+- Migrations run at API startup and should fail hard if broken.
+- Traefik sticky sessions matter for job polling consistency.
+- Use HTTPS in production.
+
+For full deployment details, runtime tuning context, and troubleshooting history, see the repository and infrastructure configuration alongside the compose files.

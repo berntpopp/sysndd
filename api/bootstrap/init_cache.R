@@ -11,7 +11,7 @@
 #   3. Wrap the heavy report-generation functions with `memoise()`
 #      and return them so the composer can bind each as a global.
 #
-# CACHE_VERSION semantics are documented in docs/DEPLOYMENT.md.
+# CACHE_VERSION semantics are documented in documentation/09-deployment.qmd.
 # Operators bump CACHE_VERSION whenever a code change alters the
 # return structure of a memoised function.
 ## -------------------------------------------------------------------##

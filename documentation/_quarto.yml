@@ -47,6 +47,10 @@ book:
         - 05-curation-criteria.qmd
         - 06-re-review-instructions.qmd
         - 07-tutorial-videos.qmd
+    - part: "Project"
+      chapters:
+        - 08-development.qmd
+        - 09-deployment.qmd
     - references.qmd
 
   # Page navigation at bottom

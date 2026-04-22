@@ -91,6 +91,8 @@ cd app && npm run test:unit
 
 Please explore [The SysNDD Documentation](https://berntpopp.github.io/sysndd/) hosted on GitHub pages and build with bookdown.
 
+For local development and contributor onboarding, start with [documentation/08-development.qmd](documentation/08-development.qmd). For deployment guidance, see [documentation/09-deployment.qmd](documentation/09-deployment.qmd). Shared agent-facing repository instructions live in [AGENTS.md](AGENTS.md).
+
 To help you get the most out of the SysNDD website, we are putting together a series of [video tutorials](https://berntpopp.github.io/sysndd/tutorial-videos.html).
 
 ## Contributing and community

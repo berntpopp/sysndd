@@ -1,6 +1,6 @@
 # Contributing to SysNDD
 
-Thanks for your interest in contributing. The full developer guide lives in **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** — start there for requirements, quickstart, daily workflow, parallel-worktree conventions, and common gotchas.
+Thanks for your interest in contributing. The concise developer guide lives in **[documentation/08-development.qmd](documentation/08-development.qmd)** — start there for requirements, quickstart, daily workflow, and common gotchas.
 
 ## TL;DR
 
@@ -16,7 +16,7 @@ Thanks for your interest in contributing. The full developer guide lives in **[d
 - **Do not bypass git hooks.** No `--no-verify` / `--no-gpg-sign`. If a hook fails, fix the underlying issue.
 - **Prefer new commits over `git commit --amend`.** Keeps review history legible and avoids surprise rewrites.
 - **Respect file ownership during parallel work.** The v11.0 phase plans under `.planning/_archive/legacy-plans/v11.0/` define exclusive write ownership per worktree. If your change needs to cross ownership lines, split it into two PRs or coordinate with the other owner.
-- **Docs are a deliverable.** When you change architecture, runtime behavior, or a developer command, update `docs/DEVELOPMENT.md` and/or `CLAUDE.md` in the same PR.
+- **Docs are a deliverable.** When you change architecture, runtime behavior, or a developer command, update `AGENTS.md` and/or the relevant human docs in the same PR (`documentation/08-development.qmd`, `documentation/09-deployment.qmd`, `README.md`).
 
 ## Reporting bugs
 
@@ -28,4 +28,4 @@ Open a GitHub issue with:
 
 ## Questions
 
-See `docs/DEVELOPMENT.md` §6 "Getting Help". CI runs are the tiebreaker when behavior differs between your laptop and a PR — link the failing run when you ask.
+See [documentation/08-development.qmd](documentation/08-development.qmd) for the developer workflow baseline. CI runs are the tiebreaker when behavior differs between your laptop and a PR — link the failing run when you ask.

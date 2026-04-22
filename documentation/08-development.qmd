@@ -1,0 +1,83 @@
+---
+title: "Development"
+---
+
+# Development
+
+This page is the concise human-facing entry point for local SysNDD development.
+
+## Requirements
+
+- Docker with Compose v2
+- Git
+- GNU Make
+- Node.js matching `app/.nvmrc`
+- R 4.5.x for host-side API work
+
+Helpful extras:
+
+- `jq`
+- `gh`
+- a MySQL client such as `mysql` or `mycli`
+
+## Quickstart
+
+```bash
+git clone https://github.com/berntpopp/sysndd.git
+cd sysndd
+make install-dev
+make doctor
+make dev
+```
+
+After `make dev`:
+
+- App: `http://localhost`
+- App (Vite): `http://localhost:5173`
+- API: `http://localhost/api`
+- API (direct): `http://localhost:7778`
+- Traefik dashboard: `http://localhost:8090`
+- MySQL dev: `localhost:7654`
+- MySQL test: `localhost:7655`
+
+Stop the stack with:
+
+```bash
+make docker-down
+```
+
+## Daily Commands
+
+```bash
+make dev
+make docker-dev-db
+make serve-app
+make pre-commit
+make ci-local
+```
+
+Frontend-only verification:
+
+```bash
+cd app
+npm run lint
+npm run type-check
+npm run test:unit
+```
+
+API-only verification:
+
+```bash
+make lint-api
+make test-api
+```
+
+## Common Gotchas
+
+- Start the DB stack before host-side API work.
+- Prefer `make ci-local` before pushing.
+- Restart the API container after changing code used by background workers.
+- Namespace masked R functions such as `dplyr::select(...)`.
+- On Ubuntu 25.10 with Conda/miniforge R, use `Rscript --no-init-file api/scripts/lint-check.R` for lint and rely on CI for the full R test baseline.
+
+For repository-specific agent guidance and deeper runtime quirks, see the root `AGENTS.md`.
