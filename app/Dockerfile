@@ -32,7 +32,7 @@ RUN npm run build:${VUE_MODE}
 # fholzer/nginx-brotli has brotli pre-compiled - no 5 min compilation!
 # Source: https://hub.docker.com/r/fholzer/nginx-brotli
 # Pin to specific version for reproducible builds and supply chain security
-FROM fholzer/nginx-brotli:v1.29.8 AS production
+FROM fholzer/nginx-brotli:v1.30.0 AS production
 
 # Configure for non-root operation (similar to nginx-unprivileged)
 # Create nginx user if not exists and set permissions
@@ -44,6 +44,7 @@ RUN sed -i 's/listen\s*80;/listen 8080;/g' /etc/nginx/conf.d/default.conf 2>/dev
 # Copy nginx configuration (overwrites defaults)
 COPY --chown=nginx:nginx ./docker/nginx/local.conf /etc/nginx/conf.d/default.conf
 COPY --chown=nginx:nginx ./docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx ./docker/nginx/security-headers.conf /etc/nginx/security-headers.conf
 
 # Set working directory to nginx asset directory
 WORKDIR /usr/share/nginx/html

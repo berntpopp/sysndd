@@ -86,17 +86,69 @@ if ! (cd "$REPO_ROOT" && docker compose -f docker-compose.yml up -d); then
 fi
 trap '(cd "$REPO_ROOT" && docker compose -f docker-compose.yml down) || true' EXIT
 
-log "step 3/3: curl -f -H 'Host: $HEALTH_HOST_HEADER' $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
+log "step 3/4: curl -f -H 'Host: $HEALTH_HOST_HEADER' $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
 i=0
+health_ok=0
 while [ "$i" -lt "$RETRIES" ]; do
   if curl -fsS -H "Host: $HEALTH_HOST_HEADER" "$HEALTH_URL" >/dev/null 2>&1; then
     log "health endpoint OK on attempt $((i + 1))"
-    exit 0
+    health_ok=1
+    break
   fi
   i=$((i + 1))
   sleep "$RETRY_SLEEP_SECONDS"
 done
 
-fail "health endpoint did not return 200 after $RETRIES attempts"
-dump_context
-exit 2
+if [ "$health_ok" -ne 1 ]; then
+  fail "health endpoint did not return 200 after $RETRIES attempts"
+  dump_context
+  exit 2
+fi
+
+# Step 4: assert the SPA root emits the security headers declared in
+# app/docker/nginx/security-headers.conf. Guards against two regression
+# classes:
+#   1. A new location{} block in local.conf/prod.conf forgetting the
+#      `include /etc/nginx/security-headers.conf;` line (nginx's add_header
+#      inheritance would silently drop the headers — this is exactly what
+#      #296 was).
+#   2. `server_tokens off` being reverted, leaking the nginx version.
+log "step 4/4: assert SPA security headers"
+SPA_URL="${SMOKE_SPA_URL:-http://localhost/}"
+SPA_HEADERS=$(curl -fsSI -H "Host: $HEALTH_HOST_HEADER" "$SPA_URL" 2>/dev/null || true)
+if [ -z "$SPA_HEADERS" ]; then
+  fail "could not fetch headers from $SPA_URL"
+  dump_context
+  exit 3
+fi
+
+missing=0
+for h in \
+    "Strict-Transport-Security" \
+    "X-Content-Type-Options" \
+    "X-Frame-Options" \
+    "Referrer-Policy" \
+    "Permissions-Policy" \
+    "Content-Security-Policy"; do
+  if ! printf '%s' "$SPA_HEADERS" | grep -iq "^${h}:"; then
+    fail "missing security header on $SPA_URL: $h"
+    missing=1
+  fi
+done
+
+# server_tokens off → Server: nginx (no /version). A leak like `Server: nginx/1.30.0`
+# means server_tokens has regressed.
+if printf '%s' "$SPA_HEADERS" | grep -Eiq "^server:[[:space:]]*nginx/[0-9]"; then
+  fail "Server header leaks nginx version — server_tokens off regressed"
+  missing=1
+fi
+
+if [ "$missing" -ne 0 ]; then
+  fail "security-header assertion failed. Received headers:"
+  printf '%s\n' "$SPA_HEADERS" >&2
+  dump_context
+  exit 3
+fi
+
+log "all security headers present, nginx version not leaked"
+exit 0
