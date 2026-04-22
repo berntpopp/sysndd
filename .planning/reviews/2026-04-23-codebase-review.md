@@ -15,12 +15,11 @@ The 2026-04-11 review is materially stale. Since then, SysNDD has improved in th
 
 The current review is therefore not "the same review, updated a bit". It is a re-baselined assessment of the current codebase.
 
-The codebase is in a much healthier state than it was on 2026-04-11, but it still carries four high-leverage risks:
+The codebase is in a much healthier state than it was on 2026-04-11, but it still carries three high-leverage risks:
 
 1. Sensitive data still travels in URL query strings in some auth-related flows, and raw query strings are still logged.
-2. The highest-severity open correctness issue is now data integrity, not architecture: issue `#167`.
-3. Async job state is still in-process and non-durable.
-4. The frontend architecture migration is only partially complete: the typed API layer exists, but most of the app still bypasses it.
+2. Async job state is still in-process and non-durable.
+3. The frontend architecture migration is only partially complete: the typed API layer exists, but most of the app still bypasses it.
 
 ## Method
 
@@ -56,29 +55,9 @@ The codebase is in a much healthier state than it was on 2026-04-11, but it stil
 
 ## Current Findings
 
-### P0
-
-#### 1. Open data-integrity issue `#167` is the top production risk
-
-The strongest currently open production risk is issue `#167`, which documents active suffix-gene misalignments and other entity-integrity problems. This is a correctness issue against core domain data, not just code quality debt, and should outrank feature work.
-
-Why this is P0:
-
-- It affects persisted domain truth.
-- It can surface incorrect disease/gene relationships in the product.
-- It is already analyzed in depth and appears actionable.
-
-Recommendation:
-
-- Prioritize `#167` before new feature work.
-- Split it into a short remediation milestone:
-  - one-time data repair
-  - validation queries
-  - regression guard in the ontology update pipeline
-
 ### P1
 
-#### 2. Registration still sends PII in a query string
+#### 1. Registration still sends PII in a query string
 
 The login and password-change frontend flows were fixed, but registration was not.
 
@@ -99,7 +78,7 @@ Recommendation:
 - Migrate the frontend and tests to the body-based path.
 - Remove or rapidly deprecate the query-string path.
 
-#### 3. Legacy URL-based auth/password compatibility remains on the backend, and raw query strings are still logged
+#### 2. Legacy URL-based auth/password compatibility remains on the backend, and raw query strings are still logged
 
 Even though the frontend no longer uses URL-based login/password updates, the API still keeps those legacy forms alive:
 
@@ -262,10 +241,6 @@ Recommendation:
 
 This section covers the **currently open GitHub issues**, grouped by operational priority rather than age.
 
-### P0: correctness / data trust
-
-- `#167` Entity data integrity audit: 13 suffix-gene misalignments and other pre-existing issues
-
 ### P1: security posture / production correctness
 
 - `#299` CSP tightening
@@ -307,7 +282,6 @@ This section covers the **currently open GitHub issues**, grouped by operational
 
 1. Fix or at least open a tracked issue for registration PII in query strings.
 2. Remove legacy URL-based auth/password compatibility and raw query-string logging.
-3. Triage and execute `#167`.
 
 ### Next milestone
 
