@@ -2,7 +2,7 @@
 /**
  * Functional spec for the ModifyEntity curate view (Phase C unit C4).
  *
- * Scope (from .plans/v11.0/phase-c.md §3 Phase C.C4):
+ * Scope (from .planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.C4):
  *   - Happy path: edit an entity field, save, assert 200 + "cache invalidation"
  *     (the view's post-success behavior is `resetForm()`, which wipes
  *     `entity_info` and the search input — the UI-level analogue of a cache

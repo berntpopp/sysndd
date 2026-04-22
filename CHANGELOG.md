@@ -179,7 +179,7 @@ Phase C of the v11.0 test foundation initiative — the Tier B safety net that P
 
 - Bumped `app/package.json` and `api/version_spec.json` to `0.11.6`.
 - Phase C work was developed across 11 parallel git worktrees (`v11.0/phase-c/*`) off Phase-B-merged master (`3efce3ae`) and combined into a single PR via the `v11.0/phase-c/combined` branch (matches Phase A's `v11.0/phase-a/combined` and Phase B's combined-branch pattern). 15 commits cherry-picked across the 11 units — 8 single-commit view/composable branches, C7's 2-commit read-batch, C8's 3 non-gate commits (with C8's `scripts/verify-test-gate.sh` edit dropped in favor of C7's strict superset), and C9's 2 non-gate commits (same drop rule). The 3-way `scripts/verify-test-gate.sh` conflict flagged by the batch reviewer was resolved by keeping C7's most-permissive exemption as the single source of truth on the combined branch.
-- **Checkpoint #2 of 3** — the most important checkpoint in the v11.0 milestone — was executed as a single focused batch review across all 11 PRs via `superpowers:code-reviewer`. The reviewer answered the 5 locked questions from `.plans/v11.0/phase-c.md` §7:
+- **Checkpoint #2 of 3** — the most important checkpoint in the v11.0 milestone — was executed as a single focused batch review across all 11 PRs via `superpowers:code-reviewer`. The reviewer answered the 5 locked questions from `.planning/_archive/legacy-plans/v11.0/phase-c.md` §7:
   - **Q1 Tautology check:** PASS — all 6 view specs assert on real view behavior (reactive data, composable spies, route pushes, toast spies, computed signals), not on mock return shapes.
   - **Q2 Handshake check:** PASS — all 6 locked `it.todo` strings present verbatim; each is concrete enough for an E-phase rewriting agent to turn into a passing assertion.
   - **Q3 MSW shape sanity:** **FAIL** — 3/3 random-sampled handlers drifted from the real API wire shape. All 3 drifts fixed in R1 above.
@@ -210,8 +210,8 @@ Phase C of the v11.0 test foundation initiative — the Tier B safety net that P
 - PR: [#245](https://github.com/berntpopp/sysndd/pull/245) — C3 test-view-approve-status (individual, superseded by combined)
 - PR: [#246](https://github.com/berntpopp/sysndd/pull/246) — C7 test-endpoint-read-batch (individual, superseded by combined)
 - PR: [#247](https://github.com/berntpopp/sysndd/pull/247) — C8 test-endpoint-write-batch (individual, superseded by combined)
-- Plan: `.plans/v11.0/phase-c.md`
-- Spec: `docs/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase C
+- Plan: `.planning/_archive/legacy-plans/v11.0/phase-c.md`
+- Spec: `.planning/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase C
 
 ## [0.11.5] — 2026-04-11
 
@@ -252,7 +252,7 @@ Phase B of the v11.0 test foundation initiative — Tier A test infrastructure t
 - Bumped `app/package.json` and `api/version_spec.json` to `0.11.5`.
 - Phase B work was developed across 5 parallel git worktrees (`v11.0/phase-b/*`) off Phase-A-merged master (`db18cb51`) and combined into a single PR for review, following the Phase A pattern. B5 merged first on the test-file conflicts (per the tiebreaker rule); B3 and B4's disjoint `ci.yml` job blocks merged cleanly with both banners intact; `ci-success.needs` correctly unions to include `smoke-test` (PR-gating) but not `slow-tests-nightly` (schedule-only).
 - End-to-end verification on the combined branch was done via a Playwright monkey-walk against the full dev stack (traefik + api + app + mysql + mailpit) bound to the combined worktree. Walked 13 routes including unauth public views (Genes, Entities, Phenotypes, Panels, PublicationsNDD, Gene detail, About), the post-A1 `POST /api/auth/authenticate` login flow end-to-end against the live API (not a mock), and 4 authed views covering B1's mocked handler families (`/`, `/ManageUser`, `/ManageAnnotations`, `/ApproveReview`, `/ApproveStatus`). Zero Phase-B-introduced regressions; the only console errors encountered were (a) the expected 401 on `/api/auth/signin` for unauthenticated visitors and (b) two pre-existing 404s on `/api/external/{mgi,rgd}/phenotypes/A2ML1` that reflect a data gap in the upstream MGI/RGD records, unrelated to Phase B.
-- Per-endpoint sanity-check (§7 of `.plans/v11.0/phase-b.md`): curled 4 handler-table endpoints against the live API on the combined worktree and confirmed B1's mock shapes are faithful — `GET /api/status/1` returns a full status record matching the mock shape; `POST /api/auth/authenticate` with bad creds returns HTTP 400 with the documented "Please provide valid username and password." body (matches B1's 4xx branch); `GET /api/user/role_list` and `GET /api/jobs/history` return 403 without a JWT (consistent with the `require_auth` middleware behaviour B1 assumes).
+- Per-endpoint sanity-check (§7 of `.planning/_archive/legacy-plans/v11.0/phase-b.md`): curled 4 handler-table endpoints against the live API on the combined worktree and confirmed B1's mock shapes are faithful — `GET /api/status/1` returns a full status record matching the mock shape; `POST /api/auth/authenticate` with bad creds returns HTTP 400 with the documented "Please provide valid username and password." body (matches B1's 4xx branch); `GET /api/user/role_list` and `GET /api/jobs/history` return 403 without a JWT (consistent with the `require_auth` middleware behaviour B1 assumes).
 
 ### Post-review fixes on PR #236
 
@@ -279,8 +279,8 @@ The first push of this PR surfaced six actionable items from the automated Copil
 - PR: [#232](https://github.com/berntpopp/sysndd/pull/232) — B2 pubmed-pubtator-fixtures (individual, superseded by combined)
 - PR: [#233](https://github.com/berntpopp/sysndd/pull/233) — B5 sys-sleep-eviction (individual, superseded by combined)
 - PR: [#234](https://github.com/berntpopp/sysndd/pull/234) — B1 msw-handler-expansion (individual, superseded by combined)
-- Plan: `.plans/v11.0/phase-b.md`
-- Spec: `docs/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase B
+- Plan: `.planning/_archive/legacy-plans/v11.0/phase-b.md`
+- Spec: `.planning/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase B
 
 ## [0.11.4] — 2026-04-11
 
@@ -301,7 +301,7 @@ This is the new `reconcile_schema_version_renames()` step in `api/functions/migr
 - **Sanity check (optional but recommended):** `SELECT COUNT(*) FROM hgnc_symbol_lookup;` before and after the deploy — the counts should match exactly. A mismatch means the reconciliation failed and the migration was re-executed. Roll back and investigate.
 - **Fail-fast behavior:** if the reconciliation hits a genuine DB error (broken connection, locked `schema_version`, etc.), API startup **aborts loudly** rather than silently proceeding into the main migration loop with an unreconciled state. This is the Risk 5 mitigation agreed during Copilot review — see the module-level doc comment on `MIGRATION_RENAMES` in `api/functions/migration-runner.R`.
 
-_Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `008_hgnc_symbol_lookup.sql` → `018_hgnc_symbol_lookup.sql`. On any deployment that had the old file recorded in `schema_version`, the filename tracker is now stale. The reconciliation is what makes this deployment-safe. See `.plans/v11.0/phase-a.md` §3 A4 for the full rationale._
+_Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `008_hgnc_symbol_lookup.sql` → `018_hgnc_symbol_lookup.sql`. On any deployment that had the old file recorded in `schema_version`, the filename tracker is now stale. The reconciliation is what makes this deployment-safe. See `.planning/_archive/legacy-plans/v11.0/phase-a.md` §3 A4 for the full rationale._
 
 ### Security
 
@@ -346,7 +346,7 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 - Bumped `app/package.json` and `api/version_spec.json` to `0.11.4`.
 - Tests for the new reconciliation function run entirely offline (`mockery::stub` covers all `DBI::dbGetQuery` / `DBI::dbExecute` call sites).
-- The Phase A work was developed across 7 parallel git worktrees (`v11.0/phase-a/*`) and combined into a single PR (#228) for review. All historical branches have been deleted. The v11.0 plan files under `.plans/v11.0/` describe the parallel-worktree workflow and the intra-phase ownership rules.
+- The Phase A work was developed across 7 parallel git worktrees (`v11.0/phase-a/*`) and combined into a single PR (#228) for review. All historical branches have been deleted. The v11.0 plan files under `.planning/_archive/legacy-plans/v11.0/` describe the parallel-worktree workflow and the intra-phase ownership rules.
 
 ### Known limitations
 
@@ -358,9 +358,9 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 - PR: [#228](https://github.com/berntpopp/sysndd/pull/228) — combined Phase A (A1–A6 + follow-up + version bump, 22 commits)
 - PR: [#220](https://github.com/berntpopp/sysndd/pull/220) — Phase A.A7 dev-environment bootstrap (merged first, 10 commits)
-- Plan: `.plans/v11.0/phase-a.md`
-- Spec: `docs/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase A, §4.8 local developer environment
-- Review: `docs/reviews/2026-04-11-codebase-review.md` §2 (duplicate prefix), §3 (empty repository)
+- Plan: `.planning/_archive/legacy-plans/v11.0/phase-a.md`
+- Spec: `.planning/superpowers/specs/2026-04-11-v11.0-test-foundation-design.md` §3 Phase A, §4.8 local developer environment
+- Review: `.planning/reviews/2026-04-11-codebase-review.md` §2 (duplicate prefix), §3 (empty repository)
 - Follow-up todo: `.planning/todos/pending/refresh-stale-bioconductor-pins-in-renv-lock.md` (pre-existing lockfile rot surfaced by A7's CI matrix; deferred)
 
 ## [0.11.3] — 2026-04-09

@@ -13,7 +13,7 @@
  *
  * Exception: `gnomad_constraints` is a JSON-encoded blob and is deliberately
  * excluded from the pipe-split transformation (Phase A A2,
- * `.plans/v11.0/phase-a.md` §3 A2). It arrives as a plain scalar string that
+ * `.planning/_archive/legacy-plans/v11.0/phase-a.md` §3 A2). It arrives as a plain scalar string that
  * the consumer must `JSON.parse` into a `GnomADConstraints` object. Null when
  * no constraint data is available for the gene.
  */

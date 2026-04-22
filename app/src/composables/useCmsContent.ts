@@ -33,7 +33,7 @@ export function useCmsContent() {
   // request interceptor (`@/api/client`) reads `useAuth().token.value`
   // and injects the Bearer header on every outbound call against the
   // shared axios singleton — which is what the raw `axios` import below
-  // resolves to. See `.plans/v11.0/closeout.md` §3 F2a.
+  // resolves to. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 
   /**
    * Load draft or published content for editing.

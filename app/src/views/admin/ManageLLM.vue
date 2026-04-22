@@ -248,7 +248,7 @@ onMounted(async () => {
 // `token` parameter — the `apiClient` request interceptor reads
 // `useAuth().token.value` on every outbound call and injects the Bearer
 // header. Call sites therefore just call `fetchConfig()` / `fetchPrompts()`
-// / etc. directly. See `.plans/v11.0/closeout.md` §3 F2a.
+// / etc. directly. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 async function refreshAll() {
   try {
     await Promise.all([fetchConfig(), fetchPrompts(), fetchCacheStats()]);

@@ -50,8 +50,8 @@
  *      Snapshots `localStorage.length` before, during, and after the
  *      signin handshake; only `login()` may mutate storage.
  *
- * See `docs/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §3.4
- * for the full exception policy; `.plans/v11.0/closeout.md` §3 F2e for the
+ * See `.planning/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §3.4
+ * for the full exception policy; `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2e for the
  * task-level brief.
  */
 

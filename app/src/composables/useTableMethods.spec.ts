@@ -4,7 +4,7 @@
  *
  * Phase C unit C11 — pins `useTableMethods` behavior (dependency-injected
  * table action methods) before Phase E4/E5 consume it. See
- * `.plans/v11.0/phase-c.md` §3 C11.
+ * `.planning/_archive/legacy-plans/v11.0/phase-c.md` §3 C11.
  *
  * Pattern: Dependency-injected composable testing
  * ------------------------------------------------

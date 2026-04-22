@@ -1,7 +1,7 @@
 // ManageAnnotations.spec.ts
 /**
  * Phase C unit C5 — functional spec for `views/admin/ManageAnnotations.vue`
- * (plan: .plans/v11.0/phase-c.md §3 Phase C.C5, Appendix C locked).
+ * (plan: .planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.C5, Appendix C locked).
  *
  * ## Scope
  *
@@ -36,7 +36,7 @@
  * the Force Apply affordance.
  *
  * **There is no job-cancel endpoint in the current API** — we do NOT
- * mock or assert cancellation (.plans/v11.0/phase-c.md §3 Phase C.C5).
+ * mock or assert cancellation (.planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.C5).
  *
  * ### 3. Locked handshake for Phase E4
  *

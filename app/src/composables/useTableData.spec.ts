@@ -3,7 +3,7 @@
  * Tests for useTableData composable
  *
  * Phase C unit C11 — pins `useTableData` reactive-state behavior before Phase
- * E4/E5 consume it. See `.plans/v11.0/phase-c.md` §3 C11.
+ * E4/E5 consume it. See `.planning/_archive/legacy-plans/v11.0/phase-c.md` §3 C11.
  *
  * Pattern: Pure reactive-state composable testing
  * -----------------------------------------------

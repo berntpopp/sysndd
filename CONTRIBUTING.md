@@ -15,7 +15,7 @@ Thanks for your interest in contributing. The full developer guide lives in **[d
 - **Do not commit secrets.** The repo gitignores `.env`, `config.yml`, and friends — keep it that way.
 - **Do not bypass git hooks.** No `--no-verify` / `--no-gpg-sign`. If a hook fails, fix the underlying issue.
 - **Prefer new commits over `git commit --amend`.** Keeps review history legible and avoids surprise rewrites.
-- **Respect file ownership during parallel work.** The v11.0 phase plans under `.plans/v11.0/` define exclusive write ownership per worktree. If your change needs to cross ownership lines, split it into two PRs or coordinate with the other owner.
+- **Respect file ownership during parallel work.** The v11.0 phase plans under `.planning/_archive/legacy-plans/v11.0/` define exclusive write ownership per worktree. If your change needs to cross ownership lines, split it into two PRs or coordinate with the other owner.
 - **Docs are a deliverable.** When you change architecture, runtime behavior, or a developer command, update `docs/DEVELOPMENT.md` and/or `CLAUDE.md` in the same PR.
 
 ## Reporting bugs

@@ -34,7 +34,7 @@ export default mergeConfig(
         // ran coverage, so nobody noticed the real coverage was only 4–7%.
         // Phase B.B1 can't raise the bar because test-utils/ is excluded
         // from the coverage denominator (see `exclude` above), so adding
-        // MSW handlers does not help the numbers. See `.plans/v11.0/
+        // MSW handlers does not help the numbers. See `.planning/_archive/legacy-plans/v11.0/
         // phase-b.md` §3 Phase B.B1 and the 2026-04-11 PR #236 review for
         // the full rationale.
         //
@@ -65,7 +65,7 @@ export default mergeConfig(
         // Rounded down per the integer rule (never round up). v11.1 target
         // is 30/25/25/30 (advisory — per-resource `api/*.ts` fill-out and
         // httpOnly-cookie migration lift the numerator). See
-        // `docs/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §6.
+        // `.planning/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §6.
         thresholds: {
           lines: 25,
           functions: 19,

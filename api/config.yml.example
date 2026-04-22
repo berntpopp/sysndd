@@ -16,7 +16,7 @@
 ## password here is the same as `MYSQL_PASSWORD` in `.env.example` and is a
 ## well-known placeholder; a real deployment replaces it with a rotated
 ## secret from the ops vault. See `.env.example` for the matching env vars
-## and `.plans/v11.0/phase-b.md` §3 Phase B.B4 for the CI smoke-test
+## and `.planning/_archive/legacy-plans/v11.0/phase-b.md` §3 Phase B.B4 for the CI smoke-test
 ## rationale.
 ##
 ## Mirrors the structure of the real `config.yml` (sysndd_db,

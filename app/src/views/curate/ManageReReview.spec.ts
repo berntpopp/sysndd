@@ -2,7 +2,7 @@
 /**
  * v11.0 closeout F2d — Bearer-header migration spec for ManageReReview.vue.
  *
- * Scope: `.plans/v11.0/closeout.md` §3 F2d. The component has nine authed
+ * Scope: `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2d. The component has nine authed
  * endpoints today (pre-migration: inline `Authorization: Bearer ${
  * localStorage.getItem('token')}` headers at lines 767, 789, 825, 849, 889,
  * 931, 979, 1027, 1056). This spec authors a functional test for each one

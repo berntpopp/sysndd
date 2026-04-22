@@ -15,7 +15,7 @@ import globals from 'globals';
 // The `ignores` below include the 24 files that F2a–F2e will migrate —
 // each F2 worktree removes its target files from this list as it lands.
 // When the last F2 worktree merges, the list collapses to just the
-// permitted owners. See `.plans/v11.0/closeout.md` §3 F2a–F2e.
+// permitted owners. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a–F2e.
 const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
   files: ['src/**/*.{ts,vue}'],
   ignores: [
@@ -29,7 +29,7 @@ const CLOSEOUT_NO_LOCAL_STORAGE_TOKEN = {
     // through `useAuth()` / `apiClient` and no longer need the ignore
     // entries. The ignore list collapses to just the permitted owners
     // (useAuth.ts, plugins/axios.ts, test-utils, specs). See
-    // `.plans/v11.0/closeout.md` §3 F2a–F2d.
+    // `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a–F2d.
   ],
   rules: {
     // The selectors cover three surface forms so the guardrail cannot be

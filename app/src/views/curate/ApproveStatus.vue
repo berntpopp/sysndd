@@ -70,7 +70,7 @@ const apiBase = (): string => import.meta.env.VITE_API_URL || '';
 // Authorization header on every outbound call against the shared axios
 // singleton; every `ax()` call here routes through that same singleton
 // (either via the `this.axios` test proxy or `axios` itself). See
-// `.plans/v11.0/closeout.md` §3 F2a.
+// `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 const initialEntity: EntityInfoShape = { entity_id: 0, symbol: '', hgnc_id: '', disease_ontology_id_version: '', disease_ontology_name: '', hpo_mode_of_inheritance_term_name: '', hpo_mode_of_inheritance_term: '' };
 const items_StatusTable = ref<Array<Record<string, unknown>>>([]);
 const totalRows = ref(0);

@@ -9,7 +9,7 @@
  *
  * NOT `localStorage.setItem` — research-aligned: use the abstraction seam,
  * not the storage backend. See
- * `docs/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §5.2.
+ * `.planning/superpowers/specs/2026-04-14-v11.0-closeout-design.md` §5.2.
  */
 
 import { useAuth } from '@/composables/useAuth';

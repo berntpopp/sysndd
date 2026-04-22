@@ -166,7 +166,7 @@ get_applied_migrations <- function(conn = NULL) {
 #' @keywords internal
 MIGRATION_RENAMES <- list(
   # Phase A.A4 (v11.0): duplicate 008_ prefix resolved by renaming to 018_
-  # See docs/reviews/2026-04-11-codebase-review.md §2 and .plans/v11.0/phase-a.md §3 A4.
+  # See .planning/reviews/2026-04-11-codebase-review.md §2 and .planning/_archive/legacy-plans/v11.0/phase-a.md §3 A4.
   "008_hgnc_symbol_lookup.sql" = "018_hgnc_symbol_lookup.sql"
 )
 

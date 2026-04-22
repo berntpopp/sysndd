@@ -1,7 +1,7 @@
 # scripts/msw-openapi-exceptions.txt
 #
 # Phase B.B1 allow-list for MSW handlers whose path+method pair is listed in
-# the locked Phase B.B1 handler table (.plans/v11.0/phase-b.md §3 Phase B.B1)
+# the locked Phase B.B1 handler table (.planning/_archive/legacy-plans/v11.0/phase-b.md §3 Phase B.B1)
 # but does NOT have a matching @get/@post/@put/@delete annotation in the
 # corresponding api/endpoints/*.R file.
 #

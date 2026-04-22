@@ -2,7 +2,7 @@
 /**
  * Functional spec for Review.vue — v11.0 Phase C unit C2 + v11.0 closeout F2c.
  *
- * Scope: .plans/v11.0/phase-c.md §3 Phase C.C2 writes this spec against the
+ * Scope: .planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.C2 writes this spec against the
  * unchanged 1,454-LoC view (`Review.vue`) so the Phase-B safety net grows
  * without touching source. The view mounts a re-review table and four modals;
  * the "classification wizard" language in the plan maps onto the edit-review

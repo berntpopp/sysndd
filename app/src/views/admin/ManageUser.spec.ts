@@ -2,7 +2,7 @@
 /**
  * Phase C.C6 functional spec for `views/admin/ManageUser.vue` (1,732 LoC).
  *
- * Part of the v11.0 Phase C Tier B safety net — see `.plans/v11.0/phase-c.md`
+ * Part of the v11.0 Phase C Tier B safety net — see `.planning/_archive/legacy-plans/v11.0/phase-c.md`
  * §3 Phase C.C6.  This file does NOT modify the source; it locks in the two
  * behaviours that E-series rewrites must preserve when the giant Options-API
  * view is refactored onto `useTableData` + `useAsyncJob`:
@@ -321,7 +321,7 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
   // ---------------------------------------------------------------------------
   // Locked TODO — downstream E-series rewrite of ManageUser (useTableData +
   // useFilterSync migration) will pin this behaviour.  The string is verbatim
-  // from `.plans/v11.0/phase-c.md` §3 Phase C.C6 and must not drift.
+  // from `.planning/_archive/legacy-plans/v11.0/phase-c.md` §3 Phase C.C6 and must not drift.
   // ---------------------------------------------------------------------------
   it.todo(
     'TODO: verify the search-and-filter state persists across role edits and user_role bulk assignments via POST /api/user/bulk_assign_role'

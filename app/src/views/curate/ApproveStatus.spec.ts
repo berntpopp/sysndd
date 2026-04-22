@@ -2,7 +2,7 @@
 /**
  * Functional test for the ApproveStatus view.
  *
- * Phase C unit C3 — .plans/v11.0/phase-c.md §3 Phase C.C3. Exercises the
+ * Phase C unit C3 — .planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.C3. Exercises the
  * approval flow end-to-end against the unchanged 1,432-LoC `ApproveStatus.vue`,
  * routing through the real `@/plugins/axios` instance (so the 401 response
  * interceptor in `src/plugins/axios.ts` fires) and MSW for HTTP mocking.

@@ -19,7 +19,7 @@
 # Phase C7 rollback-audit exempt: non-transactional HTTP-only integration file.
 # rollback: none needed — every test issues read-only HTTP GETs, no mutation.
 # non-transactional: skip_if_no_test_db() token below is documentation-only.
-# exempt rationale: see .plans/v11.0/phase-c.md §3 Phase C.4 / §4.5.
+# exempt rationale: see .planning/_archive/legacy-plans/v11.0/phase-c.md §3 Phase C.4 / §4.5.
 
 library(testthat)
 library(httr2)

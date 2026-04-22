@@ -2,7 +2,7 @@
 /**
  * Typed wrapper over the central axios singleton at `@/plugins/axios`.
  *
- * Phase E.E1 (exit criterion #14, `.plans/v11.0/phase-e.md` §3) introduces a
+ * Phase E.E1 (exit criterion #14, `.planning/_archive/legacy-plans/v11.0/phase-e.md` §3) introduces a
  * cohesive `api/` module as the single surface for HTTP calls. This file is
  * that surface: call-sites in views/components/composables will migrate to
  * `apiClient.get(...)` over E3–E10 instead of reaching for `axios.get(...)`

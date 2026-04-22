@@ -240,7 +240,7 @@ function(gene_input, input_type = "hgnc") {
       # silently mangle any future JSON field that contains a "|" character
       # and — more immediately — wraps the scalar JSON string in a list,
       # forcing the frontend to dereference `[0]`. See
-      # .plans/v11.0/phase-a.md §3 A2.
+      # .planning/_archive/legacy-plans/v11.0/phase-a.md §3 A2.
       across(-any_of("gnomad_constraints"), ~ str_split(., pattern = "\\|"))
     )
 }

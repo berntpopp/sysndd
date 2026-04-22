@@ -4,7 +4,7 @@
  *
  * Phase B.B1 (v11.0): handler set expanded to cover the locked table for every
  * real axios call site in the six top curate/admin views — see
- * `.plans/v11.0/phase-b.md` §3 Phase B.B1.  Each handler is documented with the
+ * `.planning/_archive/legacy-plans/v11.0/phase-b.md` §3 Phase B.B1.  Each handler is documented with the
  * OpenAPI path it mirrors (§4.3) so the static verifier
  * (`scripts/verify-msw-against-openapi.sh`) can cross-reference the handler
  * against `api/endpoints/*.R` annotations.
@@ -770,7 +770,7 @@ export const handlers = [
   // that Phase E.E3 introduces to replace the raw `axios.get` calls in
   // `GeneView.vue`. Registered here so the `genes.spec.ts` helper unit tests
   // and any future GeneView.vue component spec can rely on MSW interception.
-  // See `.plans/v11.0/phase-e.md` §3 Phase E.E3 exit criterion #14.
+  // See `.planning/_archive/legacy-plans/v11.0/phase-e.md` §3 Phase E.E3 exit criterion #14.
   // ---------------------------------------------------------------------------
 
   // OpenAPI: GET /api/gene  (cursor-paginated listing)

@@ -97,12 +97,12 @@ make doctor           # Verify this worktree's env
 
 Rules of the road:
 
-1. **Pick a unique ownership set.** Each worktree in a phase owns an explicit, disjoint list of files. See the phase plans under `.plans/v11.0/` for the table. Two worktrees never write the same file in the same phase.
+1. **Pick a unique ownership set.** Each worktree in a phase owns an explicit, disjoint list of files. See the phase plans under `.planning/_archive/legacy-plans/v11.0/` for the table. Two worktrees never write the same file in the same phase.
 2. **Branch off `master`, not each other.** `make worktree-setup` branches from `master` for this reason.
 3. **Prune as you go.** After a branch merges, use `git worktree remove`. Once Phase A6 lands in your branch, the `make worktree-prune` convenience target is available as well. The `/worktrees/` directory is gitignored at repo root.
 4. **Sticky Makefile.** When three sibling worktrees all touch `Makefile`, each owner adds a new, non-overlapping section — never edits another unit's block.
 
-See `.plans/v11.0/phase-a.md` for a concrete example of the parallel dispatch and ownership table.
+See `.planning/_archive/legacy-plans/v11.0/phase-a.md` for a concrete example of the parallel dispatch and ownership table.
 
 ## 5. Common Gotchas
 
@@ -120,8 +120,8 @@ For anything more exotic (async job shadows, Plumber array-wrapping, `DBI::dbBin
 
 ## 6. Getting Help
 
-- **Project docs.** `docs/DEPLOYMENT.md` for production deploys, `db/migrations/README.md` for the schema runner, `.plans/v11.0/` for the active roadmap.
+- **Project docs.** `docs/DEPLOYMENT.md` for production deploys, `db/migrations/README.md` for the schema runner, `.planning/ROADMAP.md` for current planning state, and `.planning/_archive/legacy-plans/v11.0/` for the archived v11.0 plan set.
 - **Agent context.** `CLAUDE.md` at the root is the single source of truth for architecture, source-order invariants, and runtime quirks. Read it once even if you never use an agent.
-- **Reviews and specs.** `docs/reviews/` and `docs/superpowers/specs/` hold the most recent full-codebase reviews and the locked design decisions behind each milestone.
+- **Reviews and specs.** `.planning/reviews/` and `.planning/superpowers/specs/` hold the most recent full-codebase reviews and the locked design decisions behind each milestone.
 - **CI is the tiebreaker.** When a behavior differs between your laptop and a PR run, the CI job is the source of truth. Post the failing run URL rather than a local log when you ask for help.
 - **Before opening an issue** — run `make doctor`. If it prints `Environment healthy` the problem is likely code-level; if it prints a red line, fix that first.

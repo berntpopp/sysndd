@@ -132,7 +132,7 @@ recreate) and let the runner reapply everything from scratch.
 ## 6. CI smoke test
 
 End-to-end coverage for the runner lives in Phase B4 of v11.0 (see
-`.plans/v11.0/phase-b.md` §B4). B4 adds a CI job that spins up a fresh
+`.planning/_archive/legacy-plans/v11.0/phase-b.md` §B4). B4 adds a CI job that spins up a fresh
 MySQL container, boots the API image against it, and asserts that
 `schema_version` contains every file in `db/migrations/`. That job is the
 authoritative guard that this README and the runner stay in sync — if you

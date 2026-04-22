@@ -7,7 +7,7 @@
 // injects the `Authorization: Bearer <token>` header. Call sites are
 // therefore no longer responsible for sourcing the token from localStorage
 // and passing it through — they just call `fetchConfig()` / `fetchPrompts()`
-// / etc. directly. See `.plans/v11.0/closeout.md` §3 F2a.
+// / etc. directly. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 
 import { ref, type Ref } from 'vue';
 import { apiClient } from '@/api/client';

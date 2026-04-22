@@ -17,8 +17,8 @@
 #   1  one or more prefixes are duplicated (or db/migrations/ missing)
 #
 # Refs:
-#   - .plans/v11.0/phase-a.md §3 A4
-#   - docs/reviews/2026-04-11-codebase-review.md §2
+#   - .planning/_archive/legacy-plans/v11.0/phase-a.md §3 A4
+#   - .planning/reviews/2026-04-11-codebase-review.md §2
 
 set -eu
 

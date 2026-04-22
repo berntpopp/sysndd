@@ -10,7 +10,7 @@
  *
  * MSW handlers live in `@/test-utils/mocks/handlers` (registered with the
  * global server in `vitest.setup.ts`) and the fixtures live in
- * `@/test-utils/mocks/data/genes`. See `.plans/v11.0/phase-e.md` §3 Phase
+ * `@/test-utils/mocks/data/genes`. See `.planning/_archive/legacy-plans/v11.0/phase-e.md` §3 Phase
  * E.E3 for the migration rationale; these tests lock in the wire shapes
  * before rewriting `GeneView.vue`.
  */

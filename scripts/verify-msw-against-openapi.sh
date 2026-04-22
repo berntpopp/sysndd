@@ -10,7 +10,7 @@
 # `onUnhandledRequest: 'error'` in vitest.setup.ts — together they give us
 # "MSW is always a faithful mirror of the live API". If you intentionally
 # mock an endpoint the R API does not expose (e.g. the handler table in
-# .plans/v11.0/phase-b.md lists it as a known spec bug), add an explicit
+# .planning/_archive/legacy-plans/v11.0/phase-b.md lists it as a known spec bug), add an explicit
 # entry to scripts/msw-openapi-exceptions.txt.
 #
 # Usage:

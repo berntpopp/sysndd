@@ -233,7 +233,7 @@ defineEmits<{
 
 // v11.0 closeout F2a: `useLlmAdmin` no longer takes a token parameter — the
 // `apiClient` request interceptor injects the Bearer header on every
-// outbound call. See `.plans/v11.0/closeout.md` §3 F2a.
+// outbound call. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 const { fetchCachedSummaries } = useLlmAdmin();
 
 const summaries = ref<CachedSummary[]>([]);

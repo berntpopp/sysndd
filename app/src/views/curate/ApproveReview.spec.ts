@@ -12,7 +12,7 @@
  *   4. Unpin the `it.todo` at the bottom into a real assertion covering the
  *      audit-trail role shown for the approving user.
  *
- * Required shape (see `.plans/v11.0/phase-c.md` §3 C1):
+ * Required shape (see `.planning/_archive/legacy-plans/v11.0/phase-c.md` §3 C1):
  *   - happy path:  exercise PUT /api/review/approve/<id>, assert the a11y
  *     announcement (= success toast equivalent) and that the table is
  *     refetched once more after the PUT (= row refresh).
