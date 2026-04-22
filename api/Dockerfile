@@ -22,7 +22,11 @@ FROM rocker/r-ver:4.5.3 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
 # rocker/r-ver:4.5.3 uses Ubuntu 24.04 (noble) with ICU 74, so we use noble binaries
-ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/latest"
+#
+# IMPORTANT: pin to a dated snapshot (not /latest) so that CRAN pruning old
+# versions cannot silently drift the build. Bump this date intentionally,
+# together with renv.lock "Repositories.URL", when refreshing dependencies.
+ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/2026-04-22"
 
 # Disable pak to avoid version conflicts
 ENV RENV_CONFIG_PAK_ENABLED=FALSE
