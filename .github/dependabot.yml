@@ -38,6 +38,10 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    groups:
+      dockerfile-images:
+        patterns:
+          - "*"
 
   # Docker Compose - service images (traefik, mysql, backup)
   - package-ecosystem: "docker-compose"
@@ -47,6 +51,10 @@ updates:
     labels:
       - "dependencies"
       - "docker"
+    groups:
+      compose-images:
+        patterns:
+          - "*"
     ignore:
       # MySQL 9.x requires intermediate upgrade to 8.4 LTS first
       # See: https://dev.mysql.com/doc/refman/9.1/en/upgrade-paths.html
