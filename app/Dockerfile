@@ -44,6 +44,7 @@ RUN sed -i 's/listen\s*80;/listen 8080;/g' /etc/nginx/conf.d/default.conf 2>/dev
 # Copy nginx configuration (overwrites defaults)
 COPY --chown=nginx:nginx ./docker/nginx/local.conf /etc/nginx/conf.d/default.conf
 COPY --chown=nginx:nginx ./docker/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx ./docker/nginx/security-headers.conf /etc/nginx/security-headers.conf
 
 # Set working directory to nginx asset directory
 WORKDIR /usr/share/nginx/html
