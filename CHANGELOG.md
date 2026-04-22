@@ -6,7 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_Nothing yet. See `.plans/v11.0/` for work in progress._
+_Nothing yet._
+
+## [0.11.12] — 2026-04-22
+
+Patch bump for the consolidated dependency + security sweep in #298 (subsumes #288, #289, #291, #292, #293, #295, #297). Also lands two CI stability guardrails introduced during review.
+
+### Fixed
+
+- **Master CI break — `@testing-library/dom` peer-dep drift.** Vitest suites were failing with `Cannot find package '@testing-library/dom'` because `npm ci --legacy-peer-deps --prefer-offline` stopped hoisting it under `@testing-library/user-event`. Pinned as an explicit `devDependency` so the package is guaranteed at the root of `node_modules`. Seventeen previously failing test files now pass.
+- **nginx: security headers silently dropped.** Headers declared at `http{}` level were being discarded by every `location{}` block because those blocks define their own `add_header Cache-Control` (nginx inheritance rule: a child `add_header` erases the parent's). Moved the full OWASP / UniBE header set into `app/docker/nginx/security-headers.conf` and `include` it inside every location — closes #296.
+- **nginx: server version leak.** Added `server_tokens off` so the `Server:` header no longer advertises the exact nginx build.
+- **API crashloop — `mirai 2.5.3` / `nanonext 1.8.2` mismatch.** PPM pruned `nanonext 1.7.2`, `mirai`'s `Imports: nanonext (>= 1.7.2)` floor was satisfied by the 1.8.2 release which no longer exports `.read_header`, and `renv::restore` silently upgraded on rebuild. Date-pinned the PPM snapshot URL (`/cran/2026-04-22`) in both `api/Dockerfile` and `api/renv.lock`, and bumped to `mirai 2.6.1` + `nanonext 1.8.2`. Closes #294.
+
+### Changed
+
+- **Dependency bumps (prod):** `@unhead/vue 3.0.3→3.0.4`, `bootstrap-vue-next 0.44.2→0.44.6`, `dompurify 3.3.2→3.4.0` (mXSS + prototype-pollution fixes), `swagger-ui` / `swagger-ui-dist 5.32.0→5.32.4`.
+- **Dependency bumps (dev):** `axios 1.13.6→1.15.1` (header-injection + CRLF hardening), `eslint 10.0.2→10.2.1`, `msw 2.12.10→2.13.4`, `postcss 8.5.8→8.5.10`, `prettier 3.8.2→3.8.3`, `typescript 6.0.2→6.0.3`, `typescript-eslint 8.58.2→8.59.0`, `vue-tsc 3.2.5→3.2.7`.
+- **Docker image bumps:** `mysql 8.4.8→8.4.9` (prod + both dev DBs), `axllent/mailpit v1.29.6→v1.29.7`, `fholzer/nginx-brotli v1.29.8→v1.30.0`.
+- **HSTS policy.** Rewrote the header set. `Strict-Transport-Security` now ships `max-age=63072000; includeSubDomains; preload` (2 years). **Preload submission is deliberately deferred** — see #300 before adding the domain to the browser preload list. Dropped legacy `X-XSS-Protection`, `X-Download-Options`, `X-Permitted-Cross-Domain-Policies`, and the duplicate `X-Content-Security-Policy` header (all obsolete per modern browser guidance).
+
+### Added
+
+- **CI smoke-test asserts SPA security headers.** `scripts/ci-smoke.sh` step 4 curls the running prod stack and grep-asserts presence of `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`, plus absence of a `Server: nginx/<version>` leak. Guards against a future `location{}` block forgetting the `include` or a `server_tokens` regression.
+- **Dependabot: group container-image bumps.** Weekly runs now open at most one Dockerfile PR and one compose PR (matching the existing `actions` group pattern) instead of one PR per image.
+- **Dependabot: ignore Vite semver-major.** Vite 8 has real breaking changes (`manualChunks` type moved from object to function, `vitest.config.ts` factory API changed). Dropped here; reopen when we schedule a migration. Closes #290 (the standing dependabot PR).
+
+### Follow-ups (opened, not in this release)
+
+- #299 — CSP tightening (drop `'unsafe-inline'` / `'unsafe-eval'`); needs Report-Only probe + swagger-ui audit.
+- #300 — HSTS preload-submission decision (one-way door, needs UniBE ICT sign-off).
 
 ## [0.11.8] — 2026-04-12
 
