@@ -22,6 +22,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Vite 8 ships real breaking changes (manualChunks type, config API).
+      # Hold majors until we schedule a migration phase.
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
 
   # Docker - API and App Dockerfiles
   - package-ecosystem: "docker"
