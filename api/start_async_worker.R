@@ -1,13 +1,14 @@
 source("bootstrap/init_libraries.R", local = FALSE)
 source("bootstrap/create_pool.R", local = FALSE)
 
+bootstrap_init_libraries()
+
 source("functions/db-helpers.R", local = FALSE)
 source("functions/async-job-repository.R", local = FALSE)
 source("functions/async-job-progress.R", local = FALSE)
 source("functions/async-job-handlers.R", local = FALSE)
 source("functions/async-job-worker.R", local = FALSE)
-
-bootstrap_init_libraries()
+source("functions/job-progress.R", local = FALSE)
 
 env_mode <- Sys.getenv("ENVIRONMENT", "local")
 
@@ -29,6 +30,9 @@ pool <- bootstrap_create_pool(dw)
 on.exit(pool::poolClose(pool), add = TRUE)
 
 worker_config <- async_job_worker_config_from_env()
+if (!is.null(worker_config$drain_file) && nzchar(worker_config$drain_file)) {
+  unlink(worker_config$drain_file, force = TRUE)
+}
 message(sprintf(
   "[async-worker] starting worker_id=%s queues=%s",
   worker_config$worker_id,

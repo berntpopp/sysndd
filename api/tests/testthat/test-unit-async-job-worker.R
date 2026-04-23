@@ -40,7 +40,8 @@ test_that("async_job_worker_config_from_env reads bounded worker settings", {
     ASYNC_JOB_IDLE_SLEEP_SECONDS = "1.5",
     MAX_JOBS_PER_WORKER = "7",
     MAX_WORKER_LIFETIME = "900",
-    ASYNC_JOB_QUEUES = "default,bulk"
+    ASYNC_JOB_QUEUES = "default,bulk",
+    ASYNC_JOB_DRAIN_FILE = "/tmp/sysndd-test-drain"
   ))
 
   config <- runtime$async_job_worker_config_from_env()
@@ -54,11 +55,13 @@ test_that("async_job_worker_config_from_env reads bounded worker settings", {
   expect_equal(config$max_jobs_per_worker, 7L)
   expect_equal(config$max_worker_lifetime_seconds, 900L)
   expect_equal(config$queues, c("default", "bulk"))
+  expect_equal(config$drain_file, "/tmp/sysndd-test-drain")
 })
 
 test_that("create_async_job_progress_reporter updates durable row progress and throttles interim writes", {
   runtime <- load_async_job_worker_runtime()
   calls <- list()
+  heartbeat_calls <- list()
 
   runtime$async_job_repository_update_progress <- function(job_id, progress_pct = NULL, progress_message = NULL, claim_token, conn = NULL) { # nolint: line_length_linter
     calls[[length(calls) + 1L]] <<- list(
@@ -69,9 +72,21 @@ test_that("create_async_job_progress_reporter updates durable row progress and t
     )
     1L
   }
+  runtime$async_job_repository_heartbeat <- function(job_id, lease_seconds, claim_token, conn = NULL) {
+    heartbeat_calls[[length(heartbeat_calls) + 1L]] <<- list(
+      job_id = job_id,
+      lease_seconds = lease_seconds,
+      claim_token = claim_token
+    )
+    1L
+  }
 
   runtime$async_job_worker_set_claim_context(
-    list(job_id = "job-progress", claim_token = "claim-progress")
+    list(
+      job_id = "job-progress",
+      claim_token = "claim-progress"
+    ),
+    worker_config = list(lease_seconds = 90L)
   )
   on.exit(runtime$async_job_worker_clear_claim_context(), add = TRUE)
 
@@ -91,6 +106,9 @@ test_that("create_async_job_progress_reporter updates durable row progress and t
   expect_equal(calls[[1]]$progress_message, "Downloading source")
   expect_equal(calls[[2]]$progress_pct, 100)
   expect_equal(calls[[2]]$progress_message, "Download complete")
+  expect_length(heartbeat_calls, 2L)
+  expect_equal(heartbeat_calls[[1]]$lease_seconds, 90L)
+  expect_equal(heartbeat_calls[[1]]$claim_token, "claim-progress")
 })
 
 test_that("async_job_worker_claim_once skips claims during drain and uses repository claim API otherwise", {
@@ -174,6 +192,7 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
   runtime <- load_async_job_worker_runtime()
   events <- character(0)
   completed <- NULL
+  call_order <- character(0)
 
   runtime$async_job_repository_append_event <- function(job_id, event_type, event_message = NULL, event_payload = NULL, conn = NULL) { # nolint: line_length_linter
     events <<- c(events, paste(job_id, event_type, sep = ":"))
@@ -183,6 +202,7 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
     1L
   }
   runtime$async_job_repository_complete <- function(job_id, result_json, claim_token, conn = NULL) {
+    call_order <<- c(call_order, "complete")
     completed <<- list(
       job_id = job_id,
       result = jsonlite::fromJSON(result_json, simplifyVector = TRUE),
@@ -210,6 +230,7 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
         list(ok = TRUE, refresh = payload$refresh)
       },
       after_success = function(result, job, payload, state, worker_config) {
+        call_order <<- c(call_order, "after_success")
         events <<- c(events, paste(job$job_id[[1]], "after_success", sep = ":"))
         invisible(result)
       }
@@ -243,6 +264,142 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
   expect_true("job-run:after_success" %in% events)
   expect_equal(progress_calls[[1]]$progress_pct, 100)
   expect_equal(progress_calls[[1]]$claim_token, "claim-run")
+  expect_equal(call_order, c("complete", "after_success"))
+})
+
+test_that("async_job_worker_run_claimed_job treats event writes as best-effort", {
+  runtime <- load_async_job_worker_runtime()
+  completed <- NULL
+  fail_calls <- list()
+
+  runtime$async_job_repository_append_event <- function(...) {
+    stop("event store unavailable")
+  }
+  runtime$async_job_repository_heartbeat <- function(job_id, lease_seconds, claim_token, conn = NULL) {
+    1L
+  }
+  runtime$async_job_repository_complete <- function(job_id, result_json, claim_token, conn = NULL) {
+    completed <<- list(
+      job_id = job_id,
+      result = jsonlite::fromJSON(result_json, simplifyVector = TRUE),
+      claim_token = claim_token
+    )
+    1L
+  }
+  runtime$async_job_repository_fail <- function(job_id, error_code, error_message, claim_token, next_attempt_at = NULL, conn = NULL) { # nolint: line_length_linter
+    fail_calls[[length(fail_calls) + 1L]] <<- list(
+      job_id = job_id,
+      error_code = error_code,
+      error_message = error_message,
+      claim_token = claim_token
+    )
+    1L
+  }
+
+  result <- runtime$async_job_worker_run_claimed_job(
+    claimed_job = tibble(
+      job_id = "job-safe-events",
+      job_type = "hgnc_update",
+      request_payload_json = "{}",
+      claim_token = "claim-safe-events"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-safe", lease_seconds = 60L),
+    registry = list(
+      hgnc_update = list(
+        cancel_mode = "non_interruptible",
+        run = function(job, payload, state, worker_config) {
+          list(ok = TRUE)
+        }
+      )
+    )
+  )
+
+  expect_true(isTRUE(result))
+  expect_equal(completed$job_id, "job-safe-events")
+  expect_equal(completed$claim_token, "claim-safe-events")
+  expect_true(isTRUE(completed$result$ok))
+  expect_length(fail_calls, 0L)
+})
+
+test_that("async_job_worker_run_claimed_job fails malformed job rows instead of crashing", {
+  runtime <- load_async_job_worker_runtime()
+  fail_calls <- list()
+  completed_calls <- 0L
+
+  runtime$async_job_repository_append_event <- function(job_id, event_type, event_message = NULL, event_payload = NULL, conn = NULL) { # nolint: line_length_linter
+    1L
+  }
+  runtime$async_job_repository_heartbeat <- function(job_id, lease_seconds, claim_token, conn = NULL) {
+    1L
+  }
+  runtime$async_job_repository_fail <- function(job_id, error_code, error_message, claim_token, next_attempt_at = NULL, conn = NULL) { # nolint: line_length_linter
+    fail_calls[[length(fail_calls) + 1L]] <<- list(
+      job_id = job_id,
+      error_code = error_code,
+      error_message = error_message,
+      claim_token = claim_token
+    )
+    1L
+  }
+  runtime$async_job_repository_complete <- function(job_id, result_json, claim_token, conn = NULL) {
+    completed_calls <<- completed_calls + 1L
+    1L
+  }
+
+  unknown_result <- runtime$async_job_worker_run_claimed_job(
+    claimed_job = tibble(
+      job_id = "job-unknown-handler",
+      job_type = "unknown_job_type",
+      request_payload_json = "{}",
+      claim_token = "claim-unknown-handler"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-malformed", lease_seconds = 60L),
+    registry = list()
+  )
+
+  invalid_json_result <- runtime$async_job_worker_run_claimed_job(
+    claimed_job = tibble(
+      job_id = "job-invalid-json",
+      job_type = "hgnc_update",
+      request_payload_json = "{bad-json",
+      claim_token = "claim-invalid-json"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-malformed", lease_seconds = 60L),
+    registry = list(
+      hgnc_update = list(
+        cancel_mode = "non_interruptible",
+        run = function(job, payload, state, worker_config) list(ok = TRUE)
+      )
+    )
+  )
+
+  expect_false(isTRUE(unknown_result))
+  expect_false(isTRUE(invalid_json_result))
+  expect_equal(completed_calls, 0L)
+  expect_length(fail_calls, 2L)
+  expect_equal(fail_calls[[1]]$job_id, "job-unknown-handler")
+  expect_match(fail_calls[[1]]$error_message, "No durable async job handler registered")
+  expect_equal(fail_calls[[2]]$job_id, "job-invalid-json")
+})
+
+test_that("async_job_worker_sync_drain_signal flips the worker into shutdown mode", {
+  runtime <- load_async_job_worker_runtime()
+  state <- runtime$async_job_worker_state()
+  drain_file <- tempfile("async-job-worker-drain-")
+
+  on.exit(unlink(drain_file, force = TRUE), add = TRUE)
+  file.create(drain_file)
+
+  runtime$async_job_worker_sync_drain_signal(
+    state = state,
+    worker_config = list(drain_file = drain_file)
+  )
+
+  expect_true(isTRUE(state$draining))
+  expect_true(isTRUE(state$shutdown_requested))
 })
 
 test_that("worker main exits cleanly when drain is requested or lifetime bounds are reached", {

@@ -90,7 +90,7 @@ create_async_job_progress_reporter <- function(job_id, throttle_seconds = 2) {
     )
 
     lease_seconds <- suppressWarnings(as.integer(worker_config$lease_seconds))
-    if (!is.na(lease_seconds) && lease_seconds > 0L) {
+    if (length(lease_seconds) == 1L && !is.na(lease_seconds) && lease_seconds > 0L) {
       async_job_repository_heartbeat(
         job_id = job_id,
         lease_seconds = lease_seconds,

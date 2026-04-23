@@ -88,6 +88,67 @@ if (!exists("async_job_get_handler", mode = "function")) {
   jsonlite::fromJSON(payload_json, simplifyVector = TRUE)
 }
 
+.async_job_worker_fail_safe <- function(
+  fail_fn,
+  job_id,
+  claim_token,
+  error_code,
+  error_message
+) {
+  tryCatch(
+    {
+      fail_fn(
+        job_id = job_id,
+        error_code = error_code,
+        error_message = error_message,
+        claim_token = claim_token
+      )
+    },
+    error = function(error) {
+      warning(
+        sprintf(
+          "Failed to persist async job failure for job %s: %s",
+          job_id,
+          conditionMessage(error)
+        ),
+        call. = FALSE
+      )
+      0L
+    }
+  )
+}
+
+.async_job_worker_append_event_safe <- function(
+  append_event_fn,
+  job_id,
+  event_type,
+  event_message = NULL,
+  event_payload = NULL
+) {
+  tryCatch(
+    {
+      append_event_fn(
+        job_id = job_id,
+        event_type = event_type,
+        event_message = event_message,
+        event_payload = event_payload
+      )
+    },
+    error = function(error) {
+      warning(
+        sprintf(
+          "Failed to append async job event '%s' for job %s: %s",
+          event_type,
+          job_id,
+          conditionMessage(error)
+        ),
+        call. = FALSE
+      )
+      0L
+    }
+  )
+}
+
 #' Build durable async worker configuration from environment variables
 #'
 #' @return Named list of worker runtime settings.
@@ -109,7 +170,8 @@ async_job_worker_config_from_env <- function() {
     idle_sleep_seconds = max(0, .async_job_worker_num_env("ASYNC_JOB_IDLE_SLEEP_SECONDS", "2")),
     max_jobs_per_worker = max(1L, .async_job_worker_int_env("MAX_JOBS_PER_WORKER", "50")),
     max_worker_lifetime_seconds = max(1L, .async_job_worker_int_env("MAX_WORKER_LIFETIME", "3600")),
-    queues = queues
+    queues = queues,
+    drain_file = Sys.getenv("ASYNC_JOB_DRAIN_FILE", "/tmp/sysndd_async_worker_drain")
   )
 }
 
@@ -195,6 +257,16 @@ async_job_worker_claim_once <- function(
   claimed
 }
 
+async_job_worker_sync_drain_signal <- function(state, worker_config) {
+  drain_file <- worker_config$drain_file
+
+  if (!is.null(drain_file) && nzchar(drain_file) && file.exists(drain_file)) {
+    async_job_worker_request_drain(state, shutdown = TRUE)
+  }
+
+  invisible(state)
+}
+
 #' Heartbeat the currently running claimed job
 #'
 #' @param claimed_job Claimed job row.
@@ -254,8 +326,6 @@ async_job_worker_run_claimed_job <- function(
   job_type <- .async_job_worker_job_field(claimed_job, "job_type")
   claim_token <- .async_job_worker_job_field(claimed_job, "claim_token")
   payload_json <- .async_job_worker_job_field(claimed_job, "request_payload_json")
-  handler <- async_job_get_handler(job_type, registry = registry)
-  payload <- .async_job_worker_decode_payload(payload_json)
 
   state$current_job_claim <- claimed_job
   async_job_worker_set_claim_context(claimed_job, worker_config = worker_config)
@@ -265,7 +335,8 @@ async_job_worker_run_claimed_job <- function(
     async_job_worker_clear_claim_context()
   }, add = TRUE)
 
-  append_event_fn(
+  .async_job_worker_append_event_safe(
+    append_event_fn = append_event_fn,
     job_id = job_id,
     event_type = "started",
     event_message = sprintf("Worker %s started %s", worker_config$worker_id, job_type)
@@ -273,6 +344,9 @@ async_job_worker_run_claimed_job <- function(
 
   tryCatch(
     {
+      handler <- async_job_get_handler(job_type, registry = registry)
+      payload <- .async_job_worker_decode_payload(payload_json)
+
       heartbeat_fn(
         job_id = job_id,
         lease_seconds = worker_config$lease_seconds,
@@ -286,39 +360,66 @@ async_job_worker_run_claimed_job <- function(
         worker_config = worker_config
       )
 
-      if (is.function(handler$after_success)) {
-        handler$after_success(
-          result = result,
-          job = claimed_job,
-          payload = payload,
-          state = state,
-          worker_config = worker_config
-        )
-      }
-
-      complete_fn(
+      completed_rows <- complete_fn(
         job_id = job_id,
         result_json = .async_job_worker_encode_result(result),
         claim_token = claim_token
       )
 
-      append_event_fn(
+      if (length(completed_rows) != 1L || is.na(completed_rows) || completed_rows < 1L) {
+        stop(sprintf("Failed to persist completion for async job %s", job_id), call. = FALSE)
+      }
+
+      .async_job_worker_append_event_safe(
+        append_event_fn = append_event_fn,
         job_id = job_id,
         event_type = "completed",
         event_message = sprintf("Worker %s completed %s", worker_config$worker_id, job_type)
       )
 
+      if (is.function(handler$after_success)) {
+        tryCatch(
+          {
+            handler$after_success(
+              result = result,
+              job = claimed_job,
+              payload = payload,
+              state = state,
+              worker_config = worker_config
+            )
+          },
+          error = function(error) {
+            .async_job_worker_append_event_safe(
+              append_event_fn = append_event_fn,
+              job_id = job_id,
+              event_type = "post_completion_failed",
+              event_message = conditionMessage(error)
+            )
+            warning(
+              sprintf(
+                "Async post-completion hook failed for job %s: %s",
+                job_id,
+                conditionMessage(error)
+              ),
+              call. = FALSE
+            )
+          }
+        )
+      }
+
       invisible(TRUE)
     },
     error = function(error) {
-      fail_fn(
+      .async_job_worker_fail_safe(
+        fail_fn = fail_fn,
         job_id = job_id,
+        claim_token = claim_token,
         error_code = "EXECUTION_ERROR",
-        error_message = conditionMessage(error),
-        claim_token = claim_token
+        error_message = conditionMessage(error)
       )
 
-      append_event_fn(
+      .async_job_worker_append_event_safe(
+        append_event_fn = append_event_fn,
         job_id = job_id,
         event_type = "failed",
         event_message = conditionMessage(error)
@@ -351,6 +452,8 @@ async_job_worker_main <- function(
   on.exit(async_job_worker_release_all(state), add = TRUE)
 
   repeat {
+    async_job_worker_sync_drain_signal(state, worker_config)
+
     if (async_job_worker_should_exit(state, worker_config, now = now_fn())) {
       break
     }

@@ -168,7 +168,7 @@ services:
       - proxy
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -215,7 +215,16 @@ services:
       args:
         UID: ${HOST_UID:-1000}
         GID: ${HOST_GID:-1000}
-    command: ["Rscript", "/app/start_async_worker.R"]
+    command:
+      - bash
+      - -lc
+      - >
+          drain_file="$${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}";
+          rm -f "$$drain_file";
+          trap 'touch "$$drain_file"' TERM INT;
+          Rscript /app/start_async_worker.R &
+          child=$$!;
+          wait "$$child"
     restart: unless-stopped
     stop_grace_period: 60s
     security_opt:
@@ -230,12 +239,15 @@ services:
         condition: service_healthy
     volumes:
       - ./api/functions:/app/functions
+      - ./api/core:/app/core
+      - ./api/services:/app/services
       - ./api/bootstrap:/app/bootstrap
       - ./api/config:/app/config
       - ./api/data:/app/data
       - ./api/results:/app/results
       - ./db/migrations:/app/db/migrations:ro
       - api_cache:/app/cache
+      - mysql_backup:/backup:rw
       - ./api/config.yml:/app/config.yml
       - ./api/start_async_worker.R:/app/start_async_worker.R
     environment:
@@ -251,6 +263,7 @@ services:
       MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
       MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
       ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
+      ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
     networks:
       - backend
     develop:
@@ -258,6 +271,12 @@ services:
         - action: sync
           path: ./api/functions
           target: /app/functions
+        - action: sync
+          path: ./api/core
+          target: /app/core
+        - action: sync
+          path: ./api/services
+          target: /app/services
         - action: sync
           path: ./api/bootstrap
           target: /app/bootstrap
