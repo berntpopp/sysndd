@@ -459,15 +459,10 @@ execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
 
 #' Check if a backup operation is currently running
 #'
-#' Scans the jobs environment for any active backup_create or
+#' Queries the durable async job table for any active backup_create or
 #' backup_restore operations. Used to enforce single-concurrent-backup rule.
 #'
 #' @return Logical - TRUE if any backup job is running, FALSE otherwise
-#'
-#' @details
-#' Checks jobs_env (from job-manager.R) for jobs with:
-#' - operation in c("backup_create", "backup_restore")
-#' - status in c("pending", "running")
 #'
 #' @examples
 #' \dontrun{
@@ -478,21 +473,14 @@ execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
 #'
 #' @export
 check_backup_in_progress <- function() {
-  job_ids <- ls(jobs_env)
+  active_jobs <- db_execute_query(
+    paste(
+      "SELECT job_id FROM async_jobs",
+      "WHERE job_type IN ('backup_create', 'backup_restore')",
+      "AND status IN ('queued', 'running', 'cancel_requested')",
+      "LIMIT 1"
+    )
+  )
 
-  if (length(job_ids) == 0) {
-    return(FALSE)
-  }
-
-  for (job_id in job_ids) {
-    job <- jobs_env[[job_id]]
-
-    if (!is.null(job) &&
-          job$operation %in% c("backup_create", "backup_restore") &&
-          job$status %in% c("pending", "running")) {
-      return(TRUE)
-    }
-  }
-
-  return(FALSE)
+  nrow(active_jobs) > 0
 }

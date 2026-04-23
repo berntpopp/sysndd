@@ -78,9 +78,10 @@ make test-api
 
 - Start the DB stack before host-side API work.
 - `make pre-commit` is the fast local mirror of the pull-request gate. Use `make ci-local` before handoff, and `make test-api` when you want the full API suite locally.
-- Restart the API container after changing code used by background workers.
+- Restart the worker container after changing code used by background jobs. The API submits durable jobs; the worker service executes them.
 - Namespace masked R functions such as `dplyr::select(...)`.
 - Auth/signup/password-sensitive API inputs are body-only. Use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change flows; do not send those values in query strings or persist raw query strings in request logs.
-- On Ubuntu 25.10 with Conda/miniforge R, use `Rscript --no-init-file api/scripts/lint-check.R` for lint and rely on CI for the full R test baseline.
+- Host-side API quality targets use `Rscript --no-init-file` under the hood to avoid Conda/miniforge bootstrap interference before the repo's own R script entrypoints run.
+- On Conda/miniforge R installs, `Makefile` derives `HOST_R_LD_LIBRARY_PATH` from `R RHOME` and prepends the sibling `mariadb/` runtime directory so `RMariaDB` can load. Override `HOST_R_LD_LIBRARY_PATH` when the MariaDB client runtime lives elsewhere.
 
 For repository-specific agent guidance and deeper runtime quirks, see the root `AGENTS.md`.

@@ -39,6 +39,7 @@ fast_ci_excluded_test_files <- function() {
     "test-external-pubmed.R",
     "test-external-pubtator.R",
     "test-integration-async.R",
+    "test-integration-auth.R",
     "test-integration-email.R",
     "test-integration-health.R",
     "test-integration-llm-endpoints.R",

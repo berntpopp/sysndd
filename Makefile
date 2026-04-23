@@ -16,6 +16,11 @@ MAKEFLAGS += --no-builtin-rules
 # Project Root (auto-detected)
 # =============================================================================
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+HOST_R_HOME := $(shell R RHOME 2>/dev/null)
+HOST_R_MARIADB_LIB_DIR ?= $(patsubst %/,%,$(dir $(HOST_R_HOME)))/mariadb
+HOST_R_ENV_LD_LIBRARY_PATH := $(shell printf '%s' "$${LD_LIBRARY_PATH-}")
+HOST_R_LD_LIBRARY_PATH ?= $(if $(wildcard $(HOST_R_MARIADB_LIB_DIR)/libmariadb.so*),$(HOST_R_MARIADB_LIB_DIR)$(if $(HOST_R_ENV_LD_LIBRARY_PATH),:$(HOST_R_ENV_LD_LIBRARY_PATH)),$(HOST_R_ENV_LD_LIBRARY_PATH))
+HOST_RSCRIPT := env LD_LIBRARY_PATH="$(HOST_R_LD_LIBRARY_PATH)" Rscript --no-init-file
 
 # =============================================================================
 # ANSI Color Codes
@@ -111,26 +116,26 @@ watch-app: check-docker ## [dev] Start Docker Compose watch for frontend hot-rel
 # =============================================================================
 test-api: check-r ## [test] Run R API tests with testthat
 	@printf "$(CYAN)==> Running R API tests...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && Rscript scripts/run-ci-tests.R full && \
+	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/run-ci-tests.R full && \
 		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
 
 test-api-fast: check-r ## [test] Run the fast R API test gate used on pull requests
 	@printf "$(CYAN)==> Running fast R API tests...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && Rscript scripts/run-ci-tests.R fast && \
+	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/run-ci-tests.R fast && \
 		printf "$(GREEN)✓ test-api-fast complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api-fast failed$(RESET)\n" && exit 1)
 
 test-api-full: check-r ## [test] Run full R API test suite including slow tests
 	@printf "$(CYAN)==> Running full R API test suite (including slow tests)...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true Rscript scripts/run-ci-tests.R full && \
+	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true $(HOST_RSCRIPT) scripts/run-ci-tests.R full && \
 		printf "$(GREEN)✓ test-api-full complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api-full failed$(RESET)\n" && exit 1)
 
 coverage: check-r ## [test] Generate test coverage report with covr
 	@printf "$(CYAN)==> Calculating test coverage...$(RESET)\n"
 	@mkdir -p $(ROOT_DIR)/coverage
-	@cd $(ROOT_DIR)/api && Rscript scripts/coverage.R && \
+	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/coverage.R && \
 		printf "$(GREEN)✓ coverage complete$(RESET)\n" || \
 		(printf "$(RED)✗ coverage failed$(RESET)\n" && exit 1)
 
@@ -139,7 +144,7 @@ coverage: check-r ## [test] Generate test coverage report with covr
 # =============================================================================
 lint-api: check-r ## [lint] Check R code with lintr + migration prefix check
 	@printf "$(CYAN)==> Checking R code with lintr...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && Rscript scripts/lint-check.R && \
+	@cd $(ROOT_DIR)/api && $(HOST_RSCRIPT) scripts/lint-check.R && \
 		printf "$(GREEN)✓ lintr complete$(RESET)\n" || \
 		(printf "$(RED)✗ lintr failed$(RESET)\n" && exit 1)
 	@printf "$(CYAN)==> Checking migration prefixes...$(RESET)\n"
@@ -185,13 +190,13 @@ pre-commit: ## [quality] Run all quality checks before committing
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
 	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
 	@printf "\n$(CYAN)[1/6] Starting test database...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d mysql-test && \
+	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) up -d mysql-test && \
 		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
 	@printf "$(CYAN)Waiting for MySQL to be ready...$(RESET)\n"
 	@SECONDS=0; \
 	while [ $$SECONDS -lt 30 ]; do \
-		if docker compose -f docker-compose.dev.yml exec -T mysql-test mysqladmin ping -h localhost -u bernt -pNur7DoofeFliegen. --silent 2>/dev/null; then \
+		if $(COMPOSE_DB_DEV) exec -T mysql-test mysqladmin ping -h localhost -u bernt -pNur7DoofeFliegen. --silent 2>/dev/null; then \
 			printf "$(GREEN)MySQL ready$(RESET)\n"; \
 			break; \
 		fi; \
@@ -213,7 +218,7 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \
-		Rscript scripts/run-ci-tests.R full || \
+		$(HOST_RSCRIPT) scripts/run-ci-tests.R full || \
 		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Tests passed$(RESET)\n"
 	@$(MAKE) -C $(ROOT_DIR) _ci-cleanup
@@ -225,7 +230,7 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 
 _ci-cleanup:
 	@printf "\n$(CYAN)Cleaning up test database...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml stop mysql-test 2>/dev/null || true
+	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) stop mysql-test 2>/dev/null || true
 
 verify-gate: ## [quality] Run verify-test-gate.sh + its bash harness (Phase B B4)
 	@printf "$(CYAN)==> Running verify-test-gate.sh harness...$(RESET)\n"
@@ -300,6 +305,7 @@ preflight: check-docker ## [quality] Run production preflight validation
 #   Development: docker-compose.yml + docker-compose.override.yml (auto-loaded)
 #   Full dev:    docker-compose.yml + docker-compose.override.yml + docker-compose.dev.yml
 COMPOSE_DEV := docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev.yml
+COMPOSE_DB_DEV := docker compose -p sysndd -f docker-compose.dev.yml
 
 docker-build: check-docker ## [docker] Build API Docker image
 	@printf "$(CYAN)==> Building API Docker image...$(RESET)\n"
@@ -340,7 +346,7 @@ docker-dev: check-docker ## [docker] Start full dev stack (app + api + db + dev 
 
 docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/app development)
 	@printf "$(CYAN)==> Starting development databases only...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.dev.yml up -d && \
+	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) up -d && \
 		printf "$(GREEN)✓ Databases started$(RESET)\n" || \
 		(printf "$(RED)✗ docker-dev-db failed$(RESET)\n" && exit 1)
 	@printf "\n$(CYAN)Database ports:$(RESET)\n"

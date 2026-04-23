@@ -1,14 +1,12 @@
 source("bootstrap/init_libraries.R", local = FALSE)
 source("bootstrap/create_pool.R", local = FALSE)
+source("bootstrap/load_modules.R", local = FALSE)
 
 bootstrap_init_libraries()
-
-source("functions/db-helpers.R", local = FALSE)
-source("functions/async-job-repository.R", local = FALSE)
+bootstrap_load_modules()
 source("functions/async-job-progress.R", local = FALSE)
 source("functions/async-job-handlers.R", local = FALSE)
 source("functions/async-job-worker.R", local = FALSE)
-source("functions/job-progress.R", local = FALSE)
 
 env_mode <- Sys.getenv("ENVIRONMENT", "local")
 

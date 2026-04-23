@@ -1,8 +1,8 @@
 #' Job Manager Module
 #'
-#' Provides job state management functions for async API operations.
-#' Uses mirai daemon pool for background execution and in-memory
-#' environment storage for job state tracking.
+#' Legacy compatibility facade for async API operations.
+#' Public job submission, status, and history now route through the
+#' durable async job service instead of process-local state.
 #'
 #' @name job-manager
 #' @author SysNDD Team
@@ -11,30 +11,6 @@
 # Note: mirai, promises, uuid, digest loaded in start_sysndd_api.R
 
 # NOTE: LLM batch generator loaded at END of file (after create_job is defined)
-
-## -------------------------------------------------------------------##
-# Global State
-## -------------------------------------------------------------------##
-
-#' Environment for storing job state
-#'
-#' Each job is stored as a list with keys:
-#' - job_id: UUID string
-#' - operation: String identifying the operation type
-#' - status: "pending", "running", "completed", "failed"
-#' - mirai_obj: The mirai object for status checking
-#' - submitted_at: POSIXct timestamp
-#' - params_hash: digest hash of parameters for deduplication
-#' - result: Job result (NULL until completed)
-#' - error: Error details (NULL unless failed)
-#' - completed_at: POSIXct timestamp (NULL until done)
-jobs_env <- new.env(parent = emptyenv())
-
-#' Maximum number of concurrent jobs
-#'
-#' Matches the mirai daemon pool size (8 workers).
-#' When reached, new job submissions return CAPACITY_EXCEEDED error.
-MAX_CONCURRENT_JOBS <- 8
 
 ## -------------------------------------------------------------------##
 # Core Functions
@@ -218,86 +194,25 @@ check_duplicate_job <- function(operation, params) {
   async_job_service_duplicate(operation, params)
 }
 
-#' Clean up old completed/failed jobs
-#'
-#' Removes jobs that completed more than 24 hours ago to prevent
-#' memory leaks. Called periodically by schedule_cleanup().
+#' Compatibility no-op for the removed in-memory cleanup cycle
 #'
 #' @return Integer count of removed jobs (invisible).
-#'
-#' @examples
-#' \dontrun{
-#' cleanup_old_jobs()
-#' }
 #' @export
 cleanup_old_jobs <- function() {
-  cutoff_time <- Sys.time() - (24 * 3600) # 24 hours ago
-  removed <- 0
-
-  job_ids <- ls(jobs_env)
-
-  if (length(job_ids) == 0) {
-    return(invisible(0))
-  }
-
-  for (job_id in job_ids) {
-    tryCatch(
-      {
-        job <- jobs_env[[job_id]]
-
-        if (is.null(job)) {
-          # Orphaned entry, remove it
-          rm(list = job_id, envir = jobs_env)
-          removed <- removed + 1
-          next
-        }
-
-        if (job$status %in% c("completed", "failed")) {
-          end_time <- job$completed_at %||% job$submitted_at
-
-          if (!is.null(end_time) && end_time < cutoff_time) {
-            rm(list = job_id, envir = jobs_env)
-            removed <- removed + 1
-          }
-        }
-      },
-      error = function(e) {
-        message(sprintf("[%s] Error cleaning job %s: %s", Sys.time(), job_id, e$message))
-      }
-    )
-  }
-
-  if (removed > 0) {
-    message(sprintf("[%s] Cleaned up %d old jobs", Sys.time(), removed))
-  }
-
-  invisible(removed)
+  invisible(0L)
 }
 
-#' Schedule Recurring Job Cleanup
-#'
-#' Schedules the cleanup_old_jobs function to run periodically.
-#' Uses `later` package for non-blocking scheduling.
-#' Default interval is 1 hour (3600 seconds).
+#' Compatibility no-op for the removed in-memory cleanup scheduler
 #'
 #' @param interval_seconds Interval between cleanup runs in seconds
 #' @export
 schedule_cleanup <- function(interval_seconds = 3600) {
-  cleanup_and_reschedule <- function() {
-    cleanup_old_jobs()
-    # Reschedule
-    later::later(cleanup_and_reschedule, interval_seconds)
-  }
-
-  # Start the first cleanup cycle
-  later::later(cleanup_and_reschedule, interval_seconds)
-  message(sprintf("[%s] Scheduled job cleanup every %d seconds", Sys.time(), interval_seconds))
+  invisible(interval_seconds)
 }
 
 #' Get Job History
 #'
-#' Returns a list of recent jobs from the jobs environment.
-#' Includes both running and completed jobs, sorted by submission time (newest first).
+#' Returns recent durable jobs, sorted by submission time (newest first).
 #'
 #' @param limit Integer maximum number of jobs to return (default 20)
 #' @return Data frame of job records with: job_id, operation, status,

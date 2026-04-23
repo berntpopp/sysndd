@@ -468,3 +468,177 @@ test_that("worker main exits cleanly when drain is requested or lifetime bounds 
   expect_identical(lifetime_result, lifetime_state)
   expect_equal(lifetime_claims, 1L)
 })
+
+test_that("clustering durable handler preserves executor result shape and chains LLM generation", {
+  skip_if_not_installed("dplyr")
+  skip_if_not_installed("tidyr")
+  skip_if_not_installed("stringr")
+
+  runtime <- load_async_job_worker_runtime()
+
+  clusters <- tibble::tibble(
+    cluster = 1L,
+    identifiers = list(tibble::tibble(symbol = "GENE1", hgnc_id = 101L)),
+    term_enrichment = list(tibble::tibble(category = c("HPO", "Process")))
+  )
+  llm_call <- NULL
+
+  runtime$gen_string_clust_obj <- function(genes, algorithm, string_id_table = NULL) {
+    expect_equal(genes, c("GENE1", "GENE2"))
+    expect_equal(algorithm, "walktrap")
+    expect_equal(string_id_table$STRING_id, c("s1", "s2"))
+    clusters
+  }
+  runtime$trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id) {
+    llm_call <<- list(
+      clusters = clusters,
+      cluster_type = cluster_type,
+      parent_job_id = parent_job_id
+    )
+    list(job_id = "llm-job")
+  }
+
+  handler <- runtime$async_job_get_handler("clustering")
+  result <- handler$run(
+    job = tibble::tibble(job_id = "job-clustering"),
+    payload = list(
+      genes = c("GENE1", "GENE2"),
+      algorithm = "walktrap",
+      string_id_table = tibble::tibble(symbol = c("GENE1", "GENE2"), STRING_id = c("s1", "s2")),
+      category_links = tibble::tibble(
+        value = c("HPO", "Process"),
+        link = c("https://hpo.test/", "https://process.test/")
+      )
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-clustering")
+  )
+
+  expect_equal(result$clusters, clusters)
+  expect_equal(result$categories$value, c("HPO", "Process"))
+  expect_equal(result$categories$link, c("https://hpo.test/", "https://process.test/"))
+  expect_equal(result$meta$algorithm, "walktrap")
+  expect_equal(result$meta$gene_count, 2L)
+  expect_equal(result$meta$cluster_count, 1L)
+
+  handler$after_success(
+    result = result,
+    job = tibble::tibble(job_id = "job-clustering"),
+    payload = list(),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-clustering")
+  )
+
+  expect_equal(llm_call$cluster_type, "functional")
+  expect_equal(llm_call$parent_job_id, "job-clustering")
+  expect_equal(llm_call$clusters, clusters)
+})
+
+test_that("phenotype clustering durable handler restores identifiers and chains LLM generation", {
+  skip_if_not_installed("dplyr")
+  skip_if_not_installed("tidyr")
+
+  runtime <- load_async_job_worker_runtime()
+
+  runtime$gen_mca_clust_obj <- function(data_frame) {
+    expect_equal(rownames(data_frame), c("11", "22"))
+    tibble::tibble(
+      cluster = 2L,
+      identifiers = list(tibble::tibble(entity_id = c("11", "22"))),
+      quali_inp_var = list(tibble::tibble(term = "Phenotype"))
+    )
+  }
+
+  llm_call <- NULL
+  runtime$trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id) {
+    llm_call <<- list(
+      clusters = clusters,
+      cluster_type = cluster_type,
+      parent_job_id = parent_job_id
+    )
+    list(job_id = "llm-job")
+  }
+
+  handler <- runtime$async_job_get_handler("phenotype_clustering")
+  result <- handler$run(
+    job = tibble::tibble(job_id = "job-phenotype"),
+    payload = list(
+      ndd_entity_view_tbl = tibble::tibble(
+        entity_id = c(11L, 22L),
+        hgnc_id = c("HGNC:11", "HGNC:22"),
+        symbol = c("GENE11", "GENE22"),
+        hpo_mode_of_inheritance_term_name = c("Autosomal dominant", "Autosomal dominant"),
+        ndd_phenotype = c("Yes", "Yes")
+      ),
+      ndd_entity_review_tbl = tibble::tibble(review_id = c(101L, 202L)),
+      ndd_review_phenotype_connect_tbl = tibble::tibble(
+        entity_id = c(11L, 22L),
+        review_id = c(101L, 202L),
+        modifier_id = c(1L, 1L),
+        phenotype_id = c("HP:0000001", "HP:0000002")
+      ),
+      modifier_list_tbl = tibble::tibble(modifier_id = 1L, modifier_name = "present"),
+      phenotype_list_tbl = tibble::tibble(
+        phenotype_id = c("HP:0000001", "HP:0000002"),
+        HPO_term = c("Phenotype A", "Phenotype B"),
+        category = "Definitive"
+      ),
+      id_phenotype_ids = c("HP:0001249"),
+      categories = "Definitive"
+    ),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-phenotype")
+  )
+
+  identifiers <- result$identifiers[[1]]
+  expect_equal(identifiers$entity_id, c(11L, 22L))
+  expect_equal(identifiers$hgnc_id, c("HGNC:11", "HGNC:22"))
+  expect_equal(identifiers$symbol, c("GENE11", "GENE22"))
+
+  handler$after_success(
+    result = result,
+    job = tibble::tibble(job_id = "job-phenotype"),
+    payload = list(),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-phenotype")
+  )
+
+  expect_equal(llm_call$cluster_type, "phenotype")
+  expect_equal(llm_call$parent_job_id, "job-phenotype")
+  expect_equal(llm_call$clusters, result)
+})
+
+test_that("legacy durable handlers inject the current durable job id into reused executors", {
+  runtime <- load_async_job_worker_runtime()
+
+  comparisons_params <- NULL
+  runtime$comparisons_update_async <- function(params) {
+    comparisons_params <<- params
+    list(ok = TRUE, worker_job = params$.__job_id__)
+  }
+
+  llm_params <- NULL
+  runtime$llm_batch_executor <- function(params) {
+    llm_params <<- params
+    list(ok = TRUE, worker_job = params$.__job_id__)
+  }
+
+  comparisons_result <- runtime$async_job_get_handler("comparisons_update")$run(
+    job = tibble::tibble(job_id = "job-comparisons"),
+    payload = list(db_config = list(host = "db")),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-legacy")
+  )
+
+  llm_result <- runtime$async_job_get_handler("llm_generation")$run(
+    job = tibble::tibble(job_id = "job-llm"),
+    payload = list(clusters = tibble::tibble(cluster = 1L), cluster_type = "functional"),
+    state = runtime$async_job_worker_state(),
+    worker_config = list(worker_id = "worker-legacy")
+  )
+
+  expect_equal(comparisons_result$worker_job, "job-comparisons")
+  expect_equal(comparisons_params$.__job_id__, "job-comparisons")
+  expect_equal(llm_result$worker_job, "job-llm")
+  expect_equal(llm_params$.__job_id__, "job-llm")
+})

@@ -2,6 +2,7 @@ import type { Ref, ComputedRef } from 'vue';
 import { ref, computed, onUnmounted } from 'vue';
 import { useIntervalFn } from '@vueuse/core';
 import axios from 'axios';
+import { apiClient } from '@/api/client';
 
 /**
  * Progress information for an async job
@@ -9,6 +10,16 @@ import axios from 'axios';
 export interface JobProgress {
   current: number;
   total: number;
+}
+
+interface JobStatusPayload {
+  status?: string | string[];
+  step?: string | string[];
+  progress?: {
+    current?: number | string | Array<number | string>;
+    total?: number | string | Array<number | string>;
+  };
+  error?: string | { message?: string };
 }
 
 /**
@@ -207,18 +218,10 @@ export function useAsyncJob(
     if (!jobId.value) return;
 
     try {
-      // v11.0 closeout F2a: the inline Authorization header construction
-      // here has been removed. The `apiClient` request interceptor
-      // (`@/api/client`) reads `useAuth().token.value` and injects the
-      // Bearer header on every outbound call against the shared axios
-      // singleton. The `withCredentials` opt-in remains — Traefik's
-      // sticky-session cookie (`sysndd_api_sticky`) is what keeps polling
-      // pinned to the container that owns the job.
-      const response = await axios.get(statusEndpoint(jobId.value), {
-        withCredentials: true, // Required for sticky session cookies with load balancer
-      });
-
-      const data = response.data;
+      // Auth for polling is injected by the shared api client interceptor.
+      // Durable job state means polling no longer depends on sticky-session
+      // routing or container-local ownership.
+      const data = await apiClient.get<JobStatusPayload>(statusEndpoint(jobId.value));
 
       // Handle job not found error
       if (data.error === 'JOB_NOT_FOUND') {
@@ -248,7 +251,10 @@ export function useAsyncJob(
         stopPolling();
         if (status.value === 'failed') {
           // Extract specific error message
-          error.value = data.error?.message || data.error || 'Job failed';
+          error.value =
+            typeof data.error === 'string'
+              ? data.error
+              : data.error?.message || 'Job failed';
         }
       }
     } catch (err) {

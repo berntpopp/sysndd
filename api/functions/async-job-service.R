@@ -141,6 +141,65 @@ async_job_service_submit <- function(
   )
 }
 
+#' Persist an already-completed durable async job row
+#'
+#' Used for cache-hit fast paths that should still return a normal durable
+#' job id without enqueueing worker execution.
+#'
+#' @param job_type Character durable job type.
+#' @param request_payload Named list or JSON payload string.
+#' @param result Completed handler result payload.
+#' @param submitted_by Optional user id.
+#' @param queue_name Character queue name.
+#' @param priority Integer queue priority.
+#' @param job_id Optional explicit job id.
+#' @param submitted_at Optional submission timestamp.
+#' @param completed_at Optional completion timestamp.
+#' @param conn Optional DB connection or pool.
+#'
+#' @return Tibble with the stored completed job row.
+#' @export
+async_job_service_store_completed <- function(
+  job_type,
+  request_payload,
+  result,
+  submitted_by = NULL,
+  queue_name = "default",
+  priority = 100L,
+  job_id = uuid::UUIDgenerate(),
+  submitted_at = Sys.time(),
+  completed_at = submitted_at,
+  conn = NULL
+) {
+  job_type <- .async_job_service_non_empty_string(job_type, "job_type")
+  job_id <- .async_job_service_non_empty_string(job_id, "job_id")
+  queue_name <- .async_job_service_non_empty_string(queue_name, "queue_name")
+  payload_json <- async_job_service_payload_json(request_payload)
+  result_json <- async_job_service_payload_json(result)
+
+  async_job_repository_create(
+    list(
+      job_id = job_id,
+      job_type = job_type,
+      queue_name = queue_name,
+      priority = as.integer(priority),
+      status = "completed",
+      request_hash = async_job_service_request_hash(job_type, payload_json),
+      request_payload_json = payload_json,
+      submitted_by = if (is.null(submitted_by)) NULL else as.integer(submitted_by),
+      submitted_at = submitted_at,
+      scheduled_at = submitted_at,
+      started_at = submitted_at,
+      completed_at = completed_at,
+      progress_pct = 100,
+      result_json = result_json
+    ),
+    conn = conn
+  )
+
+  async_job_repository_get(job_id, include_result = TRUE, conn = conn)
+}
+
 #' Find an active duplicate for a durable async job request
 #'
 #' @param job_type Character durable job type.

@@ -137,28 +137,30 @@ function(req, res) {
       dplyr::select(value = category, text) %>%
       dplyr::left_join(category_links, by = c("value"))
 
-    # Create pre-completed job for tracking consistency
-    job_id <- uuid::UUIDgenerate()
-    jobs_env[[job_id]] <- list(
-      job_id = job_id,
-      operation = "clustering",
-      status = "completed",
-      mirai_obj = NULL,
-      submitted_at = Sys.time(),
-      params_hash = digest::digest(list(genes = genes_list, algorithm = algorithm)),
-      result = list(
-        clusters = cached_clusters,
-        categories = categories,
-        meta = list(
-          algorithm = algorithm,
-          gene_count = length(genes_list),
-          cluster_count = nrow(cached_clusters),
-          cache_hit = TRUE
-        )
-      ),
-      error = NULL,
-      completed_at = Sys.time()
+    cache_result <- list(
+      clusters = cached_clusters,
+      categories = categories,
+      meta = list(
+        algorithm = algorithm,
+        gene_count = length(genes_list),
+        cluster_count = nrow(cached_clusters),
+        cache_hit = TRUE
+      )
     )
+    completed_job <- async_job_service_store_completed(
+      job_type = "clustering",
+      request_payload = list(
+        genes = genes_list,
+        algorithm = algorithm,
+        category_links = category_links,
+        string_id_table = string_id_table
+      ),
+      result = cache_result,
+      submitted_by = req$user$user_id %||% NULL,
+      queue_name = "analysis",
+      priority = 50L
+    )
+    job_id <- completed_job$job_id[[1]]
 
     # Chain LLM generation for cache hits (same as job completion path)
     if (exists("trigger_llm_batch_generation", mode = "function")) {
@@ -372,19 +374,23 @@ function(req, res) {
       left_join(ndd_entity_view_tbl_sub, by = "entity_id") %>%
       nest(identifiers = c(entity_id, hgnc_id, symbol))
 
-    # Create pre-completed job for tracking consistency
-    job_id <- uuid::UUIDgenerate()
-    jobs_env[[job_id]] <- list(
-      job_id = job_id,
-      operation = "phenotype_clustering",
-      status = "completed",
-      mirai_obj = NULL,
-      submitted_at = Sys.time(),
-      params_hash = digest::digest(params_hash_input),
+    completed_job <- async_job_service_store_completed(
+      job_type = "phenotype_clustering",
+      request_payload = list(
+        ndd_entity_view_tbl = ndd_entity_view_tbl,
+        ndd_entity_review_tbl = ndd_entity_review_tbl,
+        ndd_review_phenotype_connect_tbl = ndd_review_phenotype_connect_tbl,
+        modifier_list_tbl = modifier_list_tbl,
+        phenotype_list_tbl = phenotype_list_tbl,
+        id_phenotype_ids = id_phenotype_ids,
+        categories = categories
+      ),
       result = cached_clusters_with_ids,
-      error = NULL,
-      completed_at = Sys.time()
+      submitted_by = req$user$user_id %||% NULL,
+      queue_name = "analysis",
+      priority = 50L
     )
+    job_id <- completed_job$job_id[[1]]
 
     # Chain LLM generation for cache hits (same as job completion path)
     if (exists("trigger_llm_batch_generation", mode = "function")) {
