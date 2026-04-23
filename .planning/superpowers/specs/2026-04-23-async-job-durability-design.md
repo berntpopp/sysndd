@@ -41,8 +41,12 @@ Decision:
 5. Adapt existing async-producing API flows to submit durable jobs instead of owning them in memory.
 6. Make API status endpoints read durable job truth so any API replica can answer.
 7. Remove sticky-session correctness assumptions from frontend async polling.
-8. Update deployment, development, and agent docs for the new worker process model.
-9. Structure the implementation so major slices can be executed in parallel with minimal overlap.
+8. Preserve current user-visible async behaviors that matter operationally:
+   - duplicate-job suppression via parameter hashing
+   - clustering and phenotype-clustering post-completion chaining into LLM generation
+   - admin job-history visibility
+9. Update deployment, development, and agent docs for the new worker process model.
+10. Structure the implementation so major slices can be executed in parallel with minimal overlap.
 
 ## Out of Scope
 
@@ -52,6 +56,7 @@ Decision:
 4. Building a broad event-streaming or websocket architecture for job progress updates.
 5. A compatibility layer that preserves `jobs_env` as a long-term fallback path.
 6. Large-scale redesign of mirai-based computation internals beyond adapting them to the new worker execution boundary.
+7. Changing the same-image deployment strategy; the worker should run as a separate service with a different entrypoint, not as a separate image family.
 
 ## Design
 
@@ -77,7 +82,7 @@ Use a control-plane / execution-plane split.
 - The API process becomes the control plane:
   - validates async requests
   - writes job submissions durably
-  - exposes status, result, cancel, and retry endpoints
+  - exposes status, result, history, cancel, and retry endpoints
 - MySQL becomes the system of record:
   - durable queue state
   - lifecycle timestamps
@@ -102,34 +107,49 @@ Required columns:
 - `job_id`
 - `job_type`
 - `status`
+- `queue_name`
+- `priority`
 - `request_payload_json`
 - `submitted_by`
 - `submitted_at`
+- `scheduled_at`
 - `started_at`
 - `completed_at`
 - `claimed_by_worker`
+- `worker_hostname`
+- `worker_pid`
+- `last_heartbeat_at`
 - `claim_expires_at`
 - `attempt_count`
 - `max_attempts`
+- `next_attempt_at`
+- `progress_pct`
+- `progress_message`
 - `last_error_code`
 - `last_error_message`
+- `cancelled_by`
+- `updated_at`
 - `result_json`
 
 Status values:
 
 - `queued`
-- `claimed`
 - `running`
 - `completed`
 - `failed`
 - `cancel_requested`
 - `cancelled`
-- `retryable`
 
 Notes:
 
 - Keep the row narrow enough for normal status polling and orchestration.
+- Treat retry eligibility as derived state, not a separate status:
+  - `status = failed`
+  - `attempt_count < max_attempts`
+  - `next_attempt_at <= NOW()`
 - If large result payloads become awkward, split them later into a dedicated artifact table. The initial design should only do that if existing async results clearly require it.
+- `result_json` is acceptable in-table at current scale, but status polling queries should exclude it from the normal select list.
+- `submitted_by` should preserve audit history even if the user is later removed; avoid cascading user deletion into async-job audit loss.
 
 #### `async_job_events`
 
@@ -145,15 +165,20 @@ Purpose:
 Typical events:
 
 - submitted
-- claimed
 - started
 - progress update
-- heartbeat
+- retried
 - cancel requested
 - completed
 - failed
 - requeued
 - cancelled
+
+Event policy:
+
+- append events for lifecycle transitions and meaningful progress milestones
+- do not write an event row for every heartbeat
+- keep heartbeats as row updates on `async_jobs`, optionally downsampling them into events only for coarse operational visibility
 
 ### Execution Flow
 
@@ -161,12 +186,13 @@ Typical events:
 2. API writes a new `async_jobs` row with `status = queued`.
 3. API returns `job_id` immediately.
 4. Worker loop claims a job transactionally using MySQL row-locking appropriate for queue-like work.
-5. Worker writes ownership metadata, lease expiry, and `running` lifecycle state.
+5. Worker writes ownership metadata, lease expiry, and `running` lifecycle state in the claim path.
 6. Worker dispatches the job to a registered handler.
 7. Handler emits durable progress updates and event rows while executing.
 8. Worker writes final `completed`, `failed`, or `cancelled` state and clears ownership metadata as appropriate.
 9. API status endpoint reads MySQL-backed state only; any API replica can answer correctly.
 10. Recovery loop requeues or terminally fails stale jobs whose lease expired without heartbeat renewal.
+11. Post-completion hooks run where required, including the existing clustering and phenotype-clustering chain into LLM generation.
 
 ### Claiming And Recovery
 
@@ -174,22 +200,26 @@ Use transactional claim leasing, not process-local ownership.
 
 Rules:
 
-- workers claim only `queued` jobs or explicitly `retryable` jobs
+- workers claim only `queued` jobs or failed jobs whose retry window has opened
 - claim transaction must be short and commit immediately after ownership is persisted
-- running workers heartbeat by extending `claim_expires_at`
+- `queued -> running` should happen in the claim transaction; there is no separate long-lived `claimed` state
+- running workers heartbeat by updating `last_heartbeat_at` and extending `claim_expires_at`
 - stale running jobs whose lease expires are not considered owned
 - stale-job recovery requeues work if retry budget remains; otherwise marks the job `failed`
 
 Status semantics:
 
 - `queued`: eligible for claim
-- `claimed`: transitional state between claim and active execution
 - `running`: actively executing with valid lease
 - `completed`: terminal success
 - `failed`: terminal failure
 - `cancel_requested`: cancellation requested but not yet finalized
 - `cancelled`: terminal cancellation
-- `retryable`: failed execution that remains eligible for bounded retry
+
+Retry semantics:
+
+- retryability is derived from job state and scheduling metadata, not a dedicated status
+- retries should be scheduled via `next_attempt_at`, not by sleeping inside a worker
 
 ### Component Boundaries
 
@@ -201,10 +231,11 @@ Responsibility:
 - create job rows
 - claim jobs
 - persist heartbeats
-- persist progress snapshots
+- persist progress snapshots on the job row
 - append event rows
 - complete/fail/cancel jobs
 - recover stale leases
+- implement duplicate-job detection using durable request hashing rather than in-memory scans
 
 #### `api/functions/async-job-service.R`
 
@@ -224,6 +255,8 @@ Responsibility:
 - handler dispatch
 - heartbeat timing
 - final state persistence
+- bounded worker lifetime rules such as max jobs per worker and max worker lifetime
+- clean stop handling so a draining worker does not claim new jobs and releases leases safely between jobs
 
 #### `api/functions/async-job-handlers.R`
 
@@ -231,7 +264,24 @@ Responsibility:
 
 - map `job_type` values to execution handlers
 - keep orchestration separate from job-specific computation
-- adapt existing clustering, phenotype clustering, ontology update, HGNC update, PubTator, comparisons, and LLM-related async entrypoints into durable handlers
+- adapt every current `create_job(...)` call site into the durable registry:
+  - `clustering`
+  - `phenotype_clustering`
+  - `ontology_update`
+  - `hgnc_update`
+  - `comparisons_update`
+  - `pubtator_update`
+  - `llm_generation`
+  - `backup_create`
+  - `backup_restore`
+  - `omim_update`
+  - `force_apply_ontology`
+  - `publication_refresh`
+- support post-completion hooks where existing behavior requires them, especially clustering-driven LLM chaining
+- require each handler to declare cancellation capability as one of:
+  - `cooperative`
+  - `best_effort`
+  - `non_interruptible`
 
 #### API endpoints
 
@@ -245,6 +295,7 @@ Responsibility:
 - submit jobs via the service layer
 - return durable `job_id`
 - read DB-backed job status
+- preserve admin job history on durable data
 - expose cancel/retry where supported
 
 #### Frontend polling
@@ -258,6 +309,26 @@ Responsibility:
 - keep polling, progress formatting, and UI-facing state only
 - stop depending on sticky-session correctness for job visibility
 - continue handling R/Plumber response quirks if they remain relevant on the status endpoint
+- consume cheap row-level progress fields rather than requiring event-table scans for normal polling
+
+### Progress Model
+
+Current behavior uses file-based progress reporting under `/tmp/sysndd_jobs`, which lets workers write cheap progress snapshots and the API read them during polling.
+
+Replacement rule:
+
+- replace file-based progress with durable row-level fields on `async_jobs`
+- keep `progress_pct` and `progress_message` on the primary row for cheap polling
+- use `async_job_events` for lifecycle history and meaningful progress milestones, not as the primary source of every status poll
+- remove the file-based progress path in the final hard-cut state
+
+### Preserved Behaviors
+
+The durable refactor must preserve these current semantics unless explicitly redesigned later:
+
+- duplicate expensive jobs are suppressed based on operation plus parameter hash
+- `clustering` and `phenotype_clustering` trigger downstream LLM batch generation on successful completion, including cache-hit paths that currently perform that chain synchronously from the endpoint layer
+- admin job history remains available through durable storage rather than process memory
 
 ### Hard-Cut Boundary
 
@@ -267,6 +338,7 @@ Final-state rules:
 - job status must never depend on API-process-local objects
 - sticky sessions may remain operationally harmless, but they cannot be part of correctness
 - the final implementation must have one durable async-job path, not dual long-term paths
+- worker claims must not begin before the required schema is available; worker startup should gate on API/schema readiness rather than racing migrations
 
 Short-lived implementation sequencing is acceptable while the refactor is in progress, but the landing state must be a hard cut to the durable model.
 
@@ -295,6 +367,8 @@ Short-lived implementation sequencing is acceptable while the refactor is in pro
 - final completion state persistence
 - failure persistence with error details
 - stale lease recovery after simulated worker death
+- clustering post-completion chaining into LLM generation
+- bounded worker-drain behavior during shutdown
 
 ### Frontend coverage
 
@@ -321,6 +395,12 @@ Implementation hard gate:
 
 This sequencing keeps risk bounded while preserving the long-term hard-cut end state.
 
+Operational rollout details:
+
+- run workers from the same application image with a different entrypoint, not a separate image lineage
+- gate worker startup on readiness or schema availability so workers cannot execute against pre-migration state
+- document conservative defaults for worker draining and restart behavior, including a compose-level grace period
+
 ## Parallel Execution Shape
 
 The implementation splits into five mostly independent streams:
@@ -333,6 +413,10 @@ The implementation splits into five mostly independent streams:
 
 These streams should converge at integrated async-job verification and full `make ci-local`.
 
+Parallelization note:
+
+- the handler-registry stream should own a complete inventory of the twelve current async operations so no endpoint family is silently stranded on the old path
+
 ## Risks
 
 1. Existing async handlers may assume direct access to process-local job state and need careful adaptation.
@@ -340,6 +424,8 @@ These streams should converge at integrated async-job verification and full `mak
 3. Cancellation semantics may vary by job type and require explicit documentation of which operations are cooperative vs non-interruptible.
 4. Worker lifecycle and claim timeout tuning may be environment-sensitive and require conservative defaults.
 5. Migration will touch multiple async-producing endpoints, so incomplete handler registration could strand part of the async surface on the old path if not tracked carefully.
+6. Long-lived R workers can accumulate memory; the worker contract should include bounded lifetime and max-job limits so the supervisor can recycle processes predictably.
+7. Termination handling on R workers needs explicit treatment so workers drain safely and do not strand leases during deploys or restarts.
 
 ## Recommendation
 
