@@ -78,6 +78,7 @@ make test-api
 - Prefer `make ci-local` before pushing.
 - Restart the API container after changing code used by background workers.
 - Namespace masked R functions such as `dplyr::select(...)`.
+- Auth/signup/password-sensitive API inputs are body-only. Use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change flows; do not send those values in query strings or persist raw query strings in request logs.
 - On Ubuntu 25.10 with Conda/miniforge R, use `Rscript --no-init-file api/scripts/lint-check.R` for lint and rely on CI for the full R test baseline.
 
 For repository-specific agent guidance and deeper runtime quirks, see the root `AGENTS.md`.

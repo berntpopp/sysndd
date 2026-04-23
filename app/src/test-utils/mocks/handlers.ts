@@ -244,6 +244,33 @@ export const handlers = [
     return HttpResponse.json(signinOk);
   }),
 
+  // OpenAPI: POST /api/auth/signup
+  // api/endpoints/authentication_endpoints.R @post signup
+  http.post('/api/auth/signup', async ({ request }) => {
+    const body = await readJsonBody(request);
+    const authHeader = request.headers.get('authorization');
+    const signupPayload = {
+      user_name: typeof body.user_name === 'string' ? body.user_name : null,
+      first_name: typeof body.first_name === 'string' ? body.first_name : null,
+      family_name: typeof body.family_name === 'string' ? body.family_name : null,
+      email: typeof body.email === 'string' ? body.email : null,
+      orcid: typeof body.orcid === 'string' ? body.orcid : null,
+      comment: typeof body.comment === 'string' ? body.comment : null,
+      terms_agreed:
+        typeof body.terms_agreed === 'string' ? body.terms_agreed : null,
+    };
+
+    if (
+      authHeader !== null ||
+      Object.values(signupPayload).some((value) => !value) ||
+      signupPayload.terms_agreed !== 'accepted'
+    ) {
+      return HttpResponse.json({ error: 'Invalid signup payload.' }, { status: 400 });
+    }
+
+    return HttpResponse.json({ ok: true });
+  }),
+
   // ---------------------------------------------------------------------------
   // User admin  (ManageUser.vue)
   // ---------------------------------------------------------------------------

@@ -267,7 +267,7 @@ export default {
       })();
     },
     async sendRegistration() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/auth/signup?signup_data=`;
+      const apiUrl = `${import.meta.env.VITE_API_URL}/api/auth/signup`;
 
       const registration_form = {
         user_name: this.user_name,
@@ -280,8 +280,7 @@ export default {
       };
 
       try {
-        const submission_json = JSON.stringify(registration_form);
-        const response = await this.axios.get(apiUrl + submission_json, {});
+        const response = await this.axios.post(apiUrl, registration_form);
         this.makeToast(
           `${'Your registration request has been send ' + '(status '}${response.status} (${
             response.statusText
@@ -323,7 +322,6 @@ export default {
       // stops injecting the stale Bearer on the very next outbound call.
       if (this.auth.isAuthenticated.value) {
         this.auth.logout();
-        this.user = null;
         this.$router.push('/');
       }
     },

@@ -68,6 +68,22 @@ test_that("convert_empty handles numeric-like strings", {
   expect_equal(convert_empty("3.14"), "3.14")
 })
 
+test_that("convert_empty preserves the fixed query redaction marker", {
+  expect_equal(convert_empty("[redacted]"), "[redacted]")
+})
+
+test_that("mount_endpoints hard-cuts query logging to [redacted]", {
+  mount_endpoints_path <- file.path(api_dir, "bootstrap", "mount_endpoints.R")
+  mount_endpoints_source <- readLines(mount_endpoints_path, warn = FALSE)
+
+  expect_true(
+    any(grepl("\\[redacted\\]", mount_endpoints_source, fixed = FALSE))
+  )
+  expect_false(
+    any(grepl("convert_empty\\(req\\$QUERY_STRING\\)", mount_endpoints_source))
+  )
+})
+
 # ============================================================================
 # read_log_files() Input Validation Tests
 # ============================================================================

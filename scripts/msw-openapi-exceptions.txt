@@ -15,7 +15,7 @@
 # in a later phase before this allow-list can shrink.
 #
 # ---------------------------------------------------------------------------
-# Current exceptions (4 entries):
+# Current exceptions (7 entries):
 # ---------------------------------------------------------------------------
 
 # Spec table says PUT /api/user/delete; real annotation is @delete delete
@@ -34,3 +34,10 @@ PUT /api/status/approve/all#spec bug: no bulk-approve annotation in status_endpo
 # @get / (list) and @get /<sysndd_id>/<sub> paths. There is no bare
 # @get /<sysndd_id> annotation on master.
 GET /api/entity/:sysndd_id#spec bug: no bare @get /<sysndd_id> annotation in entity_endpoints.R
+
+# Phase B handler table includes list-mode dropdown routes that are still
+# unimplemented in api/endpoints/list_endpoints.R on master. handlers.ts keeps
+# them to preserve the locked mock contract for the Phase E rewrite.
+GET /api/list/entity#spec bug: dropdown list route not implemented in list_endpoints.R
+GET /api/list/gene#spec bug: dropdown list route not implemented in list_endpoints.R
+GET /api/list/disease#spec bug: dropdown list route not implemented in list_endpoints.R

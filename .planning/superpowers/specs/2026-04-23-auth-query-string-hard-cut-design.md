@@ -100,6 +100,11 @@ Before deleting `GET /api/auth/authenticate`, verify there are no remaining repo
 2. Check local scripts, docs, cron-like helpers, and test fixtures for callers.
 3. If current request logs are available in the dev/prod-operational workflow, inspect one sample window to confirm there is no live usage before deletion.
 
+Preflight outcome recorded on 2026-04-23:
+
+- Repo-local grep confirmed the insecure call surface is confined to frontend registration, legacy endpoint decorators, API lifecycle tests, and raw request logging.
+- No operational request-log sample was available in the workspace; repo-local verification was the only available pre-removal evidence in this change.
+
 ## Testing
 
 ### API regression coverage
@@ -143,11 +148,26 @@ Minimum hard gate:
 3. relevant frontend registration tests
 4. `make ci-local` before completion
 
+## Implementation Status
+
+Checklist confirmed on 2026-04-23:
+
+- signup is body-only
+- GET authenticate is removed
+- password update is body-only
+- query logging is fixed to `[redacted]`
+- DB scrub migration exists
+- durable docs were updated in `AGENTS.md` and `documentation/08-development.qmd`
+
 ## Risks
 
 1. Undiscovered external clients may still call removed query-param endpoints.
 2. Logging tests may need fixture adjustments if they assert the old field layout literally.
 3. Historical file logs may still contain pre-change sensitive query strings if no existing safe scrub path exists.
+
+Residual risk recorded for this change:
+
+- Historical file logs may still contain pre-change raw query strings because this hard cut only scrubs the database logging table and new runtime logging.
 
 ## Recommendation
 

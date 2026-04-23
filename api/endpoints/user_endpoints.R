@@ -388,39 +388,37 @@ function(req, res, roles = "Viewer") {
 #*
 #* # `Details`
 #* Validates old password, checks new password complexity, updates DB.
-#*
-#* Accepts password fields either as a JSON request body (preferred — OWASP:
-#* secrets MUST NOT appear in URLs) or as URL query parameters (legacy path,
-#* preserved during the Phase A hotfix rollout and slated for removal in
-#* Phase E auth consolidation). When both are present, JSON body values win.
+#* Password input is accepted only via a JSON request body so secrets never
+#* appear in URLs or access logs.
 #*
 #* @tag user
 #* @put password/update
-function(
-  req,
-  res,
-  user_id_pass_change = 0,
-  old_pass = "",
-  new_pass_1 = "",
-  new_pass_2 = ""
-) {
-  # Parse credentials from JSON body if present (OWASP: prefer body over URL)
+function(req, res) {
+  content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
+  if (media_type != "application/json") {
+    res$status <- 415
+    return(list(error = "Content-Type must be application/json."))
+  }
+
   body <- tryCatch(
     jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
+    error = function(e) NULL
   )
-  if (!is.null(body$user_id_pass_change)) {
-    user_id_pass_change <- body$user_id_pass_change
+  required_fields <- c("user_id_pass_change", "old_pass", "new_pass_1", "new_pass_2")
+  if (
+    is.null(body) ||
+      length(body) == 0 ||
+      !all(required_fields %in% names(body))
+  ) {
+    res$status <- 400
+    return(list(error = "Malformed or empty JSON body."))
   }
-  if (!is.null(body$old_pass)) {
-    old_pass <- body$old_pass
-  }
-  if (!is.null(body$new_pass_1)) {
-    new_pass_1 <- body$new_pass_1
-  }
-  if (!is.null(body$new_pass_2)) {
-    new_pass_2 <- body$new_pass_2
-  }
+
+  user_id_pass_change <- body$user_id_pass_change
+  old_pass <- body$old_pass
+  new_pass_1 <- body$new_pass_1
+  new_pass_2 <- body$new_pass_2
 
   user <- req$user_id
   user_id_pass_change <- as.integer(user_id_pass_change)
