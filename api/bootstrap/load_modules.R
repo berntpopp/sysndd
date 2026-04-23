@@ -58,6 +58,7 @@ bootstrap_load_modules <- function() {
     "functions/config-functions.R",
     "functions/logging-functions.R",
     "functions/db-helpers.R",
+    "functions/async-job-repository.R",
     "functions/entity-repository.R",
     "functions/review-repository.R",
     "functions/status-repository.R",
