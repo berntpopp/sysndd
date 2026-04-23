@@ -415,6 +415,36 @@ function(req, res) {
     return(list(error = "Malformed or empty JSON body."))
   }
 
+  is_scalar_string <- function(x) {
+    is.character(x) && length(x) == 1 && !is.na(x)
+  }
+
+  is_scalar_integerish <- function(x) {
+    if ((is.integer(x) || is.numeric(x)) && length(x) == 1 && !is.na(x) && is.finite(x)) {
+      return(x == floor(x))
+    }
+
+    if (is.character(x) && length(x) == 1 && !is.na(x)) {
+      return(grepl("^-?\\d+$", x))
+    }
+
+    FALSE
+  }
+
+  if (!is_scalar_integerish(body$user_id_pass_change)) {
+    res$status <- 400
+    return(list(error = "`user_id_pass_change` must be a scalar integer value."))
+  }
+
+  if (
+    !is_scalar_string(body$old_pass) ||
+      !is_scalar_string(body$new_pass_1) ||
+      !is_scalar_string(body$new_pass_2)
+  ) {
+    res$status <- 400
+    return(list(error = "`old_pass`, `new_pass_1`, and `new_pass_2` must each be scalar strings."))
+  }
+
   user_id_pass_change <- body$user_id_pass_change
   old_pass <- body$old_pass
   new_pass_1 <- body$new_pass_1

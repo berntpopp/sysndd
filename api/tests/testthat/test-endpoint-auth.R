@@ -5,8 +5,14 @@ library(testthat)
 extract_plumber_handler <- function(file_path, decorator_regex, envir) {
   src_lines <- readLines(file_path, warn = FALSE)
   dec_line <- grep(decorator_regex, src_lines)
-  if (length(dec_line) == 0L) {
-    stop("Decorator not found: ", decorator_regex)
+  if (length(dec_line) != 1L) {
+    stop(
+      "Expected exactly one decorator match for ",
+      decorator_regex,
+      ", found ",
+      length(dec_line),
+      "."
+    )
   }
   dec_line <- dec_line[[1L]]
 
@@ -137,15 +143,20 @@ extract_put_password_update <- function(envir) {
 
 test_that("authentication endpoints expose the hard-cut route surface", {
   src <- readLines(auth_file_path(), warn = FALSE)
-  signup_idx <- grep("^#\\*\\s+@post\\s+signup\\s*$", src)
-  password_idx <- grep("^#\\*\\s+@put\\s+password/update\\s*$", readLines(user_file_path(), warn = FALSE))
   password_src <- readLines(user_file_path(), warn = FALSE)
+  signup_idx <- grep("^#\\*\\s+@post\\s+signup\\s*$", src)
+  password_idx <- grep("^#\\*\\s+@put\\s+password/update\\s*$", password_src)
 
   expect_true(any(grepl("^#\\*\\s+@post\\s+signup\\s*$", src)))
   expect_false(any(grepl("^#\\*\\s+@get\\s+signup\\s*$", src)))
 
   expect_true(any(grepl("^#\\*\\s+@post\\s+authenticate\\s*$", src)))
   expect_false(any(grepl("^#\\*\\s+@get\\s+authenticate\\s*$", src)))
+
+  expect_length(signup_idx, 1L)
+  expect_length(password_idx, 1L)
+  signup_idx <- signup_idx[[1L]]
+  password_idx <- password_idx[[1L]]
 
   signup_blob <- paste(src[signup_idx:min(length(src), signup_idx + 35L)], collapse = "\n")
   expect_match(signup_blob, "req\\$HTTP_CONTENT_TYPE")
@@ -191,6 +202,26 @@ test_that("signup handler only accepts JSON request bodies", {
   expect_equal(empty_res$status, 400L)
 })
 
+test_that("signup handler rejects non-scalar required field values", {
+  skip_if_not_installed("jsonlite")
+
+  handler <- extract_post_signup(make_signup_sandbox())
+
+  nested_req <- make_mock_req(
+    post_body = paste0(
+      '{"user_name":{"nested":"value"},"first_name":"Ada","family_name":"Lovelace",',
+      '"email":"ada@example.org","orcid":"0000-0000-0000-000X",',
+      '"comment":"This comment is long enough.","terms_agreed":"accepted"}'
+    ),
+    content_type = "application/json"
+  )
+  nested_res <- make_mock_res()
+
+  expect_no_error(handler(req = nested_req, res = nested_res))
+  expect_equal(nested_res$status, 400L)
+  expect_match(nested_res$body, "single string value")
+})
+
 test_that("password update handler only accepts JSON request bodies", {
   skip_if_not_installed("jsonlite")
   skip_if_not_installed("magrittr")
@@ -226,4 +257,54 @@ test_that("password update handler only accepts JSON request bodies", {
   empty_res <- make_mock_res()
   handler(req = empty_req, res = empty_res)
   expect_equal(empty_res$status, 400L)
+})
+
+test_that("password update handler rejects non-scalar password fields", {
+  skip_if_not_installed("jsonlite")
+  skip_if_not_installed("magrittr")
+
+  handler <- extract_put_password_update(make_password_update_sandbox())
+
+  nested_req <- make_mock_req(
+    post_body = paste0(
+      '{"user_id_pass_change":1,"old_pass":{"nested":"value"},',
+      '"new_pass_1":"NewPass1!","new_pass_2":"NewPass1!"}'
+    ),
+    content_type = "application/json",
+    user_id = 1L,
+    user_role = "Viewer"
+  )
+  nested_res <- make_mock_res()
+
+  nested_result <- NULL
+  expect_no_error({
+    nested_result <- handler(req = nested_req, res = nested_res)
+  })
+  expect_equal(nested_res$status, 400L)
+  expect_match(nested_result$error, "scalar strings")
+})
+
+test_that("password update handler rejects non-integerish user ids", {
+  skip_if_not_installed("jsonlite")
+  skip_if_not_installed("magrittr")
+
+  handler <- extract_put_password_update(make_password_update_sandbox())
+
+  decimal_req <- make_mock_req(
+    post_body = paste0(
+      '{"user_id_pass_change":1.5,"old_pass":"OldPass1!",',
+      '"new_pass_1":"NewPass1!","new_pass_2":"NewPass1!"}'
+    ),
+    content_type = "application/json",
+    user_id = 1L,
+    user_role = "Viewer"
+  )
+  decimal_res <- make_mock_res()
+
+  decimal_result <- NULL
+  expect_no_error({
+    decimal_result <- handler(req = decimal_req, res = decimal_res)
+  })
+  expect_equal(decimal_res$status, 400L)
+  expect_match(decimal_result$error, "scalar integer value")
 })

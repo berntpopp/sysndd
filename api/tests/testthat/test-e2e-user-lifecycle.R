@@ -104,6 +104,26 @@ get_admin_token <- function() {
   }
 }
 
+test_that("user lifecycle e2e tests use current auth mount paths", {
+  legacy_signup_path <- paste0("/api/", "authentication/signup")
+  legacy_authenticate_path <- paste0("/api/", "authentication/authenticate")
+  file_candidates <- c(
+    "test-e2e-user-lifecycle.R",
+    "tests/testthat/test-e2e-user-lifecycle.R"
+  )
+  file_path <- file_candidates[file.exists(file_candidates)][1]
+
+  expect_false(is.na(file_path))
+
+  file_lines <- readLines(file_path, warn = FALSE)
+
+  has_legacy_signup_path <- any(grepl(legacy_signup_path, file_lines, fixed = TRUE))
+  has_legacy_authenticate_path <- any(grepl(legacy_authenticate_path, file_lines, fixed = TRUE))
+
+  expect_false(has_legacy_signup_path)
+  expect_false(has_legacy_authenticate_path)
+})
+
 
 # =============================================================================
 # User Registration Tests (SMTP-03)
@@ -125,7 +145,7 @@ test_that("user registration sends confirmation email", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Make signup request
-  resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
@@ -158,7 +178,7 @@ test_that("duplicate registration is rejected", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # First registration should succeed
-  resp1 <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  resp1 <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
@@ -172,7 +192,7 @@ test_that("duplicate registration is rejected", {
 
   # Second registration should fail (duplicate email/username)
   # Note: The endpoint may return 200 or error depending on implementation
-  resp2 <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  resp2 <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
@@ -209,7 +229,7 @@ test_that("invalid registration data is rejected", {
     terms_agreed = "accepted"
   )
 
-  resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(invalid_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
@@ -245,7 +265,7 @@ test_that("curator approval sends password email", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # First register the user
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
@@ -300,7 +320,7 @@ test_that("curator rejection deletes user without email", {
   # No defer cleanup needed - rejection deletes user
 
   # Register the user
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
@@ -358,7 +378,7 @@ test_that("password reset request sends email with reset link", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve test user first
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
@@ -412,7 +432,7 @@ test_that("password reset with valid token changes password", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve test user
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
@@ -460,7 +480,7 @@ test_that("password reset with valid token changes password", {
   expect_equal(httr2::resp_status(resp), 201)
 
   # Verify can authenticate with new password
-  auth_resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/authenticate")) |>
+  auth_resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/authenticate")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(
       list(user_name = test_user$user_name, password = new_password),
@@ -507,7 +527,7 @@ test_that("password reset with weak password is rejected", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve user, request reset
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
@@ -593,7 +613,7 @@ test_that("password reset token cannot be reused", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve user
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
     httr2::req_method("POST") |>
     httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()

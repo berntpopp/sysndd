@@ -194,23 +194,23 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		SECONDS=$$((SECONDS+1)); \
 	done
 	@printf "\n$(CYAN)[2/6] Linting R code...$(RESET)\n"
-	@$(MAKE) lint-api || ($(MAKE) _ci-cleanup && exit 1)
+	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "\n$(CYAN)[3/6] Linting frontend code...$(RESET)\n"
-	@$(MAKE) lint-app || ($(MAKE) _ci-cleanup && exit 1)
+	@$(MAKE) lint-app || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "\n$(CYAN)[4/6] Type-checking frontend...$(RESET)\n"
-	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) _ci-cleanup && exit 1)
+	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
 	@printf "\n$(CYAN)[5/6] Type-checking frontend (strict scopes)...$(RESET)\n"
-	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) _ci-cleanup && exit 1)
+	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Strict type check passed$(RESET)\n"
 	@printf "\n$(CYAN)[6/6] Running R API tests (with database)...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \
 		Rscript -e "testthat::test_dir('tests/testthat')" || \
-		($(MAKE) _ci-cleanup && exit 1)
+		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Tests passed$(RESET)\n"
-	@$(MAKE) _ci-cleanup
+	@$(MAKE) -C $(ROOT_DIR) _ci-cleanup
 	@printf "\n$(GREEN)========================================$(RESET)\n"
 	@printf "$(GREEN)       CI-LOCAL PASSED                  $(RESET)\n"
 	@printf "$(GREEN)========================================$(RESET)\n"

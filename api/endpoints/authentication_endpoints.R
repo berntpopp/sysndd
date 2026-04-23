@@ -73,6 +73,20 @@ function(req, res) {
     return(res)
   }
 
+  required_fields_are_scalar_strings <- vapply(
+    required_fields,
+    function(field) {
+      value <- signup_body[[field]]
+      is.character(value) && length(value) == 1 && !is.na(value)
+    },
+    logical(1)
+  )
+  if (!all(required_fields_are_scalar_strings)) {
+    res$status <- 400
+    res$body <- "Malformed JSON body: each required field must be a single string value."
+    return(res)
+  }
+
   user <- tibble::as_tibble(signup_body) %>%
     dplyr::mutate(
       terms_agreed = dplyr::case_when(
