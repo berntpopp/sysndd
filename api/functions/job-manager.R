@@ -65,140 +65,18 @@ MAX_CONCURRENT_JOBS <- 8
 #' )
 #' }
 create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
-  # Check capacity - count running/pending jobs
-  running_count <- sum(vapply(ls(jobs_env), function(id) {
-    job <- jobs_env[[id]]
-    job$status %in% c("pending", "running")
-  }, logical(1)))
-
-  if (running_count >= MAX_CONCURRENT_JOBS) {
-    return(list(
-      error = "CAPACITY_EXCEEDED",
-      message = sprintf(
-        "Maximum %d concurrent jobs reached. Try again later.",
-        MAX_CONCURRENT_JOBS
-      ),
-      retry_after = 60
-    ))
-  }
-
-  # Generate unique job ID
-
-  job_id <- uuid::UUIDgenerate()
-
-  # Compute params hash BEFORE injecting job_id (for duplicate detection)
-  params_hash <- digest::digest(params)
-
-  # Inject job_id so executor can create a progress reporter
-  params$.__job_id__ <- job_id
-
-  # Create mirai task with configurable timeout
-  m <- mirai::mirai(
-    {
-      executor_fn(params)
-    },
-    params = params,
-    executor_fn = executor_fn,
-    .timeout = timeout_ms
+  submitted <- async_job_service_submit(
+    job_type = operation,
+    request_payload = params
   )
 
-  # Store job state
-  jobs_env[[job_id]] <- list(
-    job_id = job_id,
-    operation = operation,
-    status = "pending",
-    mirai_obj = m,
-    submitted_at = Sys.time(),
-    params_hash = params_hash,
-    result = NULL,
-    error = NULL,
-    completed_at = NULL
-  )
+  job_id <- if (nrow(submitted$job) > 0) submitted$job$job_id[[1]] else NULL
 
-  # Attach completion callback via promise pipe
-  # This updates job state when mirai completes
-  # Use %...>% for successful resolution and %...!% for rejection handling
-  m %...>% (function(result) {
-    if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
-      jobs_env[[job_id]]$status <- "failed"
-      jobs_env[[job_id]]$error <- list(
-        code = "EXECUTION_ERROR",
-        message = if (!is.null(result$message)) result$message else "Job execution failed"
-      )
-    } else {
-      jobs_env[[job_id]]$status <- "completed"
-      jobs_env[[job_id]]$result <- result
-
-      # Chain LLM generation after clustering jobs
-      if (jobs_env[[job_id]]$operation %in% c("clustering", "phenotype_clustering")) {
-        message("[job-manager] Chaining LLM generation for ", jobs_env[[job_id]]$operation, " job=", job_id)
-
-        # Determine cluster type from operation
-        chain_cluster_type <- if (jobs_env[[job_id]]$operation == "clustering") {
-          "functional"
-        } else {
-          "phenotype"
-        }
-
-        # Extract clusters from result (different structure for each type)
-        chain_clusters <- if (!is.null(result$clusters)) {
-          result$clusters
-        } else if (is.data.frame(result)) {
-          result
-        } else {
-          NULL
-        }
-
-        chain_msg <- if (is.null(chain_clusters)) {
-          "NULL"
-        } else {
-          paste0("data.frame with ", nrow(chain_clusters), " rows")
-        }
-        message("[job-manager] chain_clusters is ", chain_msg)
-
-        if (!is.null(chain_clusters) && nrow(chain_clusters) > 0) {
-          # Check if LLM batch generator is available
-          if (exists("trigger_llm_batch_generation", mode = "function")) {
-            message(
-              "[job-manager] Calling trigger_llm_batch_generation for ",
-              nrow(chain_clusters), " ", chain_cluster_type, " clusters"
-            )
-            tryCatch(
-              {
-                trigger_llm_batch_generation(
-                  clusters = chain_clusters,
-                  cluster_type = chain_cluster_type,
-                  parent_job_id = job_id
-                )
-              },
-              error = function(e) {
-                message("[job-manager] LLM trigger error: ", conditionMessage(e))
-              }
-            )
-          } else {
-            message("[job-manager] trigger_llm_batch_generation function not found!")
-          }
-        }
-      }
-    }
-    jobs_env[[job_id]]$completed_at <- Sys.time()
-    cleanup_job_progress(job_id)
-  }) %...!% (function(error) {
-    # Handle promise rejections (uncaught R errors in executor)
-    jobs_env[[job_id]]$status <- "failed"
-    jobs_env[[job_id]]$error <- list(
-      code = "EXECUTION_ERROR",
-      message = if (inherits(error, "error")) conditionMessage(error) else as.character(error)
-    )
-    jobs_env[[job_id]]$completed_at <- Sys.time()
-    cleanup_job_progress(job_id)
-  })
-
-  return(list(
+  list(
     job_id = job_id,
     status = "accepted",
     estimated_seconds = 30
-  ))
+  )
 }
 
 #' Get the status of a job
@@ -218,85 +96,73 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
 #' status <- get_job_status("550e8400-e29b-41d4-a716-446655440000")
 #' }
 get_job_status <- function(job_id) {
-  # Check if job exists
-  if (!exists(job_id, envir = jobs_env)) {
+  job <- async_job_service_status(job_id, include_result = TRUE)
+
+  if (nrow(job) == 0) {
     return(list(
       error = "JOB_NOT_FOUND",
       message = "Job ID not found"
     ))
   }
 
-  job <- jobs_env[[job_id]]
-  m <- job$mirai_obj
+  durable_status <- job$status[[1]]
 
-  # Pre-completed jobs (e.g., cache hits) have no mirai object
-  if (is.null(m)) {
-    return(list(
-      job_id = job_id,
-      status = job$status,
-      completed_at = job$completed_at,
-      result = job$result,
-      error = job$error
-    ))
-  }
+  if (durable_status %in% c("queued", "running", "cancel_requested")) {
+    submitted_at <- job$submitted_at[[1]]
+    elapsed <- as.numeric(difftime(Sys.time(), submitted_at, units = "secs"))
+    remaining <- max(0, 1800 - elapsed)
+    progress_pct <- suppressWarnings(as.numeric(job$progress_pct[[1]]))
 
-  # Check if still running via mirai's unresolved()
-  if (mirai::unresolved(m)) {
-    # Job still running - calculate estimated remaining time
-    elapsed <- as.numeric(difftime(Sys.time(), job$submitted_at, units = "secs"))
-    remaining <- max(0, 1800 - elapsed) # 30 min = 1800 sec
-
-    # Read file-based progress from daemon (if available)
-    file_progress <- read_job_progress(job_id)
-
-    if (!is.null(file_progress)) {
-      step_msg <- file_progress$message %||% get_progress_message(job$operation)
+    progress_data <- NULL
+    if (!is.na(progress_pct)) {
       progress_data <- list(
-        current = file_progress$current %||% 0,
-        total = file_progress$total %||% 0
+        current = as.integer(round(progress_pct)),
+        total = 100L
       )
-    } else {
-      step_msg <- get_progress_message(job$operation)
-      progress_data <- NULL
     }
 
     return(list(
       job_id = job_id,
       status = "running",
-      step = step_msg,
+      step = job$progress_message[[1]] %||% get_progress_message(job$job_type[[1]]),
       progress = progress_data,
       estimated_seconds = round(remaining),
       retry_after = 5
     ))
-  } else {
-    # Mirai resolved - but promise callback may not have fired yet.
-    # If job$status is still "pending" or "running", read m$data directly
-    # to avoid returning stale state (race condition).
-    if (job$status %in% c("pending", "running")) {
-      result <- m$data
-      if (mirai::is_mirai_error(result) || mirai::is_error_value(result)) {
-        jobs_env[[job_id]]$status <- "failed"
-        jobs_env[[job_id]]$error <- list(
-          code = "EXECUTION_ERROR",
-          message = if (!is.null(result$message)) result$message else "Job execution failed"
-        )
-      } else {
-        jobs_env[[job_id]]$status <- "completed"
-        jobs_env[[job_id]]$result <- result
-      }
-      jobs_env[[job_id]]$completed_at <- Sys.time()
-      cleanup_job_progress(job_id)
-      job <- jobs_env[[job_id]]
-    }
+  }
 
+  if (durable_status == "completed") {
     return(list(
       job_id = job_id,
-      status = job$status,
-      completed_at = job$completed_at,
-      result = job$result,
-      error = job$error
+      status = "completed",
+      completed_at = if (!is.na(job$completed_at[[1]])) {
+        format(job$completed_at[[1]], "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      } else {
+        NULL
+      },
+      result = if (!is.na(job$result_json[[1]])) {
+        jsonlite::fromJSON(job$result_json[[1]], simplifyVector = TRUE)
+      } else {
+        NULL
+      },
+      error = NULL
     ))
   }
+
+  list(
+    job_id = job_id,
+    status = "failed",
+    completed_at = if (!is.na(job$completed_at[[1]])) {
+      format(job$completed_at[[1]], "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    } else {
+      NULL
+    },
+    result = NULL,
+    error = list(
+      code = job$last_error_code[[1]] %||% "EXECUTION_ERROR",
+      message = job$last_error_message[[1]] %||% "Job execution failed"
+    )
+  )
 }
 
 #' Get operation-specific progress message
@@ -349,22 +215,7 @@ get_progress_message <- function(operation) {
 #' }
 #' }
 check_duplicate_job <- function(operation, params) {
-  params_hash <- digest::digest(params)
-
-  for (job_id in ls(jobs_env)) {
-    job <- jobs_env[[job_id]]
-
-    if (job$operation == operation &&
-          job$params_hash == params_hash &&
-          job$status %in% c("pending", "running")) {
-      return(list(
-        duplicate = TRUE,
-        existing_job_id = job_id
-      ))
-    }
-  }
-
-  return(list(duplicate = FALSE))
+  async_job_service_duplicate(operation, params)
 }
 
 #' Clean up old completed/failed jobs
@@ -458,11 +309,9 @@ schedule_cleanup <- function(interval_seconds = 3600) {
 #' }
 #' @export
 get_job_history <- function(limit = 20) {
-  job_ids <- ls(jobs_env)
+  jobs <- async_job_service_history(limit)
 
-  # Handle empty jobs_env
-
-  if (length(job_ids) == 0) {
+  if (nrow(jobs) == 0) {
     return(data.frame(
       job_id = character(0),
       operation = character(0),
@@ -475,85 +324,54 @@ get_job_history <- function(limit = 20) {
     ))
   }
 
-  # Extract job data
-  jobs_list <- lapply(job_ids, function(id) {
-    job <- jobs_env[[id]]
-
-    # Skip if job is NULL or malformed
-    if (is.null(job) || is.null(job$submitted_at)) {
-      return(NULL)
-    }
-
-    # Calculate duration_seconds
-    end_time <- job$completed_at
-    if (is.null(end_time)) {
-      # For running jobs, use current time
-      end_time <- Sys.time()
-    }
-    duration <- as.numeric(difftime(end_time, job$submitted_at, units = "secs"))
-    duration_seconds <- as.integer(round(duration))
-
-    # Extract error message (handle complex error objects)
-    error_message <- NA_character_
-    if (!is.null(job$error)) {
-      if (is.list(job$error) && !is.null(job$error$message)) {
-        error_message <- as.character(job$error$message)
-      } else if (is.character(job$error)) {
-        error_message <- job$error
-      }
-    }
-
-    # Format timestamps as ISO 8601
-    submitted_at <- format(job$submitted_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    completed_at <- if (!is.null(job$completed_at)) {
-      format(job$completed_at, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-    } else {
-      NA_character_
-    }
-
-    data.frame(
-      job_id = job$job_id,
-      operation = job$operation,
-      status = job$status,
-      submitted_at = submitted_at,
-      completed_at = completed_at,
-      duration_seconds = duration_seconds,
-      error_message = error_message,
-      stringsAsFactors = FALSE
-    )
-  })
-
-  # Remove NULL entries and combine
-  jobs_list <- Filter(Negate(is.null), jobs_list)
-
-  if (length(jobs_list) == 0) {
-    return(data.frame(
-      job_id = character(0),
-      operation = character(0),
-      status = character(0),
-      submitted_at = character(0),
-      completed_at = character(0),
-      duration_seconds = integer(0),
-      error_message = character(0),
-      stringsAsFactors = FALSE
-    ))
-  }
-
-  result <- do.call(rbind, jobs_list)
-
-  # Sort by submitted_at descending (newest first)
-  result <- result[order(result$submitted_at, decreasing = TRUE), ]
-
-  # Apply limit
-  if (nrow(result) > limit) {
-    result <- result[seq_len(limit), ]
-  }
-
-  # Reset row names
+  result <- data.frame(
+    job_id = unname(as.character(jobs$job_id)),
+    operation = unname(as.character(jobs$job_type)),
+    status = unname(as.character(jobs$status)),
+    submitted_at = vapply(
+      jobs$submitted_at,
+      function(value) unname(format(value, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")),
+      character(1)
+    ),
+    completed_at = vapply(
+      jobs$completed_at,
+      function(value) {
+        if (is.na(value)) {
+          NA_character_
+        } else {
+          unname(format(value, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+        }
+      },
+      character(1)
+    ),
+    duration_seconds = vapply(
+      seq_len(nrow(jobs)),
+      function(i) {
+        completed_at <- jobs$completed_at[[i]]
+        if (is.na(completed_at)) {
+          completed_at <- Sys.time()
+        }
+        as.integer(round(as.numeric(difftime(completed_at, jobs$submitted_at[[i]], units = "secs"))))
+      },
+      integer(1)
+    ),
+    error_message = vapply(
+      jobs$last_error_message,
+      function(value) {
+        if (is.na(value)) {
+          NA_character_
+        } else {
+          unname(as.character(value))
+        }
+      },
+      character(1)
+    ),
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
 
   rownames(result) <- NULL
-
-  return(result)
+  result
 }
 
 ## -------------------------------------------------------------------##
