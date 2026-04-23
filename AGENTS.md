@@ -13,6 +13,7 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - Full dev stack: `make dev`
 - DB-only stack: `make docker-dev-db`
 - API tests: `make test-api`
+- Fast API PR gate: `make test-api-fast`
 - API lint: `make lint-api`
 - Frontend lint: `make lint-app`
 - Frontend type-check: `cd app && npm run type-check`
@@ -65,6 +66,7 @@ In the dev/prod containers, source directories such as `api/functions`, `api/ser
 - `DBI::dbBind()` with `?` placeholders needs `unname(params)`; named lists can fail silently.
 - Auth-sensitive inputs are body-only: use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change endpoints; do not reintroduce query-string transport or raw query-string logging for these flows.
 - `make ci-local` is the closest local CI parity check and should be preferred before handoff.
+- `make pre-commit` now uses the fast API PR gate to keep local iteration close to pull-request CI; use `make ci-local` before handoff and `make test-api` when you need the full API suite locally.
 
 ## Environment Notes
 

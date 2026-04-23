@@ -53,6 +53,7 @@ make dev
 make docker-dev-db
 make serve-app
 make pre-commit
+make test-api-fast
 make ci-local
 ```
 
@@ -69,13 +70,14 @@ API-only verification:
 
 ```bash
 make lint-api
+make test-api-fast
 make test-api
 ```
 
 ## Common Gotchas
 
 - Start the DB stack before host-side API work.
-- Prefer `make ci-local` before pushing.
+- `make pre-commit` is the fast local mirror of the pull-request gate. Use `make ci-local` before handoff, and `make test-api` when you want the full API suite locally.
 - Restart the API container after changing code used by background workers.
 - Namespace masked R functions such as `dplyr::select(...)`.
 - Auth/signup/password-sensitive API inputs are body-only. Use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change flows; do not send those values in query strings or persist raw query strings in request logs.

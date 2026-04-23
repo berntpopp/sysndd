@@ -54,6 +54,8 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       app: ${{ steps.filter.outputs.app }}
+      doctor: ${{ steps.filter.outputs.doctor }}
+      smoke: ${{ steps.filter.outputs.smoke }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -66,6 +68,20 @@ jobs:
             app:
               - 'app/**'
               - '.github/workflows/ci.yml'
+            doctor:
+              - '.github/workflows/ci.yml'
+              - 'Makefile'
+              - 'app/.nvmrc'
+              - 'app/package-lock.json'
+              - 'api/renv.lock'
+            smoke:
+              - '.github/workflows/ci.yml'
+              - 'api/**'
+              - 'db/**'
+              - 'docker-compose*.yml'
+              - 'api/Dockerfile'
+              - 'app/docker/**'
+              - 'scripts/ci-smoke.sh'
 
   # ============================================================================
   # R API Jobs
@@ -117,11 +133,11 @@ jobs:
       - name: Run lintr
         run: Rscript scripts/lint-check.R
 
-  test-api:
-    name: Test R API
+  test-api-fast:
+    name: Test R API (fast PR gate)
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.api == 'true' }}
+    if: ${{ github.event_name == 'pull_request' && needs.changes.outputs.api == 'true' }}
     defaults:
       run:
         working-directory: ./api
@@ -176,14 +192,78 @@ jobs:
           working-directory: ./api
           cache-version: 3
 
-      - name: Run testthat tests
+      - name: Run fast testthat tests
         env:
           MYSQL_HOST: 127.0.0.1
           MYSQL_PORT: 3306
           MYSQL_DATABASE: sysndd_test
           MYSQL_USER: test
           MYSQL_PASSWORD: test
-        run: Rscript -e "testthat::test_dir('tests/testthat')"
+        run: Rscript scripts/run-ci-tests.R fast
+
+  test-api-full:
+    name: Test R API (full)
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
+    defaults:
+      run:
+        working-directory: ./api
+    services:
+      mysql:
+        image: mysql:8.4.8
+        env:
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.3'
+          use-public-rspm: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libglpk-dev \
+            libxml2-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libmariadb-dev \
+            libsodium-dev \
+            libpng-dev \
+            libsecret-1-dev \
+            libgit2-dev \
+            libpoppler-cpp-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libjpeg-dev \
+            cmake \
+            pandoc
+
+      - uses: r-lib/actions/setup-renv@v2
+        with:
+          working-directory: ./api
+          cache-version: 3
+
+      - name: Run full testthat tests
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          MYSQL_DATABASE: sysndd_test
+          MYSQL_USER: test
+          MYSQL_PASSWORD: test
+        run: Rscript scripts/run-ci-tests.R full
 
   # =========================================================================
   # Phase B B3: slow-tests-nightly
@@ -377,6 +457,8 @@ jobs:
   make-doctor:
     name: make doctor (ubuntu-latest)
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.doctor == 'true' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -434,6 +516,8 @@ jobs:
   smoke-test:
     name: Smoke Test (prod stack)
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ github.event_name != 'pull_request' || needs.changes.outputs.smoke == 'true' }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
@@ -459,28 +543,29 @@ jobs:
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [changes, lint-api, test-api, check-app, build-app, make-doctor, smoke-test]
+    needs: [changes, lint-api, test-api-fast, test-api-full, check-app, build-app, make-doctor, smoke-test]
     if: always()
     steps:
       - name: Check all jobs passed
         run: |
           # API jobs: pass if successful or skipped (no changes)
           api_ok="${{ needs.lint-api.result == 'success' || needs.lint-api.result == 'skipped' }}"
-          test_ok="${{ needs.test-api.result == 'success' || needs.test-api.result == 'skipped' }}"
+          fast_test_ok="${{ needs.test-api-fast.result == 'success' || needs.test-api-fast.result == 'skipped' }}"
+          full_test_ok="${{ needs.test-api-full.result == 'success' || needs.test-api-full.result == 'skipped' }}"
           # App jobs: pass if successful or skipped (no changes)
           app_ok="${{ needs.check-app.result == 'success' || needs.check-app.result == 'skipped' }}"
           build_ok="${{ needs.build-app.result == 'success' || needs.build-app.result == 'skipped' }}"
-          # Doctor matrix (Phase A7): must succeed on both ubuntu-latest and macos-latest.
-          doctor_ok="${{ needs.make-doctor.result == 'success' }}"
-          # Smoke test (Phase B B4): must succeed on every PR that boots the stack.
-          smoke_ok="${{ needs.smoke-test.result == 'success' }}"
+          doctor_ok="${{ needs.make-doctor.result == 'success' || needs.make-doctor.result == 'skipped' }}"
+          smoke_ok="${{ needs.smoke-test.result == 'success' || needs.smoke-test.result == 'skipped' }}"
 
-          if [[ "$api_ok" != "true" ]] || [[ "$test_ok" != "true" ]] || \
+          if [[ "$api_ok" != "true" ]] || [[ "$fast_test_ok" != "true" ]] || \
+             [[ "$full_test_ok" != "true" ]] || \
              [[ "$app_ok" != "true" ]] || [[ "$build_ok" != "true" ]] || \
              [[ "$doctor_ok" != "true" ]] || [[ "$smoke_ok" != "true" ]]; then
             echo "One or more jobs failed"
             echo "lint-api: ${{ needs.lint-api.result }}"
-            echo "test-api: ${{ needs.test-api.result }}"
+            echo "test-api-fast: ${{ needs.test-api-fast.result }}"
+            echo "test-api-full: ${{ needs.test-api-full.result }}"
             echo "check-app: ${{ needs.check-app.result }}"
             echo "build-app: ${{ needs.build-app.result }}"
             echo "make-doctor: ${{ needs.make-doctor.result }}"

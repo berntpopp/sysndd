@@ -34,7 +34,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -111,13 +111,19 @@ watch-app: check-docker ## [dev] Start Docker Compose watch for frontend hot-rel
 # =============================================================================
 test-api: check-r ## [test] Run R API tests with testthat
 	@printf "$(CYAN)==> Running R API tests...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && Rscript -e "testthat::test_dir('tests/testthat')" && \
+	@cd $(ROOT_DIR)/api && Rscript scripts/run-ci-tests.R full && \
 		printf "$(GREEN)✓ test-api complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api failed$(RESET)\n" && exit 1)
 
+test-api-fast: check-r ## [test] Run the fast R API test gate used on pull requests
+	@printf "$(CYAN)==> Running fast R API tests...$(RESET)\n"
+	@cd $(ROOT_DIR)/api && Rscript scripts/run-ci-tests.R fast && \
+		printf "$(GREEN)✓ test-api-fast complete$(RESET)\n" || \
+		(printf "$(RED)✗ test-api-fast failed$(RESET)\n" && exit 1)
+
 test-api-full: check-r ## [test] Run full R API test suite including slow tests
 	@printf "$(CYAN)==> Running full R API test suite (including slow tests)...$(RESET)\n"
-	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true Rscript -e "testthat::test_dir('tests/testthat')" && \
+	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true Rscript scripts/run-ci-tests.R full && \
 		printf "$(GREEN)✓ test-api-full complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api-full failed$(RESET)\n" && exit 1)
 
@@ -172,8 +178,8 @@ pre-commit: ## [quality] Run all quality checks before committing
 	@$(MAKE) lint-api
 	@printf "\n$(CYAN)[2/3] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app
-	@printf "\n$(CYAN)[3/3] Running R API tests...$(RESET)\n"
-	@$(MAKE) test-api
+	@printf "\n$(CYAN)[3/3] Running fast R API tests...$(RESET)\n"
+	@$(MAKE) test-api-fast
 	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
 
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
@@ -207,7 +213,7 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \
-		Rscript -e "testthat::test_dir('tests/testthat')" || \
+		Rscript scripts/run-ci-tests.R full || \
 		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Tests passed$(RESET)\n"
 	@$(MAKE) -C $(ROOT_DIR) _ci-cleanup
