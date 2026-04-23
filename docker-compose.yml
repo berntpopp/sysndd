@@ -209,6 +209,61 @@ services:
       - "traefik.http.services.api.loadbalancer.sticky.cookie.httponly=true"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
 
+  worker:
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command: ["Rscript", "/app/start_async_worker.R"]
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./api/functions:/app/functions
+      - ./api/bootstrap:/app/bootstrap
+      - ./api/config:/app/config
+      - ./api/data:/app/data
+      - ./api/results:/app/results
+      - ./db/migrations:/app/db/migrations:ro
+      - api_cache:/app/cache
+      - ./api/config.yml:/app/config.yml
+      - ./api/start_async_worker.R:/app/start_async_worker.R
+    environment:
+      ENVIRONMENT: production
+      PASSWORD: ${PASSWORD}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CACHE_VERSION: ${CACHE_VERSION:-2}
+      OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      ASYNC_JOB_LEASE_SECONDS: ${ASYNC_JOB_LEASE_SECONDS:-60}
+      ASYNC_JOB_IDLE_SLEEP_SECONDS: ${ASYNC_JOB_IDLE_SLEEP_SECONDS:-2}
+      MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
+      MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
+      ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
+    networks:
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/bootstrap
+          target: /app/bootstrap
+        - action: rebuild
+          path: ./api/renv.lock
+
   app:
     build: ./app/
     container_name: sysndd_app
