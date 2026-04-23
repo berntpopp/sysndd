@@ -3,14 +3,13 @@
  * v11.0 closeout F2b — spec covering the auth migration on
  * `views/RegisterView.vue`:
  *
- *   1. `mounted()` reads `useAuth().isAuthenticated.value` (not
- *      `localStorage.user`) as the guard for clearing a stale session
- *      before the register form loads.
+ *   1. `mounted()` clears an authenticated stale session through the
+ *      auth composable before the register form loads.
  *   2. `doUserLogOut()` delegates to `useAuth().logout()` — not to
  *      `localStorage.removeItem('token' | 'user')` — when a stale
  *      session is present.
- *   3. `sendRegistration()` issues `GET /api/auth/signup?signup_data=...`
- *      WITHOUT an `Authorization` header. Registration is inherently
+ *   3. `sendRegistration()` issues `POST /api/auth/signup` with a JSON body
+ *      and WITHOUT an `Authorization` header. Registration is inherently
  *      unauthenticated; the apiClient request interceptor only injects
  *      the Bearer when `useAuth().token.value` is non-null (not the
  *      case before a user signs up).
@@ -99,7 +98,7 @@ afterEach(() => {
 });
 
 describe('RegisterView — v11.0 closeout F2b auth migration', () => {
-  it('mounted() uses useAuth().isAuthenticated.value, not localStorage.user, to detect a stale session', async () => {
+  it('mounted() clears an authenticated stale session through the auth composable', async () => {
     // Stale session present — the guard must fire and clear it via
     // `useAuth().logout()`.
     primeAuth();
@@ -110,9 +109,7 @@ describe('RegisterView — v11.0 closeout F2b auth migration', () => {
     await flushPromises();
 
     // Post-mount: the stale session was torn down through the composable
-    // (both keys cleared, reactive refs cleared). A pre-F2b implementation
-    // that guarded on `localStorage.user` would have done the same to
-    // localStorage but left `auth.token.value` stale.
+    // (both keys cleared, reactive refs cleared).
     expect(window.localStorage.getItem('token')).toBeNull();
     expect(window.localStorage.getItem('user')).toBeNull();
     expect(auth.token.value).toBeNull();
@@ -135,35 +132,39 @@ describe('RegisterView — v11.0 closeout F2b auth migration', () => {
   });
 
   it('doUserLogOut routes through useAuth().logout() when called directly', async () => {
-    primeAuth();
     const auth = useAuth();
-
     const wrapper = mountRegister();
-    // After mount, the guard has already cleared the session — re-seed
-    // so we can observe the direct-call path too.
     primeAuth('direct-token');
     expect(auth.isAuthenticated.value).toBe(true);
+    const logoutSpy = vi.spyOn(
+      (wrapper.vm as unknown as RegisterVm).auth,
+      'logout'
+    );
 
     (wrapper.vm as unknown as RegisterVm).doUserLogOut();
     await flushPromises();
 
+    expect(logoutSpy).toHaveBeenCalledTimes(1);
     expect(window.localStorage.getItem('token')).toBeNull();
     expect(window.localStorage.getItem('user')).toBeNull();
     expect(auth.token.value).toBeNull();
     expect(auth.user.value).toBeNull();
-    // Called twice now: once from mounted(), once from the direct call.
     expect(routerPush).toHaveBeenCalledWith('/');
   });
 
-  it('sendRegistration carries no Bearer header — registration is unauthenticated', async () => {
+  it('sendRegistration posts JSON with no Bearer header — registration is unauthenticated', async () => {
     // No primeAuth(): this is a fresh visitor submitting the register form.
     const wrapper = mountRegister();
     await flushPromises();
 
     let capturedAuthHeader: string | null | undefined;
+    let capturedMethod: string | undefined;
+    let capturedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get('/api/auth/signup', ({ request }) => {
+      http.post('/api/auth/signup', async ({ request }) => {
+        capturedMethod = request.method;
         capturedAuthHeader = request.headers.get('authorization');
+        capturedBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ ok: true });
       })
     );
@@ -182,8 +183,18 @@ describe('RegisterView — v11.0 closeout F2b auth migration', () => {
     await vm.sendRegistration();
     await flushPromises();
 
+    expect(capturedMethod).toBe('POST');
     // The interceptor must NOT inject a Bearer header when the session is
     // empty — registration is pre-auth by definition.
-    expect(capturedAuthHeader).toBeFalsy();
+    expect(capturedAuthHeader).toBeNull();
+    expect(capturedBody).toEqual({
+      user_name: 'new_user',
+      email: 'new@sysndd.local',
+      orcid: '0000-0000-0000-0000',
+      first_name: 'New',
+      family_name: 'User',
+      comment: 'Motivation',
+      terms_agreed: 'accepted',
+    });
   });
 });

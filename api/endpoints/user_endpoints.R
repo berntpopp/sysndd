@@ -388,39 +388,67 @@ function(req, res, roles = "Viewer") {
 #*
 #* # `Details`
 #* Validates old password, checks new password complexity, updates DB.
-#*
-#* Accepts password fields either as a JSON request body (preferred — OWASP:
-#* secrets MUST NOT appear in URLs) or as URL query parameters (legacy path,
-#* preserved during the Phase A hotfix rollout and slated for removal in
-#* Phase E auth consolidation). When both are present, JSON body values win.
+#* Password input is accepted only via a JSON request body so secrets never
+#* appear in URLs or access logs.
 #*
 #* @tag user
 #* @put password/update
-function(
-  req,
-  res,
-  user_id_pass_change = 0,
-  old_pass = "",
-  new_pass_1 = "",
-  new_pass_2 = ""
-) {
-  # Parse credentials from JSON body if present (OWASP: prefer body over URL)
+function(req, res) {
+  content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
+  if (media_type != "application/json") {
+    res$status <- 415
+    return(list(error = "Content-Type must be application/json."))
+  }
+
   body <- tryCatch(
     jsonlite::fromJSON(req$postBody),
-    error = function(e) list()
+    error = function(e) NULL
   )
-  if (!is.null(body$user_id_pass_change)) {
-    user_id_pass_change <- body$user_id_pass_change
+  required_fields <- c("user_id_pass_change", "old_pass", "new_pass_1", "new_pass_2")
+  if (
+    is.null(body) ||
+      length(body) == 0 ||
+      !all(required_fields %in% names(body))
+  ) {
+    res$status <- 400
+    return(list(error = "Malformed or empty JSON body."))
   }
-  if (!is.null(body$old_pass)) {
-    old_pass <- body$old_pass
+
+  is_scalar_string <- function(x) {
+    is.character(x) && length(x) == 1 && !is.na(x)
   }
-  if (!is.null(body$new_pass_1)) {
-    new_pass_1 <- body$new_pass_1
+
+  is_scalar_integerish <- function(x) {
+    if ((is.integer(x) || is.numeric(x)) && length(x) == 1 && !is.na(x) && is.finite(x)) {
+      return(x == floor(x))
+    }
+
+    if (is.character(x) && length(x) == 1 && !is.na(x)) {
+      return(grepl("^-?\\d+$", x))
+    }
+
+    FALSE
   }
-  if (!is.null(body$new_pass_2)) {
-    new_pass_2 <- body$new_pass_2
+
+  if (!is_scalar_integerish(body$user_id_pass_change)) {
+    res$status <- 400
+    return(list(error = "`user_id_pass_change` must be a scalar integer value."))
   }
+
+  if (
+    !is_scalar_string(body$old_pass) ||
+      !is_scalar_string(body$new_pass_1) ||
+      !is_scalar_string(body$new_pass_2)
+  ) {
+    res$status <- 400
+    return(list(error = "`old_pass`, `new_pass_1`, and `new_pass_2` must each be scalar strings."))
+  }
+
+  user_id_pass_change <- body$user_id_pass_change
+  old_pass <- body$old_pass
+  new_pass_1 <- body$new_pass_1
+  new_pass_2 <- body$new_pass_2
 
   user <- req$user_id
   user_id_pass_change <- as.integer(user_id_pass_change)

@@ -20,18 +20,35 @@ api_dir <- if (basename(getwd()) == "testthat") {
 library(testthat)
 library(jsonlite)
 
-# Source helpers
+# Source only the helper file under test. This unit file exercises pure helper
+# behavior and lightweight control flow, so database-backed dependencies are
+# stubbed instead of forcing RMariaDB to load.
 original_wd <- getwd()
 setwd(api_dir)
 tryCatch(
   {
-    # Source dependencies first
-    suppressMessages({
-      source("functions/db-helpers.R", local = FALSE)
-      source("functions/llm-cache-repository.R", local = FALSE)
-      source("functions/llm-service.R", local = FALSE)
-      source("functions/llm-endpoint-helpers.R", local = FALSE)
-    })
+    register_test_stub <- function(name, fn) {
+      if (!exists(name, mode = "function")) {
+        base::assign(name, fn, envir = .GlobalEnv)
+      }
+    }
+
+    if (!exists("%||%", mode = "function")) {
+      base::assign("%||%", function(a, b) if (is.null(a)) b else a, envir = .GlobalEnv)
+    }
+    register_test_stub("get_cached_summary", function(...) {
+        stop("cache unavailable in unit test")
+      })
+    register_test_stub("is_gemini_configured", function() FALSE)
+    register_test_stub("fetch_cluster_data_for_generation", function(...) NULL)
+    register_test_stub("get_or_generate_summary", function(...) {
+        list(success = FALSE, error = "generation unavailable in unit test")
+      })
+    register_test_stub("get_db_connection", function() {
+        stop("Database not available")
+      })
+
+    suppressMessages(source("functions/llm-endpoint-helpers.R", local = FALSE))
   },
   error = function(e) {
     message("Note: Some functions not loaded - ", e$message)

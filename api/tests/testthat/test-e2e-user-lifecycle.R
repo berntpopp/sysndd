@@ -104,6 +104,26 @@ get_admin_token <- function() {
   }
 }
 
+test_that("user lifecycle e2e tests use current auth mount paths", {
+  legacy_signup_path <- paste0("/api/", "authentication/signup")
+  legacy_authenticate_path <- paste0("/api/", "authentication/authenticate")
+  file_candidates <- c(
+    "test-e2e-user-lifecycle.R",
+    "tests/testthat/test-e2e-user-lifecycle.R"
+  )
+  file_path <- file_candidates[file.exists(file_candidates)][1]
+
+  expect_false(is.na(file_path))
+
+  file_lines <- readLines(file_path, warn = FALSE)
+
+  has_legacy_signup_path <- any(grepl(legacy_signup_path, file_lines, fixed = TRUE))
+  has_legacy_authenticate_path <- any(grepl(legacy_authenticate_path, file_lines, fixed = TRUE))
+
+  expect_false(has_legacy_signup_path)
+  expect_false(has_legacy_authenticate_path)
+})
+
 
 # =============================================================================
 # User Registration Tests (SMTP-03)
@@ -125,10 +145,9 @@ test_that("user registration sends confirmation email", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Make signup request
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -158,11 +177,10 @@ test_that("duplicate registration is rejected", {
   test_user <- generate_test_user("dupe")
   withr::defer(cleanup_test_user(test_user$email))
 
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
   # First registration should succeed
-  resp1 <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  resp1 <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -174,8 +192,9 @@ test_that("duplicate registration is rejected", {
 
   # Second registration should fail (duplicate email/username)
   # Note: The endpoint may return 200 or error depending on implementation
-  resp2 <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  resp2 <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -210,10 +229,9 @@ test_that("invalid registration data is rejected", {
     terms_agreed = "accepted"
   )
 
-  signup_json <- jsonlite::toJSON(invalid_user, auto_unbox = TRUE)
-
-  resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(invalid_user, auto_unbox = TRUE) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -247,10 +265,9 @@ test_that("curator approval sends password email", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # First register the user
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   # Wait for registration email
@@ -303,10 +320,9 @@ test_that("curator rejection deletes user without email", {
   # No defer cleanup needed - rejection deletes user
 
   # Register the user
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   # Wait for registration email
@@ -362,10 +378,9 @@ test_that("password reset request sends email with reset link", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve test user first
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
@@ -417,10 +432,9 @@ test_that("password reset with valid token changes password", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve test user
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
@@ -449,13 +463,16 @@ test_that("password reset with valid token changes password", {
 
   expect_true(nchar(reset_token) > 0)
 
-  # Use token to change password (endpoint uses GET method)
   # Password requirements: >7 chars, lowercase, uppercase, digit, special char
   new_password <- "NewTest1!"
 
   resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_method("POST") |>
     httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
-    httr2::req_url_query(new_pass_1 = new_password, new_pass_2 = new_password) |>
+    httr2::req_body_json(
+      list(password = new_password, password_confirm = new_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -463,8 +480,12 @@ test_that("password reset with valid token changes password", {
   expect_equal(httr2::resp_status(resp), 201)
 
   # Verify can authenticate with new password
-  auth_resp <- httr2::request(paste0(get_api_base_url(), "/api/authentication/authenticate")) |>
-    httr2::req_url_query(user_name = test_user$user_name, password = new_password) |>
+  auth_resp <- httr2::request(paste0(get_api_base_url(), "/api/auth/authenticate")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(
+      list(user_name = test_user$user_name, password = new_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -481,8 +502,12 @@ test_that("password reset with invalid token is rejected", {
   new_password <- "NewTest1!"
 
   resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_method("POST") |>
     httr2::req_headers(Authorization = paste("Bearer", invalid_token)) |>
-    httr2::req_url_query(new_pass_1 = new_password, new_pass_2 = new_password) |>
+    httr2::req_body_json(
+      list(password = new_password, password_confirm = new_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -502,10 +527,9 @@ test_that("password reset with weak password is rejected", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve user, request reset
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
@@ -534,8 +558,12 @@ test_that("password reset with weak password is rejected", {
   weak_password <- "Weak1234"
 
   resp <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_method("POST") |>
     httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
-    httr2::req_url_query(new_pass_1 = weak_password, new_pass_2 = weak_password) |>
+    httr2::req_body_json(
+      list(password = weak_password, password_confirm = weak_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -585,10 +613,9 @@ test_that("password reset token cannot be reused", {
   withr::defer(cleanup_test_user(test_user$email))
 
   # Create and approve user
-  signup_json <- jsonlite::toJSON(test_user, auto_unbox = TRUE)
-
-  httr2::request(paste0(get_api_base_url(), "/api/authentication/signup")) |>
-    httr2::req_url_query(signup_data = signup_json) |>
+  httr2::request(paste0(get_api_base_url(), "/api/auth/signup")) |>
+    httr2::req_method("POST") |>
+    httr2::req_body_json(test_user, auto_unbox = TRUE) |>
     httr2::req_perform()
 
   mailpit_wait_for_message(test_user$email, timeout_seconds = 5)
@@ -618,8 +645,12 @@ test_that("password reset token cannot be reused", {
   first_password <- "FirstPw1!"
 
   resp1 <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_method("POST") |>
     httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
-    httr2::req_url_query(new_pass_1 = first_password, new_pass_2 = first_password) |>
+    httr2::req_body_json(
+      list(password = first_password, password_confirm = first_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 
@@ -629,8 +660,12 @@ test_that("password reset token cannot be reused", {
   second_password <- "SecondPw2!"
 
   resp2 <- httr2::request(paste0(get_api_base_url(), "/api/user/password/reset/change")) |>
+    httr2::req_method("POST") |>
     httr2::req_headers(Authorization = paste("Bearer", reset_token)) |>
-    httr2::req_url_query(new_pass_1 = second_password, new_pass_2 = second_password) |>
+    httr2::req_body_json(
+      list(password = second_password, password_confirm = second_password),
+      auto_unbox = TRUE
+    ) |>
     httr2::req_error(is_error = function(resp) FALSE) |>
     httr2::req_perform()
 

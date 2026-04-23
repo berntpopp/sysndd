@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.11.13] — 2026-04-23
+
+Patch bump for the auth query-string hard cut in PR #304, plus a follow-up CI fast-path refactor so normal review cycles no longer wait on the full API suite and environment bootstrap checks.
+
+### Fixed
+
+- **Auth-sensitive inputs are hard-cut to body-only transport.** `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-update flows no longer accept query-string payloads. Runtime request logging keeps auth-sensitive query strings redacted, and the DB cleanup migration scrubs persisted historical values.
+- **Auth endpoint validation now fails closed on malformed JSON bodies.** Signup and password-update handlers reject nested or non-scalar required fields with `400` before downstream coercion or tibble/pivot work.
+- **Auth review regressions are locked in.** E2E auth lifecycle tests now target the mounted `/api/auth/*` routes, and endpoint-auth tests assert unique source decorators before slicing source windows.
+
+### Changed
+
+- **PR CI now has a fast API gate.** Pull requests run `Test R API (fast PR gate)` against a repo-owned file selection, while non-PR CI keeps the full API suite. This preserves full confidence coverage off the PR critical path.
+- **Tooling-heavy PR checks are conditional.** `make doctor` and `Smoke Test (prod stack)` only stay in the PR path when workflow, tooling, or boot-path files change; they still run outside PRs.
+- **Local fast-loop mirrors PR CI.** `make test-api-fast` now exists as the local equivalent of the PR-fast API gate, and `make pre-commit` uses it. `make ci-local` remains the full local parity gate.
+
 ## [0.11.12] — 2026-04-22
 
 Patch bump for the consolidated dependency + security sweep in #298 (subsumes #288, #289, #291, #292, #293, #295, #297). Also lands two CI stability guardrails introduced during review.
@@ -372,7 +388,8 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.6...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.13...HEAD
+[0.11.13]: https://github.com/berntpopp/sysndd/compare/v0.11.12...v0.11.13
 [0.11.6]: https://github.com/berntpopp/sysndd/compare/v0.11.5...v0.11.6
 [0.11.5]: https://github.com/berntpopp/sysndd/compare/v0.11.4...v0.11.5
 [0.11.4]: https://github.com/berntpopp/sysndd/compare/v0.11.3...v0.11.4

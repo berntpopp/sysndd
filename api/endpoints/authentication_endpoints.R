@@ -35,22 +35,66 @@
 #* @tag authentication
 #* @serializer json list(na="string")
 #*
-#* @param signup_data: JSON with the fields: user_name, first_name, family_name,
-#*                     email, orcid, comment, terms_agreed.
-#*
 #* @response 200 OK. The signup was successful; user added to DB, email sent.
+#* @response 400 Bad Request. If the JSON body is missing, malformed, or empty.
 #* @response 404 Not Found. Invalid registration data.
+#* @response 415 Unsupported Media Type. If the request is not JSON.
 #*
-#* @get signup
-function(signup_data) {
-  user <- tibble::as_tibble(fromJSON(signup_data)) %>%
-    mutate(
-      terms_agreed = case_when(
+#* @post signup
+function(req, res) {
+  content_type <- req$HTTP_CONTENT_TYPE %||% req$CONTENT_TYPE %||% ""
+  media_type <- strsplit(tolower(content_type), ";", fixed = TRUE)[[1]][1]
+  if (media_type != "application/json") {
+    res$status <- 415
+    res$body <- "Content-Type must be application/json."
+    return(res)
+  }
+
+  signup_body <- tryCatch(
+    jsonlite::fromJSON(req$postBody),
+    error = function(e) NULL
+  )
+  required_fields <- c(
+    "user_name",
+    "first_name",
+    "family_name",
+    "email",
+    "orcid",
+    "comment",
+    "terms_agreed"
+  )
+  if (
+    is.null(signup_body) ||
+      length(signup_body) == 0 ||
+      !all(required_fields %in% names(signup_body))
+  ) {
+    res$status <- 400
+    res$body <- "Malformed or empty JSON body."
+    return(res)
+  }
+
+  required_fields_are_scalar_strings <- vapply(
+    required_fields,
+    function(field) {
+      value <- signup_body[[field]]
+      is.character(value) && length(value) == 1 && !is.na(value)
+    },
+    logical(1)
+  )
+  if (!all(required_fields_are_scalar_strings)) {
+    res$status <- 400
+    res$body <- "Malformed JSON body: each required field must be a single string value."
+    return(res)
+  }
+
+  user <- tibble::as_tibble(signup_body) %>%
+    dplyr::mutate(
+      terms_agreed = dplyr::case_when(
         terms_agreed == "accepted" ~ "1",
         TRUE ~ "0"
       )
     ) %>%
-    select(
+    dplyr::select(
       user_name,
       first_name,
       family_name,
@@ -60,24 +104,29 @@ function(signup_data) {
       terms_agreed
     )
 
-  input_validation <- pivot_longer(user, cols = everything()) %>%
-    mutate(
-      valid = case_when(
+  input_validation <- tidyr::pivot_longer(user, cols = dplyr::everything()) %>%
+    dplyr::mutate(
+      valid = dplyr::case_when(
         name == "user_name" ~ (nchar(value) >= 5 & nchar(value) <= 20),
         name == "first_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
         name == "family_name" ~ (nchar(value) >= 2 & nchar(value) <= 50),
-        name == "email" ~ str_detect(value, regex(".+@.+\\..+", dotall = TRUE)),
-        name == "orcid" ~ str_detect(value, regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$")),
+        name == "email" ~ stringr::str_detect(
+          value,
+          stringr::regex(".+@.+\\..+", dotall = TRUE)
+        ),
+        name == "orcid" ~ stringr::str_detect(
+          value,
+          stringr::regex("^(([0-9]{4})-){3}[0-9]{3}[0-9X]$")
+        ),
         name == "comment" ~ (nchar(value) >= 10 & nchar(value) <= 250),
         name == "terms_agreed" ~ (value == "1")
       )
     ) %>%
-    mutate(all = "1") %>%
-    select(all, valid) %>%
-    group_by(all) %>%
-    summarize(valid = as.logical(prod(valid))) %>%
-    ungroup() %>%
-    select(valid)
+    dplyr::mutate(all = "1") %>%
+    dplyr::select(all, valid) %>%
+    dplyr::group_by(all) %>%
+    dplyr::summarize(valid = as.logical(prod(valid)), .groups = "drop") %>%
+    dplyr::select(valid)
 
   if (input_validation$valid) {
     # Insert user into DB using parameterized query
@@ -107,73 +156,15 @@ function(signup_data) {
   } else {
     res$status <- 404
     res$body <- "Please provide valid registration data."
-    res
-  }
-}
-
-
-#* Authenticate a User with Login (DEPRECATED query-string form)
-#*
-#* Checks username & password against the DB for an approved user. If correct,
-#* returns a JWT. Otherwise, returns an error.
-#*
-#* DEPRECATED: This `@get` form accepts credentials as URL query parameters,
-#* which leak into access logs, Traefik logs, and browser history. Use the
-#* `@post authenticate` handler below with a JSON body instead. This handler is
-#* preserved only so existing clients do not break during the Phase A hotfix
-#* rollout; Phase E (auth consolidation) will remove it.
-#*
-#* # `Details`
-#* Uses auth_signin service function for authentication logic.
-#* Returns JWT string for backward compatibility with existing clients.
-#*
-#* # `Return`
-#* JWT on success, error message otherwise.
-#*
-#* @tag authentication
-#* @serializer json list(na="string")
-#*
-#* @param user_name username provided by the user
-#* @param password password provided by the user
-#*
-#* @response 200 OK. Returns the JWT.
-#* @response 401 Unauthorized. If user or password is wrong or user not approved.
-#*
-#* @get authenticate
-function(req, res, user_name, password) {
-  # Validate inputs before calling service
-  if (
-    is.null(user_name) || nchar(user_name) < 5 || nchar(user_name) > 20 ||
-      is.null(password) || nchar(password) < 5 || nchar(password) > 50
-  ) {
-    res$status <- 404
-    res$body <- "Please provide valid username and password."
     return(res)
   }
-
-  # Call auth service (returns structured response)
-  tryCatch(
-    {
-      result <- auth_signin(user_name, password, pool, dw)
-      # Return just the access token for backward compatibility
-      result$access_token
-    },
-    error = function(e) {
-      res$status <- 401
-      res$body <- "User or password wrong."
-      return(res)
-    }
-  )
 }
 
 
-#* Authenticate a User with Login (JSON body)
+#* Authenticate a User with Login
 #*
-#* OWASP-compliant variant of the `@get authenticate` handler: credentials are
-#* submitted as a JSON body (POST) instead of query parameters so they never
-#* land in access logs, Traefik logs, or browser history. This is the handler
-#* the frontend should call; the `@get` form above remains only for transitional
-#* backwards compatibility and will be removed in Phase E.
+#* Credentials are submitted as a JSON body (POST) instead of query parameters
+#* so they never land in access logs, Traefik logs, or browser history.
 #*
 #* # `Details`
 #* Parses `user_name` and `password` from the JSON request body and delegates
