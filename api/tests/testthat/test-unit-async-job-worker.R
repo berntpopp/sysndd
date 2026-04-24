@@ -195,12 +195,18 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
   events <- character(0)
   completed <- NULL
   call_order <- character(0)
+  heartbeat_calls <- list()
 
   runtime$async_job_repository_append_event <- function(job_id, event_type, event_message = NULL, event_payload = NULL, conn = NULL) { # nolint: line_length_linter
     events <<- c(events, paste(job_id, event_type, sep = ":"))
     1L
   }
   runtime$async_job_repository_heartbeat <- function(job_id, lease_seconds, claim_token, conn = NULL) {
+    heartbeat_calls[[length(heartbeat_calls) + 1L]] <<- list(
+      job_id = job_id,
+      lease_seconds = lease_seconds,
+      claim_token = claim_token
+    )
     1L
   }
   runtime$async_job_repository_complete <- function(job_id, result_json, claim_token, conn = NULL) {
@@ -253,7 +259,11 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
   runtime$async_job_worker_run_claimed_job(
     claimed_job = claimed,
     state = runtime$async_job_worker_state(),
-    worker_config = list(worker_id = "worker-run", lease_seconds = 60L),
+    worker_config = list(
+      worker_id = "worker-run",
+      lease_seconds = 60L,
+      job_run_lease_seconds = 300L
+    ),
     registry = registry
   )
 
@@ -266,6 +276,9 @@ test_that("async_job_worker_run_claimed_job dispatches the matching handler and 
   expect_true("job-run:after_success" %in% events)
   expect_equal(progress_calls[[1]]$progress_pct, 100)
   expect_equal(progress_calls[[1]]$claim_token, "claim-run")
+  expect_gte(length(heartbeat_calls), 1L)
+  expect_equal(heartbeat_calls[[1]]$lease_seconds, 300L)
+  expect_equal(heartbeat_calls[[1]]$claim_token, "claim-run")
   expect_equal(call_order, c("complete", "after_success"))
 })
 
@@ -514,6 +527,7 @@ test_that("clustering durable handler preserves executor result shape and chains
   skip_if_not_installed("stringr")
 
   runtime <- load_async_job_worker_runtime()
+  progress_calls <- list()
 
   clusters <- tibble::tibble(
     cluster = 1L,
@@ -535,6 +549,20 @@ test_that("clustering durable handler preserves executor result shape and chains
       parent_job_id = parent_job_id
     )
     list(job_id = "llm-job")
+  }
+  runtime$create_async_job_progress_reporter <- function(job_id, throttle_seconds = 2) {
+    force(job_id)
+    force(throttle_seconds)
+    function(step, message, current = NULL, total = NULL) {
+      progress_calls[[length(progress_calls) + 1L]] <<- list(
+        job_id = job_id,
+        step = step,
+        message = message,
+        current = current,
+        total = total
+      )
+      invisible(NULL)
+    }
   }
 
   handler <- runtime$async_job_get_handler("clustering")
@@ -559,6 +587,12 @@ test_that("clustering durable handler preserves executor result shape and chains
   expect_equal(result$meta$algorithm, "walktrap")
   expect_equal(result$meta$gene_count, 2L)
   expect_equal(result$meta$cluster_count, 1L)
+  expect_length(progress_calls, 2L)
+  expect_equal(vapply(progress_calls, `[[`, character(1), "step"), c("cluster", "complete"))
+  expect_equal(progress_calls[[1]]$current, 0)
+  expect_equal(progress_calls[[1]]$total, 1)
+  expect_equal(progress_calls[[2]]$current, 1)
+  expect_equal(progress_calls[[2]]$total, 1)
 
   handler$after_success(
     result = result,
@@ -578,6 +612,7 @@ test_that("phenotype clustering durable handler restores identifiers and chains 
   skip_if_not_installed("tidyr")
 
   runtime <- load_async_job_worker_runtime()
+  progress_calls <- list()
 
   runtime$gen_mca_clust_obj <- function(data_frame) {
     expect_equal(rownames(data_frame), c("11", "22"))
@@ -596,6 +631,20 @@ test_that("phenotype clustering durable handler restores identifiers and chains 
       parent_job_id = parent_job_id
     )
     list(job_id = "llm-job")
+  }
+  runtime$create_async_job_progress_reporter <- function(job_id, throttle_seconds = 2) {
+    force(job_id)
+    force(throttle_seconds)
+    function(step, message, current = NULL, total = NULL) {
+      progress_calls[[length(progress_calls) + 1L]] <<- list(
+        job_id = job_id,
+        step = step,
+        message = message,
+        current = current,
+        total = total
+      )
+      invisible(NULL)
+    }
   }
 
   handler <- runtime$async_job_get_handler("phenotype_clustering")
@@ -633,6 +682,16 @@ test_that("phenotype clustering durable handler restores identifiers and chains 
   expect_equal(identifiers$entity_id, c(11L, 22L))
   expect_equal(identifiers$hgnc_id, c("HGNC:11", "HGNC:22"))
   expect_equal(identifiers$symbol, c("GENE11", "GENE22"))
+  expect_equal(
+    vapply(progress_calls, `[[`, character(1), "step"),
+    c("prepare_matrix", "cluster", "complete")
+  )
+  expect_equal(progress_calls[[1]]$current, 0)
+  expect_equal(progress_calls[[1]]$total, 2)
+  expect_equal(progress_calls[[2]]$current, 1)
+  expect_equal(progress_calls[[2]]$total, 2)
+  expect_equal(progress_calls[[3]]$current, 2)
+  expect_equal(progress_calls[[3]]$total, 2)
 
   handler$after_success(
     result = result,

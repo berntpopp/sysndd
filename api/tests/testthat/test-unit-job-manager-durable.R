@@ -91,6 +91,26 @@ test_that("get_job_status translates durable rows into the legacy polling contra
   expect_equal(completed$status, "completed")
   expect_true(isTRUE(completed$result$ok))
 
+  runtime$async_job_service_status <- function(job_id, include_result = FALSE, conn = NULL) {
+    tibble(
+      job_id = job_id,
+      job_type = "pubtator_update",
+      status = "cancelled",
+      submitted_at = as.POSIXct("2026-04-23 12:00:00", tz = "UTC"),
+      progress_pct = NA_real_,
+      progress_message = NA_character_,
+      completed_at = as.POSIXct("2026-04-23 12:04:00", tz = "UTC"),
+      result_json = NA_character_,
+      last_error_code = "CANCELLED",
+      last_error_message = "Job was cancelled by the user"
+    )
+  }
+
+  cancelled <- runtime$get_job_status("job-cancelled")
+  expect_equal(cancelled$status, "cancelled")
+  expect_equal(cancelled$error$code, "CANCELLED")
+  expect_match(cancelled$error$message, "cancelled")
+
   runtime$async_job_service_status <- function(job_id, include_result = FALSE, conn = NULL) tibble()
   missing <- runtime$get_job_status("job-missing")
   expect_equal(missing$error, "JOB_NOT_FOUND")

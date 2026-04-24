@@ -125,6 +125,23 @@ get_job_status <- function(job_id) {
     ))
   }
 
+  if (durable_status == "cancelled") {
+    return(list(
+      job_id = job_id,
+      status = "cancelled",
+      completed_at = if (!is.na(job$completed_at[[1]])) {
+        format(job$completed_at[[1]], "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+      } else {
+        NULL
+      },
+      result = NULL,
+      error = list(
+        code = "CANCELLED",
+        message = job$last_error_message[[1]] %||% "Job was cancelled"
+      )
+    ))
+  }
+
   list(
     job_id = job_id,
     status = "failed",

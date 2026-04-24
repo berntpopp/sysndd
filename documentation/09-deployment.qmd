@@ -48,10 +48,9 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 
 ## Operations Notes
 
-- The API uses `mirai` workers for background tasks.
 - Migrations run at API startup and should fail hard if broken.
 - Async job polling now reads durable MySQL-backed state, so sticky sessions are optional for correctness.
-- Run the worker service alongside the API service; jobs are executed by the worker entrypoint, not the web process.
+- Run the worker service alongside the API service; `mirai` daemons live in the worker service and jobs are executed by the worker entrypoint, not the web process.
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - Use HTTPS in production.
 

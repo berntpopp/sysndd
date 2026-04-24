@@ -363,10 +363,10 @@ async_job_worker_run_claimed_job <- function(
       handler <- async_job_get_handler(job_type, registry = registry)
       payload <- .async_job_worker_decode_payload(payload_json)
 
-      heartbeat_fn(
-        job_id = job_id,
-        lease_seconds = worker_config$lease_seconds,
-        claim_token = claim_token
+      async_job_worker_heartbeat(
+        claimed_job = claimed_job,
+        worker_config = worker_config,
+        heartbeat_fn = heartbeat_fn
       )
 
       result <- handler$run(

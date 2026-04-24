@@ -261,7 +261,7 @@ preflight: check-docker ## [quality] Run production preflight validation
 		(printf "$(RED)Build failed$(RESET)\n" && exit 1)
 	@printf "$(GREEN)Build complete$(RESET)\n"
 	@printf "\n$(CYAN)[2/4] Starting production containers...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d || \
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d --build || \
 		(printf "$(RED)Container startup failed$(RESET)\n" && exit 1)
 	@printf "$(GREEN)Containers started$(RESET)\n"
 	@printf "\n$(CYAN)[3/4] Waiting for health check (timeout: $(PREFLIGHT_TIMEOUT)s)...$(RESET)\n"
@@ -315,7 +315,7 @@ docker-build: check-docker ## [docker] Build API Docker image
 
 docker-up: check-docker ## [docker] Start production containers (no dev overrides)
 	@printf "$(CYAN)==> Starting production containers...$(RESET)\n"
-	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d && \
+	@cd $(ROOT_DIR) && docker compose -f docker-compose.yml up -d --build && \
 		printf "$(GREEN)✓ docker-up complete$(RESET)\n" || \
 		(printf "$(RED)✗ docker-up failed$(RESET)\n" && exit 1)
 

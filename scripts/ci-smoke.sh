@@ -63,6 +63,8 @@ HEALTH_HOST_HEADER="${SMOKE_HOST_HEADER:-sysndd.dbmr.unibe.ch}"
 # Total retries = RETRIES, sleep = RETRY_SLEEP_SECONDS.
 RETRIES="${SMOKE_RETRIES:-30}"
 RETRY_SLEEP_SECONDS="${SMOKE_RETRY_SLEEP_SECONDS:-2}"
+SPA_RETRIES="${SMOKE_SPA_RETRIES:-30}"
+SPA_RETRY_SLEEP_SECONDS="${SMOKE_SPA_RETRY_SLEEP_SECONDS:-2}"
 
 dump_context() {
   fail "dumping diagnostic context"
@@ -115,9 +117,22 @@ fi
 #   2. `server_tokens off` being reverted, leaking the nginx version.
 log "step 4/4: assert SPA security headers"
 SPA_URL="${SMOKE_SPA_URL:-http://localhost/}"
-SPA_HEADERS=$(curl -fsSI -H "Host: $HEALTH_HOST_HEADER" "$SPA_URL" 2>/dev/null || true)
-if [ -z "$SPA_HEADERS" ]; then
-  fail "could not fetch headers from $SPA_URL"
+SPA_HEADERS=""
+i=0
+while [ "$i" -lt "$SPA_RETRIES" ]; do
+  SPA_HEADERS=$(curl -fsSI -H "Host: $HEALTH_HOST_HEADER" "$SPA_URL" 2>/dev/null || true)
+  if printf '%s' "$SPA_HEADERS" | grep -Eq '^HTTP/[0-9.]+ 200'; then
+    break
+  fi
+  i=$((i + 1))
+  sleep "$SPA_RETRY_SLEEP_SECONDS"
+done
+
+if ! printf '%s' "$SPA_HEADERS" | grep -Eq '^HTTP/[0-9.]+ 200'; then
+  fail "could not fetch 200 headers from $SPA_URL after $SPA_RETRIES attempts"
+  if [ -n "$SPA_HEADERS" ]; then
+    printf '%s\n' "$SPA_HEADERS" >&2
+  fi
   dump_context
   exit 3
 fi

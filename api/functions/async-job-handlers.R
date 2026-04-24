@@ -78,12 +78,17 @@
   algorithm <- .async_job_payload_scalar(payload, "algorithm")
   string_id_table <- .async_job_payload_field(payload, "string_id_table", required = FALSE)
   category_links <- .async_job_payload_field(payload, "category_links", required = FALSE)
+  progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
+
+  progress("cluster", "Running functional clustering...", current = 0, total = 1)
 
   clusters <- gen_string_clust_obj(
     genes,
     algorithm = algorithm,
     string_id_table = string_id_table
   )
+
+  progress("complete", "Functional clustering complete", current = 1, total = 1)
 
   list(
     clusters = clusters,
@@ -161,7 +166,13 @@
 }
 
 .async_job_run_phenotype_clustering <- function(job, payload, state, worker_config) {
-  phenotype_clusters <- gen_mca_clust_obj(.async_job_phenotype_matrix(payload))
+  progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
+
+  progress("prepare_matrix", "Preparing phenotype matrix...", current = 0, total = 2)
+  phenotype_matrix <- .async_job_phenotype_matrix(payload)
+  progress("cluster", "Running phenotype clustering...", current = 1, total = 2)
+  phenotype_clusters <- gen_mca_clust_obj(phenotype_matrix)
+  progress("complete", "Phenotype clustering complete", current = 2, total = 2)
 
   identifiers <- payload$ndd_entity_view_tbl |>
     dplyr::select(entity_id, hgnc_id, symbol)

@@ -107,6 +107,19 @@ migration instead.
 No manual `mysql <` redirection is needed, and none is supported — there
 is no out-of-band apply path.
 
+### Pristine database bootstrap
+
+`000_initialize_base_schema.sql` is the mandatory bootstrap migration for an
+empty database. It creates the legacy foundational tables and minimal seed
+rows that the later incremental migrations assume already exist. This is what
+allows production smoke and first-boot deployments to start from a brand-new
+MySQL volume without importing an external dump first.
+
+Do not bypass it by mounting ad hoc init SQL into MySQL or by hand-editing
+`schema_version`. If the foundational schema needs to change, extend or amend
+the `000_...` migration so pristine boot and incremental upgrades remain the
+same code path.
+
 ## 5. Rollback guidance
 
 Migrations are **forward-only**. The runner does not understand `down`

@@ -109,6 +109,19 @@ describe("split_sql_statements", {
 # ============================================================================
 
 describe("list_migration_files", {
+  it("includes the pristine bootstrap migration before incremental migrations", {
+    migrations_dir <- file.path(api_dir, "..", "db", "migrations")
+    result <- list_migration_files(migrations_dir)
+
+    expect_true("000_initialize_base_schema.sql" %in% result)
+    expect_true("001_add_about_content.sql" %in% result)
+    expect_equal(result[[1]], "000_initialize_base_schema.sql")
+    expect_lt(
+      match("000_initialize_base_schema.sql", result),
+      match("001_add_about_content.sql", result)
+    )
+  })
+
   it("returns sorted list of SQL files", {
     withr::with_tempdir({
       migrations_dir <- file.path(getwd(), "test_migrations")
