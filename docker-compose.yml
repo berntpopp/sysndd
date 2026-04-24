@@ -264,6 +264,12 @@ services:
       MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
       ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
       ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
+    healthcheck:
+      test: ["CMD-SHELL", "ps -ef | grep '[s]tart_async_worker.R' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - backend
     develop:

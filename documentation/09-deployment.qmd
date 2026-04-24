@@ -52,6 +52,7 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 - Migrations run at API startup and should fail hard if broken.
 - Async job polling now reads durable MySQL-backed state, so sticky sessions are optional for correctness.
 - Run the worker service alongside the API service; jobs are executed by the worker entrypoint, not the web process.
+- The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - Use HTTPS in production.
 
 For full deployment details, runtime tuning context, and troubleshooting history, see the repository and infrastructure configuration alongside the compose files.

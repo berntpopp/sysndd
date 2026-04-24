@@ -280,7 +280,7 @@
   force(fn_name)
 
   function(job, payload, state, worker_config) {
-    fn <- get(fn_name, mode = "function")
+    fn <- base::get(fn_name, mode = "function")
     fn(.async_job_add_job_id(payload, job))
   }
 }

@@ -43,6 +43,28 @@ ensure_async_job_repository_loaded <- function() {
   invisible(repo_path)
 }
 
+test_that("async job repository loads correctly when config masks base::get", {
+  repo_path <- async_job_repository_path()
+  expect_true(file.exists(repo_path))
+
+  local({
+    db_execute_query <- function(...) NULL
+    db_execute_statement <- function(...) NULL
+    db_with_transaction <- function(...) NULL
+
+    get <- function(...) {
+      stop("config::get-style masking should not be used here")
+    }
+
+    env <- new.env(parent = environment())
+    sys.source(repo_path, envir = env)
+
+    expect_true(is.function(env$db_execute_query))
+    expect_true(is.function(env$db_execute_statement))
+    expect_true(is.function(env$db_with_transaction))
+  })
+})
+
 apply_async_job_migration <- function(conn) {
   migration_path <- async_job_migration_path()
   if (!file.exists(migration_path)) {

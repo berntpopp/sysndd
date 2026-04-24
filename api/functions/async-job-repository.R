@@ -25,9 +25,9 @@ if (!exists("db_execute_query", mode = "function") ||
   }
 }
 
-db_execute_query <- get("db_execute_query", mode = "function", inherits = TRUE)
-db_execute_statement <- get("db_execute_statement", mode = "function", inherits = TRUE)
-db_with_transaction <- get("db_with_transaction", mode = "function", inherits = TRUE)
+db_execute_query <- base::get("db_execute_query", mode = "function", inherits = TRUE)
+db_execute_statement <- base::get("db_execute_statement", mode = "function", inherits = TRUE)
+db_with_transaction <- base::get("db_with_transaction", mode = "function", inherits = TRUE)
 
 ASYNC_JOB_BASE_COLUMNS <- c(
   "job_id",
