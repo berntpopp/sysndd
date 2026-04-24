@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.11.14] — 2026-04-24
+
+Patch bump for the durable async job hard cut in PR #305. This replaces process-local async job ownership with a MySQL-backed durable queue/state model, a dedicated worker service, and CI smoke/bootstrap fixes required to verify the new architecture on pristine environments.
+
+### Fixed
+
+- **Pristine DB smoke startup no longer fails before foundational schema exists.** Added a bootstrap migration so a fresh MySQL instance creates the base tables needed by later migrations before content and durable async schema migrations run.
+- **Production-style smoke verification now matches real stack readiness.** The smoke script retries SPA readiness before asserting security headers, and local prod-stack compose starts rebuild fresh images so stale dev-built images do not produce false failures.
+- **Durable async job status reporting preserves terminal semantics.** Cancelled jobs now report as `cancelled` instead of generic execution failures, and worker progress/lease updates are persisted so long-running jobs do not look stale while still executing.
+
+### Changed
+
+- **Async jobs are now durable and worker-owned.** Canonical async state lives in MySQL, the worker service claims and executes jobs independently of the API process, and frontend polling no longer depends on sticky-session correctness.
+- **Worker deployment model is explicit.** Operator docs now describe the separate worker service, durable queue semantics, and worker-health expectations rather than the old API-process `mirai` ownership model.
+
 ## [0.11.13] — 2026-04-23
 
 Patch bump for the auth query-string hard cut in PR #304, plus a follow-up CI fast-path refactor so normal review cycles no longer wait on the full API suite and environment bootstrap checks.
@@ -388,7 +403,8 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.13...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.14...HEAD
+[0.11.14]: https://github.com/berntpopp/sysndd/compare/v0.11.13...v0.11.14
 [0.11.13]: https://github.com/berntpopp/sysndd/compare/v0.11.12...v0.11.13
 [0.11.6]: https://github.com/berntpopp/sysndd/compare/v0.11.5...v0.11.6
 [0.11.5]: https://github.com/berntpopp/sysndd/compare/v0.11.4...v0.11.5
