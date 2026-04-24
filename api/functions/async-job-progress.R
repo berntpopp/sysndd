@@ -6,6 +6,21 @@
   value
 }
 
+.async_job_progress_lease_seconds <- function(worker_config) {
+  run_lease <- suppressWarnings(as.integer(worker_config$job_run_lease_seconds))
+  default_lease <- suppressWarnings(as.integer(worker_config$lease_seconds))
+
+  if (length(default_lease) != 1L || is.na(default_lease) || default_lease < 1L) {
+    default_lease <- 60L
+  }
+
+  if (length(run_lease) != 1L || is.na(run_lease) || run_lease < 1L) {
+    return(default_lease)
+  }
+
+  max(default_lease, run_lease)
+}
+
 .async_job_claim_field <- function(claimed_job, field) {
   value <- claimed_job[[field]]
   if (is.null(value) || length(value) == 0) {
@@ -89,7 +104,7 @@ create_async_job_progress_reporter <- function(job_id, throttle_seconds = 2) {
       claim_token = claim_token
     )
 
-    lease_seconds <- suppressWarnings(as.integer(worker_config$lease_seconds))
+    lease_seconds <- .async_job_progress_lease_seconds(worker_config)
     if (length(lease_seconds) == 1L && !is.na(lease_seconds) && lease_seconds > 0L) {
       async_job_repository_heartbeat(
         job_id = job_id,

@@ -37,6 +37,7 @@ test_that("async_job_worker_config_from_env reads bounded worker settings", {
 
   withr::local_envvar(c(
     ASYNC_JOB_LEASE_SECONDS = "75",
+    ASYNC_JOB_RUN_LEASE_SECONDS = "600",
     ASYNC_JOB_IDLE_SLEEP_SECONDS = "1.5",
     MAX_JOBS_PER_WORKER = "7",
     MAX_WORKER_LIFETIME = "900",
@@ -51,6 +52,7 @@ test_that("async_job_worker_config_from_env reads bounded worker settings", {
   expect_true(is.character(config$hostname))
   expect_true(nzchar(config$hostname))
   expect_equal(config$lease_seconds, 75L)
+  expect_equal(config$job_run_lease_seconds, 600L)
   expect_equal(config$idle_sleep_seconds, 1.5)
   expect_equal(config$max_jobs_per_worker, 7L)
   expect_equal(config$max_worker_lifetime_seconds, 900L)
@@ -86,7 +88,7 @@ test_that("create_async_job_progress_reporter updates durable row progress and t
       job_id = "job-progress",
       claim_token = "claim-progress"
     ),
-    worker_config = list(lease_seconds = 90L)
+    worker_config = list(lease_seconds = 90L, job_run_lease_seconds = 300L)
   )
   on.exit(runtime$async_job_worker_clear_claim_context(), add = TRUE)
 
@@ -107,7 +109,7 @@ test_that("create_async_job_progress_reporter updates durable row progress and t
   expect_equal(calls[[2]]$progress_pct, 100)
   expect_equal(calls[[2]]$progress_message, "Download complete")
   expect_length(heartbeat_calls, 2L)
-  expect_equal(heartbeat_calls[[1]]$lease_seconds, 90L)
+  expect_equal(heartbeat_calls[[1]]$lease_seconds, 300L)
   expect_equal(heartbeat_calls[[1]]$claim_token, "claim-progress")
 })
 
@@ -179,12 +181,12 @@ test_that("async_job_worker_heartbeat extends the lease with the current claim t
 
   rows <- runtime$async_job_worker_heartbeat(
     claimed_job = tibble(job_id = "job-heartbeat", claim_token = "claim-heartbeat"),
-    worker_config = list(lease_seconds = 45L)
+    worker_config = list(lease_seconds = 45L, job_run_lease_seconds = 120L)
   )
 
   expect_equal(rows, 1L)
   expect_equal(heartbeat_call$job_id, "job-heartbeat")
-  expect_equal(heartbeat_call$lease_seconds, 45L)
+  expect_equal(heartbeat_call$lease_seconds, 120L)
   expect_equal(heartbeat_call$claim_token, "claim-heartbeat")
 })
 
@@ -425,6 +427,7 @@ test_that("worker main exits cleanly when drain is requested or lifetime bounds 
       drain_claims <<- drain_claims + 1L
       tibble()
     },
+    recover_stale_fn = function() invisible(tibble::tibble(jobs_recovered = 0L)),
     sleep_fn = function(seconds) invisible(seconds),
     now_fn = function() as.POSIXct("2026-04-23 12:00:00", tz = "UTC")
   )
@@ -458,6 +461,7 @@ test_that("worker main exits cleanly when drain is requested or lifetime bounds 
       lifetime_claims <<- lifetime_claims + 1L
       tibble()
     },
+    recover_stale_fn = function() invisible(tibble::tibble(jobs_recovered = 0L)),
     sleep_fn = function(seconds) invisible(seconds),
     now_fn = function() {
       tick_index <<- min(tick_index + 1L, length(tick_times))
@@ -467,6 +471,41 @@ test_that("worker main exits cleanly when drain is requested or lifetime bounds 
 
   expect_identical(lifetime_result, lifetime_state)
   expect_equal(lifetime_claims, 1L)
+})
+
+test_that("worker main reaps stale jobs before attempting new claims", {
+  runtime <- load_async_job_worker_runtime()
+  state <- runtime$async_job_worker_state()
+  call_order <- character(0)
+
+  runtime$async_job_worker_main(
+    worker_config = list(
+      worker_id = "worker-recover",
+      hostname = "host-recover",
+      lease_seconds = 60L,
+      job_run_lease_seconds = 300L,
+      idle_sleep_seconds = 0,
+      max_jobs_per_worker = 1L,
+      max_worker_lifetime_seconds = 600L,
+      queues = "default",
+      drain_file = ""
+    ),
+    state = state,
+    registry = list(),
+    recover_stale_fn = function() {
+      call_order <<- c(call_order, "recover")
+      invisible(tibble::tibble(jobs_recovered = 1L))
+    },
+    claim_fn = function(...) {
+      call_order <<- c(call_order, "claim")
+      state$shutdown_requested <- TRUE
+      tibble()
+    },
+    sleep_fn = function(seconds) invisible(seconds),
+    now_fn = function() as.POSIXct("2026-04-23 12:00:00", tz = "UTC")
+  )
+
+  expect_equal(call_order, c("recover", "claim"))
 })
 
 test_that("clustering durable handler preserves executor result shape and chains LLM generation", {

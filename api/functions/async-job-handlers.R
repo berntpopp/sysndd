@@ -52,18 +52,18 @@
 }
 
 .async_job_functional_categories <- function(clusters, category_links) {
-  categories <- clusters %>%
-    dplyr::select(term_enrichment) %>%
-    tidyr::unnest(cols = c(term_enrichment)) %>%
-    dplyr::select(category) %>%
-    unique() %>%
-    dplyr::arrange(category) %>%
+  categories <- clusters |>
+    dplyr::select(term_enrichment) |>
+    tidyr::unnest(cols = c(term_enrichment)) |>
+    dplyr::select(category) |>
+    unique() |>
+    dplyr::arrange(category) |>
     dplyr::mutate(
       text = dplyr::case_when(
         nchar(category) <= 5 ~ category,
         nchar(category) > 5 ~ stringr::str_to_sentence(category)
       )
-    ) %>%
+    ) |>
     dplyr::select(value = category, text)
 
   if (!is.null(category_links)) {
@@ -117,43 +117,43 @@
 }
 
 .async_job_phenotype_matrix <- function(payload) {
-  sysndd_db_phenotypes <- payload$ndd_entity_view_tbl %>%
-    dplyr::left_join(payload$ndd_review_phenotype_connect_tbl, by = "entity_id") %>%
-    dplyr::left_join(payload$modifier_list_tbl, by = "modifier_id") %>%
-    dplyr::left_join(payload$phenotype_list_tbl, by = "phenotype_id") %>%
+  sysndd_db_phenotypes <- payload$ndd_entity_view_tbl |>
+    dplyr::left_join(payload$ndd_review_phenotype_connect_tbl, by = "entity_id") |>
+    dplyr::left_join(payload$modifier_list_tbl, by = "modifier_id") |>
+    dplyr::left_join(payload$phenotype_list_tbl, by = "phenotype_id") |>
     dplyr::mutate(ndd_phenotype = dplyr::case_when(
       ndd_phenotype == 1 ~ "Yes",
       ndd_phenotype == 0 ~ "No",
       TRUE ~ ndd_phenotype
-    )) %>%
-    dplyr::filter(ndd_phenotype == "Yes") %>%
-    dplyr::filter(category %in% payload$categories) %>%
-    dplyr::filter(modifier_name == "present") %>%
-    dplyr::filter(review_id %in% payload$ndd_entity_review_tbl$review_id) %>%
+    )) |>
+    dplyr::filter(ndd_phenotype == "Yes") |>
+    dplyr::filter(category %in% payload$categories) |>
+    dplyr::filter(modifier_name == "present") |>
+    dplyr::filter(review_id %in% payload$ndd_entity_review_tbl$review_id) |>
     dplyr::select(
       entity_id, hpo_mode_of_inheritance_term_name, phenotype_id,
       HPO_term, hgnc_id
-    ) %>%
-    dplyr::group_by(entity_id) %>%
+    ) |>
+    dplyr::group_by(entity_id) |>
     dplyr::mutate(
       phenotype_non_id_count = sum(!(phenotype_id %in% payload$id_phenotype_ids)),
       phenotype_id_count = sum(phenotype_id %in% payload$id_phenotype_ids)
-    ) %>%
-    dplyr::ungroup() %>%
+    ) |>
+    dplyr::ungroup() |>
     unique()
 
-  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
-    dplyr::mutate(present = "yes") %>%
-    dplyr::select(-phenotype_id) %>%
-    tidyr::pivot_wider(names_from = HPO_term, values_from = present) %>%
-    dplyr::group_by(hgnc_id) %>%
-    dplyr::mutate(gene_entity_count = dplyr::n()) %>%
-    dplyr::ungroup() %>%
-    dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
+  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes |>
+    dplyr::mutate(present = "yes") |>
+    dplyr::select(-phenotype_id) |>
+    tidyr::pivot_wider(names_from = HPO_term, values_from = present) |>
+    dplyr::group_by(hgnc_id) |>
+    dplyr::mutate(gene_entity_count = dplyr::n()) |>
+    dplyr::ungroup() |>
+    dplyr::relocate(gene_entity_count, .after = phenotype_id_count) |>
     dplyr::select(-hgnc_id)
 
-  phenotype_df <- sysndd_db_phenotypes_wider %>%
-    dplyr::select(-entity_id) %>%
+  phenotype_df <- sysndd_db_phenotypes_wider |>
+    dplyr::select(-entity_id) |>
     as.data.frame()
   row.names(phenotype_df) <- sysndd_db_phenotypes_wider$entity_id
 
@@ -163,13 +163,13 @@
 .async_job_run_phenotype_clustering <- function(job, payload, state, worker_config) {
   phenotype_clusters <- gen_mca_clust_obj(.async_job_phenotype_matrix(payload))
 
-  identifiers <- payload$ndd_entity_view_tbl %>%
+  identifiers <- payload$ndd_entity_view_tbl |>
     dplyr::select(entity_id, hgnc_id, symbol)
 
-  phenotype_clusters %>%
-    tidyr::unnest(identifiers) %>%
-    dplyr::mutate(entity_id = as.integer(entity_id)) %>%
-    dplyr::left_join(identifiers, by = "entity_id") %>%
+  phenotype_clusters |>
+    tidyr::unnest(identifiers) |>
+    dplyr::mutate(entity_id = as.integer(entity_id)) |>
+    dplyr::left_join(identifiers, by = "entity_id") |>
     tidyr::nest(identifiers = c(entity_id, hgnc_id, symbol))
 }
 
@@ -452,7 +452,7 @@
     stop(paste("Validation failed:", paste(validation$errors, collapse = "; ")), call. = FALSE)
   }
 
-  ndd_entity_view_ontology_set <- payload$ndd_entity_view %>%
+  ndd_entity_view_ontology_set <- payload$ndd_entity_view |>
     dplyr::select(entity_id, disease_ontology_id_version, disease_ontology_name)
   safeguard <- identify_critical_ontology_changes(
     disease_ontology_set_update,
@@ -485,18 +485,18 @@
       critical_count = safeguard$summary$truly_critical,
       auto_fixable_count = safeguard$summary$auto_fixable,
       total_affected = safeguard$summary$total_affected,
-      critical_entities = safeguard$critical %>%
+      critical_entities = safeguard$critical |>
         dplyr::select(
           disease_ontology_id_version,
           disease_ontology_name,
           hgnc_id,
           hpo_mode_of_inheritance_term
-        ) %>%
-        as.list() %>%
+        ) |>
+        as.list() |>
         purrr::transpose(),
       auto_fixes = if (nrow(safeguard$auto_fixes) > 0) {
-        safeguard$auto_fixes %>%
-          as.list() %>%
+        safeguard$auto_fixes |>
+          as.list() |>
           purrr::transpose()
       } else {
         list()
@@ -564,17 +564,17 @@
   critical_versions <- .async_job_force_apply_critical_versions(payload$critical_entities_raw)
 
   critical_entity_ids <- if (length(critical_versions) > 0) {
-    payload$ndd_entity_view %>%
-      dplyr::filter(disease_ontology_id_version %in% critical_versions) %>%
-      dplyr::pull(entity_id) %>%
+    payload$ndd_entity_view |>
+      dplyr::filter(disease_ontology_id_version %in% critical_versions) |>
+      dplyr::pull(entity_id) |>
       unique()
   } else {
     integer(0)
   }
 
   compatibility_rows <- if (length(critical_versions) > 0) {
-    payload$disease_ontology_set_current %>%
-      dplyr::filter(disease_ontology_id_version %in% critical_versions) %>%
+    payload$disease_ontology_set_current |>
+      dplyr::filter(disease_ontology_id_version %in% critical_versions) |>
       dplyr::mutate(is_active = FALSE)
   } else {
     tibble::tibble()

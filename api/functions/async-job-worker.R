@@ -167,12 +167,28 @@ async_job_worker_config_from_env <- function() {
     worker_id = sprintf("%s:%s", hostname, .async_job_worker_uuid()),
     hostname = hostname,
     lease_seconds = max(1L, .async_job_worker_int_env("ASYNC_JOB_LEASE_SECONDS", "60")),
+    job_run_lease_seconds = max(1L, .async_job_worker_int_env("ASYNC_JOB_RUN_LEASE_SECONDS", "900")),
     idle_sleep_seconds = max(0, .async_job_worker_num_env("ASYNC_JOB_IDLE_SLEEP_SECONDS", "2")),
     max_jobs_per_worker = max(1L, .async_job_worker_int_env("MAX_JOBS_PER_WORKER", "50")),
     max_worker_lifetime_seconds = max(1L, .async_job_worker_int_env("MAX_WORKER_LIFETIME", "3600")),
     queues = queues,
     drain_file = Sys.getenv("ASYNC_JOB_DRAIN_FILE", "/tmp/sysndd_async_worker_drain")
   )
+}
+
+.async_job_worker_lease_seconds <- function(worker_config) {
+  run_lease <- suppressWarnings(as.integer(worker_config$job_run_lease_seconds))
+  default_lease <- suppressWarnings(as.integer(worker_config$lease_seconds))
+
+  if (length(default_lease) != 1L || is.na(default_lease) || default_lease < 1L) {
+    default_lease <- 60L
+  }
+
+  if (length(run_lease) != 1L || is.na(run_lease) || run_lease < 1L) {
+    return(default_lease)
+  }
+
+  max(default_lease, run_lease)
 }
 
 #' Create mutable state for a durable async worker process
@@ -282,7 +298,7 @@ async_job_worker_heartbeat <- function(
 ) {
   heartbeat_fn(
     job_id = .async_job_worker_job_field(claimed_job, "job_id"),
-    lease_seconds = worker_config$lease_seconds,
+    lease_seconds = .async_job_worker_lease_seconds(worker_config),
     claim_token = .async_job_worker_job_field(claimed_job, "claim_token")
   )
 }
@@ -446,6 +462,7 @@ async_job_worker_main <- function(
   state = async_job_worker_state(),
   registry = async_job_handler_registry,
   claim_fn = async_job_repository_claim_next,
+  recover_stale_fn = async_job_repository_recover_stale,
   sleep_fn = Sys.sleep,
   now_fn = Sys.time
 ) {
@@ -457,6 +474,8 @@ async_job_worker_main <- function(
     if (async_job_worker_should_exit(state, worker_config, now = now_fn())) {
       break
     }
+
+    recover_stale_fn()
 
     claimed_job <- async_job_worker_claim_once(
       state = state,

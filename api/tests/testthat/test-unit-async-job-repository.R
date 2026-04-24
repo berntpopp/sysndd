@@ -656,6 +656,33 @@ test_that("async job repository fail, cancel, and stale recovery follow durable 
     expect_equal(stale_terminal$status[[1]], "failed")
     expect_true(is.na(stale_terminal$next_attempt_at[[1]]))
     expect_equal(stale_terminal$last_error_code[[1]], "LEASE_EXPIRED")
+
+    seed_async_job(
+      conn,
+      job_id = "job-stale-cancel-requested",
+      request_hash = "stale-cancel-requested-hash",
+      status = "cancel_requested",
+      attempt_count = 1L,
+      max_attempts = 3L,
+      claimed_by_worker = "worker-cancel-requested",
+      claim_token = "claim-cancel-requested",
+      worker_hostname = "host-cancel-requested",
+      worker_pid = 10001L,
+      started_at = Sys.time() - 300,
+      last_heartbeat_at = Sys.time() - 300,
+      claim_expires_at = Sys.time() - 120,
+      last_error_code = "KEEP",
+      last_error_message = "Keep existing error"
+    )
+
+    async_job_repository_recover_stale(now = Sys.time(), conn = conn)
+    stale_cancel_requested <- async_job_repository_get("job-stale-cancel-requested", conn = conn)
+
+    expect_equal(stale_cancel_requested$status[[1]], "cancelled")
+    expect_false(is.na(stale_cancel_requested$completed_at[[1]]))
+    expect_true(is.na(stale_cancel_requested$claimed_by_worker[[1]]))
+    expect_equal(stale_cancel_requested$last_error_code[[1]], "KEEP")
+    expect_equal(stale_cancel_requested$last_error_message[[1]], "Keep existing error")
   })
 })
 
