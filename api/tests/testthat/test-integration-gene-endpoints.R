@@ -16,19 +16,7 @@ library(httr2)
 # =============================================================================
 
 skip_if_api_not_running <- function() {
-  is_running <- tryCatch(
-    {
-      request("http://localhost:8000/health") %>%
-        req_timeout(2) %>%
-        req_perform()
-      TRUE
-    },
-    error = function(e) FALSE
-  )
-
-  if (!is_running) {
-    testthat::skip("API not running on localhost:8000")
-  }
+  skip_if_sysndd_api_not_running("http://localhost:8000")
 }
 
 # =============================================================================

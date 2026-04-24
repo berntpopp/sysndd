@@ -168,7 +168,7 @@ services:
       - proxy
       - backend
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/"]
+      test: ["CMD", "curl", "-sf", "http://localhost:7777/api/health/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -208,6 +208,86 @@ services:
       - "traefik.http.services.api.loadbalancer.sticky.cookie.name=sysndd_api_sticky"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.httponly=true"
       - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
+
+  worker:
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command:
+      - bash
+      - -lc
+      - >
+          drain_file="$${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}";
+          rm -f "$$drain_file";
+          trap 'touch "$$drain_file"' TERM INT;
+          Rscript /app/start_async_worker.R &
+          child=$$!;
+          wait "$$child"
+    restart: unless-stopped
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./api/functions:/app/functions
+      - ./api/core:/app/core
+      - ./api/services:/app/services
+      - ./api/bootstrap:/app/bootstrap
+      - ./api/config:/app/config
+      - ./api/data:/app/data
+      - ./api/results:/app/results
+      - ./db/migrations:/app/db/migrations:ro
+      - api_cache:/app/cache
+      - mysql_backup:/backup:rw
+      - ./api/config.yml:/app/config.yml
+      - ./api/start_async_worker.R:/app/start_async_worker.R
+    environment:
+      ENVIRONMENT: production
+      PASSWORD: ${PASSWORD}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      CACHE_VERSION: ${CACHE_VERSION:-2}
+      OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      ASYNC_JOB_LEASE_SECONDS: ${ASYNC_JOB_LEASE_SECONDS:-60}
+      ASYNC_JOB_IDLE_SLEEP_SECONDS: ${ASYNC_JOB_IDLE_SLEEP_SECONDS:-2}
+      MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
+      MAX_WORKER_LIFETIME: ${MAX_WORKER_LIFETIME:-3600}
+      ASYNC_JOB_QUEUES: ${ASYNC_JOB_QUEUES:-default}
+      ASYNC_JOB_DRAIN_FILE: ${ASYNC_JOB_DRAIN_FILE:-/tmp/sysndd_async_worker_drain}
+    healthcheck:
+      test: ["CMD-SHELL", "ps -ef | grep '[s]tart_async_worker.R' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - backend
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/core
+          target: /app/core
+        - action: sync
+          path: ./api/services
+          target: /app/services
+        - action: sync
+          path: ./api/bootstrap
+          target: /app/bootstrap
+        - action: rebuild
+          path: ./api/renv.lock
 
   app:
     build: ./app/

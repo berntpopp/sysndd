@@ -17,14 +17,11 @@
  *
  * `withCredentials` is NOT enabled by default on the shared singleton
  * (`@/plugins/axios` does not set `axios.defaults.withCredentials`). The vast
- * majority of endpoints are Bearer-authenticated and either idempotent or
- * backend-memoised, so they do not need cookies. Call sites that DO depend on
- * sticky-session cookies — notably long-running async-job polling against the
- * load-balanced API, which relies on Traefik's `sysndd_api_sticky` cookie to
- * keep hitting the container that owns the job — must opt in explicitly by
- * passing `withCredentials: true` via the `config` argument to
- * `apiClient.get/post/put/patch/delete`. See `@/composables/useAsyncJob.ts`
- * (`checkJobStatus`) for the canonical example.
+ * majority of endpoints are Bearer-authenticated and do not need cookies.
+ * Durable async job polling now reads DB-backed state, so it no longer needs
+ * sticky-session routing to hit a specific API replica. Opt into
+ * `withCredentials: true` only for endpoints that genuinely need cookie-based
+ * behaviour.
  */
 
 import axios, {

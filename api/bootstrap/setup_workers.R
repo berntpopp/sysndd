@@ -100,10 +100,16 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/hgnc-functions.R", local = FALSE)
     # Source Ensembl functions (gene_coordinates_from_ensembl, gene_coordinates_from_symbol)
     source("/app/functions/ensembl-functions.R", local = FALSE)
-    # Source file-based job progress reporting
-    source("/app/functions/job-progress.R", local = FALSE)
     # Source db-helpers for parameterized queries
     source("/app/functions/db-helpers.R", local = FALSE)
+    # Source durable async-job repository for worker-side lease/progress operations
+    source("/app/functions/async-job-repository.R", local = FALSE)
+    # Source durable async-job runtime helpers before the compatibility shim
+    source("/app/functions/async-job-progress.R", local = FALSE)
+    source("/app/functions/async-job-handlers.R", local = FALSE)
+    source("/app/functions/async-job-worker.R", local = FALSE)
+    # Source transitional progress shim for legacy mirai async code paths
+    source("/app/functions/job-progress.R", local = FALSE)
     # Source PubTator functions for async update jobs (client + parser before orchestrator)
     source("/app/functions/pubtator-client.R", local = FALSE)
     source("/app/functions/pubtator-parser.R", local = FALSE)

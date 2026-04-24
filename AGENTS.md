@@ -48,7 +48,7 @@ Service functions must keep their `svc_` or `service_` prefixes. If a service fu
 
 ### Background jobs
 
-The API uses a bounded `mirai` daemon pool for long-running jobs. Code used inside those workers is sourced once when the worker starts. If you change worker-executed code, restart the API container before assuming the change is live.
+Async jobs are durable and MySQL-backed. The web API submits jobs and serves status/history; the separate worker service claims and executes them. Worker-executed code is sourced once when the worker starts. If you change worker-executed code, restart the worker container before assuming the change is live.
 
 ### Migrations
 
@@ -67,11 +67,13 @@ In the dev/prod containers, source directories such as `api/functions`, `api/ser
 - Auth-sensitive inputs are body-only: use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change endpoints; do not reintroduce query-string transport or raw query-string logging for these flows.
 - `make ci-local` is the closest local CI parity check and should be preferred before handoff.
 - `make pre-commit` now uses the fast API PR gate to keep local iteration close to pull-request CI; use `make ci-local` before handoff and `make test-api` when you need the full API suite locally.
+- Host-side R quality targets in `Makefile` use `Rscript --no-init-file` to avoid Conda/miniforge bootstrap interference before the repo's own script entrypoints run.
+- On Conda/miniforge R installs, `Makefile` derives `HOST_R_LD_LIBRARY_PATH` from `R RHOME` and prepends the sibling `mariadb/` runtime directory so `RMariaDB` can load successfully. Override `HOST_R_LD_LIBRARY_PATH` if the MariaDB client runtime lives elsewhere.
 
 ## Environment Notes
 
 - Node major is pinned in `app/.nvmrc` and should match CI.
-- Host-side API work may require the Conda/Ubuntu 25.10 workaround summarized in `documentation/08-development.qmd`.
+- Host-side API work may require overriding `HOST_R_LD_LIBRARY_PATH` if the MariaDB client runtime is not next to `R RHOME`; see `documentation/08-development.qmd`.
 - `lintr` is not installed in the production API container; lint from the host.
 
 ## Documentation Contract

@@ -11,10 +11,10 @@ test_that("fast CI test selection excludes slow and live API suites", {
   expect_false("test-integration-health.R" %in% fast_files)
   expect_false("test-integration-version.R" %in% fast_files)
   expect_false("test-integration-async.R" %in% fast_files)
+  expect_false("test-integration-auth.R" %in% fast_files)
   expect_false("test-integration-llm-endpoints.R" %in% fast_files)
 
   expect_true("test-endpoint-auth.R" %in% fast_files)
-  expect_true("test-integration-auth.R" %in% fast_files)
   expect_true("test-unit-auth-service.R" %in% fast_files)
 })
 

@@ -9,6 +9,20 @@
 
 require(jsonlite)
 
+if (!exists("create_async_job_progress_reporter", mode = "function")) {
+  progress_candidates <- c(
+    "functions/async-job-progress.R",
+    "/app/functions/async-job-progress.R"
+  )
+
+  for (progress_path in progress_candidates) {
+    if (file.exists(progress_path)) {
+      source(progress_path, local = FALSE)
+      break
+    }
+  }
+}
+
 #' Shared directory for job progress files
 JOB_PROGRESS_DIR <- "/tmp/sysndd_jobs"
 
@@ -31,8 +45,8 @@ JOB_PROGRESS_DIR <- "/tmp/sysndd_jobs"
 #' reporter("gnomad", "gnomAD enrichment (50/43000)", current = 50, total = 43000)
 #' }
 #'
-#' @export
-create_progress_reporter <- function(job_id, throttle_seconds = 2) {
+#' @noRd
+.create_file_progress_reporter <- function(job_id, throttle_seconds = 2) {
   # Ensure directory exists
   if (!dir.exists(JOB_PROGRESS_DIR)) {
     dir.create(JOB_PROGRESS_DIR, recursive = TRUE, mode = "0755")
@@ -76,6 +90,33 @@ create_progress_reporter <- function(job_id, throttle_seconds = 2) {
 
     invisible(NULL)
   }
+}
+
+
+#' Create a progress reporter for an async job
+#'
+#' Uses durable row-level progress when a worker claim context is active.
+#' Falls back to legacy file-based progress for transitional mirai code paths
+#' that have not yet been migrated to the durable worker runtime.
+#'
+#' @param job_id Character UUID of the job
+#' @param throttle_seconds Minimum seconds between writes (default: 2)
+#'
+#' @return A function(step, message, current = NULL, total = NULL)
+#' @export
+create_progress_reporter <- function(job_id, throttle_seconds = 2) {
+  if (exists("async_job_worker_has_claim_context", mode = "function") &&
+      isTRUE(async_job_worker_has_claim_context())) {
+    return(create_async_job_progress_reporter(
+      job_id = job_id,
+      throttle_seconds = throttle_seconds
+    ))
+  }
+
+  .create_file_progress_reporter(
+    job_id = job_id,
+    throttle_seconds = throttle_seconds
+  )
 }
 
 
