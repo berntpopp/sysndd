@@ -499,12 +499,7 @@ async_job_repository_cancel <- function(job_id, cancelled_by = NULL, conn = NULL
   db_execute_statement(
     paste(
       "UPDATE async_jobs",
-      "SET status = CASE",
-      "  WHEN status = 'running' THEN 'cancel_requested'",
-      "  WHEN status IN ('queued', 'failed') THEN 'cancelled'",
-      "  ELSE status",
-      "END,",
-      "cancelled_by = CASE",
+      "SET cancelled_by = CASE",
       "  WHEN status IN ('running', 'queued', 'failed') THEN ?",
       "  ELSE cancelled_by",
       "END,",
@@ -535,6 +530,11 @@ async_job_repository_cancel <- function(job_id, cancelled_by = NULL, conn = NULL
       "next_attempt_at = CASE",
       "  WHEN status IN ('queued', 'failed') THEN NULL",
       "  ELSE next_attempt_at",
+      "END,",
+      "status = CASE",
+      "  WHEN status = 'running' THEN 'cancel_requested'",
+      "  WHEN status IN ('queued', 'failed') THEN 'cancelled'",
+      "  ELSE status",
       "END",
       "WHERE job_id = ?"
     ),

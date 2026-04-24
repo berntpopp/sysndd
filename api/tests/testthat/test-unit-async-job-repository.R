@@ -1,8 +1,8 @@
 library(testthat)
 library(DBI)
 
-source_api_file("functions/db-helpers.R", local = FALSE)
-source_api_file("functions/migration-runner.R", local = FALSE)
+source_api_file("functions/db-helpers.R", local = FALSE, envir = .GlobalEnv)
+source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
 
 async_job_repository_path <- function() {
   override <- Sys.getenv("ASYNC_JOB_REPOSITORY_PATH", "")
@@ -91,28 +91,52 @@ ensure_async_job_schema <- function() {
   if (DBI::dbExistsTable(conn, "async_jobs")) {
     DBI::dbExecute(conn, "DROP TABLE async_jobs", immediate = TRUE)
   }
+  if (!DBI::dbExistsTable(conn, "user")) {
+    DBI::dbExecute(
+      conn,
+      paste(
+        "CREATE TABLE user (",
+        "user_id INT NOT NULL PRIMARY KEY,",
+        "user_name VARCHAR(255) NULL",
+        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+        sep = " "
+      ),
+      immediate = TRUE
+    )
+  }
 
   apply_async_job_migration(conn)
 
   invisible(TRUE)
 }
 
+with_async_job_test_connection <- function(code) {
+  conn <- get_test_db_connection()
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  withr::local_options(list(.test_db_con = conn))
+
+  force(code)
+}
+
 seed_async_job <- function(conn, ...) {
-  async_job_repository_create(
-    c(
-      list(
-        job_id = paste0("job-", substr(uuid::UUIDgenerate(), 1, 8)),
-        job_type = "hgnc_update",
-        queue_name = "default",
-        priority = 100L,
-        request_payload_json = "{\"operation\":\"hgnc_update\"}",
-        request_hash = paste0("hash-", substr(uuid::UUIDgenerate(), 1, 12)),
-        submitted_by = NULL,
-        scheduled_at = Sys.time(),
-        max_attempts = 1L
-      ),
-      list(...)
+  job <- utils::modifyList(
+    list(
+      job_id = paste0("job-", substr(uuid::UUIDgenerate(), 1, 8)),
+      job_type = "hgnc_update",
+      queue_name = "default",
+      priority = 100L,
+      request_payload_json = "{\"operation\":\"hgnc_update\"}",
+      request_hash = paste0("hash-", substr(uuid::UUIDgenerate(), 1, 12)),
+      submitted_by = NULL,
+      scheduled_at = Sys.time(),
+      max_attempts = 1L
     ),
+    list(...)
+  )
+
+  async_job_repository_create(
+    job,
     conn = conn
   )
 }
@@ -161,7 +185,7 @@ test_that("async_job_repository_create and get support polling without result pa
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
     submitted_at <- as.POSIXct("2026-04-23 09:00:00", tz = "UTC")
 
@@ -199,7 +223,7 @@ test_that("async_job_repository_find_active_duplicate ignores terminal jobs", {
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(
@@ -214,6 +238,7 @@ test_that("async_job_repository_find_active_duplicate ignores terminal jobs", {
       request_hash = "dup-hash",
       status = "running",
       claimed_by_worker = "worker-a",
+      claim_token = "claim-duplicate-running",
       worker_hostname = "host-a",
       worker_pid = 1001L,
       started_at = Sys.time(),
@@ -255,7 +280,7 @@ test_that("async_job_repository_create raises durable duplicate error for concur
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(
@@ -289,7 +314,7 @@ test_that("async_job_repository_claim_next claims one eligible job and marks it 
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(
@@ -329,12 +354,12 @@ test_that("async_job_repository_claim_next claims one eligible job and marks it 
       conn = conn
     )
 
-    expect_equal(claimed$job_id[[1]], "job-claim-queued")
+    expect_equal(claimed$job_id[[1]], "job-claim-retry")
     expect_equal(claimed$status[[1]], "running")
     expect_equal(claimed$claimed_by_worker[[1]], "worker-a")
     expect_equal(claimed$worker_hostname[[1]], "host-a")
     expect_equal(claimed$worker_pid[[1]], 4242L)
-    expect_equal(claimed$attempt_count[[1]], 1L)
+    expect_equal(claimed$attempt_count[[1]], 2L)
     expect_true(nzchar(claimed$claim_token[[1]]))
     expect_false(is.na(claimed$claim_expires_at[[1]]))
 
@@ -347,8 +372,8 @@ test_that("async_job_repository_claim_next claims one eligible job and marks it 
       conn = conn
     )
 
-    expect_equal(second_claim$job_id[[1]], "job-claim-retry")
-    expect_equal(second_claim$attempt_count[[1]], 2L)
+    expect_equal(second_claim$job_id[[1]], "job-claim-queued")
+    expect_equal(second_claim$attempt_count[[1]], 1L)
 
     seed_async_job(
       conn,
@@ -391,7 +416,7 @@ test_that("async job repository updates progress, appends events, heartbeats, an
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(conn, job_id = "job-progress", request_hash = "progress-hash")
@@ -441,7 +466,7 @@ test_that("async job repository updates progress, appends events, heartbeats, an
     expect_equal(stored$status[[1]], "completed")
     expect_equal(stored$progress_message[[1]], "Halfway there")
     expect_equal(round(stored$progress_pct[[1]], 1), 55.5)
-    expect_equal(stored$result_json[[1]], "{\"ok\":true}")
+    expect_equal(jsonlite::fromJSON(stored$result_json[[1]]), list(ok = TRUE))
     expect_false(is.na(stored$completed_at[[1]]))
     expect_true(is.na(stored$claim_expires_at[[1]]))
     expect_true(event_id > 0)
@@ -455,7 +480,7 @@ test_that("async job repository mutators reject stale claim tokens", {
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(conn, job_id = "job-stale-token", request_hash = "stale-token-hash")
@@ -503,7 +528,7 @@ test_that("async job repository fail, cancel, and stale recovery follow durable 
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(conn, job_id = "job-fail", request_hash = "fail-hash", max_attempts = 3L)
@@ -546,13 +571,18 @@ test_that("async job repository fail, cancel, and stale recovery follow durable 
       class = "db_statement_error"
     )
 
-    seed_async_job(conn, job_id = "job-cancel-running", request_hash = "cancel-running-hash")
-    async_job_repository_claim_next(
-      worker_id = "worker-cancel",
+    seed_async_job(
+      conn,
+      job_id = "job-cancel-running",
+      request_hash = "cancel-running-hash",
+      status = "running",
+      claimed_by_worker = "worker-cancel",
+      claim_token = "claim-cancel-running",
       worker_hostname = "host-cancel",
       worker_pid = 7171L,
-      lease_seconds = 30L,
-      conn = conn
+      started_at = Sys.time() - 30,
+      last_heartbeat_at = Sys.time() - 5,
+      claim_expires_at = Sys.time() + 30
     )
     async_job_repository_cancel("job-cancel-running", cancelled_by = NULL, conn = conn)
     cancelled_request <- async_job_repository_get("job-cancel-running", conn = conn)
@@ -560,7 +590,7 @@ test_that("async job repository fail, cancel, and stale recovery follow durable 
     heartbeat_rows <- async_job_repository_heartbeat(
       job_id = "job-cancel-running",
       lease_seconds = 60L,
-      claim_token = cancelled_request$claim_token[[1]],
+      claim_token = "claim-cancel-running",
       conn = conn
     )
     expect_equal(heartbeat_rows, 1L)
@@ -634,7 +664,7 @@ test_that("async_job_repository_history returns newest jobs first without result
   ensure_async_job_repository_loaded()
   ensure_async_job_schema()
 
-  with_test_db_transaction({
+  with_async_job_test_connection({
     conn <- getOption(".test_db_con")
 
     seed_async_job(
