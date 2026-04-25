@@ -77,6 +77,9 @@ import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getPhenotypeCorrelation } from '@/api/phenotype';
+
 /**
  * Get human-readable interpretation of a correlation coefficient
  * @param {number} r - Correlation coefficient (-1 to 1)
@@ -124,11 +127,9 @@ export default {
       this.loadingMatrix = true;
       this.error = null;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/correlation`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        this.itemsMatrix = response.data;
+        const data = await getPhenotypeCorrelation();
+        this.itemsMatrix = data;
       } catch (e) {
         this.error = e.message || 'Failed to load correlation data. Please try again.';
         this.makeToast(e, 'Error', 'danger');

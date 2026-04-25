@@ -70,6 +70,9 @@
 import { useToast, useText } from '@/composables';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getPublicationStats } from '@/api/statistics';
+
 export default {
   name: 'PublicationsNDDTimePlot',
   setup() {
@@ -113,15 +116,11 @@ export default {
     async loadData() {
       this.loading = true;
 
-      // GET /api/statistics/publication_stats with time_aggregate parameter
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
       try {
-        const response = await this.axios.get(apiUrl, {
-          params: {
-            time_aggregate: this.timeAggregation,
-          },
+        const data = await getPublicationStats({
+          time_aggregate: this.timeAggregation,
         });
-        this.statsData = response.data;
+        this.statsData = data;
         // Now we generate the graph
         this.generateGraph();
       } catch (err) {

@@ -66,6 +66,9 @@ import { useToast, useText } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getEntitiesOverTime } from '@/api/statistics';
+
 export default {
   name: 'AnalysesTimePlot',
   components: {
@@ -127,15 +130,16 @@ export default {
   methods: {
     async loadData() {
       this.loadingData = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/statistics/entities_over_time?aggregate=${
-        this.selected_aggregate
-      }&group=${this.selected_group}&filter=${this.filter_string}`;
 
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await getEntitiesOverTime({
+          aggregate: this.selected_aggregate,
+          group: this.selected_group,
+          filter: this.filter_string,
+        });
 
-        this.items = response.data.data;
-        this.itemsMeta = response.data.meta;
+        this.items = data.data;
+        this.itemsMeta = data.meta;
 
         this.generateGraph();
       } catch (e) {

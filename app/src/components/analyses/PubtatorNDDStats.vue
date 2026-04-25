@@ -167,9 +167,9 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
-import axios from 'axios';
 import useToast from '@/composables/useToast';
 import { CURATION_COLORS } from '@/utils/chartColors';
+import { listPubtatorGenes } from '@/api/publication';
 
 // Types
 interface GeneData {
@@ -251,17 +251,13 @@ async function fetchStats() {
   loading.value = true;
   loadingStats.value = true;
 
-  const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes`;
-  const params = new URLSearchParams();
-  params.set('page_size', String(STATS_PAGE_SIZE));
-  params.set('fields', 'gene_symbol,publication_count,is_novel,hgnc_id');
-
-  const apiUrl = `${baseUrl}?${params.toString()}`;
-
   try {
-    const response = await axios.get(apiUrl, { withCredentials: true });
+    const data = await listPubtatorGenes({
+      page_size: String(STATS_PAGE_SIZE),
+      fields: 'gene_symbol,publication_count,is_novel,hgnc_id',
+    });
     // Store the raw gene data - each item has gene_symbol, publication_count, and is_novel
-    rawGeneData.value = (response.data.data || []).map((item: Record<string, unknown>) => ({
+    rawGeneData.value = (data.data || []).map((item: Record<string, unknown>) => ({
       gene_symbol: String(item.gene_symbol || 'Unknown'),
       publication_count: Number(item.publication_count) || 0,
       is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
