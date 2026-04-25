@@ -1,0 +1,80 @@
+# .github/workflows/playwright.yml
+name: Playwright E2E
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master, "feature/v11.1-finish-hardening"]
+
+concurrency:
+  group: playwright-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playwright:
+    name: Playwright deep flows + smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: app/.nvmrc
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install npm deps
+        working-directory: app
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: app
+        run: npx playwright install --with-deps chromium
+
+      - name: Bring up Playwright stack
+        run: make playwright-stack
+
+      - name: Wait for API readiness
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:80/api/version >/dev/null; then
+              echo "API ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API never became ready"
+          docker compose -p playwright logs --no-color | tail -200
+          exit 1
+
+      - name: Run Playwright
+        working-directory: app
+        run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:80
+
+      - name: Tear down Playwright stack
+        if: always()
+        run: make playwright-stack-down
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots-${{ github.run_id }}
+          path: app/tests/e2e/screenshots/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: app/playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
