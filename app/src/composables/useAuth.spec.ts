@@ -606,11 +606,10 @@ describe('useAuth', () => {
 //     stays cleared)
 //
 // These tests intentionally stand on their own (separate top-level describe)
-// so the contract is legible without grep'ing the full file. The spec uses
-// `vi.fn()`-mocked router OR a `globalThis.__authNavTarget` global hook; the
-// implementation may dispatch via either mechanism (router.push when a router
-// is mounted, hook in test/non-router contexts), and the assertion accepts
-// both.
+// so the contract is legible without grep'ing the full file. The spec
+// asserts on the `globalThis.__authNavTarget` global hook, which
+// `handle401()` always assigns regardless of whether a router is mounted;
+// in addition the implementation calls `router.push` when one is available.
 describe('useAuth.handle401() — single-owner contract (W2)', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -661,15 +660,14 @@ describe('useAuth.handle401() — single-owner contract (W2)', () => {
 
   it('dispatches a navigation event toward the login route', () => {
     const auth = useAuth();
-    const navSpy = vi.fn();
-    // The implementation may dispatch via router.push (when a router is
-    // mounted) or via the globalThis.__authNavTarget hook (test / pre-init
-    // contexts). Both are acceptable shapes; the assertion accepts either.
+    // The implementation always assigns `globalThis.__authNavTarget` for
+    // test / pre-init contexts (and additionally calls `router.push` when
+    // a router is mounted). Asserting on the global hook directly is the
+    // observable surface this spec actually owns.
     delete (globalThis as Record<string, unknown>).__authNavTarget;
     auth.handle401();
-    expect(
-      navSpy.mock.calls.length > 0 ||
-        (globalThis as Record<string, unknown>).__authNavTarget === '/Login',
-    ).toBe(true);
+    expect((globalThis as Record<string, unknown>).__authNavTarget).toBe(
+      '/Login',
+    );
   });
 });
