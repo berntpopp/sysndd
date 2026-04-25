@@ -72,6 +72,50 @@ import { required, min, max } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
 import { authenticate, signin } from '@/api/auth';
+import { isApiError } from '@/api/client';
+
+/**
+ * Extract a human-readable string from an error thrown by the typed
+ * api/auth helpers. v11.1 finish-hardening fix #2: the catch handlers
+ * previously passed the raw `AxiosError` object to `makeToast`, which
+ * rendered as `[object Object]` (or the bare class name) in the toast
+ * body. Prefer, in order:
+ *
+ *   1. The API's response body string (handler returns `"User or password
+ *      wrong."` for a 401).
+ *   2. A `.message` field on a JSON error envelope (`{ message: '...' }`).
+ *   3. The Error.message (network failures, validation throws).
+ *   4. A generic "Authentication failed." fallback.
+ *
+ * Returns a string in every case so the caller can pass it to `makeToast`
+ * without an additional unwrap step.
+ */
+function describeAuthError(err, fallback = 'Authentication failed.') {
+  if (isApiError(err)) {
+    const data = err.response && err.response.data;
+    if (typeof data === 'string' && data.length > 0) {
+      return data;
+    }
+    if (
+      data &&
+      typeof data === 'object' &&
+      typeof data.message === 'string' &&
+      data.message.length > 0
+    ) {
+      return data.message;
+    }
+    if (typeof err.message === 'string' && err.message.length > 0) {
+      return err.message;
+    }
+  }
+  if (err instanceof Error && typeof err.message === 'string' && err.message.length > 0) {
+    return err.message;
+  }
+  if (typeof err === 'string' && err.length > 0) {
+    return err;
+  }
+  return fallback;
+}
 
 // Define validation rules globally
 defineRule('required', required);
@@ -165,7 +209,10 @@ export default {
         );
         this.signinWithJWT(token);
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        // v11.1 finish-hardening fix #2: surface the API's literal message
+        // (e.g. "User or password wrong." for 401) instead of toasting the
+        // raw AxiosError object — which otherwise renders as [object Object].
+        this.makeToast(describeAuthError(e), 'Error', 'danger');
       }
     },
     async signinWithJWT(token) {
@@ -184,7 +231,10 @@ export default {
         this.auth.login(token, userPayload);
         this.$router.push('/');
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
+        // v11.1 finish-hardening fix #2: same anti-pattern as loadJWT — pass
+        // a readable string to makeToast so the user sees the API's actual
+        // error reason instead of [object Object].
+        this.makeToast(describeAuthError(e), 'Error', 'danger');
       }
     },
     handleReset() {

@@ -88,8 +88,14 @@ vi.mock('@unhead/vue', () => ({
 // The view imports `useToast` and calls `makeToast` on error paths. The real
 // `useToast` pulls in bootstrap-vue-next's BApp provider; swap it for a
 // minimal stub so mount doesn't require the provider.
+//
+// v11.1 finish-hardening fix #2: We need a STABLE spy across tests so we can
+// assert what `makeToast` was called with on the auth-error path. Hoisted
+// `vi.hoisted` block lets the mock factory close over a real spy that the
+// tests can reach via the captured reference below.
+const makeToastMock = vi.hoisted(() => vi.fn());
 vi.mock('@/composables/useToast', () => ({
-  default: () => ({ makeToast: vi.fn() }),
+  default: () => ({ makeToast: makeToastMock }),
 }));
 
 // Import AFTER the `@/router` mock is registered so the axios plugin
@@ -358,5 +364,152 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
     expect(finalWrites).toEqual(['token', 'user']);
 
     setItemSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v11.1 finish-hardening fix #2 — readable error message in toast.
+//
+// Pre-fix the catch handlers passed the raw `AxiosError` object to
+// `makeToast(...)`, which renders as `[object Object]` (or the bare class
+// name) in the toast body. The fix routes errors through `describeAuthError`
+// which prefers (in order):
+//   1. The API's response body string (e.g. "User or password wrong.")
+//   2. A `.message` field on a JSON error envelope
+//   3. The Error.message (network failures)
+//   4. A generic "Authentication failed." fallback
+// Either way, the first arg of `makeToast` is a STRING, never the raw object.
+// ---------------------------------------------------------------------------
+
+describe('LoginView — fix #2 readable error toast', () => {
+  beforeEach(() => {
+    envBag.VITE_API_URL = '';
+    makeToastMock.mockClear();
+    useAuth().logout();
+  });
+
+  afterEach(() => {
+    if (originalViteApiUrl === undefined) {
+      delete envBag.VITE_API_URL;
+    } else {
+      envBag.VITE_API_URL = originalViteApiUrl;
+    }
+    useAuth().logout();
+    localStorage.clear();
+  });
+
+  it('401 from /api/auth/authenticate: toasts a readable string (not the raw AxiosError object)', async () => {
+    // The shared axios 401 interceptor swallows the original AxiosError and
+    // re-rejects with `new Error('Redirecting to login')`. LoginView's catch
+    // must still surface a string — the regression mode is `[object Object]`
+    // when the catch passes the bare Error reference instead of `.message`.
+    server.use(
+      http.post('/api/auth/authenticate', () =>
+        HttpResponse.text('User or password wrong.', { status: 401 })
+      ),
+    );
+
+    const wrapper = mountLoginView();
+    const view = vm(wrapper);
+    view.user_name = 'testuser';
+    view.password = 'wrongpass';
+    await view.loadJWT();
+    await flushPromises();
+
+    const errorCalls = makeToastMock.mock.calls.filter(
+      (call) => call[1] === 'Error' && call[2] === 'danger'
+    );
+    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+    const [firstArg] = errorCalls[0];
+    // The fix: the toast body is a STRING, not the raw error. Concretely,
+    // the 401 interceptor reroutes to `Error('Redirecting to login')`, and
+    // describeAuthError unwraps the `.message` for us. The acceptance
+    // criterion is "string, not [object Object]".
+    expect(typeof firstArg).toBe('string');
+    expect(firstArg).not.toMatch(/\[object Object\]/);
+    // The handled-401 message is what the user actually sees on a wrong
+    // credentials submit (plus the LoginView redirect).
+    expect(firstArg).toBe('Redirecting to login');
+  });
+
+  it('non-401 with literal API string body: toasts the API\'s exact text', async () => {
+    // Bypass the 401 interceptor so describeAuthError lands in the
+    // `typeof data === "string"` branch. A 400 with a plain-text body is
+    // realistic for several Plumber endpoints (the v11.1 auth flow
+    // included).
+    server.use(
+      http.post('/api/auth/authenticate', () =>
+        HttpResponse.text('Account locked: too many attempts.', { status: 400 })
+      ),
+    );
+
+    const wrapper = mountLoginView();
+    const view = vm(wrapper);
+    view.user_name = 'lockeduser';
+    view.password = 'whatever';
+    await view.loadJWT();
+    await flushPromises();
+
+    const errorCalls = makeToastMock.mock.calls.filter(
+      (call) => call[1] === 'Error' && call[2] === 'danger'
+    );
+    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+    const [firstArg] = errorCalls[0];
+    expect(typeof firstArg).toBe('string');
+    expect(firstArg).toBe('Account locked: too many attempts.');
+  });
+
+  it('500 with JSON envelope { message }: toasts data.message string', async () => {
+    server.use(
+      http.post('/api/auth/authenticate', () =>
+        HttpResponse.json({ message: 'Database temporarily unavailable.' }, { status: 500 })
+      ),
+    );
+
+    const wrapper = mountLoginView();
+    const view = vm(wrapper);
+    view.user_name = 'testuser';
+    view.password = 'rightpass';
+    await view.loadJWT();
+    await flushPromises();
+
+    const errorCalls = makeToastMock.mock.calls.filter(
+      (call) => call[1] === 'Error' && call[2] === 'danger'
+    );
+    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+    const [firstArg] = errorCalls[0];
+    expect(typeof firstArg).toBe('string');
+    expect(firstArg).toBe('Database temporarily unavailable.');
+  });
+
+  it('signinWithJWT 401 path: same readable-string contract as loadJWT', async () => {
+    // Both catches in LoginView.vue (loadJWT + signinWithJWT) share the same
+    // anti-pattern; the fix applies `describeAuthError` to both. Pin the
+    // signin-path branch by letting authenticate succeed and forcing /signin
+    // to return the API's literal 401 body.
+    server.use(
+      http.post('/api/auth/authenticate', () =>
+        HttpResponse.json(['SIGNIN_TOKEN'])
+      ),
+      http.get('/api/auth/signin', () =>
+        HttpResponse.text('Token rejected by signin endpoint.', { status: 401 })
+      ),
+    );
+
+    const wrapper = mountLoginView();
+    const view = vm(wrapper);
+    view.user_name = 'testuser';
+    view.password = 'rightpass';
+    await view.loadJWT();
+    await flushPromises();
+
+    // The auth-error toast carries a string, not [object Object].
+    const errorCalls = makeToastMock.mock.calls.filter(
+      (call) => call[1] === 'Error' && call[2] === 'danger'
+    );
+    expect(errorCalls.length).toBeGreaterThanOrEqual(1);
+    const lastErrorArg = errorCalls[errorCalls.length - 1][0];
+    expect(typeof lastErrorArg).toBe('string');
+    expect(lastErrorArg).not.toMatch(/\[object Object\]/);
   });
 });
