@@ -27,6 +27,10 @@ interface Row {
   re_review_review_saved: number;
   re_review_status_saved: number;
   status_id: number | null;
+  // Index signature satisfies the FilterableRow contract from the
+  // composable so the typed `useReviewFilters<Row>(source)` call doesn't
+  // narrow `Row` away.
+  [key: string]: unknown;
   approved?: number;
 }
 
