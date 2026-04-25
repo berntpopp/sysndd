@@ -229,7 +229,7 @@
 
 <script>
 // Import Vue utilities
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 
 // Import composables
 import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
@@ -243,6 +243,9 @@ import GenericTable from '@/components/small/GenericTable.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
+
+// Typed API client (W5)
+import { listPublications, listPublicationsXlsx } from '@/api/publication';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
@@ -301,9 +304,6 @@ export default {
       Publication_date: { content: null, join_char: null, operator: 'contains' },
     });
 
-    // Inject axios and route
-    const axios = inject('axios');
-
     // Return all needed properties (this component has its own method implementations)
     return {
       makeToast,
@@ -314,7 +314,6 @@ export default {
       ...text,
       ...tableData,
       filter,
-      axios,
     };
   },
   data() {
@@ -537,14 +536,18 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}&fields=${this.fspecInput}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await listPublications({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: String(this.currentItemID),
+          page_size: String(this.perPage),
+          fields: this.fspecInput,
+        });
         moduleApiCallInProgress = false;
         // Cache response for remounted components
-        moduleLastApiResponse = response.data;
-        this.applyApiResponse(response.data);
+        moduleLastApiResponse = data;
+        this.applyApiResponse(data);
 
         // Update URL AFTER API success to prevent component remount during API call
         this.updateBrowserUrl();
@@ -711,24 +714,17 @@ export default {
      */
     async requestExcel() {
       this.downloading = true;
-      // For instance: &page_after=0&page_size=all&format=xlsx
-      const urlParam =
-        `sort=${this.sort}` +
-        `&filter=${this.filter_string}` +
-        '&page_after=0' +
-        '&page_size=all' +
-        '&format=xlsx' +
-        `&fields=${this.fspecInput}`;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
+        const blob = await listPublicationsXlsx({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: '0',
+          page_size: 'all',
+          fields: this.fspecInput,
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(blob);
         const fileLink = document.createElement('a');
         fileLink.href = fileURL;
         fileLink.setAttribute('download', 'publications.xlsx');
