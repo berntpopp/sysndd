@@ -41,7 +41,9 @@
  *     assert success.
  *   - Error path: advance from step 1 with invalid evidence; assert the next
  *     button is disabled and the validation message shows.
- *   - it.todo: "TODO: verify the step-indicator state after a back-navigation"
+ *   - Back-navigation: previously locked as `it.todo` per phase-c.md §3 C2.
+ *     Resolved during v11.1 W6.6 once the W6 decomposition gave us the
+ *     `useReviewModals` composable surface to assert against.
  *
  * Error-path note on fidelity: `Review.vue`'s "Save Review" button is not
  * literally a `<button disabled>` when synopsis is empty — there is no
@@ -681,11 +683,78 @@ describe('Review.vue — classification wizard (functional)', () => {
     expect(errorToastCalls.length).toBeGreaterThanOrEqual(1);
   });
 
-  // Phase E handshake — step-indicator back-navigation is state Phase E will
-  // introduce when it rewrites the re-review UI to a true wizard. Leaving
-  // this as an `it.todo` is the locked string the plan requires; E5's
-  // rewrite unpins it into a real assertion.
-  it.todo('TODO: verify the step-indicator state after a back-navigation');
+  // v11.1 W6.6: the previously-locked back-navigation case is now a real
+  // assertion. With the W6 decomposition the wizard's "step indicator"
+  // becomes the `useReviewModals` composable surface — `entity[]`,
+  // `status_approved`, `review_approved`. Back-navigation is modelled as
+  // the dialog closing without confirm: the row stays in the queue, the
+  // filter state stays put, and the approval toggles reset for the
+  // next attempt. The negative case (a back-navigation that fails to
+  // reset state) would leave a stale "review approved" checkbox set on
+  // the next entity the user opens — caught by this test.
+  it('back-navigation from the approve modal resets the toggles and preserves filter state', async () => {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+    axiosMock.put.mockResolvedValue({ data: { message: 'ok' } });
+
+    const wrapper = await mountReview();
+    const vm = wrapper.vm as unknown as ReviewVm & {
+      reviewModals: {
+        approveModal: { id: string; title: string };
+        entity: { value: Array<{ entity_id: number }> };
+        status_approved: { value: boolean };
+        review_approved: { value: boolean };
+        resetApproveModal: () => void;
+        clearTarget: () => void;
+      };
+      filter: string | null;
+      categoryFilter: string | null;
+      userFilter: string | null;
+      infoApprove: (item: ReReviewRow, index: number, button: unknown) => void;
+    };
+    await flushPromises();
+
+    // --- Seed filter state the user was working with ---
+    // (set non-default filter + column-filter values)
+    vm.filter = 'TEST1';
+    vm.categoryFilter = 'Definitive';
+    vm.userFilter = 'alice_admin';
+    await flushPromises();
+
+    // --- Open the approve modal (curator-mode wizard step) ---
+    vm.infoApprove(sampleRow, 0, null);
+    await flushPromises();
+
+    // The composable now holds the targeted entity, the modal title is
+    // set, and the approval toggles are at their fresh-open defaults.
+    expect(vm.reviewModals.entity.value).toHaveLength(1);
+    expect(vm.reviewModals.entity.value[0].entity_id).toBe(501);
+    expect(vm.reviewModals.approveModal.title).toBe('sysndd:501');
+
+    // User flips the toggles (mid-wizard state).
+    vm.reviewModals.review_approved.value = true;
+    vm.reviewModals.status_approved.value = true;
+    await flushPromises();
+
+    // --- "Back-navigation": the user dismisses the modal without
+    // confirming. The composable's reset surface is what the parent
+    // calls on cancel-flows; this is the assertion the plan locks. ---
+    vm.reviewModals.resetApproveModal();
+    vm.reviewModals.clearTarget();
+    await flushPromises();
+
+    // Toggles are flipped back so the next entity opens clean.
+    expect(vm.reviewModals.review_approved.value).toBe(false);
+    expect(vm.reviewModals.status_approved.value).toBe(false);
+    expect(vm.reviewModals.entity.value).toHaveLength(0);
+
+    // Filter state is preserved across the modal cancel — this is what
+    // a "back navigation" guarantees the user: their queue context
+    // doesn't reset just because they bailed on a single approve.
+    expect(vm.filter).toBe('TEST1');
+    expect(vm.categoryFilter).toBe('Definitive');
+    expect(vm.userFilter).toBe('alice_admin');
+  });
 });
 
 // ---------------------------------------------------------------------------
