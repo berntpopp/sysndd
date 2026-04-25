@@ -978,7 +978,13 @@ export default {
           page_size: 'all',
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([blob]));
+        // browsePhenotypeEntitiesXlsx() already returns a Blob (typed
+        // `Promise<Blob>` in src/api/phenotype.ts via the apiClient.raw
+        // call with responseType: 'blob'). Wrapping it in `new Blob([blob])`
+        // re-allocates the entire payload into a second Blob — for an
+        // "all rows" XLSX export of the entity catalogue that's hundreds
+        // of MB of needless copy. Pass the original Blob straight through.
+        const fileURL = window.URL.createObjectURL(blob);
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
