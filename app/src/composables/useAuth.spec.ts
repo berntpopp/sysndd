@@ -34,7 +34,7 @@
  * the 401 branch.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 
 import { apiClient } from '@/api/client';
