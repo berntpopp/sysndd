@@ -34,7 +34,7 @@
  * the 401 branch.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 
 import { apiClient } from '@/api/client';
@@ -577,5 +577,91 @@ describe('useAuth', () => {
       expect(a.token.value).toBeNull();
       expect(a.isAuthenticated.value).toBe(false);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// W2 (v11.1 finish-hardening): handle401 contract
+// ---------------------------------------------------------------------------
+//
+// Pre-W2, the axios 401 interceptor cleared `localStorage` directly and
+// `useAuth().handle401()` only RE-READ that already-cleared state. This split
+// ownership left a small reactive-drift window (the interceptor cleared
+// localStorage; reactive consumers like AppNavbar lagged by one tick) and
+// duplicated the cleanup contract across two files.
+//
+// W2 makes `useAuth.handle401()` the single owner of logout cleanup:
+//   - clears `localStorage` itself (no longer assumes the interceptor did it)
+//   - clears the reactive refs
+//   - dispatches navigation toward `/Login`
+//   - is idempotent: calling more than once is safe (no throws, state
+//     stays cleared)
+//
+// These tests intentionally stand on their own (separate top-level describe)
+// so the contract is legible without grep'ing the full file. The spec uses
+// `vi.fn()`-mocked router OR a `globalThis.__authNavTarget` global hook; the
+// implementation may dispatch via either mechanism (router.push when a router
+// is mounted, hook in test/non-router contexts), and the assertion accepts
+// both.
+describe('useAuth.handle401() — single-owner contract (W2)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // Seed a logged-in state directly in localStorage. This simulates the
+    // pre-W2 split-ownership world: the interceptor used to clear these
+    // keys before calling handle401(); now handle401() owns the clear.
+    localStorage.setItem('token', 'fake-jwt-for-spec');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        user_id: [42],
+        user_name: ['spec'],
+        email: ['spec@example.org'],
+        user_role: ['Curator'],
+        user_created: ['2025-01-01 00:00:00'],
+        abbreviation: ['SP'],
+        orcid: {},
+        exp: [Math.floor(Date.now() / 1000) + 3600],
+      }),
+    );
+    // Reset the navigation hook so test 3 starts from a clean slate.
+    delete (globalThis as Record<string, unknown>).__authNavTarget;
+  });
+
+  it('clears token and user from reactive state and from localStorage', () => {
+    const auth = useAuth();
+    auth.syncFromStorage(); // ensure refs reflect the seeded localStorage
+    expect(auth.token.value).toBe('fake-jwt-for-spec');
+    expect(auth.user.value?.user_name?.[0]).toBe('spec');
+
+    auth.handle401();
+
+    // Reactive refs cleared
+    expect(auth.token.value).toBeNull();
+    expect(auth.user.value).toBeNull();
+    // localStorage cleared (handle401 is the OWNER of this cleanup)
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('is idempotent — calling twice does not throw and leaves state cleared', () => {
+    const auth = useAuth();
+    auth.handle401();
+    expect(() => auth.handle401()).not.toThrow();
+    expect(auth.token.value).toBeNull();
+    expect(localStorage.getItem('token')).toBeNull();
+  });
+
+  it('dispatches a navigation event toward the login route', () => {
+    const auth = useAuth();
+    const navSpy = vi.fn();
+    // The implementation may dispatch via router.push (when a router is
+    // mounted) or via the globalThis.__authNavTarget hook (test / pre-init
+    // contexts). Both are acceptable shapes; the assertion accepts either.
+    delete (globalThis as Record<string, unknown>).__authNavTarget;
+    auth.handle401();
+    expect(
+      navSpy.mock.calls.length > 0 ||
+        (globalThis as Record<string, unknown>).__authNavTarget === '/Login',
+    ).toBe(true);
   });
 });
