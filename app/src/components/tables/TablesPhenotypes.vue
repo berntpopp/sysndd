@@ -774,8 +774,11 @@ export default {
       modulePhenotypesListLoading = true;
       try {
         const response = await listPhenotypes();
-        // API returns { links, meta, data } - extract the data array
-        const phenotypeData = response.data || response;
+        // The typed `listPhenotypes()` helper always returns the
+        // `{ links, meta, data }` envelope per W3 spec; consume that
+        // shape directly so any future contract drift fails the build
+        // instead of being papered over by a `|| response` fallback.
+        const phenotypeData = response.data;
         modulePhenotypesListCache = phenotypeData;
         this.phenotypes_options = phenotypeData;
       } catch (e) {

@@ -20,14 +20,14 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
-const args = process.argv.slice(2);
-const buildIdx = args.indexOf('--build');
-if (buildIdx === -1 || !args[buildIdx + 1]) {
-  console.error('Usage: audit-csp-violations.mjs --build <dist-dir>');
-  process.exit(2);
-}
-const buildDir = args[buildIdx + 1];
+// When this module is imported (e.g. by Vitest specs) we want the regex
+// exports to be available without triggering CLI side effects. The audit
+// pipeline only runs when this file is invoked directly via
+// `node app/scripts/audit-csp-violations.mjs --build <dist-dir>`.
+const isCli =
+  process.argv[1] && process.argv[1] === fileURLToPath(import.meta.url);
 
 // Files that are produced by the build but are not part of the deployed
 // SPA surface. They live in dist/ but are NOT served by the production
@@ -59,55 +59,77 @@ function* walk(dir) {
   }
 }
 
-const inlineScriptRe = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
-const inlineStyleAttrRe = /\bstyle="([^"]*)"/gi;
-const evalishRe = /\b(?:eval|new\s+Function|Function\s*\()\s*\(/g;
+export const inlineScriptRe =
+  /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
+export const inlineStyleAttrRe = /\bstyle="([^"]*)"/gi;
+// Match eval(, new Function(, or Function( as standalone token starts.
+// The previous form `Function\s*\(` consumed a literal `(` and then
+// required `\s*\(` again, so plain `Function('...')` calls were missed.
+export const evalishRe = /\b(?:eval|new\s+Function|Function)\s*\(/g;
 
-let scriptHits = 0;
-let styleAttrHits = 0;
-let evalHits = 0;
-const scriptHashes = [];
-const evalLocations = [];
+function runAudit(buildDir) {
+  let scriptHits = 0;
+  let styleAttrHits = 0;
+  let evalHits = 0;
+  const scriptHashes = [];
+  const evalLocations = [];
 
-for (const file of walk(buildDir)) {
-  const rel = relative(buildDir, file);
-  if (file.endsWith('.html')) {
-    if (shouldSkipHtml(rel)) continue;
-    const html = readFileSync(file, 'utf8');
-    let m;
-    while ((m = inlineScriptRe.exec(html)) !== null) {
-      const body = m[1].trim();
-      if (!body) continue; // empty <script> is harmless
-      scriptHits++;
-      const sha = createHash('sha256').update(body, 'utf8').digest('base64');
-      scriptHashes.push({ file: rel, hash: `'sha256-${sha}'`, length: body.length });
-    }
-    let s;
-    while ((s = inlineStyleAttrRe.exec(html)) !== null) {
-      styleAttrHits++;
-    }
-  } else if (file.endsWith('.js') || file.endsWith('.mjs')) {
-    const js = readFileSync(file, 'utf8');
-    let e;
-    while ((e = evalishRe.exec(js)) !== null) {
-      evalHits++;
-      evalLocations.push({ file: rel, index: e.index });
+  for (const file of walk(buildDir)) {
+    const rel = relative(buildDir, file);
+    if (file.endsWith('.html')) {
+      if (shouldSkipHtml(rel)) continue;
+      const html = readFileSync(file, 'utf8');
+      let m;
+      while ((m = inlineScriptRe.exec(html)) !== null) {
+        const body = m[1].trim();
+        if (!body) continue; // empty <script> is harmless
+        scriptHits++;
+        const sha = createHash('sha256').update(body, 'utf8').digest('base64');
+        scriptHashes.push({
+          file: rel,
+          hash: `'sha256-${sha}'`,
+          length: body.length,
+        });
+      }
+      let s;
+      while ((s = inlineStyleAttrRe.exec(html)) !== null) {
+        styleAttrHits++;
+      }
+    } else if (file.endsWith('.js') || file.endsWith('.mjs')) {
+      const js = readFileSync(file, 'utf8');
+      let e;
+      while ((e = evalishRe.exec(js)) !== null) {
+        evalHits++;
+        evalLocations.push({ file: rel, index: e.index });
+      }
     }
   }
+
+  const violations = scriptHits + styleAttrHits + evalHits;
+
+  console.log('CSP audit results for', buildDir);
+  console.log('  inline <script> blocks:', scriptHits);
+  for (const s of scriptHashes) {
+    console.log('    ', s.file, s.hash, '(' + s.length + ' chars)');
+  }
+  console.log('  inline style="" attrs:', styleAttrHits);
+  console.log('  eval-like calls (eval / new Function):', evalHits);
+  for (const e of evalLocations) {
+    console.log('    ', e.file, '@', e.index);
+  }
+  console.log('TOTAL violations:', violations);
+
+  return violations;
 }
 
-const violations = scriptHits + styleAttrHits + evalHits;
-
-console.log('CSP audit results for', buildDir);
-console.log('  inline <script> blocks:', scriptHits);
-for (const s of scriptHashes) {
-  console.log('    ', s.file, s.hash, '(' + s.length + ' chars)');
+if (isCli) {
+  const args = process.argv.slice(2);
+  const buildIdx = args.indexOf('--build');
+  if (buildIdx === -1 || !args[buildIdx + 1]) {
+    console.error('Usage: audit-csp-violations.mjs --build <dist-dir>');
+    process.exit(2);
+  }
+  const buildDir = args[buildIdx + 1];
+  const violations = runAudit(buildDir);
+  process.exit(violations === 0 ? 0 : 1);
 }
-console.log('  inline style="" attrs:', styleAttrHits);
-console.log('  eval-like calls (eval / new Function):', evalHits);
-for (const e of evalLocations) {
-  console.log('    ', e.file, '@', e.index);
-}
-console.log('TOTAL violations:', violations);
-
-process.exit(violations === 0 ? 0 : 1);

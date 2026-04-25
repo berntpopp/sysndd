@@ -116,7 +116,22 @@ export async function searchEntities(
  *
  * Fuzzy disease-ontology search. `tree=true` returns tree-formatted nodes
  * for treeselect dropdowns; `tree=false` returns the pivot-wide shape.
+ *
+ * The overloads narrow the return type when `tree: true` is passed as a
+ * literal so callers don't need an `as unknown as` cast at the call site.
+ * The boolean-tree variant covers the dynamic case (e.g. when the flag is
+ * computed at runtime).
  */
+export async function searchOntology(
+  searchterm: string,
+  params: OntologySearchParams & { tree: true },
+  config?: AxiosRequestConfig,
+): Promise<OntologyTreeNode[]>;
+export async function searchOntology(
+  searchterm: string,
+  params?: OntologySearchParams,
+  config?: AxiosRequestConfig,
+): Promise<OntologyTreeNode[] | Record<string, unknown>>;
 export async function searchOntology(
   searchterm: string,
   params: OntologySearchParams = {},
@@ -133,8 +148,20 @@ export async function searchOntology(
  * GET /api/search/gene/<searchterm>
  * Mirrors api/endpoints/search_endpoints.R:197 (handler `@get gene/<searchterm>`).
  *
- * Fuzzy gene search.
+ * Fuzzy gene search. The overloads narrow the return type for the
+ * tree-mode call site (`{ tree: true }`) — see the matching pattern in
+ * `searchOntology`.
  */
+export async function searchGene(
+  searchterm: string,
+  params: GeneSearchParams & { tree: true },
+  config?: AxiosRequestConfig,
+): Promise<GeneSearchTreeNode[]>;
+export async function searchGene(
+  searchterm: string,
+  params?: GeneSearchParams,
+  config?: AxiosRequestConfig,
+): Promise<GeneSearchTreeNode[] | Record<string, unknown>>;
 export async function searchGene(
   searchterm: string,
   params: GeneSearchParams = {},
