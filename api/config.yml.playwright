@@ -1,0 +1,38 @@
+##
+## SysNDD API — config.yml.playwright (v11.1 Wave 0)
+##
+## CI-only credentials for the Playwright E2E stack. Sourced by
+## docker-compose.playwright.yml as `/app/config.yml`. NEVER use these
+## values in production — they only need to match the env vars set by
+## the `make playwright-stack` target.
+##
+## The values here intentionally mirror PLAYWRIGHT_* defaults from the
+## root Makefile so a single `make playwright-stack` runs end to end
+## without external setup.
+
+default:
+  sysndd_db:
+    workdir: "/app"
+    dbtype: mysql
+    dbname: sysndd_db
+    user: "playwright"
+    password: "playwright_pw"
+    salt: "playwright_dummy_salt_NEVER_USE_IN_PRODUCTION_xxxxxxxxxxxxxxxx"
+    server: "0.0.0.0"
+    host: "mysql"
+    port: "3306"
+    port_self: "7777"
+    secret: "playwright_dummy_jwt_secret_NEVER_USE_IN_PRODUCTION_xxxxxxxxx"
+    refresh: 3600
+    base_url: "http://localhost"
+    api_base_url: "http://localhost/api"
+    mail_noreply_user: "noreply@example.com"
+    mail_noreply_host: "mailpit"
+    mail_noreply_port: 1025
+    mail_noreply_use_ssl: FALSE
+    mail_noreply_overwrite: TRUE
+    mail_noreply_password: ""
+    archive_access_key: "playwright_dummy_access_key"
+    archive_secret_key: "playwright_dummy_secret_key"
+    archive_base_url: "https://example.com/"
+    omim_token: "playwright_dummy_omim_token"

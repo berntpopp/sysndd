@@ -406,14 +406,26 @@ PLAYWRIGHT_ENV := \
 	CACHE_VERSION=2
 
 _playwright-seed-templates:
-	@if [ ! -f $(ROOT_DIR)/api/config.yml ]; then \
-		printf "$(YELLOW)⚠ Seeding api/config.yml from api/config.yml.example$(RESET)\n"; \
-		cp $(ROOT_DIR)/api/config.yml.example $(ROOT_DIR)/api/config.yml; \
-	fi
+	@# Seed .env from template if missing — needed because docker-compose.yml
+	@# interpolates ${MYSQL_*}, ${PASSWORD}, ${OMIM_DOWNLOAD_KEY} at parse time.
+	@# The PLAYWRIGHT_ENV exports below also set these inline, so the .env file
+	@# only matters as a fallback for compose's own variable substitution.
 	@if [ ! -f $(ROOT_DIR)/.env ]; then \
 		printf "$(YELLOW)⚠ Seeding .env from .env.example$(RESET)\n"; \
 		cp $(ROOT_DIR)/.env.example $(ROOT_DIR)/.env; \
 	fi
+	@# Swap in api/config.yml.playwright as api/config.yml so the API container
+	@# connects to the playwright DB with the credentials in PLAYWRIGHT_ENV.
+	@# Preserve any existing dev config to api/config.yml.devbackup. Restore
+	@# happens via `make playwright-stack-down`.
+	@if [ -f $(ROOT_DIR)/api/config.yml ] && \
+	   ! cmp -s $(ROOT_DIR)/api/config.yml $(ROOT_DIR)/api/config.yml.playwright && \
+	   [ ! -f $(ROOT_DIR)/api/config.yml.devbackup ]; then \
+		printf "$(YELLOW)⚠ Backing up api/config.yml to api/config.yml.devbackup (will be restored on playwright-stack-down)$(RESET)\n"; \
+		cp $(ROOT_DIR)/api/config.yml $(ROOT_DIR)/api/config.yml.devbackup; \
+	fi
+	@cp $(ROOT_DIR)/api/config.yml.playwright $(ROOT_DIR)/api/config.yml
+	@printf "$(GREEN)✓ Active api/config.yml is the Playwright config$(RESET)\n"
 
 _playwright-seed-users:
 	@printf "$(CYAN)==> Seeding Playwright test users...$(RESET)\n"
@@ -426,8 +438,7 @@ _playwright-seed-users:
 playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Playwright E2E stack (CI-only fixtures)
 	@printf "$(CYAN)==> Bringing up Playwright E2E stack...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) up -d --wait \
-		--scale mysql-cron-backup=0 --scale worker=0 \
-		traefik mysql api app && \
+		traefik mysql mailpit api app && \
 		printf "$(GREEN)✓ Playwright stack started$(RESET)\n" || \
 		(printf "$(RED)✗ playwright-stack up failed$(RESET)\n" && exit 1)
 	@printf "$(CYAN)Waiting for /api/health/ready (timeout: $(PLAYWRIGHT_HEALTH_TIMEOUT)s)...$(RESET)\n"
@@ -461,6 +472,12 @@ playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) down -v && \
 		printf "$(GREEN)✓ Playwright stack torn down$(RESET)\n" || \
 		(printf "$(RED)✗ playwright-stack-down failed$(RESET)\n" && exit 1)
+	@# Restore the dev's api/config.yml if a backup was taken at stack-up time
+	@if [ -f $(ROOT_DIR)/api/config.yml.devbackup ]; then \
+		printf "$(YELLOW)Restoring api/config.yml from api/config.yml.devbackup$(RESET)\n"; \
+		mv $(ROOT_DIR)/api/config.yml.devbackup $(ROOT_DIR)/api/config.yml; \
+		printf "$(GREEN)✓ api/config.yml restored$(RESET)\n"; \
+	fi
 
 playwright-stack-logs: check-docker ## [test] Tail Playwright E2E stack logs
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs -f --tail=50

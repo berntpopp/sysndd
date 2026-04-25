@@ -49,6 +49,11 @@ services:
     environment:
       ENVIRONMENT: production
       LOG_LEVEL: WARN
+    # Note: api/config.yml is bind-mounted by the base compose. The
+    # `make playwright-stack` target writes api/config.yml.playwright into
+    # api/config.yml before bringing the stack up (preserving any existing
+    # dev config to api/config.yml.devbackup) so the running API uses the
+    # Playwright credentials. See Makefile target _playwright-seed-templates.
     depends_on:
       mysql:
         condition: service_healthy
@@ -68,6 +73,28 @@ services:
       - "traefik.http.routers.app.entrypoints=web"
       - "traefik.http.services.app.loadbalancer.server.port=8080"
       - "traefik.http.routers.app.priority=1"
+
+  # Mailpit fakes the SMTP destination so signup / password-reset flows that
+  # call send_noreply_email don't fail with "Could not resolve host: mailpit".
+  # Matches the dev override (docker-compose.dev.yml) but uses an isolated
+  # network alias so it does not conflict with `make dev`.
+  mailpit:
+    image: axllent/mailpit:v1.29.7
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_MAX_MESSAGES: 100
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 # Remap base-compose named volumes to Playwright-specific names so
 # `docker compose ... down -v` only removes Playwright data.
