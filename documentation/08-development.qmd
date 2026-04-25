@@ -74,6 +74,44 @@ make test-api-fast
 make test-api
 ```
 
+## End-to-End Tests (Playwright)
+
+The Playwright suite runs against a real API+DB stack via a Docker Compose overlay isolated from `make dev`.
+
+### Local run
+
+```bash
+make playwright-stack          # bring up traefik + api + db + app on the playwright project
+cd app && npx playwright test  # run all specs
+make playwright-stack-down     # tear down + remove volumes
+```
+
+The Playwright stack provisions four deterministic test users (`pw_admin`, `pw_curator`, `pw_reviewer`, `pw_user`) from `db/fixtures/playwright_users.sql`. Plaintext passwords for these accounts are committed in `app/tests/e2e/fixtures/test-users.ts` because the accounts exist only in the isolated `playwright` compose project.
+
+### Authoring a new spec
+
+Use the auth fixture for non-auth tests:
+
+```ts
+import { test, expect } from './fixtures/auth';
+
+test('something', async ({ loggedInAs }) => {
+  const page = await loggedInAs('curator');
+  await page.goto('/SomeRoute');
+  // ...
+});
+```
+
+Use `uniqueName('prefix')` from `fixtures/data.ts` for any server-side state created by the test. Tests must be order-independent — Playwright runs them in parallel by default.
+
+### Screenshots
+
+Tests write artifact screenshots to `app/tests/e2e/screenshots/<flow>__<step>__<viewport>.png`. The directory is gitignored; CI uploads it as a workflow artifact (retention 14 days).
+
+### Selectors
+
+The recommended workflow for selector discovery is `npx playwright codegen http://localhost:80/Path`. Prefer role + accessible-name selectors (`getByRole`, `getByLabel`) over CSS selectors.
+
 ## Common Gotchas
 
 - Start the DB stack before host-side API work.
