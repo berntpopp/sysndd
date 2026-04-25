@@ -5,43 +5,30 @@
  * BUG-05: When adding a new PMID during re-review, existing PMIDs should be preserved.
  * These tests verify that original publications are stored and merged with new additions.
  *
- * v11.1 W4: the composable migrated off raw `axios.{get,put,post}(...)` to a
- * mix of typed `@/api/review` read helpers and direct `apiClient.{put,post}`
- * writes. The writes intentionally keep `?re_review=...` in the URL string
- * (rather than passing it via `config.params`) to preserve the wire-format
- * contract that the W6-owned `Review.spec.ts` asserts on. The tests below
- * mock both surfaces — typed read helpers and `apiClient` writes.
+ * v11.1 PR-followup: the composable now uses the typed `createReview` /
+ * `updateReview` helpers from `@/api/review` for writes (collapsing the
+ * earlier W4 `apiClient.put`/`apiClient.post` workaround). `re_review` is
+ * passed via the helper's positional `params` argument so the wire-format
+ * URL stays clean. The tests below mock the full typed-API surface — read
+ * and write helpers alike.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 
-// Mock the typed-API read surface BEFORE the composable imports it.
+// Mock the typed-API surface BEFORE the composable imports it. This covers
+// both the four read helpers and the two write helpers (createReview /
+// updateReview) the composable now calls into.
 const reviewApiMocks = vi.hoisted(() => ({
   getReviewById: vi.fn(),
   getReviewPhenotypes: vi.fn(),
   getReviewVariation: vi.fn(),
   getReviewPublications: vi.fn(),
-}));
-
-// Mock the apiClient (used directly for the create/update review writes).
-const apiClientMock = vi.hoisted(() => ({
-  put: vi.fn(),
-  post: vi.fn(),
-  get: vi.fn(),
-  patch: vi.fn(),
-  delete: vi.fn(),
-  raw: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  },
+  createReview: vi.fn(),
+  updateReview: vi.fn(),
 }));
 
 vi.mock('@/api/review', () => reviewApiMocks);
-vi.mock('@/api/client', () => ({ apiClient: apiClientMock }));
 
 // Mock useFormDraft composable
 vi.mock('@/composables/useFormDraft', () => ({
@@ -82,8 +69,8 @@ function primeReadMocks(map: ResolverMap) {
 describe('useReviewForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    apiClientMock.put.mockResolvedValue({ status: 200 });
-    apiClientMock.post.mockResolvedValue({ status: 200 });
+    reviewApiMocks.updateReview.mockResolvedValue({ status: 200 });
+    reviewApiMocks.createReview.mockResolvedValue({ status: 200 });
   });
 
   describe('BUG-05: Publication preservation during re-review', () => {
@@ -132,10 +119,10 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      // Verify the apiClient.put was called with merged publications
-      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
-      const putCall = apiClientMock.put.mock.calls[0];
-      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+      // Verify the typed updateReview helper was called with merged publications
+      expect(reviewApiMocks.updateReview).toHaveBeenCalledTimes(1);
+      const putCall = reviewApiMocks.updateReview.mock.calls[0];
+      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       // Should contain all 3 publications (2 original + 1 new)
@@ -166,8 +153,8 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify original publication was preserved despite formData being empty
-      const putCall = apiClientMock.put.mock.calls[0];
-      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = reviewApiMocks.updateReview.mock.calls[0];
+      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
@@ -195,8 +182,8 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify no duplicates in submitted data
-      const putCall = apiClientMock.put.mock.calls[0];
-      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = reviewApiMocks.updateReview.mock.calls[0];
+      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
@@ -240,8 +227,8 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      const putCall = apiClientMock.put.mock.calls[0];
-      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = reviewApiMocks.updateReview.mock.calls[0];
+      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       // Should only contain the new publication
@@ -355,15 +342,17 @@ describe('useReviewForm', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // v11.1 W4: the F2a header-policy assertion from the legacy spec moved up to
-  // the typed-API layer. The composable forwards a body to apiClient.{put,
-  // post} with no inline headers field; the apiClient request interceptor is
-  // the single header source. The assertions below pin the call shape the
-  // composable controls — URL with the `?re_review=...` suffix and a
-  // `{ review_json }` body wrapper.
+  // v11.1 PR-followup: the composable now uses the typed `updateReview` /
+  // `createReview` helpers and passes `re_review` via their positional
+  // `params` argument. The call shape this composable owns is:
+  //   - first arg: `{ review_json }` body wrapper
+  //   - second arg: `{ re_review: <boolean> }` params object
+  // The wire-format URL stays clean (`/api/review/update` or `/api/review/
+  // create`); axios serialises `re_review` onto the query string at request
+  // time inside the helpers.
   // ---------------------------------------------------------------------------
-  describe('apiClient call shape (post-W4 migration)', () => {
-    it('PUT update path: URL carries ?re_review=true and body is wrapped in { review_json }', async () => {
+  describe('typed helper call shape (post-PR-followup collapse)', () => {
+    it('PUT update path: updateReview gets { review_json } body and { re_review: true } params', async () => {
       primeReadMocks({});
 
       const { loadReviewData, submitForm } = useReviewForm();
@@ -373,13 +362,13 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
-      const [url, body] = apiClientMock.put.mock.calls[0];
-      expect(url).toBe('/api/review/update?re_review=true');
+      expect(reviewApiMocks.updateReview).toHaveBeenCalledTimes(1);
+      const [body, params] = reviewApiMocks.updateReview.mock.calls[0];
       expect(body).toHaveProperty('review_json');
+      expect(params).toEqual({ re_review: true });
     });
 
-    it('POST create path: URL carries ?re_review=false and body is wrapped in { review_json }', async () => {
+    it('POST create path: createReview gets { review_json } body and { re_review: false } params', async () => {
       primeReadMocks({});
 
       const { loadReviewData, submitForm } = useReviewForm();
@@ -389,10 +378,10 @@ describe('useReviewForm', () => {
       await submitForm(false, false);
       await flushPromises();
 
-      expect(apiClientMock.post).toHaveBeenCalledTimes(1);
-      const [url, body] = apiClientMock.post.mock.calls[0];
-      expect(url).toBe('/api/review/create?re_review=false');
+      expect(reviewApiMocks.createReview).toHaveBeenCalledTimes(1);
+      const [body, params] = reviewApiMocks.createReview.mock.calls[0];
       expect(body).toHaveProperty('review_json');
+      expect(params).toEqual({ re_review: false });
     });
   });
 });
