@@ -293,7 +293,7 @@ describe('useAuth', () => {
       expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
     });
 
-    it('refresh() bubbles errors; callers decide whether to logout/redirect', async () => {
+    it('refresh() bubbles errors; the 401 interceptor (W2) clears state via handle401()', async () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
@@ -302,8 +302,16 @@ describe('useAuth', () => {
       );
 
       await expect(auth.refresh()).rejects.toThrow();
-      // Token is unchanged; the axios 401 interceptor handles state cleanup.
-      expect(auth.token.value).toBe(FRESH_TOKEN);
+      // v11.1 W2 contract: when the 401 response interceptor fires it
+      // delegates to `useAuth().handle401()`, which is the single owner
+      // of logout cleanup (clears localStorage AND reactive refs in one
+      // place). Pre-W2 the interceptor only mutated localStorage, leaving
+      // refs lagging by a tick — that drift is exactly what W2 closes.
+      // The new assertion locks in the post-W2 state: refs are cleared.
+      expect(auth.token.value).toBeNull();
+      expect(auth.user.value).toBeNull();
+      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('user')).toBeNull();
     });
 
     it('refresh() rejects on a malformed 200 body ([null]) and does NOT mutate token/localStorage/header', async () => {
