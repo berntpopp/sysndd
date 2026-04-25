@@ -134,14 +134,7 @@ import useToast from '@/composables/useToast';
 // view only needs the `isAuthenticated` guard (to clear a stale session
 // on the register route) and `logout()` (to perform that clear).
 import { useAuth } from '@/composables/useAuth';
-// v11.1 W4: signup endpoint has no dedicated typed helper in @/api/auth.ts
-// (the W3 finisher only filled the four flows the rest of the app needed —
-// authenticate / signin / refresh / changePassword). Until a follow-up
-// adds a signup() helper, the view calls the typed apiClient directly,
-// which still routes through the configured singleton's request
-// interceptor (Bearer + 401 handling) and keeps the call off the runtime
-// raw-axios surface the W4 grep gates against.
-import { apiClient } from '@/api/client';
+import { signup } from '@/api/auth';
 
 // Define validation rules
 defineRule('required', required);
@@ -286,7 +279,7 @@ export default {
       };
 
       try {
-        await apiClient.post('/api/auth/signup', registration_form);
+        await signup(registration_form);
         this.makeToast(
           'Your registration request has been sent.',
           'Success',

@@ -28,8 +28,8 @@ test.describe('auth: signup flow', () => {
 
     await page.getByRole('button', { name: /^Register$/ }).click();
 
-    // Success toast: "Your registration request has been send ..."
-    await expect(page.getByText(/registration request has been send/i)).toBeVisible({
+    // Success toast: "Your registration request has been sent."
+    await expect(page.getByText(/registration request has been sent/i)).toBeVisible({
       timeout: 10_000,
     });
 
