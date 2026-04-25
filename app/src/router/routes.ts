@@ -25,16 +25,14 @@ import { useAuth } from '@/composables/useAuth';
 function createAuthGuard(allowed_roles: readonly string[]) {
   return (
     _to: RouteLocationNormalized,
-    _from: RouteLocationNormalized,
-    next: NavigationGuardNext
+    _from: RouteLocationNormalized
   ) => {
     const { isAuthenticated, isExpired, hasRole } = useAuth();
     const isAllowed = allowed_roles.some((role) => hasRole(role));
     if (!isAuthenticated.value || isExpired.value || !isAllowed) {
-      next({ name: 'Login' });
-    } else {
-      next();
+      return { name: 'Login' as const };
     }
+    return true;
   };
 }
 
