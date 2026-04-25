@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs _playwright-seed-templates _playwright-seed-users
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -363,6 +363,107 @@ docker-logs: check-docker ## [docker] View container logs (follow mode)
 docker-status: check-docker ## [docker] Show container status and ports
 	@cd $(ROOT_DIR) && $(COMPOSE_DEV) ps 2>/dev/null || \
 		docker compose ps
+
+# =============================================================================
+# Playwright E2E Stack (v11.1 Wave 0)
+# =============================================================================
+# Brings up the Playwright-only stack via the docker-compose.playwright.yml
+# overlay. Isolated from `make dev` (different compose project name + volume
+# names). Seeds Playwright test users into the DB AFTER migrations have run.
+#
+# Notes:
+#   - Uses compose project name `playwright` so it does not collide with
+#     `make dev` (project `sysndd`).
+#   - Skips `mysql-cron-backup` and `worker` services (not needed for the
+#     deep-flow specs; saves ~30s of startup).
+#   - Seeds .env and api/config.yml from their committed templates if missing,
+#     mirroring scripts/ci-smoke.sh behavior.
+#   - Test-user seeding runs AFTER migrations because the API startup is what
+#     applies migrations (the `user` table is created mid-startup, not at
+#     MySQL init). We wait for /api/health/ready before sourcing the fixture.
+
+COMPOSE_PLAYWRIGHT := docker compose -p playwright -f docker-compose.yml -f docker-compose.playwright.yml
+PLAYWRIGHT_DB_USER ?= playwright
+PLAYWRIGHT_DB_PASSWORD ?= playwright_pw
+PLAYWRIGHT_DB_ROOT_PASSWORD ?= playwright_root_pw
+PLAYWRIGHT_DB_NAME ?= sysndd_db
+PLAYWRIGHT_API_PASSWORD ?= playwright_api_password
+PLAYWRIGHT_HEALTH_TIMEOUT ?= 240
+PLAYWRIGHT_HEALTH_ENDPOINT ?= http://localhost/api/health/ready
+
+# Env vars exported to the compose invocations. The base compose file
+# interpolates these at parse time, so they MUST be set before any
+# `docker compose -f docker-compose.yml ...` invocation.
+PLAYWRIGHT_ENV := \
+	MYSQL_DATABASE=$(PLAYWRIGHT_DB_NAME) \
+	MYSQL_USER=$(PLAYWRIGHT_DB_USER) \
+	MYSQL_PASSWORD=$(PLAYWRIGHT_DB_PASSWORD) \
+	MYSQL_ROOT_PASSWORD=$(PLAYWRIGHT_DB_ROOT_PASSWORD) \
+	PASSWORD=$(PLAYWRIGHT_API_PASSWORD) \
+	SMTP_PASSWORD=playwright_smtp \
+	OMIM_DOWNLOAD_KEY=playwright_omim \
+	CORS_ALLOWED_ORIGINS=http://localhost \
+	CACHE_VERSION=2
+
+_playwright-seed-templates:
+	@if [ ! -f $(ROOT_DIR)/api/config.yml ]; then \
+		printf "$(YELLOW)⚠ Seeding api/config.yml from api/config.yml.example$(RESET)\n"; \
+		cp $(ROOT_DIR)/api/config.yml.example $(ROOT_DIR)/api/config.yml; \
+	fi
+	@if [ ! -f $(ROOT_DIR)/.env ]; then \
+		printf "$(YELLOW)⚠ Seeding .env from .env.example$(RESET)\n"; \
+		cp $(ROOT_DIR)/.env.example $(ROOT_DIR)/.env; \
+	fi
+
+_playwright-seed-users:
+	@printf "$(CYAN)==> Seeding Playwright test users...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) exec -T mysql \
+		mysql -u root -p$(PLAYWRIGHT_DB_ROOT_PASSWORD) $(PLAYWRIGHT_DB_NAME) \
+		< $(ROOT_DIR)/db/fixtures/playwright_users.sql && \
+		printf "$(GREEN)✓ Test users seeded$(RESET)\n" || \
+		(printf "$(RED)✗ Failed to seed test users$(RESET)\n" && exit 1)
+
+playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Playwright E2E stack (CI-only fixtures)
+	@printf "$(CYAN)==> Bringing up Playwright E2E stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) up -d --wait \
+		--scale mysql-cron-backup=0 --scale worker=0 \
+		traefik mysql api app && \
+		printf "$(GREEN)✓ Playwright stack started$(RESET)\n" || \
+		(printf "$(RED)✗ playwright-stack up failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)Waiting for /api/health/ready (timeout: $(PLAYWRIGHT_HEALTH_TIMEOUT)s)...$(RESET)\n"
+	@SECONDS_ELAPSED=0; HEALTH_OK=0; \
+	while [ $$SECONDS_ELAPSED -lt $(PLAYWRIGHT_HEALTH_TIMEOUT) ]; do \
+		if curl -sf -H "Host: localhost" $(PLAYWRIGHT_HEALTH_ENDPOINT) >/dev/null 2>&1; then \
+			HEALTH_OK=1; break; \
+		fi; \
+		printf "."; sleep 2; SECONDS_ELAPSED=$$((SECONDS_ELAPSED+2)); \
+	done; \
+	if [ "$$HEALTH_OK" -eq 0 ]; then \
+		printf "\n$(RED)Health check timed out — Playwright stack failed to come up$(RESET)\n"; \
+		printf "\n$(YELLOW)Last 50 lines of API logs:$(RESET)\n"; \
+		$(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs api --tail=50; \
+		exit 1; \
+	fi; \
+	printf "\n$(GREEN)✓ API ready$(RESET)\n"
+	@if [ -f $(ROOT_DIR)/db/fixtures/playwright_users.sql ]; then \
+		$(MAKE) _playwright-seed-users; \
+	else \
+		printf "$(YELLOW)⚠ db/fixtures/playwright_users.sql missing — skipping user seed$(RESET)\n"; \
+	fi
+	@printf "\n$(CYAN)Playwright stack ready:$(RESET)\n"
+	@printf "  App + API: http://localhost\n"
+	@printf "  API direct: http://localhost/api\n"
+	@printf "  Run tests: cd app && npx playwright test\n"
+	@printf "  Tear down: make playwright-stack-down\n"
+
+playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and remove volumes
+	@printf "$(CYAN)==> Tearing down Playwright E2E stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) down -v && \
+		printf "$(GREEN)✓ Playwright stack torn down$(RESET)\n" || \
+		(printf "$(RED)✗ playwright-stack-down failed$(RESET)\n" && exit 1)
+
+playwright-stack-logs: check-docker ## [test] Tail Playwright E2E stack logs
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs -f --tail=50
 
 # =============================================================================
 # Developer Environment (Phase A7)
