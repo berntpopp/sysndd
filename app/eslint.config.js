@@ -178,6 +178,35 @@ export default [
   // v11.0 closeout F1: localStorage token/user guardrail (§8.1).
   CLOSEOUT_NO_LOCAL_STORAGE_TOKEN,
 
+  // Standalone Node scripts under app/scripts/. They run under `node`, not
+  // in the browser, and use globals like process / console. The shared
+  // browser-or-node globals already include node, but `no-undef` is enabled
+  // for non-TS files (the TS-files rule that disables it does not apply
+  // here because these scripts are .mjs / .js). Disable `no-undef` for the
+  // scripts dir specifically and silence the expected console / unused
+  // capture-group regex bindings.
+  {
+    files: ['scripts/**/*.{mjs,js}'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-undef': 'off',
+      'no-console': 'off',
+      // Audit-style scripts use `while ((m = re.exec(s)) !== null)` patterns
+      // where the binding exists only to drive the loop. The capture binding
+      // is intentionally unused.
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^[_se]$',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+    },
+  },
+
   // Prettier integration (disables conflicting rules)
   eslintConfigPrettier,
 ];
