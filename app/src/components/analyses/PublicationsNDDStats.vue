@@ -97,6 +97,10 @@
 import * as d3 from 'd3';
 import useToast from '@/composables/useToast';
 
+// Typed API clients (W5)
+import { getPublicationStats } from '@/api/statistics';
+import { listPublications } from '@/api/publication';
+
 export default {
   name: 'PublicationsNDDStats',
   setup() {
@@ -228,20 +232,16 @@ export default {
     async fetchStats() {
       this.loadingCount = true;
 
-      // build query string - use minCount for ALL category filters (API-side filtering only)
-      const baseUrl = `${import.meta.env.VITE_API_URL}/api/statistics/publication_stats`;
-      const params = new URLSearchParams();
-      params.set('min_journal_count', this.minCount);
-      params.set('min_lastname_count', this.minCount);
-      params.set('min_keyword_count', this.minCount);
-      params.set('time_aggregate', 'year');
-
-      const apiUrl = `${baseUrl}?${params.toString()}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        // use minCount for ALL category filters (API-side filtering only)
+        const data = await getPublicationStats({
+          min_journal_count: this.minCount,
+          min_lastname_count: this.minCount,
+          min_keyword_count: this.minCount,
+          time_aggregate: 'year',
+        });
         // store entire object in statsData
-        this.statsData = response.data;
+        this.statsData = data;
         // once loaded, generate bar chart
         this.generateBarPlot();
       } catch (error) {
@@ -256,18 +256,14 @@ export default {
      * Fetches the actual newest publication date by querying publications sorted by date descending
      */
     async fetchNewestPublicationDate() {
-      const baseUrl = `${import.meta.env.VITE_API_URL}/api/publication`;
-      const params = new URLSearchParams();
-      params.set('sort', '-Publication_date');
-      params.set('page_size', '1');
-      params.set('fields', 'publication_id,Publication_date');
-
-      const apiUrl = `${baseUrl}?${params.toString()}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        if (response.data?.data?.length > 0) {
-          const pubDate = response.data.data[0].Publication_date;
+        const data = await listPublications({
+          sort: '-Publication_date',
+          page_size: '1',
+          fields: 'publication_id,Publication_date',
+        });
+        if (data?.data?.length > 0) {
+          const pubDate = data.data[0].Publication_date;
           // Format the date for display (YYYY-MM-DD)
           this.newestPublicationDate = pubDate || 'N/A';
         }
