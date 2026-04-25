@@ -39,7 +39,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BSpinner, BButton } from 'bootstrap-vue-next';
-import { apiClient, isApiError } from '@/api/client';
+import { isApiError } from '@/api/client';
+import { getEnsemblStructure } from '@/api/external';
 import GeneStructurePlot from './GeneStructurePlot.vue';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
@@ -89,24 +90,27 @@ async function fetchEnsemblData() {
   ensemblData.value = null;
 
   try {
-    const data = await apiClient.get<{
+    const data = await getEnsemblStructure(props.geneSymbol, {
+      withCredentials: true,
+    });
+
+    // Check for API-level not-found or error. The R endpoint normally
+    // emits a 404 + problem+JSON for "gene not in Ensembl" (handled in the
+    // catch branch), but the legacy `{ found: false }` and `{ error: true }`
+    // payload shapes can still arrive from older proxies — keep the runtime
+    // narrowing as a defensive guard rather than trusting the static type.
+    const payload = data as unknown as {
       found?: boolean;
       error?: boolean;
       message?: string;
-      [key: string]: unknown;
-    }>(
-      `/api/external/ensembl/structure/${encodeURIComponent(props.geneSymbol)}`,
-      { withCredentials: true }
-    );
-
-    // Check for API-level not-found or error
-    if (data?.found === false) {
+    };
+    if (payload?.found === false) {
       // Gene not found in Ensembl -- show empty state (not error)
       ensemblData.value = null;
-    } else if (data?.error) {
-      error.value = data.message || 'Failed to load gene structure';
+    } else if (payload?.error) {
+      error.value = payload.message || 'Failed to load gene structure';
     } else {
-      ensemblData.value = data as unknown as EnsemblGeneStructure;
+      ensemblData.value = data;
     }
   } catch (e: unknown) {
     if (isApiError(e) && e.response?.status === 404) {
