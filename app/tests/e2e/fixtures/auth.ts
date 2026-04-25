@@ -72,6 +72,26 @@ async function fetchToken(request: APIRequestContext, role: TestRole): Promise<s
   return token;
 }
 
+/**
+ * Fetches the full user payload from /api/auth/signin so localStorage.user
+ * matches the shape that `useAuth.safeParseUser()` accepts. The composable
+ * rejects payloads that lack `exp: number[]` or `user_role: string[]` — a
+ * minimal `{user_name, role}` object would silently leave the SPA in a
+ * "logged-in but no user" half-state and break downstream views.
+ */
+async function fetchUserPayload(
+  request: APIRequestContext,
+  token: string,
+): Promise<Record<string, unknown>> {
+  const res = await request.get('/api/auth/signin', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok()) {
+    throw new Error(`auth fixture: /api/auth/signin failed: ${res.status()} ${await res.text()}`);
+  }
+  return (await res.json()) as Record<string, unknown>;
+}
+
 export const test = base.extend<AuthFixtures>({
   // Override the default `context` fixture so every test (logged-in or not)
   // automatically pre-acknowledges the disclaimer modal.
@@ -83,18 +103,19 @@ export const test = base.extend<AuthFixtures>({
   loggedInAs: async ({ browser, request }, use) => {
     await use(async (role) => {
       const token = await fetchToken(request, role);
+      const userPayload = await fetchUserPayload(request, token);
       const context = await browser.newContext();
       await preAcknowledgeDisclaimer(context);
-      // Inject the token + a minimal user object into localStorage so the
-      // app thinks the user is already logged in. Mirrors what useAuth
-      // expects after a UI login.
+      // Inject the token + the FULL user object (matching the GET /api/auth/signin
+      // response) into localStorage so useAuth.safeParseUser accepts it.
+      // useAuth requires `exp: number[]` and `user_role: string[]` to be present;
+      // a minimal `{user_name, role}` object would be rejected.
       await context.addInitScript(
-        (args: { token: string; role: TestRole; users: typeof testUsers }) => {
+        (args: { token: string; userPayload: Record<string, unknown> }) => {
           localStorage.setItem('token', args.token);
-          const u = args.users[args.role];
-          localStorage.setItem('user', JSON.stringify({ user_name: u.username, role: args.role }));
+          localStorage.setItem('user', JSON.stringify(args.userPayload));
         },
-        { token, role, users: testUsers },
+        { token, userPayload },
       );
       const page = await context.newPage();
       return page;
