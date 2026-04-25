@@ -21,11 +21,6 @@ test.describe('curate: entity modify', () => {
         .first(),
     ).toBeVisible();
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/entity.modify__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: deep flow (search → select entity → open modify modal → save)
     // exercises an autocomplete combobox driven by the gene/disease search
     // service. Wave 0 captures the page scaffold; Wave 1b workstream W4

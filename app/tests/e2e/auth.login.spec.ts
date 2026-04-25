@@ -23,11 +23,6 @@ test.describe('auth: login flow', () => {
     await expect(page.getByRole('navigation').getByRole('link', { name: /^Login$/ })).toHaveCount(
       0,
     );
-
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/auth.login__success__desktop.png',
-      fullPage: true,
-    });
   });
 
   test('login with bad credentials surfaces an error and does not persist a token', async ({

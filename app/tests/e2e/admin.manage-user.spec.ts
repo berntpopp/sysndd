@@ -21,11 +21,6 @@ test.describe('admin: manage user', () => {
       timeout: 10_000,
     });
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/admin.manage-user__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: the deep flow (open edit modal → toggle a benign field → save
     // → assert success) is omitted to avoid mutating user-table state
     // that other specs depend on. Wave 1b workstream can add the full
