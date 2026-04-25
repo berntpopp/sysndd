@@ -339,10 +339,61 @@ docker-dev: check-docker ## [docker] Start full dev stack (app + api + db + dev 
 	@printf "  MySQL dev: localhost:7654\n"
 	@printf "  MySQL test: localhost:7655\n"
 	@printf "\n$(CYAN)Useful commands:$(RESET)\n"
-	@printf "  make docker-logs    View container logs\n"
-	@printf "  make docker-status  Show container status\n"
-	@printf "  make watch-app      Enable Compose Watch for hot-reload\n"
-	@printf "  make docker-down    Stop everything\n"
+	@printf "  make docker-logs       View container logs\n"
+	@printf "  make docker-status     Show container status\n"
+	@printf "  make watch-app         Enable Compose Watch for hot-reload\n"
+	@printf "  make dev-rebuild       Rebuild images (after Dockerfile changes)\n"
+	@printf "  make db-restore-latest Restore latest DB backup + recreate views\n"
+	@printf "  make db-views-rebuild  Replay R-script views (post-restore fix)\n"
+	@printf "  make cache-clear       Wipe API memoise cache\n"
+	@printf "  make docker-down       Stop everything\n"
+
+dev-rebuild: check-docker ## [docker] Rebuild app+api images and restart dev stack (use after Dockerfile changes)
+	@printf "$(CYAN)==> Rebuilding images and starting dev stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) up -d --build && \
+		printf "$(GREEN)✓ Containers rebuilt and started$(RESET)\n" || \
+		(printf "$(RED)✗ dev-rebuild failed$(RESET)\n" && exit 1)
+	@printf "$(YELLOW)Note: stale images caused real bugs in the past. Use this target whenever Dockerfile.dev or Dockerfile changes.$(RESET)\n"
+
+db-restore-latest: check-docker ## [docker] Restore newest DB dump from sysndd_mysql_backup volume + recreate views
+	@printf "$(CYAN)==> Restoring latest DB backup...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd_mysql$$' || \
+		(printf "$(RED)✗ sysndd_mysql container not running. Run 'make dev' first.$(RESET)\n" && exit 1)
+	@LATEST=$$(docker run --rm -v sysndd_mysql_backup:/data alpine sh -c \
+		'ls -t /data/*.sysndd_db.sql.gz 2>/dev/null | head -1'); \
+		[ -n "$$LATEST" ] || \
+		(printf "$(RED)✗ No backups found in sysndd_mysql_backup volume$(RESET)\n" && exit 1); \
+		printf "  Using: $$LATEST\n"; \
+		docker run --rm -v sysndd_mysql_backup:/data alpine sh -c "gzip -dc $$LATEST" | \
+			docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
+			grep -vE "Using a password|SUPER or SET_ANY_DEFINER" >&2 || true
+	@printf "$(GREEN)✓ Backup restored$(RESET)\n"
+	@$(MAKE) db-views-rebuild
+
+db-views-rebuild: check-docker ## [docker] Re-extract view DDL from db/C_Rcommands_set-table-connections.R and replay (fixes broken DEFINER views post-restore)
+	@printf "$(CYAN)==> Rebuilding views from R script (DEFINER-stripped)...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd_mysql$$' || \
+		(printf "$(RED)✗ sysndd_mysql container not running.$(RESET)\n" && exit 1)
+	@python3 -c '\
+import re, sys; \
+content = open("db/C_Rcommands_set-table-connections.R").read(); \
+matches = re.findall(r"dbSendQuery\(sysndd_db,\s*\"(CREATE OR REPLACE VIEW[^\"]*?)\"\)", content, re.DOTALL); \
+[print(m.strip() + ";") for m in matches]; \
+sys.stderr.write(f"-- Extracted {len(matches)} view definitions\n")' > /tmp/sysndd-views.sql 2>&1
+	@cat /tmp/sysndd-views.sql | docker exec -i sysndd_mysql sh -c \
+		'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
+		grep -vE "Using a password" >&2 || true
+	@rm -f /tmp/sysndd-views.sql
+	@printf "$(GREEN)✓ Views rebuilt$(RESET)\n"
+	@$(MAKE) cache-clear
+
+cache-clear: ## [docker] Wipe API memoise cache (forces stats endpoints to recompute)
+	@printf "$(CYAN)==> Wiping API memoise cache...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd-api-1$$' || \
+		(printf "$(YELLOW)Warning: sysndd-api-1 not running; cache wipe is a no-op$(RESET)\n" && exit 0)
+	@docker exec sysndd-api-1 sh -c 'rm -f /app/cache/*.rds' && \
+		printf "$(GREEN)✓ Cache wiped (next stats request will recompute)$(RESET)\n" || \
+		(printf "$(RED)✗ cache-clear failed$(RESET)\n" && exit 1)
 
 docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/app development)
 	@printf "$(CYAN)==> Starting development databases only...$(RESET)\n"
