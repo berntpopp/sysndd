@@ -405,6 +405,8 @@ import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max, confirmed } from '@vee-validate/rules';
 import { useToast, useColorAndSymbols } from '@/composables';
 import { useAuth } from '@/composables/useAuth';
+import { signin, changePassword } from '@/api/auth';
+import { getUserContributions, updateProfile } from '@/api/user';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -605,12 +607,10 @@ export default {
     async getUserContributions() {
       // `useAuth` already seeded the axios default Authorization header, so
       // per-request Bearer overrides are no longer needed here.
-      const apiContributionsURL = `${import.meta.env.VITE_API_URL}/api/user/${this.user.user_id[0]}/contributions`;
-
       try {
-        const response_contributions = await this.axios.get(apiContributionsURL);
-        [this.user.active_reviews] = response_contributions.data.active_reviews;
-        [this.user.active_status] = response_contributions.data.active_status;
+        const contributions = await getUserContributions(this.user.user_id[0]);
+        [this.user.active_reviews] = contributions.active_reviews;
+        [this.user.active_status] = contributions.active_status;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -627,18 +627,16 @@ export default {
       }
     },
     async signinWithJWT() {
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
-
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL);
+        const userPayload = await signin();
         // Persist the refreshed user payload via the composable so every
         // subscriber (navbar, countdown badge, route guards) sees the new
         // `exp` immediately.
         const token = this.auth.token.value;
         if (token) {
-          this.auth.login(token, response_signin.data);
+          this.auth.login(token, userPayload);
         }
-        this.user = { ...response_signin.data };
+        this.user = { ...userPayload };
         this.updateDiffs();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -650,18 +648,17 @@ export default {
       // history). The API handler `@put password/update` in
       // api/endpoints/user_endpoints.R accepts both forms during the Phase A
       // hotfix rollout; the JSON body variant is the only one we send.
-      const apiChangePasswordURL = `${import.meta.env.VITE_API_URL}/api/user/password/update`;
       try {
         // `useAuth` keeps the axios default Authorization header current;
         // no per-request override needed.
-        const response_password_change = await this.axios.put(apiChangePasswordURL, {
+        await changePassword({
           user_id_pass_change: this.user.user_id[0],
           old_pass: this.currentPassword,
           new_pass_1: this.newPasswordEntry,
           new_pass_2: this.newPasswordRepeat,
         });
         this.makeToast(
-          `${response_password_change.data.message} (status ${response_password_change.status})`,
+          'Password changed successfully.',
           'Success',
           'success'
         );
@@ -733,14 +730,13 @@ export default {
 
       // Save profile
       this.isSavingProfile = true;
-      const apiProfileURL = `${import.meta.env.VITE_API_URL}/api/user/profile`;
 
       try {
         const payload = {};
         if (emailChanged) payload.email = this.editForm.email.trim();
         if (orcidChanged) payload.orcid = orcidTrimmed;
 
-        const response = await this.axios.put(apiProfileURL, payload, {
+        const response = await updateProfile(payload, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -762,7 +758,7 @@ export default {
         }
 
         this.makeToast(
-          `Profile updated successfully. ${response.data.updated_fields?.join(', ') || ''}`,
+          `Profile updated successfully. ${response.updated_fields?.join(', ') || ''}`,
           'Success',
           'success'
         );
