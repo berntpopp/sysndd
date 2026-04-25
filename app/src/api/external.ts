@@ -146,8 +146,17 @@ export async function createInternetArchiveSnapshot(
   url: string,
   config?: AxiosRequestConfig,
 ): Promise<InternetArchiveSnapshot> {
+  // `AxiosRequestConfig.params` is loosely typed as `unknown`; in practice
+  // callers may pass either a plain object or a `URLSearchParams` instance.
+  // Spreading `URLSearchParams` with object spread copies its non-enumerable
+  // internal slots and drops the actual entries, so normalise to a record
+  // before merging in `parameter_url`.
+  const baseParams =
+    config?.params instanceof URLSearchParams
+      ? Object.fromEntries(config.params.entries())
+      : ((config?.params as Record<string, unknown> | undefined) ?? {});
   return apiClient.get<InternetArchiveSnapshot>('/api/external/internet_archive', {
     ...config,
-    params: { ...(config?.params ?? {}), parameter_url: url },
+    params: { ...baseParams, parameter_url: url },
   });
 }

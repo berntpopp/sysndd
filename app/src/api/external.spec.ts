@@ -151,6 +151,30 @@ describe('api/external — createInternetArchiveSnapshot', () => {
     expect(observedParams.capture_screenshot).toBe('off');
   });
 
+  it('merges params even when the caller provides URLSearchParams', async () => {
+    // Copilot review (PR #306, v11.1 W7): spreading a `URLSearchParams`
+    // instance with `{ ...config.params }` copies internal slots and drops
+    // the actual entries, so `parameter_url` would arrive on its own and
+    // the caller's `x=1` would be silently dropped. The helper now
+    // normalises via `Object.fromEntries` before the merge.
+    let observedParams: Record<string, string> = {};
+    server.use(
+      http.get('/api/external/internet_archive', ({ request }) => {
+        const url = new URL(request.url);
+        observedParams = Object.fromEntries(url.searchParams.entries());
+        return HttpResponse.json({ job_id: 'spn2-search-params' });
+      }),
+    );
+
+    await createInternetArchiveSnapshot('https://example.com', {
+      params: new URLSearchParams({ x: '1', capture_screenshot: 'off' }),
+    });
+
+    expect(observedParams.parameter_url).toBe('https://example.com');
+    expect(observedParams.x).toBe('1');
+    expect(observedParams.capture_screenshot).toBe('off');
+  });
+
   it('throws AxiosError on 400 (URL outside the SysNDD allowlist)', async () => {
     server.use(
       http.get('/api/external/internet_archive', () =>
