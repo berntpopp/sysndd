@@ -398,6 +398,13 @@ import Utils from '@/assets/js/utils';
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
+// Typed API clients
+import {
+  browsePhenotypeEntities,
+  browsePhenotypeEntitiesXlsx,
+} from '@/api/phenotype';
+import { listPhenotypes } from '@/api/list';
+
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
 let moduleLastApiParams = null;
@@ -765,11 +772,10 @@ export default {
       }
 
       modulePhenotypesListLoading = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype`;
       try {
-        const response = await this.axios.get(apiUrl);
+        const response = await listPhenotypes();
         // API returns { links, meta, data } - extract the data array
-        const phenotypeData = response.data.data || response.data;
+        const phenotypeData = response.data || response;
         modulePhenotypesListCache = phenotypeData;
         this.phenotypes_options = phenotypeData;
       } catch (e) {
@@ -899,14 +905,17 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/entities/browse?${urlParam}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await browsePhenotypeEntities({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: this.currentItemID,
+          page_size: String(this.perPage),
+        });
         moduleApiCallInProgress = false;
         // Cache response for remounted components
-        moduleLastApiResponse = response.data;
-        this.applyApiResponse(response.data);
+        moduleLastApiResponse = data;
+        this.applyApiResponse(data);
 
         // Update URL AFTER API success to prevent component remount during API call
         this.updateBrowserUrl();
@@ -958,24 +967,15 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      // compose URL param
-      const urlParam =
-        `sort=${this.sort}&filter=${this.filter_string}&page_after=` +
-        '0' +
-        '&page_size=' +
-        'all' +
-        '&format=xlsx';
-
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/entities/browse?${urlParam}`;
-
       try {
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
+        const blob = await browsePhenotypeEntitiesXlsx({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: 0,
+          page_size: 'all',
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(new Blob([blob]));
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
