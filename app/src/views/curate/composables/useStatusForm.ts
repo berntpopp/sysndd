@@ -10,9 +10,10 @@
  */
 
 import { ref, reactive, computed, watch } from 'vue';
-import axios from 'axios';
 import Status from '@/assets/js/classes/submission/submissionStatus';
 import useFormDraft from '@/composables/useFormDraft';
+import { getStatusById, createStatus, updateStatus } from '@/api/status';
+import { getEntityStatus } from '@/api/entity';
 
 // Types
 export interface StatusFormData {
@@ -151,27 +152,26 @@ export default function useStatusForm(entityId?: string | number) {
    */
   const loadStatusData = async (statusId: number, reReviewSaved?: number): Promise<void> => {
     loading.value = true;
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/status/${statusId}`;
 
     try {
-      const response = await axios.get(apiUrl, { withCredentials: true });
+      const rows = await getStatusById(statusId);
 
-      if (!response.data || response.data.length === 0) {
+      if (!rows || rows.length === 0) {
         throw new Error('Status not found');
       }
 
-      const statusData = response.data[0];
+      const statusData = rows[0];
 
       // Update form data
       formData.category_id = statusData.category_id;
       formData.comment = statusData.comment || '';
-      formData.problematic = statusData.problematic || false;
+      formData.problematic = Boolean(statusData.problematic);
 
       // Set metadata (not editable)
       formData.status_id = statusData.status_id;
       formData.entity_id = statusData.entity_id;
-      formData.status_user_name = statusData.status_user_name;
-      formData.status_user_role = statusData.status_user_role;
+      formData.status_user_name = statusData.status_user_name ?? undefined;
+      formData.status_user_role = statusData.status_user_role ?? undefined;
       formData.status_date = statusData.status_date;
       formData.re_review_status_saved = reReviewSaved;
 
@@ -194,21 +194,20 @@ export default function useStatusForm(entityId?: string | number) {
    */
   const loadStatusByEntity = async (entityId: number): Promise<void> => {
     loading.value = true;
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/${entityId}/status`;
 
     try {
-      const response = await axios.get(apiUrl, { withCredentials: true });
+      const rows = await getEntityStatus(entityId);
 
-      if (!response.data || response.data.length === 0) {
+      if (!rows || rows.length === 0) {
         throw new Error('Status not found for entity');
       }
 
-      const statusData = response.data[0];
+      const statusData = rows[0];
 
       // Update form data
       formData.category_id = statusData.category_id;
       formData.comment = statusData.comment || '';
-      formData.problematic = statusData.problematic || false;
+      formData.problematic = Boolean(statusData.problematic);
 
       // Set metadata
       formData.status_id = statusData.status_id;
@@ -262,33 +261,16 @@ export default function useStatusForm(entityId?: string | number) {
     // `useAuth().token.value` and injects the Bearer header on every
     // outbound call against the shared axios singleton.
 
-    // Determine API endpoint
-    let apiUrl: string;
-    if (isUpdate) {
-      apiUrl = `${import.meta.env.VITE_API_URL}/api/status/update`;
-      if (reReview) {
-        apiUrl += '?re_review=true';
-      }
-    } else {
-      apiUrl = `${import.meta.env.VITE_API_URL}/api/status/create`;
-      if (reReview) {
-        apiUrl += '?re_review=true';
-      }
-    }
+    const body = {
+      status_json: statusObj as unknown as Parameters<typeof createStatus>[0]['status_json'],
+    };
+    const params = reReview ? { re_review: true } : {};
 
     try {
       if (isUpdate) {
-        await axios.put(
-          apiUrl,
-          { status_json: statusObj },
-          { withCredentials: true }
-        );
+        await updateStatus(body, params);
       } else {
-        await axios.post(
-          apiUrl,
-          { status_json: statusObj },
-          { withCredentials: true }
-        );
+        await createStatus(body, params);
       }
 
       // Clear draft on successful submission
