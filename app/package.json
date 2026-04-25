@@ -20,7 +20,10 @@
     "test:unit": "vitest run",
     "test:watch": "vitest watch",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:codegen": "playwright codegen http://localhost:5173"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -57,6 +60,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@playwright/test": "^1.59.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/user-event": "^14.6.1",
     "@testing-library/vue": "^8.1.0",
