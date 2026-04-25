@@ -41,6 +41,9 @@ import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getVariantCounts } from '@/api/variant';
+
 export default {
   name: 'AnalysesVariantCounts',
   components: {
@@ -68,12 +71,9 @@ export default {
     async loadCountData() {
       this.loadingCount = true;
 
-      // Point to your variant count endpoint
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/variant/count`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        this.itemsCount = response.data;
+        const data = await getVariantCounts();
+        this.itemsCount = data;
 
         this.generateCountGraph();
       } catch (e) {
