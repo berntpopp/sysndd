@@ -80,7 +80,8 @@ createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet
 <script>
 import useToast from '@/composables/useToast';
 import { DOCS_URLS } from '@/constants/docs';
-import { apiClient } from '@/api/client';
+// Aliased to avoid shadowing the same-named component method below.
+import { createInternetArchiveSnapshot as postInternetArchiveSnapshot } from '@/api/external';
 
 export default {
   name: 'HelperBadge',
@@ -145,10 +146,8 @@ export default {
     },
     async createInternetArchiveSnapshot(url) {
       try {
-        // make the API call via the typed client surface
-        return await apiClient.get('/api/external/internet_archive', {
-          params: { parameter_url: url },
-        });
+        // make the API call via the typed external-proxy helper
+        return await postInternetArchiveSnapshot(url);
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }
