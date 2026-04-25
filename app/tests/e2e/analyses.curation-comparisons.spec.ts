@@ -17,11 +17,6 @@ test.describe('analyses: curation comparisons', () => {
     await expect(page.getByRole('link', { name: /^Similarity$/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /^Table$/ })).toBeVisible();
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/analyses.curation-comparisons__loaded__desktop.png',
-      fullPage: true,
-    });
-
     // Note: deep flow (apply a filter → assert row count narrows) requires
     // seeded comparison data that is not provisioned by the playwright
     // user fixture. Wave 0 captures the page scaffold + tabs only.

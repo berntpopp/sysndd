@@ -16,11 +16,6 @@ test.describe('review: status approve scaffolding', () => {
     // Wait briefly for the table to render at least the structural elements.
     await page.waitForLoadState('domcontentloaded');
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/status.approve__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: deep flow (find a pending status row → click Approve → confirm
     // modal → assert row removal) requires seeded entity-status data not
     // provisioned by db/fixtures/playwright_users.sql. Wave 0 captures the

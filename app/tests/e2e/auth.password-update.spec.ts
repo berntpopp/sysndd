@@ -80,11 +80,6 @@ test.describe('auth: password update (logged-in self-service)', () => {
       timeout: 10_000,
     });
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/auth.password-update__success__desktop.png',
-      fullPage: true,
-    });
-
     // The afterEach hook restores admin's password via PUT /api/user/password/update,
     // closing the credential-mutation window to a single HTTP round-trip
     // (vs the seconds-long mysql exec path used previously).

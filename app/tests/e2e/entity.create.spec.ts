@@ -19,11 +19,6 @@ test.describe('curate: entity create', () => {
       page.getByText(/Add a new gene-disease relationship to the SysNDD database/i),
     ).toBeVisible();
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/entity.create__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: the full form-fill flow (gene typeahead → disease autocomplete →
     // inheritance select → wizard advance → submit) drives several
     // sub-components (StepCoreEntity, StepEvidence, etc.). Wave 0 captures

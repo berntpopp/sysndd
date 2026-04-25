@@ -33,11 +33,6 @@ test.describe('auth: signup flow', () => {
       timeout: 10_000,
     });
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/auth.signup__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: the registered account requires admin approval before its
     // password can be set (via /PasswordReset?token=...). The login flow is
     // therefore NOT exercised here — see auth.login.spec.ts which uses the

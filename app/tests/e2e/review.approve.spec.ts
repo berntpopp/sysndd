@@ -12,11 +12,6 @@ test.describe('review: review queue scaffolding', () => {
       timeout: 15_000,
     });
 
-    await page.screenshot({
-      path: 'tests/e2e/screenshots/review.approve__success__desktop.png',
-      fullPage: true,
-    });
-
     // Note: the deep flow (find a pending row → click Approve → confirm
     // modal → assert row removal) exercises a complex BTable + modal
     // pipeline plus seeded review data that is not provisioned by
