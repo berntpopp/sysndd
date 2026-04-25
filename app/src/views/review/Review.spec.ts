@@ -341,7 +341,11 @@ function wireHappyPathResponses(axiosMock: CapturedAxiosMock) {
       });
     }
     // 2) Entity lookup (getEntity() in infoReview)
-    if (url.includes('/api/entity?filter=')) {
+    // v11.1 W6: typed-entity client routes the filter via `config.params`
+    // rather than embedding it into the URL. Match either shape so the
+    // happy/error paths and any pre-W6 callers can still resolve the
+    // mocked response.
+    if (url.includes('/api/entity?filter=') || url === '/api/entity/') {
       return Promise.resolve({ data: { data: [entityFixture] } });
     }
     // 3) useReviewForm.loadReviewData — parallel /api/review/:id/* calls
@@ -563,8 +567,17 @@ describe('Review.vue — classification wizard (functional)', () => {
     // infoReview triggers getEntity() + useReviewForm.loadReviewData() +
     // loadReviewInfo(). Every call routes through axios.get, so verify the
     // load-phase hit our stub for each expected URL family.
-    const getUrls = axiosMock.get.mock.calls.map((c) => c[0] as string);
-    expect(getUrls.some((u) => u.includes('/api/entity?filter='))).toBe(true);
+    //
+    // v11.1 W6: getEntity() now uses the typed `listEntities()` helper, so
+    // the filter ride-along moves from the URL string to `config.params`.
+    // Assert the entity request lands on `/api/entity/` AND carries the
+    // expected `filter=equals(entity_id,...)` query param.
+    const getCalls = axiosMock.get.mock.calls;
+    const getUrls = getCalls.map((c) => c[0] as string);
+    const entityCall = getCalls.find((c) => (c[0] as string) === '/api/entity/');
+    expect(entityCall).toBeDefined();
+    const entityParams = (entityCall as [string, { params?: { filter?: string } }])[1]?.params;
+    expect(entityParams?.filter).toContain('equals(entity_id,');
     expect(getUrls.some((u) => /\/api\/review\/\d+$/.test(u))).toBe(true);
     expect(getUrls.some((u) => u.includes('/phenotypes'))).toBe(true);
     expect(getUrls.some((u) => u.includes('/variation'))).toBe(true);
@@ -954,9 +967,17 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
       /\/api\/re_review\/approve\/701/.test(c[0] as string)
     );
     expect(putCall).toBeDefined();
+    // v11.1 W6: typed `approveReReview` helper passes `status_ok` /
+    // `review_ok` via axios `config.params` instead of URL concatenation.
+    // The URL itself stays clean (`/api/re_review/approve/701`); the flags
+    // ride along on the third positional arg's `params` object.
     const approveUrl = (putCall as [string, unknown])[0];
-    expect(approveUrl).toContain('status_ok=true');
-    expect(approveUrl).toContain('review_ok=true');
+    expect(approveUrl).toBe('/api/re_review/approve/701');
+    const approveConfig = (
+      putCall as [string, unknown, { params?: { status_ok?: boolean; review_ok?: boolean } }]
+    )[2];
+    expect(approveConfig?.params?.status_ok).toBe(true);
+    expect(approveConfig?.params?.review_ok).toBe(true);
 
     const simulatedRequest = simulateApiClientInterceptor(
       axiosMock,

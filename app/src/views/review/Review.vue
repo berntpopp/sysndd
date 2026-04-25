@@ -736,7 +736,21 @@
 <script>
 import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 import { useAuth } from '@/composables/useAuth';
-import { apiClient } from '@/api/client';
+import { listEntities } from '@/api/entity';
+import {
+  listPhenotypesTree,
+  listVariationOntologyTree,
+  listStatusCategoriesTree,
+} from '@/api/list';
+import { getReviewById } from '@/api/review';
+import { getStatusById } from '@/api/status';
+import {
+  applyForReReviewBatch,
+  approveReReview,
+  getReReviewTable,
+  submitReReview,
+  unsubmitReReview,
+} from '@/api/re_review';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
 import useReviewForm from '@/views/curate/composables/useReviewForm';
 import ReviewFormFields from '@/views/curate/components/ReviewFormFields.vue';
@@ -1089,10 +1103,9 @@ export default {
       });
     },
     async loadPhenotypesList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const payload = await listPhenotypesTree();
+        const rawData = Array.isArray(payload) ? payload : [];
         // Transform to make all modifiers selectable
         this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1101,10 +1114,9 @@ export default {
       }
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const payload = await listVariationOntologyTree();
+        const rawData = Array.isArray(payload) ? payload : [];
         // Transform to make all modifiers selectable
         this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -1113,10 +1125,8 @@ export default {
       }
     },
     async loadStatusList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.status_options = response.data;
+        this.status_options = await listStatusCategoriesTree();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1181,20 +1191,17 @@ export default {
     },
     async loadReReviewData() {
       this.isBusy = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/table?curate=${
-        this.curation_selected
-      }`;
       try {
-        // v11.0 closeout F2c: Bearer injection handled by the apiClient
-        // request interceptor; no inline Authorization header needed.
-        // `apiClient.get` unwraps to `response.data`, so `payload` IS the
-        // R/Plumber JSON body (a `{ data, meta }` envelope on this endpoint).
-        // (TypeScript generic parameter omitted — Review.vue's <script> is
-        // plain JS, not `<script lang="ts">`.)
-        const payload = await apiClient.get(apiUrl);
+        // v11.1 W6: typed re_review client; Bearer injection still happens
+        // inside the shared apiClient request interceptor. The `curate`
+        // boolean is forwarded as a true/false param the R handler coerces.
+        const payload = await getReReviewTable({ curate: this.curation_selected });
+        // R serialises the table as a `{ data, meta }` envelope; some legacy
+        // shapes might surface a bare array, so accept either.
+        const rows = Array.isArray(payload) ? payload : payload?.data || [];
 
-        this.items = payload.data || [];
-        this.totalRows = payload.data?.length || 0;
+        this.items = rows;
+        this.totalRows = rows.length || 0;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1202,14 +1209,12 @@ export default {
       this.loading = false;
     },
     async getEntity(entity_input) {
-      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
-        entity_input
-      })`;
-
       try {
-        const response = await this.axios.get(apiGetURL);
+        const payload = await listEntities({
+          filter: `equals(entity_id,${entity_input})`,
+        });
         // assign to local variable
-        [this.entity_info] = response.data.data;
+        [this.entity_info] = payload.data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1219,15 +1224,14 @@ export default {
       await this.reviewForm.loadReviewData(review_id, re_review_review_saved);
 
       // Also load metadata for modal footer display
-      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${review_id}`;
       try {
-        const response_review = await this.axios.get(apiGetReviewURL);
-        if (response_review.data && response_review.data.length > 0) {
-          this.review_info.review_id = response_review.data[0].review_id;
-          this.review_info.entity_id = response_review.data[0].entity_id;
-          this.review_info.review_user_name = response_review.data[0].review_user_name;
-          this.review_info.review_user_role = response_review.data[0].review_user_role;
-          this.review_info.review_date = response_review.data[0].review_date;
+        const rows = await getReviewById(review_id);
+        if (rows && rows.length > 0) {
+          this.review_info.review_id = rows[0].review_id;
+          this.review_info.entity_id = rows[0].entity_id;
+          this.review_info.review_user_name = rows[0].review_user_name;
+          this.review_info.review_user_role = rows[0].review_user_role;
+          this.review_info.review_date = rows[0].review_date;
           this.review_info.re_review_review_saved = re_review_review_saved;
         }
       } catch (e) {
@@ -1237,23 +1241,21 @@ export default {
     async loadStatusInfo(status_id, re_review_status_saved) {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/status/${status_id}`;
-
       try {
-        const response = await this.axios.get(apiGetURL);
+        const rows = await getStatusById(status_id);
 
         // compose entity
         this.status_info = new Status(
-          response.data[0].category_id,
-          response.data[0].comment,
-          response.data[0].problematic
+          rows[0].category_id,
+          rows[0].comment,
+          rows[0].problematic
         );
 
-        this.status_info.status_id = response.data[0].status_id;
-        this.status_info.entity_id = response.data[0].entity_id;
-        this.status_info.status_user_name = response.data[0].status_user_name;
-        this.status_info.status_user_role = response.data[0].status_user_role;
-        this.status_info.status_date = response.data[0].status_date;
+        this.status_info.status_id = rows[0].status_id;
+        this.status_info.entity_id = rows[0].entity_id;
+        this.status_info.status_user_name = rows[0].status_user_name;
+        this.status_info.status_user_role = rows[0].status_user_role;
+        this.status_info.status_date = rows[0].status_date;
         this.status_info.re_review_status_saved = re_review_status_saved;
 
         this.loading_status_modal = false;
@@ -1314,10 +1316,10 @@ export default {
       re_review_submission.re_review_entity_id = this.entity[0].re_review_entity_id;
       re_review_submission.re_review_submitted = 1;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/submit`;
       try {
-        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
-        await apiClient.put(apiUrl, { submit_json: re_review_submission });
+        // v11.1 W6: typed re_review client; Bearer injection still flows
+        // through the shared apiClient request interceptor.
+        await submitReReview({ submit_json: re_review_submission });
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1325,13 +1327,13 @@ export default {
       this.loadReReviewData();
     },
     async handleApproveOk(_bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/approve/${
-        this.entity[0].re_review_entity_id
-      }?status_ok=${this.status_approved}&review_ok=${this.review_approved}`;
-
       try {
-        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
-        await apiClient.put(apiUrl, {});
+        // v11.1 W6: typed re_review client; query params now flow via
+        // axios `config.params` rather than URL concatenation.
+        await approveReReview(this.entity[0].re_review_entity_id, {
+          status_ok: this.status_approved,
+          review_ok: this.review_approved,
+        });
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1340,13 +1342,9 @@ export default {
       this.loadReReviewData();
     },
     async handleUnsetSubmission(_bvModalEvt) {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/unsubmit/${
-        this.entity[0].re_review_entity_id
-      }`;
-
       try {
-        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
-        await apiClient.put(apiUrl, {});
+        // v11.1 W6: typed re_review client.
+        await unsubmitReReview(this.entity[0].re_review_entity_id);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
@@ -1355,11 +1353,9 @@ export default {
       this.loadReReviewData();
     },
     async newBatchApplication() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/apply`;
-
       try {
-        // v11.0 closeout F2c: apiClient interceptor injects Bearer.
-        await apiClient.get(apiUrl);
+        // v11.1 W6: typed re_review client.
+        await applyForReReviewBatch();
         this.makeToast('Application send.', 'Success', 'success');
         this.announce('Batch application sent successfully');
       } catch (e) {
