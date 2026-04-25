@@ -52,6 +52,16 @@ const scopes = [
     prefix: 'src/composables/useAuth',
     requireGlob: 'src/composables/useAuth*.ts',
   },
+  {
+    name: 'plugins-axios',
+    tsconfig: 'tsconfig.plugins-axios.json',
+    prefix: 'src/plugins/axios',
+  },
+  {
+    name: 'views-review',
+    tsconfig: 'tsconfig.views-review.json',
+    prefix: 'src/views/review/',
+  },
 ];
 
 let failed = false;
