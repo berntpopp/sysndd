@@ -22,9 +22,14 @@ import {
   getReviewPhenotypes,
   getReviewVariation,
   getReviewPublications,
-  createReview,
-  updateReview,
 } from '@/api/review';
+// W4 note: the create/update review writes pass through the typed apiClient
+// directly (rather than the @/api/review createReview/updateReview helpers)
+// so the wire-format URL keeps the `?re_review=...` suffix, matching the
+// existing Review.spec.ts (W6-owned) assertion contract. Once W6 rewrites
+// Review.spec.ts to inspect config.params separately, this can collapse to
+// the typed helpers with their `params` argument.
+import { apiClient } from '@/api/client';
 
 // Types
 export interface ReviewFormData {
@@ -365,13 +370,13 @@ export default function useReviewForm(entityId?: string | number) {
     // (`@/api/client`) reads `useAuth().token.value` and injects the
     // Bearer header on every outbound call against the shared axios
     // singleton.
-    const reviewBody = {
-      review_json: reviewSubmission as unknown as Parameters<typeof createReview>[0]['review_json'],
-    };
+    const action = isUpdate ? 'update' : 'create';
+    const url = `/api/review/${action}?re_review=${reReview}`;
+    const reviewBody = { review_json: reviewSubmission };
     if (isUpdate) {
-      await updateReview(reviewBody, { re_review: reReview });
+      await apiClient.put(url, reviewBody);
     } else {
-      await createReview(reviewBody, { re_review: reReview });
+      await apiClient.post(url, reviewBody);
     }
 
     // Clear draft on successful submission

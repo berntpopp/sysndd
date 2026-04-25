@@ -5,26 +5,43 @@
  * BUG-05: When adding a new PMID during re-review, existing PMIDs should be preserved.
  * These tests verify that original publications are stored and merged with new additions.
  *
- * v11.1 W4: the composable migrated from raw `axios.{get,put,post}(...)` to
- * the typed `@/api/review` clients. The tests now mock those helpers
- * directly — keeps the BUG-05 + change-detection contracts intact while
- * letting the helper layer remain the single source of HTTP shape truth.
+ * v11.1 W4: the composable migrated off raw `axios.{get,put,post}(...)` to a
+ * mix of typed `@/api/review` read helpers and direct `apiClient.{put,post}`
+ * writes. The writes intentionally keep `?re_review=...` in the URL string
+ * (rather than passing it via `config.params`) to preserve the wire-format
+ * contract that the W6-owned `Review.spec.ts` asserts on. The tests below
+ * mock both surfaces — typed read helpers and `apiClient` writes.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
 
-// Mock the typed-API surface BEFORE the composable imports it.
+// Mock the typed-API read surface BEFORE the composable imports it.
 const reviewApiMocks = vi.hoisted(() => ({
   getReviewById: vi.fn(),
   getReviewPhenotypes: vi.fn(),
   getReviewVariation: vi.fn(),
   getReviewPublications: vi.fn(),
-  createReview: vi.fn(),
-  updateReview: vi.fn(),
+}));
+
+// Mock the apiClient (used directly for the create/update review writes).
+const apiClientMock = vi.hoisted(() => ({
+  put: vi.fn(),
+  post: vi.fn(),
+  get: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  raw: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
 }));
 
 vi.mock('@/api/review', () => reviewApiMocks);
+vi.mock('@/api/client', () => ({ apiClient: apiClientMock }));
 
 // Mock useFormDraft composable
 vi.mock('@/composables/useFormDraft', () => ({
@@ -65,8 +82,8 @@ function primeReadMocks(map: ResolverMap) {
 describe('useReviewForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    reviewApiMocks.createReview.mockResolvedValue({ status: 200 });
-    reviewApiMocks.updateReview.mockResolvedValue({ status: 200 });
+    apiClientMock.put.mockResolvedValue({ status: 200 });
+    apiClientMock.post.mockResolvedValue({ status: 200 });
   });
 
   describe('BUG-05: Publication preservation during re-review', () => {
@@ -115,10 +132,10 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      // Verify the typed PUT was called with merged publications
-      expect(reviewApiMocks.updateReview).toHaveBeenCalledTimes(1);
-      const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
+      // Verify the apiClient.put was called with merged publications
+      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       // Should contain all 3 publications (2 original + 1 new)
@@ -149,8 +166,8 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify original publication was preserved despite formData being empty
-      const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
@@ -178,8 +195,8 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify no duplicates in submitted data
-      const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
@@ -223,8 +240,8 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
         .review_json;
 
       // Should only contain the new publication
@@ -339,29 +356,43 @@ describe('useReviewForm', () => {
 
   // ---------------------------------------------------------------------------
   // v11.1 W4: the F2a header-policy assertion from the legacy spec moved up to
-  // the typed-API layer (`@/api/review` → `@/api/client`). The composable
-  // forwards a body and a `params` argument; it can no longer attach an
-  // inline `headers` field. The typed-helper test suite owns the header
-  // contract now (`app/src/api/review.spec.ts`), so this spec asserts only
-  // the call shape the composable controls — body wrapping and the
-  // `re_review` query param.
+  // the typed-API layer. The composable forwards a body to apiClient.{put,
+  // post} with no inline headers field; the apiClient request interceptor is
+  // the single header source. The assertions below pin the call shape the
+  // composable controls — URL with the `?re_review=...` suffix and a
+  // `{ review_json }` body wrapper.
   // ---------------------------------------------------------------------------
-  describe('Typed-API call shape (post-W4 migration)', () => {
-    it('updateReview is called with { review_json } body and re_review param', async () => {
+  describe('apiClient call shape (post-W4 migration)', () => {
+    it('PUT update path: URL carries ?re_review=true and body is wrapped in { review_json }', async () => {
       primeReadMocks({});
 
       const { loadReviewData, submitForm } = useReviewForm();
       await loadReviewData(1);
       await flushPromises();
 
-      await submitForm(true, false);
+      await submitForm(true, true);
       await flushPromises();
 
-      expect(reviewApiMocks.updateReview).toHaveBeenCalledTimes(1);
-      const [body, params] = reviewApiMocks.updateReview.mock.calls[0];
-      const wrappedBody = body as { review_json: unknown };
-      expect(wrappedBody).toHaveProperty('review_json');
-      expect(params).toEqual({ re_review: false });
+      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
+      const [url, body] = apiClientMock.put.mock.calls[0];
+      expect(url).toBe('/api/review/update?re_review=true');
+      expect(body).toHaveProperty('review_json');
+    });
+
+    it('POST create path: URL carries ?re_review=false and body is wrapped in { review_json }', async () => {
+      primeReadMocks({});
+
+      const { loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      await submitForm(false, false);
+      await flushPromises();
+
+      expect(apiClientMock.post).toHaveBeenCalledTimes(1);
+      const [url, body] = apiClientMock.post.mock.calls[0];
+      expect(url).toBe('/api/review/create?re_review=false');
+      expect(body).toHaveProperty('review_json');
     });
   });
 });
