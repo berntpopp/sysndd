@@ -17,7 +17,9 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - API lint: `make lint-api`
 - Frontend lint: `make lint-app`
 - Frontend type-check: `cd app && npm run type-check`
+- Frontend strict-scope type-check: `cd app && npm run type-check:strict`
 - Frontend unit tests: `cd app && npm run test:unit`
+- Frontend E2E (Playwright): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`
 
 Single-test shortcuts:
 
