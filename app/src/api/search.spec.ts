@@ -73,8 +73,11 @@ describe('api/search — searchOntology', () => {
       http.get('/api/search/ontology/:searchterm', () => HttpResponse.json(ok)),
     );
 
+    // The `{ tree: true }` overload narrows the return to
+    // `OntologyTreeNode[]`, so no `as OntologyTreeNode[]` cast at the
+    // call site (Copilot review on PR #306 — v11.1 W7 follow-up).
     const result = await searchOntology('OMIM:613970', { tree: true });
-    expect((result as OntologyTreeNode[])[0].id).toBe('OMIM:613970-2026-04-25');
+    expect(result[0].id).toBe('OMIM:613970-2026-04-25');
   });
 });
 
@@ -94,8 +97,10 @@ describe('api/search — searchGene', () => {
       http.get('/api/search/gene/:searchterm', () => HttpResponse.json(ok)),
     );
 
+    // Same `{ tree: true }` overload pattern as searchOntology — the
+    // return narrows to `GeneSearchTreeNode[]` without an inline cast.
     const result = await searchGene('GRIN2B', { tree: true });
-    expect((result as GeneSearchTreeNode[])[0].symbol).toBe('GRIN2B');
+    expect(result[0].symbol).toBe('GRIN2B');
   });
 });
 
