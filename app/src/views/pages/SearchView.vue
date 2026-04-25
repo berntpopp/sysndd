@@ -108,6 +108,7 @@
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
+import { searchEntities } from '@/api/search';
 
 export default {
   name: 'SearchView',
@@ -159,13 +160,12 @@ export default {
   methods: {
     async loadSearchInfo() {
       this.loading = true;
-      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/search/${
-        this.$route.params.search_term
-      }?helper=false`;
       try {
-        const response_search = await this.axios.get(apiSearchURL);
+        const data = await searchEntities(this.$route.params.search_term, {
+          helper: false,
+        });
 
-        this.search = response_search.data;
+        this.search = data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

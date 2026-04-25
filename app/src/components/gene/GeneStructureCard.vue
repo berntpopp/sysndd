@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BSpinner, BButton } from 'bootstrap-vue-next';
-import axios from 'axios';
+import { apiClient, isApiError } from '@/api/client';
 import GeneStructurePlot from './GeneStructurePlot.vue';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
@@ -89,26 +89,30 @@ async function fetchEnsemblData() {
   ensemblData.value = null;
 
   try {
-    const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(
-      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`,
+    const data = await apiClient.get<{
+      found?: boolean;
+      error?: boolean;
+      message?: string;
+      [key: string]: unknown;
+    }>(
+      `/api/external/ensembl/structure/${encodeURIComponent(props.geneSymbol)}`,
       { withCredentials: true }
     );
 
     // Check for API-level not-found or error
-    if (response.data?.found === false) {
+    if (data?.found === false) {
       // Gene not found in Ensembl -- show empty state (not error)
       ensemblData.value = null;
-    } else if (response.data?.error) {
-      error.value = response.data.message || 'Failed to load gene structure';
+    } else if (data?.error) {
+      error.value = data.message || 'Failed to load gene structure';
     } else {
-      ensemblData.value = response.data as EnsemblGeneStructure;
+      ensemblData.value = data as unknown as EnsemblGeneStructure;
     }
   } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.status === 404) {
+    if (isApiError(e) && e.response?.status === 404) {
       // 404 = gene not found, show empty state
       ensemblData.value = null;
-    } else if (axios.isAxiosError(e) && e.response?.status === 503) {
+    } else if (isApiError(e) && e.response?.status === 503) {
       error.value = 'Ensembl API temporarily unavailable';
     } else {
       error.value = 'Failed to load gene structure data';

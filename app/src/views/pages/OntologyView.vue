@@ -196,6 +196,7 @@ import Utils from '@/assets/js/utils';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import { getOntology } from '@/api/ontology';
 
 export default {
   name: 'OntologyView',
@@ -284,23 +285,21 @@ export default {
   methods: {
     async loadOntologyInfo() {
       this.loading = true;
-      const apiDiseaseOntologyURL = `${
-        import.meta.env.VITE_API_URL
-      }/api/ontology/${encodeURIComponent(this.$route.params.disease_term)}?input_type=ontology_id`;
-      const apiDiseaseNameURL = `${import.meta.env.VITE_API_URL}/api/ontology/${encodeURIComponent(
-        this.$route.params.disease_term
-      )}?input_type=ontology_name`;
 
       try {
-        const response_ontology = await this.axios.get(apiDiseaseOntologyURL);
-        const response_name = await this.axios.get(apiDiseaseNameURL);
+        const ontologyData = await getOntology(this.$route.params.disease_term, {
+          input_type: 'ontology_id',
+        });
+        const nameData = await getOntology(this.$route.params.disease_term, {
+          input_type: 'ontology_name',
+        });
 
-        if (response_ontology.data.length === 0 && response_name.data.length === 0) {
+        if (ontologyData.length === 0 && nameData.length === 0) {
           this.$router.push('/PageNotFound');
-        } else if (response_ontology.data === 0) {
-          this.ontology = response_name.data;
+        } else if (ontologyData === 0) {
+          this.ontology = nameData;
         } else {
-          this.ontology = response_ontology.data;
+          this.ontology = ontologyData;
         }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
