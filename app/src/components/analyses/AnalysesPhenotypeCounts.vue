@@ -41,6 +41,9 @@ import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getPhenotypeCount } from '@/api/phenotype';
+
 export default {
   name: 'AnalysesPhenotypeCounts',
   components: {
@@ -68,12 +71,10 @@ export default {
     async loadCountData() {
       this.loadingCount = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/phenotype/count`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await getPhenotypeCount();
 
-        this.itemsCount = response.data;
+        this.itemsCount = data;
 
         this.generateCountGraph();
       } catch (e) {
