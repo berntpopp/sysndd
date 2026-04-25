@@ -247,6 +247,8 @@ import { useToast } from '@/composables';
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
+import { getPanelOptions, browsePanels, browsePanelsXlsx } from '@/api/panels';
+
 export default {
   name: 'PanelsTable',
   setup() {
@@ -371,21 +373,20 @@ export default {
     async loadOptionsData() {
       this.loading = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/panels/options`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.categories_list = response.data[0].options;
-        this.inheritance_list = response.data[1].options;
-        this.columns_list = response.data[2].options;
+        const data = await getPanelOptions();
+        this.categories_list = data[0].options;
+        this.inheritance_list = data[1].options;
+        this.columns_list = data[2].options;
 
         this.selected_category = this.$route.params.category_input;
         this.selected_inheritance = this.$route.params.inheritance_input;
-        this.selected_columns = response.data[2].options;
-        this.sort_list = response.data[2].options;
+        this.selected_columns = data[2].options;
+        this.sort_list = data[2].options;
 
         const c = [];
-        for (let i = 0; i < response.data[2].options.length; i += 1) {
-          c.push(response.data[2].options[i].value);
+        for (let i = 0; i < data[2].options.length; i += 1) {
+          c.push(data[2].options[i].value);
         }
 
         this.selected_columns = c;
@@ -402,34 +403,30 @@ export default {
       const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
       const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
 
-      const apiUrl =
-        `${import.meta.env.VITE_API_URL}/api/panels/browse?sort=${
-          sortOrder === 'desc' ? '-' : '+'
-        }${sortColumn}&filter=any(category,${this.selected_category}),any(inheritance_filter,${
-          this.selected_inheritance
-        })` +
-        `&fields=${this.selected_columns.join()}&page_after=${this.currentItemID}&page_size=${
-          this.perPage
-        }`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await browsePanels({
+          sort: `${sortOrder === 'desc' ? '-' : '+'}${sortColumn}`,
+          filter: `any(category,${this.selected_category}),any(inheritance_filter,${this.selected_inheritance})`,
+          fields: this.selected_columns.join(),
+          page_after: this.currentItemID,
+          page_size: String(this.perPage),
+        });
 
-        this.items = response.data.data;
-        this.fields = response.data.fields;
+        this.items = data.data;
+        this.fields = data.fields;
 
-        this.totalRows = response.data.meta[0].totalItems;
+        this.totalRows = data.meta[0].totalItems;
         // this solves an update issue in b-pagination component
         // based on https://github.com/bootstrap-vue/bootstrap-vue/issues/3541
         this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
+          this.currentPage = data.meta[0].currentPage;
         });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
+        this.totalPages = data.meta[0].totalPages;
+        this.prevItemID = data.meta[0].prevItemID;
+        this.currentItemID = data.meta[0].currentItemID;
+        this.nextItemID = data.meta[0].nextItemID;
+        this.lastItemID = data.meta[0].lastItemID;
+        this.executionTime = data.meta[0].executionTime;
 
         this.isBusy = false;
       } catch (e) {
@@ -448,25 +445,15 @@ export default {
       const sortColumn = this.sortBy.length > 0 ? this.sortBy[0].key : 'symbol';
       const sortOrder = this.sortBy.length > 0 ? this.sortBy[0].order : 'asc';
 
-      const urlParam =
-        `sort=${sortOrder === 'desc' ? '-' : '+'}${sortColumn}&filter=any(category,${
-          this.selected_category
-        }),any(inheritance_filter,${this.selected_inheritance})&page_after=` +
-        '0' +
-        '&page_size=' +
-        'all' +
-        '&format=xlsx';
-
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/panels/browse?${urlParam}`;
-
       try {
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
+        const blob = await browsePanelsXlsx({
+          sort: `${sortOrder === 'desc' ? '-' : '+'}${sortColumn}`,
+          filter: `any(category,${this.selected_category}),any(inheritance_filter,${this.selected_inheritance})`,
+          page_after: 0,
+          page_size: 'all',
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(new Blob([blob]));
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
