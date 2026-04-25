@@ -339,8 +339,6 @@ export default {
       this.user = sessionUser;
       this.curator_mode =
         this.user.user_role[0] === 'Administrator' || this.user.user_role[0] === 'Curator';
-      console.log(this.user.user_role[0]);
-      console.log(this.curator_mode);
     }
     void this.loadReReviewData();
     void this.reviewData.loadPhenotypesList();
