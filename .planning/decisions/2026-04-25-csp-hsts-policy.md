@@ -59,6 +59,8 @@ Retained. The audit found 5 eval-like calls in vendor JS chunks that are runtime
 
 None are own-code. Removing `'unsafe-eval'` would break the 3D structure viewer and the admin CMS preview without alternative implementations. Replacing the offending vendors is a separate scoping decision (large surface; molecular viewer in particular has no drop-in CSP-friendly replacement). We accept the residual risk for now and revisit if a future incident calls for it.
 
+Follow-up: a future PR can replace NGL with a CSP-friendly viewer and migrate `ManageAbout.vue`'s CMS template rendering off the runtime template compiler. Track in a new issue when scoped.
+
 ### `style-src 'unsafe-inline'`
 
 Retained. Bootstrap-Vue-Next, NGL, and our d3 / cytoscape rendering paths emit inline `style=""` attributes that CSP cannot hash (only inline `<style>` blocks are hashable). Removing this directive would require either:
