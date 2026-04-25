@@ -6,6 +6,53 @@ import pluginVue from 'eslint-plugin-vue';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 
+// v11.1 W2.2 finish-hardening: lock the typed-API boundary in src/views/**
+// and src/components/**. Wave 1b removed every raw-axios call site; this
+// rule prevents regressions.
+//
+//   - `no-restricted-imports` — block default value-imports of `axios`.
+//     Type-only imports (`import type { ... } from 'axios'`) remain
+//     permitted (the spec §1 explicitly allows them and the strict-scope
+//     expansion in Wave 2 will retire them organically).
+//   - `no-restricted-syntax` — block `this.axios.<verb>(...)` calls
+//     (Options API legacy pattern that the migration eliminated).
+//
+// During Waves 0–1b this rule lived in a separate eslint.config.wave1b-gate.js
+// invoked via `npm run lint:wave1b-gate`. Wave 2 folds it into the main
+// config so `npm run lint` (and CI's `Run ESLint` step) enforce it on
+// every push.
+//
+// See `.planning/superpowers/specs/2026-04-25-v11.1-finish-hardening-design.md`
+// §4 Wave 1b precise grep gate (precise grep + ESLint rule are equivalent).
+const FH_NO_RAW_AXIOS_BOUNDARY = {
+  files: ['src/views/**/*.{vue,ts}', 'src/components/**/*.{vue,ts}'],
+  ignores: ['**/*.spec.ts'],
+  rules: {
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: [
+          {
+            name: 'axios',
+            importNames: ['default'],
+            message:
+              "Use typed clients from '@/api/*' instead. Type-only imports (import type { ... } from 'axios') remain allowed.",
+          },
+        ],
+      },
+    ],
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "MemberExpression[object.type='ThisExpression'][property.name='axios']",
+        message:
+          "Use typed clients from '@/api/*' instead of this.axios.* (vue-axios plugin).",
+      },
+    ],
+  },
+};
+
 // v11.0 closeout §8.1: forbid direct localStorage token/user reads outside
 // the permitted owners (useAuth.ts, plugins/axios.ts, test-utils, specs).
 // The apiClient request interceptor is the single injection point for the
@@ -177,6 +224,9 @@ export default [
 
   // v11.0 closeout F1: localStorage token/user guardrail (§8.1).
   CLOSEOUT_NO_LOCAL_STORAGE_TOKEN,
+
+  // v11.1 W2.2 finish-hardening: raw-axios boundary in views/ and components/.
+  FH_NO_RAW_AXIOS_BOUNDARY,
 
   // Standalone Node scripts under app/scripts/. They run under `node`, not
   // in the browser, and use globals like process / console. The shared
