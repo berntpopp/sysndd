@@ -19,7 +19,7 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - Frontend type-check: `cd app && npm run type-check`
 - Frontend strict-scope type-check: `cd app && npm run type-check:strict`
 - Frontend unit tests: `cd app && npm run test:unit`
-- Frontend E2E (Playwright, **manual-only**): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`. The CI workflow at `.github/workflows/playwright.yml` is `workflow_dispatch` only — it does not auto-run on push or pull_request; trigger it from the Actions tab when you need a regression sanity check.
+- Frontend E2E (Playwright, **local-only**): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`. There is no Playwright CI workflow — the spec files in `app/tests/e2e/` exist for ad-hoc local regression checks. The official lane (lint, type-check, vitest, R API, smoke) is the automated coverage.
 
 Single-test shortcuts:
 
