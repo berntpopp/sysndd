@@ -335,7 +335,7 @@ export default defineComponent({
     ) => {
       try {
         const data = await searchGene(query, { tree: true });
-        callback(data as Record<string, unknown>[]);
+        callback(data as unknown as Record<string, unknown>[]);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
@@ -349,7 +349,7 @@ export default defineComponent({
     ) => {
       try {
         const data = await searchOntology(query, { tree: true });
-        callback(data as Record<string, unknown>[]);
+        callback(data as unknown as Record<string, unknown>[]);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
