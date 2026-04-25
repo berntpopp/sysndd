@@ -260,6 +260,7 @@
             <h4 class="mb-0">
               Rename Entity Disease
               <EntityBadge
+                v-if="entity_info?.entity_id"
                 :entity-id="entity_info.entity_id"
                 variant="primary"
                 size="md"
@@ -341,6 +342,7 @@
             <h4 class="mb-0">
               Deactivate Entity
               <EntityBadge
+                v-if="entity_info?.entity_id"
                 :entity-id="entity_info.entity_id"
                 variant="primary"
                 size="md"
@@ -443,6 +445,7 @@
             <h4 class="mb-0">
               Modify Review
               <EntityBadge
+                v-if="entity_info?.entity_id"
                 :entity-id="entity_info.entity_id"
                 variant="primary"
                 size="md"
@@ -659,6 +662,7 @@
             <h4 class="mb-0">
               Modify Status
               <EntityBadge
+                v-if="entity_info?.entity_id"
                 :entity-id="entity_info.entity_id"
                 variant="primary"
                 size="md"
