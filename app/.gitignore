@@ -23,3 +23,8 @@ pnpm-debug.log*
 
 # ssl key files
 *.pem
+
+# Playwright (Wave 0 of v11.1)
+tests/e2e/screenshots/
+tests/e2e/.playwright-output/
+playwright-report/
