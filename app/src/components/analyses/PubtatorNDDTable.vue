@@ -259,8 +259,7 @@
 
 <script lang="ts">
 // Import Vue utilities
-import { ref, inject } from 'vue';
-import type { AxiosInstance } from 'axios';
+import { ref } from 'vue';
 
 // Import composables
 import {
@@ -272,6 +271,9 @@ import {
   parsePubtatorText,
 } from '@/composables';
 import type { ParsedSegment } from '@/composables';
+
+// Typed API client (W5)
+import { listPubtatorTable, listPubtatorTableXlsx } from '@/api/publication';
 
 /** Field definition with optional selection properties */
 interface TableField {
@@ -351,9 +353,6 @@ export default {
       details: { content: null, join_char: null, operator: 'contains' }, // Virtual field for row expansion
     });
 
-    // Inject axios with proper typing
-    const axios = inject<AxiosInstance>('axios');
-
     // Return all needed properties (this component has its own method implementations)
     return {
       makeToast,
@@ -364,7 +363,6 @@ export default {
       ...text,
       ...tableData,
       filter,
-      axios,
     };
   },
   data() {
@@ -511,24 +509,30 @@ export default {
     async loadTableData() {
       this.isBusy = true;
 
-      const urlParam =
-        `sort=${this.sort}` +
-        `&filter=${this.filter_string}` +
-        `&page_after=${this.currentItemID}` +
-        `&page_size=${this.perPage}` +
-        `&fields=${this.fspecInput}`;
-
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
-
       try {
-        if (!this.axios) {
-          throw new Error('Axios not available');
-        }
-        const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
+        const data = await listPubtatorTable({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: String(this.currentItemID),
+          page_size: String(this.perPage),
+          fields: this.fspecInput,
+        });
+        this.items = data.data;
 
-        if (response.data.meta && response.data.meta.length > 0) {
-          const metaObj = response.data.meta[0];
+        // R/Plumber serialises meta as a 1-row array of dynamic-key objects.
+        const meta = data.meta as Array<Record<string, unknown>> | undefined;
+        if (meta && meta.length > 0) {
+          const metaObj = meta[0] as Record<string, unknown> & {
+            totalItems?: number;
+            currentPage?: number;
+            totalPages?: number;
+            prevItemID?: number | null;
+            currentItemID?: number | null;
+            nextItemID?: number | null;
+            lastItemID?: number | null;
+            executionTime?: number;
+            fspec?: TableField[];
+          };
           this.totalRows = metaObj.totalItems || 0;
 
           // Fix for b-pagination
@@ -633,26 +637,17 @@ export default {
 
     async requestExcel() {
       this.downloading = true;
-      const urlParam =
-        `sort=${this.sort}` +
-        `&filter=${this.filter_string}` +
-        '&page_after=0' +
-        '&page_size=all' +
-        '&format=xlsx' +
-        `&fields=${this.fspecInput}`;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/${this.apiEndpoint}?${urlParam}`;
 
       try {
-        if (!this.axios) {
-          throw new Error('Axios not available');
-        }
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
+        const blob = await listPubtatorTableXlsx({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: '0',
+          page_size: 'all',
+          fields: this.fspecInput,
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(blob);
         const fileLink = document.createElement('a');
         fileLink.href = fileURL;
         fileLink.setAttribute('download', 'publications.xlsx');
