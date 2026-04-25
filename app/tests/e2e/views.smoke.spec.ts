@@ -86,7 +86,15 @@ function filterBenignErrors(errors: string[]): string[] {
       // not "all data fetches succeeded". Deep flow specs assert specific
       // API contracts; 4xx/5xx here is documented noise.
       !/Failed to load resource.*status of (4\d{2}|5\d{2})/i.test(e) &&
-      !/the server responded with a status of (4\d{2}|5\d{2})/i.test(e),
+      !/the server responded with a status of (4\d{2}|5\d{2})/i.test(e) &&
+      // AxiosError shape: views often log `console.error('Failed to X:', err)`
+      // which surfaces as "Failed to ...: AxiosError: Request failed with
+      // status code 4xx/5xx ...". The empty-DB Playwright stack cannot
+      // compute several admin statistics endpoints (trend / leaderboard /
+      // re-reviewer aggregates), so these come through as 500s. Page-render
+      // landmark assertions are the smoke contract; deep specs own the
+      // data-fetch contracts.
+      !/AxiosError: Request failed with status code (4\d{2}|5\d{2})/i.test(e),
   );
 }
 

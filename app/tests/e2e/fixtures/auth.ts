@@ -44,32 +44,49 @@ async function preAcknowledgeDisclaimer(context: BrowserContext): Promise<void> 
  *
  * Plumber may serialize scalar responses as either a JSON string ("token")
  * or a 1-element array (["token"]); both shapes are normalised here.
+ *
+ * Retries on 401 with a short backoff. The auth.password-update spec briefly
+ * mutates one role's password before restoring it via the API; if a parallel
+ * worker hits /authenticate during that window it gets 401. A bounded retry
+ * keeps the rest of the suite flake-free without serializing every test.
  */
 async function fetchToken(request: APIRequestContext, role: TestRole): Promise<string> {
   const { username, password } = testUsers[role];
-  const res = await request.post('/api/auth/authenticate', {
-    data: { user_name: username, password },
-  });
-  if (!res.ok()) {
-    const body = await res.text();
-    throw new Error(`auth fixture: login failed for ${role}: ${res.status()} ${body}`);
-  }
-  const raw = (await res.text()).trim();
-  let token: string | undefined;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-      token = parsed[0];
-    } else if (typeof parsed === 'string') {
-      token = parsed;
+  const maxAttempts = 5;
+  let lastStatus = 0;
+  let lastBody = '';
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const res = await request.post('/api/auth/authenticate', {
+      data: { user_name: username, password },
+    });
+    if (res.ok()) {
+      const raw = (await res.text()).trim();
+      let token: string | undefined;
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
+          token = parsed[0];
+        } else if (typeof parsed === 'string') {
+          token = parsed;
+        }
+      } catch {
+        token = raw.replace(/^"|"$/g, '');
+      }
+      if (!token) {
+        throw new Error(`auth fixture: could not parse token from response: ${raw.slice(0, 200)}`);
+      }
+      return token;
     }
-  } catch {
-    token = raw.replace(/^"|"$/g, '');
+    lastStatus = res.status();
+    lastBody = await res.text();
+    if (lastStatus !== 401 || attempt === maxAttempts) break;
+    // Short backoff before retry; 200ms * attempt covers the
+    // password-update mutation window for any role.
+    await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
   }
-  if (!token) {
-    throw new Error(`auth fixture: could not parse token from response: ${raw.slice(0, 200)}`);
-  }
-  return token;
+  throw new Error(
+    `auth fixture: login failed for ${role} after ${maxAttempts} attempts: ${lastStatus} ${lastBody}`,
+  );
 }
 
 /**

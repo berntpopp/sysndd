@@ -10,9 +10,14 @@
 -- `sodium::password_store()` — see api/core/security.R for the verification
 -- pathway. Hashes were generated with this command (run on the host once):
 --
---   Rscript -e 'for (u in c("admin","curator","reviewer","user")) { \
---     cat(u, ":", sodium::password_store(paste0("playwright_", u, "_pw_2026")), "\n", sep="") \
+--   Rscript -e 'for (u in c("Admin","Curator","Reviewer","User")) { \
+--     cat(u, ":", sodium::password_store(paste0("Pw_", u, "!2026")), "\n", sep="") \
 --   }'
+--
+-- The plaintext passwords intentionally satisfy the API's password
+-- complexity rule (>=8 chars, upper, lower, digit, [!@#$%^&*]) so the
+-- auth.password-update spec can both mutate and restore them via
+-- /api/user/password/update without falling back to a slow mysql reseed.
 --
 -- The hashes below are reproducible verification targets but the salt is
 -- random; regenerating produces different hash strings that all validate
@@ -34,7 +39,7 @@ INSERT INTO `user` (
 ) VALUES
   (
     'pw_admin',
-    '$7$C6..../....oQfpqYXzkBj6QtOFLN6XVLPEW7M3cTcSnmlbT5xsEdA$je0ZsWWNhbj7V8qyKrvDC5tPTEQDlrhTZY4r5tDKF2A',
+    '$7$C6..../....n9sAMSCsBeiu0ZVg3OMM/0xxwiVlq/1Io2rX/vmcye7$25Bm/HgbAQoapG47nIRWX/9Jq/enz1zVfZdnsRjPLnB',
     'pw_admin@example.test',
     'PWA',
     'PW',
@@ -47,7 +52,7 @@ INSERT INTO `user` (
   ),
   (
     'pw_curator',
-    '$7$C6..../....n5sFIR4fD9dNs43RZ21L/nNL8JGObSowUI19jOKBxgA$9gJMwP17wOUoQsgGyueM9fYNasTDagSvPtPK27yAq//',
+    '$7$C6..../....d35k4LLPCBsrRsmV/d.7L9UM6P2CeelS4Q/wq5Tz.g/$R.q8.l2OvxA1K9dP.ZPOlDBRBFioZpKNEUAkq1fDMk9',
     'pw_curator@example.test',
     'PWC',
     'PW',
@@ -60,7 +65,7 @@ INSERT INTO `user` (
   ),
   (
     'pw_reviewer',
-    '$7$C6..../....7/D/UIV2lUhIzigjj6rH2B70cwIq3OftDvCW22pFxKB$MU1ZI4x4wW6DiaOXqqVtiLog3WDCEJ2QfJhClU4cASD',
+    '$7$C6..../....bRUA4kUtW/1vZ6DXWvJe5fD/FVR629SviSYGPW2mw33$iiuzpAdrOH693tt7PHha1RJIMFOwgrco1ITpnDYSEMC',
     'pw_reviewer@example.test',
     'PWR',
     'PW',
@@ -73,7 +78,7 @@ INSERT INTO `user` (
   ),
   (
     'pw_user',
-    '$7$C6..../....wKLAMXWWH7GE/gBqGM8qzLzKmxmPmcxLy47d95DPYe9$V.otZzT0hZ1H/us1Ia0NQSX.67KovkNPODrG4vQqAa1',
+    '$7$C6..../....KVbbJr8T6b0kUHDRjOYciv2/4cqr8NV4b.VKo0AgvtD$WyDJLFAVDxLr6tDia2n5rp6z8FDiIdP5Gzr6YtG0n/9',
     'pw_user@example.test',
     'PWV',
     'PW',
