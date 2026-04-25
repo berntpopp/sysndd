@@ -4,20 +4,44 @@
  *
  * BUG-05: When adding a new PMID during re-review, existing PMIDs should be preserved.
  * These tests verify that original publications are stored and merged with new additions.
+ *
+ * v11.1 W4: the composable migrated off raw `axios.{get,put,post}(...)` to a
+ * mix of typed `@/api/review` read helpers and direct `apiClient.{put,post}`
+ * writes. The writes intentionally keep `?re_review=...` in the URL string
+ * (rather than passing it via `config.params`) to preserve the wire-format
+ * contract that the W6-owned `Review.spec.ts` asserts on. The tests below
+ * mock both surfaces — typed read helpers and `apiClient` writes.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import useReviewForm from '../useReviewForm';
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
+// Mock the typed-API read surface BEFORE the composable imports it.
+const reviewApiMocks = vi.hoisted(() => ({
+  getReviewById: vi.fn(),
+  getReviewPhenotypes: vi.fn(),
+  getReviewVariation: vi.fn(),
+  getReviewPublications: vi.fn(),
+}));
+
+// Mock the apiClient (used directly for the create/update review writes).
+const apiClientMock = vi.hoisted(() => ({
+  put: vi.fn(),
+  post: vi.fn(),
+  get: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+  raw: {
     get: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
   },
 }));
+
+vi.mock('@/api/review', () => reviewApiMocks);
+vi.mock('@/api/client', () => ({ apiClient: apiClientMock }));
 
 // Mock useFormDraft composable
 vi.mock('@/composables/useFormDraft', () => ({
@@ -32,40 +56,44 @@ vi.mock('@/composables/useFormDraft', () => ({
   })),
 }));
 
+import useReviewForm from '../useReviewForm';
+
+interface ResolverMap {
+  review?: Array<{ synopsis?: string; comment?: string; entity_id?: number }>;
+  phenotypes?: Array<{ phenotype_id: number; modifier_id: number }>;
+  variation?: Array<{ vario_id: number; modifier_id: number }>;
+  publications?: Array<{ publication_id: string; publication_type: string }>;
+}
+
+/**
+ * Wires the four read mocks to the per-test fixture map. Mirrors the legacy
+ * `mockAxios.get.mockImplementation((url) => ...)` switch on URL substring,
+ * but at the typed-helper layer.
+ */
+function primeReadMocks(map: ResolverMap) {
+  reviewApiMocks.getReviewById.mockResolvedValue(
+    map.review ?? [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
+  );
+  reviewApiMocks.getReviewPhenotypes.mockResolvedValue(map.phenotypes ?? []);
+  reviewApiMocks.getReviewVariation.mockResolvedValue(map.variation ?? []);
+  reviewApiMocks.getReviewPublications.mockResolvedValue(map.publications ?? []);
+}
+
 describe('useReviewForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    apiClientMock.put.mockResolvedValue({ status: 200 });
+    apiClientMock.post.mockResolvedValue({ status: 200 });
   });
 
   describe('BUG-05: Publication preservation during re-review', () => {
     it('stores original publications when loading review data', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API responses
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [
-              { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
-              { publication_id: 'PMID:87654321', publication_type: 'additional_references' },
-              { publication_id: 'PMID:11111111', publication_type: 'gene_review' },
-            ],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        // Default review response
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+          { publication_id: 'PMID:87654321', publication_type: 'additional_references' },
+          { publication_id: 'PMID:11111111', publication_type: 'gene_review' },
+        ],
       });
 
       const { formData, loadReviewData } = useReviewForm();
@@ -84,34 +112,12 @@ describe('useReviewForm', () => {
     });
 
     it('merges original publications with new additions on submit', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API responses
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [
-              { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
-              { publication_id: 'PMID:87654321', publication_type: 'additional_references' },
-            ],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+          { publication_id: 'PMID:87654321', publication_type: 'additional_references' },
+        ],
       });
-
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
 
       const { formData, loadReviewData, submitForm } = useReviewForm();
 
@@ -122,14 +128,15 @@ describe('useReviewForm', () => {
       // Simulate user adding a new publication
       formData.publications.push('PMID:99999999');
 
-      // Submit the form
+      // Submit the form (isUpdate=true → PUT)
       await submitForm(true, true);
       await flushPromises();
 
-      // Verify the PUT request was called with merged publications
-      expect(mockAxios.put).toHaveBeenCalledTimes(1);
-      const putCall = mockAxios.put.mock.calls[0];
-      const submittedData = putCall[1].review_json;
+      // Verify the apiClient.put was called with merged publications
+      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+        .review_json;
 
       // Should contain all 3 publications (2 original + 1 new)
       expect(submittedData.literature.additional_references).toHaveLength(3);
@@ -139,31 +146,11 @@ describe('useReviewForm', () => {
     });
 
     it('handles scenario where form publications array is empty but originals exist', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API responses with existing publications
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
-
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
 
       const { formData, loadReviewData, submitForm } = useReviewForm();
 
@@ -179,39 +166,20 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify original publication was preserved despite formData being empty
-      const putCall = mockAxios.put.mock.calls[0];
-      const submittedData = putCall[1].review_json;
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+        .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
       expect(submittedData.literature.additional_references).toContain('PMID:12345678');
     });
 
     it('deduplicates publications when same PMID exists in both original and form', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API responses
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
-
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
 
       const { formData, loadReviewData, submitForm } = useReviewForm();
 
@@ -227,39 +195,20 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       // Verify no duplicates in submitted data
-      const putCall = mockAxios.put.mock.calls[0];
-      const submittedData = putCall[1].review_json;
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+        .review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
       expect(submittedData.literature.additional_references).toContain('PMID:12345678');
     });
 
     it('clears original publications on form reset', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API responses
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
-
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
 
       const { formData, loadReviewData, resetForm, submitForm } = useReviewForm();
 
@@ -277,21 +226,11 @@ describe('useReviewForm', () => {
       expect(formData.synopsis).toBe('');
 
       // Load new review data with different publications
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:99999999', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Different synopsis', comment: '', entity_id: 2 }],
-        });
+      primeReadMocks({
+        review: [{ synopsis: 'Different synopsis', comment: '', entity_id: 2 }],
+        publications: [
+          { publication_id: 'PMID:99999999', publication_type: 'additional_references' },
+        ],
       });
 
       await loadReviewData(2);
@@ -301,8 +240,9 @@ describe('useReviewForm', () => {
       await submitForm(true, true);
       await flushPromises();
 
-      const putCall = mockAxios.put.mock.calls[0];
-      const submittedData = putCall[1].review_json;
+      const putCall = apiClientMock.put.mock.calls[0];
+      const submittedData = (putCall[1] as { review_json: { literature: { additional_references: string[] } } })
+        .review_json;
 
       // Should only contain the new publication
       expect(submittedData.literature.additional_references).toHaveLength(1);
@@ -318,27 +258,11 @@ describe('useReviewForm', () => {
     });
 
     it('hasChanges is false immediately after loadReviewData', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock all API responses
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: 'Test comment', entity_id: 1 }],
-        });
+      primeReadMocks({
+        review: [{ synopsis: 'Test synopsis', comment: 'Test comment', entity_id: 1 }],
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
 
       const { hasChanges, loadReviewData } = useReviewForm();
@@ -351,24 +275,8 @@ describe('useReviewForm', () => {
     });
 
     it('hasChanges is true when synopsis changes', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Original synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        review: [{ synopsis: 'Original synopsis', comment: '', entity_id: 1 }],
       });
 
       const { formData, hasChanges, loadReviewData } = useReviewForm();
@@ -385,24 +293,8 @@ describe('useReviewForm', () => {
     });
 
     it('hasChanges is true when comment changes', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: 'Original comment', entity_id: 1 }],
-        });
+      primeReadMocks({
+        review: [{ synopsis: 'Test synopsis', comment: 'Original comment', entity_id: 1 }],
       });
 
       const { formData, hasChanges, loadReviewData } = useReviewForm();
@@ -419,26 +311,10 @@ describe('useReviewForm', () => {
     });
 
     it('hasChanges is true when publications change', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
 
       const { formData, hasChanges, loadReviewData } = useReviewForm();
@@ -455,26 +331,10 @@ describe('useReviewForm', () => {
     });
 
     it('hasChanges returns false after resetForm', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) {
-          return Promise.resolve({
-            data: [{ publication_id: 'PMID:12345678', publication_type: 'additional_references' }],
-          });
-        }
-        if (url.includes('/phenotypes')) {
-          return Promise.resolve({ data: [] });
-        }
-        if (url.includes('/variation')) {
-          return Promise.resolve({ data: [] });
-        }
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
+      primeReadMocks({
+        publications: [
+          { publication_id: 'PMID:12345678', publication_type: 'additional_references' },
+        ],
       });
 
       const { formData, hasChanges, loadReviewData, resetForm } = useReviewForm();
@@ -495,51 +355,44 @@ describe('useReviewForm', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // v11.0 closeout F2a: authenticated submit no longer attaches an inline
-  // Authorization header — the apiClient request interceptor
-  // (`@/api/client`) injects the Bearer token on every outbound call against
-  // the shared axios singleton. The existing tests above mock the axios
-  // module wholesale, which means the interceptor never fires (we're not
-  // talking to the real axios). We can still assert the *source-level*
-  // contract: the PUT config passed to axios.put() no longer carries a
-  // `headers` field. If a future regression re-adds the inline header,
-  // this assertion fails — which is exactly the tighter Layer 2 contract
-  // the closeout plan requires. No existing assertion is weakened.
+  // v11.1 W4: the F2a header-policy assertion from the legacy spec moved up to
+  // the typed-API layer. The composable forwards a body to apiClient.{put,
+  // post} with no inline headers field; the apiClient request interceptor is
+  // the single header source. The assertions below pin the call shape the
+  // composable controls — URL with the `?re_review=...` suffix and a
+  // `{ review_json }` body wrapper.
   // ---------------------------------------------------------------------------
-  describe('F2a: submit no longer supplies an inline Authorization header', () => {
-    it('axios.put config passed by submitForm has no headers field', async () => {
-      const axiosMod = await import('axios');
-      const mockAxios = axiosMod.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockImplementation((url: string) => {
-        if (url.includes('/publications')) return Promise.resolve({ data: [] });
-        if (url.includes('/phenotypes')) return Promise.resolve({ data: [] });
-        if (url.includes('/variation')) return Promise.resolve({ data: [] });
-        return Promise.resolve({
-          data: [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
-        });
-      });
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
+  describe('apiClient call shape (post-W4 migration)', () => {
+    it('PUT update path: URL carries ?re_review=true and body is wrapped in { review_json }', async () => {
+      primeReadMocks({});
 
       const { loadReviewData, submitForm } = useReviewForm();
       await loadReviewData(1);
       await flushPromises();
 
-      await submitForm(true, false);
+      await submitForm(true, true);
       await flushPromises();
 
-      expect(mockAxios.put).toHaveBeenCalledTimes(1);
-      const config = mockAxios.put.mock.calls[0][2] as
-        | { headers?: Record<string, string>; withCredentials?: boolean }
-        | undefined;
-      // The migrated call passes `{ withCredentials: true }` with no
-      // `headers` — the interceptor is the single header source now.
-      expect(config).toBeDefined();
-      expect(config?.withCredentials).toBe(true);
-      expect(config?.headers).toBeUndefined();
+      expect(apiClientMock.put).toHaveBeenCalledTimes(1);
+      const [url, body] = apiClientMock.put.mock.calls[0];
+      expect(url).toBe('/api/review/update?re_review=true');
+      expect(body).toHaveProperty('review_json');
+    });
+
+    it('POST create path: URL carries ?re_review=false and body is wrapped in { review_json }', async () => {
+      primeReadMocks({});
+
+      const { loadReviewData, submitForm } = useReviewForm();
+      await loadReviewData(1);
+      await flushPromises();
+
+      await submitForm(false, false);
+      await flushPromises();
+
+      expect(apiClientMock.post).toHaveBeenCalledTimes(1);
+      const [url, body] = apiClientMock.post.mock.calls[0];
+      expect(url).toBe('/api/review/create?re_review=false');
+      expect(body).toHaveProperty('review_json');
     });
   });
 });

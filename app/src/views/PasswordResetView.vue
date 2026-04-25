@@ -78,6 +78,7 @@ import { useHead } from '@unhead/vue';
 import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max, email } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
+import { requestPasswordReset, resetPasswordWithToken } from '@/api/user';
 
 // Define validation rules
 defineRule('required', required);
@@ -193,15 +194,13 @@ export default {
       }
     },
     async requestPasswordReset() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/request`;
-
       try {
         // POST with JSON body per OWASP guidelines (email should not be in URL)
-        const responseResetRequest = await this.axios.post(apiUrl, {
+        await requestPasswordReset({
           email: this.emailEntry,
         });
         this.makeToast(
-          `If the mail exists your request has been sent (status ${responseResetRequest.status} - ${responseResetRequest.statusText}).`,
+          'If the mail exists your request has been sent.',
           'Success',
           'success'
         );
@@ -218,11 +217,9 @@ export default {
       }, 1000);
     },
     async doPasswordChange() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/password/reset/change`;
       try {
         // POST with JSON body per OWASP guidelines (passwords MUST NOT be in URLs)
-        await this.axios.post(
-          apiUrl,
+        await resetPasswordWithToken(
           {
             password: this.newPasswordEntry,
             password_confirm: this.newPasswordRepeat,

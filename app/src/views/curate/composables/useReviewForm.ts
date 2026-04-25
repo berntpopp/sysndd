@@ -12,12 +12,24 @@
  */
 
 import { ref, reactive, computed, watch } from 'vue';
-import axios from 'axios';
 import Review from '@/assets/js/classes/submission/submissionReview';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
 import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
+import {
+  getReviewById,
+  getReviewPhenotypes,
+  getReviewVariation,
+  getReviewPublications,
+} from '@/api/review';
+// W4 note: the create/update review writes pass through the typed apiClient
+// directly (rather than the @/api/review createReview/updateReview helpers)
+// so the wire-format URL keeps the `?re_review=...` suffix, matching the
+// existing Review.spec.ts (W6-owned) assertion contract. Once W6 rewrites
+// Review.spec.ts to inspect config.params separately, this can collapse to
+// the typed helpers with their `params` argument.
+import { apiClient } from '@/api/client';
 
 // Types
 export interface ReviewFormData {
@@ -237,49 +249,43 @@ export default function useReviewForm(entityId?: string | number) {
     loading.value = true;
     reviewId.value = reviewIdInput;
 
-    const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/review/${reviewIdInput}`;
-    const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/review/${reviewIdInput}/phenotypes`;
-    const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/review/${reviewIdInput}/variation`;
-    const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL}/api/review/${reviewIdInput}/publications`;
-
     try {
-      const [responseReview, responsePhenotypes, responseVariation, responsePublications] =
+      const [reviewData, phenotypesData, variationData, publicationsData] =
         await Promise.all([
-          axios.get(apiGetReviewURL, { withCredentials: true }),
-          axios.get(apiGetPhenotypesURL, { withCredentials: true }),
-          axios.get(apiGetVariationURL, { withCredentials: true }),
-          axios.get(apiGetPublicationsURL, { withCredentials: true }),
+          getReviewById(reviewIdInput),
+          getReviewPhenotypes(reviewIdInput),
+          getReviewVariation(reviewIdInput),
+          getReviewPublications(reviewIdInput),
         ]);
 
       // Load synopsis and comment
-      if (responseReview.data && responseReview.data.length > 0) {
-        formData.synopsis = responseReview.data[0].synopsis || '';
-        formData.comment = responseReview.data[0].comment || '';
-        entityIdRef.value = responseReview.data[0].entity_id;
+      if (reviewData && reviewData.length > 0) {
+        formData.synopsis = reviewData[0].synopsis || '';
+        formData.comment = reviewData[0].comment || '';
+        entityIdRef.value = reviewData[0].entity_id;
       }
 
       // Load phenotypes (format: "modifier_id-phenotype_id")
-      formData.phenotypes = responsePhenotypes.data.map(
-        (item: { phenotype_id: number; modifier_id: number }) =>
-          `${item.modifier_id}-${item.phenotype_id}`
+      formData.phenotypes = phenotypesData.map(
+        (item) => `${item.modifier_id}-${item.phenotype_id}`,
       );
 
       // Load variation ontology (format: "modifier_id-vario_id")
-      formData.variationOntology = responseVariation.data.map(
-        (item: { vario_id: number; modifier_id: number }) => `${item.modifier_id}-${item.vario_id}`
+      formData.variationOntology = variationData.map(
+        (item) => `${item.modifier_id}-${item.vario_id}`,
       );
 
       // Load publications (filter by type)
-      const publicationsData = responsePublications.data as Array<{
+      const publications = publicationsData as Array<{
         publication_id: string;
         publication_type: string;
       }>;
 
-      formData.genereviews = publicationsData
+      formData.genereviews = publications
         .filter((item) => item.publication_type === 'gene_review')
         .map((item) => item.publication_id);
 
-      formData.publications = publicationsData
+      formData.publications = publications
         .filter((item) => item.publication_type === 'additional_references')
         .map((item) => item.publication_id);
 
@@ -358,24 +364,20 @@ export default function useReviewForm(entityId?: string | number) {
     reviewSubmission.review_id = reviewId.value;
     reviewSubmission.entity_id = entityIdRef.value;
 
-    // Determine API endpoint
-    const method = isUpdate ? 'put' : 'post';
-    const action = isUpdate ? 'update' : 'create';
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/${action}?re_review=${reReview}`;
-
     // Submit to API.
     // v11.0 closeout F2a: the inline Authorization header construction
     // has been removed. The `apiClient` request interceptor
     // (`@/api/client`) reads `useAuth().token.value` and injects the
     // Bearer header on every outbound call against the shared axios
     // singleton.
-    await axios[method](
-      apiUrl,
-      { review_json: reviewData },
-      {
-        withCredentials: true,
-      }
-    );
+    const action = isUpdate ? 'update' : 'create';
+    const url = `/api/review/${action}?re_review=${reReview}`;
+    const reviewBody = { review_json: reviewSubmission };
+    if (isUpdate) {
+      await apiClient.put(url, reviewBody);
+    } else {
+      await apiClient.post(url, reviewBody);
+    }
 
     // Clear draft on successful submission
     clearDraft();

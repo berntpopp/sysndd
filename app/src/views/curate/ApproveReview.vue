@@ -213,7 +213,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, reactive, watch, getCurrentInstance } from 'vue';
-import axios from 'axios';
+import type { AxiosInstance } from 'axios';
+import { apiClient } from '@/api/client';
 import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 
@@ -274,12 +275,15 @@ useText();
 const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 const uiStore = useUiStore();
 
-// Resolve axios lazily so `this.axios` (Vue Test Utils mocks) wins over the
-// module import during unit tests. See C1 spec contract.
+// Resolve the HTTP client lazily so `this.axios` (Vue Test Utils mocks) wins
+// over the production fallback during unit tests. See C1 spec contract.
+// Production fallback: `apiClient.raw` exposes the same `.get/.put/.post`
+// surface with full AxiosResponse return shape, against the configured
+// singleton (which carries the 401 + Authorization request interceptors).
 const instance = getCurrentInstance();
-const getAxios = () => {
-  const injected = (instance?.proxy as unknown as { axios?: typeof axios } | undefined)?.axios;
-  return injected ?? axios;
+const getAxios = (): AxiosInstance => {
+  const injected = (instance?.proxy as unknown as { axios?: AxiosInstance } | undefined)?.axios;
+  return injected ?? (apiClient.raw as unknown as AxiosInstance);
 };
 const showModal = (id: string): void => {
   const handle = (instance?.proxy as unknown as { $refs?: Record<string, unknown> } | undefined)

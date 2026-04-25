@@ -71,6 +71,7 @@ import { useForm, useField, defineRule } from 'vee-validate';
 import { required, min, max } from '@vee-validate/rules';
 import useToast from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { authenticate, signin } from '@/api/auth';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -145,26 +146,11 @@ export default {
       // OWASP: credentials MUST go in the JSON body, never in URL query params
       // (query strings leak into access logs, Traefik logs, and browser history).
       // See api/endpoints/authentication_endpoints.R `@post authenticate`.
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/authenticate`;
+      // The typed `authenticate()` helper unwraps the Plumber scalar-array
+      // envelope before returning the bare token string.
       try {
-        const response_authenticate = await this.axios.post(apiAuthenticateURL, {
-          user_name: this.user_name,
-          password: this.password,
-        });
-        // R/Plumber wraps the scalar token in a single-element array, but
-        // master also tolerated a bare string body. Validate the shape before
-        // calling signinWithJWT — without this guard (Copilot Fix 4), a
-        // malformed 200 response would hand `undefined` to signinWithJWT,
-        // which would then send "Bearer undefined" to /signin and call
-        // `auth.login(undefined, ...)` after it (eventually) succeeded or
-        // failed with a confusing 401.
-        const raw = response_authenticate.data;
-        let token;
-        if (typeof raw === 'string') {
-          token = raw;
-        } else if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'string') {
-          token = raw[0];
-        } else {
+        const token = await authenticate(this.user_name, this.password);
+        if (typeof token !== 'string' || !token) {
           this.makeToast(
             'Authentication failed: invalid token shape from server',
             'Error',
@@ -172,16 +158,8 @@ export default {
           );
           return;
         }
-        if (!token) {
-          this.makeToast(
-            'Authentication failed: empty token from server',
-            'Error',
-            'danger'
-          );
-          return;
-        }
         this.makeToast(
-          `You have logged in (status ${response_authenticate.status} - ${response_authenticate.statusText}).`,
+          'You have logged in.',
           'Success',
           'success'
         );
@@ -197,14 +175,13 @@ export default {
       // `auth.login()` only fires after we have both pieces — splitting
       // login into "set token" + "set user" would expose an intermediate
       // half-logged-in state other tabs/components could observe.
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL, {
+        const userPayload = await signin({
           headers: {
             Authorization: `Bearer ${token}`, // closeout-exception-E1: bootstrap two-step handshake; useAuth.login() requires both token+user atomically (§3.4)
           },
         });
-        this.auth.login(token, response_signin.data);
+        this.auth.login(token, userPayload);
         this.$router.push('/');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

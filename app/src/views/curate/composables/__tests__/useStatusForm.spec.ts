@@ -3,20 +3,28 @@
  * Unit tests for useStatusForm composable
  *
  * Tests change detection functionality to enable silent skip when no changes are made
+ *
+ * v11.1 W4: the composable migrated from raw `axios.{get,put,post}(...)` to
+ * the typed `@/api/status` + `@/api/entity` clients. The tests now mock
+ * those helpers directly — keeps the change-detection contract intact while
+ * letting the helper layer remain the single source of HTTP shape truth.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { flushPromises } from '@vue/test-utils';
-import useStatusForm from '../useStatusForm';
 
-// Mock axios
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-  },
+// Mock the typed-API surface BEFORE the composable imports it.
+const statusApiMocks = vi.hoisted(() => ({
+  getStatusById: vi.fn(),
+  createStatus: vi.fn(),
+  updateStatus: vi.fn(),
 }));
+const entityApiMocks = vi.hoisted(() => ({
+  getEntityStatus: vi.fn(),
+}));
+
+vi.mock('@/api/status', () => statusApiMocks);
+vi.mock('@/api/entity', () => entityApiMocks);
 
 // Mock useFormDraft composable
 vi.mock('@/composables/useFormDraft', () => ({
@@ -31,9 +39,13 @@ vi.mock('@/composables/useFormDraft', () => ({
   })),
 }));
 
+import useStatusForm from '../useStatusForm';
+
 describe('useStatusForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    statusApiMocks.createStatus.mockResolvedValue({ status: 200 });
+    statusApiMocks.updateStatus.mockResolvedValue({ status: 200 });
   });
 
   describe('Change detection', () => {
@@ -43,23 +55,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges is false immediately after loadStatusByEntity', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      // Mock API response
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment',
+          problematic: false,
+        },
+      ]);
 
       const { hasChanges, loadStatusByEntity } = useStatusForm();
 
@@ -71,22 +75,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges is true when category_id changes', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment',
+          problematic: false,
+        },
+      ]);
 
       const { formData, hasChanges, loadStatusByEntity } = useStatusForm();
 
@@ -102,22 +99,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges is true when comment changes', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Original comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Original comment',
+          problematic: false,
+        },
+      ]);
 
       const { formData, hasChanges, loadStatusByEntity } = useStatusForm();
 
@@ -133,22 +123,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges is true when problematic changes', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment',
+          problematic: false,
+        },
+      ]);
 
       const { formData, hasChanges, loadStatusByEntity } = useStatusForm();
 
@@ -164,22 +147,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges detects whitespace changes in comment (exact comparison)', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment',
+          problematic: false,
+        },
+      ]);
 
       const { formData, hasChanges, loadStatusByEntity } = useStatusForm();
 
@@ -195,22 +171,15 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges returns false after resetForm', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment',
-            problematic: false,
-          },
-        ],
-      });
+      entityApiMocks.getEntityStatus.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment',
+          problematic: false,
+        },
+      ]);
 
       const { formData, hasChanges, loadStatusByEntity, resetForm } = useStatusForm();
 
@@ -229,25 +198,18 @@ describe('useStatusForm', () => {
     });
 
     it('hasChanges is false after loadStatusData', async () => {
-      const axios = await import('axios');
-      const mockAxios = axios.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-      };
-
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 123,
-            category_id: 2,
-            comment: 'Test comment via loadStatusData',
-            problematic: true,
-            status_user_name: 'test_user',
-            status_user_role: 'curator',
-            status_date: '2024-01-01',
-          },
-        ],
-      });
+      statusApiMocks.getStatusById.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 123,
+          category_id: 2,
+          comment: 'Test comment via loadStatusData',
+          problematic: true,
+          status_user_name: 'test_user',
+          status_user_role: 'curator',
+          status_date: '2024-01-01',
+        },
+      ]);
 
       const { hasChanges, loadStatusData } = useStatusForm();
 
@@ -260,48 +222,28 @@ describe('useStatusForm', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // v11.0 closeout F2a: authenticated submit no longer attaches an inline
-  // Authorization header — the apiClient request interceptor
-  // (`@/api/client`) injects the Bearer token on every outbound call against
-  // the shared axios singleton. `useStatusForm.ts` used to read
-  // `localStorage.getItem('token')` twice (update + create paths) and
-  // attach `Authorization: Bearer <token>` via the request config; both of
-  // those are gone. Because this file mocks the axios module wholesale we
-  // cannot test interceptor behaviour directly; we assert the *source-
-  // level* contract instead — the config passed to axios.put/post has no
-  // `headers` field. A regression that re-adds the inline header would
-  // fail this assertion.
+  // v11.1 W4: the F2a header-policy assertion from the legacy spec moved up to
+  // the typed-API layer (`@/api/status` → `@/api/client`). The composable
+  // forwards a body and a `params` argument; it can no longer attach an
+  // inline `headers` field. The typed-helper test suite owns the header
+  // contract now (`app/src/api/status.spec.ts`), so this spec asserts only
+  // the call shape the composable controls — body wrapping plus the
+  // re_review query param toggle.
   // ---------------------------------------------------------------------------
-  describe('F2a: submit no longer supplies an inline Authorization header', () => {
+  describe('Typed-API call shape (post-W4 migration)', () => {
     beforeEach(() => {
-      vi.clearAllMocks();
+      statusApiMocks.getStatusById.mockResolvedValue([
+        {
+          status_id: 1,
+          entity_id: 99,
+          category_id: 2,
+          comment: 'load',
+          problematic: false,
+        },
+      ]);
     });
 
-    async function primeAxiosWithStatusRow() {
-      const axiosMod = await import('axios');
-      const mockAxios = axiosMod.default as unknown as {
-        get: ReturnType<typeof vi.fn>;
-        put: ReturnType<typeof vi.fn>;
-        post: ReturnType<typeof vi.fn>;
-      };
-      mockAxios.get.mockResolvedValue({
-        data: [
-          {
-            status_id: 1,
-            entity_id: 99,
-            category_id: 2,
-            comment: 'load',
-            problematic: false,
-          },
-        ],
-      });
-      mockAxios.put.mockResolvedValue({ data: { success: true } });
-      mockAxios.post.mockResolvedValue({ data: { success: true } });
-      return mockAxios;
-    }
-
-    it('axios.put config (update path) has no headers field', async () => {
-      const mockAxios = await primeAxiosWithStatusRow();
+    it('updateStatus is called with { status_json } body and re_review=false by default', async () => {
       const { loadStatusData, submitForm } = useStatusForm();
 
       await loadStatusData(1, 0);
@@ -309,31 +251,26 @@ describe('useStatusForm', () => {
       await submitForm(true, false);
       await flushPromises();
 
-      expect(mockAxios.put).toHaveBeenCalledTimes(1);
-      const config = mockAxios.put.mock.calls[0][2] as
-        | { headers?: Record<string, string>; withCredentials?: boolean }
-        | undefined;
-      expect(config).toBeDefined();
-      expect(config?.withCredentials).toBe(true);
-      expect(config?.headers).toBeUndefined();
+      expect(statusApiMocks.updateStatus).toHaveBeenCalledTimes(1);
+      const [body, params] = statusApiMocks.updateStatus.mock.calls[0];
+      expect(body).toHaveProperty('status_json');
+      // Default behaviour: when re_review=false the composable passes an
+      // empty params object (only sets the flag when re_review is truthy).
+      expect(params).toEqual({});
     });
 
-    it('axios.post config (create path) has no headers field', async () => {
-      const mockAxios = await primeAxiosWithStatusRow();
+    it('createStatus is called with { status_json } body and re_review=true when requested', async () => {
       const { loadStatusData, submitForm } = useStatusForm();
 
       await loadStatusData(1, 0);
       await flushPromises();
-      await submitForm(false, false);
+      await submitForm(false, true);
       await flushPromises();
 
-      expect(mockAxios.post).toHaveBeenCalledTimes(1);
-      const config = mockAxios.post.mock.calls[0][2] as
-        | { headers?: Record<string, string>; withCredentials?: boolean }
-        | undefined;
-      expect(config).toBeDefined();
-      expect(config?.withCredentials).toBe(true);
-      expect(config?.headers).toBeUndefined();
+      expect(statusApiMocks.createStatus).toHaveBeenCalledTimes(1);
+      const [body, params] = statusApiMocks.createStatus.mock.calls[0];
+      expect(body).toHaveProperty('status_json');
+      expect(params).toEqual({ re_review: true });
     });
   });
 });

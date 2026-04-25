@@ -7,10 +7,12 @@
  * icon legend, modal titles, keyboard navigation, and form labels.
  */
 
-import { describe, it, vi } from 'vitest';
+import { describe, it, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia } from 'pinia';
+import { http, HttpResponse } from 'msw';
 import { expectNoA11yViolations, bootstrapStubs } from '@/test-utils';
+import { server } from '@/test-utils/mocks/server';
 import ModifyEntity from './ModifyEntity.vue';
 
 // Mock composables
@@ -78,6 +80,19 @@ describe('ModifyEntity accessibility', () => {
   const axeOptions = {
     rules: { region: { enabled: false } },
   };
+
+  // v11.1 W4: the read loaders (`loadStatusList`, `loadPhenotypesList`,
+  // `loadVariationOntologyList`) used to flow through `this.axios.get(...)`
+  // and were caught by `mockAxios`. After migration they go through the typed
+  // `@/api/list` clients → shared axios singleton → MSW. Provide empty-array
+  // defaults so the loaders resolve cleanly during mount.
+  beforeEach(() => {
+    server.use(
+      http.get('/api/list/status', () => HttpResponse.json([])),
+      http.get('/api/list/phenotype', () => HttpResponse.json([])),
+      http.get('/api/list/variation_ontology', () => HttpResponse.json([])),
+    );
+  });
 
   const mountComponent = async () => {
     const pinia = createPinia();

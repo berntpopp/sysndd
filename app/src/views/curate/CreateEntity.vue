@@ -103,12 +103,21 @@
 <script lang="ts">
 import { defineComponent, ref, provide, onMounted, watch } from 'vue';
 import { BContainer, BRow, BCol, BOverlay, BAlert, BButton } from 'bootstrap-vue-next';
-import axios from 'axios';
 
 // Composables
 import { useToast, type TreeNode } from '@/composables';
 import useEntityForm, { type SelectOption, type EntityFormData } from '@/composables/useEntityForm';
 import useFormDraft from '@/composables/useFormDraft';
+
+// Typed API clients
+import {
+  listInheritanceTree,
+  listPhenotypesTree,
+  listVariationOntologyTree,
+  listStatusCategoriesTree,
+} from '@/api/list';
+import { searchGene, searchOntology } from '@/api/search';
+import { createEntity } from '@/api/entity';
 
 // Components
 import FormWizard from '@/components/forms/wizard/FormWizard.vue';
@@ -214,14 +223,21 @@ export default defineComponent({
       { deep: true }
     );
 
-    // API helper for loading flat options (inheritance, status)
-    const loadFlatOptions = async (endpoint: string, targetRef: typeof inheritanceOptions) => {
+    // API helper for loading flat options (inheritance, status). Maps the
+    // legacy `endpoint` string (`"inheritance"` | `"status"`) to the
+    // corresponding typed-tree client; `flattenTreeOptions` then collapses
+    // the tree into a flat <SelectOption> list.
+    const loadFlatOptions = async (
+      endpoint: 'inheritance' | 'status',
+      targetRef: typeof inheritanceOptions,
+    ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
-          { withCredentials: true }
+        const fetcher =
+          endpoint === 'inheritance' ? listInheritanceTree : listStatusCategoriesTree;
+        const data = await fetcher();
+        targetRef.value = flattenTreeOptions(
+          data as { id: string; label: string; children?: unknown[] }[],
         );
-        targetRef.value = flattenTreeOptions(response.data);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
       }
@@ -272,14 +288,23 @@ export default defineComponent({
       });
     };
 
-    // API helper for loading tree options (phenotypes, variations)
-    const loadTreeOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
+    // API helper for loading tree options (phenotypes, variations). Maps
+    // the legacy `endpoint` string to the matching typed-tree client.
+    const loadTreeOptions = async (
+      endpoint: 'phenotype' | 'variation_ontology',
+      targetRef: typeof phenotypeOptions,
+    ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
-          { withCredentials: true }
-        );
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const fetcher =
+          endpoint === 'phenotype' ? listPhenotypesTree : listVariationOntologyTree;
+        const data = await fetcher();
+        const rawData = (Array.isArray(data)
+          ? data
+          : ((data as { data?: unknown[] })?.data ?? [])) as {
+          id: string;
+          label: string;
+          children?: { id: string; label: string }[];
+        }[];
         targetRef.value = transformModifierTree(rawData);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
@@ -309,11 +334,8 @@ export default defineComponent({
       callback: (results: Record<string, unknown>[]) => void
     ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/gene/${query}?tree=true`,
-          { withCredentials: true }
-        );
-        callback(response.data);
+        const data = await searchGene(query, { tree: true });
+        callback(data as unknown as Record<string, unknown>[]);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
@@ -326,11 +348,8 @@ export default defineComponent({
       callback: (results: Record<string, unknown>[]) => void
     ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/ontology/${query}?tree=true`,
-          { withCredentials: true }
-        );
-        callback(response.data);
+        const data = await searchOntology(query, { tree: true });
+        callback(data as unknown as Record<string, unknown>[]);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
@@ -416,23 +435,19 @@ export default defineComponent({
 
       try {
         const submission = buildSubmissionObject();
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/create?direct_approval=${directApproval.value}`;
 
         // v11.0 closeout F2a: the inline Authorization header construction
         // here has been removed. The `apiClient` request interceptor
         // (`@/api/client`) reads `useAuth().token.value` and injects the
         // Bearer header on every outbound call against the shared axios
         // singleton.
-        const response = await axios.post(
-          apiUrl,
-          { create_json: submission },
-          {
-            withCredentials: true,
-          }
+        await createEntity(
+          { create_json: submission as unknown as Parameters<typeof createEntity>[0]['create_json'] },
+          { direct_approval: directApproval.value },
         );
 
         makeToast(
-          `Entity submitted successfully (status ${response.status})`,
+          'Entity submitted successfully',
           'Success',
           'success'
         );
