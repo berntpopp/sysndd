@@ -229,6 +229,19 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
     // Bearer on the migrated POSTs. The existing tests don't pin the
     // header — the new F2b tests below do.
     primeAuth('modify-entity-token');
+
+    // v11.1 W4: the read loaders (`loadStatusList`, `loadPhenotypesList`,
+    // `loadVariationOntologyList`) used to flow through `this.axios.get(...)`
+    // and were caught by the per-component `axiosMock`. After migration they
+    // go through the typed `@/api/list` clients → shared axios singleton →
+    // MSW. Provide empty-array defaults so the loaders resolve cleanly and
+    // the rename / deactivate / review test cases see only the toast their
+    // POST handler emits.
+    server.use(
+      http.get('/api/list/status', () => HttpResponse.json([])),
+      http.get('/api/list/phenotype', () => HttpResponse.json([])),
+      http.get('/api/list/variation_ontology', () => HttpResponse.json([])),
+    );
   });
 
   afterEach(() => {

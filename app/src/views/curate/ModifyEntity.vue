@@ -773,6 +773,20 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 // shared request interceptor; call sites no longer read localStorage
 // directly.
 import { apiClient } from '@/api/client';
+import {
+  listPhenotypesTree,
+  listVariationOntologyTree,
+  listStatusCategoriesTree,
+} from '@/api/list';
+import { searchOntology } from '@/api/search';
+import {
+  listEntities,
+  getEntityReview,
+  getEntityPhenotypes,
+  getEntityVariation,
+  getEntityPublications,
+  getEntityStatus,
+} from '@/api/entity';
 
 export default {
   name: 'ModifyEntity',
@@ -924,10 +938,9 @@ export default {
       });
     },
     async loadPhenotypesList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const data = await listPhenotypesTree();
+        const rawData = Array.isArray(data) ? data : data?.data || [];
         // Transform to make all modifiers selectable
         this.phenotypes_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -936,10 +949,9 @@ export default {
       }
     },
     async loadVariationOntologyList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const data = await listVariationOntologyTree();
+        const rawData = Array.isArray(data) ? data : data?.data || [];
         // Transform to make all modifiers selectable
         this.variation_ontology_options = this.transformModifierTree(rawData);
       } catch (e) {
@@ -949,12 +961,9 @@ export default {
     },
     async loadStatusList() {
       this.status_options_loading = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status?tree=true`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.status_options = Array.isArray(response.data)
-          ? response.data
-          : response.data?.data || [];
+        const data = await listStatusCategoriesTree();
+        this.status_options = Array.isArray(data) ? data : data?.data || [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.status_options = [];
@@ -969,11 +978,11 @@ export default {
       }
 
       this.entity_search_loading = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${encodeURIComponent(query)})`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        const data = response.data?.data || response.data || [];
+        const response = await listEntities({
+          filter: `contains(any,${query})`,
+        });
+        const data = response?.data || [];
         this.entity_search_results = Array.isArray(data) ? data.slice(0, 10) : [];
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -989,13 +998,11 @@ export default {
       }
 
       this.ontology_search_loading = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/search/ontology/${encodeURIComponent(query)}?tree=true`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await searchOntology(query, { tree: true });
         // Ontology API returns flat array with {id, label} format
-        const data = Array.isArray(response.data) ? response.data : [];
-        this.ontology_search_results = data.slice(0, 10);
+        const arr = Array.isArray(data) ? data : [];
+        this.ontology_search_results = arr.slice(0, 10);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
         this.ontology_search_results = [];
@@ -1013,11 +1020,11 @@ export default {
       }
 
       this.replace_entity_search_loading = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${encodeURIComponent(query)})`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        const data = response.data?.data || response.data || [];
+        const response = await listEntities({
+          filter: `contains(any,${query})`,
+        });
+        const data = response?.data || [];
         // Filter out the current entity from replacement options
         const filtered = Array.isArray(data)
           ? data.filter((e) => e.entity_id !== this.entity_info.entity_id).slice(0, 10)
@@ -1052,28 +1059,24 @@ export default {
       }
     },
     async searchEntityInfo({ searchQuery, callback }) {
-      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=contains(any,${
-        searchQuery
-      })`;
-
       try {
-        const response_search = await this.axios.get(apiSearchURL);
+        const response_search = await listEntities({
+          filter: `contains(any,${searchQuery})`,
+        });
 
-        callback(null, response_search.data.data);
+        callback(null, response_search.data);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
     },
     async getEntity() {
-      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
-        this.modify_entity_input
-      })`;
-
       try {
-        const response = await this.axios.get(apiGetURL);
+        const response = await listEntities({
+          filter: `equals(entity_id,${this.modify_entity_input})`,
+        });
 
         // Defensive check for valid response data
-        const entityData = response.data?.data;
+        const entityData = response?.data;
         if (!Array.isArray(entityData) || entityData.length === 0) {
           this.makeToast(`Entity ${this.modify_entity_input} not found`, 'Error', 'danger');
           this.entity_info = {};
@@ -1093,49 +1096,36 @@ export default {
     async getReview() {
       this.loading_review_modal = true;
 
-      const apiGetReviewURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.modify_entity_input
-      }/review`;
-      const apiGetPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.modify_entity_input
-      }/phenotypes`;
-      const apiGetVariationURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.modify_entity_input
-      }/variation`;
-      const apiGetPublicationsURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.modify_entity_input
-      }/publications`;
-
       try {
-        const response_review = await this.axios.get(apiGetReviewURL);
-        const response_phenotypes = await this.axios.get(apiGetPhenotypesURL);
-        const response_variation = await this.axios.get(apiGetVariationURL);
-        const response_publications = await this.axios.get(apiGetPublicationsURL);
+        const review_data = await getEntityReview(this.modify_entity_input);
+        const phenotypes_data = await getEntityPhenotypes(this.modify_entity_input);
+        const variation_data = await getEntityVariation(this.modify_entity_input);
+        const publications_data = await getEntityPublications(this.modify_entity_input);
 
         // define phenotype specific attributes as constants from response
-        const new_phenotype = response_phenotypes.data.map(
+        const new_phenotype = phenotypes_data.map(
           (item) => new Phenotype(item.phenotype_id, item.modifier_id)
         );
 
-        this.select_phenotype = response_phenotypes.data.map(
+        this.select_phenotype = phenotypes_data.map(
           (item) => `${item.modifier_id}-${item.phenotype_id}`
         );
 
         // define variation specific attributes as constants from response
-        const new_variation = response_variation.data.map(
+        const new_variation = variation_data.map(
           (item) => new Variation(item.vario_id, item.modifier_id)
         );
 
-        this.select_variation = response_variation.data.map(
+        this.select_variation = variation_data.map(
           (item) => `${item.modifier_id}-${item.vario_id}`
         );
 
         // define publication specific attributes as constants from response
-        const literature_gene_reviews = response_publications.data
+        const literature_gene_reviews = publications_data
           .filter((item) => item.publication_type === 'gene_review')
           .map((item) => item.publication_id);
 
-        const literature_additional_references = response_publications.data
+        const literature_additional_references = publications_data
           .filter((item) => item.publication_type === 'additional_references')
           .map((item) => item.publication_id);
 
@@ -1149,15 +1139,15 @@ export default {
 
         // compose review
         this.review_info = new Review(
-          response_review.data[0].synopsis,
+          review_data[0].synopsis,
           new_literature,
           new_phenotype,
           new_variation,
-          response_review.data[0].comment
+          review_data[0].comment
         );
 
-        this.review_info.review_id = response_review.data[0].review_id;
-        this.review_info.entity_id = response_review.data[0].entity_id;
+        this.review_info.review_id = review_data[0].review_id;
+        this.review_info.entity_id = review_data[0].entity_id;
 
         // Snapshot loaded data for change detection
         this.reviewLoadedData = {
@@ -1177,22 +1167,18 @@ export default {
     async getStatus() {
       this.loading_status_modal = true;
 
-      const apiGetURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.modify_entity_input
-      }/status`;
-
       try {
-        const response = await this.axios.get(apiGetURL);
+        const status_data = await getEntityStatus(this.modify_entity_input);
 
         // compose entity
         this.status_info = new Status(
-          response.data[0].category_id,
-          response.data[0].comment,
-          response.data[0].problematic
+          status_data[0].category_id,
+          status_data[0].comment,
+          status_data[0].problematic
         );
 
-        this.status_info.status_id = response.data[0].status_id;
-        this.status_info.entity_id = response.data[0].entity_id;
+        this.status_info.status_id = status_data[0].status_id;
+        this.status_info.entity_id = status_data[0].entity_id;
 
         this.loading_status_modal = false;
       } catch (e) {
@@ -1228,13 +1214,9 @@ export default {
       }));
     },
     async loadOntologyInfoTree({ searchQuery, callback }) {
-      const apiSearchURL = `${import.meta.env.VITE_API_URL}/api/search/ontology/${
-        searchQuery
-      }?tree=true`;
-
       try {
-        const response_search = await this.axios.get(apiSearchURL);
-        callback(null, response_search.data);
+        const data = await searchOntology(searchQuery, { tree: true });
+        callback(null, data);
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }
