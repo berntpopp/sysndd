@@ -46,6 +46,9 @@ import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import * as d3 from 'd3';
 
+// Typed API client (W5)
+import { getVariantCorrelation } from '@/api/variant';
+
 export default {
   name: 'AnalysesVariantCorrelogram',
   components: {
@@ -73,12 +76,9 @@ export default {
     async loadMatrixData() {
       this.loadingMatrix = true;
 
-      // Point to your variant correlation endpoint
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/variant/correlation`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        this.itemsMatrix = response.data;
+        const data = await getVariantCorrelation();
+        this.itemsMatrix = data;
 
         this.generateMatrixGraph();
       } catch (e) {
