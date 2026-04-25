@@ -65,6 +65,15 @@ import '@/plugins/axios';
 // flow through one code path (apiClient + unwrapScalar + baseURL). Aliased
 // to avoid shadowing the local `refresh` action exported by useAuth.
 import { refresh as apiAuthRefresh } from '@/api/auth';
+// Router import for `handle401()`'s navigation dispatch (W2 v11.1
+// finish-hardening). `@/router/routes.ts` imports `useAuth()` for its
+// guards — that creates a *value* cycle but not an *initialisation*
+// cycle: `handle401()` only fires from the axios response interceptor,
+// long after every module's module-level code has run. The bundler
+// resolves the cycle by deferring the binding read to call time. The
+// import is wrapped in a try/catch at use site below to keep the unit
+// spec router-free.
+import router from '@/router';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -351,32 +360,104 @@ async function refresh(): Promise<string> {
 }
 
 /**
- * Called (explicitly or implicitly) when a 401 is observed — re-reads
- * `localStorage` to mirror whatever the axios interceptor wrote, so the
- * apiClient request interceptor (which reads `useAuth().token.value`)
- * stops sending the stale Bearer on queued requests. Safe to call
- * multiple times; if the interceptor hasn't cleared localStorage yet, we
- * still fall through to the "cleared" state via `logout()` semantics on
- * re-sync.
+ * Single owner of 401 cleanup (v11.1 W2 finish-hardening).
+ *
+ * Pre-W2, the axios 401 interceptor at `@/plugins/axios` cleared
+ * `localStorage` directly and called `useAuth().handle401()` only to
+ * RE-READ the already-cleared state into the reactive refs. That split
+ * ownership left a small reactive-drift window between the localStorage
+ * write (interceptor) and the ref update (next `syncFromStorage()`),
+ * during which reactive consumers (AppNavbar, route guards) could
+ * observe stale `isAuthenticated`/`token` values.
+ *
+ * W2 collapses both halves of the cleanup into this one function. The
+ * axios interceptor now delegates here; no other code path mutates the
+ * `token`/`user` keys in `localStorage` to clear a session.
+ *
+ * Order matters
+ * -------------
+ * 1. Determine whether a session existed (so we know whether to fire the
+ *    navigation dispatch — silent on no-op calls keeps us idempotent).
+ * 2. Clear `localStorage` first — any downstream `syncFromStorage()` call
+ *    that fires before navigation completes (e.g. another component
+ *    re-reading state) sees the cleared keys.
+ * 3. Clear the reactive refs — observers (navbar, guards) re-render with
+ *    the logged-out state immediately.
+ * 4. Dispatch navigation toward `/Login`. We prefer `router.push` when a
+ *    router is available; fall back to `globalThis.__authNavTarget` for
+ *    test/non-router contexts. The router is imported statically at module
+ *    scope (`import router from '@/router'`). `@/router/routes.ts` imports
+ *    `useAuth()` for guards, so this is a module-graph cycle, but the
+ *    binding is only read when `handle401()` runs after startup rather than
+ *    during module initialisation.
+ *
+ * Idempotency
+ * -----------
+ * Calling `handle401()` more than once is safe: the second call observes
+ * `wasLoggedIn === false` and skips both the redundant clears and the
+ * navigation. The interceptor in `@/plugins/axios` keeps its own
+ * `isLoggingOut` guard for concurrent-401 coalescing; this idempotency
+ * makes that guard belt-and-braces, not load-bearing.
  */
 function handle401(): void {
-  // The interceptor removes the keys directly; re-reading puts refs back
-  // in sync. If for some reason localStorage still has values (e.g. this
-  // is called defensively without an interceptor trigger), treat it as a
-  // hard logout to be safe.
-  const rawToken = localStorage.getItem(TOKEN_KEY);
-  const rawUser = localStorage.getItem(USER_KEY);
-  if (rawToken === null && rawUser === null) {
-    // Interceptor-cleared path: just sync the refs. The apiClient request
-    // interceptor reads `useAuth().token.value`, which is now null, so
-    // queued requests stop carrying the stale Bearer automatically.
-    tokenRef.value = null;
-    userRef.value = null;
+  const wasLoggedIn =
+    tokenRef.value !== null ||
+    userRef.value !== null ||
+    localStorage.getItem(TOKEN_KEY) !== null ||
+    localStorage.getItem(USER_KEY) !== null;
+
+  if (!wasLoggedIn) {
+    // Already cleared — second call from a coalesced 401 storm or a
+    // defensive caller. No-op so we don't spam the navigation dispatch.
     return;
   }
-  // Defensive path: caller invoked handle401() without the interceptor
-  // having run. Force a full logout.
-  logout();
+
+  // Clear persistence first, then reactive refs. Both observers (the
+  // request interceptor reading `tokenRef.value`, and template bindings
+  // watching `userRef`) see the logged-out state on the next tick.
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  tokenRef.value = null;
+  userRef.value = null;
+
+  // Dispatch navigation. We do BOTH a router.push (for the running SPA)
+  // and a globalThis.__authNavTarget assignment (for test contexts and
+  // any non-router caller). The global key is harmless in production —
+  // nothing reads it outside the W2 Vitest contract — and it gives the
+  // unit spec a router-free signal without forcing it to mount a router.
+  (globalThis as Record<string, unknown>).__authNavTarget = '/Login';
+
+  try {
+    // The router is imported statically at module top. The cycle with
+    // `@/router/routes.ts` (which imports `useAuth`) is resolved by the
+    // bundler at call time — `handle401()` runs from the axios response
+    // interceptor, after every module has fully initialised, so the
+    // binding is live. The try/catch keeps the unit spec working when
+    // the router has no mounted history (Vitest environment).
+    if (router && typeof router.push === 'function') {
+      const currentPath = router.currentRoute?.value?.path;
+      // Preserve the user's location so a future LoginView change can
+      // bounce them back after re-auth. The pre-W2 axios interceptor
+      // built this from `currentRoute.value.fullPath`; dropping it was
+      // a forward-compatibility regression flagged in Copilot review.
+      // We only attach `redirect` when the router actually has a route,
+      // to avoid sending `redirect=undefined` when handle401() fires
+      // before the first navigation (cold boot / pre-mount).
+      const currentFullPath = router.currentRoute?.value?.fullPath;
+      if (currentPath !== '/Login') {
+        router.push({
+          path: '/Login',
+          query: currentFullPath
+            ? { reason: 'session-expired', redirect: currentFullPath }
+            : { reason: 'session-expired' },
+        });
+      }
+    }
+  } catch {
+    // No router context (test pre-mount, mount failure): the global
+    // hook above is the only signal. SPA guards / E2E specs assert the
+    // redirect through the actual page transition.
+  }
 }
 
 // ---------------------------------------------------------------------------

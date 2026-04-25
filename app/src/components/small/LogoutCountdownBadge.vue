@@ -9,6 +9,7 @@
 <script>
 import useToast from '@/composables/useToast';
 import { useAuth } from '@/composables/useAuth';
+import { signin } from '@/api/auth';
 
 export default {
   name: 'LogoutCountdownBadge',
@@ -67,12 +68,10 @@ export default {
       // `useAuth` already maintains the axios default Authorization header,
       // so we no longer pass it per-request. The response body is the user
       // payload that login() expects.
-      const apiAuthenticateURL = `${import.meta.env.VITE_API_URL}/api/auth/signin`;
-
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL);
+        const userPayload = await signin();
         if (this.auth.token.value) {
-          this.auth.login(this.auth.token.value, response_signin.data);
+          this.auth.login(this.auth.token.value, userPayload);
         }
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

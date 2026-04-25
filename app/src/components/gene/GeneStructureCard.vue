@@ -39,7 +39,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BSpinner, BButton } from 'bootstrap-vue-next';
-import axios from 'axios';
+import { isApiError } from '@/api/client';
+import { getEnsemblStructure } from '@/api/external';
 import GeneStructurePlot from './GeneStructurePlot.vue';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
@@ -89,26 +90,33 @@ async function fetchEnsemblData() {
   ensemblData.value = null;
 
   try {
-    const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(
-      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`,
-      { withCredentials: true }
-    );
+    const data = await getEnsemblStructure(props.geneSymbol, {
+      withCredentials: true,
+    });
 
-    // Check for API-level not-found or error
-    if (response.data?.found === false) {
+    // Check for API-level not-found or error. The R endpoint normally
+    // emits a 404 + problem+JSON for "gene not in Ensembl" (handled in the
+    // catch branch), but the legacy `{ found: false }` and `{ error: true }`
+    // payload shapes can still arrive from older proxies — keep the runtime
+    // narrowing as a defensive guard rather than trusting the static type.
+    const payload = data as unknown as {
+      found?: boolean;
+      error?: boolean;
+      message?: string;
+    };
+    if (payload?.found === false) {
       // Gene not found in Ensembl -- show empty state (not error)
       ensemblData.value = null;
-    } else if (response.data?.error) {
-      error.value = response.data.message || 'Failed to load gene structure';
+    } else if (payload?.error) {
+      error.value = payload.message || 'Failed to load gene structure';
     } else {
-      ensemblData.value = response.data as EnsemblGeneStructure;
+      ensemblData.value = data;
     }
   } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.status === 404) {
+    if (isApiError(e) && e.response?.status === 404) {
       // 404 = gene not found, show empty state
       ensemblData.value = null;
-    } else if (axios.isAxiosError(e) && e.response?.status === 503) {
+    } else if (isApiError(e) && e.response?.status === 503) {
       error.value = 'Ensembl API temporarily unavailable';
     } else {
       error.value = 'Failed to load gene structure data';

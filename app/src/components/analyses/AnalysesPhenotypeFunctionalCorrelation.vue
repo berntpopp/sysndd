@@ -63,6 +63,9 @@ import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 // import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue'; // If needed
 
+// Typed API client (W5)
+import { getPhenotypeFunctionalCorrelation } from '@/api/analysis';
+
 export default {
   name: 'AnalysesPhenotypeFunctionalCorrelation',
   // components: { DownloadImageButtons }, // If you want the download buttons
@@ -86,11 +89,10 @@ export default {
      */
     async loadCorrelationData() {
       this.loadingCorrelation = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_functional_cluster_correlation`;
       try {
-        const resp = await this.axios.get(apiUrl);
-        this.correlationMatrix = resp.data.correlation_matrix;
-        this.correlationMelted = resp.data.correlation_melted;
+        const data = await getPhenotypeFunctionalCorrelation();
+        this.correlationMatrix = data.correlation_matrix;
+        this.correlationMelted = data.correlation_melted;
         this.renderHeatmap();
       } catch (err) {
         this.makeToast(err.message, 'Error fetching correlation data', 'danger');

@@ -50,7 +50,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useHead } from '@unhead/vue';
-import axios from 'axios';
+import { getComparisonsMetadata } from '@/api/comparisons';
 
 // Types
 interface ComparisonsMetadata {
@@ -108,15 +108,13 @@ function formatDateTime(dateString: string | null): string {
 async function fetchMetadata() {
   loadingMetadata.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/comparisons/metadata`, {
-      withCredentials: true,
-    });
+    const data = await getComparisonsMetadata();
     metadata.value = {
-      last_full_refresh: unwrapValue(response.data.last_full_refresh),
-      last_refresh_status: unwrapValue(response.data.last_refresh_status) ?? 'never',
-      last_refresh_error: unwrapValue(response.data.last_refresh_error),
-      sources_count: unwrapValue(response.data.sources_count) ?? 0,
-      rows_imported: unwrapValue(response.data.rows_imported) ?? 0,
+      last_full_refresh: unwrapValue(data.last_full_refresh),
+      last_refresh_status: unwrapValue(data.last_refresh_status) ?? 'never',
+      last_refresh_error: unwrapValue(data.last_refresh_error),
+      sources_count: unwrapValue(data.sources_count) ?? 0,
+      rows_imported: unwrapValue(data.rows_imported) ?? 0,
     };
   } catch (error) {
     console.warn('Failed to fetch comparisons metadata:', error);

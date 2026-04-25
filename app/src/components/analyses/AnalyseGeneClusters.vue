@@ -363,6 +363,14 @@ import 'splitpanes/dist/splitpanes.css';
 // Import shared cluster color utility for consistent colors
 import { getClusterColor } from '@/utils/clusterColors';
 
+// Typed API clients (W5)
+import {
+  getFunctionalClustering,
+  getFunctionalClusterSummary,
+} from '@/api/analysis';
+import { submitClustering, getJobStatus } from '@/api/jobs';
+import { isApiError } from '@/api/client';
+
 export default {
   name: 'AnalyseGeneClusters',
   components: {
@@ -755,21 +763,19 @@ export default {
       this.loadingStage = 'submitting';
       this.loadingProgress = 5;
 
-      const baseUrl = import.meta.env.VITE_API_URL;
-
       try {
         // Step 1: Submit async job
-        const submitResponse = await this.axios.post(`${baseUrl}/api/jobs/clustering/submit`, {
+        const submitData = await submitClustering({
           algorithm: this.algorithm,
         });
 
         // Extract job info (R returns arrays for scalars)
-        const jobId = Array.isArray(submitResponse.data.job_id)
-          ? submitResponse.data.job_id[0]
-          : submitResponse.data.job_id;
-        const estSeconds = Array.isArray(submitResponse.data.estimated_seconds)
-          ? submitResponse.data.estimated_seconds[0]
-          : submitResponse.data.estimated_seconds;
+        const jobId = Array.isArray(submitData.job_id)
+          ? submitData.job_id[0]
+          : submitData.job_id;
+        const estSeconds = Array.isArray(submitData.estimated_seconds)
+          ? submitData.estimated_seconds[0]
+          : submitData.estimated_seconds;
 
         this.jobId = jobId;
         this.estimatedSeconds = estSeconds || 30;
@@ -781,10 +787,11 @@ export default {
         await this.pollJobStatus();
       } catch (e) {
         // Handle 409 Conflict (duplicate job) - silently use existing job
-        if (e.response && e.response.status === 409) {
-          const existingJobId = Array.isArray(e.response.data.existing_job_id)
-            ? e.response.data.existing_job_id[0]
-            : e.response.data.existing_job_id;
+        if (isApiError(e) && e.response && e.response.status === 409) {
+          const dupData = e.response.data;
+          const existingJobId = Array.isArray(dupData.existing_job_id)
+            ? dupData.existing_job_id[0]
+            : dupData.existing_job_id;
           this.jobId = existingJobId;
           this.loadingStage = 'processing';
           this.loadingProgress = 15;
@@ -802,7 +809,6 @@ export default {
      * Poll job status until complete
      */
     async pollJobStatus() {
-      const baseUrl = import.meta.env.VITE_API_URL;
       const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
       let attempts = 0;
       const startTime = Date.now();
@@ -811,9 +817,7 @@ export default {
         attempts += 1;
 
         try {
-          const statusResponse = await this.axios.get(`${baseUrl}/api/jobs/${this.jobId}/status`);
-
-          const responseData = statusResponse.data;
+          const responseData = await getJobStatus(this.jobId);
 
           // R/plumber may return scalars as single-element arrays
           const status = Array.isArray(responseData.status)
@@ -867,7 +871,8 @@ export default {
 
           // Still running, poll again
           if (attempts < maxAttempts) {
-            const retryAfter = parseInt(statusResponse.headers['retry-after'] || '5', 10) * 1000;
+            const retryAfterSeconds = Number(responseData.retry_after ?? 5);
+            const retryAfter = (Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 5) * 1000;
             setTimeout(poll, retryAfter);
           } else {
             throw new Error('Job timed out after 5 minutes');
@@ -888,11 +893,10 @@ export default {
       this.loadingStage = 'loading_data';
       this.loadingProgress = 50;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/functional_clustering?algorithm=${this.algorithm}`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.itemsCluster = response.data.clusters;
-        this.valueCategories = response.data.categories;
+        const data = await getFunctionalClustering({ algorithm: this.algorithm });
+        this.itemsCluster = data.clusters;
+        this.valueCategories = data.categories;
 
         // Default to showing all clusters
         // User can select individual clusters to see AI summaries
@@ -1133,27 +1137,17 @@ export default {
 
       this.summaryLoading = true;
       try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/analysis/functional_cluster_summary`,
-          {
-            params: {
-              cluster_hash: clusterHash,
-              cluster_number: clusterNumber,
-            },
-            // 404 is expected when summary doesn't exist yet - don't treat as error
-            // This prevents browser console error logging for expected 404s
-            validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
-          }
-        );
-
-        // Handle 404 as a normal response (no summary available yet)
-        if (response.status === 404) {
+        const data = await getFunctionalClusterSummary({
+          cluster_hash: clusterHash,
+          cluster_number: String(clusterNumber),
+        });
+        this.currentSummary = data;
+      } catch (error) {
+        // 404 is expected when summary doesn't exist yet - treat as no summary
+        if (isApiError(error) && error.response && error.response.status === 404) {
           this.currentSummary = null;
           return;
         }
-
-        this.currentSummary = response.data;
-      } catch (_error) {
         // Only reaches here for actual errors (network, 500, etc.)
         this.makeToast(
           'Unable to load AI summary. The summary may still be generating.',

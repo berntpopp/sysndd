@@ -70,12 +70,12 @@
 
 <script>
 import MAIN_NAV_CONSTANTS from '@/assets/js/constants/main_nav_constants';
-import URLS from '@/assets/js/constants/url_constants';
 import ROLES from '@/assets/js/constants/role_constants';
 import packageInfo from '../../package.json';
 import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import IconPairDropdownMenu from '@/components/small/IconPairDropdownMenu.vue';
 import { useAuth } from '@/composables/useAuth';
+import { signin } from '@/api/auth';
 
 export default {
   name: 'AppNavbar',
@@ -154,12 +154,8 @@ export default {
     async checkSigninWithJWT() {
       // The `@/plugins/axios` default Authorization header is kept in
       // lockstep with `useAuth`, so we don't override it per-request here.
-      const apiAuthenticateURL = `${URLS.API_URL}/api/auth/signin`;
-
       try {
-        const response_signin = await this.axios.get(apiAuthenticateURL);
-
-        this.user_from_jwt = response_signin.data;
+        this.user_from_jwt = await signin();
         this.setUserFromJWT();
       } catch (_e) {
         this.clearUserData();

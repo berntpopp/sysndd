@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs _playwright-seed-templates _playwright-seed-users
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -339,10 +339,61 @@ docker-dev: check-docker ## [docker] Start full dev stack (app + api + db + dev 
 	@printf "  MySQL dev: localhost:7654\n"
 	@printf "  MySQL test: localhost:7655\n"
 	@printf "\n$(CYAN)Useful commands:$(RESET)\n"
-	@printf "  make docker-logs    View container logs\n"
-	@printf "  make docker-status  Show container status\n"
-	@printf "  make watch-app      Enable Compose Watch for hot-reload\n"
-	@printf "  make docker-down    Stop everything\n"
+	@printf "  make docker-logs       View container logs\n"
+	@printf "  make docker-status     Show container status\n"
+	@printf "  make watch-app         Enable Compose Watch for hot-reload\n"
+	@printf "  make dev-rebuild       Rebuild images (after Dockerfile changes)\n"
+	@printf "  make db-restore-latest Restore latest DB backup + recreate views\n"
+	@printf "  make db-views-rebuild  Replay R-script views (post-restore fix)\n"
+	@printf "  make cache-clear       Wipe API memoise cache\n"
+	@printf "  make docker-down       Stop everything\n"
+
+dev-rebuild: check-docker ## [docker] Rebuild app+api images and restart dev stack (use after Dockerfile changes)
+	@printf "$(CYAN)==> Rebuilding images and starting dev stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(COMPOSE_DEV) up -d --build && \
+		printf "$(GREEN)✓ Containers rebuilt and started$(RESET)\n" || \
+		(printf "$(RED)✗ dev-rebuild failed$(RESET)\n" && exit 1)
+	@printf "$(YELLOW)Note: stale images caused real bugs in the past. Use this target whenever Dockerfile.dev or Dockerfile changes.$(RESET)\n"
+
+db-restore-latest: check-docker ## [docker] Restore newest DB dump from sysndd_mysql_backup volume + recreate views
+	@printf "$(CYAN)==> Restoring latest DB backup...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd_mysql$$' || \
+		(printf "$(RED)✗ sysndd_mysql container not running. Run 'make dev' first.$(RESET)\n" && exit 1)
+	@LATEST=$$(docker run --rm -v sysndd_mysql_backup:/data alpine sh -c \
+		'ls -t /data/*.sysndd_db.sql.gz 2>/dev/null | head -1'); \
+		[ -n "$$LATEST" ] || \
+		(printf "$(RED)✗ No backups found in sysndd_mysql_backup volume$(RESET)\n" && exit 1); \
+		printf "  Using: $$LATEST\n"; \
+		docker run --rm -v sysndd_mysql_backup:/data alpine sh -c "gzip -dc $$LATEST" | \
+			docker exec -i sysndd_mysql sh -c 'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
+			grep -vE "Using a password|SUPER or SET_ANY_DEFINER" >&2 || true
+	@printf "$(GREEN)✓ Backup restored$(RESET)\n"
+	@$(MAKE) db-views-rebuild
+
+db-views-rebuild: check-docker ## [docker] Re-extract view DDL from db/C_Rcommands_set-table-connections.R and replay (fixes broken DEFINER views post-restore)
+	@printf "$(CYAN)==> Rebuilding views from R script (DEFINER-stripped)...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd_mysql$$' || \
+		(printf "$(RED)✗ sysndd_mysql container not running.$(RESET)\n" && exit 1)
+	@python3 -c '\
+import re, sys; \
+content = open("db/C_Rcommands_set-table-connections.R").read(); \
+matches = re.findall(r"dbSendQuery\(sysndd_db,\s*\"(CREATE OR REPLACE VIEW[^\"]*?)\"\)", content, re.DOTALL); \
+[print(m.strip() + ";") for m in matches]; \
+sys.stderr.write(f"-- Extracted {len(matches)} view definitions\n")' > /tmp/sysndd-views.sql 2>&1
+	@cat /tmp/sysndd-views.sql | docker exec -i sysndd_mysql sh -c \
+		'mysql -u "$$MYSQL_USER" -p"$$MYSQL_PASSWORD" "$$MYSQL_DATABASE"' 2>&1 | \
+		grep -vE "Using a password" >&2 || true
+	@rm -f /tmp/sysndd-views.sql
+	@printf "$(GREEN)✓ Views rebuilt$(RESET)\n"
+	@$(MAKE) cache-clear
+
+cache-clear: ## [docker] Wipe API memoise cache (forces stats endpoints to recompute)
+	@printf "$(CYAN)==> Wiping API memoise cache...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd-api-1$$' || \
+		(printf "$(YELLOW)Warning: sysndd-api-1 not running; cache wipe is a no-op$(RESET)\n" && exit 0)
+	@docker exec sysndd-api-1 sh -c 'rm -f /app/cache/*.rds' && \
+		printf "$(GREEN)✓ Cache wiped (next stats request will recompute)$(RESET)\n" || \
+		(printf "$(RED)✗ cache-clear failed$(RESET)\n" && exit 1)
 
 docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/app development)
 	@printf "$(CYAN)==> Starting development databases only...$(RESET)\n"
@@ -363,6 +414,124 @@ docker-logs: check-docker ## [docker] View container logs (follow mode)
 docker-status: check-docker ## [docker] Show container status and ports
 	@cd $(ROOT_DIR) && $(COMPOSE_DEV) ps 2>/dev/null || \
 		docker compose ps
+
+# =============================================================================
+# Playwright E2E Stack (v11.1 Wave 0)
+# =============================================================================
+# Brings up the Playwright-only stack via the docker-compose.playwright.yml
+# overlay. Isolated from `make dev` (different compose project name + volume
+# names). Seeds Playwright test users into the DB AFTER migrations have run.
+#
+# Notes:
+#   - Uses compose project name `playwright` so it does not collide with
+#     `make dev` (project `sysndd`).
+#   - Skips `mysql-cron-backup` and `worker` services (not needed for the
+#     deep-flow specs; saves ~30s of startup).
+#   - Seeds .env and api/config.yml from their committed templates if missing,
+#     mirroring scripts/ci-smoke.sh behavior.
+#   - Test-user seeding runs AFTER migrations because the API startup is what
+#     applies migrations (the `user` table is created mid-startup, not at
+#     MySQL init). We wait for /api/health/ready before sourcing the fixture.
+
+COMPOSE_PLAYWRIGHT := docker compose -p playwright -f docker-compose.yml -f docker-compose.playwright.yml
+PLAYWRIGHT_DB_USER ?= playwright
+PLAYWRIGHT_DB_PASSWORD ?= playwright_pw
+PLAYWRIGHT_DB_ROOT_PASSWORD ?= playwright_root_pw
+PLAYWRIGHT_DB_NAME ?= sysndd_db
+PLAYWRIGHT_API_PASSWORD ?= playwright_api_password
+PLAYWRIGHT_HEALTH_TIMEOUT ?= 240
+PLAYWRIGHT_HEALTH_ENDPOINT ?= http://localhost/api/health/ready
+
+# Env vars exported to the compose invocations. The base compose file
+# interpolates these at parse time, so they MUST be set before any
+# `docker compose -f docker-compose.yml ...` invocation.
+PLAYWRIGHT_ENV := \
+	MYSQL_DATABASE=$(PLAYWRIGHT_DB_NAME) \
+	MYSQL_USER=$(PLAYWRIGHT_DB_USER) \
+	MYSQL_PASSWORD=$(PLAYWRIGHT_DB_PASSWORD) \
+	MYSQL_ROOT_PASSWORD=$(PLAYWRIGHT_DB_ROOT_PASSWORD) \
+	PASSWORD=$(PLAYWRIGHT_API_PASSWORD) \
+	SMTP_PASSWORD=playwright_smtp \
+	OMIM_DOWNLOAD_KEY=playwright_omim \
+	CORS_ALLOWED_ORIGINS=http://localhost \
+	CACHE_VERSION=2
+
+_playwright-seed-templates:
+	@# Seed .env from template if missing — needed because docker-compose.yml
+	@# interpolates ${MYSQL_*}, ${PASSWORD}, ${OMIM_DOWNLOAD_KEY} at parse time.
+	@# The PLAYWRIGHT_ENV exports below also set these inline, so the .env file
+	@# only matters as a fallback for compose's own variable substitution.
+	@if [ ! -f $(ROOT_DIR)/.env ]; then \
+		printf "$(YELLOW)⚠ Seeding .env from .env.example$(RESET)\n"; \
+		cp $(ROOT_DIR)/.env.example $(ROOT_DIR)/.env; \
+	fi
+	@# Swap in api/config.yml.playwright as api/config.yml so the API container
+	@# connects to the playwright DB with the credentials in PLAYWRIGHT_ENV.
+	@# Preserve any existing dev config to api/config.yml.devbackup. Restore
+	@# happens via `make playwright-stack-down`.
+	@if [ -f $(ROOT_DIR)/api/config.yml ] && \
+	   ! cmp -s $(ROOT_DIR)/api/config.yml $(ROOT_DIR)/api/config.yml.playwright && \
+	   [ ! -f $(ROOT_DIR)/api/config.yml.devbackup ]; then \
+		printf "$(YELLOW)⚠ Backing up api/config.yml to api/config.yml.devbackup (will be restored on playwright-stack-down)$(RESET)\n"; \
+		cp $(ROOT_DIR)/api/config.yml $(ROOT_DIR)/api/config.yml.devbackup; \
+	fi
+	@cp $(ROOT_DIR)/api/config.yml.playwright $(ROOT_DIR)/api/config.yml
+	@printf "$(GREEN)✓ Active api/config.yml is the Playwright config$(RESET)\n"
+
+_playwright-seed-users:
+	@printf "$(CYAN)==> Seeding Playwright test users...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) exec -T mysql \
+		mysql -u root -p$(PLAYWRIGHT_DB_ROOT_PASSWORD) $(PLAYWRIGHT_DB_NAME) \
+		< $(ROOT_DIR)/db/fixtures/playwright_users.sql && \
+		printf "$(GREEN)✓ Test users seeded$(RESET)\n" || \
+		(printf "$(RED)✗ Failed to seed test users$(RESET)\n" && exit 1)
+
+playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Playwright E2E stack (CI-only fixtures)
+	@printf "$(CYAN)==> Bringing up Playwright E2E stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) up -d --wait \
+		traefik mysql mailpit api app && \
+		printf "$(GREEN)✓ Playwright stack started$(RESET)\n" || \
+		(printf "$(RED)✗ playwright-stack up failed$(RESET)\n" && exit 1)
+	@printf "$(CYAN)Waiting for /api/health/ready (timeout: $(PLAYWRIGHT_HEALTH_TIMEOUT)s)...$(RESET)\n"
+	@SECONDS_ELAPSED=0; HEALTH_OK=0; \
+	while [ $$SECONDS_ELAPSED -lt $(PLAYWRIGHT_HEALTH_TIMEOUT) ]; do \
+		if curl -sf -H "Host: localhost" $(PLAYWRIGHT_HEALTH_ENDPOINT) >/dev/null 2>&1; then \
+			HEALTH_OK=1; break; \
+		fi; \
+		printf "."; sleep 2; SECONDS_ELAPSED=$$((SECONDS_ELAPSED+2)); \
+	done; \
+	if [ "$$HEALTH_OK" -eq 0 ]; then \
+		printf "\n$(RED)Health check timed out — Playwright stack failed to come up$(RESET)\n"; \
+		printf "\n$(YELLOW)Last 50 lines of API logs:$(RESET)\n"; \
+		$(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs api --tail=50; \
+		exit 1; \
+	fi; \
+	printf "\n$(GREEN)✓ API ready$(RESET)\n"
+	@if [ -f $(ROOT_DIR)/db/fixtures/playwright_users.sql ]; then \
+		$(MAKE) _playwright-seed-users; \
+	else \
+		printf "$(YELLOW)⚠ db/fixtures/playwright_users.sql missing — skipping user seed$(RESET)\n"; \
+	fi
+	@printf "\n$(CYAN)Playwright stack ready:$(RESET)\n"
+	@printf "  App + API: http://localhost\n"
+	@printf "  API direct: http://localhost/api\n"
+	@printf "  Run tests: cd app && npx playwright test\n"
+	@printf "  Tear down: make playwright-stack-down\n"
+
+playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and remove volumes
+	@printf "$(CYAN)==> Tearing down Playwright E2E stack...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) down -v && \
+		printf "$(GREEN)✓ Playwright stack torn down$(RESET)\n" || \
+		(printf "$(RED)✗ playwright-stack-down failed$(RESET)\n" && exit 1)
+	@# Restore the dev's api/config.yml if a backup was taken at stack-up time
+	@if [ -f $(ROOT_DIR)/api/config.yml.devbackup ]; then \
+		printf "$(YELLOW)Restoring api/config.yml from api/config.yml.devbackup$(RESET)\n"; \
+		mv $(ROOT_DIR)/api/config.yml.devbackup $(ROOT_DIR)/api/config.yml; \
+		printf "$(GREEN)✓ api/config.yml restored$(RESET)\n"; \
+	fi
+
+playwright-stack-logs: check-docker ## [test] Tail Playwright E2E stack logs
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs -f --tail=50
 
 # =============================================================================
 # Developer Environment (Phase A7)

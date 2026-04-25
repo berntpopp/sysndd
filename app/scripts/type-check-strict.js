@@ -37,6 +37,16 @@ const appDir = resolve(__dirname, '..');
  * @property {string} tsconfig - Path to the scope tsconfig, relative to app/.
  * @property {string} prefix   - Path prefix (relative to app/) that marks
  *                               "in scope" error lines.
+ * @property {string[]} [excludePrefixes] - Optional list of file path prefixes
+ *                                          (relative to app/) that should NOT
+ *                                          count as in-scope errors even when
+ *                                          they match `prefix`. Used by the
+ *                                          `global` scope to honour the
+ *                                          tsconfig-level `exclude` list.
+ *                                          Without this, vue-tsc's import-graph
+ *                                          walk would surface diagnostics from
+ *                                          excluded files because they're still
+ *                                          referenced by included ones.
  * @property {string} [requireGlob] - If set, scope runs only when this glob
  *                                    matches at least one file.
  */
@@ -51,6 +61,77 @@ const scopes = [
     tsconfig: 'tsconfig.composables-auth.json',
     prefix: 'src/composables/useAuth',
     requireGlob: 'src/composables/useAuth*.ts',
+  },
+  {
+    name: 'plugins-axios',
+    tsconfig: 'tsconfig.plugins-axios.json',
+    prefix: 'src/plugins/axios',
+  },
+  {
+    name: 'views-review',
+    tsconfig: 'tsconfig.views-review.json',
+    prefix: 'src/views/review/',
+  },
+  // global is the catch-all strict scope. It includes everything in src/
+  // (minus tests) and explicitly excludes the files that still carry strict
+  // violations. New files default into this scope, so the exclusion list
+  // is the ratchet: shrinking it is a net-positive change, growing it
+  // requires a documented reason. The exclusion list lives in
+  // tsconfig.global.json AND in `excludePrefixes` below — both are needed
+  // because vue-tsc still reports diagnostics from excluded files when the
+  // import graph references them. Keep the two lists in sync.
+  {
+    name: 'global',
+    tsconfig: 'tsconfig.global.json',
+    prefix: 'src/',
+    // Exclusions are grouped by root cause so each cohort can be retired
+    // together. Categories: (D3) needs @types/d3 or local ambient types;
+    // (CYTO-EXT) cytoscape-fcose / cytoscape-svg ship no published types;
+    // (FS) file-saver needs @types/file-saver; (BV3-OVERLOAD) bootstrap-
+    // vue-next BFormSelect overload incompatibility with our setup() shape;
+    // (BV3-NULL) bootstrap-vue-next props expect undefined where we pass
+    // null; (NULL-NARROW) ordinary null/undefined narrowing fixes; (ANY-
+    // PARAM) implicit-any callback params; (INDEX) index-type narrowing;
+    // (TOAST-SHIM) toast wrapper type misalignment with consumers.
+    excludePrefixes: [
+      // D3
+      'src/components/analyses/PubtatorNDDStats.vue',
+      'src/components/gene/GeneStructurePlotWithVariants.vue',
+      'src/components/gene/ProteinDomainLollipopPlot.vue',
+      'src/composables/useD3GeneStructure.ts',
+      'src/composables/useD3Lollipop.ts',
+      // CYTO-EXT
+      'src/composables/useCytoscape.ts',
+      'src/composables/usePhenotypeCytoscape.ts',
+      // FS
+      'src/composables/useExcelExport.ts',
+      // BV3-OVERLOAD
+      'src/components/forms/wizard/StepClassification.vue',
+      'src/components/forms/wizard/StepCoreEntity.vue',
+      // BV3-NULL
+      'src/components/annotations/JobProgressDisplay.vue',
+      'src/components/annotations/PublicationRefreshCard.vue',
+      'src/components/small/TablePaginationControls.vue',
+      // NULL-NARROW
+      'src/components/forms/wizard/StepEvidence.vue',
+      'src/components/review/ReviewTable.vue',
+      'src/composables/useFilterSync.ts',
+      'src/views/curate/CreateEntity.vue',
+      // ANY-PARAM / API response narrowing
+      'src/components/analyses/PubtatorNDDGenes.vue',
+      'src/components/analyses/PubtatorNDDTable.vue',
+      'src/composables/annotations/useAnnotationsApi.ts',
+      // INDEX
+      'src/components/review/EditReviewModal.vue',
+      'src/components/review/EditStatusModal.vue',
+      'src/components/cms/SectionEditor.vue',
+      'src/composables/useTableMethods.ts',
+      'src/views/curate/ApproveReview.vue',
+      // TOAST-SHIM
+      'src/composables/useToast.ts',
+      'src/composables/useToastNotifications.ts',
+      'src/views/admin/AdminStatistics.vue',
+    ],
   },
 ];
 
@@ -99,7 +180,11 @@ for (const scope of scopes) {
 
   const output = `${result.stdout || ''}${result.stderr || ''}`;
   const lines = output.split('\n');
-  const inScopeErrors = lines.filter((line) => line.startsWith(scope.prefix));
+  const excludePrefixes = scope.excludePrefixes ?? [];
+  const inScopeErrors = lines.filter((line) => {
+    if (!line.startsWith(scope.prefix)) return false;
+    return !excludePrefixes.some((p) => line.startsWith(p));
+  });
 
   if (inScopeErrors.length > 0) {
     console.error(`[type-check:strict] ${scope.name}: FAIL (${inScopeErrors.length} errors)`);

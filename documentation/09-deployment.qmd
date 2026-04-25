@@ -54,4 +54,30 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - Use HTTPS in production.
 
+## Security headers
+
+The frontend nginx config (`app/docker/nginx/security-headers.conf`) emits the following on every SPA response:
+
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` — one-way policy decision; see `.planning/decisions/2026-04-25-csp-hsts-policy.md` for the operator-facing caveats (sub-domain inventory and preload-list submission).
+- `Content-Security-Policy` — `'unsafe-inline'` for `script-src` is replaced by build-time `sha256-...` hashes (see "Vite upgrade maintenance" below); `'unsafe-eval'` is retained intentionally because vendor JS (NGL Web Workers, Vue runtime template compiler, markdown-it) needs it; `'unsafe-inline'` for `style-src` is retained intentionally because Bootstrap-Vue-Next, NGL, and d3 emit unhashable inline `style=""` attributes. Full rationale in the ADR.
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: SAMEORIGIN` and CSP `frame-ancestors 'self'` together restrict framing.
+- `Permissions-Policy` denies geolocation, camera, microphone, and other powerful APIs we do not use.
+
+The Playwright spec `app/tests/e2e/security-headers.spec.ts` is the regression net for the directive shape; any future loosening must red-line that spec before merge.
+
+### Vite upgrade maintenance
+
+After bumping Vite, NGL, markdown-it, or any other vendor that may add or remove inline `<script>` content, regenerate the CSP `script-src` hashes:
+
+```bash
+cd app
+npm run build
+node scripts/audit-csp-violations.mjs --build dist
+# Update the 'sha256-...' list in app/docker/nginx/security-headers.conf
+```
+
+CI's Playwright `security-headers.spec.ts` and the audit script catch missed updates.
+
 For full deployment details, runtime tuning context, and troubleshooting history, see the repository and infrastructure configuration alongside the compose files.

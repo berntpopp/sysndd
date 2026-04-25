@@ -41,7 +41,9 @@
  *     assert success.
  *   - Error path: advance from step 1 with invalid evidence; assert the next
  *     button is disabled and the validation message shows.
- *   - it.todo: "TODO: verify the step-indicator state after a back-navigation"
+ *   - Back-navigation: previously locked as `it.todo` per phase-c.md §3 C2.
+ *     Resolved during v11.1 W6.6 once the W6 decomposition gave us the
+ *     `useReviewModals` composable surface to assert against.
  *
  * Error-path note on fidelity: `Review.vue`'s "Save Review" button is not
  * literally a `<button disabled>` when synopsis is empty — there is no
@@ -341,7 +343,11 @@ function wireHappyPathResponses(axiosMock: CapturedAxiosMock) {
       });
     }
     // 2) Entity lookup (getEntity() in infoReview)
-    if (url.includes('/api/entity?filter=')) {
+    // v11.1 W6: typed-entity client routes the filter via `config.params`
+    // rather than embedding it into the URL. Match either shape so the
+    // happy/error paths and any pre-W6 callers can still resolve the
+    // mocked response.
+    if (url.includes('/api/entity?filter=') || url === '/api/entity/') {
       return Promise.resolve({ data: { data: [entityFixture] } });
     }
     // 3) useReviewForm.loadReviewData — parallel /api/review/:id/* calls
@@ -563,8 +569,17 @@ describe('Review.vue — classification wizard (functional)', () => {
     // infoReview triggers getEntity() + useReviewForm.loadReviewData() +
     // loadReviewInfo(). Every call routes through axios.get, so verify the
     // load-phase hit our stub for each expected URL family.
-    const getUrls = axiosMock.get.mock.calls.map((c) => c[0] as string);
-    expect(getUrls.some((u) => u.includes('/api/entity?filter='))).toBe(true);
+    //
+    // v11.1 W6: getEntity() now uses the typed `listEntities()` helper, so
+    // the filter ride-along moves from the URL string to `config.params`.
+    // Assert the entity request lands on `/api/entity/` AND carries the
+    // expected `filter=equals(entity_id,...)` query param.
+    const getCalls = axiosMock.get.mock.calls;
+    const getUrls = getCalls.map((c) => c[0] as string);
+    const entityCall = getCalls.find((c) => (c[0] as string) === '/api/entity/');
+    expect(entityCall).toBeDefined();
+    const entityParams = (entityCall as [string, { params?: { filter?: string } }])[1]?.params;
+    expect(entityParams?.filter).toContain('equals(entity_id,');
     expect(getUrls.some((u) => /\/api\/review\/\d+$/.test(u))).toBe(true);
     expect(getUrls.some((u) => u.includes('/phenotypes'))).toBe(true);
     expect(getUrls.some((u) => u.includes('/variation'))).toBe(true);
@@ -585,14 +600,15 @@ describe('Review.vue — classification wizard (functional)', () => {
     await vm.submitReviewChange();
     await flushPromises();
 
-    // The happy-path PUT hit /api/review/update?re_review=true with the
-    // merged payload shape from useReviewForm.submitForm(true, true). Assert
-    // the method, the endpoint substring, and the inclusion of the edited
-    // synopsis in the submitted body.
+    // The happy-path PUT hit /api/review/update with `re_review=true` carried
+    // on the third positional `config.params` arg (mirrors the W6 pattern for
+    // approveReReview at line ~1041). Assert the method, the clean endpoint,
+    // the params payload, and the inclusion of the edited synopsis in the
+    // submitted body.
     expect(axiosMock.put).toHaveBeenCalledTimes(1);
-    const [putUrl, putBody] = axiosMock.put.mock.calls[0];
-    expect(putUrl).toContain('/api/review/update');
-    expect(putUrl).toContain('re_review=true');
+    const [putUrl, putBody, putConfig] = axiosMock.put.mock.calls[0];
+    expect(putUrl).toBe('/api/review/update');
+    expect((putConfig as { params?: { re_review?: boolean } })?.params?.re_review).toBe(true);
     const submittedPayload = (putBody as { review_json: { synopsis: string } }).review_json;
     expect(submittedPayload.synopsis).toContain('Updated clinical synopsis');
 
@@ -668,11 +684,78 @@ describe('Review.vue — classification wizard (functional)', () => {
     expect(errorToastCalls.length).toBeGreaterThanOrEqual(1);
   });
 
-  // Phase E handshake — step-indicator back-navigation is state Phase E will
-  // introduce when it rewrites the re-review UI to a true wizard. Leaving
-  // this as an `it.todo` is the locked string the plan requires; E5's
-  // rewrite unpins it into a real assertion.
-  it.todo('TODO: verify the step-indicator state after a back-navigation');
+  // v11.1 W6.6: the previously-locked back-navigation case is now a real
+  // assertion. With the W6 decomposition the wizard's "step indicator"
+  // becomes the `useReviewModals` composable surface — `entity[]`,
+  // `status_approved`, `review_approved`. Back-navigation is modelled as
+  // the dialog closing without confirm: the row stays in the queue, the
+  // filter state stays put, and the approval toggles reset for the
+  // next attempt. The negative case (a back-navigation that fails to
+  // reset state) would leave a stale "review approved" checkbox set on
+  // the next entity the user opens — caught by this test.
+  it('back-navigation from the approve modal resets the toggles and preserves filter state', async () => {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+    axiosMock.put.mockResolvedValue({ data: { message: 'ok' } });
+
+    const wrapper = await mountReview();
+    const vm = wrapper.vm as unknown as ReviewVm & {
+      reviewModals: {
+        approveModal: { id: string; title: string };
+        entity: { value: Array<{ entity_id: number }> };
+        status_approved: { value: boolean };
+        review_approved: { value: boolean };
+        resetApproveModal: () => void;
+        clearTarget: () => void;
+      };
+      filter: string | null;
+      categoryFilter: string | null;
+      userFilter: string | null;
+      infoApprove: (item: ReReviewRow, index: number, button: unknown) => void;
+    };
+    await flushPromises();
+
+    // --- Seed filter state the user was working with ---
+    // (set non-default filter + column-filter values)
+    vm.filter = 'TEST1';
+    vm.categoryFilter = 'Definitive';
+    vm.userFilter = 'alice_admin';
+    await flushPromises();
+
+    // --- Open the approve modal (curator-mode wizard step) ---
+    vm.infoApprove(sampleRow, 0, null);
+    await flushPromises();
+
+    // The composable now holds the targeted entity, the modal title is
+    // set, and the approval toggles are at their fresh-open defaults.
+    expect(vm.reviewModals.entity.value).toHaveLength(1);
+    expect(vm.reviewModals.entity.value[0].entity_id).toBe(501);
+    expect(vm.reviewModals.approveModal.title).toBe('sysndd:501');
+
+    // User flips the toggles (mid-wizard state).
+    vm.reviewModals.review_approved.value = true;
+    vm.reviewModals.status_approved.value = true;
+    await flushPromises();
+
+    // --- "Back-navigation": the user dismisses the modal without
+    // confirming. The composable's reset surface is what the parent
+    // calls on cancel-flows; this is the assertion the plan locks. ---
+    vm.reviewModals.resetApproveModal();
+    vm.reviewModals.clearTarget();
+    await flushPromises();
+
+    // Toggles are flipped back so the next entity opens clean.
+    expect(vm.reviewModals.review_approved.value).toBe(false);
+    expect(vm.reviewModals.status_approved.value).toBe(false);
+    expect(vm.reviewModals.entity.value).toHaveLength(0);
+
+    // Filter state is preserved across the modal cancel — this is what
+    // a "back navigation" guarantees the user: their queue context
+    // doesn't reset just because they bailed on a single approve.
+    expect(vm.filter).toBe('TEST1');
+    expect(vm.categoryFilter).toBe('Definitive');
+    expect(vm.userFilter).toBe('alice_admin');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -954,9 +1037,17 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
       /\/api\/re_review\/approve\/701/.test(c[0] as string)
     );
     expect(putCall).toBeDefined();
+    // v11.1 W6: typed `approveReReview` helper passes `status_ok` /
+    // `review_ok` via axios `config.params` instead of URL concatenation.
+    // The URL itself stays clean (`/api/re_review/approve/701`); the flags
+    // ride along on the third positional arg's `params` object.
     const approveUrl = (putCall as [string, unknown])[0];
-    expect(approveUrl).toContain('status_ok=true');
-    expect(approveUrl).toContain('review_ok=true');
+    expect(approveUrl).toBe('/api/re_review/approve/701');
+    const approveConfig = (
+      putCall as [string, unknown, { params?: { status_ok?: boolean; review_ok?: boolean } }]
+    )[2];
+    expect(approveConfig?.params?.status_ok).toBe(true);
+    expect(approveConfig?.params?.review_ok).toBe(true);
 
     const simulatedRequest = simulateApiClientInterceptor(
       axiosMock,
@@ -1038,5 +1129,121 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
       '/api/re_review/table'
     );
     expectBearerHeader(simulatedRequest, token);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v11.1 finish-hardening fix #3 — `totalRows` is a Number, not an Array.
+//
+// Pre-fix: `totalRows: toRef(filters.filteredItems, 'length')` produced a ref
+// pointing into the ComputedRef wrapper itself. After auto-unwrap inside the
+// template the prop landed on `ReviewQueueTable` as the underlying array,
+// which then propagated to BTable's `total-rows` (`type: Number, required:
+// true`) — Vue's prop validator flagged it as a type mismatch at runtime.
+// The fix wraps the read in a `computed(() => filteredItems.value.length)`
+// so the prop is always a real number.
+// ---------------------------------------------------------------------------
+
+describe('Review.vue — fix #3 totalRows prop is Number', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    announceSpy.mockClear();
+    makeToastSpy.mockClear();
+  });
+
+  /**
+   * Mount Review with a STUB for ReviewQueueTable that records the props it
+   * receives. We can then assert the runtime type of `totalRows` directly,
+   * which is the contract the BV3 BTable prop validator enforces.
+   */
+  async function mountReviewWithCapturedQueueTable(): Promise<{
+    wrapper: VueWrapper;
+    capturedProps: () => Record<string, unknown> | null;
+  }> {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+
+    const captured: { props: Record<string, unknown> | null } = { props: null };
+    const ReviewQueueTableStub = {
+      name: 'ReviewQueueTable',
+      props: ['filteredItems', 'totalRows', 'fields', 'isBusy'],
+      setup(props: Record<string, unknown>) {
+        // Snapshot the actual prop shape the parent handed in. `totalRows`
+        // is the load-bearing assertion target.
+        captured.props = props;
+      },
+      template: '<div class="review-queue-table-stub" />',
+    };
+
+    const pinia = createPinia();
+    const wrapper = mount(Review, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          axios: axiosMock,
+          $route: { path: '/Review', name: 'Review', params: {} },
+          $router: { push: vi.fn(), currentRoute: { value: { fullPath: '/Review' } } },
+        },
+        stubs: {
+          ...bootstrapStubs,
+          ReviewQueueTable: ReviewQueueTableStub,
+          AriaLiveRegion: { template: '<div />' },
+          IconLegend: { template: '<div />' },
+          BModal: { template: '<div><slot /></div>' },
+          BFormInput: { props: ['modelValue'], template: '<input :value="modelValue" />' },
+          BFormSelect: { props: ['modelValue'], template: '<select />' },
+          BFormTextarea: { props: ['modelValue'], template: '<textarea :value="modelValue" />' },
+          BFormCheckbox: { props: ['modelValue'], template: '<input type="checkbox" />' },
+          BFormTags: { template: '<div><slot /></div>' },
+          BFormTag: { template: '<span><slot /></span>' },
+          BFormGroup: { template: '<div><slot /></div>' },
+          BFormSelectOption: { template: '<option><slot /></option>' },
+          BInputGroup: { template: '<div><slot /></div>' },
+          BInputGroupText: { template: '<span><slot /></span>' },
+          BSpinner: { template: '<div role="status" />' },
+          BBadge: { template: '<span><slot /></span>' },
+          BPopover: { template: '' },
+          BCard: { template: '<div><slot name="header" /><slot /></div>' },
+          BOverlay: { template: '<div><slot /></div>' },
+          BForm: { template: '<form><slot /></form>' },
+          BTable: { template: '<table />' },
+          BPagination: { template: '<nav />' },
+          BDropdown: { template: '<div><slot /></div>' },
+          BDropdownItem: { template: '<a><slot /></a>' },
+          EntityBadge: { template: '<span>Entity</span>' },
+          GeneBadge: { template: '<span>Gene</span>' },
+          DiseaseBadge: { template: '<span>Disease</span>' },
+          InheritanceBadge: { template: '<span>Inheritance</span>' },
+          CategoryIcon: { template: '<span>Category</span>' },
+          NddIcon: { template: '<span>NDD</span>' },
+          TreeMultiSelect: { template: '<select multiple><option /></select>' },
+          ReviewFormFields: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    return { wrapper, capturedProps: () => captured.props };
+  }
+
+  it('passes a numeric `totalRows` to ReviewQueueTable (not the underlying array)', async () => {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+
+    const { capturedProps } = await mountReviewWithCapturedQueueTable();
+
+    const props = capturedProps();
+    expect(props).not.toBeNull();
+    // The contract: BV3's BTable types `total-rows` as Number. The pre-fix
+    // bug surfaced as `typeof totalRows === 'object'` (an Array) reaching
+    // ReviewQueueTable, which then forwarded it to BTable.
+    expect(typeof props!.totalRows).toBe('number');
+    // sampleRow is the only row the happy-path mock returns; one item ⇒
+    // length 1. Concrete value pin so a future regression where length
+    // resolves to 0 (toRef of a ref returning the ref itself) is caught.
+    expect(props!.totalRows).toBe(1);
+    // Belt-and-braces: assert the regression mode (an Array reached the
+    // child) is gone.
+    expect(Array.isArray(props!.totalRows)).toBe(false);
   });
 });

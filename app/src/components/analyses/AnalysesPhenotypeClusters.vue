@@ -249,6 +249,10 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 // Import LLM Summary Card for AI-generated cluster summaries
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 
+// Typed API client (W5)
+import { getPhenotypeClustering, getPhenotypeClusterSummary } from '@/api/analysis';
+import { isApiError } from '@/api/client';
+
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
@@ -472,12 +476,11 @@ export default {
      * Load cluster data from API
      * ------------------------------------ */
     async loadClusterData() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_clustering`;
       this.loading = true;
       this.error = null;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.itemsCluster = response.data;
+        const data = await getPhenotypeClustering();
+        this.itemsCluster = data;
         this.setActiveCluster();
         // Fetch LLM summary for initial cluster
         const clusterData = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
@@ -525,27 +528,17 @@ export default {
 
       this.summaryLoading = true;
       try {
-        const response = await this.axios.get(
-          `${import.meta.env.VITE_API_URL}/api/analysis/phenotype_cluster_summary`,
-          {
-            params: {
-              cluster_hash: clusterHash,
-              cluster_number: clusterNumber,
-            },
-            // 404 is expected when summary doesn't exist yet - don't treat as error
-            // This prevents browser console error logging for expected 404s
-            validateStatus: (status) => (status >= 200 && status < 300) || status === 404,
-          }
-        );
-
-        // Handle 404 as a normal response (no summary available yet)
-        if (response.status === 404) {
+        const data = await getPhenotypeClusterSummary({
+          cluster_hash: clusterHash,
+          cluster_number: String(clusterNumber),
+        });
+        this.currentSummary = data;
+      } catch (error) {
+        // 404 is expected when summary doesn't exist yet - treat as no summary
+        if (isApiError(error) && error.response && error.response.status === 404) {
           this.currentSummary = null;
           return;
         }
-
-        this.currentSummary = response.data;
-      } catch (_error) {
         // Only reaches here for actual errors (network, 500, etc.)
         this.makeToast(
           'Unable to load AI summary. The summary may still be generating.',

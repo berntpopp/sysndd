@@ -1,5 +1,4 @@
 import axios from 'axios';
-import router from '@/router';
 
 // Configure axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
@@ -10,30 +9,34 @@ axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
 // injection point for the Bearer header; it reads `useAuth().token.value`
 // on every outbound call, so there is nothing to seed here.
 
-// Guard flag to prevent duplicate 401 redirects
+// v11.1 W2 finish-hardening: this interceptor no longer mutates
+// `localStorage` directly or imports `@/router`. `useAuth().handle401()`
+// is now the single owner of logout cleanup (clears localStorage, clears
+// reactive refs, dispatches navigation toward `/Login`). The
+// `isLoggingOut` guard remains as a belt-and-braces concurrent-401
+// coalescer; `handle401()` is itself idempotent, so the guard now
+// primarily exists to suppress duplicate `__handled401` rejections to
+// callers that wired distinct `.catch()` blocks per concurrent request.
+
+// Guard flag to prevent duplicate 401 reject-tagging on concurrent failures
 let isLoggingOut = false;
 
 // Response interceptor: centralized 401 handling
 axios.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401 && !isLoggingOut) {
       isLoggingOut = true;
 
-      // Clear auth state. The localStorage writes remain this plugin's
-      // owned responsibility (v11.0 closeout spec §2 goal 1). The
-      // `apiClient` request interceptor reads `useAuth().token.value`,
-      // which re-reads localStorage via `syncFromStorage()` on every
-      // `useAuth()` call, so no axios default header mutation is needed.
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      // Redirect to login with return path
-      const currentPath = router.currentRoute.value.fullPath;
-      router.push({
-        path: '/Login',
-        query: currentPath !== '/' ? { redirect: currentPath } : undefined,
-      });
+      // Lazy import to avoid a module-load cycle: this plugin is imported
+      // by `@/composables/useAuth` for its initialisation side effects, so
+      // `useAuth` cannot be a top-level import here without re-entering
+      // the cycle before module bindings are stable. By the time a 401
+      // response arrives, every module is fully initialised, and the
+      // dynamic import resolves the singleton synchronously from the
+      // bundle cache.
+      const { useAuth } = await import('@/composables/useAuth');
+      useAuth().handle401();
 
       // Reset guard after a window to coalesce concurrent 401s
       setTimeout(() => {
@@ -41,7 +44,9 @@ axios.interceptors.response.use(
       }, 2000);
 
       // Mark as handled so downstream .catch() can skip toast display,
-      // while still rejecting so .finally() cleanup runs properly
+      // while still rejecting so .finally() cleanup runs properly.
+      // Preserves the existing `__handled401` contract that callers in
+      // `@/api/client.ts` (see `isApiError()` doc comment) rely on.
       const handled = new Error('Redirecting to login');
       (handled as Error & { __handled401: boolean }).__handled401 = true;
       return Promise.reject(handled);

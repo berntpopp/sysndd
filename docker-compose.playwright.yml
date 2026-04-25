@@ -1,0 +1,107 @@
+# docker-compose.playwright.yml
+# Playwright-only stack overlay. Activated by `make playwright-stack`.
+# Deliberately uses the same service names as docker-compose.yml so the
+# overlay applies cleanly via `-f docker-compose.yml -f
+# docker-compose.playwright.yml`.
+#
+# Notes vs the production compose file:
+#   - The DB service is named `mysql` (not `db`) in the base compose.
+#   - The base compose interpolates ${MYSQL_*}, ${PASSWORD}, ${OMIM_DOWNLOAD_KEY}
+#     etc. from the shell or a .env file. The Playwright Makefile target
+#     exports these for the duration of the up/down command, so the overlay
+#     reads them like the base compose does.
+#   - The API container expects to read its config from `api/config.yml`
+#     (`sysndd_db` block by default in production mode, see
+#     api/start_sysndd_api.R). The dbname there must match `MYSQL_DATABASE`.
+#   - Traefik Host() rules in the base compose only match
+#     `sysndd.dbmr.unibe.ch`. We override here to allow `localhost` and
+#     `127.0.0.1` so Playwright can reach the stack on `http://localhost`.
+#   - We deliberately do NOT bring up `mysql-cron-backup` or `worker` for the
+#     Playwright suite — they are not required for the deep-flow specs and
+#     adding them only increases startup time. If a future spec needs the
+#     async worker, add a `worker:` block to this overlay.
+#   - Volumes are remapped to `sysndd_playwright_*` names so the stack does
+#     not collide with the developer's `make dev` data.
+
+services:
+  traefik:
+    # Lower log noise during Playwright runs.
+    command:
+      - "--api=true"
+      - "--api.insecure=true"
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=sysndd_proxy"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
+      - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
+      - "--ping=true"
+      - "--log.level=WARN"
+
+  mysql:
+    # Healthcheck in base compose interpolates ${MYSQL_USER} / ${MYSQL_PASSWORD}
+    # so they MUST be set in the parent shell when bringing the stack up.
+    # `make playwright-stack` exports them.
+
+  api:
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: WARN
+    # Note: api/config.yml is bind-mounted by the base compose. The
+    # `make playwright-stack` target writes api/config.yml.playwright into
+    # api/config.yml before bringing the stack up (preserving any existing
+    # dev config to api/config.yml.devbackup) so the running API uses the
+    # Playwright credentials. See Makefile target _playwright-seed-templates.
+    depends_on:
+      mysql:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      # Allow localhost in addition to production host for Playwright access
+      - "traefik.http.routers.api.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/api`)"
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.routers.api.priority=100"
+      - "traefik.http.services.api.loadbalancer.server.port=7777"
+
+  app:
+    labels:
+      - "traefik.enable=true"
+      # Allow localhost in addition to production host for Playwright access
+      - "traefik.http.routers.app.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
+      - "traefik.http.routers.app.priority=1"
+
+  # Mailpit fakes the SMTP destination so signup / password-reset flows that
+  # call send_noreply_email don't fail with "Could not resolve host: mailpit".
+  # Matches the dev override (docker-compose.dev.yml) but uses an isolated
+  # network alias so it does not conflict with `make dev`.
+  mailpit:
+    image: axllent/mailpit:v1.29.7
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+      MP_MAX_MESSAGES: 100
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--tries=1", "--no-verbose", "http://localhost:8025/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+# Remap base-compose named volumes to Playwright-specific names so
+# `docker compose ... down -v` only removes Playwright data.
+volumes:
+  mysql_data:
+    name: sysndd_playwright_db
+  mysql_backup:
+    name: sysndd_playwright_db_backup
+  api_cache:
+    name: sysndd_playwright_api_cache

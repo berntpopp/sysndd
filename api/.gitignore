@@ -1,5 +1,7 @@
 # database config file
 config.yml
+# Playwright stack backup of dev config.yml (restored on playwright-stack-down)
+config.yml.devbackup
 # R files
 .Rhistory
 

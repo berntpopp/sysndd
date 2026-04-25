@@ -31,6 +31,13 @@ export {
 } from 'bootstrap-vue-next';
 
 // Form components
+//
+// v11.1 finish-hardening fix #4: `BFormText` was missing from this list, so
+// it was not registered globally. Templates referencing `<BFormText>` (e.g.
+// `UserView.vue`'s ORCID help text) failed component resolution at runtime
+// and rendered as inert text. Bootstrap-Vue-Next 0.44.7 exports `BFormText`
+// as a top-level named export (see node_modules/bootstrap-vue-next/dist/
+// bootstrap-vue-next.mjs); registering it here closes the gap.
 export {
   BForm,
   BFormGroup,
@@ -41,6 +48,7 @@ export {
   BFormCheckboxGroup,
   BFormRadio,
   BFormRadioGroup,
+  BFormText,
   BFormTextarea,
   BFormFile,
   BFormDatalist,

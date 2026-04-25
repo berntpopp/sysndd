@@ -262,6 +262,14 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import {
+  listEntities,
+  getEntityStatus,
+  getEntityReview,
+  getEntityPublications,
+  getEntityPhenotypes,
+  getEntityVariation,
+} from '@/api/entity';
 
 export default {
   name: 'EntityView',
@@ -355,13 +363,11 @@ export default {
     async loadEntity() {
       this.loading = true;
 
-      const apiEntityURL = `${import.meta.env.VITE_API_URL}/api/entity?filter=equals(entity_id,${
-        this.$route.params.entity_id
-      })`;
-
       try {
-        const response_entity = await this.axios.get(apiEntityURL);
-        this.entity = response_entity.data.data;
+        const data = await listEntities({
+          filter: `equals(entity_id,${this.$route.params.entity_id})`,
+        });
+        this.entity = data.data;
 
         if (this.entity.length === 0) {
           this.$router.push('/PageNotFound');
@@ -373,43 +379,25 @@ export default {
       }
     },
     async loadEntityInfo() {
-      const apiStatusURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.$route.params.entity_id
-      }/status`;
-
-      const apiReviewURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.$route.params.entity_id
-      }/review`;
-
-      const apiPublicationsURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.$route.params.entity_id
-      }/publications`;
-
-      const apiPhenotypesURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.$route.params.entity_id
-      }/phenotypes`;
-
-      const apiVariationURL = `${import.meta.env.VITE_API_URL}/api/entity/${
-        this.$route.params.entity_id
-      }/variation`;
+      const entityId = this.$route.params.entity_id;
 
       try {
-        const response_status = await this.axios.get(apiStatusURL);
-        const response_review = await this.axios.get(apiReviewURL);
-        const response_publications = await this.axios.get(apiPublicationsURL);
-        const response_phenotypes = await this.axios.get(apiPhenotypesURL);
-        const response_variation = await this.axios.get(apiVariationURL);
+        const statusData = await getEntityStatus(entityId);
+        const reviewData = await getEntityReview(entityId);
+        const publicationsData = await getEntityPublications(entityId);
+        const phenotypesData = await getEntityPhenotypes(entityId);
+        const variationData = await getEntityVariation(entityId);
 
-        this.status = response_status.data;
-        this.review = response_review.data;
-        this.publications = response_publications.data.filter(
+        this.status = statusData;
+        this.review = reviewData;
+        this.publications = publicationsData.filter(
           (publication) => publication.publication_type === 'additional_references'
         );
-        this.genereviews = response_publications.data.filter(
+        this.genereviews = publicationsData.filter(
           (publication) => publication.publication_type === 'gene_review'
         );
-        this.phenotypes = response_phenotypes.data;
-        this.variation = response_variation.data;
+        this.phenotypes = phenotypesData;
+        this.variation = variationData;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

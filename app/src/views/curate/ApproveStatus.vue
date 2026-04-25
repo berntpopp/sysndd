@@ -49,7 +49,8 @@
 </template>
 <script setup lang="ts">
 import { onMounted, reactive, ref, getCurrentInstance } from 'vue';
-import axios from 'axios';
+import type { AxiosInstance } from 'axios';
+import { apiClient } from '@/api/client';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
@@ -62,7 +63,12 @@ const { stoplights_style, user_style, user_icon } = useColorAndSymbols();
 const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 const uiStore = useUiStore();
 const instance = getCurrentInstance();
-const ax = () => (instance?.proxy as unknown as { axios?: typeof axios } | undefined)?.axios ?? axios;
+// `this.axios` (Vue Test Utils mocks) wins over the production fallback so
+// the C3 spec's mocked-axios pattern keeps working. Production fallback is
+// `apiClient.raw` — same singleton, same 401 + Bearer interceptors.
+const ax = (): AxiosInstance =>
+  (instance?.proxy as unknown as { axios?: AxiosInstance } | undefined)?.axios ??
+  (apiClient.raw as unknown as AxiosInstance);
 const apiBase = (): string => import.meta.env.VITE_API_URL || '';
 // v11.0 closeout F2a: the inline Bearer-header construction on every
 // authed PUT has been removed. The `apiClient` request interceptor

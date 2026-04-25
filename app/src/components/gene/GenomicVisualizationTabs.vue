@@ -122,7 +122,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BTabs, BTab, BBadge, BSpinner } from 'bootstrap-vue-next';
-import axios from 'axios';
+import { isApiError } from '@/api/client';
+import { getEnsemblStructure } from '@/api/external';
 import ProteinDomainLollipopPlot from './ProteinDomainLollipopPlot.vue';
 import GeneStructurePlotWithVariants from './GeneStructurePlotWithVariants.vue';
 import ProteinStructure3D from './ProteinStructure3D.vue';
@@ -477,26 +478,33 @@ async function fetchGeneStructureData(): Promise<void> {
   geneStructureError.value = null;
 
   try {
-    const apiBase = import.meta.env.VITE_API_URL;
-    const response = await axios.get(
-      `${apiBase}/api/external/ensembl/structure/${props.geneSymbol}`,
-      { withCredentials: true }
-    );
+    const data = await getEnsemblStructure(props.geneSymbol, {
+      withCredentials: true,
+    });
 
-    if (response.data?.found === false) {
+    // Defensive runtime narrow: the R endpoint maps the
+    // `list(found = FALSE)` and `list(error = TRUE)` paths to 404/503
+    // (handled in the catch branch), but legacy proxy payloads may still
+    // ship those shapes inside a 200. Mirror GeneStructureCard.vue.
+    const payload = data as unknown as {
+      found?: boolean;
+      error?: boolean;
+      message?: string;
+    };
+    if (payload?.found === false) {
       geneStructureData.value = null;
       ensemblRawData.value = null;
-    } else if (response.data?.error) {
-      geneStructureError.value = response.data.message || 'Failed to load gene structure';
+    } else if (payload?.error) {
+      geneStructureError.value = payload.message || 'Failed to load gene structure';
     } else {
-      ensemblRawData.value = response.data as EnsemblGeneStructure;
+      ensemblRawData.value = data;
       geneStructureData.value = processEnsemblResponse(ensemblRawData.value);
     }
   } catch (e: unknown) {
-    if (axios.isAxiosError(e) && e.response?.status === 404) {
+    if (isApiError(e) && e.response?.status === 404) {
       geneStructureData.value = null;
       ensemblRawData.value = null;
-    } else if (axios.isAxiosError(e) && e.response?.status === 503) {
+    } else if (isApiError(e) && e.response?.status === 503) {
       geneStructureError.value = 'Ensembl API temporarily unavailable';
     } else {
       geneStructureError.value = 'Failed to load gene structure data';

@@ -300,6 +300,9 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 
+// Typed API client (W5)
+import { browseComparisons, browseComparisonsXlsx } from '@/api/comparisons';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the GenericTable component (Treeselect temporarily disabled)
@@ -498,27 +501,27 @@ export default {
     async loadTableData() {
       this.isBusy = true;
 
-      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
-        this.currentItemID
-      }&page_size=${this.perPage}&definitive_only=${this.definitiveOnly}`;
-
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
-        this.items = response.data.data;
-
-        this.totalRows = response.data.meta[0].totalItems;
-        this.$nextTick(() => {
-          this.currentPage = response.data.meta[0].currentPage;
+        const data = await browseComparisons({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: String(this.currentItemID),
+          page_size: String(this.perPage),
+          definitive_only: String(this.definitiveOnly),
         });
-        this.totalPages = response.data.meta[0].totalPages;
-        this.prevItemID = response.data.meta[0].prevItemID;
-        this.currentItemID = response.data.meta[0].currentItemID;
-        this.nextItemID = response.data.meta[0].nextItemID;
-        this.lastItemID = response.data.meta[0].lastItemID;
-        this.executionTime = response.data.meta[0].executionTime;
-        this.fields = response.data.meta[0].fspec;
+        this.items = data.data;
+
+        this.totalRows = data.meta[0].totalItems;
+        this.$nextTick(() => {
+          this.currentPage = data.meta[0].currentPage;
+        });
+        this.totalPages = data.meta[0].totalPages;
+        this.prevItemID = data.meta[0].prevItemID;
+        this.currentItemID = data.meta[0].currentItemID;
+        this.nextItemID = data.meta[0].nextItemID;
+        this.lastItemID = data.meta[0].lastItemID;
+        this.executionTime = data.meta[0].executionTime;
+        this.fields = data.meta[0].fspec;
 
         this.isBusy = false;
       } catch (e) {
@@ -528,23 +531,15 @@ export default {
     async requestExcel() {
       this.downloading = true;
 
-      const urlParam =
-        `sort=${this.sort}&filter=${this.filter_string}&page_after=` +
-        '0' +
-        '&page_size=' +
-        'all' +
-        '&format=xlsx';
-
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/browse?${urlParam}`;
-
       try {
-        const response = await this.axios({
-          url: apiUrl,
-          method: 'GET',
-          responseType: 'blob',
+        const blob = await browseComparisonsXlsx({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: '0',
+          page_size: 'all',
         });
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(blob);
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;

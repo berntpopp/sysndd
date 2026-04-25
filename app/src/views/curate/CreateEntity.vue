@@ -103,12 +103,30 @@
 <script lang="ts">
 import { defineComponent, ref, provide, onMounted, watch } from 'vue';
 import { BContainer, BRow, BCol, BOverlay, BAlert, BButton } from 'bootstrap-vue-next';
-import axios from 'axios';
 
 // Composables
 import { useToast, type TreeNode } from '@/composables';
 import useEntityForm, { type SelectOption, type EntityFormData } from '@/composables/useEntityForm';
 import useFormDraft from '@/composables/useFormDraft';
+
+// Typed API clients
+import {
+  listInheritanceTree,
+  listPhenotypesTree,
+  listVariationOntologyTree,
+  listStatusCategoriesTree,
+  type TreeNode as ApiTreeNode,
+} from '@/api/list';
+import {
+  searchGene,
+  searchOntology,
+  type GeneSearchTreeNode,
+  type OntologyTreeNode,
+} from '@/api/search';
+import {
+  createEntity,
+  type EntityCreatePayload,
+} from '@/api/entity';
 
 // Components
 import FormWizard from '@/components/forms/wizard/FormWizard.vue';
@@ -214,31 +232,41 @@ export default defineComponent({
       { deep: true }
     );
 
-    // API helper for loading flat options (inheritance, status)
-    const loadFlatOptions = async (endpoint: string, targetRef: typeof inheritanceOptions) => {
+    // API helper for loading flat options (inheritance, status). Maps the
+    // legacy `endpoint` string (`"inheritance"` | `"status"`) to the
+    // corresponding typed-tree client; `flattenTreeOptions` then collapses
+    // the tree into a flat <SelectOption> list.
+    const loadFlatOptions = async (
+      endpoint: 'inheritance' | 'status',
+      targetRef: typeof inheritanceOptions,
+    ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
-          { withCredentials: true }
-        );
-        targetRef.value = flattenTreeOptions(response.data);
+        const fetcher =
+          endpoint === 'inheritance' ? listInheritanceTree : listStatusCategoriesTree;
+        const data = await fetcher();
+        targetRef.value = flattenTreeOptions(data);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
       }
     };
 
-    // Flatten tree options for simple selects (inheritance, status)
+    // Flatten tree options for simple selects (inheritance, status). The
+    // typed-list helpers return `ApiTreeNode[]` whose nested `children`
+    // entries are typed as `{ id; label }` (a structural subset of the
+    // top-level node), so the recursive call accepts them directly without
+    // an `as unknown` cast.
     const flattenTreeOptions = (
-      options: { id: string; label: string; children?: unknown[] }[],
-      result: SelectOption[] = []
+      options: ReadonlyArray<ApiTreeNode | { id: string | number; label: string }>,
+      result: SelectOption[] = [],
     ): SelectOption[] => {
       options.forEach((opt) => {
         result.push({
           value: opt.id,
           text: opt.label,
         });
-        if (opt.children && Array.isArray(opt.children)) {
-          flattenTreeOptions(opt.children as typeof options, result);
+        const children = (opt as ApiTreeNode).children;
+        if (children && Array.isArray(children)) {
+          flattenTreeOptions(children, result);
         }
       });
       return result;
@@ -272,14 +300,23 @@ export default defineComponent({
       });
     };
 
-    // API helper for loading tree options (phenotypes, variations)
-    const loadTreeOptions = async (endpoint: string, targetRef: typeof phenotypeOptions) => {
+    // API helper for loading tree options (phenotypes, variations). Maps
+    // the legacy `endpoint` string to the matching typed-tree client.
+    const loadTreeOptions = async (
+      endpoint: 'phenotype' | 'variation_ontology',
+      targetRef: typeof phenotypeOptions,
+    ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/list/${endpoint}?tree=true`,
-          { withCredentials: true }
-        );
-        const rawData = Array.isArray(response.data) ? response.data : response.data?.data || [];
+        const fetcher =
+          endpoint === 'phenotype' ? listPhenotypesTree : listVariationOntologyTree;
+        const data = await fetcher();
+        const rawData = (Array.isArray(data)
+          ? data
+          : ((data as { data?: unknown[] })?.data ?? [])) as {
+          id: string;
+          label: string;
+          children?: { id: string; label: string }[];
+        }[];
         targetRef.value = transformModifierTree(rawData);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
@@ -303,34 +340,32 @@ export default defineComponent({
       }
     });
 
-    // Gene search handler
+    // Gene search handler. With the W7-followup overload, passing
+    // `{ tree: true }` to `searchGene` narrows the return type to
+    // `GeneSearchTreeNode[]`, which is structurally assignable to the
+    // `Record<string, unknown>[]` callback contract emitted by the
+    // `<StepCoreEntity>` wrapper.
     const handleGeneSearch = async (
       query: string,
-      callback: (results: Record<string, unknown>[]) => void
+      callback: (results: GeneSearchTreeNode[]) => void,
     ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/gene/${query}?tree=true`,
-          { withCredentials: true }
-        );
-        callback(response.data);
+        const data = await searchGene(query, { tree: true });
+        callback(data);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
       }
     };
 
-    // Disease search handler
+    // Disease search handler — same overload-narrowing pattern as above.
     const handleDiseaseSearch = async (
       query: string,
-      callback: (results: Record<string, unknown>[]) => void
+      callback: (results: OntologyTreeNode[]) => void,
     ) => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/search/ontology/${query}?tree=true`,
-          { withCredentials: true }
-        );
-        callback(response.data);
+        const data = await searchOntology(query, { tree: true });
+        callback(data);
       } catch (e) {
         makeToast(e as Error, 'Error', 'danger');
         callback([]);
@@ -365,14 +400,19 @@ export default defineComponent({
       showDraftRecovery.value = false;
     };
 
-    // Build submission object from form data
-    const buildSubmissionObject = () => {
+    // Build submission object from form data. The JS-side submission
+    // classes (`Submission`, `Entity`, ...) drive the runtime shape; this
+    // function returns the same payload but typed against the API
+    // contract so the `createEntity()` call site can drop its
+    // `as unknown as Parameters<typeof createEntity>[0]['create_json']`
+    // cast in favour of a single, named `EntityCreatePayload` reference.
+    const buildSubmissionObject = (): EntityCreatePayload => {
       // Clean PMID arrays
       const cleanPMIDs = (arr: string[]) => arr.map((item) => item.replace(/\s+/g, ''));
 
       const literature = new Literature(
         cleanPMIDs(formData.publications),
-        cleanPMIDs(formData.genereviews)
+        cleanPMIDs(formData.genereviews),
       );
 
       const phenotypes = formData.phenotypes.map((item) => {
@@ -390,7 +430,7 @@ export default defineComponent({
         literature,
         phenotypes,
         variations,
-        formData.comment
+        formData.comment,
       );
 
       const status = new Status(formData.statusId, '', 0);
@@ -399,10 +439,16 @@ export default defineComponent({
         formData.geneId,
         formData.diseaseId,
         formData.inheritanceId,
-        formData.nddPhenotype ? 1 : 0
+        formData.nddPhenotype ? 1 : 0,
       );
 
-      return new Submission(entity, review, status);
+      // The JS classes have no TS surface; the resulting `Submission`
+      // instance is structurally compatible with `EntityCreatePayload`
+      // (TS classes vs. plain interfaces — JSON serialisation flattens
+      // both to the same wire shape). Cast through the typed contract
+      // so any future divergence in `EntityCreatePayload` surfaces here
+      // rather than at the call site.
+      return new Submission(entity, review, status) as unknown as EntityCreatePayload;
     };
 
     // Submit handler
@@ -416,23 +462,19 @@ export default defineComponent({
 
       try {
         const submission = buildSubmissionObject();
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/create?direct_approval=${directApproval.value}`;
 
         // v11.0 closeout F2a: the inline Authorization header construction
         // here has been removed. The `apiClient` request interceptor
         // (`@/api/client`) reads `useAuth().token.value` and injects the
         // Bearer header on every outbound call against the shared axios
         // singleton.
-        const response = await axios.post(
-          apiUrl,
+        await createEntity(
           { create_json: submission },
-          {
-            withCredentials: true,
-          }
+          { direct_approval: directApproval.value },
         );
 
         makeToast(
-          `Entity submitted successfully (status ${response.status})`,
+          'Entity submitted successfully',
           'Success',
           'success'
         );

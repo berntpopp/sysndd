@@ -293,7 +293,7 @@ describe('useAuth', () => {
       expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
     });
 
-    it('refresh() bubbles errors; callers decide whether to logout/redirect', async () => {
+    it('refresh() bubbles errors; the 401 interceptor (W2) clears state via handle401()', async () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
@@ -302,8 +302,16 @@ describe('useAuth', () => {
       );
 
       await expect(auth.refresh()).rejects.toThrow();
-      // Token is unchanged; the axios 401 interceptor handles state cleanup.
-      expect(auth.token.value).toBe(FRESH_TOKEN);
+      // v11.1 W2 contract: when the 401 response interceptor fires it
+      // delegates to `useAuth().handle401()`, which is the single owner
+      // of logout cleanup (clears localStorage AND reactive refs in one
+      // place). Pre-W2 the interceptor only mutated localStorage, leaving
+      // refs lagging by a tick — that drift is exactly what W2 closes.
+      // The new assertion locks in the post-W2 state: refs are cleared.
+      expect(auth.token.value).toBeNull();
+      expect(auth.user.value).toBeNull();
+      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('user')).toBeNull();
     });
 
     it('refresh() rejects on a malformed 200 body ([null]) and does NOT mutate token/localStorage/header', async () => {
@@ -577,5 +585,89 @@ describe('useAuth', () => {
       expect(a.token.value).toBeNull();
       expect(a.isAuthenticated.value).toBe(false);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// W2 (v11.1 finish-hardening): handle401 contract
+// ---------------------------------------------------------------------------
+//
+// Pre-W2, the axios 401 interceptor cleared `localStorage` directly and
+// `useAuth().handle401()` only RE-READ that already-cleared state. This split
+// ownership left a small reactive-drift window (the interceptor cleared
+// localStorage; reactive consumers like AppNavbar lagged by one tick) and
+// duplicated the cleanup contract across two files.
+//
+// W2 makes `useAuth.handle401()` the single owner of logout cleanup:
+//   - clears `localStorage` itself (no longer assumes the interceptor did it)
+//   - clears the reactive refs
+//   - dispatches navigation toward `/Login`
+//   - is idempotent: calling more than once is safe (no throws, state
+//     stays cleared)
+//
+// These tests intentionally stand on their own (separate top-level describe)
+// so the contract is legible without grep'ing the full file. The spec
+// asserts on the `globalThis.__authNavTarget` global hook, which
+// `handle401()` always assigns regardless of whether a router is mounted;
+// in addition the implementation calls `router.push` when one is available.
+describe('useAuth.handle401() — single-owner contract (W2)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // Seed a logged-in state directly in localStorage. This simulates the
+    // pre-W2 split-ownership world: the interceptor used to clear these
+    // keys before calling handle401(); now handle401() owns the clear.
+    localStorage.setItem('token', 'fake-jwt-for-spec');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        user_id: [42],
+        user_name: ['spec'],
+        email: ['spec@example.org'],
+        user_role: ['Curator'],
+        user_created: ['2025-01-01 00:00:00'],
+        abbreviation: ['SP'],
+        orcid: {},
+        exp: [Math.floor(Date.now() / 1000) + 3600],
+      }),
+    );
+    // Reset the navigation hook so test 3 starts from a clean slate.
+    delete (globalThis as Record<string, unknown>).__authNavTarget;
+  });
+
+  it('clears token and user from reactive state and from localStorage', () => {
+    const auth = useAuth();
+    auth.syncFromStorage(); // ensure refs reflect the seeded localStorage
+    expect(auth.token.value).toBe('fake-jwt-for-spec');
+    expect(auth.user.value?.user_name?.[0]).toBe('spec');
+
+    auth.handle401();
+
+    // Reactive refs cleared
+    expect(auth.token.value).toBeNull();
+    expect(auth.user.value).toBeNull();
+    // localStorage cleared (handle401 is the OWNER of this cleanup)
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  it('is idempotent — calling twice does not throw and leaves state cleared', () => {
+    const auth = useAuth();
+    auth.handle401();
+    expect(() => auth.handle401()).not.toThrow();
+    expect(auth.token.value).toBeNull();
+    expect(localStorage.getItem('token')).toBeNull();
+  });
+
+  it('dispatches a navigation event toward the login route', () => {
+    const auth = useAuth();
+    // The implementation always assigns `globalThis.__authNavTarget` for
+    // test / pre-init contexts (and additionally calls `router.push` when
+    // a router is mounted). Asserting on the global hook directly is the
+    // observable surface this spec actually owns.
+    delete (globalThis as Record<string, unknown>).__authNavTarget;
+    auth.handle401();
+    expect((globalThis as Record<string, unknown>).__authNavTarget).toBe(
+      '/Login',
+    );
   });
 });

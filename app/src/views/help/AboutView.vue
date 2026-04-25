@@ -337,7 +337,7 @@ import { ref, onMounted } from 'vue';
 import { useHead } from '@unhead/vue';
 import { renderMarkdown } from '@/composables';
 import type { AboutSection } from '@/types';
-import axios from 'axios';
+import { getPublishedAbout } from '@/api/about';
 
 useHead({
   title: 'About',
@@ -353,22 +353,18 @@ const loading = ref(true);
 const useCmsContent = ref(false);
 const cmsContent = ref<AboutSection[]>([]);
 
-const API_URL = import.meta.env.VITE_API_URL || '';
-
 onMounted(async () => {
   try {
     // Try to load CMS content from API
-    const response = await axios.get<{ sections: AboutSection[] } | AboutSection[]>(
-      `${API_URL}/api/about/published`,
-      { timeout: 5000, withCredentials: true }
-    );
+    const data = await getPublishedAbout({ timeout: 5000, withCredentials: true });
 
-    // Handle different response formats
+    // Handle different response formats — R may emit either a bare array or
+    // a `{ sections: [...] }` envelope depending on serializer settings.
     let sections: AboutSection[] = [];
-    if (Array.isArray(response.data)) {
-      sections = response.data;
-    } else if (response.data && 'sections' in response.data) {
-      sections = response.data.sections || [];
+    if (Array.isArray(data)) {
+      sections = data as unknown as AboutSection[];
+    } else if (data && typeof data === 'object' && 'sections' in data) {
+      sections = ((data as unknown as { sections?: AboutSection[] }).sections) || [];
     }
 
     if (sections.length > 0) {

@@ -134,6 +134,7 @@ import useToast from '@/composables/useToast';
 // view only needs the `isAuthenticated` guard (to clear a stale session
 // on the register route) and `logout()` (to perform that clear).
 import { useAuth } from '@/composables/useAuth';
+import { signup } from '@/api/auth';
 
 // Define validation rules
 defineRule('required', required);
@@ -267,8 +268,6 @@ export default {
       })();
     },
     async sendRegistration() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/auth/signup`;
-
       const registration_form = {
         user_name: this.user_name,
         email: this.email,
@@ -280,11 +279,9 @@ export default {
       };
 
       try {
-        const response = await this.axios.post(apiUrl, registration_form);
+        await signup(registration_form);
         this.makeToast(
-          `${'Your registration request has been send ' + '(status '}${response.status} (${
-            response.statusText
-          }).`,
+          'Your registration request has been sent.',
           'Success',
           'success'
         );

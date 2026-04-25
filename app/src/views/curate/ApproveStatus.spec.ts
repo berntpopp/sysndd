@@ -490,9 +490,17 @@ describe('ApproveStatus — functional flow (Phase C3)', () => {
       query?: Record<string, unknown>;
     };
     expect(pushArg.path).toBe('/Login');
-    // The mocked router's currentRoute is '/curate/approve-status', so the
-    // interceptor must include it as the `redirect` query.
-    expect(pushArg.query).toEqual({ redirect: '/curate/approve-status' });
+    // v11.1 W2 finish-hardening contract: the axios 401 interceptor now
+    // delegates to `useAuth().handle401()`, which dispatches the stable
+    // `reason: 'session-expired'` query and ALSO preserves the user's
+    // current `fullPath` as `redirect` for forward-compatibility (a
+    // future LoginView change can bounce the user back after re-auth).
+    // The `redirect` value mirrors the mocked `currentRoute.value.fullPath`
+    // declared in the `vi.mock('@/router', …)` factory above.
+    expect(pushArg.query).toEqual({
+      reason: 'session-expired',
+      redirect: '/curate/approve-status',
+    });
 
     expect(window.localStorage.getItem('token')).toBeNull();
   });

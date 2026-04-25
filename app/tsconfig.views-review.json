@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.strict.json",
+  "include": ["src/views/review/**/*.ts", "src/views/review/**/*.vue"],
+  "exclude": ["src/views/review/**/*.spec.ts", "src/views/review/**/__tests__/**"]
+}

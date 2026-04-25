@@ -341,6 +341,9 @@ import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
 
+// Typed API client
+import { listGenes } from '@/api/genes';
+
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
 let moduleLastApiParams = null;
@@ -691,14 +694,17 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/gene/?${urlParam}`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await listGenes({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: String(this.currentItemID ?? ''),
+          page_size: String(this.perPage),
+        });
         moduleApiCallInProgress = false;
         // Cache response for remounted components
-        moduleLastApiResponse = response.data;
-        this.applyApiResponse(response.data);
+        moduleLastApiResponse = data;
+        this.applyApiResponse(data);
 
         // Update URL AFTER API success to prevent component remount during API call
         this.updateBrowserUrl();

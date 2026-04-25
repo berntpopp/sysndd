@@ -175,6 +175,9 @@ import { render, extractSets } from '@upsetjs/bundle';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
+// Typed API client (W5)
+import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
+
 export default {
   name: 'AnalysesCurationUpset',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
@@ -265,10 +268,9 @@ export default {
   },
   methods: {
     async loadOptionsData() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/options`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.columns_list = response.data.list;
+        const data = await getComparisonsOptions();
+        this.columns_list = data.list;
         this.loadComparisonsUpsetData();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
@@ -276,14 +278,12 @@ export default {
     },
     async loadComparisonsUpsetData() {
       this.loadingUpset = true;
-      const params = new URLSearchParams({
-        fields: this.selected_columns.join(),
-        definitive_only: this.definitiveOnly.toString(),
-      });
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/upset?${params.toString()}`;
       try {
-        const response = await this.axios.get(apiUrl);
-        this.elems = response.data;
+        const data = await getUpsetData({
+          fields: this.selected_columns.join(),
+          definitive_only: this.definitiveOnly.toString(),
+        });
+        this.elems = data;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       } finally {

@@ -80,6 +80,8 @@ createInternetArchiveSnapshot - Creates a snapshot of the URL using the Internet
 <script>
 import useToast from '@/composables/useToast';
 import { DOCS_URLS } from '@/constants/docs';
+// Aliased to avoid shadowing the same-named component method below.
+import { createInternetArchiveSnapshot as postInternetArchiveSnapshot } from '@/api/external';
 
 export default {
   name: 'HelperBadge',
@@ -144,14 +146,8 @@ export default {
     },
     async createInternetArchiveSnapshot(url) {
       try {
-        // compose API URL
-        const apiUrl = `${import.meta.env.VITE_API_URL}/api/external/internet_archive?parameter_url=${url}`;
-
-        // make the API call
-        const response = await this.axios.get(apiUrl);
-
-        // return response
-        return response.data;
+        // make the API call via the typed external-proxy helper
+        return await postInternetArchiveSnapshot(url);
       } catch (e) {
         this.makeToast(e, 'Cannot copy', 'danger');
       }
