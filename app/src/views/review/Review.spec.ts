@@ -1131,3 +1131,119 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     expectBearerHeader(simulatedRequest, token);
   });
 });
+
+// ---------------------------------------------------------------------------
+// v11.1 finish-hardening fix #3 — `totalRows` is a Number, not an Array.
+//
+// Pre-fix: `totalRows: toRef(filters.filteredItems, 'length')` produced a ref
+// pointing into the ComputedRef wrapper itself. After auto-unwrap inside the
+// template the prop landed on `ReviewQueueTable` as the underlying array,
+// which then propagated to BTable's `total-rows` (`type: Number, required:
+// true`) — Vue's prop validator flagged it as a type mismatch at runtime.
+// The fix wraps the read in a `computed(() => filteredItems.value.length)`
+// so the prop is always a real number.
+// ---------------------------------------------------------------------------
+
+describe('Review.vue — fix #3 totalRows prop is Number', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    announceSpy.mockClear();
+    makeToastSpy.mockClear();
+  });
+
+  /**
+   * Mount Review with a STUB for ReviewQueueTable that records the props it
+   * receives. We can then assert the runtime type of `totalRows` directly,
+   * which is the contract the BV3 BTable prop validator enforces.
+   */
+  async function mountReviewWithCapturedQueueTable(): Promise<{
+    wrapper: VueWrapper;
+    capturedProps: () => Record<string, unknown> | null;
+  }> {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+
+    const captured: { props: Record<string, unknown> | null } = { props: null };
+    const ReviewQueueTableStub = {
+      name: 'ReviewQueueTable',
+      props: ['filteredItems', 'totalRows', 'fields', 'isBusy'],
+      setup(props: Record<string, unknown>) {
+        // Snapshot the actual prop shape the parent handed in. `totalRows`
+        // is the load-bearing assertion target.
+        captured.props = props;
+      },
+      template: '<div class="review-queue-table-stub" />',
+    };
+
+    const pinia = createPinia();
+    const wrapper = mount(Review, {
+      global: {
+        plugins: [pinia],
+        mocks: {
+          axios: axiosMock,
+          $route: { path: '/Review', name: 'Review', params: {} },
+          $router: { push: vi.fn(), currentRoute: { value: { fullPath: '/Review' } } },
+        },
+        stubs: {
+          ...bootstrapStubs,
+          ReviewQueueTable: ReviewQueueTableStub,
+          AriaLiveRegion: { template: '<div />' },
+          IconLegend: { template: '<div />' },
+          BModal: { template: '<div><slot /></div>' },
+          BFormInput: { props: ['modelValue'], template: '<input :value="modelValue" />' },
+          BFormSelect: { props: ['modelValue'], template: '<select />' },
+          BFormTextarea: { props: ['modelValue'], template: '<textarea :value="modelValue" />' },
+          BFormCheckbox: { props: ['modelValue'], template: '<input type="checkbox" />' },
+          BFormTags: { template: '<div><slot /></div>' },
+          BFormTag: { template: '<span><slot /></span>' },
+          BFormGroup: { template: '<div><slot /></div>' },
+          BFormSelectOption: { template: '<option><slot /></option>' },
+          BInputGroup: { template: '<div><slot /></div>' },
+          BInputGroupText: { template: '<span><slot /></span>' },
+          BSpinner: { template: '<div role="status" />' },
+          BBadge: { template: '<span><slot /></span>' },
+          BPopover: { template: '' },
+          BCard: { template: '<div><slot name="header" /><slot /></div>' },
+          BOverlay: { template: '<div><slot /></div>' },
+          BForm: { template: '<form><slot /></form>' },
+          BTable: { template: '<table />' },
+          BPagination: { template: '<nav />' },
+          BDropdown: { template: '<div><slot /></div>' },
+          BDropdownItem: { template: '<a><slot /></a>' },
+          EntityBadge: { template: '<span>Entity</span>' },
+          GeneBadge: { template: '<span>Gene</span>' },
+          DiseaseBadge: { template: '<span>Disease</span>' },
+          InheritanceBadge: { template: '<span>Inheritance</span>' },
+          CategoryIcon: { template: '<span>Category</span>' },
+          NddIcon: { template: '<span>NDD</span>' },
+          TreeMultiSelect: { template: '<select multiple><option /></select>' },
+          ReviewFormFields: { template: '<div />' },
+        },
+      },
+    });
+
+    await flushPromises();
+    return { wrapper, capturedProps: () => captured.props };
+  }
+
+  it('passes a numeric `totalRows` to ReviewQueueTable (not the underlying array)', async () => {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+
+    const { capturedProps } = await mountReviewWithCapturedQueueTable();
+
+    const props = capturedProps();
+    expect(props).not.toBeNull();
+    // The contract: BV3's BTable types `total-rows` as Number. The pre-fix
+    // bug surfaced as `typeof totalRows === 'object'` (an Array) reaching
+    // ReviewQueueTable, which then forwarded it to BTable.
+    expect(typeof props!.totalRows).toBe('number');
+    // sampleRow is the only row the happy-path mock returns; one item ⇒
+    // length 1. Concrete value pin so a future regression where length
+    // resolves to 0 (toRef of a ref returning the ref itself) is caught.
+    expect(props!.totalRows).toBe(1);
+    // Belt-and-braces: assert the regression mode (an Array reached the
+    // child) is gone.
+    expect(Array.isArray(props!.totalRows)).toBe(false);
+  });
+});

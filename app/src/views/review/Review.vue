@@ -112,7 +112,7 @@
 </template>
 
 <script>
-import { ref, watch, toRef } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useToast, useColorAndSymbols, useText, useAriaLive } from '@/composables';
 import { useAuth } from '@/composables/useAuth';
 import useStatusForm from '@/views/curate/composables/useStatusForm';
@@ -278,7 +278,16 @@ export default {
       items: data.items,
       isBusy: data.isBusy,
       loading: data.loading,
-      totalRows: toRef(filters.filteredItems, 'length'),
+      // v11.1 finish-hardening fix #3: `filters.filteredItems` is a
+      // ComputedRef<T[]> (see useReviewFilters.ts). Wrapping it with
+      // `toRef(filteredItems, 'length')` returned a ref *into the ComputedRef
+      // wrapper itself* — auto-unwrap then handed BTable the underlying
+      // array, not its length. BTable's `total-rows` prop is typed as Number,
+      // so the array reached the prop validator and produced a runtime warning
+      // ("Invalid prop: type check failed for prop 'totalRows'"). Use a
+      // computed() that explicitly reads `.value.length` so the template
+      // receives the numeric count BV3's BTable expects.
+      totalRows: computed(() => filters.filteredItems.value?.length ?? 0),
       phenotypes_options: data.phenotypes_options,
       variation_ontology_options: data.variation_ontology_options,
       status_options: data.status_options,
