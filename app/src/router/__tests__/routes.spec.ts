@@ -124,3 +124,59 @@ describe('createAuthGuard (via /User route beforeEnter) — Vue Router 4 return-
     expect(guard.length).toBe(2);
   });
 });
+
+describe('/Panels beforeEnter — Vue Router 4 return-based API', () => {
+  // Sibling guard to createAuthGuard. Same modernisation — `next()` callback
+  // dropped in favour of returning the navigation target.
+  const panelsRoute = routes.find((r) => r.name === 'Panels');
+  if (!panelsRoute || typeof panelsRoute.beforeEnter !== 'function') {
+    throw new Error('Test setup: /Panels route or its beforeEnter guard not found');
+  }
+  const guard = panelsRoute.beforeEnter as (
+    to: RouteLocationNormalized
+  ) => unknown;
+
+  const panelRoute = (
+    category_input: string | undefined,
+    inheritance_input: string | undefined
+  ): RouteLocationNormalized =>
+    ({
+      path: '/Panels',
+      name: 'Panels',
+      params: {
+        ...(category_input !== undefined ? { category_input } : {}),
+        ...(inheritance_input !== undefined ? { inheritance_input } : {}),
+      },
+      query: {},
+      hash: '',
+      matched: [],
+      fullPath: '/Panels',
+      redirectedFrom: undefined,
+      meta: {},
+    }) as unknown as RouteLocationNormalized;
+
+  it('returns true for valid category + inheritance', () => {
+    expect(guard(panelRoute('Definitive', 'Autosomal dominant'))).toBe(true);
+    expect(guard(panelRoute('All', 'All'))).toBe(true);
+    expect(guard(panelRoute('Limited', 'X-linked'))).toBe(true);
+  });
+
+  it('redirects to /Panels/All/All when category is invalid', () => {
+    expect(guard(panelRoute('NotARealCategory', 'All'))).toEqual({ path: '/Panels/All/All' });
+  });
+
+  it('redirects to /Panels/All/All when inheritance is invalid', () => {
+    expect(guard(panelRoute('Definitive', 'NotAnInheritance'))).toEqual({
+      path: '/Panels/All/All',
+    });
+  });
+
+  it('redirects when both params are missing', () => {
+    expect(guard(panelRoute(undefined, undefined))).toEqual({ path: '/Panels/All/All' });
+  });
+
+  it('does NOT call any next() callback (legacy Vue Router 3 contract)', () => {
+    // The fixed guard takes only (to). Legacy guards took (to, from, next).
+    expect(guard.length).toBe(1);
+  });
+});

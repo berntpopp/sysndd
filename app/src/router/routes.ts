@@ -1,6 +1,6 @@
 // src/router/routes.ts
 
-import type { RouteRecordRaw, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
+import type { RouteRecordRaw, RouteLocationNormalized } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 
 /**
@@ -294,11 +294,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'Panels',
     component: () => import('@/views/tables/PanelsTable.vue'),
     meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: (
-      to: RouteLocationNormalized,
-      from: RouteLocationNormalized,
-      next: NavigationGuardNext
-    ) => {
+    beforeEnter: (to: RouteLocationNormalized) => {
       const categoryInput = Array.isArray(to.params.category_input)
         ? to.params.category_input[0]
         : to.params.category_input;
@@ -312,10 +308,9 @@ export const routes: RouteRecordRaw[] = [
           inheritanceInput as string
         )
       ) {
-        next(); // everything good, proceed
-      } else {
-        next({ path: '/Panels/All/All' }); // redirect to a known setup
+        return true;
       }
+      return { path: '/Panels/All/All' };
     },
   },
   {
