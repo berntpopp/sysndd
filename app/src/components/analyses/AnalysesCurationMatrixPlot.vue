@@ -55,6 +55,9 @@ import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 
+// Typed API client (W5)
+import { getSimilarity } from '@/api/comparisons';
+
 export default {
   name: 'AnalysesCurationMatrixPlot',
   components: {
@@ -83,12 +86,10 @@ export default {
     async loadMatrixData() {
       this.loadingMatrix = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/comparisons/similarity`;
-
       try {
-        const response = await this.axios.get(apiUrl);
+        const data = await getSimilarity();
 
-        this.itemsMatrix = response.data;
+        this.itemsMatrix = data;
         this.generateGraph();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
