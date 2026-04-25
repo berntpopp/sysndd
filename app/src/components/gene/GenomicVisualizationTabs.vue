@@ -122,7 +122,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { BCard, BTabs, BTab, BBadge, BSpinner } from 'bootstrap-vue-next';
-import { apiClient, isApiError } from '@/api/client';
+import { isApiError } from '@/api/client';
+import { getEnsemblStructure } from '@/api/external';
 import ProteinDomainLollipopPlot from './ProteinDomainLollipopPlot.vue';
 import GeneStructurePlotWithVariants from './GeneStructurePlotWithVariants.vue';
 import ProteinStructure3D from './ProteinStructure3D.vue';
@@ -477,23 +478,26 @@ async function fetchGeneStructureData(): Promise<void> {
   geneStructureError.value = null;
 
   try {
-    const data = await apiClient.get<{
+    const data = await getEnsemblStructure(props.geneSymbol, {
+      withCredentials: true,
+    });
+
+    // Defensive runtime narrow: the R endpoint maps the
+    // `list(found = FALSE)` and `list(error = TRUE)` paths to 404/503
+    // (handled in the catch branch), but legacy proxy payloads may still
+    // ship those shapes inside a 200. Mirror GeneStructureCard.vue.
+    const payload = data as unknown as {
       found?: boolean;
       error?: boolean;
       message?: string;
-      [key: string]: unknown;
-    }>(
-      `/api/external/ensembl/structure/${encodeURIComponent(props.geneSymbol)}`,
-      { withCredentials: true }
-    );
-
-    if (data?.found === false) {
+    };
+    if (payload?.found === false) {
       geneStructureData.value = null;
       ensemblRawData.value = null;
-    } else if (data?.error) {
-      geneStructureError.value = data.message || 'Failed to load gene structure';
+    } else if (payload?.error) {
+      geneStructureError.value = payload.message || 'Failed to load gene structure';
     } else {
-      ensemblRawData.value = data as unknown as EnsemblGeneStructure;
+      ensemblRawData.value = data;
       geneStructureData.value = processEnsemblResponse(ensemblRawData.value);
     }
   } catch (e: unknown) {
