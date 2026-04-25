@@ -385,11 +385,11 @@ async function refresh(): Promise<string> {
  *    the logged-out state immediately.
  * 4. Dispatch navigation toward `/Login`. We prefer `router.push` when a
  *    router is available; fall back to `globalThis.__authNavTarget` for
- *    test/non-router contexts. The router import is dynamic (require-style
- *    via `import('@/router')` would be async; we read the already-loaded
- *    module via a try/catch on the synchronous default import). Avoids a
- *    circular import at module load — `@/router` may import composables
- *    transitively.
+ *    test/non-router contexts. The router is imported statically at module
+ *    scope (`import router from '@/router'`). `@/router/routes.ts` imports
+ *    `useAuth()` for guards, so this is a module-graph cycle, but the
+ *    binding is only read when `handle401()` runs after startup rather than
+ *    during module initialisation.
  *
  * Idempotency
  * -----------
