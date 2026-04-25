@@ -47,6 +47,22 @@ export interface PasswordUpdateArgs {
   new_pass_2: string;
 }
 
+/**
+ * Body shape for `POST /api/auth/signup`. Mirrors the required-fields list in
+ * `api/endpoints/authentication_endpoints.R` (`@post signup`): every field is
+ * a scalar string and `terms_agreed` must be the literal `"accepted"` for the
+ * server-side validation to pass. Anything else is rejected as a 404 / 400.
+ */
+export interface SignupRequest {
+  user_name: string;
+  email: string;
+  orcid: string;
+  first_name: string;
+  family_name: string;
+  comment: string;
+  terms_agreed: 'accepted' | 'not_accepted';
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -92,4 +108,22 @@ export async function refresh(): Promise<string> {
  */
 export async function changePassword(args: PasswordUpdateArgs): Promise<void> {
   await apiClient.put<void, PasswordUpdateArgs>('/api/user/password/update', args);
+}
+
+/**
+ * POST /api/auth/signup
+ *
+ * Submits a registration request. Mirrors the `@post signup` handler in
+ * `api/endpoints/authentication_endpoints.R`: the server expects a JSON body
+ * with the seven required scalar-string fields described by `SignupRequest`
+ * and replies with HTTP 200 on success (the response body is informational
+ * only; this helper resolves with `void`). Validation failures surface as
+ * AxiosError (400 / 404 / 415); the caller (`RegisterView`) routes them
+ * through its toast handler.
+ */
+export async function signup(
+  body: SignupRequest,
+  config?: AxiosRequestConfig,
+): Promise<void> {
+  await apiClient.post<unknown, SignupRequest>('/api/auth/signup', body, config);
 }
