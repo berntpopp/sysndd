@@ -76,7 +76,7 @@ make test-api
 
 ## End-to-End Tests (Playwright)
 
-The Playwright suite runs against a real API+DB stack via a Docker Compose overlay isolated from `make dev`.
+The Playwright suite is **manual-only**. Run it locally for pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. The CI workflow at `.github/workflows/playwright.yml` is `workflow_dispatch` only — it does **not** auto-run on push or pull_request. Trigger it from the GitHub Actions tab when you want a CI-side regression run; otherwise it stays out of the lean per-PR lane.
 
 ### Local run
 
@@ -106,7 +106,7 @@ Use `uniqueName('prefix')` from `fixtures/data.ts` for any server-side state cre
 
 ### Screenshots
 
-Tests write artifact screenshots to `app/tests/e2e/screenshots/<flow>__<step>__<viewport>.png`. The directory is gitignored; CI uploads it as a workflow artifact (retention 14 days).
+Specs do **not** write artifact screenshots by default. Playwright's `screenshot: 'only-on-failure'` (see `app/playwright.config.ts`) still captures debugging shots on failure into `app/tests/e2e/.playwright-output/`. If you want before/after comparison artifacts for a specific UI change, add an ad-hoc `await page.screenshot({ path: 'tests/e2e/screenshots/...' })` line locally for that run; do not commit it. The manual `workflow_dispatch` workflow uploads the screenshots directory as an artifact when triggered, so any local additions surface in the run logs.
 
 ### Selectors
 
