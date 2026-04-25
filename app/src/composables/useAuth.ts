@@ -436,8 +436,21 @@ function handle401(): void {
     // the router has no mounted history (Vitest environment).
     if (router && typeof router.push === 'function') {
       const currentPath = router.currentRoute?.value?.path;
+      // Preserve the user's location so a future LoginView change can
+      // bounce them back after re-auth. The pre-W2 axios interceptor
+      // built this from `currentRoute.value.fullPath`; dropping it was
+      // a forward-compatibility regression flagged in Copilot review.
+      // We only attach `redirect` when the router actually has a route,
+      // to avoid sending `redirect=undefined` when handle401() fires
+      // before the first navigation (cold boot / pre-mount).
+      const currentFullPath = router.currentRoute?.value?.fullPath;
       if (currentPath !== '/Login') {
-        router.push({ path: '/Login', query: { reason: 'session-expired' } });
+        router.push({
+          path: '/Login',
+          query: currentFullPath
+            ? { reason: 'session-expired', redirect: currentFullPath }
+            : { reason: 'session-expired' },
+        });
       }
     }
   } catch {
