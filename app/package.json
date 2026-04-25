@@ -14,6 +14,7 @@
     "type-check:strict": "node scripts/type-check-strict.js",
     "lint": "eslint . --ext .vue,.js,.ts,.tsx",
     "lint:fix": "eslint . --ext .vue,.js,.ts,.tsx --fix",
+    "lint:wave1b-gate": "eslint --config eslint.config.wave1b-gate.js 'src/views/**/*.{vue,ts}' 'src/components/**/*.{vue,ts}' --ignore-pattern '**/*.spec.ts'",
     "format": "prettier --write \"src/**/*.{js,ts,vue,json,css,scss}\"",
     "format:check": "prettier --check \"src/**/*.{js,ts,vue,json,css,scss}\"",
     "prepare": "husky",

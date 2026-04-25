@@ -74,6 +74,12 @@ export default [
       '*.config.js',
       '*.config.ts',
       '.eslintrc*',
+      // Playwright E2E fixtures + specs are type-checked via the ad-hoc
+      // tsc invocation in CI (Wave 0 of v11.1) and not via the project
+      // tsconfig.json. ESLint's typescript-eslint parser would reject them
+      // as "not in project", so we exclude the directory globally.
+      'tests/e2e/**',
+      'playwright-report/**',
     ],
   },
 
