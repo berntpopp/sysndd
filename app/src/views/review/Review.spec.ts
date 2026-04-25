@@ -600,14 +600,15 @@ describe('Review.vue — classification wizard (functional)', () => {
     await vm.submitReviewChange();
     await flushPromises();
 
-    // The happy-path PUT hit /api/review/update?re_review=true with the
-    // merged payload shape from useReviewForm.submitForm(true, true). Assert
-    // the method, the endpoint substring, and the inclusion of the edited
-    // synopsis in the submitted body.
+    // The happy-path PUT hit /api/review/update with `re_review=true` carried
+    // on the third positional `config.params` arg (mirrors the W6 pattern for
+    // approveReReview at line ~1041). Assert the method, the clean endpoint,
+    // the params payload, and the inclusion of the edited synopsis in the
+    // submitted body.
     expect(axiosMock.put).toHaveBeenCalledTimes(1);
-    const [putUrl, putBody] = axiosMock.put.mock.calls[0];
-    expect(putUrl).toContain('/api/review/update');
-    expect(putUrl).toContain('re_review=true');
+    const [putUrl, putBody, putConfig] = axiosMock.put.mock.calls[0];
+    expect(putUrl).toBe('/api/review/update');
+    expect((putConfig as { params?: { re_review?: boolean } })?.params?.re_review).toBe(true);
     const submittedPayload = (putBody as { review_json: { synopsis: string } }).review_json;
     expect(submittedPayload.synopsis).toContain('Updated clinical synopsis');
 

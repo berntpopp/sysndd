@@ -18,18 +18,13 @@ import Variation from '@/assets/js/classes/submission/submissionVariation';
 import Literature from '@/assets/js/classes/submission/submissionLiterature';
 import useFormDraft from '@/composables/useFormDraft';
 import {
+  createReview,
   getReviewById,
   getReviewPhenotypes,
   getReviewVariation,
   getReviewPublications,
+  updateReview,
 } from '@/api/review';
-// W4 note: the create/update review writes pass through the typed apiClient
-// directly (rather than the @/api/review createReview/updateReview helpers)
-// so the wire-format URL keeps the `?re_review=...` suffix, matching the
-// existing Review.spec.ts (W6-owned) assertion contract. Once W6 rewrites
-// Review.spec.ts to inspect config.params separately, this can collapse to
-// the typed helpers with their `params` argument.
-import { apiClient } from '@/api/client';
 
 // Types
 export interface ReviewFormData {
@@ -364,19 +359,23 @@ export default function useReviewForm(entityId?: string | number) {
     reviewSubmission.review_id = reviewId.value;
     reviewSubmission.entity_id = entityIdRef.value;
 
-    // Submit to API.
+    // Submit to API via the typed `@/api/review` helpers. `re_review` is
+    // passed on the third positional `config.params` arg so the wire-format
+    // URL stays clean (`/api/review/{action}`) and the boolean is serialised
+    // by axios as `?re_review=...` at request time.
+    //
     // v11.0 closeout F2a: the inline Authorization header construction
     // has been removed. The `apiClient` request interceptor
     // (`@/api/client`) reads `useAuth().token.value` and injects the
     // Bearer header on every outbound call against the shared axios
     // singleton.
-    const action = isUpdate ? 'update' : 'create';
-    const url = `/api/review/${action}?re_review=${reReview}`;
-    const reviewBody = { review_json: reviewSubmission };
+    const reviewBody = { review_json: reviewSubmission } as unknown as Parameters<
+      typeof updateReview
+    >[0];
     if (isUpdate) {
-      await apiClient.put(url, reviewBody);
+      await updateReview(reviewBody, { re_review: reReview });
     } else {
-      await apiClient.post(url, reviewBody);
+      await createReview(reviewBody, { re_review: reReview });
     }
 
     // Clear draft on successful submission
