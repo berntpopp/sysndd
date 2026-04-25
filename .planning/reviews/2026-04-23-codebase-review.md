@@ -22,7 +22,7 @@
 **Open issues status:**
 
 - **#299** (CSP) — ⚠️ Partially closed; `'unsafe-inline'` for `script-src` replaced by sha256 hashes, `'unsafe-eval'` retained intentionally with documented rationale. Full close requires NGL replacement + `ManageAbout.vue` template-compiler removal — both outside v11.1 scope.
-- **#300** (HSTS) — ✅ Closed; preload+includeSubDomains policy formalised in ADR. (Operator action still required: submit apex domain to HSTS preload list.)
+- **#300** (HSTS) — ✅ Closed; preload+includeSubDomains policy formalised in ADR.
 - **#154** (durable queue) — 🔄 Rescoped; durable-jobs MVP shipped, Redis queue + heavy/light worker split deferred to follow-up issue.
 - **#29, #98, #175, #105, #89, #55, #54, #48, #46, #37, #33, #32, #25, #22, #15, #14** — unchanged; not in v11.1 scope.
 
@@ -343,9 +343,7 @@ PR #306 ("v11.1 finish-hardening") closes the bulk of the original §"Recommende
 
 1. **Decompose `ManageUser.vue` (1701 LoC)** — same composable-extraction pattern W6 used on `Review.vue`. Explicitly deferred from v11.1 per spec §1; create a follow-up issue.
 2. **Decompose `ModifyEntity.vue` (1500+ LoC)** — was migrated to typed clients in W4 but stayed monolithic. Same pattern as above.
-3. **Replace VariO ontology (#98)** — long-standing data-quality follow-up.
-4. **Entity-batch grouping bug (#29)** — data-integrity fix; out of scope for the platform-hardening PR.
-5. **Submit apex domain to HSTS preload list** — operator action; the directive is shipped, the registration step is not.
+3. **Entity-batch grouping bug (#29)** — data-integrity fix; out of scope for the platform-hardening PR.
 
 ### Smaller cleanups
 
