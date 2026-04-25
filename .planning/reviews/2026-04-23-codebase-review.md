@@ -5,6 +5,33 @@
 **Branch:** `master`  
 **Baseline compared:** `.planning/reviews/2026-04-11-codebase-review.md`
 
+## Status update (2026-04-25, post v11.1-finish-hardening PR #306)
+
+| Finding | Status | Where |
+|---|---|---|
+| **P1.1** Registration PII in query string | ✅ DONE | FU#2 added `signup()` typed helper; `RegisterView.vue` uses `POST /api/auth/signup` (JSON body) |
+| **P1.2** Legacy URL-based auth + raw query-string logging | ✅ DONE | Pre-PR: `2026-04-23-auth-query-string-hard-cut` shipped legacy GET removal; migration `019_redact_logged_query_strings.sql` redacts |
+| **P1.4** Async job state in-memory | ✅ DONE | Durable-jobs MVP shipped in PR #305; v11.1 W3 added typed `@/api/jobs.ts` client + Vitest+MSW spec |
+| **P1.5** Frontend architecture migration incomplete | ✅ DONE | W3 filled all 24 typed-API stubs; W4/W5/W6/W7 migrated ~40 call sites; precise grep gates return zero `this.axios.*` and zero raw `axios` value-imports in `views/`+`components/` |
+| **P2.6** Type safety / strict mode | ⚠️ EXPANDED | FU#6 global ratchet covers most of `src/` minus 28 documented exclusions in 9 cohorts; 7 strict scopes pass (router, api, types, composables-auth, plugins-axios, views-review, global) |
+| **P2.7** Large frontend monoliths | 🔄 PARTIAL | `Review.vue` decomposed 1441→514 LoC (W6) into 4 composables + 5 components. **Still monolithic:** `ManageUser.vue` (1701 LoC), `ModifyEntity.vue` (1500+ LoC, migrated but not decomposed — explicit out-of-scope per v11.1 spec) |
+| **P2.8** Auth-state cleanup reactive drift | ✅ DONE | W2: `useAuth.handle401()` is single owner; `axios.ts` 401 interceptor delegates via lazy import; idempotent under concurrent rejections; `localStorage.removeItem` grep in `app/src/plugins/` returns empty |
+| **P2.9** CSP/HSTS deployment policy | ⚠️ PARTIAL | W1: ADR `.planning/decisions/2026-04-25-csp-hsts-policy.md` + audit script `app/scripts/audit-csp-violations.mjs` + Playwright security-headers spec; #300 fully addressed; #299 **partially** addressed (`'unsafe-inline'` dropped from `script-src`; `'unsafe-eval'` retained for vendor JS — Vue runtime template compiler in `ManageAbout.vue`, NGL Web Workers, markdown-it transforms — rationale in ADR) |
+| **P3.10** Browser-level regression coverage | ⚠️ LOCAL-ONLY | Playwright deep-flow + smoke + security-headers suite added in Wave 0 (10+ specs); `app/tests/e2e/`. **CI workflow deleted** (`.github/workflows/playwright.yml` removed) — suite is local-only for ad-hoc regression checks. Locked `it.todo` in `Review.spec.ts` resolved (W6). 893+ Vitest tests across 90 files |
+
+**Open issues status:**
+
+- **#299** (CSP) — ⚠️ Partially closed; `'unsafe-inline'` for `script-src` replaced by sha256 hashes, `'unsafe-eval'` retained intentionally with documented rationale. Full close requires NGL replacement + `ManageAbout.vue` template-compiler removal — both outside v11.1 scope.
+- **#300** (HSTS) — ✅ Closed; preload+includeSubDomains policy formalised in ADR. (Operator action still required: submit apex domain to HSTS preload list.)
+- **#154** (durable queue) — 🔄 Rescoped; durable-jobs MVP shipped, Redis queue + heavy/light worker split deferred to follow-up issue.
+- **#29, #98, #175, #105, #89, #55, #54, #48, #46, #37, #33, #32, #25, #22, #15, #14** — unchanged; not in v11.1 scope.
+
+**Net result:** 4 of 5 P1 findings resolved (1.2 was pre-PR), 1 of 4 P2 findings resolved + 3 partial, 1 P3 partial.
+
+The original review's "**Recommended Next Sequence**" (§ near end) is now ~80% complete. New "Next" recommendations are added at the bottom of this document under "What's next after v11.1".
+
+---
+
 ## Executive Summary
 
 The 2026-04-11 review is materially stale. Since then, SysNDD has improved in three important ways:
@@ -305,3 +332,44 @@ SysNDD is no longer in the state described by the 2026-04-11 review. The platfor
 - complete the frontend API/composable migration already underway
 
 That is a much narrower and more actionable backlog than the April review suggested.
+
+---
+
+## What's next after v11.1 (2026-04-25 update)
+
+PR #306 ("v11.1 finish-hardening") closes the bulk of the original §"Recommended Next Sequence". Remaining and newly surfaced work, in priority order:
+
+### High value, well-scoped
+
+1. **Decompose `ManageUser.vue` (1701 LoC)** — same composable-extraction pattern W6 used on `Review.vue`. Explicitly deferred from v11.1 per spec §1; create a follow-up issue.
+2. **Decompose `ModifyEntity.vue` (1500+ LoC)** — was migrated to typed clients in W4 but stayed monolithic. Same pattern as above.
+3. **Replace VariO ontology (#98)** — long-standing data-quality follow-up.
+4. **Entity-batch grouping bug (#29)** — data-integrity fix; out of scope for the platform-hardening PR.
+5. **Submit apex domain to HSTS preload list** — operator action; the directive is shipped, the registration step is not.
+
+### Smaller cleanups
+
+6. **Land the remaining `as unknown as` cast** — one cast remains in `CreateEntity.vue → buildSubmissionObject()` (cast to `EntityCreatePayload`). FU#6's Copilot-fix follow-up reduced 4 sites to 1 well-documented site; full removal requires porting the `app/src/assets/js/classes/submission/` JS classes to TypeScript.
+7. **Sweep the `new Blob([blob])` redundant-wrap pattern** in `ManageBackups.vue:652`, `PanelsTable.vue:456`, `TablesLogs.vue:944`, `useTableMethods.ts:263`. Copilot only flagged the one site in `TablesPhenotypes.vue`; the others have the same pattern and same fix.
+8. **Type-only `import type ... from 'axios'` cleanup** — opportunistic per-file removal as files become strict-clean. FU#5 audit showed all 7 current sites are still used; this only becomes actionable when those files lose their dependencies.
+9. **Strict-scope cohort cleanup** — FU#6's global strict scope excludes 28 files in 9 named cohorts (D3, cytoscape ext, file-saver, BV3 typing edges, …). Each cohort is independently fixable; the exclusion list in `app/scripts/type-check-strict.js` is the cohort tracker.
+10. **Drop `'unsafe-eval'` from CSP** — requires (a) replacing NGL with a CSP-friendly viewer or precompiling its inline-eval workers, (b) removing the runtime template compiler usage in `ManageAbout.vue`'s CMS rendering, (c) auditing markdown-it transforms. Each is an independent feature-level change; full close of #299 follows.
+
+### Forward-looking
+
+11. **Redis queue + heavy/light worker split** (originally #154) — the durable-jobs MVP is in production; the queue/worker split is the layered next step. Decoupled from frontend hardening.
+12. **`make playwright-stack` automation in CI** — currently fully manual after v11.1's lean-CI choice. If E2E coverage in CI becomes valuable later, re-introduce `playwright.yml` as a `workflow_dispatch` lane (don't auto-run on push/PR).
+13. **GHA Node 24 forced rollout** — June 2026 deadline; v11.1 already bumped `actions/checkout|setup-node|upload-artifact` to v5. Sweep any newer workflows added before then.
+
+### Tooling / DX (lessons from v11.1 dev-stack debug session, now in `Makefile`)
+
+The following targets were added in v11.1 closeout to prevent the multi-bug recovery the team hit when restoring a stale dev DB:
+
+- `make dev-rebuild` — `up -d --build` to dodge stale-image-vs-Dockerfile drift.
+- `make db-restore-latest` — pipe newest `*.sysndd_db.sql.gz` from the `sysndd_mysql_backup` volume into the live DB, then chain into `db-views-rebuild`.
+- `make db-views-rebuild` — re-extract `CREATE OR REPLACE VIEW` DDL from `db/C_Rcommands_set-table-connections.R` and replay (DEFINER-stripped). Fixes MySQL's silent `select 1 AS col` view-rewrite when the backup's DEFINER is unresolvable.
+- `make cache-clear` — `rm -f /app/cache/*.rds` inside `sysndd-api-1` to bust the disk-backed memoise cache that survives container restarts.
+
+### Backlog (no PR needed yet, just tracked)
+
+`#175` (PubTator gene-count normalization), `#105` (automated log cleanup), `#89` (curation/correlation links), `#55` (review-status removal), `#54` (re-review refusal), `#48` (PubTator query/gene-list endpoint), `#46` (GeneReviews update), `#37` (direct-approval option), `#33` (DB creation scripts), `#32` (admin phenotype view), `#25` (CSR/cert automation), `#22` (DB version), `#15` (variant annotation search), `#14` (new GeneReview articles).
