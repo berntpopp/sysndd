@@ -165,13 +165,19 @@
         opacity: 1;
       }
 
-      // Neutral/none state - show both arrows stacked
+      // Neutral/none state - render no arrows at idle to reduce visual noise.
+      // Hint both arrows only on hover/focus-visible so the affordance survives.
       &[aria-sort='none']::after {
+        opacity: 0;
+      }
+      &[aria-sort='none']:hover::after,
+      &[aria-sort='none']:focus-visible::after {
         border-bottom: 0.35rem solid currentColor;
         margin-top: -0.2rem;
+        opacity: 0.5;
       }
-
-      &[aria-sort='none']::before {
+      &[aria-sort='none']:hover::before,
+      &[aria-sort='none']:focus-visible::before {
         content: '';
         position: absolute;
         right: 0.5rem;
@@ -180,7 +186,7 @@
         border-left: 0.25rem solid transparent;
         border-right: 0.25rem solid transparent;
         border-top: 0.35rem solid currentColor;
-        opacity: 0.3;
+        opacity: 0.5;
         margin-top: 0.2rem;
       }
 

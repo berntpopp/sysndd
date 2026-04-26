@@ -1,144 +1,172 @@
+<!-- app/src/views/pages/GeneView.vue (v11.3 W2 rewrite) -->
+<!--
+  Mount order:
+    1. <TablesEntities> mounts on tick 0 with a URL-shape filter (§4.2.1).
+    2. useGeneRecord(routeParam) fires in parallel; header card renders skeleton.
+    3. ClinVar / AlphaFold / UniProt / MGI / RGD hooks fire in parallel; each
+       owns its <SectionCard> skeleton + hide-when-empty.
+    4. <GenomicVisualizationTabs> lazy-mounts inactive panels via <KeepAlive>.
+
+  Spec: .planning/superpowers/specs/2026-04-26-v11.3-genes-entities-perf-ux-design.md
+        §4.2 (entities-first), §4.3 (SectionCard wrapper), §4.5/§4.6 (URL-shape filter).
+-->
 <template>
   <div class="container-fluid bg-gradient">
-    <!-- Loading State (REDESIGN-05): Simple centered spinner per CONTEXT.md -->
-    <div v-if="loading" class="d-flex justify-content-center align-items-center py-5">
-      <BSpinner label="Loading gene data..." />
-    </div>
-
-    <!-- Gene Content (appears all at once when ready) -->
-    <template v-else>
-      <!-- Gene info card — wrapped to match TablesEntities container nesting -->
-      <div class="container-fluid">
-        <BContainer fluid>
-          <BRow class="justify-content-md-center pt-2">
-            <BCol col md="12">
-              <BCard body-class="p-0" header-class="p-1" border-variant="dark">
-                <template #header>
-                  <div class="d-flex align-items-center gap-1 flex-wrap">
-                    <GeneBadge
-                      :symbol="geneSymbol"
-                      size="sm"
-                      :link-to="undefined"
-                      :show-title="false"
-                    />
-                    <span class="gene-card-name ms-1">{{ geneName }}</span>
-                    <span
-                      v-if="chromosomeLocation && chromosomeLocation !== 'null'"
-                      class="gene-card-location text-muted ms-1"
-                    >
-                      {{ chromosomeLocation }}
-                    </span>
-                  </div>
-                </template>
-
-                <!-- External resources as inline badges -->
-                <div class="px-3 py-1 border-bottom bg-light">
-                  <ClinicalResourcesCard
-                    compact
-                    :symbol="geneSymbol"
-                    :hgnc-id="hgncId"
-                    :omim-id="omimId"
-                    :mgd-id="mgdId"
-                    :rgd-id="rgdId"
-                  />
-                </div>
-
-                <!-- Identifiers as inline badges -->
-                <div class="px-3 py-1">
-                  <IdentifierCard v-if="gene" :gene-data="gene" compact />
-                </div>
-              </BCard>
-            </BCol>
-          </BRow>
-        </BContainer>
-      </div>
-
-      <!-- Associated Entities Table -->
-      <TablesEntities
-        v-if="geneData.length !== 0"
-        :show-filter-controls="false"
-        :show-pagination-controls="false"
-        header-label="Associated "
-        :filter-input="filterInput"
-        :disable-url-sync="true"
-      />
-
-      <!-- External genomic data cards -->
-      <div class="container-fluid">
-        <BContainer fluid>
-          <BRow class="justify-content-md-center pt-2">
-            <!-- Left column: Gene Constraint -->
-            <BCol cols="12" md="6" class="mb-2">
-              <GeneConstraintCard
-                :gene-symbol="geneSymbol"
-                :constraints-json="gnomadConstraintsJson"
+    <!-- 1. Header band (gene record) -->
+    <BContainer fluid class="pt-2">
+      <BRow>
+        <BCol cols="12">
+          <SectionCard
+            :loading="geneRecord.loading.value"
+            :empty="!geneRecord.loading.value && geneRecord.data.value === null && !geneRecord.error.value"
+            :error="geneRecord.error.value ? geneRecord.error.value.message : null"
+            :title="geneSymbol ? `Gene ${geneSymbol}` : 'Gene'"
+            min-height="6rem"
+          >
+            <template #header>
+              <div class="d-flex align-items-center gap-1 flex-wrap">
+                <GeneBadge
+                  v-if="geneSymbol"
+                  :symbol="geneSymbol"
+                  size="sm"
+                  :link-to="undefined"
+                  :show-title="false"
+                />
+                <span class="gene-card-name ms-1">{{ geneName }}</span>
+                <span
+                  v-if="chromosomeLocation && chromosomeLocation !== 'null'"
+                  class="gene-card-location text-muted ms-1"
+                >
+                  {{ chromosomeLocation }}
+                </span>
+              </div>
+            </template>
+            <div class="px-3 py-1 border-bottom bg-light">
+              <ClinicalResourcesCard
+                compact
+                :symbol="geneSymbol"
+                :hgnc-id="hgncId"
+                :omim-id="omimId"
+                :mgd-id="mgdId"
+                :rgd-id="rgdId"
               />
-            </BCol>
-            <!-- Right column: ClinVar + Model Organisms stacked -->
-            <BCol cols="12" md="6" class="mb-2">
-              <GeneClinVarCard
-                :gene-symbol="geneSymbol"
-                :loading="clinvar.loading.value"
-                :error="clinvar.error.value"
-                :data="clinvar.data.value"
-                class="mb-2"
-                @retry="retryExternalData"
+            </div>
+            <div class="px-3 py-1">
+              <IdentifierCard
+                v-if="gene"
+                :gene-data="gene"
+                compact
               />
-              <!-- Model Organisms Card (compact, under ClinVar) -->
-              <ModelOrganismsCard
-                :gene-symbol="geneSymbol"
-                :mgi-loading="mgi.loading.value"
-                :mgi-error="mgi.error.value"
-                :mgi-data="mgi.data.value"
-                :rgd-loading="rgd.loading.value"
-                :rgd-error="rgd.error.value"
-                :rgd-data="rgd.data.value"
-                @retry="retryModelOrganismData"
-              />
-            </BCol>
-          </BRow>
-        </BContainer>
-      </div>
+            </div>
+          </SectionCard>
+        </BCol>
+      </BRow>
+    </BContainer>
 
-      <!-- Genomic Visualizations: Protein View / Gene Structure / 3D Structure (Tabbed) -->
-      <div class="container-fluid">
-        <BContainer fluid>
-          <BRow class="justify-content-md-center pt-2">
-            <BCol cols="12">
-              <GenomicVisualizationTabs
-                v-if="geneSymbol"
-                :gene-symbol="geneSymbol"
-                :clinvar-variants="clinvar.data.value"
-                :clinvar-loading="clinvar.loading.value"
-                :clinvar-error="clinvar.error.value"
-                :uniprot-data="uniprotData"
-                :uniprot-loading="uniprotLoading"
-                :uniprot-error="uniprotError"
-                :chromosome-location="chromosomeLocation"
-                :alphafold-pdb-url="alphafold.data.value?.pdb_url || null"
-                :alphafold-metadata="alphafold.data.value || null"
-                :alphafold-loading="alphafold.loading.value"
-                :alphafold-error="alphafold.error.value"
-                @retry="retryAllExternalData"
-              />
-            </BCol>
-          </BRow>
-        </BContainer>
-      </div>
-    </template>
+    <!-- 2. Associated Entities — mounted on tick 0 from URL-shape filter -->
+    <TablesEntities
+      :show-filter-controls="false"
+      :show-pagination-controls="false"
+      header-label="Associated "
+      :filter-input="entityFilter"
+      :disable-url-sync="true"
+    />
+
+    <!-- 3. External cards: 3-up grid at lg+, hide-when-empty -->
+    <BContainer fluid class="pt-2">
+      <BRow>
+        <BCol
+          cols="12"
+          lg="4"
+          class="mb-2"
+        >
+          <SectionCard
+            :loading="constraint.loading.value"
+            :empty="!constraint.loading.value && (gnomadConstraintsJson === null || gnomadConstraintsJson === '') && !constraint.error.value"
+            :error="null"
+            title="Gene Constraint (gnomAD)"
+          >
+            <GeneConstraintCard
+              :gene-symbol="geneSymbol"
+              :constraints-json="gnomadConstraintsJson"
+            />
+          </SectionCard>
+        </BCol>
+        <BCol
+          cols="12"
+          lg="4"
+          class="mb-2"
+        >
+          <SectionCard
+            :loading="clinvar.loading.value"
+            :empty="!clinvar.loading.value && (clinvar.data.value === null || clinvar.data.value.length === 0) && !clinvar.error.value"
+            :error="clinvar.error.value ? clinvar.error.value.message : null"
+            title="ClinVar Variants"
+          >
+            <GeneClinVarCard
+              :gene-symbol="geneSymbol"
+              :loading="false"
+              :error="null"
+              :data="clinvar.data.value"
+              @retry="clinvar.refresh"
+            />
+          </SectionCard>
+        </BCol>
+        <BCol
+          cols="12"
+          lg="4"
+          class="mb-2"
+        >
+          <SectionCard
+            :loading="mgi.loading.value || rgd.loading.value"
+            :empty="modelOrgEmpty"
+            :error="modelOrgError"
+            title="Model Organisms"
+          >
+            <ModelOrganismsCard
+              :gene-symbol="geneSymbol"
+              :mgi-loading="false"
+              :mgi-error="null"
+              :mgi-data="mgiCardData"
+              :rgd-loading="false"
+              :rgd-error="null"
+              :rgd-data="rgdCardData"
+              @retry="retryAllExternalData"
+            />
+          </SectionCard>
+        </BCol>
+      </BRow>
+
+      <!-- 4. Genomic visualizations -->
+      <BRow class="pt-2">
+        <BCol cols="12">
+          <GenomicVisualizationTabs
+            v-if="geneSymbol"
+            :gene-symbol="geneSymbol"
+            :clinvar-variants="clinvar.data.value"
+            :clinvar-loading="clinvar.loading.value"
+            :clinvar-error="clinvar.error.value ? clinvar.error.value.message : null"
+            :uniprot-data="uniprot.data.value"
+            :uniprot-loading="uniprot.loading.value"
+            :uniprot-error="uniprot.error.value ? uniprot.error.value.message : null"
+            :chromosome-location="chromosomeLocation"
+            :alphafold-pdb-url="alphafold.data.value?.pdb_url ?? null"
+            :alphafold-metadata="alphafold.data.value ?? null"
+            :alphafold-loading="alphafold.loading.value"
+            :alphafold-error="alphafold.error.value ? alphafold.error.value.message : null"
+            @retry="retryAllExternalData"
+          />
+        </BCol>
+      </BRow>
+    </BContainer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
-import { useToast } from '@/composables';
-import { useGeneExternalData } from '@/composables/useGeneExternalData';
-import { useModelOrganismData } from '@/composables/useModelOrganismData';
-import { getGene, getGeneBySymbol } from '@/api/genes';
-import { getUniprotDomains, type UniProtData } from '@/api/external';
-import { isApiError } from '@/api/client';
+import { BContainer, BRow, BCol } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
@@ -147,151 +175,111 @@ import GeneClinVarCard from '@/components/gene/GeneClinVarCard.vue';
 import ModelOrganismsCard from '@/components/gene/ModelOrganismsCard.vue';
 import GenomicVisualizationTabs from '@/components/gene/GenomicVisualizationTabs.vue';
 import TablesEntities from '@/components/tables/TablesEntities.vue';
-import type { GeneApiData } from '@/types/gene';
-
-// UniProtData + UniProtDomainFeature are now exported from `@/api/external`
-// (Phase E.E3 migration). Importing them keeps one source of truth between
-// the api/ helper and this view's prop-forwarding to GenomicVisualizationTabs.
+import SectionCard from '@/components/ui/SectionCard.vue';
+import { useGeneRecord } from '@/composables/useGeneRecord';
+import { useGeneClinVar } from '@/composables/useGeneClinVar';
+import { useGeneAlphaFold } from '@/composables/useGeneAlphaFold';
+import { useGeneUniProt } from '@/composables/useGeneUniProt';
+import { useGeneMGI } from '@/composables/useGeneMGI';
+import { useGeneRGD } from '@/composables/useGeneRGD';
+import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external';
 
 const route = useRoute();
 const router = useRouter();
-const { makeToast } = useToast();
 
-const loading = ref(true);
-const geneData = ref<GeneApiData[]>([]);
+const HGNC_RE = /^HGNC:?\d+$/i;
 
-// Computed properties (use computed for all derived data — do NOT access nested arrays in template)
-const gene = computed(() => geneData.value[0] || null);
-const geneSymbol = computed(() => gene.value?.symbol?.[0] || '');
-const geneName = computed(() => gene.value?.name?.[0] || '');
-const chromosomeLocation = computed(() => gene.value?.bed_hg38?.[0] || '');
-const hgncId = computed(() => gene.value?.hgnc_id?.[0] || '');
-const omimId = computed(() => gene.value?.omim_id?.[0] || '');
-const mgdId = computed(() => gene.value?.mgd_id?.[0] || '');
-const rgdId = computed(() => gene.value?.rgd_id?.[0] || '');
-const filterInput = computed(() =>
-  geneData.value.length > 0 ? `equals(symbol,${geneData.value[0].symbol})` : ''
+// URL-shape filter: entity API accepts both equals(symbol,X) and equals(hgnc_id,HGNC:N).
+// Mounted on the same tick as the page — no waiting on the gene record.
+const routeParam = computed(() => (route.params.symbol as string) || '');
+const entityFilter = computed(() =>
+  routeParam.value
+    ? HGNC_RE.test(routeParam.value)
+      ? `equals(hgnc_id,${routeParam.value})`
+      : `equals(symbol,${routeParam.value})`
+    : '',
 );
 
-// gnomAD constraint data from gene endpoint (pre-annotated in DB).
-// The gnomad_constraints column is a JSON string; the API no longer runs it
-// through str_split, so it arrives as a plain scalar (see Phase A A2).
+// Per-source hooks — all fire on tick 0. Gene record drives the header card +
+// constraint card; ClinVar/AlphaFold/UniProt/MGI/RGD each own a SectionCard.
+const geneRecord = useGeneRecord(routeParam);
+
+// Computed projections from the gene record (must be declared before hooks
+// that depend on geneSymbol).
+const gene = computed(() => geneRecord.data.value);
+const geneSymbol = computed(() =>
+  gene.value?.symbol?.[0]
+    ?? (HGNC_RE.test(routeParam.value) ? '' : routeParam.value),
+);
+const geneName = computed(() => gene.value?.name?.[0] ?? '');
+const chromosomeLocation = computed(() => gene.value?.bed_hg38?.[0] ?? '');
+const hgncId = computed(() => gene.value?.hgnc_id?.[0] ?? '');
+const omimId = computed(() => gene.value?.omim_id?.[0] ?? '');
+const mgdId = computed(() => gene.value?.mgd_id?.[0] ?? '');
+const rgdId = computed(() => gene.value?.rgd_id?.[0] ?? '');
 const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints ?? null);
 
-// AlphaFold model identifier from gene endpoint (used by Phase 45 3D protein structure viewer)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const alphafoldId = computed(() => gene.value?.alphafold_id?.[0] || null);
+const symbolForExternal = computed<string | null>(() =>
+  geneSymbol.value ? geneSymbol.value : null,
+);
+const clinvar = useGeneClinVar(symbolForExternal);
+const alphafold = useGeneAlphaFold(symbolForExternal);
+const uniprot = useGeneUniProt(symbolForExternal);
+const mgi = useGeneMGI(symbolForExternal);
+const rgd = useGeneRGD(symbolForExternal);
 
-// ClinVar and AlphaFold data (fetched live from per-source endpoints)
-const {
-  clinvar,
-  alphafold,
-  fetchData: fetchClinvarData,
-  retry: retryExternalData,
-} = useGeneExternalData(geneSymbol);
+// Constraint card has no separate hook (data lives on the gene record).
+// Expose a ResourceState-shaped slice so SectionCard can drive the skeleton.
+const constraint = {
+  loading: geneRecord.loading,
+  error: geneRecord.error,
+} as const;
 
-// Model organism data (MGI + RGD)
-const {
-  mgi,
-  rgd,
-  fetchData: fetchModelOrganismData,
-  retry: retryModelOrganismData,
-} = useModelOrganismData(geneSymbol);
+// The W1 hook payload types are structurally narrower than the card props
+// (the card expects the full MGI/RGD response shape from /api/external).
+// The runtime payload matches; cast through `unknown` to satisfy TS without
+// duplicating type definitions.
+const mgiCardData = computed<MGIPhenotypeData | null>(
+  () => mgi.data.value as unknown as MGIPhenotypeData | null,
+);
+const rgdCardData = computed<RGDPhenotypeData | null>(
+  () => rgd.data.value as unknown as RGDPhenotypeData | null,
+);
 
-// UniProt domain data state (fetched inline since composable is ClinVar-only)
-const uniprotData = ref<UniProtData | null>(null);
-const uniprotLoading = ref(false);
-const uniprotError = ref<string | null>(null);
+// Combined Model Organism empty/error logic.
+const modelOrgEmpty = computed(() => {
+  if (mgi.loading.value || rgd.loading.value) return false;
+  const mgiPhenos = mgi.data.value?.phenotypes;
+  const rgdPhenos = rgd.data.value?.phenotypes;
+  const noMgi = !mgi.data.value || !mgiPhenos || mgiPhenos.length === 0;
+  const noRgd = !rgd.data.value || !rgdPhenos || rgdPhenos.length === 0;
+  return noMgi && noRgd;
+});
+const modelOrgError = computed(() =>
+  (mgi.error.value && rgd.error.value)
+    ? `${mgi.error.value.message} / ${rgd.error.value.message}`
+    : null,
+);
 
-/**
- * Fetch UniProt domain data for the protein lollipop plot
- * Separate from ClinVar because they have different cache TTLs and error modes
- */
-async function fetchUniprotData(): Promise<void> {
-  if (!geneSymbol.value) return;
-
-  uniprotLoading.value = true;
-  uniprotError.value = null;
-
-  try {
-    const data = await getUniprotDomains(geneSymbol.value);
-
-    // Check for valid response with domains
-    if (data && data.domains) {
-      uniprotData.value = data;
-    } else {
-      uniprotData.value = null;
-    }
-  } catch (err) {
-    if (isApiError(err) && err.response?.status === 404) {
-      // Gene not found in UniProt - not an error, just no data
-      uniprotData.value = null;
-      uniprotError.value = null;
-    } else {
-      const message = err instanceof Error ? err.message : 'Failed to fetch UniProt data';
-      uniprotError.value = message;
-      uniprotData.value = null;
-    }
-  } finally {
-    uniprotLoading.value = false;
-  }
-}
-
-/**
- * Fetch all external data (ClinVar + UniProt + Model Organisms)
- */
-async function fetchExternalData(): Promise<void> {
-  // Fetch all sources in parallel
-  await Promise.all([fetchClinvarData(), fetchUniprotData(), fetchModelOrganismData()]);
-}
-
-/**
- * Retry fetching all external data
- */
 async function retryAllExternalData(): Promise<void> {
-  await fetchExternalData();
+  await Promise.all([
+    clinvar.refresh(),
+    alphafold.refresh(),
+    uniprot.refresh(),
+    mgi.refresh(),
+    rgd.refresh(),
+  ]);
 }
 
-// Data loading - parallelized for performance
-async function loadGeneInfo() {
-  loading.value = true;
-  const symbol = route.params.symbol as string;
-
-  try {
-    // Parallel fetch: both gene API calls run concurrently. `getGene` /
-    // `getGeneBySymbol` (from `@/api/genes`) return the 1-row-array lookup
-    // shape directly — the legacy `?input_type=...` query string is folded
-    // into the helper signature, and the `apiBase` prepend is handled by
-    // the configured axios singleton under `@/plugins/axios`.
-    const [hgncRows, symbolRows] = await Promise.all([
-      getGene(symbol, 'hgnc'),
-      getGeneBySymbol(symbol),
-    ]);
-
-    if (hgncRows.length === 0 && symbolRows.length === 0) {
-      router.push('/PageNotFound');
-    } else if (hgncRows.length === 0) {
-      geneData.value = symbolRows;
-    } else {
-      geneData.value = hgncRows;
-    }
-  } catch (e) {
-    makeToast(e, 'Error', 'danger');
+// 404 redirect: watch [loading, data] so it fires both on the cold loading→resolved
+// edge (Ref-identity null→null wouldn't trigger a data-only watcher) and on
+// stale→null SWR background transitions.
+watch([geneRecord.loading, geneRecord.data], () => {
+  if (!geneRecord.loading.value && geneRecord.data.value === null && !geneRecord.error.value && routeParam.value) {
+    router.push('/PageNotFound');
   }
-  loading.value = false;
+});
 
-  // Fire-and-forget: external data loads independently without blocking UI
-  // Each composable manages its own loading/error states
-  // Use nextTick to defer external fetches, allowing TablesEntities to
-  // make its API request first (prioritizes critical user-visible content)
-  if (geneData.value.length > 0) {
-    nextTick(() => {
-      fetchExternalData();
-    });
-  }
-}
-
-// Dynamic page title
 useHead({
   title: computed(() => (geneSymbol.value ? `Gene: ${geneSymbol.value}` : 'Gene')),
   meta: [
@@ -300,26 +288,11 @@ useHead({
       content: computed(() =>
         geneSymbol.value
           ? `Gene information for ${geneSymbol.value} (${geneName.value})`
-          : 'This Gene view shows specific information for a gene.'
+          : 'This Gene view shows specific information for a gene.',
       ),
     },
   ],
 });
-
-// Lifecycle
-onMounted(() => {
-  loadGeneInfo();
-});
-
-// Route watcher (handle navigation between genes without full page reload)
-watch(
-  () => route.params.symbol,
-  (newSymbol) => {
-    if (newSymbol) {
-      loadGeneInfo();
-    }
-  }
-);
 </script>
 
 <style scoped>
