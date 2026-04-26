@@ -121,6 +121,18 @@
                   />
                 </BFormGroup>
 
+                <!-- Gene-atomic batch boundary warning (issue #29) -->
+                <BAlert
+                  v-if="boundaryGeneAlertVisible"
+                  variant="warning"
+                  show
+                  class="mb-2"
+                  data-testid="batch-boundary-gene-alert"
+                >
+                  <i class="bi bi-exclamation-triangle me-1" aria-hidden="true" />
+                  {{ boundaryGeneAlertMessage }}
+                </BAlert>
+
                 <!-- Actions -->
                 <div class="d-flex gap-2">
                   <BButton
@@ -671,6 +683,13 @@ export default {
       entityAssignBatchName: '',
       isLoadingEntities: false,
       isAssigningEntities: false,
+
+      // Gene-atomic batch boundary hint (issue #29)
+      // Set by loadAvailableEntities() from batch_preview's boundary_gene field.
+      // Non-null when the preview soft-LIMIT engaged and a gene was partially included.
+      previewBoundaryGene: null,
+      previewGeneCount: 0,
+      previewEntityCount: 0,
       entitySelectFields: [
         { key: 'entity_id', label: 'ID', sortable: true },
         { key: 'gene_symbol', label: 'Gene', sortable: true },
@@ -709,6 +728,21 @@ export default {
     };
   },
   computed: {
+    // Gene-atomic boundary alert computed properties (issue #29)
+    boundaryGeneAlertVisible() {
+      return Boolean(this.previewBoundaryGene);
+    },
+    boundaryGeneAlertMessage() {
+      if (!this.previewBoundaryGene) return '';
+      return (
+        `Batch is gene-atomic: to keep gene ${this.previewBoundaryGene} together, ` +
+        `the available-entity list holds ${this.previewEntityCount} entities across ` +
+        `${this.previewGeneCount} gene(s). The last gene was extended past the ` +
+        `batch_size cap to avoid splitting it. Tighten criteria or increase ` +
+        `batch size to avoid the overflow.`
+      );
+    },
+
     // Filter options derived from loaded data
     userFilterOptions() {
       const uniqueUsers = [
@@ -868,6 +902,13 @@ export default {
         const responseData = await apiClient.post(apiUrl, { batch_size: 100 });
         this.availableEntities = responseData.data || [];
         this.selectedEntityIds = [];
+        // Capture gene-atomic boundary hint (issue #29): boundary_gene is non-null
+        // when the soft-LIMIT extended the last gene past batch_size.
+        // BatchServiceResponse uses [key: string]: unknown so values flow through
+        // without type assertions in this plain-JS Options API component.
+        this.previewBoundaryGene = responseData.boundary_gene ?? null;
+        this.previewGeneCount = responseData.gene_count ?? 0;
+        this.previewEntityCount = responseData.entity_count ?? 0;
       } catch (_e) {
         this.makeToast('Failed to load available entities', 'Error', 'danger');
       } finally {
