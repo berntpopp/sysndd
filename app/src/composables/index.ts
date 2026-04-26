@@ -102,10 +102,6 @@ export type { UseAriaLiveReturn } from './useAriaLive';
 export { useSearchSuggestions } from './useSearchSuggestions';
 export type { SearchSuggestion, UseSearchSuggestionsReturn } from './useSearchSuggestions';
 
-// Gene external data composable (ClinVar-only; gnomAD constraints are pre-annotated in DB)
-export { useGeneExternalData } from './useGeneExternalData';
-export type { UseGeneExternalDataReturn } from './useGeneExternalData';
-
 // D3 lollipop plot composable for protein domain visualization
 export { useD3Lollipop } from './useD3Lollipop';
 export type { LollipopOptions, D3LollipopState, PlotMargin } from './useD3Lollipop';
