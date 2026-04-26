@@ -120,6 +120,34 @@ describe('GeneView (v11.3 W2)', () => {
     w.unmount();
   });
 
+  it('passes compact=true to the entity API (embedded TablesEntities skips global fspec)', async () => {
+    // Uses a different gene symbol than other tests in this suite so the
+    // module-level dedup cache in TablesEntities doesn't return a stale
+    // response from a prior test.
+    let entityCompactSeen: string | null = null;
+    server.use(
+      http.get('*/api/entity/', ({ request }) => {
+        entityCompactSeen = new URL(request.url).searchParams.get('compact');
+        return HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] });
+      }),
+      http.get('*/api/gene/SCN2A', () =>
+        HttpResponse.json([{ symbol: ['SCN2A'], hgnc_id: ['HGNC:10588'] }]),
+      ),
+      http.get('*/api/external/*/*/SCN2A', () => HttpResponse.json({})),
+    );
+    const router = makeRouter('/Genes/SCN2A');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+    // GeneView mounts TablesEntities with show-filter-controls="false", so
+    // the embedded call should opt into compact mode (no global-fspec round
+    // trip + SQL filter pushdown).
+    expect(entityCompactSeen).toBe('true');
+    w.unmount();
+  });
+
   it('uses hgnc_id filter when URL param is HGNC:NNNN', async () => {
     let entityFilterSeen = '';
     server.use(

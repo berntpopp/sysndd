@@ -664,9 +664,13 @@ export default {
       this.doLoadData();
     },
     async doLoadData() {
+      // `compact` changes the server response shape (count == count_filtered,
+      // no global fspec) so it MUST be part of the dedup key — otherwise a
+      // remounted instance with different controls visibility would receive
+      // a stale response with the wrong fspec semantics.
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${this.perPage}`;
+      }&page_size=${this.perPage}&compact=${!this.showFilterControls}`;
 
       const now = Date.now();
 
@@ -698,6 +702,10 @@ export default {
           filter: this.filter_string,
           page_after: this.currentItemID,
           page_size: String(this.perPage),
+          // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
+          // so they don't need the global-fspec round-trip. Compact mode
+          // pushes the filter to SQL and skips the wasted fspec compute.
+          compact: !this.showFilterControls,
         });
         moduleApiCallInProgress = false;
         // Cache response for remounted components

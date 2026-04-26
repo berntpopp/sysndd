@@ -26,6 +26,13 @@ export interface ListEntitiesParams {
   page_size?: string;
   fspec?: string;
   format?: EntityListFormat;
+  /**
+   * When true, the server pushes the filter to SQL and skips the global-fspec
+   * computation (only the filtered-set fspec is returned; count == count_filtered).
+   * Use for embedded callers (Genes/Entities detail pages) that don't render
+   * the filter dropdowns. ~20–30 ms faster per call. Default false.
+   */
+  compact?: boolean;
 }
 
 /**

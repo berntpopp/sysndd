@@ -189,3 +189,171 @@ test_that("re-review endpoint supports pagination", {
   # This test requires valid JWT authentication
   # Manual verification: GET /api/re-review?page_size=5
 })
+
+# =============================================================================
+# Entity-list compact mode (filter pushdown + skip global fspec)
+# =============================================================================
+# These tests guard the v11.3 perf fix that emits SQL-equality for
+# `equals(col, val)` and pushes the filter to dbplyr when `compact=true`.
+# See .planning/perf/2026-04-26-deep-load-analysis.md.
+
+test_that("entity-list returns the same rows in compact and default mode", {
+  skip_if_api_not_running()
+
+  default <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 50) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  compact <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 50, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  default_ids <- sort(vapply(default$data, function(r) r$entity_id, integer(1)))
+  compact_ids <- sort(vapply(compact$data, function(r) r$entity_id, integer(1)))
+  expect_equal(compact_ids, default_ids)
+  expect_equal(length(compact$data), length(default$data))
+})
+
+test_that("compact mode collapses count and count_filtered (no global fspec)", {
+  skip_if_api_not_running()
+
+  body <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 10, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  fspec <- body$meta$fspec$fspec
+  expect_true(length(fspec) > 0)
+  for (row in fspec) {
+    if (!is.null(row$count) && !is.null(row$count_filtered)) {
+      expect_equal(row$count, row$count_filtered,
+                   info = paste("compact mode count != count_filtered for key:", row$key))
+    }
+  }
+})
+
+test_that("default mode keeps the global fspec (count >= count_filtered)", {
+  skip_if_api_not_running()
+
+  body <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 10) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  fspec <- body$meta$fspec$fspec
+  expect_true(length(fspec) > 0)
+  saw_global_gt_filtered <- FALSE
+  for (row in fspec) {
+    if (!is.null(row$count) && !is.null(row$count_filtered)) {
+      expect_true(row$count >= row$count_filtered,
+                  info = paste("global count must be >= filtered for key:", row$key))
+      if (row$count > row$count_filtered) saw_global_gt_filtered <- TRUE
+    }
+  }
+  # At least one fspec row should show the global is wider than the filter,
+  # otherwise the test data is too small to verify the contract.
+  expect_true(saw_global_gt_filtered,
+              info = "expected at least one fspec row where global count > filtered count")
+})
+
+test_that("compact mode HGNC-id filter form returns the same rows as symbol form", {
+  skip_if_api_not_running()
+
+  by_symbol <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 50, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  by_hgnc <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(hgnc_id,HGNC:4586)", page_size = 50, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  symbol_ids <- sort(vapply(by_symbol$data, function(r) r$entity_id, integer(1)))
+  hgnc_ids <- sort(vapply(by_hgnc$data, function(r) r$entity_id, integer(1)))
+  expect_equal(hgnc_ids, symbol_ids)
+})
+
+test_that("compact mode unknown symbol returns 0 rows (not an error)", {
+  skip_if_api_not_running()
+
+  body <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,NOT_A_REAL_GENE_XYZ)",
+                  page_size = 10, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  expect_equal(length(body$data), 0)
+})
+
+test_that("compact mode equals matches case-insensitively (MySQL collation)", {
+  skip_if_api_not_running()
+
+  upper <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", page_size = 50, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+  lower <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(filter = "equals(symbol,grin2b)", page_size = 50, compact = "true") %>%
+    req_perform() %>%
+    resp_body_json()
+
+  upper_ids <- sort(vapply(upper$data, function(r) r$entity_id, integer(1)))
+  lower_ids <- sort(vapply(lower$data, function(r) r$entity_id, integer(1)))
+  # Behavioural change vs the pre-v11.3 in-R str_detect path: SQL `=` uses
+  # column collation (utf8mb3_general_ci on our schema), so case folds.
+  expect_equal(lower_ids, upper_ids)
+})
+
+test_that("compact mode handles composed and()/or() filters", {
+  skip_if_api_not_running()
+
+  combined <- request("http://localhost:8000/api/entity") %>%
+    req_url_query(
+      filter = "or(equals(symbol,GRIN2B),equals(symbol,MECP2))",
+      page_size = 50, compact = "true"
+    ) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  symbols <- vapply(combined$data, function(r) r$symbol, character(1))
+  expect_true(all(symbols %in% c("GRIN2B", "MECP2")))
+  expect_true("GRIN2B" %in% symbols || "MECP2" %in% symbols)
+})
+
+# =============================================================================
+# Publication endpoint — unconditional SQL pushdown (no compact flag)
+# =============================================================================
+
+test_that("publication endpoint with equals filter pushes to SQL and returns the same rows as no-filter scan", {
+  skip_if_api_not_running()
+
+  # Pick a known PMID by fetching the first row, then re-fetch by exact id.
+  first <- request("http://localhost:8000/api/publication") %>%
+    req_url_query(page_size = 1) %>%
+    req_perform() %>%
+    resp_body_json()
+  skip_if(length(first$data) == 0, "no publication rows available")
+
+  pmid <- first$data[[1]]$publication_id
+  filtered <- request("http://localhost:8000/api/publication") %>%
+    req_url_query(filter = paste0("equals(publication_id,", pmid, ")"), page_size = 5) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  expect_equal(length(filtered$data), 1)
+  expect_equal(filtered$data[[1]]$publication_id, pmid)
+})
+
+test_that("publication endpoint without filter returns full first page (regression guard)", {
+  skip_if_api_not_running()
+
+  body <- request("http://localhost:8000/api/publication") %>%
+    req_url_query(page_size = 10) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  expect_gt(length(body$data), 0)
+})

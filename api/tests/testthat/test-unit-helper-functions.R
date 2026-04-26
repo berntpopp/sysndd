@@ -133,11 +133,107 @@ test_that("generate_filter_expressions handles contains operation", {
   expect_true(grepl("John", result))
 })
 
-test_that("generate_filter_expressions handles equals operation", {
+test_that("generate_filter_expressions handles equals operation (single column)", {
+  # Single-column equals emits direct equality so dbplyr can translate it to
+  # SQL `WHERE column = 'value'` (indexable, ~20x faster than the legacy
+  # REGEXP form). MySQL collation defaults to case-insensitive on our schema,
+  # so semantics are preserved.
   result <- generate_filter_expressions("equals(status,'active')")
-  expect_true(grepl("str_detect", result))
-  expect_true(grepl("status", result))
-  expect_true(grepl("\\^active\\$", result))  # equals uses ^ and $ anchors
+  expect_true(grepl("status\\s*==\\s*'active'", result))
+})
+
+test_that("generate_filter_expressions equals with any/all column keeps anchored regex", {
+  # Multi-column equals must compare across many columns, so it stays as
+  # str_detect with anchors (run after collect, no SQL pushdown).
+  result_any <- generate_filter_expressions("equals(any,'active')")
+  expect_true(grepl("str_detect", result_any))
+  expect_true(grepl("\\^active\\$", result_any))
+  result_all <- generate_filter_expressions("equals(all,'active')")
+  expect_true(grepl("str_detect", result_all))
+  expect_true(grepl("\\^active\\$", result_all))
+})
+
+test_that("generate_filter_expressions equals stays correct when value contains regex meta-chars", {
+  # Single quotes are stripped at parse time (line 177 of response-helpers.R),
+  # but other regex special chars survive. Direct equality is more correct than
+  # the legacy anchored regex form for these — `equals(symbol,'GR.IN2B')`
+  # should match the literal string, not "GR<any-char>IN2B" as the old
+  # str_detect form would have done.
+  for (val in c("GR.IN2B", "AB[CD]", "ABC|XYZ", "P53*", "AB+CD")) {
+    expr <- generate_filter_expressions(sprintf("equals(symbol,'%s')", val))
+    expect_match(expr, "symbol\\s*==\\s*'", info = paste("expr for", val))
+    expect_true(grepl(val, expr, fixed = TRUE), info = paste("value preserved for", val))
+    expect_false(grepl("str_detect", expr), info = paste("no regex form for", val))
+  }
+})
+
+test_that("generate_filter_expressions equals composes inside and()/or() with == form", {
+  # The single-column equals fragments must keep emitting `==` even when the
+  # outer expression is and/or — otherwise the SQL pushdown loses its win
+  # for compound filters.
+  combined <- generate_filter_expressions(
+    "and(equals(symbol,'GRIN2B'),equals(category,'Definitive'))"
+  )
+  expect_match(combined, "symbol\\s*==\\s*'GRIN2B'")
+  expect_match(combined, "category\\s*==\\s*'Definitive'")
+  expect_true(grepl("&", combined))
+
+  combined_or <- generate_filter_expressions(
+    "or(equals(symbol,'GRIN2B'),equals(symbol,'MECP2'))"
+  )
+  expect_match(combined_or, "symbol\\s*==\\s*'GRIN2B'")
+  expect_match(combined_or, "symbol\\s*==\\s*'MECP2'")
+  expect_true(grepl("\\|", combined_or))
+})
+
+test_that("generate_filter_expressions parses the URL-encoded equals form GeneView/EntityView use", {
+  # GeneView mounts TablesEntities with filter=equals(symbol,GRIN2B). axios
+  # URL-encodes the parens; the helper URLdecode()s the input.
+  encoded <- generate_filter_expressions("equals(symbol%2CGRIN2B)")
+  expect_match(encoded, "symbol\\s*==\\s*'GRIN2B'")
+
+  hgnc <- generate_filter_expressions("equals(hgnc_id,'HGNC:4586')")
+  expect_match(hgnc, "hgnc_id\\s*==\\s*'HGNC:4586'")
+})
+
+test_that("generate_filter_expressions equals with empty value emits valid SQL-ready form", {
+  # `equals(symbol,)` should produce `symbol == ''` — the in-R str_remove_all
+  # at line 177 of response-helpers.R strips quotes/parens; an empty value
+  # survives as empty string. The expression must still parse and dbplyr
+  # must accept it (edge case audit recommendation #2).
+  empty <- generate_filter_expressions("equals(symbol,)")
+  expect_match(empty, "symbol\\s*==\\s*''")
+  # And the parsed form must be a valid R expression (parse_exprs would error
+  # on a malformed string).
+  parsed <- rlang::parse_exprs(empty)
+  expect_length(parsed, 1)
+})
+
+test_that("generate_filter_expressions equals strips single quotes from value (documented behaviour)", {
+  # Line 177 of response-helpers.R strips both `'` and `)` from filter values
+  # to defang injection. `equals(symbol,O'Reilly)` therefore becomes
+  # `symbol == 'OReilly'`. Pin the contract — no live caller passes single
+  # quotes (no SysNDD symbol/HGNC/ontology term contains one), but if a
+  # future caller does, the test makes the silent normalisation explicit.
+  result <- generate_filter_expressions("equals(name,'O'Reilly')")
+  expect_match(result, "name\\s*==\\s*'OReilly'")
+  expect_false(grepl("'O'Reilly'", result, fixed = TRUE))
+})
+
+test_that("generate_filter_expressions equals composes case-insensitively under MySQL collation", {
+  # Audit recommendation #5: pre-fix, `str_detect('^X$')` was case-sensitive
+  # in R. Post-fix, the SQL pushdown path uses MySQL `=` which inherits the
+  # column collation. Our schema columns default to `utf8mb3_general_ci` /
+  # `utf8mb4_general_ci` (case-insensitive). The test confirms that the helper
+  # itself emits the value verbatim — case is decided by the DB collation,
+  # not by the R expression. Live integration test in
+  # test-integration-pagination.R covers the SQL-side observation.
+  upper <- generate_filter_expressions("equals(symbol,GRIN2B)")
+  lower <- generate_filter_expressions("equals(symbol,grin2b)")
+  expect_match(upper, "symbol\\s*==\\s*'GRIN2B'")
+  expect_match(lower, "symbol\\s*==\\s*'grin2b'")
+  # Helper preserves the literal — no normalisation applied here.
+  expect_false(identical(upper, lower))
 })
 
 test_that("generate_filter_expressions handles any operation with multiple values", {

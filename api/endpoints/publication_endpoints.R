@@ -246,11 +246,31 @@ function(req,
   # Generate filter expression based on filter input
   filter_exprs <- generate_filter_expressions(filter)
 
-  # Get publication data from database
-  publication_tbl <- pool %>%
-    tbl("publication") %>%
-    collect() %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  # Get publication data from database. Push the filter expression to SQL when
+  # possible so we don't collect ~4,700 rows just to throw most away in R.
+  # `count` and `count_filtered` already coincide on this endpoint (line ~301),
+  # so unconditional pushdown is safe — no `compact` flag needed. Falls back
+  # to the legacy collect-then-filter path on dbplyr translation errors.
+  publication_lazy <- pool %>% tbl("publication")
+  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
+  publication_tbl <- if (has_filter) {
+    tryCatch(
+      publication_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[publication-list] SQL filter pushdown failed (%s); falling back",
+          conditionMessage(e)
+        ))
+        publication_lazy %>%
+          collect() %>%
+          filter(!!!rlang::parse_exprs(filter_exprs))
+      }
+    )
+  } else {
+    publication_lazy %>% collect()
+  }
 
   # Handle numeric sorting for publication_id (PMID:12345 format)
   # Extract the sort column and direction
@@ -411,13 +431,35 @@ function(req,
   sort_exprs <- generate_sort_expressions(sort, unique_id = "search_id")
   filter_exprs <- generate_filter_expressions(filter)
 
-  # Collect from DB - gene_symbols is now pre-computed during pubtator_db_update
-  # The gene_symbols column contains comma-separated human gene symbols from HGNC
-  table_data <- pool %>%
-    tbl("pubtator_search_cache") %>%
-    collect() %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  # Collect from DB - gene_symbols is now pre-computed during pubtator_db_update.
+  # The gene_symbols column contains comma-separated human gene symbols from HGNC.
+  # Push the user filter to SQL when possible (no fspec global/filtered split on
+  # this endpoint, so unconditional pushdown is safe). Fallback to in-R filter
+  # if dbplyr can't translate the expression.
+  pubtator_lazy <- pool %>% tbl("pubtator_search_cache")
+  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
+  table_data <- if (has_filter) {
+    tryCatch(
+      pubtator_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect() %>%
+        arrange(!!!rlang::parse_exprs(sort_exprs)),
+      error = function(e) {
+        message(sprintf(
+          "[pubtator-table] SQL filter pushdown failed (%s); falling back",
+          conditionMessage(e)
+        ))
+        pubtator_lazy %>%
+          collect() %>%
+          arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+          filter(!!!rlang::parse_exprs(filter_exprs))
+      }
+    )
+  } else {
+    pubtator_lazy %>%
+      collect() %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs))
+  }
 
   # Select columns
   table_data <- select_tibble_fields(

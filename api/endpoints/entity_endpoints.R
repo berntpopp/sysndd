@@ -36,6 +36,10 @@
 #* @param page_after:str Cursor after which entries are shown.
 #* @param page_size:str Page size in cursor pagination.
 #* @param fspec:str Fields to generate field specification for.
+#* @param compact:bool When true, push the filter to SQL where possible and
+#*   skip the global-fspec computation (only the filtered-set fspec is
+#*   returned; count == count_filtered). Use for embedded callers that don't
+#*   render the filter dropdowns (Genes / Entities detail pages). Default false.
 #*
 #* @response 200 OK. A cursor pagination object with links, meta and data (entity objects).
 #* @response 500 Internal server error.
@@ -49,13 +53,17 @@ function(req,
          page_after = 0,
          page_size = "10",
          fspec = "entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details", # nolint: line_length_linter
-         format = "json") {
+         format = "json",
+         compact = "false") {
   # Set serializers
   res$serializer <- serializers[[format]]
 
 
   # Start time calculation
   start_time <- Sys.time()
+
+  # Plumber returns scalars as length-1 character vectors; coerce to a real bool.
+  is_compact <- isTRUE(tolower(as.character(compact[[1]])) %in% c("true", "1", "yes"))
 
   # Generate sort expression based on sort input
   sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
@@ -66,28 +74,63 @@ function(req,
   # Generate filter expression for non-vario filters
   filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario)
 
-  # Get review data from database
+  has_text_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
+  has_vario_filter <- isTRUE(vario_filter_result$has_vario_filter)
+
+  # Get review data from database (lazy)
   ndd_entity_review <- pool %>%
     tbl("ndd_entity_review") %>%
     filter(is_primary) %>%
     dplyr::select(entity_id, synopsis)
 
-  # Get entity data from database
-  ndd_entity_view <- pool %>%
+  ndd_entity_view_lazy <- pool %>%
     tbl("ndd_entity_view") %>%
-    left_join(ndd_entity_review, by = c("entity_id")) %>%
-    collect()
+    left_join(ndd_entity_review, by = c("entity_id"))
 
-  # Apply vario_id filter if present (filter by entity_ids that have the variants)
-  if (vario_filter_result$has_vario_filter) {
-    matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
-    ndd_entity_view <- ndd_entity_view %>%
-      filter(entity_id %in% matching_entity_ids)
+  # Fast path: when compact mode AND a text filter is present AND no vario
+  # join is required, push the filter expression to SQL via dbplyr. With the
+  # `equals` op now emitting `column == 'value'` (response-helpers.R), this
+  # translates to `WHERE column = 'value'` — indexable and ~20x faster than
+  # the legacy REGEXP path on our schema. Falls back to the in-R filter loop
+  # if dbplyr can't translate the expression.
+  fast_path_filtered <- NULL
+  if (is_compact && has_text_filter && !has_vario_filter) {
+    fast_path_filtered <- tryCatch(
+      ndd_entity_view_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[entity-list] SQL filter pushdown failed (%s); falling back to in-R filter",
+          conditionMessage(e)
+        ))
+        NULL
+      }
+    )
   }
 
-  sysndd_db_disease_table <- ndd_entity_view %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  if (!is.null(fast_path_filtered)) {
+    # The filtered set is small; reuse it for both the response data and
+    # the (filtered-only) fspec — no global view collect.
+    ndd_entity_view <- fast_path_filtered
+    sysndd_db_disease_table <- fast_path_filtered %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs))
+  } else {
+    # Default path: collect the full view, then filter/sort in R. Used by the
+    # main /Entities table where the global fspec drives the filter-dropdown
+    # facet counts and by any caller that did not opt into compact mode.
+    ndd_entity_view <- ndd_entity_view_lazy %>% collect()
+
+    if (has_vario_filter) {
+      matching_entity_ids <- get_entity_ids_by_vario(vario_filter_result$vario_ids, pool)
+      ndd_entity_view <- ndd_entity_view %>%
+        filter(entity_id %in% matching_entity_ids)
+    }
+
+    sysndd_db_disease_table <- ndd_entity_view %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
+      filter(!!!rlang::parse_exprs(filter_exprs))
+  }
 
   # Select fields from table based on input
   sysndd_db_disease_table <- select_tibble_fields(
@@ -105,25 +148,33 @@ function(req,
     "entity_id"
   )
 
-  # Use the helper generate_tibble_fspec to generate fields specs
-  disease_table_fspec <- generate_tibble_fspec_mem(
-    ndd_entity_view,
-    fspec
-  )
+  # In compact mode the filtered set IS the working set, so global counts and
+  # filtered counts coincide — compute fspec once and reuse the count column.
+  # In default mode keep the global+filtered split so the dropdowns can show
+  # "X of Y" totals when the user is filtering interactively.
   sysndd_db_disease_table_fspec <- generate_tibble_fspec_mem(
     sysndd_db_disease_table,
     fspec
   )
-
-  # Assign the filtered count safely via join
-  # (handles differing row counts when filters reduce distinct fspec values)
-  disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
-    dplyr::left_join(
-      sysndd_db_disease_table_fspec$fspec %>%
-        dplyr::select(key, count_filtered = count),
-      by = "key"
-    ) %>%
-    dplyr::mutate(count_filtered = dplyr::coalesce(count_filtered, 0L))
+  if (is_compact) {
+    disease_table_fspec <- sysndd_db_disease_table_fspec
+    disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
+      dplyr::mutate(count_filtered = count)
+  } else {
+    disease_table_fspec <- generate_tibble_fspec_mem(
+      ndd_entity_view,
+      fspec
+    )
+    # Assign the filtered count safely via join
+    # (handles differing row counts when filters reduce distinct fspec values)
+    disease_table_fspec$fspec <- disease_table_fspec$fspec %>%
+      dplyr::left_join(
+        sysndd_db_disease_table_fspec$fspec %>%
+          dplyr::select(key, count_filtered = count),
+        by = "key"
+      ) %>%
+      dplyr::mutate(count_filtered = dplyr::coalesce(count_filtered, 0L))
+  }
 
   # Compute execution time
   end_time <- Sys.time()

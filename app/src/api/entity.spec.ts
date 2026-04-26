@@ -39,6 +39,45 @@ describe('api/entity — listEntities', () => {
     expect(q.get('filter')).toBe('symbol:GRIN2B');
     expect(q.get('fields')).toBe('entity_id,symbol');
   });
+
+  it('forwards compact=true to the entity endpoint when set', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/entity/', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({ links: {}, meta: {}, data: [] });
+      }),
+    );
+    await listEntities({ filter: 'equals(symbol,GRIN2B)', compact: true });
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('compact')).toBe('true');
+  });
+
+  it('does not include compact when omitted (default behaviour preserved)', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/entity/', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({ links: {}, meta: {}, data: [] });
+      }),
+    );
+    await listEntities({ filter: 'equals(symbol,GRIN2B)' });
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('compact')).toBeNull();
+  });
+
+  it('forwards compact=false explicitly when caller passes it', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/entity/', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({ links: {}, meta: {}, data: [] });
+      }),
+    );
+    await listEntities({ filter: 'equals(symbol,GRIN2B)', compact: false });
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('compact')).toBe('false');
+  });
 });
 
 describe('api/entity — listEntitiesXlsx', () => {
