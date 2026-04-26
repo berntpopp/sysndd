@@ -516,10 +516,9 @@ export default {
         this.isInitializing = false;
       });
     });
-
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
+    // Note: `loading` flips to false inside doLoadData() once the API responds.
+    // The previous unconditional 500 ms timeout was a source of the
+    // "There are no records to show" flash when the fetch took longer than 500 ms.
   },
   methods: {
     // Update browser URL with current table state
@@ -645,6 +644,7 @@ export default {
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
           this.isBusy = false; // Clear busy state when using cached data
+          this.loading = false;
         }
         return;
       }
@@ -675,10 +675,12 @@ export default {
         this.updateBrowserUrl();
 
         this.isBusy = false;
+        this.loading = false;
       } catch (e) {
         moduleApiCallInProgress = false;
         this.makeToast(e, 'Error', 'danger');
         this.isBusy = false;
+        this.loading = false;
       }
     },
     /**

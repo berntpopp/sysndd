@@ -12,56 +12,52 @@
 -->
 <template>
   <div class="container-fluid bg-gradient">
-    <!-- 1. Header band (gene record) -->
-    <BContainer fluid class="pt-2">
-      <BRow>
-        <BCol cols="12">
-          <SectionCard
-            :loading="geneRecord.loading.value"
-            :empty="!geneRecord.loading.value && geneRecord.data.value === null && !geneRecord.error.value"
-            :error="geneRecord.error.value ? geneRecord.error.value.message : null"
-            :title="geneSymbol ? `Gene ${geneSymbol}` : 'Gene'"
-            min-height="6rem"
-          >
-            <template #header>
-              <div class="d-flex align-items-center gap-1 flex-wrap">
-                <GeneBadge
-                  v-if="geneSymbol"
+    <!-- 1. Gene info header — production-parity BCard, header rendered while gene record hydrates -->
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center pt-2">
+          <BCol col md="12">
+            <BCard body-class="p-0" header-class="p-1" border-variant="dark">
+              <template #header>
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <GeneBadge
+                    v-if="geneSymbol"
+                    :symbol="geneSymbol"
+                    size="sm"
+                    :link-to="undefined"
+                    :show-title="false"
+                  />
+                  <span class="gene-card-name ms-1">{{ geneName }}</span>
+                  <span
+                    v-if="chromosomeLocation && chromosomeLocation !== 'null'"
+                    class="gene-card-location text-muted ms-1"
+                  >
+                    {{ chromosomeLocation }}
+                  </span>
+                </div>
+              </template>
+              <div class="px-3 py-1 border-bottom bg-light">
+                <ClinicalResourcesCard
+                  compact
                   :symbol="geneSymbol"
-                  size="sm"
-                  :link-to="undefined"
-                  :show-title="false"
+                  :hgnc-id="hgncId"
+                  :omim-id="omimId"
+                  :mgd-id="mgdId"
+                  :rgd-id="rgdId"
                 />
-                <span class="gene-card-name ms-1">{{ geneName }}</span>
-                <span
-                  v-if="chromosomeLocation && chromosomeLocation !== 'null'"
-                  class="gene-card-location text-muted ms-1"
-                >
-                  {{ chromosomeLocation }}
-                </span>
               </div>
-            </template>
-            <div class="px-3 py-1 border-bottom bg-light">
-              <ClinicalResourcesCard
-                compact
-                :symbol="geneSymbol"
-                :hgnc-id="hgncId"
-                :omim-id="omimId"
-                :mgd-id="mgdId"
-                :rgd-id="rgdId"
-              />
-            </div>
-            <div class="px-3 py-1">
-              <IdentifierCard
-                v-if="gene"
-                :gene-data="gene"
-                compact
-              />
-            </div>
-          </SectionCard>
-        </BCol>
-      </BRow>
-    </BContainer>
+              <div class="px-3 py-1">
+                <IdentifierCard
+                  v-if="gene"
+                  :gene-data="gene"
+                  compact
+                />
+              </div>
+            </BCard>
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
 
     <!-- 2. Associated Entities — mounted on tick 0 from URL-shape filter -->
     <TablesEntities
@@ -72,93 +68,94 @@
       :disable-url-sync="true"
     />
 
-    <!-- 3. External cards: 3-up grid at lg+, hide-when-empty -->
-    <BContainer fluid class="pt-2">
-      <BRow>
-        <BCol
-          cols="12"
-          lg="4"
-          class="mb-2"
-        >
-          <SectionCard
-            :loading="constraint.loading.value"
-            :empty="!constraint.loading.value && (gnomadConstraintsJson === null || gnomadConstraintsJson === '') && !constraint.error.value"
-            :error="null"
-            title="Gene Constraint (gnomAD)"
-          >
-            <GeneConstraintCard
-              :gene-symbol="geneSymbol"
-              :constraints-json="gnomadConstraintsJson"
-            />
-          </SectionCard>
-        </BCol>
-        <BCol
-          cols="12"
-          lg="4"
-          class="mb-2"
-        >
-          <SectionCard
-            :loading="clinvar.loading.value"
-            :empty="!clinvar.loading.value && (clinvar.data.value === null || clinvar.data.value.length === 0) && !clinvar.error.value"
-            :error="clinvar.error.value ? clinvar.error.value.message : null"
-            title="ClinVar Variants"
-          >
-            <GeneClinVarCard
-              :gene-symbol="geneSymbol"
-              :loading="false"
+    <!-- 3. External cards: 3-up grid at md+, each SectionCard renders skeleton during load
+         then unwraps to show the inner card's own frame (no double border) -->
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center pt-2">
+          <BCol cols="12" md="4" class="mb-2">
+            <SectionCard
+              frameless
+              :loading="geneRecord.loading.value"
+              :empty="!geneRecord.loading.value && (gnomadConstraintsJson === null || gnomadConstraintsJson === '')"
               :error="null"
-              :data="clinvar.data.value"
-              @retry="clinvar.refresh"
-            />
-          </SectionCard>
-        </BCol>
-        <BCol
-          cols="12"
-          lg="4"
-          class="mb-2"
-        >
-          <SectionCard
-            :loading="mgi.loading.value || rgd.loading.value"
-            :empty="modelOrgEmpty"
-            :error="modelOrgError"
-            title="Model Organisms"
-          >
-            <ModelOrganismsCard
+              title="Gene Constraint (gnomAD)"
+              min-height="16rem"
+            >
+              <GeneConstraintCard
+                :gene-symbol="geneSymbol"
+                :constraints-json="gnomadConstraintsJson"
+              />
+            </SectionCard>
+          </BCol>
+          <BCol cols="12" md="4" class="mb-2">
+            <SectionCard
+              frameless
+              :loading="clinvar.loading.value"
+              :empty="!clinvar.loading.value && (clinvar.data.value === null || clinvar.data.value.length === 0) && !clinvar.error.value"
+              :error="clinvar.error.value ? clinvar.error.value.message : null"
+              title="ClinVar Variants"
+              min-height="16rem"
+            >
+              <GeneClinVarCard
+                :gene-symbol="geneSymbol"
+                :loading="false"
+                :error="null"
+                :data="clinvar.data.value"
+                @retry="clinvar.refresh"
+              />
+            </SectionCard>
+          </BCol>
+          <BCol cols="12" md="4" class="mb-2">
+            <SectionCard
+              frameless
+              :loading="mgi.loading.value && rgd.loading.value"
+              :empty="modelOrgEmpty"
+              :error="modelOrgError"
+              title="Model Organisms"
+              min-height="16rem"
+            >
+              <ModelOrganismsCard
+                :gene-symbol="geneSymbol"
+                :mgi-loading="mgi.loading.value"
+                :mgi-error="mgi.error.value ? mgi.error.value.message : null"
+                :mgi-data="mgiCardData"
+                :rgd-loading="rgd.loading.value"
+                :rgd-error="rgd.error.value ? rgd.error.value.message : null"
+                :rgd-data="rgdCardData"
+                @retry="retryAllExternalData"
+              />
+            </SectionCard>
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
+
+    <!-- 4. Genomic Visualizations: Protein View / Gene Structure / 3D Structure (tabbed, lazy-mount inactive panels) -->
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center pt-2">
+          <BCol cols="12">
+            <GenomicVisualizationTabs
+              v-if="geneSymbol"
               :gene-symbol="geneSymbol"
-              :mgi-loading="false"
-              :mgi-error="null"
-              :mgi-data="mgiCardData"
-              :rgd-loading="false"
-              :rgd-error="null"
-              :rgd-data="rgdCardData"
+              :clinvar-variants="clinvar.data.value"
+              :clinvar-loading="clinvar.loading.value"
+              :clinvar-error="clinvar.error.value ? clinvar.error.value.message : null"
+              :uniprot-data="uniprot.data.value"
+              :uniprot-loading="uniprot.loading.value"
+              :uniprot-error="uniprot.error.value ? uniprot.error.value.message : null"
+              :chromosome-location="chromosomeLocation"
+              :alphafold-pdb-url="alphafold.data.value?.pdb_url ?? null"
+              :alphafold-metadata="alphafold.data.value ?? null"
+              :alphafold-loading="alphafold.loading.value"
+              :alphafold-error="alphafold.error.value ? alphafold.error.value.message : null"
               @retry="retryAllExternalData"
             />
-          </SectionCard>
-        </BCol>
-      </BRow>
-
-      <!-- 4. Genomic visualizations -->
-      <BRow class="pt-2">
-        <BCol cols="12">
-          <GenomicVisualizationTabs
-            v-if="geneSymbol"
-            :gene-symbol="geneSymbol"
-            :clinvar-variants="clinvar.data.value"
-            :clinvar-loading="clinvar.loading.value"
-            :clinvar-error="clinvar.error.value ? clinvar.error.value.message : null"
-            :uniprot-data="uniprot.data.value"
-            :uniprot-loading="uniprot.loading.value"
-            :uniprot-error="uniprot.error.value ? uniprot.error.value.message : null"
-            :chromosome-location="chromosomeLocation"
-            :alphafold-pdb-url="alphafold.data.value?.pdb_url ?? null"
-            :alphafold-metadata="alphafold.data.value ?? null"
-            :alphafold-loading="alphafold.loading.value"
-            :alphafold-error="alphafold.error.value ? alphafold.error.value.message : null"
-            @retry="retryAllExternalData"
-          />
-        </BCol>
-      </BRow>
-    </BContainer>
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
   </div>
 </template>
 
@@ -166,7 +163,7 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
-import { BContainer, BRow, BCol } from 'bootstrap-vue-next';
+import { BContainer, BRow, BCol, BCard } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import IdentifierCard from '@/components/gene/IdentifierCard.vue';
 import ClinicalResourcesCard from '@/components/gene/ClinicalResourcesCard.vue';
@@ -228,13 +225,6 @@ const uniprot = useGeneUniProt(symbolForExternal);
 const mgi = useGeneMGI(symbolForExternal);
 const rgd = useGeneRGD(symbolForExternal);
 
-// Constraint card has no separate hook (data lives on the gene record).
-// Expose a ResourceState-shaped slice so SectionCard can drive the skeleton.
-const constraint = {
-  loading: geneRecord.loading,
-  error: geneRecord.error,
-} as const;
-
 // The W1 hook payload types are structurally narrower than the card props
 // (the card expects the full MGI/RGD response shape from /api/external).
 // The runtime payload matches; cast through `unknown` to satisfy TS without
@@ -246,7 +236,7 @@ const rgdCardData = computed<RGDPhenotypeData | null>(
   () => rgd.data.value as unknown as RGDPhenotypeData | null,
 );
 
-// Combined Model Organism empty/error logic.
+// Combined Model Organism empty state — both MGI and RGD must be empty for SectionCard to collapse.
 const modelOrgEmpty = computed(() => {
   if (mgi.loading.value || rgd.loading.value) return false;
   const mgiPhenos = mgi.data.value?.phenotypes;
