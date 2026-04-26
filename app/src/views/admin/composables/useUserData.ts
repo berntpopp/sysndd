@@ -132,7 +132,7 @@ export function useUserData(options: UseUserDataOptions = {}) {
   async function loadRoleList(): Promise<void> {
     try {
       const response = await apiClient.raw.get(`${apiBase}/api/user/role_list`);
-      role_options.value = response.data.map((item: { role: string }) => ({
+      role_options.value = (response.data as Array<{ role: string }>).map((item) => ({
         value: item.role,
         text: item.role,
       }));
@@ -146,13 +146,13 @@ export function useUserData(options: UseUserDataOptions = {}) {
       const response = await apiClient.raw.get(
         `${apiBase}/api/user/list?roles=Curator,Reviewer`,
       );
-      user_options.value = response.data.map(
-        (item: { user_id: number; user_name: string; user_role: string }) => ({
-          value: item.user_id,
-          text: item.user_name,
-          role: item.user_role,
-        }),
-      );
+      user_options.value = (
+        response.data as Array<{ user_id: number; user_name: string; user_role: string }>
+      ).map((item) => ({
+        value: item.user_id,
+        text: item.user_name,
+        role: item.user_role,
+      }));
     } catch (e) {
       onToast?.(e, 'Error', 'danger');
     }
@@ -243,7 +243,7 @@ export function useUserData(options: UseUserDataOptions = {}) {
     const preset = filterPresets.loadPreset(name);
     if (!preset) return false;
     Object.keys(preset).forEach((key) => {
-      if (filter.value[key]) filter.value[key] = preset[key];
+      if (filter.value[key]) filter.value[key] = preset[key] as FilterEntry;
     });
     filtered();
     return true;

@@ -29,8 +29,9 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         user_ids: userIds,
       });
       if (response.status === 200) {
+        const processed = (response.data as { processed?: number }).processed;
         onToast?.(
-          `Successfully approved ${response.data.processed || userIds.length} users`,
+          `Successfully approved ${processed || userIds.length} users`,
           'Bulk Approve Complete',
           'success',
           true,
@@ -62,8 +63,9 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         role,
       });
       if (response.status === 200) {
+        const processed = (response.data as { processed?: number }).processed;
         onToast?.(
-          `Successfully assigned ${role} role to ${response.data.processed || userIds.length} users`,
+          `Successfully assigned ${role} role to ${processed || userIds.length} users`,
           'Bulk Role Assignment Complete',
           'success',
           true,
@@ -89,8 +91,9 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         user_ids: userIds,
       });
       if (response.status === 200) {
+        const processed = (response.data as { processed?: number }).processed;
         onToast?.(
-          `Successfully deleted ${response.data.processed || userIds.length} users`,
+          `Successfully deleted ${processed || userIds.length} users`,
           'Bulk Delete Complete',
           'success',
           true,

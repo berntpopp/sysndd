@@ -42,19 +42,15 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
 
   const passwordValidation = computed(() => {
     const pw = passwordChange.value.newPassword;
-    const hasLower = /[a-z]/.test(pw);
-    const hasUpper = /[A-Z]/.test(pw);
-    const hasNumber = /[0-9]/.test(pw);
-    const hasSpecial = /[!@#$%^&*]/.test(pw);
-    const longEnough = pw.length >= 12;
-    return {
-      isValid: hasLower && hasUpper && hasNumber && hasSpecial && longEnough,
-      hasLower,
-      hasUpper,
-      hasNumber,
-      hasSpecial,
-      longEnough,
+    const rules = {
+      minLength: { label: 'At least 8 characters', valid: pw.length >= 8 },
+      hasUppercase: { label: 'At least one uppercase letter', valid: /[A-Z]/.test(pw) },
+      hasLowercase: { label: 'At least one lowercase letter', valid: /[a-z]/.test(pw) },
+      hasNumber: { label: 'At least one number', valid: /[0-9]/.test(pw) },
+      hasSpecial: { label: 'At least one special character (!@#$%^&*)', valid: /[!@#$%^&*]/.test(pw) },
     };
+    const isValid = pw.length > 0 && Object.values(rules).every((r) => r.valid);
+    return { rules, isValid: pw.length > 0 ? isValid : null };
   });
 
   async function deleteUser(user: { user_id: number }): Promise<void> {
