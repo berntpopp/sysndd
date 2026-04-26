@@ -1,5 +1,5 @@
 // app/src/views/curate/composables/useEntityAutocomplete.ts
-import { ref, type Ref } from 'vue';
+import { ref } from 'vue';
 import { listEntities } from '@/api/entity';
 import { searchOntology as searchOntologyApi } from '@/api/search';
 
