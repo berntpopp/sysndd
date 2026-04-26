@@ -115,6 +115,119 @@ build_batch_params <- function(criteria) {
 }
 
 
+#' Select entities for a re-review batch with gene-atomic grouping.
+#'
+#' Two-step query: first collect distinct hgnc_ids matching criteria
+#' (ordered by oldest review_date), then expand to all matching entities
+#' for those genes. Trim with a soft LIMIT — include all entities for a
+#' partially-included gene; stop adding new genes once cumulative entity
+#' count >= batch_size. Returns up to `batch_size` entities, with the
+#' boundary gene fully included even if it pushes the count past the cap.
+#'
+#' @param criteria Named list with batch criteria.
+#' @param batch_size Integer cap (default 20). The actual returned count
+#'   may exceed this by at most (entities_in_boundary_gene - 1).
+#' @param conn Database connection (pool or transaction connection).
+#' @return Named list:
+#'   - entities: data frame of selected entities with entity_id, hgnc_id,
+#'     symbol, status_id, review_id, review_date, etc.
+#'   - boundary_gene: hgnc_id where the soft-LIMIT engaged, or NA if the
+#'     batch fits cleanly under batch_size.
+#'   - gene_count: number of distinct hgnc_id values in the result.
+#'   - entity_count: total number of entities (== nrow(entities)).
+#'
+#' @keywords internal
+select_matching_entities <- function(criteria, batch_size = 20, conn) {
+  where_clause <- build_batch_where_clause(criteria, conn)
+  params <- build_batch_params(criteria)
+
+  # Step 1: distinct hgnc_ids matching the criteria, ordered by oldest review_date per gene.
+  # Cap at batch_size (worst case 1 entity per gene = batch_size genes).
+  gene_query <- paste0(
+    "SELECT e.hgnc_id, MIN(r.review_date) AS first_review_date
+     FROM ndd_entity_view e
+     LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
+     LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
+     WHERE ", where_clause, "
+       AND e.entity_id NOT IN (
+         SELECT rec.entity_id FROM re_review_entity_connect rec
+         INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
+         WHERE rec.re_review_approved = 0
+       )
+     GROUP BY e.hgnc_id
+     ORDER BY first_review_date ASC
+     LIMIT ?"
+  )
+  gene_params <- c(params, list(as.integer(batch_size)))
+  gene_rows <- db_execute_query(gene_query, gene_params, conn = conn)
+
+  if (nrow(gene_rows) == 0) {
+    return(list(
+      entities     = data.frame(),
+      boundary_gene = NA_character_,
+      gene_count   = 0L,
+      entity_count = 0L
+    ))
+  }
+
+  # Step 2: pull all matching entities for those genes.
+  hgnc_placeholders <- paste(rep("?", nrow(gene_rows)), collapse = ", ")
+  ent_query <- paste0(
+    "SELECT DISTINCT e.entity_id, e.hgnc_id, e.symbol, e.disease_ontology_name,
+            e.disease_ontology_id_version, e.hpo_mode_of_inheritance_term_name,
+            r.review_date, r.review_id, s.category_id, s.status_id
+     FROM ndd_entity_view e
+     LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
+     LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
+     WHERE ", where_clause, "
+       AND e.hgnc_id IN (", hgnc_placeholders, ")
+       AND e.entity_id NOT IN (
+         SELECT rec.entity_id FROM re_review_entity_connect rec
+         INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
+         WHERE rec.re_review_approved = 0
+       )
+     ORDER BY e.hgnc_id, r.review_date ASC"
+  )
+  ent_params <- c(params, as.list(gene_rows$hgnc_id))
+  all_matching <- db_execute_query(ent_query, ent_params, conn = conn)
+
+  if (nrow(all_matching) == 0) {
+    return(list(
+      entities     = data.frame(),
+      boundary_gene = NA_character_,
+      gene_count   = 0L,
+      entity_count = 0L
+    ))
+  }
+
+  # Step 3: soft LIMIT — accumulate by gene; stop adding new genes once entity count >= batch_size.
+  # The boundary gene is fully included even if it pushes the cumulative count past the cap.
+  selected <- list()
+  per_gene <- split(all_matching, all_matching$hgnc_id)
+  # Preserve gene order as discovered in step 1 (oldest first):
+  per_gene <- per_gene[as.character(gene_rows$hgnc_id)]
+  total <- 0L
+  boundary <- NA_character_
+  for (gid in names(per_gene)) {
+    block <- per_gene[[gid]]
+    if (total >= batch_size) break
+    selected[[length(selected) + 1L]] <- block
+    total <- total + nrow(block)
+    if (total > batch_size && is.na(boundary)) {
+      boundary <- gid
+    }
+  }
+
+  out <- if (length(selected) > 0L) do.call(rbind, selected) else data.frame()
+  list(
+    entities     = out,
+    boundary_gene = boundary,
+    gene_count   = length(selected),
+    entity_count = nrow(out)
+  )
+}
+
+
 #' Preview matching entities without creating batch
 #'
 #' Returns entities that match the provided criteria without creating a batch.
@@ -136,44 +249,24 @@ build_batch_params <- function(criteria) {
 #'
 #' @export
 batch_preview <- function(criteria, batch_size = 20, pool) {
-  # Build WHERE clause and parameters
-
-where_clause <- build_batch_where_clause(criteria, pool)
-  params <- build_batch_params(criteria)
-
-  # Build query to find matching entities
-  # Exclude entities already in active batches
-  query <- paste0(
-    "SELECT DISTINCT e.entity_id, e.hgnc_id, e.symbol, e.disease_ontology_name,
-            e.disease_ontology_id_version, e.hpo_mode_of_inheritance_term_name,
-            r.review_date, s.category_id
-     FROM ndd_entity_view e
-     LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
-     LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-     WHERE ", where_clause, "
-       AND e.entity_id NOT IN (
-         SELECT rec.entity_id FROM re_review_entity_connect rec
-         INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
-         WHERE rec.re_review_approved = 0
-       )
-     ORDER BY r.review_date ASC
-     LIMIT ?"
-  )
-
-  # Add batch_size to params
-  params <- c(params, list(as.integer(batch_size)))
-
-  # Execute query
-  matching_entities <- db_execute_query(query, params, conn = pool)
+  # Use gene-atomic helper to avoid splitting entities across gene boundaries
+  # (fixes issue #29 where DISTINCT + ORDER BY review_date + LIMIT split genes)
+  selection <- select_matching_entities(criteria, batch_size = batch_size, conn = pool)
+  matching_entities <- selection$entities
 
   logger::log_info("Batch preview",
     criteria_count = length(criteria),
-    matching_count = nrow(matching_entities)
+    matching_count = selection$entity_count,
+    gene_count     = selection$gene_count,
+    boundary_gene  = selection$boundary_gene
   )
 
   list(
-    status = 200,
-    data = matching_entities
+    status        = 200,
+    data          = matching_entities,
+    boundary_gene = selection$boundary_gene,
+    gene_count    = selection$gene_count,
+    entity_count  = selection$entity_count
   )
 }
 
@@ -241,27 +334,9 @@ batch_create <- function(criteria, assigned_user_id = NULL, batch_name = NULL, p
     )
     batch_id <- max_batch_result$next_batch[1]
 
-    # 3. Build WHERE clause and find matching entities
-    where_clause <- build_batch_where_clause(criteria, txn_conn)
-    params <- build_batch_params(criteria)
-
-    query <- paste0(
-      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id, r.review_date
-       FROM ndd_entity_view e
-       LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
-       LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-       WHERE ", where_clause, "
-         AND e.entity_id NOT IN (
-           SELECT rec.entity_id FROM re_review_entity_connect rec
-           INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
-           WHERE rec.re_review_approved = 0
-         )
-       ORDER BY r.review_date ASC
-       LIMIT ?"
-    )
-
-    params <- c(params, list(as.integer(batch_size)))
-    matching_entities <- db_execute_query(query, params, conn = txn_conn)
+    # 3. Find matching entities using gene-atomic helper (fixes issue #29)
+    selection <- select_matching_entities(criteria, batch_size = batch_size, conn = txn_conn)
+    matching_entities <- selection$entities
 
     if (nrow(matching_entities) == 0) {
       stop("No entities match the specified criteria")
@@ -724,27 +799,9 @@ batch_recalculate <- function(batch_id, criteria, pool) {
       conn = txn_conn
     )
 
-    # 2. Build WHERE clause and find matching entities
-    where_clause <- build_batch_where_clause(criteria, pool)
-    params <- build_batch_params(criteria)
-
-    query <- paste0(
-      "SELECT DISTINCT e.entity_id, s.status_id, r.review_id, r.review_date
-       FROM ndd_entity_view e
-       LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
-       LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
-       WHERE ", where_clause, "
-         AND e.entity_id NOT IN (
-           SELECT rec.entity_id FROM re_review_entity_connect rec
-           INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
-           WHERE rec.re_review_approved = 0
-         )
-       ORDER BY r.review_date ASC
-       LIMIT ?"
-    )
-
-    params <- c(params, list(as.integer(batch_size)))
-    matching_entities <- db_execute_query(query, params, conn = txn_conn)
+    # 2. Find matching entities using gene-atomic helper (fixes issue #29)
+    selection <- select_matching_entities(criteria, batch_size = batch_size, conn = txn_conn)
+    matching_entities <- selection$entities
 
     if (nrow(matching_entities) == 0) {
       stop("No entities match the specified criteria")

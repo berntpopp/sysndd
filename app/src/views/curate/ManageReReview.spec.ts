@@ -499,3 +499,118 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
     expect(sawCall).toBe(true);
   });
 });
+
+// ===========================================================================
+// Issue #29 — gene-atomic BAlert hint
+// Verifies that ManageReReview.vue renders/hides the boundary-gene warning
+// based on the previewBoundaryGene data property.
+// ===========================================================================
+describe('ManageReReview.vue — gene-atomic boundary-gene alert (issue #29)', () => {
+  // -------------------------------------------------------------------------
+  // Helper: mount with overridden data fields so we can drive the alert
+  // without triggering real HTTP calls.
+  // -------------------------------------------------------------------------
+  const mountWithBoundaryData = async (overrides: Record<string, unknown>): Promise<VueWrapper> => {
+    const wrapper = mount(ManageReReview, {
+      global: {
+        directives: {
+          'b-tooltip': {},
+          'b-toggle': {},
+        },
+        stubs: {
+          BContainer: { template: '<div><slot /></div>' },
+          BRow: { template: '<div><slot /></div>' },
+          BCol: { template: '<div><slot /></div>' },
+          BCard: { template: '<div><slot name="header" /><slot /></div>' },
+          BCollapse: { props: ['modelValue'], template: '<div><slot /></div>' },
+          BButton: { template: '<button><slot /></button>' },
+          BBadge: { template: '<span><slot /></span>' },
+          BLink: { template: '<a><slot /></a>' },
+          BSpinner: { template: '<div role="status" />' },
+          BTable: {
+            name: 'BTable',
+            props: ['items', 'fields'],
+            template: '<table><tbody><tr /></tbody></table>',
+          },
+          BPagination: { template: '<nav />' },
+          BFormInput: {
+            props: ['modelValue', 'type', 'placeholder', 'id', 'debounce', 'size', 'min', 'max'],
+            template: '<input />',
+          },
+          BFormSelect: {
+            props: ['modelValue', 'options', 'size', 'id', 'ariaLabel'],
+            template: '<select><slot /></select>',
+          },
+          BFormSelectOption: { props: ['value'], template: '<option><slot /></option>' },
+          BFormCheckbox: {
+            props: ['modelValue', 'switch', 'size', 'id'],
+            template: '<input type="checkbox" />',
+          },
+          BFormGroup: { template: '<div><slot name="label" /><slot /></div>' },
+          BForm: { template: '<form><slot /></form>' },
+          BOverlay: { template: '<div><slot /></div>' },
+          BInputGroup: { template: '<div><slot name="prepend" /><slot /></div>' },
+          BInputGroupText: { template: '<span><slot /></span>' },
+          BPopover: { template: '' },
+          BAlert: {
+            // Render unconditionally — the outer v-if on the host controls
+            // whether this stub is mounted at all. Pass-through attrs (including
+            // data-testid) land on the root element via Vue's inheritAttrs.
+            props: ['variant', 'show'],
+            template: '<div :data-variant="variant"><slot /></div>',
+          },
+          BModal: {
+            name: 'BModal',
+            props: ['modelValue', 'id', 'title'],
+            template: '<div><slot /></div>',
+            methods: { show() {}, hide() {} },
+          },
+          BatchCriteriaForm: { template: '<div />' },
+          AriaLiveRegion: { template: '<div />' },
+          IconLegend: { template: '<div />' },
+        },
+      },
+    });
+
+    // Flush initial mount loaders before overriding data.
+    await flushPromises();
+
+    // Override the relevant data fields and trigger a re-render.
+    Object.entries(overrides).forEach(([key, value]) => {
+      (wrapper.vm as unknown as Record<string, unknown>)[key] = value;
+    });
+
+    // Wait for Vue reactivity to propagate the data changes to the DOM.
+    await wrapper.vm.$nextTick();
+    return wrapper;
+  };
+
+  it('alert is hidden when previewBoundaryGene is null', async () => {
+    primeAuth();
+    installDefaultHandlers();
+
+    const wrapper = await mountWithBoundaryData({
+      previewBoundaryGene: null,
+      previewGeneCount: 0,
+      previewEntityCount: 0,
+    });
+
+    expect(wrapper.find('[data-testid="batch-boundary-gene-alert"]').exists()).toBe(false);
+  });
+
+  it('alert renders when previewBoundaryGene is non-null', async () => {
+    primeAuth();
+    installDefaultHandlers();
+
+    const wrapper = await mountWithBoundaryData({
+      previewBoundaryGene: 'HGNC:4585',
+      previewGeneCount: 2,
+      previewEntityCount: 6,
+    });
+
+    const alert = wrapper.find('[data-testid="batch-boundary-gene-alert"]');
+    expect(alert.exists()).toBe(true);
+    expect(alert.text()).toContain('HGNC:4585');
+    expect(alert.text()).toContain('6');
+  });
+});
