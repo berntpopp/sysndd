@@ -1,7 +1,40 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <!-- Skeleton table during initial load — same shape as the eventual table to avoid CLS -->
+    <BContainer v-if="loading" fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
+            data-testid="entities-skeleton"
+          >
+            <template #header>
+              <div class="d-flex align-items-center justify-content-between px-2">
+                <div class="entities-skeleton-line entities-skeleton-w-30" />
+                <div class="entities-skeleton-line entities-skeleton-w-15" />
+              </div>
+            </template>
+            <div class="px-3 py-2">
+              <div
+                v-for="n in 5"
+                :key="n"
+                class="d-flex align-items-center gap-3 py-2 entities-skeleton-row"
+              >
+                <div class="entities-skeleton-line entities-skeleton-w-8" />
+                <div class="entities-skeleton-line entities-skeleton-w-12" />
+                <div class="entities-skeleton-line entities-skeleton-w-30" />
+                <div class="entities-skeleton-line entities-skeleton-w-15" />
+                <div class="entities-skeleton-line entities-skeleton-w-10" />
+              </div>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
     <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -784,5 +817,30 @@ export default {
 :deep(.card-header) {
   background-color: #f8f9fa;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Skeleton table rows shown while the entity API request is in flight.
+   Mirrors the eventual BTable's row shape to avoid CLS. */
+.entities-skeleton-line {
+  height: 0.85rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: entities-skeleton-shimmer 1.4s ease infinite;
+}
+.entities-skeleton-w-8  { width: 8%;  }
+.entities-skeleton-w-10 { width: 10%; }
+.entities-skeleton-w-12 { width: 12%; }
+.entities-skeleton-w-15 { width: 15%; }
+.entities-skeleton-w-30 { width: 30%; }
+.entities-skeleton-row + .entities-skeleton-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+@keyframes entities-skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entities-skeleton-line { animation: none; }
 }
 </style>
