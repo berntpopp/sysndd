@@ -120,15 +120,22 @@ function(symbol, res) {
 #* Returns pathogenic and likely pathogenic variants from gnomAD's ClinVar integration.
 #* Data is cached for 7 days.
 #*
+#* When `summary=true`, the variant array is replaced with a small object of
+#* per-classification counts so the ClinVar card on the gene page can render
+#* without paying the ~44 KB / ~300 ms cost of the full variant payload. The
+#* full payload is still served (without `summary=true`) for the genomic
+#* visualization tabs that plot individual variants.
+#*
 #* @tag external-proxy
 #* @serializer unboxedJSON
 #* @param symbol Gene symbol (e.g., "BRCA1")
+#* @param summary:bool When true, return only classification counts. Default false.
 #* @response 200 ClinVar variants for the gene
 #* @response 400 Invalid gene symbol
 #* @response 404 Gene not found in gnomAD
 #* @response 503 gnomAD API unavailable
 #* @get gnomad/variants/<symbol>
-function(symbol, res) {
+function(symbol, res, summary = "false") {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
@@ -140,6 +147,8 @@ function(symbol, res) {
       paste0("/api/external/gnomad/variants/", symbol)
     ))
   }
+
+  is_summary <- isTRUE(tolower(as.character(summary[[1]])) %in% c("true", "1", "yes"))
 
   # Fetch data (memoised)
   result <- fetch_gnomad_clinvar_variants_mem(symbol)
@@ -168,7 +177,41 @@ function(symbol, res) {
     ))
   }
 
-  # Success
+  if (is_summary) {
+    variants <- result$variants %||% list()
+    # Mirror app/src/components/gene/GeneClinVarCard.vue:131-145 classification
+    # logic exactly so the server- and client-counted totals stay identical.
+    classify <- function(s) {
+      if (is.null(s) || is.na(s) || s == "") return("uncategorized")
+      key <- gsub("_", " ", tolower(as.character(s)), fixed = TRUE)
+      has_lp <- grepl("likely", key, fixed = TRUE) && grepl("pathogenic", key, fixed = TRUE)
+      has_lb <- grepl("likely", key, fixed = TRUE) && grepl("benign", key, fixed = TRUE)
+      if (grepl("pathogenic", key, fixed = TRUE) && !grepl("likely", key, fixed = TRUE)) return("pathogenic")
+      if (has_lp) return("likely_pathogenic")
+      if (grepl("uncertain", key, fixed = TRUE) || grepl("vus", key, fixed = TRUE)) return("vus")
+      if (has_lb) return("likely_benign")
+      if (grepl("benign", key, fixed = TRUE) && !grepl("likely", key, fixed = TRUE)) return("benign")
+      "other"
+    }
+    sigs <- vapply(variants, function(v) classify(v$clinical_significance), character(1))
+    counts <- list(
+      pathogenic = sum(sigs == "pathogenic"),
+      likely_pathogenic = sum(sigs == "likely_pathogenic"),
+      vus = sum(sigs == "vus"),
+      likely_benign = sum(sigs == "likely_benign"),
+      benign = sum(sigs == "benign")
+    )
+    return(list(
+      source = result$source,
+      gene_symbol = result$gene_symbol,
+      gene_id = result$gene_id,
+      counts = counts,
+      variant_count = result$variant_count %||% length(variants),
+      summary = TRUE
+    ))
+  }
+
+  # Success — full variant payload (default)
   return(result)
 }
 

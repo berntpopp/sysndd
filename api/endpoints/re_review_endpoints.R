@@ -222,7 +222,11 @@ function(req,
       status_approving_user_id = approving_user_id
     )
 
-  re_review_user_list <- re_review_entity_connect %>%
+  # Build the lazy joined query, then push the user filter to SQL when one is
+  # provided so we don't collect the full 6-table join just to drop most rows
+  # in R. Falls back to the legacy collect-then-filter path on translation
+  # errors. No fspec contract on this endpoint, so unconditional pushdown is safe.
+  re_review_user_list_lazy <- re_review_entity_connect %>%
     inner_join(re_review_assignment, by = c("re_review_batch")) %>%
     select(
       re_review_entity_id,
@@ -239,10 +243,31 @@ function(req,
     inner_join(ndd_entity_status_category, by = c("status_id")) %>%
     inner_join(ndd_entity_status_categories_list, by = c("category_id")) %>%
     inner_join(review_user_collected, by = c("review_id")) %>%
-    inner_join(status_user_collected, by = c("status_id")) %>%
-    collect() %>%
-    arrange(re_review_entity_id) %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+    inner_join(status_user_collected, by = c("status_id"))
+
+  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
+  re_review_user_list <- if (has_filter) {
+    tryCatch(
+      re_review_user_list_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect() %>%
+        arrange(re_review_entity_id),
+      error = function(e) {
+        message(sprintf(
+          "[re-review-table] SQL filter pushdown failed (%s); falling back",
+          conditionMessage(e)
+        ))
+        re_review_user_list_lazy %>%
+          collect() %>%
+          arrange(re_review_entity_id) %>%
+          filter(!!!rlang::parse_exprs(filter_exprs))
+      }
+    )
+  } else {
+    re_review_user_list_lazy %>%
+      collect() %>%
+      arrange(re_review_entity_id)
+  }
 
   # Apply pagination
   pagination_info <- generate_cursor_pag_inf_safe(

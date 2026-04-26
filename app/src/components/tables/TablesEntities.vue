@@ -1,7 +1,40 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
+    <!-- Skeleton table during initial load — same shape as the eventual table to avoid CLS -->
+    <BContainer v-if="loading" fluid>
+      <BRow class="justify-content-md-center py-2">
+        <BCol col md="12">
+          <BCard
+            header-tag="header"
+            body-class="p-0"
+            header-class="p-1"
+            border-variant="dark"
+            data-testid="entities-skeleton"
+          >
+            <template #header>
+              <div class="d-flex align-items-center justify-content-between px-2">
+                <div class="entities-skeleton-line entities-skeleton-w-30" />
+                <div class="entities-skeleton-line entities-skeleton-w-15" />
+              </div>
+            </template>
+            <div class="px-3 py-2">
+              <div
+                v-for="n in 5"
+                :key="n"
+                class="d-flex align-items-center gap-3 py-2 entities-skeleton-row"
+              >
+                <div class="entities-skeleton-line entities-skeleton-w-8" />
+                <div class="entities-skeleton-line entities-skeleton-w-12" />
+                <div class="entities-skeleton-line entities-skeleton-w-30" />
+                <div class="entities-skeleton-line entities-skeleton-w-15" />
+                <div class="entities-skeleton-line entities-skeleton-w-10" />
+              </div>
+            </div>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
     <BContainer v-else fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -274,6 +307,7 @@ let moduleLastApiParams = null;
 let moduleApiCallInProgress = false;
 let moduleLastApiCallTime = 0;
 let moduleLastApiResponse = null; // Cache last API response for remounted components
+let moduleInFlightPromise = null; // Shared promise so late subscribers can await it
 
 export default {
   name: 'TablesEntities',
@@ -506,18 +540,19 @@ export default {
         // Also set filter_string so the API call uses the URL filter
         this.filter_string = this.filterInput;
       }
-      // Load data first while still in initializing state
-      this.loadData();
+      // v11.3 §4.2.3 option (B): skip the 50 ms initial-load debounce so the
+      // entity request starts within the spec's <=100 ms after-nav budget. The
+      // debounce remains for subsequent filter/sort/pagination calls.
+      this.loadDataImmediate();
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       this.$nextTick(() => {
         this.isInitializing = false;
       });
     });
-
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
+    // Note: `loading` flips to false inside doLoadData() once the API responds.
+    // The previous unconditional 500 ms timeout was a source of the
+    // "There are no records to show" flash when the fetch took longer than 500 ms.
   },
   methods: {
     // Update browser URL with current table state
@@ -619,10 +654,24 @@ export default {
         this.doLoadData();
       }, 50);
     },
+    // v11.3 §4.2.3 option (B): initial-load path that bypasses the debounce so
+    // the mount-time fetch starts immediately. Used only by mounted();
+    // reactivity triggers continue to use loadData() with its 50 ms debounce.
+    loadDataImmediate() {
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+        this.loadDataDebounceTimer = null;
+      }
+      this.doLoadData();
+    },
     async doLoadData() {
+      // `compact` changes the server response shape (count == count_filtered,
+      // no global fspec) so it MUST be part of the dedup key — otherwise a
+      // remounted instance with different controls visibility would receive
+      // a stale response with the wrong fspec semantics.
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
-      }&page_size=${this.perPage}`;
+      }&page_size=${this.perPage}&compact=${!this.showFilterControls}`;
 
       const now = Date.now();
 
@@ -633,12 +682,26 @@ export default {
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
           this.isBusy = false; // Clear busy state when using cached data
+          this.loading = false;
         }
         return;
       }
 
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+      // If a call with the same params is already in flight, share its promise
+      // instead of returning silently. Returning early left late subscribers
+      // stuck on `loading=true` forever because the cached-response branch
+      // above never fired for them and their own fetch was suppressed.
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
+        this.isBusy = true;
+        try {
+          const sharedData = await moduleInFlightPromise;
+          this.applyApiResponse(sharedData);
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        } finally {
+          this.isBusy = false;
+          this.loading = false;
+        }
         return;
       }
 
@@ -647,14 +710,22 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
+      const inFlight = listEntities({
+        sort: this.sort,
+        filter: this.filter_string,
+        page_after: this.currentItemID,
+        page_size: String(this.perPage),
+        // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
+        // so they don't need the global-fspec round-trip. Compact mode
+        // pushes the filter to SQL and skips the wasted fspec compute.
+        compact: !this.showFilterControls,
+      });
+      moduleInFlightPromise = inFlight;
+
       try {
-        const data = await listEntities({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: this.currentItemID,
-          page_size: String(this.perPage),
-        });
+        const data = await inFlight;
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         // Cache response for remounted components
         moduleLastApiResponse = data;
         this.applyApiResponse(data);
@@ -663,10 +734,13 @@ export default {
         this.updateBrowserUrl();
 
         this.isBusy = false;
+        this.loading = false;
       } catch (e) {
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         this.makeToast(e, 'Error', 'danger');
         this.isBusy = false;
+        this.loading = false;
       }
     },
     /**
@@ -770,5 +844,30 @@ export default {
 :deep(.card-header) {
   background-color: #f8f9fa;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Skeleton table rows shown while the entity API request is in flight.
+   Mirrors the eventual BTable's row shape to avoid CLS. */
+.entities-skeleton-line {
+  height: 0.85rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: entities-skeleton-shimmer 1.4s ease infinite;
+}
+.entities-skeleton-w-8  { width: 8%;  }
+.entities-skeleton-w-10 { width: 10%; }
+.entities-skeleton-w-12 { width: 12%; }
+.entities-skeleton-w-15 { width: 15%; }
+.entities-skeleton-w-30 { width: 30%; }
+.entities-skeleton-row + .entities-skeleton-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+@keyframes entities-skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entities-skeleton-line { animation: none; }
 }
 </style>
