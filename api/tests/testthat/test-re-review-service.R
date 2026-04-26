@@ -2,17 +2,20 @@
 #
 # Unit tests for re-review-service.R — gene-atomic batching (issue #29)
 #
-# Strategy: use local_mocked_bindings to mock db_execute_query so we can
-# drive the select_matching_entities() algorithm without a live database.
+# Strategy: temporarily replace db_execute_query in the global environment
+# using withr::with_bindings so we can drive the select_matching_entities()
+# algorithm without a live database.
 # We also verify that batch_preview returns the new boundary_gene / gene_count
 # / entity_count fields after the fix.
 
-source_api_file("functions/db-helpers.R", local = FALSE)
+# Source into .GlobalEnv so that lexical scoping works when we replace
+# db_execute_query in .GlobalEnv during tests.
+source_api_file("functions/db-helpers.R", local = FALSE, envir = .GlobalEnv)
 # logger package is used by re-review-service.R via logger::log_info etc.
 if (!requireNamespace("logger", quietly = TRUE)) {
-  skip("logger package not available")
+  stop("logger package not available — cannot run re-review-service tests")
 }
-source_api_file("services/re-review-service.R", local = FALSE)
+source_api_file("services/re-review-service.R", local = FALSE, envir = .GlobalEnv)
 
 # ---------------------------------------------------------------------------
 # Helpers — synthetic entity data frames returned by the mocked DB queries
@@ -30,19 +33,19 @@ make_gene_rows <- function() {
 
 make_entity_rows <- function() {
   data.frame(
-    entity_id                      = c(1L, 2L, 3L, 4L, 5L, 6L),
-    hgnc_id                        = c("HGNC:1001", "HGNC:1001", "HGNC:1001",
-                                       "HGNC:1002", "HGNC:1002", "HGNC:1002"),
-    symbol                         = rep("GENE1", 6),
-    disease_ontology_name          = paste0("Disease ", 1:6),
-    disease_ontology_id_version    = paste0("OMIM:10000", 1:6),
+    entity_id                         = c(1L, 2L, 3L, 4L, 5L, 6L),
+    hgnc_id                           = c("HGNC:1001", "HGNC:1001", "HGNC:1001",
+                                          "HGNC:1002", "HGNC:1002", "HGNC:1002"),
+    symbol                            = rep("GENE1", 6),
+    disease_ontology_name             = paste0("Disease ", 1:6),
+    disease_ontology_id_version       = paste0("OMIM:10000", 1:6),
     hpo_mode_of_inheritance_term_name = rep("Autosomal dominant", 6),
-    review_date                    = c("2020-01-01", "2020-02-01", "2020-03-01",
-                                       "2020-06-01", "2020-07-01", "2020-08-01"),
-    review_id                      = 101L:106L,
-    category_id                    = rep(1L, 6),
-    status_id                      = 201L:206L,
-    stringsAsFactors               = FALSE
+    review_date                       = c("2020-01-01", "2020-02-01", "2020-03-01",
+                                          "2020-06-01", "2020-07-01", "2020-08-01"),
+    review_id                         = 101L:106L,
+    category_id                       = rep(1L, 6),
+    status_id                         = 201L:206L,
+    stringsAsFactors                  = FALSE
   )
 }
 
@@ -51,34 +54,48 @@ make_entity_rows <- function() {
 make_mock_conn <- function() structure(list(), class = "MockPool")
 
 # ---------------------------------------------------------------------------
-# Helper: set up mocks that simulate the gene-LIMIT SQL + entity expansion.
-# call_count allows the caller to distinguish first call (gene list query)
-# from second call (entity rows query).
+# with_db_mock: temporarily replace db_execute_query and the where-clause
+# helpers in the global environment, restoring them on exit.
+# The mock_fn receives each call in sequence; call_count_env$n tracks calls.
 # ---------------------------------------------------------------------------
-with_gene_atomic_mocks <- function(expr, gene_rows = make_gene_rows(),
-                                   entity_rows = make_entity_rows()) {
-  call_count <- 0L
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      call_count <<- call_count + 1L
-      if (call_count == 1L) {
-        # First call: the gene-discovery SELECT → return gene rows
-        return(tibble::as_tibble(gene_rows))
-      } else {
-        # Second call: the entity-expansion SELECT → return entity rows
-        return(tibble::as_tibble(entity_rows))
-      }
-    },
-    build_batch_where_clause = function(criteria, pool) "1=1",
-    build_batch_params       = function(criteria) list(),
-    .package                 = NULL # bindings in global env (sourced service)
-  )
+with_db_mock <- function(mock_fn, expr) {
+  # Save originals (may be NULL if not yet defined)
+  orig_deq  <- if (exists("db_execute_query",        envir = .GlobalEnv)) get("db_execute_query",        envir = .GlobalEnv) else NULL
+  orig_bwc  <- if (exists("build_batch_where_clause", envir = .GlobalEnv)) get("build_batch_where_clause", envir = .GlobalEnv) else NULL
+  orig_bbp  <- if (exists("build_batch_params",       envir = .GlobalEnv)) get("build_batch_params",       envir = .GlobalEnv) else NULL
+
+  # Install mocks
+  assign("db_execute_query",        mock_fn,                              envir = .GlobalEnv)
+  assign("build_batch_where_clause", function(criteria, pool) "1=1",      envir = .GlobalEnv)
+  assign("build_batch_params",       function(criteria) list(),            envir = .GlobalEnv)
+
+  # Restore on exit (even on error)
+  on.exit({
+    if (is.null(orig_deq))  rm("db_execute_query",        envir = .GlobalEnv) else assign("db_execute_query",        orig_deq, envir = .GlobalEnv)
+    if (is.null(orig_bwc))  rm("build_batch_where_clause", envir = .GlobalEnv) else assign("build_batch_where_clause", orig_bwc, envir = .GlobalEnv)
+    if (is.null(orig_bbp))  rm("build_batch_params",       envir = .GlobalEnv) else assign("build_batch_params",       orig_bbp, envir = .GlobalEnv)
+  }, add = TRUE)
+
   force(expr)
 }
 
+# Convenience: mock that alternates between gene_rows (call 1) and entity_rows (call 2+)
+make_two_call_mock <- function(gene_rows, entity_rows) {
+  call_n <- 0L
+  function(sql, params = list(), conn = NULL) {
+    call_n <<- call_n + 1L
+    if (call_n == 1L) tibble::as_tibble(gene_rows)
+    else              tibble::as_tibble(entity_rows)
+  }
+}
+
+# Mock that always returns an empty tibble (no matching genes)
+make_empty_mock <- function() {
+  function(sql, params = list(), conn = NULL) tibble::tibble()
+}
+
 # ---------------------------------------------------------------------------
-# W3.2 failing tests (these fail before the fix because select_matching_entities
-# doesn't exist yet — source_api_file above will error on that missing function)
+# Tests
 # ---------------------------------------------------------------------------
 
 context("re-review-service: gene-atomic batching (issue #29)")
@@ -96,35 +113,31 @@ test_that("select_matching_entities returns gene-atomic result with soft LIMIT",
     "select_matching_entities not yet implemented"
   )
 
-  pool <- make_mock_conn()
-
-  call_count <- 0L
   gene_rows   <- make_gene_rows()
   entity_rows <- make_entity_rows()
+  call_n      <- 0L
 
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      call_count <<- call_count + 1L
-      if (call_count == 1L) tibble::as_tibble(gene_rows)
-      else                  tibble::as_tibble(entity_rows)
-    },
-    .package = NULL
-  )
+  mock_fn <- function(sql, params = list(), conn = NULL) {
+    call_n <<- call_n + 1L
+    if (call_n == 1L) tibble::as_tibble(gene_rows) else tibble::as_tibble(entity_rows)
+  }
 
-  result <- select_matching_entities(
-    criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
-    batch_size = 4L,
-    conn       = pool
-  )
+  with_db_mock(mock_fn, {
+    result <- select_matching_entities(
+      criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
+      batch_size = 4L,
+      conn       = make_mock_conn()
+    )
+  })
 
-  # Both calls must have been made
-  expect_equal(call_count, 2L)
+  # Both DB calls must have been made
+  expect_equal(call_n, 2L)
 
   # With batch_size=4 and 3 entities per gene, the soft LIMIT must include
   # gene HGNC:1001 fully (3 entities), then detect overflow when adding HGNC:1002
-  # (total=6 > 4), include it fully anyway, and set boundary_gene = "HGNC:1002".
-  expect_equal(result$entity_count, 6L)
-  expect_equal(result$gene_count,   2L)
+  # (total=6 > 4), include all of HGNC:1002 anyway, set boundary_gene = "HGNC:1002".
+  expect_equal(result$entity_count,  6L)
+  expect_equal(result$gene_count,    2L)
   expect_equal(result$boundary_gene, "HGNC:1002")
 
   # All entities must be present
@@ -143,26 +156,16 @@ test_that("select_matching_entities sets boundary_gene = NA when batch fits clea
     "select_matching_entities not yet implemented"
   )
 
-  pool <- make_mock_conn()
-
-  call_count <- 0L
   gene_rows   <- make_gene_rows()
   entity_rows <- make_entity_rows()
 
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      call_count <<- call_count + 1L
-      if (call_count == 1L) tibble::as_tibble(gene_rows)
-      else                  tibble::as_tibble(entity_rows)
-    },
-    .package = NULL
-  )
-
-  result <- select_matching_entities(
-    criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
-    batch_size = 20L,
-    conn       = pool
-  )
+  with_db_mock(make_two_call_mock(gene_rows, entity_rows), {
+    result <- select_matching_entities(
+      criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
+      batch_size = 20L,
+      conn       = make_mock_conn()
+    )
+  })
 
   expect_equal(result$entity_count, 6L)
   expect_equal(result$gene_count,   2L)
@@ -175,20 +178,13 @@ test_that("select_matching_entities returns empty list when no genes found", {
     "select_matching_entities not yet implemented"
   )
 
-  pool <- make_mock_conn()
-
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      tibble::tibble()  # no rows
-    },
-    .package = NULL
-  )
-
-  result <- select_matching_entities(
-    criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
-    batch_size = 20L,
-    conn       = pool
-  )
+  with_db_mock(make_empty_mock(), {
+    result <- select_matching_entities(
+      criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
+      batch_size = 20L,
+      conn       = make_mock_conn()
+    )
+  })
 
   expect_equal(result$entity_count, 0L)
   expect_equal(result$gene_count,   0L)
@@ -202,31 +198,21 @@ test_that("batch_preview response includes boundary_gene, gene_count, entity_cou
     "select_matching_entities not yet implemented"
   )
 
-  pool <- make_mock_conn()
-
-  call_count <- 0L
   gene_rows   <- make_gene_rows()
   entity_rows <- make_entity_rows()
 
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      call_count <<- call_count + 1L
-      if (call_count == 1L) tibble::as_tibble(gene_rows)
-      else                  tibble::as_tibble(entity_rows)
-    },
-    .package = NULL
-  )
-
-  result <- batch_preview(
-    criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
-    batch_size = 4L,
-    pool       = pool
-  )
+  with_db_mock(make_two_call_mock(gene_rows, entity_rows), {
+    result <- batch_preview(
+      criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
+      batch_size = 4L,
+      pool       = make_mock_conn()
+    )
+  })
 
   expect_equal(result$status, 200L)
-  expect_true("boundary_gene"  %in% names(result))
-  expect_true("gene_count"     %in% names(result))
-  expect_true("entity_count"   %in% names(result))
+  expect_true("boundary_gene" %in% names(result))
+  expect_true("gene_count"    %in% names(result))
+  expect_true("entity_count"  %in% names(result))
   expect_false(is.na(result$boundary_gene))
   expect_equal(result$gene_count,   2L)
   expect_equal(result$entity_count, 6L)
@@ -238,31 +224,21 @@ test_that("batch_preview atomicity: entity count must be gene-atomic (never spli
     "select_matching_entities not yet implemented"
   )
 
-  pool <- make_mock_conn()
-
-  call_count <- 0L
   gene_rows   <- make_gene_rows()
   entity_rows <- make_entity_rows()
 
-  local_mocked_bindings(
-    db_execute_query = function(sql, params = list(), conn = NULL) {
-      call_count <<- call_count + 1L
-      if (call_count == 1L) tibble::as_tibble(gene_rows)
-      else                  tibble::as_tibble(entity_rows)
-    },
-    .package = NULL
-  )
-
-  result <- batch_preview(
-    criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
-    batch_size = 4L,
-    pool       = pool
-  )
+  with_db_mock(make_two_call_mock(gene_rows, entity_rows), {
+    result <- batch_preview(
+      criteria   = list(date_range = list(start = "2020-01-01", end = "2030-12-31")),
+      batch_size = 4L,
+      pool       = make_mock_conn()
+    )
+  })
 
   ent_count <- nrow(result$data)
 
   # With batch_size=4 and 3 entities per gene, the algorithm must return
-  # either 3 (gene A only) or 6 (both genes), never 4 (which would split gene B).
+  # either 3 (gene A only) or 6 (both genes), never 4 (would split gene B).
   expect_true(
     ent_count %in% c(3L, 6L),
     info = paste("Expected gene-atomic count in {3, 6}; got", ent_count)
