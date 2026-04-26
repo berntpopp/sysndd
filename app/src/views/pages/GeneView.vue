@@ -271,9 +271,11 @@ async function retryAllExternalData(): Promise<void> {
   ]);
 }
 
-// 404 redirect: only when the gene record returns null (canonical not-found).
-watch(geneRecord.data, (val) => {
-  if (!geneRecord.loading.value && val === null && routeParam.value) {
+// 404 redirect: watch [loading, data] so it fires both on the cold loading→resolved
+// edge (Ref-identity null→null wouldn't trigger a data-only watcher) and on
+// stale→null SWR background transitions.
+watch([geneRecord.loading, geneRecord.data], () => {
+  if (!geneRecord.loading.value && geneRecord.data.value === null && !geneRecord.error.value && routeParam.value) {
     router.push('/PageNotFound');
   }
 });
