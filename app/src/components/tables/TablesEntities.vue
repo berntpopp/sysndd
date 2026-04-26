@@ -506,8 +506,10 @@ export default {
         // Also set filter_string so the API call uses the URL filter
         this.filter_string = this.filterInput;
       }
-      // Load data first while still in initializing state
-      this.loadData();
+      // v11.3 §4.2.3 option (B): skip the 50 ms initial-load debounce so the
+      // entity request starts within the spec's <=100 ms after-nav budget. The
+      // debounce remains for subsequent filter/sort/pagination calls.
+      this.loadDataImmediate();
       // Delay marking initialization complete to ensure watchers triggered
       // by filter/sortBy changes above see isInitializing=true
       this.$nextTick(() => {
@@ -618,6 +620,16 @@ export default {
         this.loadDataDebounceTimer = null;
         this.doLoadData();
       }, 50);
+    },
+    // v11.3 §4.2.3 option (B): initial-load path that bypasses the debounce so
+    // the mount-time fetch starts immediately. Used only by mounted();
+    // reactivity triggers continue to use loadData() with its 50 ms debounce.
+    loadDataImmediate() {
+      if (this.loadDataDebounceTimer) {
+        clearTimeout(this.loadDataDebounceTimer);
+        this.loadDataDebounceTimer = null;
+      }
+      this.doLoadData();
     },
     async doLoadData() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
