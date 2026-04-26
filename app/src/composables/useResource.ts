@@ -68,13 +68,13 @@ export function useResource<T>(
     return { value: entry.value, fresh: !cache.isStale(key) };
   }
 
-  async function doFetch(key: ResourceKey, force: boolean): Promise<void> {
+  async function doFetch(key: ResourceKey, force: boolean, background = false): Promise<void> {
     const myToken = activeToken;
     // If another consumer already has a fetch in flight for this key, subscribe to it.
     const existing = cache.peek<T>(key);
     if (existing?.pending && !force) {
       try {
-        loading.value = true;
+        if (!background) loading.value = true;
         const value = (await existing.pending) as T;
         if (myToken !== activeToken) return; // consumer switched keys
         data.value = value;
@@ -84,7 +84,7 @@ export function useResource<T>(
         if (myToken !== activeToken) return;
         error.value = e instanceof Error ? e : new Error(String(e));
       } finally {
-        if (myToken === activeToken) loading.value = false;
+        if (myToken === activeToken && !background) loading.value = false;
       }
       return;
     }
@@ -94,7 +94,7 @@ export function useResource<T>(
       return await fetcher(ac.signal);
     })();
     cache.beginFetch<T>(key, promise, ac);
-    loading.value = true;
+    if (!background) loading.value = true;
     try {
       const value = await promise;
       // Always write to cache so a later mount sees the value.
@@ -109,7 +109,7 @@ export function useResource<T>(
       error.value = e instanceof Error ? e : new Error(String(e));
     } finally {
       cache.endFetch(key);
-      if (myToken === activeToken) loading.value = false;
+      if (myToken === activeToken && !background) loading.value = false;
     }
   }
 
@@ -140,7 +140,7 @@ export function useResource<T>(
       if (!fresh && staleWhileRevalidate) {
         // SWR: revalidate in background; loading stays false because we already
         // have a (stale) value.
-        void doFetch(key, true);
+        void doFetch(key, true, true);
       }
     } else {
       await doFetch(key, false);
