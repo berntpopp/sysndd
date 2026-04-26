@@ -7,9 +7,9 @@
     3. Once the entity record resolves, useGeneRecord(entity.hgnc_id) hydrates
        the linked-gene block.
 
-  Removes the legacy sequential-await bug in loadEntityInfo() — see spec §2.3
-  finding 6. The page-level <BSpinner v-if="loading"> gate is gone; each
-  subsection owns its own skeleton via <SectionCard>.
+  Removes the legacy sequential-await bug in the original loader — see spec
+  §2.3 finding 6. The page-level BSpinner gate is gone; each subsection owns
+  its own skeleton via <SectionCard>.
 -->
 <template>
   <div class="container-fluid bg-gradient">
