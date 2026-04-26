@@ -27,7 +27,7 @@
               :link-to="
                 entity.hgnc_id
                   ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${entity.hgnc_id}`
-                  : null
+                  : undefined
               "
               size="md"
             />
@@ -42,7 +42,7 @@
               :link-to="
                 entity.disease_ontology_id_version
                   ? `/Ontology/${entity.disease_ontology_id_version.replace(/_.+/g, '')}`
-                  : null
+                  : undefined
               "
               size="md"
               :max-length="40"

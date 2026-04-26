@@ -274,12 +274,16 @@ export default defineComponent({
     const colorAndSymbols = useColorAndSymbols();
     const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
-    const info = useEntityInfo({ onToast: makeToast });
+    // Cast makeToast to the composables' broader (...unknown[]) signature.
+    // makeToast's full typed signature differs from the (...args: unknown[]) =&gt; void
+    // expected by the composable interface (TOAST-SHIM cohort).
+    const toastFn = makeToast as unknown as (...args: unknown[]) => void;
+    const info = useEntityInfo({ onToast: toastFn });
     const search = useEntityAutocomplete({
-      onToast: makeToast,
+      onToast: toastFn,
       getCurrentEntityId: () => info.entity_info.value.entity_id,
     });
-    const mutations = useEntityMutations({ onToast: makeToast, onAnnounce: announce });
+    const mutations = useEntityMutations({ onToast: toastFn, onAnnounce: announce });
     const modals = useEntityModifyModals();
     const statusForm = useStatusForm();
 
