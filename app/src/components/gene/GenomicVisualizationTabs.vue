@@ -30,6 +30,7 @@
     <!-- Tabs container -->
     <div v-else class="visualization-tabs">
       <BTabs
+        v-model:index="activeTabIndex"
         pills
         card
         nav-wrapper-class="visualization-nav-wrapper"
@@ -47,21 +48,30 @@
             </span>
           </template>
 
+          <!--
+            v11.3 W2.4: lazy-mount inactive panels.
+            Heavy SVG plot only mounts after the protein tab has been
+            activated at least once; `KeepAlive` then caches the instance
+            so revisits are instant. Initial active tab is 0 (protein),
+            so the plot mounts on first paint.
+          -->
           <div class="visualization-panel">
-            <!-- Protein lollipop content -->
-            <div v-if="hasProteinData">
-              <ProteinDomainLollipopPlot
-                ref="proteinPlotRef"
-                :data="proteinPlotData!"
-                :gene-symbol="geneSymbol"
-                @variant-click="handleVariantClick"
-                @variant-hover="handleVariantHover"
-              />
-            </div>
-            <div v-else class="empty-state">
-              <i class="bi bi-diagram-3" />
-              <p>No protein domain or variant data available</p>
-            </div>
+            <KeepAlive>
+              <div v-if="activeTab === 'protein'">
+                <ProteinDomainLollipopPlot
+                  v-if="hasProteinData"
+                  ref="proteinPlotRef"
+                  :data="proteinPlotData!"
+                  :gene-symbol="geneSymbol"
+                  @variant-click="handleVariantClick"
+                  @variant-hover="handleVariantHover"
+                />
+                <div v-else class="empty-state">
+                  <i class="bi bi-diagram-3" />
+                  <p>No protein domain or variant data available</p>
+                </div>
+              </div>
+            </KeepAlive>
           </div>
         </BTab>
 
@@ -77,22 +87,33 @@
             </span>
           </template>
 
+          <!--
+            v11.3 W2.4: heavy gene-structure plot is gated on first
+            activation of this tab; `KeepAlive` caches the instance for
+            instant revisits.
+          -->
           <div class="visualization-panel">
-            <div v-if="hasGeneStructureData">
-              <GeneStructurePlotWithVariants
-                :gene-data="geneStructureData!"
-                :variants="genomicVariants"
-                :gene-symbol="geneSymbol"
-                @variant-click="handleGenomicVariantClick"
-              />
-            </div>
-            <div v-else-if="geneStructureLoading" class="d-flex justify-content-center py-4">
-              <BSpinner small label="Loading gene structure..." />
-            </div>
-            <div v-else class="empty-state">
-              <i class="bi bi-bar-chart-steps" />
-              <p>No gene structure data available</p>
-            </div>
+            <KeepAlive>
+              <div v-if="activeTab === 'structure'">
+                <GeneStructurePlotWithVariants
+                  v-if="hasGeneStructureData"
+                  :gene-data="geneStructureData!"
+                  :variants="genomicVariants"
+                  :gene-symbol="geneSymbol"
+                  @variant-click="handleGenomicVariantClick"
+                />
+                <div
+                  v-else-if="geneStructureLoading"
+                  class="d-flex justify-content-center py-4"
+                >
+                  <BSpinner small label="Loading gene structure..." />
+                </div>
+                <div v-else class="empty-state">
+                  <i class="bi bi-bar-chart-steps" />
+                  <p>No gene structure data available</p>
+                </div>
+              </div>
+            </KeepAlive>
           </div>
         </BTab>
 
@@ -105,13 +126,21 @@
             </span>
           </template>
 
+          <!--
+            v11.3 W2.4: 3D viewer is the heaviest panel - keep it gated
+            until first activation, then cache via `KeepAlive` so the
+            WebGL context isn't reinitialised on revisit.
+          -->
           <div class="visualization-panel-3d">
-            <ProteinStructure3D
-              :gene-symbol="geneSymbol"
-              :structure-url="alphafoldPdbUrl"
-              :variants="clinvarVariants || []"
-              :metadata="alphafoldMetadata"
-            />
+            <KeepAlive>
+              <ProteinStructure3D
+                v-if="activeTab === 'three-d'"
+                :gene-symbol="geneSymbol"
+                :structure-url="alphafoldPdbUrl"
+                :variants="clinvarVariants || []"
+                :metadata="alphafoldMetadata"
+              />
+            </KeepAlive>
           </div>
         </BTab>
       </BTabs>
@@ -199,8 +228,13 @@ const emit = defineEmits<{
   (e: 'retry'): void;
 }>();
 
-// Active tab state - BTabs expects string for tab selection
+// Active tab state - drives lazy-mount gates for inactive panels (v11.3 W2.4).
+// `BTabs` v-models `index` (number); we expose a string id so the template
+// reads `activeTab === 'protein' | 'structure' | 'three-d'`.
 const activeTabIndex = ref(0);
+const TAB_IDS = ['protein', 'structure', 'three-d'] as const;
+type TabId = (typeof TAB_IDS)[number];
+const activeTab = computed<TabId>(() => TAB_IDS[activeTabIndex.value] ?? 'protein');
 
 // Template refs
 const proteinPlotRef = ref<InstanceType<typeof ProteinDomainLollipopPlot> | null>(null);
