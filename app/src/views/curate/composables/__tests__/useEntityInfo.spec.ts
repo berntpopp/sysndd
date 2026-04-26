@@ -1,0 +1,91 @@
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
+import { useEntityInfo } from '../useEntityInfo';
+
+const server = setupServer();
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
+describe('useEntityInfo', () => {
+  test('loadEntity populates entity_info from listEntities response', async () => {
+    server.use(
+      http.get('*/api/entity/*', () =>
+        HttpResponse.json({
+          data: [{ entity_id: 7, symbol: 'GRIN2B', disease_ontology_name: 'NDD' }],
+        }),
+      ),
+    );
+    const e = useEntityInfo();
+    await e.loadEntity(7);
+    expect(e.entity_info.value.entity_id).toBe(7);
+    expect(e.entity_info.value.symbol).toBe('GRIN2B');
+  });
+
+  test('loadEntity surfaces a not-found toast and clears entity_info', async () => {
+    server.use(http.get('*/api/entity/*', () => HttpResponse.json({ data: [] })));
+    const toasts: any[] = [];
+    const e = useEntityInfo({ onToast: (...a) => toasts.push(a) });
+    await e.loadEntity(99);
+    expect(e.entity_info.value).toEqual({});
+    expect(toasts.length).toBe(1);
+  });
+
+  test('loadReview snapshots reviewLoadedData for change detection', async () => {
+    server.use(
+      http.get('*/api/entity/7/review', () =>
+        HttpResponse.json([
+          { synopsis: 'syn', comment: 'cm', review_id: 1, entity_id: 7 },
+        ]),
+      ),
+      http.get('*/api/entity/7/phenotypes', () =>
+        HttpResponse.json([{ phenotype_id: 'HP:1', modifier_id: 'present' }]),
+      ),
+      http.get('*/api/entity/7/variation', () =>
+        HttpResponse.json([{ vario_id: 'VARIO:1', modifier_id: 'present' }]),
+      ),
+      http.get('*/api/entity/7/publications', () =>
+        HttpResponse.json([
+          { publication_id: 'PMID:1', publication_type: 'gene_review' },
+          { publication_id: 'PMID:2', publication_type: 'additional_references' },
+        ]),
+      ),
+    );
+    const e = useEntityInfo();
+    await e.loadReview(7);
+    expect(e.reviewLoadedData.value).not.toBeNull();
+    expect(e.select_phenotype.value).toEqual(['present-HP:1']);
+    expect(e.select_gene_reviews.value).toEqual(['PMID:1']);
+    expect(e.hasReviewChanges.value).toBe(false);
+  });
+
+  test('hasReviewChanges flips when a watched field diverges', async () => {
+    server.use(
+      http.get('*/api/entity/7/review', () =>
+        HttpResponse.json([{ synopsis: 'a', comment: 'b', review_id: 1, entity_id: 7 }]),
+      ),
+      http.get('*/api/entity/7/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/7/variation', () => HttpResponse.json([])),
+      http.get('*/api/entity/7/publications', () => HttpResponse.json([])),
+    );
+    const e = useEntityInfo();
+    await e.loadReview(7);
+    expect(e.hasReviewChanges.value).toBe(false);
+    e.review_info.value.synopsis = 'CHANGED';
+    expect(e.hasReviewChanges.value).toBe(true);
+  });
+
+  test('loadStatus populates status_info', async () => {
+    server.use(
+      http.get('*/api/entity/7/status', () =>
+        HttpResponse.json([
+          { category_id: 'definitive', comment: 'c', problematic: 0, status_id: 1, entity_id: 7 },
+        ]),
+      ),
+    );
+    const e = useEntityInfo();
+    await e.loadStatus(7);
+    expect(e.status_info.value.category_id).toBe('definitive');
+  });
+});
