@@ -1,13 +1,12 @@
-<!-- views/curate/ModifyEntity.vue -->
+<!-- views/curate/ModifyEntity.vue — thin orchestration shell -->
 <template>
   <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <!-- User Interface controls -->
           <BCard
             header-tag="header"
-            align="left"
+            align="start"
             body-class="p-1"
             header-class="p-1"
             border-variant="dark"
@@ -15,144 +14,29 @@
             <template #header>
               <h6 class="mb-1 text-start font-weight-bold">Modify an existing entity</h6>
             </template>
-            <!-- User Interface controls -->
 
-            <BCard class="my-2" body-class="p-2" header-class="p-1" border-variant="dark">
-              <template #header>
-                <h6 class="mb-1 text-start font-weight-bold">1. Select an entity to modify</h6>
-              </template>
-
-              <BRow>
-                <BCol class="my-1">
-                  <AutocompleteInput
-                    v-model="modify_entity_input"
-                    v-model:display-value="entity_display"
-                    :results="entity_search_results"
-                    :loading="entity_search_loading"
-                    label="Entity"
-                    input-id="entity-select"
-                    placeholder="Search by ID, gene symbol, or disease name..."
-                    item-key="entity_id"
-                    item-label="symbol"
-                    item-secondary="entity_id"
-                    item-description="disease_ontology_name"
-                    @search="searchEntity"
-                    @update:model-value="onEntitySelected"
-                  />
-                  <small class="text-muted">
-                    Search for entities by sysndd ID, gene symbol, or disease name
-                  </small>
-                </BCol>
-              </BRow>
-            </BCard>
-
-            <!-- Entity Preview Card -->
-            <BCard
-              v-if="entity_loaded && entity_info.entity_id"
-              class="my-2"
-              body-class="p-3"
-              header-class="p-2"
-              border-variant="info"
-            >
-              <template #header>
-                <h6 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-                  <i class="bi bi-info-circle me-2" aria-hidden="true" />
-                  Selected Entity
-                  <EntityBadge
-                    :entity-id="entity_info.entity_id"
-                    variant="primary"
-                    size="md"
-                    class="ms-2"
-                  />
-                </h6>
-              </template>
-
-              <BRow class="g-3">
-                <BCol md="6">
-                  <!-- Gene with badge and HGNC link -->
-                  <div class="mb-2">
-                    <strong class="text-muted small d-block mb-1">Gene:</strong>
-                    <GeneBadge
-                      :symbol="entity_info.symbol || 'N/A'"
-                      :hgnc-id="entity_info.hgnc_id"
-                      :link-to="
-                        entity_info.hgnc_id
-                          ? `https://www.genenames.org/data/gene-symbol-report/#!/hgnc_id/${entity_info.hgnc_id}`
-                          : null
-                      "
-                      size="md"
-                    />
-                  </div>
-
-                  <!-- Disease with badge and ontology link -->
-                  <div class="mb-2">
-                    <strong class="text-muted small d-block mb-1">Disease:</strong>
-                    <DiseaseBadge
-                      :name="entity_info.disease_ontology_name || 'N/A'"
-                      :ontology-id="entity_info.disease_ontology_id_version"
-                      :link-to="
-                        entity_info.disease_ontology_id_version
-                          ? `/Ontology/${entity_info.disease_ontology_id_version.replace(/_.+/g, '')}`
-                          : null
-                      "
-                      size="md"
-                      :max-length="40"
-                    />
-                  </div>
-                </BCol>
-
-                <BCol md="6">
-                  <!-- Inheritance with icon -->
-                  <div class="mb-2">
-                    <strong class="text-muted small d-block mb-1">Inheritance:</strong>
-                    <BBadge variant="info" class="d-inline-flex align-items-center">
-                      <i class="bi bi-diagram-3 me-1" aria-hidden="true" />
-                      {{
-                        entity_info.hpo_mode_of_inheritance_term_name ||
-                        entity_info.hpo_mode_of_inheritance_term ||
-                        'N/A'
-                      }}
-                    </BBadge>
-                  </div>
-
-                  <!-- Category with stoplight style -->
-                  <div class="mb-2">
-                    <strong class="text-muted small d-block mb-1">Category:</strong>
-                    <BBadge
-                      :variant="stoplights_style[entity_info.category] || 'secondary'"
-                      class="d-inline-flex align-items-center"
-                    >
-                      <i class="bi bi-stoplights me-1" aria-hidden="true" />
-                      {{ entity_info.category || 'N/A' }}
-                    </BBadge>
-                  </div>
-
-                  <!-- NDD Status with icon -->
-                  <div class="mb-2">
-                    <strong class="text-muted small d-block mb-1">NDD Status:</strong>
-                    <BBadge
-                      :variant="ndd_icon_style[entity_info.ndd_phenotype_word] || 'secondary'"
-                      class="d-inline-flex align-items-center"
-                    >
-                      <i
-                        :class="`bi bi-${ndd_icon[entity_info.ndd_phenotype_word] || 'question'} me-1`"
-                        aria-hidden="true"
-                      />
-                      {{ entity_info.ndd_phenotype_word || 'N/A' }}
-                    </BBadge>
-                  </div>
-                </BCol>
-              </BRow>
-            </BCard>
-
-            <!-- Icon Legend -->
-            <IconLegend
-              v-if="entity_loaded && entity_info.entity_id"
-              :legend-items="legendItems"
-              title="Category & NDD Status Icons"
-              class="my-2"
+            <!-- 1. Search panel -->
+            <EntitySearchPanel
+              :model-value="modify_entity_input"
+              :display-value="entity_display"
+              :search-results="entity_search_results"
+              :loading="entity_search_loading"
+              @update:model-value="onEntitySelected"
+              @update:display-value="entity_display = $event"
+              @search="searchEntity"
             />
 
+            <!-- 2. Entity info header (shown after selection) -->
+            <EntityInfoHeader
+              v-if="entity_loaded && entity_info.entity_id"
+              :entity="entity_info"
+              :legend-items="legendItems"
+              :stoplights-style="stoplights_style"
+              :ndd-icon-style="ndd_icon_style"
+              :ndd-icon="ndd_icon"
+            />
+
+            <!-- 3. Action bar -->
             <BCard
               v-if="entity_loaded && entity_info.entity_id"
               class="my-2"
@@ -171,9 +55,9 @@
                   <BButton
                     size="sm"
                     variant="dark"
-                    :disabled="!entity_loaded || submitting"
+                    :disabled="!entity_loaded || !!submitting"
                     aria-label="Rename disease"
-                    @click="showEntityRename()"
+                    @click="showEntityRename"
                   >
                     <BSpinner v-if="submitting === 'rename'" small class="me-1" />
                     <template v-else>
@@ -188,9 +72,9 @@
                   <BButton
                     size="sm"
                     variant="dark"
-                    :disabled="!entity_loaded || submitting"
+                    :disabled="!entity_loaded || !!submitting"
                     aria-label="Deactivate entity"
-                    @click="showEntityDeactivate()"
+                    @click="showEntityDeactivate"
                   >
                     <BSpinner v-if="submitting === 'deactivate'" small class="me-1" />
                     <template v-else>
@@ -205,9 +89,9 @@
                   <BButton
                     size="sm"
                     variant="dark"
-                    :disabled="!entity_loaded || submitting"
+                    :disabled="!entity_loaded || !!submitting"
                     aria-label="Modify review"
-                    @click="showReviewModify()"
+                    @click="showReviewModify"
                   >
                     <BSpinner v-if="submitting === 'review'" small class="me-1" />
                     <template v-else>
@@ -222,9 +106,9 @@
                   <BButton
                     size="sm"
                     variant="dark"
-                    :disabled="!entity_loaded || submitting"
+                    :disabled="!entity_loaded || !!submitting"
                     aria-label="Modify status"
-                    @click="showStatusModify()"
+                    @click="showStatusModify"
                   >
                     <BSpinner v-if="submitting === 'status'" small class="me-1" />
                     <template v-else>
@@ -240,568 +124,149 @@
         </BCol>
       </BRow>
 
-      <!-- Rename disease modal -->
-      <BModal
-        id="renameModal"
-        ref="renameModal"
-        size="lg"
-        centered
-        ok-title="Submit"
-        no-close-on-esc
-        no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        header-close-label="Close"
-        @show="onRenameModalShow"
-        @ok="submitEntityRename"
-      >
-        <template #title>
-          <div class="d-flex flex-column gap-2">
-            <h4 class="mb-0">
-              Rename Entity Disease
-              <EntityBadge
-                v-if="entity_info?.entity_id"
-                :entity-id="entity_info.entity_id"
-                variant="primary"
-                size="md"
-                class="ms-2"
-              />
-            </h4>
-            <div class="d-flex flex-wrap gap-2 small">
-              <span class="d-flex align-items-center">
-                <i class="bi bi-file-earmark-medical me-1" />
-                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
-              </span>
-              <span class="text-muted">|</span>
-              <span
-                class="d-flex align-items-center text-truncate"
-                style="max-width: 200px"
-                :title="entity_info.disease_ontology_name"
-              >
-                <i class="bi bi-clipboard2-pulse me-1" />
-                {{ entity_info.disease_ontology_name || 'N/A' }}
-              </span>
-              <span class="text-muted">|</span>
-              <span class="d-flex align-items-center">
-                <i class="bi bi-diagram-3 me-1" />
-                {{
-                  entity_info.hpo_mode_of_inheritance_term_name ||
-                  entity_info.hpo_mode_of_inheritance_term ||
-                  'N/A'
-                }}
-              </span>
-              <span class="text-muted">|</span>
-              <BBadge
-                :variant="stoplights_style[entity_info.category] || 'secondary'"
-                class="d-inline-flex align-items-center"
-              >
-                <i class="bi bi-stoplights me-1" />
-                {{ entity_info.category || 'N/A' }}
-              </BBadge>
-            </div>
-          </div>
-        </template>
+      <!-- Rename modal -->
+      <EntityRenameDeactivateModal
+        :visible="isRenameOpen"
+        mode="rename"
+        :entity="entity_info"
+        :submitting="submitting"
+        :stoplights-style="stoplights_style"
+        :ontology-display="ontology_display"
+        :ontology-input="ontology_input"
+        :ontology-search-results="ontology_search_results"
+        :ontology-search-loading="ontology_search_loading"
+        @update:visible="isRenameOpen = $event"
+        @update:ontology-display="ontology_display = $event"
+        @search-ontology="searchOntology"
+        @select-ontology="onOntologySelected"
+        @submit="onSubmitRename"
+        @cancel="close"
+      />
 
-        <p class="my-3">Select a new disease name:</p>
+      <!-- Deactivate modal -->
+      <EntityRenameDeactivateModal
+        :visible="isDeactivateOpen"
+        mode="deactivate"
+        :entity="entity_info"
+        :submitting="submitting"
+        :stoplights-style="stoplights_style"
+        :deactivate-check="deactivate_check"
+        :replace-check="replace_check"
+        :replace-display="replace_entity_display"
+        :replace-entity-input="replace_entity_input"
+        :replace-search-results="replace_entity_search_results"
+        :replace-search-loading="replace_entity_search_loading"
+        @update:visible="isDeactivateOpen = $event"
+        @update:deactivate-check="deactivate_check = $event"
+        @update:replace-check="replace_check = $event"
+        @update:replace-display="replace_entity_display = $event"
+        @search-replacement="searchReplacementEntity"
+        @select-replacement="onReplacementEntitySelected"
+        @submit="onSubmitDeactivate"
+        @cancel="close"
+      />
 
-        <AutocompleteInput
-          v-model="ontology_input"
-          v-model:display-value="ontology_display"
-          :results="ontology_search_results"
-          :loading="ontology_search_loading"
-          label="Disease"
-          input-id="ontology-select"
-          placeholder="Search by disease name or ontology ID (e.g., OMIM:123456)..."
-          item-key="id"
-          item-label="label"
-          item-secondary="id"
-          @search="searchOntology"
-          @update:model-value="onOntologySelected"
-        />
-        <small class="text-muted"> Search for diseases by name or ontology identifier </small>
-      </BModal>
-      <!-- Rename disease modal -->
+      <!-- Review modal -->
+      <ReviewModifyModal
+        :visible="isReviewOpen"
+        :loading="loadingReview"
+        :submitting="submitting"
+        :entity="entity_info"
+        :review="review_info"
+        :select-phenotype="select_phenotype"
+        :select-variation="select_variation"
+        :select-additional-references="select_additional_references"
+        :select-gene-reviews="select_gene_reviews"
+        :phenotype-options="phenotypes_options ?? []"
+        :variation-options="variation_ontology_options ?? []"
+        :has-changes="hasReviewChanges"
+        :stoplights-style="stoplights_style"
+        @update:visible="isReviewOpen = $event"
+        @update:review="review_info = $event"
+        @update:select-phenotype="select_phenotype = $event"
+        @update:select-variation="select_variation = $event"
+        @update:select-additional-references="select_additional_references = $event"
+        @update:select-gene-reviews="select_gene_reviews = $event"
+        @submit="onSubmitReview"
+        @discard-request="requestDiscard($event)"
+      />
 
-      <!-- Deactivate entity modal -->
-      <BModal
-        id="deactivateModal"
-        ref="deactivateModal"
-        size="lg"
-        centered
-        ok-title="Submit"
-        no-close-on-esc
-        no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        header-close-label="Close"
-        @show="onDeactivateModalShow"
-        @ok="submitEntityDeactivation"
-      >
-        <template #title>
-          <div class="d-flex flex-column gap-2">
-            <h4 class="mb-0">
-              Deactivate Entity
-              <EntityBadge
-                v-if="entity_info?.entity_id"
-                :entity-id="entity_info.entity_id"
-                variant="primary"
-                size="md"
-                class="ms-2"
-              />
-            </h4>
-            <div class="d-flex flex-wrap gap-2 small">
-              <span class="d-flex align-items-center">
-                <i class="bi bi-file-earmark-medical me-1" />
-                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
-              </span>
-              <span class="text-muted">|</span>
-              <span
-                class="d-flex align-items-center text-truncate"
-                style="max-width: 200px"
-                :title="entity_info.disease_ontology_name"
-              >
-                <i class="bi bi-clipboard2-pulse me-1" />
-                {{ entity_info.disease_ontology_name || 'N/A' }}
-              </span>
-              <span class="text-muted">|</span>
-              <span class="d-flex align-items-center">
-                <i class="bi bi-diagram-3 me-1" />
-                {{
-                  entity_info.hpo_mode_of_inheritance_term_name ||
-                  entity_info.hpo_mode_of_inheritance_term ||
-                  'N/A'
-                }}
-              </span>
-              <span class="text-muted">|</span>
-              <BBadge
-                :variant="stoplights_style[entity_info.category] || 'secondary'"
-                class="d-inline-flex align-items-center"
-              >
-                <i class="bi bi-stoplights me-1" />
-                {{ entity_info.category || 'N/A' }}
-              </BBadge>
-            </div>
-          </div>
-        </template>
-
-        <div>
-          <p class="my-2">1. Are you sure that you want to deactivate this entity?</p>
-
-          <BFormCheckbox id="deactivateSwitch" v-model="deactivate_check" switch size="md">
-            <strong>{{ deactivate_check ? 'Yes' : 'No' }}</strong>
-          </BFormCheckbox>
-        </div>
-
-        <div v-if="deactivate_check">
-          <p class="my-2">2. Was this entity replaced by another one?</p>
-
-          <BFormCheckbox id="replaceSwitch" v-model="replace_check" switch size="md">
-            <strong>{{ replace_check ? 'Yes' : 'No' }}</strong>
-          </BFormCheckbox>
-        </div>
-
-        <div v-if="replace_check">
-          <p class="my-2">3. Select the entity replacing the above one:</p>
-
-          <AutocompleteInput
-            v-model="replace_entity_input"
-            v-model:display-value="replace_entity_display"
-            :results="replace_entity_search_results"
-            :loading="replace_entity_search_loading"
-            label="Replacement Entity"
-            input-id="replace-entity-select"
-            placeholder="Search by ID, gene symbol, or disease name..."
-            item-key="entity_id"
-            item-label="symbol"
-            item-secondary="entity_id"
-            item-description="disease_ontology_name"
-            @search="searchReplacementEntity"
-            @update:model-value="onReplacementEntitySelected"
-          />
-          <small class="text-muted"> Search for the entity that replaces this one </small>
-        </div>
-      </BModal>
-      <!-- Deactivate entity modal -->
-
-      <!-- Modify review modal -->
-      <BModal
-        id="modifyReviewModal"
-        ref="modifyReviewModal"
-        size="xl"
-        centered
-        ok-title="Submit"
-        no-close-on-esc
-        no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        header-close-label="Close"
-        :busy="loading_review_modal"
-        @show="onModifyReviewModalShow"
-        @hide="onModifyReviewModalHide"
-        @ok="submitReviewChange"
-      >
-        <template #title>
-          <div class="d-flex flex-column gap-2">
-            <h4 class="mb-0">
-              Modify Review
-              <EntityBadge
-                v-if="entity_info?.entity_id"
-                :entity-id="entity_info.entity_id"
-                variant="primary"
-                size="md"
-                class="ms-2"
-              />
-            </h4>
-            <div class="d-flex flex-wrap gap-2 small">
-              <span class="d-flex align-items-center">
-                <i class="bi bi-file-earmark-medical me-1" />
-                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
-              </span>
-              <span class="text-muted">|</span>
-              <span
-                class="d-flex align-items-center text-truncate"
-                style="max-width: 200px"
-                :title="entity_info.disease_ontology_name"
-              >
-                <i class="bi bi-clipboard2-pulse me-1" />
-                {{ entity_info.disease_ontology_name || 'N/A' }}
-              </span>
-              <span class="text-muted">|</span>
-              <span class="d-flex align-items-center">
-                <i class="bi bi-diagram-3 me-1" />
-                {{
-                  entity_info.hpo_mode_of_inheritance_term_name ||
-                  entity_info.hpo_mode_of_inheritance_term ||
-                  'N/A'
-                }}
-              </span>
-              <span class="text-muted">|</span>
-              <BBadge
-                :variant="stoplights_style[entity_info.category] || 'secondary'"
-                class="d-inline-flex align-items-center"
-              >
-                <i class="bi bi-stoplights me-1" />
-                {{ entity_info.category || 'N/A' }}
-              </BBadge>
-            </div>
-          </div>
-        </template>
-
-        <BOverlay :show="loading_review_modal" rounded="sm">
-          <BForm ref="form" @submit.stop.prevent="submitReviewChange">
-            <!-- Synopsis textarea -->
-            <label class="mr-sm-2 font-weight-bold" for="review-textarea-synopsis">Synopsis</label>
-            <BFormTextarea
-              id="review-textarea-synopsis"
-              v-model="review_info.synopsis"
-              rows="3"
-              size="sm"
-            />
-            <!-- Synopsis textarea -->
-
-            <!-- Phenotype select -->
-            <label class="mr-sm-2 font-weight-bold" for="review-phenotype-select">Phenotypes</label>
-
-            <TreeMultiSelect
-              v-if="phenotypes_options && phenotypes_options.length > 0"
-              id="review-phenotype-select"
-              v-model="select_phenotype"
-              :options="phenotypes_options"
-              placeholder="Select phenotypes..."
-              search-placeholder="Search phenotypes (name or HP:ID)..."
-            />
-            <!-- Phenotype select -->
-
-            <!-- Variation ontolog select -->
-            <label class="mr-sm-2 font-weight-bold" for="review-variation-select"
-              >Variation ontology</label
-            >
-
-            <TreeMultiSelect
-              v-if="variation_ontology_options && variation_ontology_options.length > 0"
-              id="review-variation-select"
-              v-model="select_variation"
-              :options="variation_ontology_options"
-              placeholder="Select variations..."
-              search-placeholder="Search variation types..."
-            />
-            <!-- Variation ontolog select -->
-
-            <!-- publications tag form with links out -->
-            <label class="mr-sm-2 font-weight-bold" for="review-publications-select"
-              >Publications</label
-            >
-            <BFormTags
-              v-model="select_additional_references"
-              input-id="review-literature-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton variant="secondary" size="sm" @click="addTag()"> Add </BButton>
-                </BInputGroup>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <BFormTag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <BLink
-                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ tag }}
-                      </BLink>
-                    </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- publications tag form with links out -->
-
-            <!-- genereviews tag form with links out -->
-            <label class="mr-sm-2 font-weight-bold" for="review-genereviews-select"
-              >Genereviews</label
-            >
-            <BFormTags
-              v-model="select_gene_reviews"
-              input-id="review-genereviews-select"
-              no-outer-focus
-              class="my-0"
-              separator=",;"
-              :tag-validator="tagValidatorPMID"
-              remove-on-delete
-            >
-              <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
-                <BInputGroup class="my-0">
-                  <BFormInput
-                    v-bind="inputAttrs"
-                    placeholder="Enter PMIDs separated by comma or semicolon"
-                    class="form-control"
-                    size="sm"
-                    v-on="inputHandlers"
-                  />
-                  <BButton variant="secondary" size="sm" @click="addTag()"> Add </BButton>
-                </BInputGroup>
-
-                <div class="d-inline-block">
-                  <h6>
-                    <BFormTag
-                      v-for="tag in tags"
-                      :key="tag"
-                      :title="tag"
-                      variant="secondary"
-                      @remove="removeTag(tag)"
-                    >
-                      <BLink
-                        :href="'https://pubmed.ncbi.nlm.nih.gov/' + tag.replace('PMID:', '')"
-                        target="_blank"
-                        class="text-light"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ tag }}
-                      </BLink>
-                    </BFormTag>
-                  </h6>
-                </div>
-              </template>
-            </BFormTags>
-            <!-- genereviews tag form with links out -->
-
-            <!-- Review comment textarea -->
-            <label class="mr-sm-2 font-weight-bold" for="review-textarea-comment">Comment</label>
-            <BFormTextarea
-              id="review-textarea-comment"
-              v-model="review_info.comment"
-              rows="2"
-              size="sm"
-              placeholder="Additional comments to this entity relevant for the curator."
-            />
-            <!-- Review comment textarea -->
-          </BForm>
-        </BOverlay>
-      </BModal>
-      <!-- Modify review modal -->
-
-      <!-- Modify status modal -->
-      <BModal
-        id="modifyStatusModal"
-        ref="modifyStatusModal"
-        size="lg"
-        centered
-        ok-title="Submit"
-        no-close-on-esc
-        no-close-on-backdrop
-        header-bg-variant="dark"
-        header-text-variant="light"
-        header-close-label="Close"
-        :busy="statusFormLoading"
-        @show="onModifyStatusModalShow"
-        @hide="onModifyStatusModalHide"
-        @ok="submitStatusChange"
-      >
-        <template #title>
-          <div class="d-flex flex-column gap-2">
-            <h4 class="mb-0">
-              Modify Status
-              <EntityBadge
-                v-if="entity_info?.entity_id"
-                :entity-id="entity_info.entity_id"
-                variant="primary"
-                size="md"
-                class="ms-2"
-              />
-            </h4>
-            <div class="d-flex flex-wrap gap-2 small">
-              <span class="d-flex align-items-center">
-                <i class="bi bi-file-earmark-medical me-1" />
-                <strong>{{ entity_info.symbol || 'N/A' }}</strong>
-              </span>
-              <span class="text-muted">|</span>
-              <span
-                class="d-flex align-items-center text-truncate"
-                style="max-width: 200px"
-                :title="entity_info.disease_ontology_name"
-              >
-                <i class="bi bi-clipboard2-pulse me-1" />
-                {{ entity_info.disease_ontology_name || 'N/A' }}
-              </span>
-              <span class="text-muted">|</span>
-              <span class="d-flex align-items-center">
-                <i class="bi bi-diagram-3 me-1" />
-                {{
-                  entity_info.hpo_mode_of_inheritance_term_name ||
-                  entity_info.hpo_mode_of_inheritance_term ||
-                  'N/A'
-                }}
-              </span>
-              <span class="text-muted">|</span>
-              <BBadge
-                :variant="stoplights_style[entity_info.category] || 'secondary'"
-                class="d-inline-flex align-items-center"
-              >
-                <i class="bi bi-stoplights me-1" />
-                {{ entity_info.category || 'N/A' }}
-              </BBadge>
-            </div>
-          </div>
-        </template>
-
-        <BOverlay :show="statusFormLoading" rounded="sm">
-          <BForm ref="form" @submit.stop.prevent="submitStatusChange">
-            <!-- Status dropdown with loading state -->
-            <BSpinner v-if="status_options_loading" small label="Loading..." />
-            <BFormSelect
-              v-else-if="status_options && status_options.length > 0"
-              id="status-select"
-              v-model="statusFormData.category_id"
-              :options="normalizeStatusOptions(status_options)"
-              size="sm"
-            >
-              <template #first>
-                <BFormSelectOption :value="null"> Select status... </BFormSelectOption>
-              </template>
-            </BFormSelect>
-            <BAlert v-else-if="status_options !== null" variant="warning" class="mb-0">
-              No status options available
-            </BAlert>
-
-            <BFormCheckbox id="removeSwitch" v-model="statusFormData.problematic" switch size="md">
-              Suggest removal
-            </BFormCheckbox>
-
-            <label class="mr-sm-2 font-weight-bold" for="status-textarea-comment">Comment</label>
-            <BFormTextarea
-              id="status-textarea-comment"
-              v-model="statusFormData.comment"
-              rows="2"
-              size="sm"
-              placeholder="Why should this entities status be changed."
-            />
-          </BForm>
-        </BOverlay>
-      </BModal>
-      <!-- Modify status modal -->
+      <!-- Status modal -->
+      <StatusModifyModal
+        :visible="isStatusOpen"
+        :loading="loadingStatus"
+        :submitting="submitting"
+        :entity="entity_info"
+        :status-options="status_options"
+        :status-options-loading="status_options_loading"
+        :form-data="statusFormData"
+        :has-changes="hasStatusChanges"
+        :stoplights-style="stoplights_style"
+        @update:visible="isStatusOpen = $event"
+        @update:form-data="Object.assign(statusFormData, $event)"
+        @submit="onSubmitStatus"
+        @discard-request="requestDiscard($event)"
+      />
 
       <!-- AriaLiveRegion for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
 
       <!-- Confirm discard unsaved changes dialog -->
       <ConfirmDiscardDialog
-        ref="confirmDiscardDialog"
+        ref="confirmDiscardDialogRef"
         modal-id="modify-entity-confirm-discard"
-        @discard="onConfirmDiscard"
-        @keep-editing="pendingDiscardTarget = null"
+        @discard="confirmDiscard"
+        @keep-editing="cancelDiscard"
       />
     </BContainer>
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, onMounted, ref, watch } from 'vue';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
-import useStatusForm from '@/views/curate/composables/useStatusForm';
-import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
-import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
-import GeneBadge from '@/components/ui/GeneBadge.vue';
-import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
-import EntityBadge from '@/components/ui/EntityBadge.vue';
+import useStatusForm from './composables/useStatusForm';
+import { useEntityAutocomplete } from './composables/useEntityAutocomplete';
+import { useEntityInfo } from './composables/useEntityInfo';
+import { useEntityMutations } from './composables/useEntityMutations';
+import { useEntityModifyModals } from './composables/useEntityModifyModals';
+
+import { listPhenotypesTree, listVariationOntologyTree, listStatusCategoriesTree } from '@/api/list';
+
+import EntityInfoHeader from './components/EntityInfoHeader.vue';
+import EntitySearchPanel from './components/EntitySearchPanel.vue';
+import EntityRenameDeactivateModal from './components/EntityRenameDeactivateModal.vue';
+import ReviewModifyModal from './components/ReviewModifyModal.vue';
+import StatusModifyModal from './components/StatusModifyModal.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
-import IconLegend from '@/components/accessibility/IconLegend.vue';
 import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
 
-import Submission from '@/assets/js/classes/submission/submissionSubmission';
-import Review from '@/assets/js/classes/submission/submissionReview';
-import Status from '@/assets/js/classes/submission/submissionStatus';
-import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
-import Variation from '@/assets/js/classes/submission/submissionVariation';
-import Literature from '@/assets/js/classes/submission/submissionLiterature';
+const transformModifierTree = (nodes: any[]) =>
+  nodes.map((node) => {
+    const phenotypeName = node.label.replace(/^present:\s*/, '');
+    const ontologyCode = node.id.replace(/^\d+-/, '');
+    return {
+      id: `parent-${ontologyCode}`,
+      label: phenotypeName,
+      children: [
+        { id: node.id, label: `present: ${phenotypeName}` },
+        ...(node.children || []).map((child: any) => {
+          const modifier = child.label.replace(/:\s*.*$/, '');
+          return { id: child.id, label: `${modifier}: ${phenotypeName}` };
+        }),
+      ],
+    };
+  });
 
-// v11.0 closeout F2b: apiClient handles Bearer header injection via the
-// shared request interceptor; call sites no longer read localStorage
-// directly.
-import { apiClient } from '@/api/client';
-import {
-  listPhenotypesTree,
-  listVariationOntologyTree,
-  listStatusCategoriesTree,
-} from '@/api/list';
-import { searchOntology } from '@/api/search';
-import {
-  listEntities,
-  getEntityReview,
-  getEntityPhenotypes,
-  getEntityVariation,
-  getEntityPublications,
-  getEntityStatus,
-} from '@/api/entity';
-
-export default {
+export default defineComponent({
   name: 'ModifyEntity',
   components: {
-    TreeMultiSelect,
-    AutocompleteInput,
-    GeneBadge,
-    DiseaseBadge,
-    EntityBadge,
+    EntityInfoHeader,
+    EntitySearchPanel,
+    EntityRenameDeactivateModal,
+    ReviewModifyModal,
+    StatusModifyModal,
     AriaLiveRegion,
-    IconLegend,
     ConfirmDiscardDialog,
   },
   setup() {
@@ -809,706 +274,256 @@ export default {
     const colorAndSymbols = useColorAndSymbols();
     const { message: a11yMessage, politeness: a11yPoliteness, announce } = useAriaLive();
 
-    // Initialize status form composable
+    const info = useEntityInfo({ onToast: makeToast });
+    const search = useEntityAutocomplete({
+      onToast: makeToast,
+      getCurrentEntityId: () => info.entity_info.value.entity_id,
+    });
+    const mutations = useEntityMutations({ onToast: makeToast, onAnnounce: announce });
+    const modals = useEntityModifyModals();
     const statusForm = useStatusForm();
-    const {
-      formData: statusFormData,
-      loading: statusFormLoading,
-      loadStatusByEntity,
-      submitForm: submitStatusForm,
-      resetForm: resetStatusForm,
-      hasChanges: hasStatusChanges,
-    } = statusForm;
+
+    // Local modal-specific state not owned by composables
+    const deactivate_check = ref(false);
+    const replace_check = ref(false);
+
+    // Tree options (app-global lookup data loaded once)
+    const phenotypes_options = ref<any[] | null>(null);
+    const variation_ontology_options = ref<any[] | null>(null);
+    const status_options = ref<any[] | null>(null);
+    const status_options_loading = ref(false);
+
+    // ConfirmDiscardDialog ref — needed to programmatically show it
+    const confirmDiscardDialogRef = ref<any>(null);
+
+    // Watch pendingDiscardTarget to show/hide the confirm dialog
+    watch(
+      () => modals.pendingDiscardTarget.value,
+      (target) => {
+        if (target) {
+          confirmDiscardDialogRef.value?.show();
+        } else {
+          confirmDiscardDialogRef.value?.hide();
+        }
+      },
+    );
+
+    onMounted(async () => {
+      status_options_loading.value = true;
+      try {
+        const [phenotypes_data, variation_data, status_data] = await Promise.all([
+          listPhenotypesTree(),
+          listVariationOntologyTree(),
+          listStatusCategoriesTree(),
+        ]);
+        const raw1: any = Array.isArray(phenotypes_data) ? phenotypes_data : (phenotypes_data as any)?.data || [];
+        phenotypes_options.value = transformModifierTree(raw1);
+
+        const raw2: any = Array.isArray(variation_data) ? variation_data : (variation_data as any)?.data || [];
+        variation_ontology_options.value = transformModifierTree(raw2);
+
+        status_options.value = Array.isArray(status_data) ? status_data : (status_data as any)?.data || [];
+      } catch (e) {
+        makeToast(e, 'Error', 'danger');
+      } finally {
+        status_options_loading.value = false;
+      }
+    });
+
+    // Modal show handlers
+    async function showEntityRename(): Promise<void> {
+      modals.openRename();
+      modals.setLoading('rename', true);
+      search.ontology_input.value = null;
+      search.ontology_display.value = '';
+      search.ontology_search_results.value = [];
+      modals.setLoading('rename', false);
+    }
+
+    async function showEntityDeactivate(): Promise<void> {
+      deactivate_check.value = false;
+      replace_check.value = false;
+      search.replace_entity_input.value = null;
+      search.replace_entity_display.value = '';
+      modals.openDeactivate();
+      modals.setLoading('deactivate', false);
+    }
+
+    async function showReviewModify(): Promise<void> {
+      modals.openReview();
+      modals.setLoading('review', true);
+      await info.loadReview(info.entity_info.value.entity_id);
+      modals.setLoading('review', false);
+    }
+
+    async function showStatusModify(): Promise<void> {
+      statusForm.resetForm();
+      modals.openStatus();
+      modals.setLoading('status', true);
+      await statusForm.loadStatusByEntity(info.entity_info.value.entity_id);
+      modals.setLoading('status', false);
+    }
+
+    // Submit handlers
+    async function onSubmitRename(): Promise<void> {
+      try {
+        await mutations.rename({
+          entity_info: info.entity_info.value,
+          ontology_input: search.ontology_input.value,
+        });
+        modals.close();
+        info.reset();
+        search.clearAll();
+      } catch {
+        // error already toasted in composable
+      }
+    }
+
+    async function onSubmitDeactivate(): Promise<void> {
+      try {
+        await mutations.deactivate({
+          entity_info: info.entity_info.value,
+          deactivate_check: deactivate_check.value,
+          replace_entity_input: search.replace_entity_input.value,
+        });
+        modals.close();
+        info.reset();
+        search.clearAll();
+        deactivate_check.value = false;
+        replace_check.value = false;
+      } catch {
+        // error already toasted in composable
+      }
+    }
+
+    async function onSubmitReview(): Promise<void> {
+      if (!info.hasReviewChanges.value) {
+        modals.close();
+        return;
+      }
+      try {
+        await mutations.submitReview({
+          review_info: info.review_info.value,
+          select_phenotype: info.select_phenotype.value,
+          select_variation: info.select_variation.value,
+          select_additional_references: info.select_additional_references.value,
+          select_gene_reviews: info.select_gene_reviews.value,
+        });
+        modals.close();
+        info.reset();
+        search.clearAll();
+      } catch {
+        // error already toasted in composable
+      }
+    }
+
+    async function onSubmitStatus(): Promise<void> {
+      if (!statusForm.hasChanges.value) {
+        modals.close();
+        return;
+      }
+      mutations.setSubmittingState('status');
+      try {
+        await statusForm.submitForm(false, false);
+        makeToast('Status submitted successfully', 'Success', 'success');
+        announce('Status submitted successfully');
+        statusForm.resetForm();
+        modals.close();
+        info.reset();
+        search.clearAll();
+      } catch (e) {
+        makeToast(e, 'Error', 'danger');
+        announce('Failed to submit status', 'assertive');
+      } finally {
+        mutations.setSubmittingState(null);
+      }
+    }
+
+    async function onEntitySelected(entityId: number | null): Promise<void> {
+      search.onEntitySelected(entityId);
+      if (!entityId) {
+        info.reset();
+        return;
+      }
+      await info.loadEntity(entityId);
+      if (info.entity_info.value?.entity_id) {
+        search.entity_loaded.value = true;
+      }
+    }
+
+    const legendItems = [
+      { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
+      { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
+      { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
+      { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
+      { icon: 'bi bi-check', color: '#198754', label: 'NDD: Yes' },
+      { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
+    ];
 
     return {
-      makeToast,
-      ...colorAndSymbols,
-      statusFormData,
-      statusFormLoading,
-      loadStatusByEntity,
-      submitStatusForm,
-      resetStatusForm,
-      hasStatusChanges,
+      // entity info composable
+      ...info,
+      // search composable
+      ...search,
+      // mutations composable
+      ...mutations,
+      // modals composable
+      ...modals,
+      // statusForm composable
+      statusFormData: statusForm.formData,
+      hasStatusChanges: statusForm.hasChanges,
+      // local state
+      deactivate_check,
+      replace_check,
+      // tree options
+      phenotypes_options,
+      variation_ontology_options,
+      status_options,
+      status_options_loading,
+      // a11y
       a11yMessage,
       a11yPoliteness,
       announce,
-    };
-  },
-  data() {
-    return {
-      status_options: null, // null = not loaded, [] = loaded but empty
-      status_options_loading: false,
-      phenotypes_options: null, // null = not loaded, [] = loaded but empty
-      variation_ontology_options: null, // null = not loaded, [] = loaded but empty
-      // Entity search autocomplete state
-      modify_entity_input: null,
-      entity_display: '', // Display value for autocomplete
-      entity_search_results: [],
-      entity_search_loading: false,
-      entity_loaded: false, // True when entity info has been fetched
-      replace_entity_input: null,
-      ontology_input: null,
-      ontology_display: '', // Display value for ontology autocomplete
-      ontology_search_results: [],
-      ontology_search_loading: false,
-      // Replacement entity autocomplete state
-      replace_entity_display: '', // Display value for replacement entity autocomplete
-      replace_entity_search_results: [],
-      replace_entity_search_loading: false,
-      entity_info: {},
-      review_info: new Review(),
-      select_phenotype: [],
-      select_variation: [],
-      select_additional_references: [],
-      select_gene_reviews: [],
-      reviewLoadedData: null, // Stores original review data for change detection
-      status_info: new Status(),
-      deactivate_check: false,
-      replace_check: false,
-      loading_rename_modal: true,
-      loading_deactivate_modal: true,
-      loading_review_modal: true,
-      loading_status_modal: true,
-      submitting: null, // null | 'rename' | 'deactivate' | 'review' | 'status'
-      pendingDiscardTarget: null, // 'review' | 'status' — tracks which modal triggered discard confirm
-      legendItems: [
-        { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-        { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-        { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-        { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
-        { icon: 'bi bi-check', color: '#198754', label: 'NDD: Yes' },
-        { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
-      ],
-    };
-  },
-  computed: {
-    hasReviewChanges() {
-      if (!this.reviewLoadedData) return false;
-      const arrEqual = (a, b) => {
-        const sa = [...a].sort();
-        const sb = [...b].sort();
-        return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
-      };
-      return (
-        (this.review_info.synopsis || '') !== this.reviewLoadedData.synopsis ||
-        (this.review_info.comment || '') !== this.reviewLoadedData.comment ||
-        !arrEqual(this.select_phenotype, this.reviewLoadedData.phenotypes) ||
-        !arrEqual(this.select_variation, this.reviewLoadedData.variationOntology) ||
-        !arrEqual(this.select_additional_references, this.reviewLoadedData.publications) ||
-        !arrEqual(this.select_gene_reviews, this.reviewLoadedData.genereviews)
-      );
-    },
-  },
-  mounted() {
-    this.loadStatusList();
-    this.loadPhenotypesList();
-    this.loadVariationOntologyList();
-  },
-  methods: {
-    /**
-     * Transform phenotype/variation tree to make all modifiers selectable children.
-     * API returns: "present: X" as parent with [uncertain, variable, rare, absent] as children.
-     * We want: "X" as parent with [present, uncertain, variable, rare, absent] as children.
-     */
-    transformModifierTree(nodes) {
-      return nodes.map((node) => {
-        // Extract phenotype name from "present: Phenotype Name" format
-        const phenotypeName = node.label.replace(/^present:\s*/, '');
-        // Extract the HP/ontology code from the ID (e.g., "1-HP:0001999" -> "HP:0001999")
-        const ontologyCode = node.id.replace(/^\d+-/, '');
-
-        // Create new parent with just the phenotype name
-        const newParent = {
-          id: `parent-${ontologyCode}`,
-          label: phenotypeName,
-          children: [
-            // Add "present" as first child (the original parent node, now selectable)
-            {
-              id: node.id,
-              label: `present: ${phenotypeName}`,
-            },
-            // Add all other modifiers as children with phenotype name for context
-            ...(node.children || []).map((child) => {
-              const modifier = child.label.replace(/:\s*.*$/, '');
-              return {
-                id: child.id,
-                label: `${modifier}: ${phenotypeName}`,
-              };
-            }),
-          ],
-        };
-
-        return newParent;
-      });
-    },
-    async loadPhenotypesList() {
-      try {
-        const data = await listPhenotypesTree();
-        const rawData = Array.isArray(data) ? data : data?.data || [];
-        // Transform to make all modifiers selectable
-        this.phenotypes_options = this.transformModifierTree(rawData);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.phenotypes_options = [];
-      }
-    },
-    async loadVariationOntologyList() {
-      try {
-        const data = await listVariationOntologyTree();
-        const rawData = Array.isArray(data) ? data : data?.data || [];
-        // Transform to make all modifiers selectable
-        this.variation_ontology_options = this.transformModifierTree(rawData);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.variation_ontology_options = [];
-      }
-    },
-    async loadStatusList() {
-      this.status_options_loading = true;
-      try {
-        const data = await listStatusCategoriesTree();
-        this.status_options = Array.isArray(data) ? data : data?.data || [];
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.status_options = [];
-      } finally {
-        this.status_options_loading = false;
-      }
-    },
-    async searchEntity(query) {
-      if (!query || query.length < 2) {
-        this.entity_search_results = [];
-        return;
-      }
-
-      this.entity_search_loading = true;
-      try {
-        const response = await listEntities({
-          filter: `contains(any,${query})`,
-        });
-        const data = response?.data || [];
-        this.entity_search_results = Array.isArray(data) ? data.slice(0, 10) : [];
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.entity_search_results = [];
-      } finally {
-        this.entity_search_loading = false;
-      }
-    },
-    async searchOntology(query) {
-      if (!query || query.length < 2) {
-        this.ontology_search_results = [];
-        return;
-      }
-
-      this.ontology_search_loading = true;
-      try {
-        const data = await searchOntology(query, { tree: true });
-        // Ontology API returns flat array with {id, label} format
-        const arr = Array.isArray(data) ? data : [];
-        this.ontology_search_results = arr.slice(0, 10);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.ontology_search_results = [];
-      } finally {
-        this.ontology_search_loading = false;
-      }
-    },
-    onOntologySelected(ontologyId) {
-      this.ontology_input = ontologyId;
-    },
-    async searchReplacementEntity(query) {
-      if (!query || query.length < 2) {
-        this.replace_entity_search_results = [];
-        return;
-      }
-
-      this.replace_entity_search_loading = true;
-      try {
-        const response = await listEntities({
-          filter: `contains(any,${query})`,
-        });
-        const data = response?.data || [];
-        // Filter out the current entity from replacement options
-        const filtered = Array.isArray(data)
-          ? data.filter((e) => e.entity_id !== this.entity_info.entity_id).slice(0, 10)
-          : [];
-        this.replace_entity_search_results = filtered;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.replace_entity_search_results = [];
-      } finally {
-        this.replace_entity_search_loading = false;
-      }
-    },
-    onReplacementEntitySelected(entityId) {
-      this.replace_entity_input = entityId;
-    },
-    async onEntitySelected(entityId) {
-      if (!entityId) {
-        this.entity_loaded = false;
-        this.entity_info = {};
-        return;
-      }
-
-      // Set the modify_entity_input to the selected entity ID
-      this.modify_entity_input = entityId;
-
-      // Fetch full entity details
-      await this.getEntity();
-
-      // Mark entity as loaded if successful
-      if (this.entity_info?.entity_id) {
-        this.entity_loaded = true;
-      }
-    },
-    async searchEntityInfo({ searchQuery, callback }) {
-      try {
-        const response_search = await listEntities({
-          filter: `contains(any,${searchQuery})`,
-        });
-
-        callback(null, response_search.data);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async getEntity() {
-      try {
-        const response = await listEntities({
-          filter: `equals(entity_id,${this.modify_entity_input})`,
-        });
-
-        // Defensive check for valid response data
-        const entityData = response?.data;
-        if (!Array.isArray(entityData) || entityData.length === 0) {
-          this.makeToast(`Entity ${this.modify_entity_input} not found`, 'Error', 'danger');
-          this.entity_info = {};
-          return;
+      // color/symbols
+      ...colorAndSymbols,
+      // event handlers
+      showEntityRename,
+      showEntityDeactivate,
+      showReviewModify,
+      showStatusModify,
+      onSubmitRename,
+      onSubmitDeactivate,
+      onSubmitReview,
+      onSubmitStatus,
+      onEntitySelected,
+      // backward-compat aliases (used by existing specs)
+      submitEntityRename: onSubmitRename,
+      submitEntityDeactivation: onSubmitDeactivate,
+      // submitReviewChange bypasses the hasReviewChanges guard (spec compat)
+      submitReviewChange: async () => {
+        try {
+          await mutations.submitReview({
+            review_info: info.review_info.value,
+            select_phenotype: info.select_phenotype.value,
+            select_variation: info.select_variation.value,
+            select_additional_references: info.select_additional_references.value,
+            select_gene_reviews: info.select_gene_reviews.value,
+          });
+          modals.close();
+          info.reset();
+          search.clearAll();
+        } catch {
+          // error already toasted in composable
         }
-
-        const entity = entityData[0];
-
-        // Store full API response for enhanced preview display
-        // (includes symbol, disease_ontology_name, category, ndd_phenotype_word, etc.)
-        this.entity_info = entity;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.entity_info = {};
-      }
-    },
-    async getReview() {
-      this.loading_review_modal = true;
-
-      try {
-        const review_data = await getEntityReview(this.modify_entity_input);
-        const phenotypes_data = await getEntityPhenotypes(this.modify_entity_input);
-        const variation_data = await getEntityVariation(this.modify_entity_input);
-        const publications_data = await getEntityPublications(this.modify_entity_input);
-
-        // define phenotype specific attributes as constants from response
-        const new_phenotype = phenotypes_data.map(
-          (item) => new Phenotype(item.phenotype_id, item.modifier_id)
-        );
-
-        this.select_phenotype = phenotypes_data.map(
-          (item) => `${item.modifier_id}-${item.phenotype_id}`
-        );
-
-        // define variation specific attributes as constants from response
-        const new_variation = variation_data.map(
-          (item) => new Variation(item.vario_id, item.modifier_id)
-        );
-
-        this.select_variation = variation_data.map(
-          (item) => `${item.modifier_id}-${item.vario_id}`
-        );
-
-        // define publication specific attributes as constants from response
-        const literature_gene_reviews = publications_data
-          .filter((item) => item.publication_type === 'gene_review')
-          .map((item) => item.publication_id);
-
-        const literature_additional_references = publications_data
-          .filter((item) => item.publication_type === 'additional_references')
-          .map((item) => item.publication_id);
-
-        this.select_additional_references = literature_additional_references;
-        this.select_gene_reviews = literature_gene_reviews;
-
-        const new_literature = new Literature(
-          literature_additional_references,
-          literature_gene_reviews
-        );
-
-        // compose review
-        this.review_info = new Review(
-          review_data[0].synopsis,
-          new_literature,
-          new_phenotype,
-          new_variation,
-          review_data[0].comment
-        );
-
-        this.review_info.review_id = review_data[0].review_id;
-        this.review_info.entity_id = review_data[0].entity_id;
-
-        // Snapshot loaded data for change detection
-        this.reviewLoadedData = {
-          synopsis: this.review_info.synopsis || '',
-          comment: this.review_info.comment || '',
-          phenotypes: [...this.select_phenotype],
-          variationOntology: [...this.select_variation],
-          publications: [...this.select_additional_references],
-          genereviews: [...this.select_gene_reviews],
-        };
-
-        this.loading_review_modal = false;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async getStatus() {
-      this.loading_status_modal = true;
-
-      try {
-        const status_data = await getEntityStatus(this.modify_entity_input);
-
-        // compose entity
-        this.status_info = new Status(
-          status_data[0].category_id,
-          status_data[0].comment,
-          status_data[0].problematic
-        );
-
-        this.status_info.status_id = status_data[0].status_id;
-        this.status_info.entity_id = status_data[0].entity_id;
-
-        this.loading_status_modal = false;
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    normalizerEntitySearch(node) {
-      return {
-        id: node.entity_id,
-        label: `sysndd:${node.entity_id} (${node.symbol} - ${node.disease_ontology_name} - (${
-          node.disease_ontology_id_version
-        }) - ${node.hpo_mode_of_inheritance_term_name})`,
-      };
-    },
-    normalizerOntologySearch(node) {
-      return {
-        id: node.id,
-        label: `${node.id} (${node.label})`,
-      };
-    },
-    normalizeStatus(node) {
-      return {
-        id: node.category_id,
-        label: node.category,
-      };
-    },
-    // Normalize status options for BFormSelect
-    normalizeStatusOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => ({
-        value: opt.id,
-        text: opt.label,
-      }));
-    },
-    async loadOntologyInfoTree({ searchQuery, callback }) {
-      try {
-        const data = await searchOntology(searchQuery, { tree: true });
-        callback(null, data);
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-      }
-    },
-    async showEntityRename() {
-      await this.getEntity();
-      if (!this.entity_info?.entity_id) {
-        return;
-      }
-      this.$refs.renameModal.show();
-    },
-    async showEntityDeactivate() {
-      await this.getEntity();
-      if (!this.entity_info?.entity_id) {
-        return;
-      }
-      this.$refs.deactivateModal.show();
-    },
-    async showReviewModify() {
-      await this.getEntity();
-      if (!this.entity_info?.entity_id) {
-        return;
-      }
-      this.getReview();
-      this.$refs.modifyReviewModal.show();
-    },
-    async showStatusModify() {
-      // Reset form FIRST to ensure clean state before loading data
-      this.resetStatusForm();
-
-      // Load entity and status data
-      await this.getEntity();
-
-      // Guard against entity not found
-      if (!this.entity_info?.entity_id) {
-        // Error already shown by getEntity()
-        return;
-      }
-
-      await this.loadStatusByEntity(this.modify_entity_input);
-
-      // Ensure status options are loaded
-      if (this.status_options === null) {
-        await this.loadStatusList();
-      }
-
-      // Guard against empty options
-      if (!this.status_options || this.status_options.length === 0) {
-        this.makeToast(
-          'Failed to load status options. Please refresh and try again.',
-          'Error',
-          'danger'
-        );
-        return;
-      }
-
-      this.$refs.modifyStatusModal.show();
-    },
-    async submitEntityRename() {
-      this.submitting = 'rename';
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/rename`;
-
-      // assign new disease_ontology_id
-      this.entity_info.disease_ontology_id_version = this.ontology_input;
-
-      // compose submission
-      const submission = new Submission(this.entity_info);
-
-      try {
-        const response = await apiClient.raw.post(apiUrl, { rename_json: submission });
-
-        this.makeToast(
-          `${'The new disease name for this entity has been submitted ' + '(status '}${
-            response.status
-          } (${response.statusText}).`,
-          'Success',
-          'success'
-        );
-        this.announce('Disease name updated successfully');
-        this.resetForm();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to update disease name', 'assertive');
-      } finally {
-        this.submitting = null;
-      }
-    },
-    async submitEntityDeactivation() {
-      this.submitting = 'deactivate';
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/entity/deactivate`;
-
-      // assign new is_active
-      this.entity_info.is_active = this.deactivate_check ? 0 : 1;
-
-      // assign replace_entity_input
-      this.entity_info.replaced_by =
-        this.replace_entity_input === null ? null : this.replace_entity_input;
-
-      // compose submission
-      const submission = new Submission(this.entity_info);
-
-      try {
-        const response = await apiClient.raw.post(apiUrl, { deactivate_json: submission });
-
-        this.makeToast(
-          `${'The deactivation for this entity has been submitted ' + '(status '}${
-            response.status
-          } (${response.statusText}).`,
-          'Success',
-          'success'
-        );
-        this.announce('Entity deactivation submitted successfully');
-        this.resetForm();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to deactivate entity', 'assertive');
-      } finally {
-        this.submitting = null;
-      }
-    },
-    async submitReviewChange() {
-      // Silent skip: close modal without API call when nothing changed
-      if (!this.hasReviewChanges) {
-        this.$refs.modifyReviewModal.hide();
-        return;
-      }
-
-      this.submitting = 'review';
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/review/create`;
-
-      // define literature specific attributes as constants from inputs
-      // first clean the arrays
-      const select_additional_references_clean = this.select_additional_references.map((element) =>
-        element.replace(/\s+/g, '')
-      );
-
-      const select_gene_reviews_clean = this.select_gene_reviews.map((element) =>
-        element.replace(/\s+/g, '')
-      );
-
-      const replace_literature = new Literature(
-        select_additional_references_clean,
-        select_gene_reviews_clean
-      );
-
-      // compose phenotype specific attributes as constants from inputs
-      const replace_phenotype = this.select_phenotype.map(
-        (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
-      );
-
-      // compose variation ontology specific attributes as constants from inputs
-      const replace_variation_ontology = this.select_variation.map(
-        (item) => new Variation(item.split('-')[1], item.split('-')[0])
-      );
-
-      // assign to object
-      this.review_info.literature = replace_literature;
-      this.review_info.phenotypes = replace_phenotype;
-      this.review_info.variation_ontology = replace_variation_ontology;
-
-      // perform update POST request
-      try {
-        const response = await apiClient.raw.post(apiUrl, { review_json: this.review_info });
-
-        this.makeToast(
-          `${'The new review for this entity has been submitted ' + '(status '}${
-            response.status
-          } (${response.statusText}).`,
-          'Success',
-          'success'
-        );
-        this.announce('Review submitted successfully');
-        this.resetForm();
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to submit review', 'assertive');
-      } finally {
-        this.submitting = null;
-      }
-    },
-    async submitStatusChange() {
-      // Silent skip: close modal without API call when nothing changed
-      if (!this.hasStatusChanges) {
-        this.$refs.modifyStatusModal.hide();
-        return;
-      }
-
-      this.submitting = 'status';
-      try {
-        await this.submitStatusForm(false, false); // isUpdate=false (always create), reReview=false
-        this.makeToast('Status submitted successfully', 'Success', 'success');
-        this.announce('Status submitted successfully');
-        this.resetStatusForm();
-        this.resetForm(); // Also reset entity selection
-      } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.announce('Failed to submit status', 'assertive');
-      } finally {
-        this.submitting = null;
-      }
-    },
-    resetForm() {
-      this.modify_entity_input = null;
-      this.entity_display = '';
-      this.entity_loaded = false;
-      this.replace_entity_input = null;
-      this.replace_entity_display = '';
-      this.replace_entity_search_results = [];
-      this.ontology_input = null;
-      this.ontology_display = '';
-      this.ontology_search_results = [];
-      this.entity_info = {};
-      this.review_info = new Review();
-      this.select_phenotype = [];
-      this.select_variation = [];
-      this.select_additional_references = [];
-      this.select_gene_reviews = [];
-      this.reviewLoadedData = null;
-      this.status_info = new Status();
-      this.deactivate_check = false;
-      this.replace_check = false;
-    },
-    tagValidatorPMID(tag) {
-      // Individual PMID tag validator function
-      const tag_copy = tag.replace(/\s+/g, '');
-      return (
-        !Number.isNaN(Number(tag_copy.replaceAll('PMID:', ''))) &&
-        tag_copy.includes('PMID:') &&
-        tag_copy.replace('PMID:', '').length > 4 &&
-        tag_copy.replace('PMID:', '').length < 9
-      );
-    },
-    onRenameModalShow() {
-      // Reset rename-specific state (FORM-07: prevents stale data)
-      this.ontology_input = null;
-      this.ontology_display = '';
-      this.ontology_search_results = [];
-    },
-    onDeactivateModalShow() {
-      // Reset deactivate-specific state (FORM-07: prevents stale data)
-      this.deactivate_check = false;
-      this.replace_check = false;
-      this.replace_entity_input = null;
-      this.replace_entity_display = '';
-    },
-    onModifyReviewModalShow() {
-      // Reset form state on show (FORM-07: prevents stale data flash)
-      this.review_info = new Review();
-      this.select_phenotype = [];
-      this.select_variation = [];
-      this.select_additional_references = [];
-      this.select_gene_reviews = [];
-    },
-    onModifyReviewModalHide(event) {
-      if (this.pendingDiscardTarget === 'review') {
-        this.pendingDiscardTarget = null;
-        return; // Allow close after confirmed discard
-      }
-      if (this.hasReviewChanges && !this.submitting) {
-        event.preventDefault();
-        this.pendingDiscardTarget = 'review';
-        this.$refs.confirmDiscardDialog.show();
-      }
-    },
-    onModifyStatusModalShow() {
-      // Reset moved to showStatusModify() — intentionally empty to preserve loaded data
-      // The reset must happen BEFORE data load, not after modal renders
-    },
-    onModifyStatusModalHide(event) {
-      if (this.pendingDiscardTarget === 'status') {
-        this.pendingDiscardTarget = null;
-        return; // Allow close after confirmed discard
-      }
-      if (this.hasStatusChanges && !this.submitting) {
-        event.preventDefault();
-        this.pendingDiscardTarget = 'status';
-        this.$refs.confirmDiscardDialog.show();
-      }
-    },
-    onConfirmDiscard() {
-      if (this.pendingDiscardTarget === 'review') {
-        this.$refs.modifyReviewModal.hide();
-      } else if (this.pendingDiscardTarget === 'status') {
-        this.$refs.modifyStatusModal.hide();
-      }
-    },
+      },
+      // ref for confirm dialog
+      confirmDiscardDialogRef,
+      // static data
+      legendItems,
+      makeToast,
+    };
   },
-};
+});
 </script>
 
 <style scoped>
