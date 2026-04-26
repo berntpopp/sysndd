@@ -112,6 +112,21 @@ Specs do **not** write artifact screenshots by default. Playwright's `screenshot
 
 The recommended workflow for selector discovery is `npx playwright codegen http://localhost:80/Path`. Prefer role + accessible-name selectors (`getByRole`, `getByLabel`) over CSS selectors.
 
+### Perf benchmarks (v11.3)
+
+`/Genes/:symbol` and `/Entities/:entity_id` ship a Playwright perf + axe bench under `app/tests/perf/`. It is **local-only** — there is no CI workflow.
+
+```bash
+make cache-clear              # cold-pass: wipe API memoise cache (best-effort)
+make playwright-stack         # or `make dev` if the playwright stack lacks views/data
+cd app && npx playwright test tests/perf/genes-entities.bench.spec.ts --workers=1
+cd .. && make playwright-stack-down   # or `make docker-down` if you used `make dev`
+```
+
+The bench writes `.planning/perf/after-${date}.json` and screenshots into `.planning/screenshots/after-*.png`. Spec §8 lists the gates the harness asserts. If you regress an assertion, look at the diff between the new JSON and `.planning/perf/baseline-5-genes-fullnav.json`.
+
+The bench requires `@axe-core/playwright` (a dev dep). If `npm install` complains about a missing peer, re-run from `app/`. Use `--workers=1` so the per-probe `persistResult()` writes are sequential.
+
 ## Common Gotchas
 
 - Start the DB stack before host-side API work.
