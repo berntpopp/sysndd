@@ -5,6 +5,19 @@
 **Branch:** `master`  
 **Baseline compared:** `.planning/reviews/2026-04-11-codebase-review.md`
 
+## Status update (2026-04-26, post v11.2-monolith-cleanup PR)
+
+| Finding | Status | Where |
+|---|---|---|
+| **P2.7** Large frontend monoliths | ✅ DONE | `Review.vue` decomposed in v11.1 W6. v11.2: `ManageUser.vue` 1701→577 LoC (W1) into 4 composables + 7 sub-components; `ModifyEntity.vue` 1522→537 LoC (W2) into 4 composables + 5 sub-components alongside existing `useStatusForm`. |
+
+**Open issues status:**
+
+- **#29** (entity-batch grouping) — ✅ Closed; gene-atomic batching with soft-LIMIT in `api/services/re-review-service.R` `select_matching_entities()` (W3); `ManageReReview.vue` warns pre-create when criteria would split a gene. Algorithm-only fix per spec — no DB migration; existing split batches remain.
+- **#299, #300, #154, #98, #175, #105, #89, #55, #54, #48, #46, #37, #33, #32, #25, #22, #15, #14** — unchanged from v11.1's status; not in v11.2 scope.
+
+**Net result:** P2.7 fully resolved; #29 closed.
+
 ## Status update (2026-04-25, post v11.1-finish-hardening PR #306)
 
 | Finding | Status | Where |
@@ -14,7 +27,7 @@
 | **P1.4** Async job state in-memory | ✅ DONE | Durable-jobs MVP shipped in PR #305; v11.1 W3 added typed `@/api/jobs.ts` client + Vitest+MSW spec |
 | **P1.5** Frontend architecture migration incomplete | ✅ DONE | W3 filled all 24 typed-API stubs; W4/W5/W6/W7 migrated ~40 call sites; precise grep gates return zero `this.axios.*` and zero raw `axios` value-imports in `views/`+`components/` |
 | **P2.6** Type safety / strict mode | ⚠️ EXPANDED | FU#6 global ratchet covers most of `src/` minus 28 documented exclusions in 9 cohorts; 7 strict scopes pass (router, api, types, composables-auth, plugins-axios, views-review, global) |
-| **P2.7** Large frontend monoliths | 🔄 PARTIAL | `Review.vue` decomposed 1441→514 LoC (W6) into 4 composables + 5 components. **Still monolithic:** `ManageUser.vue` (1701 LoC), `ModifyEntity.vue` (1500+ LoC, migrated but not decomposed — explicit out-of-scope per v11.1 spec) |
+| **P2.7** Large frontend monoliths | ✅ DONE | `Review.vue` decomposed 1441→514 LoC in v11.1 W6. `ManageUser.vue` 1701→577 LoC (v11.2 W1). `ModifyEntity.vue` 1522→537 LoC (v11.2 W2). Each into 4 composables + sub-components. |
 | **P2.8** Auth-state cleanup reactive drift | ✅ DONE | W2: `useAuth.handle401()` is single owner; `axios.ts` 401 interceptor delegates via lazy import; idempotent under concurrent rejections; `localStorage.removeItem` grep in `app/src/plugins/` returns empty |
 | **P2.9** CSP/HSTS deployment policy | ⚠️ PARTIAL | W1: ADR `.planning/decisions/2026-04-25-csp-hsts-policy.md` + audit script `app/scripts/audit-csp-violations.mjs` + Playwright security-headers spec; #300 fully addressed; #299 **partially** addressed (`'unsafe-inline'` dropped from `script-src`; `'unsafe-eval'` retained for vendor JS — Vue runtime template compiler in `ManageAbout.vue`, NGL Web Workers, markdown-it transforms — rationale in ADR) |
 | **P3.10** Browser-level regression coverage | ⚠️ LOCAL-ONLY | Playwright deep-flow + smoke + security-headers suite added in Wave 0 (10+ specs); `app/tests/e2e/`. **CI workflow deleted** (`.github/workflows/playwright.yml` removed) — suite is local-only for ad-hoc regression checks. Locked `it.todo` in `Review.spec.ts` resolved (W6). 893+ Vitest tests across 90 files |
@@ -24,7 +37,7 @@
 - **#299** (CSP) — ⚠️ Partially closed; `'unsafe-inline'` for `script-src` replaced by sha256 hashes, `'unsafe-eval'` retained intentionally with documented rationale. Full close requires NGL replacement + `ManageAbout.vue` template-compiler removal — both outside v11.1 scope.
 - **#300** (HSTS) — ✅ Closed; preload+includeSubDomains policy formalised in ADR.
 - **#154** (durable queue) — 🔄 Rescoped; durable-jobs MVP shipped, Redis queue + heavy/light worker split deferred to follow-up issue.
-- **#29, #98, #175, #105, #89, #55, #54, #48, #46, #37, #33, #32, #25, #22, #15, #14** — unchanged; not in v11.1 scope.
+- **#98, #175, #105, #89, #55, #54, #48, #46, #37, #33, #32, #25, #22, #15, #14** — unchanged; not in v11.1 scope. (#29 closed in v11.2.)
 
 **Net result:** 4 of 5 P1 findings resolved (1.2 was pre-PR), 1 of 4 P2 findings resolved + 3 partial, 1 P3 partial.
 
@@ -371,3 +384,32 @@ The following targets were added in v11.1 closeout to prevent the multi-bug reco
 ### Backlog (no PR needed yet, just tracked)
 
 `#175` (PubTator gene-count normalization), `#105` (automated log cleanup), `#89` (curation/correlation links), `#55` (review-status removal), `#54` (re-review refusal), `#48` (PubTator query/gene-list endpoint), `#46` (GeneReviews update), `#37` (direct-approval option), `#33` (DB creation scripts), `#32` (admin phenotype view), `#25` (CSR/cert automation), `#22` (DB version), `#15` (variant annotation search), `#14` (new GeneReview articles).
+
+---
+
+## What's next after v11.2 (2026-04-26 update)
+
+PR for `feature/v11.2-monolith-cleanup` lands the three remaining items from v11.1's "What's next" list. Remaining work, in priority order:
+
+### Smaller cleanups (carried forward, plus items surfaced during v11.2)
+
+1. The remaining `as unknown as` cast in `CreateEntity.vue → buildSubmissionObject()` — blocked on porting `app/src/assets/js/classes/submission/` JS classes to TS. Now also affects the new W2 composables (`useEntityInfo`, `useEntityMutations`) which import the same JS classes.
+2. `new Blob([blob])` redundant-wrap sweep across `ManageBackups.vue`, `PanelsTable.vue`, `TablesLogs.vue`, `useTableMethods.ts`.
+3. Type-only `import type ... from 'axios'` cleanup — opportunistic per-file.
+4. Strict-scope cohort cleanup beyond what v11.2 W1/W2 added — the new `views/admin/composables/**` and `views/curate/composables/**` directories were not added to the per-scope strict list because they hit existing TOAST-SHIM (`makeToast` arity) and NULL-NARROW (`string | null` vs `string | undefined`) cohorts. Address those at the shared-utility level first.
+5. Drop `'unsafe-eval'` from CSP — full close of #299.
+6. **`apiClient.raw.*` → typed-client adoption** in the new W1/W2 composables (`useUserData`, `useUserMutations`, `useBulkUserActions`, `useEntityMutations`). The composables call `apiClient.raw.*` to mirror the pre-decompose call sites; typed clients in `app/src/api/user.ts` and `app/src/api/entity.ts` already exist for every endpoint and would shed several `as any` casts.
+7. **Tighten `useUserModals` typing** from `ref<Partial<UserSummary>>({})` to `ref<UserSummary | null>(null)` — eliminates the 4 `as any` casts in `ManageUser.vue`'s shell.
+8. **W3 follow-up tests** — add explicit "single-gene-exact-fit" and "first-gene-overflow" cases to `test-re-review-service.R` so a future maintainer changing the soft-LIMIT comparison from `> batch_size` to `>=` would be caught.
+9. **Type plumbing for `boundary_gene` / `gene_count` / `entity_count`** in `app/src/api/re_review.ts`'s `previewReReviewBatch` return type — currently consumed via the typed client's `[key: string]: unknown` index signature; explicit fields would improve IDE support.
+10. **Decomposition of `views/curate/ManageReReview.vue`** (1084 LoC) and `views/curate/ApproveUser.vue` (828 LoC) — not flagged in the original monolith list but worth queuing for a future pass; W3 only touched ManageReReview for the UI hint.
+
+### Forward-looking (carried forward)
+
+11. **Redis queue + heavy/light worker split** (originally #154) — durable-jobs MVP is in production; queue/worker split is the layered next step.
+12. **`make playwright-stack` automation in CI** — manual after v11.1's lean-CI choice. Re-introduce as `workflow_dispatch` lane if E2E coverage in CI becomes valuable.
+13. **GHA Node 24 forced rollout** — June 2026 deadline.
+
+### Backlog (unchanged from v11.1)
+
+`#98` (replace VariO ontology), `#175`, `#105`, `#89`, `#55`, `#54`, `#48`, `#46`, `#37`, `#33`, `#32`, `#25`, `#22`, `#15`, `#14`.
