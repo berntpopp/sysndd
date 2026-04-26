@@ -285,8 +285,6 @@ export function useUserData(options: UseUserDataOptions = {}) {
     loadDataNow,
     loadRoleList,
     loadUserList,
-    applyApiResponse,
-    updateBrowserUrl,
     filtered,
     handlePageChange,
     handlePerPageChange,

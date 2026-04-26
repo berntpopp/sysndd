@@ -281,10 +281,6 @@ export default defineComponent({
   props: {
     visible: { type: Boolean, default: false },
     user: { type: Object as PropType<Partial<UserSummary> | null>, default: null },
-    roleOptions: {
-      type: Array as PropType<Array<{ value: string; text: string }>>,
-      default: () => [],
-    },
     passwordChange: {
       type: Object as PropType<PasswordChangeModel>,
       required: true,

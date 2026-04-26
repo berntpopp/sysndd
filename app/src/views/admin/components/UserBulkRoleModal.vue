@@ -41,10 +41,6 @@ export default defineComponent({
   props: {
     visible: { type: Boolean, default: false },
     usernames: { type: Array as PropType<string[]>, default: () => [] },
-    roleOptions: {
-      type: Array as PropType<Array<{ value: string; text: string }>>,
-      default: () => [],
-    },
     selectedRole: { type: String, default: '' },
   },
   emits: ['update:visible', 'update:selected-role', 'confirm', 'cancel'],

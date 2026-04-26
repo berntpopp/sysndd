@@ -265,7 +265,6 @@
       <UserUpdateModal
         v-model:visible="isUpdateOpen"
         :user="userToUpdate"
-        :role-options="roleOptions"
         v-model:password-change="passwordChange"
         :password-validation="passwordValidation"
         :is-changing-password="isChangingPassword"
@@ -293,7 +292,6 @@
       <UserBulkRoleModal
         v-model:visible="isBulkRoleOpen"
         :usernames="bulkRoleUsernames"
-        :role-options="roleOptions"
         v-model:selected-role="bulkRoleSelection"
         @confirm="onConfirmBulkRole"
         @cancel="close"
@@ -494,7 +492,9 @@ export default defineComponent({
     );
 
     // ── Exposed actions (plan aliases + legacy aliases for existing spec) ──────
-    const onConfirmDelete = () => mutations.deleteUser(modals.userToDelete.value as any);
+    // Composables re-throw after toasting; swallow at the orchestration layer
+    // so callers don't see unhandled rejections (toast already covers UX).
+    const onConfirmDelete = () => mutations.deleteUser(modals.userToDelete.value as any).catch(() => {});
     // updateUserData reads from modals.userToUpdate.value so the spec can set
     // wrapper.vm.userToUpdate = {...} and then call wrapper.vm.updateUserData()
     // with no args (matching original ManageUser.vue behaviour).
@@ -509,9 +509,9 @@ export default defineComponent({
     // the confirm handlers pick up the override (same dynamic dispatch as the
     // original Options-API `this.getSelectedArray()`).
     const getSelectedArray = shallowRef<() => number[]>(bulkSelection.getSelectedArray);
-    const onConfirmBulkApprove = () => bulk.bulkApprove(getSelectedArray.value());
-    const onConfirmBulkRole = () => bulk.bulkAssignRole(getSelectedArray.value(), modals.bulkRoleSelection.value);
-    const onConfirmBulkDelete = () => bulk.bulkDelete(getSelectedArray.value());
+    const onConfirmBulkApprove = () => bulk.bulkApprove(getSelectedArray.value()).catch(() => {});
+    const onConfirmBulkRole = () => bulk.bulkAssignRole(getSelectedArray.value(), modals.bulkRoleSelection.value).catch(() => {});
+    const onConfirmBulkDelete = () => bulk.bulkDelete(getSelectedArray.value()).catch(() => {});
     const onChangePassword = () =>
       mutations.changePassword({
         userId: (modals.userToUpdate.value as any).user_id,
