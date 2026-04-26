@@ -57,8 +57,12 @@ export function useResource<T>(
   let activeKey: ResourceKey | null = null;
 
   const keyRef = computed<ResourceKey | null>(() => {
-    if (typeof keyInput === 'string' || keyInput === null) return keyInput;
-    if (isRef(keyInput)) return keyInput.value;
+    if (keyInput === null) return null;
+    if (typeof keyInput === 'string') return keyInput;
+    if (isRef(keyInput)) {
+      const v = keyInput.value;
+      return typeof v === 'string' ? v : null;
+    }
     return null;
   });
 
