@@ -329,6 +329,13 @@ export default defineComponent({
         status_options.value = Array.isArray(status_data) ? status_data : (status_data as any)?.data || [];
       } catch (e) {
         makeToast(e, 'Error', 'danger');
+        // Set deterministic empty defaults so downstream modals render
+        // their empty-state alerts instead of staying in the null/loading
+        // limbo (StatusModifyModal hides both the select and the empty
+        // alert while statusOptions is null).
+        if (phenotypes_options.value === null) phenotypes_options.value = [];
+        if (variation_ontology_options.value === null) variation_ontology_options.value = [];
+        if (status_options.value === null) status_options.value = [];
       } finally {
         status_options_loading.value = false;
       }
@@ -349,6 +356,10 @@ export default defineComponent({
       replace_check.value = false;
       search.replace_entity_input.value = null;
       search.replace_entity_display.value = '';
+      // Clear stale autocomplete results so the dropdown doesn't open
+      // with leftover suggestions from a previous deactivation attempt.
+      search.replace_entity_search_results.value = [];
+      search.replace_entity_search_loading.value = false;
       modals.openDeactivate();
       modals.setLoading('deactivate', false);
     }

@@ -98,7 +98,7 @@
           :model-value="formData.comment"
           rows="2"
           size="sm"
-          placeholder="Why should this entities status be changed."
+          placeholder="Why should this entity's status be changed."
           @update:model-value="$emit('update:form-data', { ...formData, comment: $event })"
         />
       </BForm>

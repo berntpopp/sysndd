@@ -32,7 +32,7 @@
                 </template>
                 <BFormInput
                   id="input-user_name"
-                  v-model="local.user_name"
+                  v-model="userName"
                   type="text"
                   placeholder="Enter username"
                   :state="userNameMeta.touched ? (userNameError ? false : true) : null"
@@ -51,7 +51,7 @@
                 </template>
                 <BFormInput
                   id="input-email"
-                  v-model="local.email"
+                  v-model="userEmail"
                   type="email"
                   placeholder="user@example.com"
                   :state="emailMeta.touched ? (emailError ? false : true) : null"
@@ -72,7 +72,7 @@
                 </template>
                 <BFormInput
                   id="input-abbreviation"
-                  v-model="local.abbreviation"
+                  v-model="abbreviation"
                   type="text"
                   placeholder="XX"
                   maxlength="5"
@@ -92,7 +92,7 @@
                 </template>
                 <BFormInput
                   id="input-orcid"
-                  v-model="local.orcid"
+                  v-model="orcid"
                   type="text"
                   placeholder="0000-0000-0000-0000"
                   :state="orcidMeta.touched ? (orcidError ? false : true) : null"
@@ -116,7 +116,7 @@
             <BFormGroup label="First Name" label-for="input-first_name" class="mb-3">
               <BFormInput
                 id="input-first_name"
-                v-model="local.first_name"
+                v-model="firstName"
                 type="text"
                 placeholder="First name"
                 :state="firstNameMeta.touched ? (firstNameError ? false : true) : null"
@@ -130,7 +130,7 @@
             <BFormGroup label="Family Name" label-for="input-family_name" class="mb-3">
               <BFormInput
                 id="input-family_name"
-                v-model="local.family_name"
+                v-model="familyName"
                 type="text"
                 placeholder="Family name"
                 :state="familyNameMeta.touched ? (familyNameError ? false : true) : null"
@@ -153,7 +153,7 @@
             <BFormGroup label="Role" label-for="input-user_role" class="mb-3">
               <BFormSelect
                 id="input-user_role"
-                v-model="local.user_role"
+                v-model="userRole"
                 :options="roleSelectOptions"
                 :state="userRoleMeta.touched ? (userRoleError ? false : true) : null"
               />
@@ -308,44 +308,50 @@ export default defineComponent({
 
     const { handleSubmit, setValues } = useForm();
 
+    // Bind inputs directly to vee-validate field `value` refs so user
+    // edits flow through the validator (meta.touched flips, errorMessage
+    // updates live, handleSubmit gates on the *current* values, not the
+    // ones seeded via setValues at modal open).
     const {
-      value: _userName,
+      value: userName,
       errorMessage: userNameError,
       meta: userNameMeta,
-    } = useField('user_name', 'required|min:2|max:50');
+    } = useField<string>('user_name', 'required|min:2|max:50');
 
     const {
-      value: _userEmail,
+      value: userEmail,
       errorMessage: emailError,
       meta: emailMeta,
-    } = useField('email', 'required|email');
+    } = useField<string>('email', 'required|email');
 
-    const { value: _orcid, errorMessage: orcidError, meta: orcidMeta } = useField('orcid');
+    const { value: orcid, errorMessage: orcidError, meta: orcidMeta } = useField<string>('orcid');
 
     const {
-      value: _abbreviation,
+      value: abbreviation,
       errorMessage: abbreviationError,
       meta: abbreviationMeta,
-    } = useField('abbreviation', 'required');
+    } = useField<string>('abbreviation', 'required');
 
     const {
-      value: _firstName,
+      value: firstName,
       errorMessage: firstNameError,
       meta: firstNameMeta,
-    } = useField('first_name', 'required|min:2|max:50');
+    } = useField<string>('first_name', 'required|min:2|max:50');
 
     const {
-      value: _familyName,
+      value: familyName,
       errorMessage: familyNameError,
       meta: familyNameMeta,
-    } = useField('family_name', 'required|min:2|max:50');
+    } = useField<string>('family_name', 'required|min:2|max:50');
 
     const {
-      value: _userRole,
+      value: userRole,
       errorMessage: userRoleError,
       meta: userRoleMeta,
-    } = useField('user_role', 'required');
+    } = useField<string>('user_role', 'required');
 
+    // `local` holds NON-validated fields only (user_id / approved /
+    // comment). Validated fields live on the vee-validate refs above.
     const local = ref<Partial<UserSummary>>({});
 
     const roleSelectOptions = computed(() => [
@@ -375,7 +381,11 @@ export default defineComponent({
     );
 
     function onSubmit(): void {
-      handleSubmit(() => emit('submit', { ...local.value }))();
+      // handleSubmit fires the callback only when every field passes
+      // validation. `values` is the validated form snapshot; merge with
+      // `local` so non-validated fields (user_id / approved / comment)
+      // ride along.
+      handleSubmit((values) => emit('submit', { ...local.value, ...values }))();
     }
 
     return {
@@ -385,6 +395,15 @@ export default defineComponent({
       local,
       roleSelectOptions,
       onSubmit,
+      // vee-validate field refs (used as v-model targets in the template)
+      userName,
+      userEmail,
+      orcid,
+      abbreviation,
+      firstName,
+      familyName,
+      userRole,
+      // error messages + meta (used for :state and feedback)
       userNameError,
       userNameMeta,
       emailError,

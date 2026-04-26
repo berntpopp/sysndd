@@ -1,12 +1,11 @@
-import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
+import { server } from '@/test-utils/mocks/server';
 import { useEntityMutations } from '../useEntityMutations';
 
-const server = setupServer();
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
+// Lifecycle (listen / resetHandlers / close) is provided globally by
+// vitest.setup.ts. This file only adds per-test handler overrides via
+// `server.use(...)`.
 
 const apiBase = import.meta.env.VITE_API_URL ?? '';
 

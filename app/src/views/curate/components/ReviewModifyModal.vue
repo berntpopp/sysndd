@@ -251,13 +251,10 @@ export default defineComponent({
     });
 
     function tagValidatorPMID(tag: string): boolean {
+      // Tight: PMID: prefix at start, 5–8 digits only (no trailing/leading garbage).
+      // Strips whitespace first to tolerate copy-paste, then enforces shape.
       const t = tag.replace(/\s+/g, '');
-      return (
-        !Number.isNaN(Number(t.replaceAll('PMID:', ''))) &&
-        t.includes('PMID:') &&
-        t.replace('PMID:', '').length > 4 &&
-        t.replace('PMID:', '').length < 9
-      );
+      return /^PMID:\d{5,8}$/.test(t);
     }
 
     function onHide(event: any): void {

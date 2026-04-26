@@ -41,14 +41,18 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
 
   async function rename(args: RenameArgs): Promise<void> {
     submitting.value = 'rename';
-    args.entity_info.disease_ontology_id_version = args.ontology_input;
-    const submission = new Submission(args.entity_info);
+    // Build the wire payload from a clone so a failed request doesn't
+    // leave the caller's reactive entity_info with the new ontology id.
+    const renamed = { ...args.entity_info, disease_ontology_id_version: args.ontology_input };
+    const submission = new Submission(renamed);
     try {
       const response = await apiClient.raw.post(`${apiBase}/api/entity/rename`, {
         rename_json: submission,
       });
+      // Persist successful change back to the caller's entity_info.
+      args.entity_info.disease_ontology_id_version = args.ontology_input;
       onToast?.(
-        `The new disease name for this entity has been submitted (status ${response.status} (${response.statusText}).`,
+        `The new disease name for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
         'success',
       );
@@ -64,16 +68,26 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
 
   async function deactivate(args: DeactivateArgs): Promise<void> {
     submitting.value = 'deactivate';
-    args.entity_info.is_active = args.deactivate_check ? 0 : 1;
-    args.entity_info.replaced_by =
+    const nextActive = args.deactivate_check ? 0 : 1;
+    const nextReplacedBy =
       args.replace_entity_input === null ? null : args.replace_entity_input;
-    const submission = new Submission(args.entity_info);
+    // Build the wire payload from a clone so a failed request doesn't
+    // leave the caller's reactive entity_info with mutated is_active/replaced_by.
+    const deactivated = {
+      ...args.entity_info,
+      is_active: nextActive,
+      replaced_by: nextReplacedBy,
+    };
+    const submission = new Submission(deactivated);
     try {
       const response = await apiClient.raw.post(`${apiBase}/api/entity/deactivate`, {
         deactivate_json: submission,
       });
+      // Persist successful change back to the caller's entity_info.
+      args.entity_info.is_active = nextActive;
+      args.entity_info.replaced_by = nextReplacedBy;
       onToast?.(
-        `The deactivation for this entity has been submitted (status ${response.status} (${response.statusText}).`,
+        `The deactivation for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
         'success',
       );
@@ -109,7 +123,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
         review_json: args.review_info,
       });
       onToast?.(
-        `The new review for this entity has been submitted (status ${response.status} (${response.statusText}).`,
+        `The new review for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
         'success',
       );
