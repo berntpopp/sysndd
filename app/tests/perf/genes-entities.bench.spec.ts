@@ -14,7 +14,7 @@
 import { test, expect } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { GENE_PROBES, ENTITY_PROBES } from './fixtures';
 
@@ -40,17 +40,44 @@ interface ProbeResult {
 
 const results: ProbeResult[] = [];
 
-test.describe('v11.3 perf bench — Genes', () => {
-  test.beforeAll(() => {
-    // Clear API cache for a cold pass. Local-only — skip on CI.
-    if (!process.env.CI) {
-      try {
-        execSync('make -C .. cache-clear', { stdio: 'inherit' });
-      } catch (e) {
-        console.warn('cache-clear failed (continuing):', e);
-      }
+const todayDate = (): string => new Date().toISOString().slice(0, 10);
+const resultsPath = (): string => resolve(PERF_DIR, `after-${todayDate()}.json`);
+
+const persistResult = (r: ProbeResult): void => {
+  // Playwright resets module state between tests, so re-read what's on disk
+  // and append the new probe rather than overwriting.
+  let prior: ProbeResult[] = [];
+  if (existsSync(resultsPath())) {
+    try {
+      const json = JSON.parse(readFileSync(resultsPath(), 'utf-8')) as { results?: ProbeResult[] };
+      if (Array.isArray(json.results)) prior = json.results;
+    } catch {
+      prior = [];
     }
-  });
+  }
+  prior.push(r);
+  writeFileSync(resultsPath(), JSON.stringify({ captured_at: todayDate(), results: prior }, null, 2));
+};
+
+// Reset the after-state JSON at module load (once per worker process). With
+// `--workers=1`, this runs once per `npx playwright test` invocation. We
+// avoid putting this in a `beforeAll` because Playwright resets module state
+// between tests, which makes beforeAll fire per-test in some configurations.
+if (!process.env.PLAYWRIGHT_BENCH_INITIALIZED) {
+  process.env.PLAYWRIGHT_BENCH_INITIALIZED = '1';
+  writeFileSync(resultsPath(), JSON.stringify({ captured_at: todayDate(), results: [] }, null, 2));
+  // Cache-clear is best-effort (the playwright stack uses a different
+  // container name than the dev stack); errors are swallowed.
+  if (!process.env.CI) {
+    try {
+      execSync('make -C .. cache-clear', { stdio: 'inherit' });
+    } catch (e) {
+      console.warn('cache-clear failed (continuing):', e);
+    }
+  }
+}
+
+test.describe('v11.3 perf bench — Genes', () => {
 
   for (const probe of GENE_PROBES) {
     test(`gene ${probe.name}`, async ({ page }) => {
@@ -144,6 +171,10 @@ test.describe('v11.3 perf bench — Genes', () => {
         axeViolationIds: axe.violations.map((v) => v.id),
       };
       results.push(result);
+      // Persist after every probe so partial runs (e.g. axe-fail) still leave
+      // measurable bench data for the closeout rubric. Module state is reset
+      // between tests, so persistResult() reads from disk and appends.
+      persistResult(result);
 
       await page.screenshot({
         path: resolve(SCREENSHOT_DIR, `after-genes-${probe.expectedSymbol.toLowerCase()}-1440.png`),
@@ -162,10 +193,7 @@ test.describe('v11.3 perf bench — Genes', () => {
   }
 
   test.afterAll(() => {
-    const date = new Date().toISOString().slice(0, 10);
-    const path = resolve(PERF_DIR, `after-${date}.json`);
-    writeFileSync(path, JSON.stringify({ captured_at: date, results }, null, 2));
-    console.log(`wrote ${path}`);
+    console.log(`wrote ${resultsPath()}`);
   });
 });
 
@@ -210,6 +238,21 @@ test.describe('v11.3 perf bench — Entities', () => {
       const axe = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
         .analyze();
+
+      persistResult({
+        url: probe.url,
+        navStartMs,
+        entityRequestStartMs: null,
+        entityRequestDurationMs: null,
+        firstEntityRowMs: null,
+        firstSkeletonMs: null,
+        geneHeaderTextMs: statusMs,
+        allSettledMs,
+        lcpMs: perf?.lcp ?? null,
+        cls: perf?.cls ?? null,
+        axeViolations: axe.violations.length,
+        axeViolationIds: axe.violations.map((v) => v.id),
+      });
 
       expect.soft(statusMs, `${probe.name}: status card ≤ 1500 ms`).toBeLessThanOrEqual(2500);
       expect.soft(allSettledMs, `${probe.name}: all settled ≤ 1500 ms p95 cold`).toBeLessThanOrEqual(3000);

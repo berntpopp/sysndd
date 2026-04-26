@@ -126,6 +126,9 @@ export default [
       // tsconfig.json. ESLint's typescript-eslint parser would reject them
       // as "not in project", so we exclude the directory globally.
       'tests/e2e/**',
+      // v11.3 W4 perf bench specs follow the same pattern as e2e tests:
+      // type-checked via ad-hoc tsc and not in the main tsconfig project.
+      'tests/perf/**',
       'playwright-report/**',
     ],
   },
