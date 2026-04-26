@@ -99,6 +99,13 @@ export function useBatchForm() {
   // Preview data
   const previewEntities = ref<PreviewEntity[]>([]);
   const showPreviewModal = ref(false);
+  // Gene-atomic boundary hint (issue #29): non-null `boundary_gene` means the
+  // soft-LIMIT engaged and the last gene was extended past `batch_size` to
+  // keep its entities together. UI surfaces a warning so the curator knows
+  // the actual entity count differs from the requested cap.
+  const previewBoundaryGene = ref<string | null>(null);
+  const previewGeneCount = ref<number>(0);
+  const previewEntityCount = ref<number>(0);
 
   // Validation: at least one criterion required
   const isFormValid = computed(() => {
@@ -283,13 +290,26 @@ export function useBatchForm() {
     const apiUrl = import.meta.env.VITE_API_URL;
 
     try {
-      const response = await apiClient.raw.post<{ data?: PreviewEntity[] }>(
+      const response = await apiClient.raw.post<{
+        data?: PreviewEntity[];
+        boundary_gene?: string | null;
+        gene_count?: number;
+        entity_count?: number;
+      }>(
         `${apiUrl}/api/re_review/batch/preview`,
         buildCriteria(),
         { withCredentials: true }
       );
 
       previewEntities.value = response.data.data || [];
+      // Capture gene-atomic boundary hint (issue #29). Plumber's
+      // `list(na="string")` serializer emits NA as the literal "NA" string
+      // for nullable scalars; treat that as "no boundary engaged".
+      const rawBoundary = response.data.boundary_gene;
+      previewBoundaryGene.value =
+        rawBoundary == null || rawBoundary === 'NA' ? null : rawBoundary;
+      previewGeneCount.value = response.data.gene_count ?? 0;
+      previewEntityCount.value = response.data.entity_count ?? 0;
       showPreviewModal.value = true;
     } catch (error: unknown) {
       const message = isApiError<{ message?: string }>(error)
@@ -354,6 +374,9 @@ export function useBatchForm() {
     entitySearchQuery.value = '';
     entitySearchResults.value = [];
     previewEntities.value = [];
+    previewBoundaryGene.value = null;
+    previewGeneCount.value = 0;
+    previewEntityCount.value = 0;
   };
 
   // Preview table fields
@@ -388,6 +411,9 @@ export function useBatchForm() {
     previewEntities,
     previewFields,
     showPreviewModal,
+    previewBoundaryGene,
+    previewGeneCount,
+    previewEntityCount,
 
     // Methods
     loadOptions,
