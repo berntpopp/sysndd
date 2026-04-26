@@ -95,21 +95,40 @@ import { computed } from 'vue';
 import { BCard, BButton, BSpinner, BBadge } from 'bootstrap-vue-next';
 import type { ClinVarVariant } from '@/types/external';
 
+export interface ClinVarCounts {
+  pathogenic: number;
+  likely_pathogenic: number;
+  vus: number;
+  likely_benign: number;
+  benign: number;
+}
+
 interface Props {
   geneSymbol: string;
   loading: boolean;
   error: string | null;
-  data: ClinVarVariant[] | null;
+  // Either pass the full variant array (`data`) and we derive counts, or pass
+  // a precomputed `counts`+`totalCount` pair (preferred — see useGeneClinVarCounts).
+  data?: ClinVarVariant[] | null;
+  counts?: ClinVarCounts | null;
+  totalCount?: number;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  data: null,
+  counts: null,
+  totalCount: 0,
+});
 
 defineEmits<{
   retry: [];
 }>();
 
-// Count variants by ACMG pathogenicity classification
-const counts = computed(() => {
+// Count variants by ACMG pathogenicity classification — derived only when no
+// precomputed counts are passed (keeps backward compat for callers that still
+// hold the full ClinVarVariant[] array).
+const counts = computed<ClinVarCounts>(() => {
+  if (props.counts) return props.counts;
   if (!props.data || props.data.length === 0) {
     return {
       pathogenic: 0,
@@ -120,7 +139,7 @@ const counts = computed(() => {
     };
   }
 
-  const result = {
+  const result: ClinVarCounts = {
     pathogenic: 0,
     likely_pathogenic: 0,
     vus: 0,
@@ -148,10 +167,11 @@ const counts = computed(() => {
   return result;
 });
 
-// Total variant count
+// Total variant count — prefers the precomputed `totalCount` prop; falls back
+// to the derived count from the variant array.
 const totalCount = computed(() => {
-  if (!props.data) return 0;
-  return props.data.length;
+  if (props.counts) return props.totalCount ?? 0;
+  return props.data?.length ?? 0;
 });
 </script>
 

@@ -114,19 +114,39 @@ These are already in the latest commits on `feature/v11.3-genes-entities-perf-ux
 - ✅ `TablesEntities`: skeleton table rows replace centered spinner (`7b1ba213`)
 - ✅ `SectionCard frameless` mode kills double-border (`81839624`)
 
-### P1 — backend perf, follow-up PR
+### P1 — backend perf, follow-up
 
-**P1.1 Skip the global fspec computation when filter is non-empty** (saves ~80–200 ms per filtered call).
+**P1.1 / P1.2 — Investigated, NOT applied** (counterintuitive measurement).
 
-`api/endpoints/entity_endpoints.R:109-126`. When `filter != ""`, the call is virtually always coming from an embedded view (GeneView's `TablesEntities`) where the facet dropdowns aren't rendered. Compute fspec only on the filtered set, or accept a `&minimal=true` query param and skip the full-view fspec.
+I prototyped pushing `equals()` filters to SQL (`view %>% filter(...) %>% collect()`) plus a `?compact=true` mode that skips the global-fspec computation. Combined cold-cold measurement (`docker restart sysndd-v113-integration-api-1` then single curl):
 
-**P1.2 Push `equals()` filters to SQL** (saves ~30–100 ms per filtered call).
+| mode | cold | warm | 3rd |
+|---|--:|--:|--:|
+| current (collect-all + R-filter) | 211 ms | 127 ms | 121 ms |
+| compact (SQL filter + skip global fspec) | 192 ms | 168 ms | 129 ms |
 
-`api/endpoints/entity_endpoints.R:76-90`. Move `collect()` to AFTER the `filter(!!!parse_exprs(filter_exprs))` step. dbplyr translates `str_detect(col, '^X$')` to MySQL `WHERE col REGEXP '^X$'`. Risk: the existing in-memory filter handles edge cases (vario filter, hash lookups) that may not all push down — keep those branches as-is.
+The compact path wins by ~20 ms cold but **loses ~10–40 ms warm** because `generate_tibble_fspec_mem(full_view, …)` is filesystem-memoised, so default-mode fspec is essentially free after the first call, while `str_detect → MySQL REGEXP` does a per-row scan that costs more than full-view sequential read+collect over a warm pool. With only 4,200 rows in `ndd_entity_view`, the SQL pushdown win evaporates. Reverted both changes — the reasoning lives here for the next time someone wonders.
 
-**P1.3 Lazy `gnomAD-variants` fetch** (saves 311 ms / 44 KB on initial load).
+**P1.3 — Split `useGeneClinVar` into counts + variants — APPLIED.**
 
-`useGeneClinVar` fires unconditionally on page mount. Of the 44 KB it returns, only the count-by-classification is needed for the ClinVar card; the full variant array is needed only by `GenomicVisualizationTabs` once the protein-or-structure tab activates. Split into a lightweight `useGeneClinVarCounts` hook (returns 5 numbers) for the card and a heavier `useGeneClinVarVariants` hook fired by the tab. Backend either: (a) add `?summary=true` param that returns just counts, or (b) leave as-is and let the card use the cached full result via SWR. Estimated saving: ClinVar card paints in ~80 ms instead of ~310 ms.
+The full ClinVar/gnomAD variant payload was 521 KB (~44 KB on the wire) and ~310 ms. The above-the-fold ClinVar card needs only 5 classification counts. The full variant array is still needed by `GenomicVisualizationTabs` for the protein/structure plots (below the fold).
+
+Implementation:
+
+- Backend: added `?summary=true` to `GET /api/external/gnomad/variants/<symbol>`. When set, the endpoint derives counts server-side (mirroring the frontend's substring-classification logic so totals are byte-identical) and returns ~250 B instead of 521 KB. `external_endpoints.R:118-219`.
+- Frontend: new `useGeneClinVarCounts` composable at `app/src/composables/useGeneClinVarCounts.ts` calls the summary endpoint. `GeneClinVarCard.vue` accepts a precomputed `counts` + `totalCount` (with a backward-compat fallback to deriving from the full `data` array). `GeneView.vue` wires the card to `clinvarCounts`; `GenomicVisualizationTabs` continues to receive the full variant list via the existing `clinvar` hook.
+- Tests: 3 new specs in `useGeneClinVarCounts.spec.ts`. All page specs still green.
+
+Measured impact (Playwright PerformanceObserver, cold pass against `make dev`):
+
+| metric | before | after |
+|---:|--:|--:|
+| ClinVar card data ready | 673 ms | **333 ms** |
+| ClinVar payload over the wire | 44 KB | 472 B |
+| First Contentful Paint | 280 ms | 128 ms |
+| Entity table painted | 930 ms | 883 ms |
+
+The 521 KB → 472 B reduction is the headline win. Full variants still fetched in parallel for below-fold tabs at 328 ms — no user-perceivable delay there.
 
 ### P2 — larger architectural changes
 

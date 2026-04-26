@@ -91,9 +91,9 @@
           <BCol cols="12" md="4" class="mb-2">
             <SectionCard
               frameless
-              :loading="clinvar.loading.value"
-              :empty="!clinvar.loading.value && (clinvar.data.value === null || clinvar.data.value.length === 0) && !clinvar.error.value"
-              :error="clinvar.error.value ? clinvar.error.value.message : null"
+              :loading="clinvarCounts.loading.value"
+              :empty="!clinvarCounts.loading.value && (clinvarCounts.data.value === null || clinvarCounts.data.value.variant_count === 0) && !clinvarCounts.error.value"
+              :error="clinvarCounts.error.value ? clinvarCounts.error.value.message : null"
               title="ClinVar Variants"
               min-height="16rem"
             >
@@ -101,8 +101,9 @@
                 :gene-symbol="geneSymbol"
                 :loading="false"
                 :error="null"
-                :data="clinvar.data.value"
-                @retry="clinvar.refresh"
+                :counts="clinvarCounts.data.value?.counts ?? null"
+                :total-count="clinvarCounts.data.value?.variant_count ?? 0"
+                @retry="clinvarCounts.refresh"
               />
             </SectionCard>
           </BCol>
@@ -175,6 +176,7 @@ import TablesEntities from '@/components/tables/TablesEntities.vue';
 import SectionCard from '@/components/ui/SectionCard.vue';
 import { useGeneRecord } from '@/composables/useGeneRecord';
 import { useGeneClinVar } from '@/composables/useGeneClinVar';
+import { useGeneClinVarCounts } from '@/composables/useGeneClinVarCounts';
 import { useGeneAlphaFold } from '@/composables/useGeneAlphaFold';
 import { useGeneUniProt } from '@/composables/useGeneUniProt';
 import { useGeneMGI } from '@/composables/useGeneMGI';
@@ -219,6 +221,10 @@ const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints ?? n
 const symbolForExternal = computed<string | null>(() =>
   geneSymbol.value ? geneSymbol.value : null,
 );
+// ClinVar counts power the small above-the-fold card (~250 B response).
+// The full variant list (~520 KB) is fetched separately for the genomic
+// visualization tabs below the entities table — see useGeneClinVar usage.
+const clinvarCounts = useGeneClinVarCounts(symbolForExternal);
 const clinvar = useGeneClinVar(symbolForExternal);
 const alphafold = useGeneAlphaFold(symbolForExternal);
 const uniprot = useGeneUniProt(symbolForExternal);
