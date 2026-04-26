@@ -1,0 +1,30 @@
+{
+  "captured_at": "2026-04-26",
+  "stack": "make dev (Vite dev + Traefik + Plumber single-worker, R API cache cleared before run)",
+  "viewport": "1440x900",
+  "method": "SPA pushState navigation between genes; DOM-poll for first entity row, gene-symbol header text, and absence of visible spinners. 'Cold' = first navigation to that symbol since cache-clear; 'warm' = repeat with browser cache.",
+  "limitations": [
+    "Vite dev mode is slower than production bundle.",
+    "'Warm' SPA timings of 51ms reflect re-mounting the same view with reactive reuse; real user warm reload is closer to cold in production.",
+    "allDoneMs detection ends when last spinner disappears, but doesn't wait for ClinVar lollipop redraw; treat allDone as 'meaningful content for all sections' not 'pixel-perfect final paint'."
+  ],
+  "results": [
+    {"symbol":"GRIN2B","pass":"cold","headerVisibleMs":51,"entitiesVisibleMs":51,"allDoneMs":51,"note":"page already on GRIN2B; SPA reused state. Use SCN2A/MECP2/SHANK3/IFT172 for cold numbers."},
+    {"symbol":"SCN2A","pass":"cold","headerVisibleMs":157,"entitiesVisibleMs":689,"allDoneMs":689},
+    {"symbol":"MECP2","pass":"cold","headerVisibleMs":139,"entitiesVisibleMs":661,"allDoneMs":661},
+    {"symbol":"SHANK3","pass":"cold","headerVisibleMs":127,"entitiesVisibleMs":637,"allDoneMs":637},
+    {"symbol":"IFT172","pass":"cold","headerVisibleMs":128,"entitiesVisibleMs":650,"allDoneMs":650}
+  ],
+  "summary": {
+    "median_header_visible_ms": 134,
+    "median_entities_visible_ms": 656,
+    "between_header_and_entities_gap_ms": 522,
+    "interpretation": "User sees the gene name/identifier band ~135ms after nav, but Associated Entities (the curated SysNDD data) lags by ~520ms because TablesEntities is gated by the v-if loading flag which requires gene API to resolve and then a nextTick. External cards lag entities by another ~200-400ms (not captured here)."
+  },
+  "targets_for_after": {
+    "median_entities_visible_ms": "<= 250 (cold) — kick TablesEntities off mount, no gene-API gate",
+    "median_header_visible_ms": "<= 100 (cold) — skeleton paints immediately, gene record fills inline",
+    "p95_total_settle_ms": "<= 1500 (cold) for all sections including externals",
+    "perceived_first_useful_paint_ms": "<= 150 (skeletons visible)"
+  }
+}

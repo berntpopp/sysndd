@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-04-26",
+  "stack": "make dev (Vite dev + Traefik + Plumber single-worker)",
+  "viewport": "1440x900",
+  "method": "All 8 endpoints fired in parallel from already-loaded SPA. Measures backend wall-time floor only.",
+  "note": "This is best-case. Current /Genes/:symbol page serializes: gene API first, then nextTick, then externals + TablesEntities mount. See full-nav baseline for what users feel.",
+  "results": [
+    {"symbol":"GRIN2B","pass":"cold","totalMs":476,"longestMs":475,"entityMs":475,"entityBytes":3877,"totalBytes":535828,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"GRIN2B","pass":"warm","totalMs":455,"longestMs":455,"entityMs":455,"entityBytes":3877,"totalBytes":535828,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"SCN2A","pass":"cold","totalMs":556,"longestMs":556,"entityMs":556,"entityBytes":3757,"totalBytes":857756,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"SCN2A","pass":"warm","totalMs":583,"longestMs":583,"entityMs":583,"entityBytes":3757,"totalBytes":857756,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"MECP2","pass":"cold","totalMs":479,"longestMs":479,"entityMs":479,"entityBytes":4732,"totalBytes":681702,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"MECP2","pass":"warm","totalMs":473,"longestMs":473,"entityMs":473,"entityBytes":4732,"totalBytes":681702,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"SHANK3","pass":"cold","totalMs":385,"longestMs":385,"entityMs":385,"entityBytes":3608,"totalBytes":327323,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"SHANK3","pass":"warm","totalMs":393,"longestMs":393,"entityMs":393,"entityBytes":3608,"totalBytes":327323,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"IFT172","pass":"cold","totalMs":476,"longestMs":475,"entityMs":475,"entityBytes":4262,"totalBytes":590512,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"},
+    {"symbol":"IFT172","pass":"warm","totalMs":477,"longestMs":477,"entityMs":477,"entityBytes":4262,"totalBytes":590512,"longestUrl":"/api/entity/?...&filter=equals(symbol,<sym>)"}
+  ],
+  "summary": {
+    "median_total_ms_warm": 473,
+    "median_entity_ms_warm": 473,
+    "longest_request_always": "entity/?...&filter=equals(symbol,<sym>)",
+    "biggest_payload": "external/gnomad/variants — 306KB to 845KB depending on gene"
+  }
+}
