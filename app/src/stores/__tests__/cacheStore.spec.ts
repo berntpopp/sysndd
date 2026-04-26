@@ -114,4 +114,29 @@ describe('cacheStore', () => {
     // 'keep' should still be there even though it's the oldest.
     expect(store.peek('keep')).not.toBeNull();
   });
+
+  it('peek() touches lastAccessAt so true-LRU spares recently-read entries', () => {
+    // Regression test for Copilot review comment: previously the store
+    // sorted by `insertedAt` only (FIFO), so an old-but-still-accessed entry
+    // would be evicted before a newer-and-untouched one. Now `peek()` updates
+    // `lastAccessAt` and eviction picks the genuinely least-recently-used.
+    vi.useFakeTimers();
+    const start = new Date('2026-04-26T12:00:00Z');
+    vi.setSystemTime(start);
+    const store = useCacheStore();
+    store.set('oldest', 'old', 60_000);
+    // Fill close to the cap with newer entries.
+    vi.setSystemTime(new Date(start.getTime() + 10));
+    for (let i = 0; i < 60; i++) store.set(`k${i}`, i, 60_000);
+    // Touch 'oldest' so it becomes the most recently used.
+    vi.setSystemTime(new Date(start.getTime() + 20));
+    void store.peek('oldest');
+    // Now push the cap by adding more entries; one of the untouched k* entries
+    // should be evicted, NOT 'oldest'.
+    vi.setSystemTime(new Date(start.getTime() + 30));
+    for (let i = 60; i < 70; i++) store.set(`k${i}`, i, 60_000);
+    expect(store.peek('oldest')).not.toBeNull();
+    expect(store.peek('k0')).toBeNull(); // a never-touched k* should be gone
+    vi.useRealTimers();
+  });
 });

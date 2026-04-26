@@ -290,3 +290,77 @@ describe('useResource — SWR / dedupe / abort', () => {
     expect(cache.peek('first')?.value).toBe(123);
   });
 });
+
+describe('useResource — Copilot review fixes', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it('serves cached null as a hit (does not re-fetch on remount)', async () => {
+    // A fetcher that maps a 404 to null (the canonical pattern in our hooks)
+    // must populate the cache with `null`, not look like a cache miss. Before
+    // the fix, readFromCache returned `value: null` for both "no entry" and
+    // "cached null", so every remount re-fetched.
+    const fetcher = vi.fn(async (_s: AbortSignal) => null as { id: number } | null);
+    const Comp = defineComponent({
+      setup() {
+        const r = useResource<{ id: number } | null>('null-key', fetcher);
+        return { r };
+      },
+      render: () => h('div'),
+    });
+    const w1 = mount(Comp);
+    await nextTick();
+    await Promise.resolve();
+    await nextTick();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect((w1.vm as any).r.data.value).toBe(null);
+    w1.unmount();
+
+    // Remount — cache holds null, ttlMs has not expired, so no new fetch.
+    const w2 = mount(Comp);
+    await nextTick();
+    await Promise.resolve();
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect((w2.vm as any).r.data.value).toBe(null);
+    w2.unmount();
+  });
+
+  it('refresh() preserves the cache entry so other subscribers keep their refCount', async () => {
+    let n = 0;
+    const fetcher = vi.fn(async (_s: AbortSignal) => ({ n: ++n }));
+    const Comp = defineComponent({
+      setup() {
+        const r = useResource('shared', fetcher, { ttlMs: 60_000 });
+        return { r };
+      },
+      render: () => h('div'),
+    });
+    // Two subscribers of the same key.
+    const a = mount(Comp);
+    await nextTick();
+    await Promise.resolve();
+    await nextTick();
+    const b = mount(Comp);
+    await nextTick();
+    await Promise.resolve();
+
+    const cache = useCacheStore();
+    const refBefore = cache.peek('shared')?.refCount ?? 0;
+    expect(refBefore).toBeGreaterThanOrEqual(2);
+
+    // Refresh from one consumer — the other must keep its subscription.
+    await (a.vm as any).r.refresh();
+    await Promise.resolve();
+    await nextTick();
+
+    const entry = cache.peek('shared');
+    expect(entry).not.toBeNull();
+    expect(entry?.refCount).toBe(refBefore);
+    // And the value was actually re-fetched (n bumped).
+    expect((a.vm as any).r.data.value).toEqual({ n: 2 });
+
+    a.unmount();
+    b.unmount();
+  });
+});

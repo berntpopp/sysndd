@@ -66,10 +66,15 @@ export function useResource<T>(
     return null;
   });
 
-  function readFromCache(key: ResourceKey): { value: T | null; fresh: boolean } {
+  function readFromCache(key: ResourceKey): { hasEntry: boolean; value: T | null; fresh: boolean } {
     const entry = cache.peek<T>(key);
-    if (!entry || entry.fetchedAt === 0) return { value: null, fresh: false };
-    return { value: entry.value, fresh: !cache.isStale(key) };
+    // Distinguish "no resolved entry yet" from "entry resolved to null". A
+    // legitimate cached null (e.g. a 404 that the fetcher mapped to null) must
+    // be served as a hit so we don't re-fetch on every mount.
+    if (!entry || entry.fetchedAt === 0) {
+      return { hasEntry: false, value: null, fresh: false };
+    }
+    return { hasEntry: true, value: entry.value, fresh: !cache.isStale(key) };
   }
 
   async function doFetch(key: ResourceKey, force: boolean, background = false): Promise<void> {
@@ -137,8 +142,9 @@ export function useResource<T>(
       return;
     }
     cache.subscribe(key);
-    const { value, fresh } = readFromCache(key);
-    if (value !== null) {
+    const { hasEntry, value, fresh } = readFromCache(key);
+    if (hasEntry) {
+      // Cache hit (including legitimate cached null): serve it immediately.
       data.value = value;
       isStale.value = !fresh;
       if (!fresh && staleWhileRevalidate) {
@@ -153,9 +159,11 @@ export function useResource<T>(
 
   function refresh(): Promise<void> {
     if (activeKey === null) return Promise.resolve();
-    cache.invalidate(activeKey);
-    // Re-subscribe because invalidate dropped the entry (and its refCount).
-    cache.subscribe(activeKey);
+    // Force a fresh fetch without invalidating the entry — invalidate would
+    // drop refCount/pending/abortController for OTHER subscribers of the same
+    // key. doFetch(force=true) bypasses the existing-pending dedupe and the
+    // success path overwrites the cached value via cache.set() (which preserves
+    // refCount and lastAccessAt).
     return doFetch(activeKey, true);
   }
 

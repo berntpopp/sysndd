@@ -15,7 +15,7 @@ export function useEntityVariation(
   const key = computed<string | null>(() => (idRef.value ? `entity-var:${idRef.value}` : null));
   return useResource<unknown[]>(
     key,
-    async () => (await getEntityVariation(idRef.value!)) as unknown[],
+    async (signal) => (await getEntityVariation(idRef.value!, {}, { signal })) as unknown[],
     { ttlMs: 60_000 },
   );
 }

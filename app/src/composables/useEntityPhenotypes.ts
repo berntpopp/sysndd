@@ -15,7 +15,7 @@ export function useEntityPhenotypes(
   const key = computed<string | null>(() => (idRef.value ? `entity-pheno:${idRef.value}` : null));
   return useResource<unknown[]>(
     key,
-    async () => (await getEntityPhenotypes(idRef.value!)) as unknown[],
+    async (signal) => (await getEntityPhenotypes(idRef.value!, {}, { signal })) as unknown[],
     { ttlMs: 60_000 },
   );
 }

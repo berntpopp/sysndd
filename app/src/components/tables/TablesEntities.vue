@@ -307,6 +307,7 @@ let moduleLastApiParams = null;
 let moduleApiCallInProgress = false;
 let moduleLastApiCallTime = 0;
 let moduleLastApiResponse = null; // Cache last API response for remounted components
+let moduleInFlightPromise = null; // Shared promise so late subscribers can await it
 
 export default {
   name: 'TablesEntities',
@@ -686,8 +687,21 @@ export default {
         return;
       }
 
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+      // If a call with the same params is already in flight, share its promise
+      // instead of returning silently. Returning early left late subscribers
+      // stuck on `loading=true` forever because the cached-response branch
+      // above never fired for them and their own fetch was suppressed.
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
+        this.isBusy = true;
+        try {
+          const sharedData = await moduleInFlightPromise;
+          this.applyApiResponse(sharedData);
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        } finally {
+          this.isBusy = false;
+          this.loading = false;
+        }
         return;
       }
 
@@ -696,18 +710,22 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
+      const inFlight = listEntities({
+        sort: this.sort,
+        filter: this.filter_string,
+        page_after: this.currentItemID,
+        page_size: String(this.perPage),
+        // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
+        // so they don't need the global-fspec round-trip. Compact mode
+        // pushes the filter to SQL and skips the wasted fspec compute.
+        compact: !this.showFilterControls,
+      });
+      moduleInFlightPromise = inFlight;
+
       try {
-        const data = await listEntities({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: this.currentItemID,
-          page_size: String(this.perPage),
-          // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
-          // so they don't need the global-fspec round-trip. Compact mode
-          // pushes the filter to SQL and skips the wasted fspec compute.
-          compact: !this.showFilterControls,
-        });
+        const data = await inFlight;
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         // Cache response for remounted components
         moduleLastApiResponse = data;
         this.applyApiResponse(data);
@@ -719,6 +737,7 @@ export default {
         this.loading = false;
       } catch (e) {
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         this.makeToast(e, 'Error', 'danger');
         this.isBusy = false;
         this.loading = false;

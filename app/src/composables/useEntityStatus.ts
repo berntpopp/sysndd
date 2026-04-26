@@ -15,7 +15,7 @@ export function useEntityStatus(
   const key = computed<string | null>(() => (idRef.value ? `entity-status:${idRef.value}` : null));
   return useResource<unknown>(
     key,
-    async () => getEntityStatus(idRef.value!),
+    async (signal) => getEntityStatus(idRef.value!, { signal }),
     { ttlMs: 60_000 },
   );
 }

@@ -31,10 +31,11 @@ export function useEntityRecord(
   );
   return useResource<EntityRow | null>(
     key,
-    async () => {
-      const res = await listEntities({
-        filter: `equals(entity_id,${idRef.value})`,
-      });
+    async (signal) => {
+      const res = await listEntities(
+        { filter: `equals(entity_id,${idRef.value})` },
+        { signal },
+      );
       return res.data[0] ?? null;
     },
     { ttlMs: 60_000 },

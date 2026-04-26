@@ -15,7 +15,7 @@ export function useEntityReview(
   const key = computed<string | null>(() => (idRef.value ? `entity-review:${idRef.value}` : null));
   return useResource<unknown>(
     key,
-    async () => getEntityReview(idRef.value!),
+    async (signal) => getEntityReview(idRef.value!, { signal }),
     { ttlMs: 60_000 },
   );
 }

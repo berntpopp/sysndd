@@ -230,7 +230,7 @@
           <SectionCard
             :loading="publications.loading.value"
             :empty="!publications.loading.value && geneReviews.length === 0 && !publications.error.value"
-            :error="null"
+            :error="publications.error.value ? publications.error.value.message : null"
             title="Gene Reviews"
           >
             <BTable :items="genereviews_table" stacked small>

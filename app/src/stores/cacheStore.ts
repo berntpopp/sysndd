@@ -5,7 +5,9 @@
 //
 // Holds { value, fetchedAt, ttlMs, pending, abortController, refCount } per stable
 // URL key. LRU bounded at 64 entries; eviction skips entries with refCount > 0
-// because they are actively subscribed by a mounted component.
+// because they are actively subscribed by a mounted component. The `lastAccessAt`
+// field is updated on every peek/set/subscribe so eviction picks the genuinely
+// least-recently-used entry, not just the oldest insertion.
 
 import { defineStore } from 'pinia';
 
@@ -18,7 +20,8 @@ export interface CacheEntry<T = unknown> {
   pending: Promise<T> | null;   // in-flight fetch (shared across subscribers)
   abortController: AbortController | null;
   refCount: number;             // active subscribers
-  insertedAt: number;           // for LRU
+  insertedAt: number;           // first creation time (informational)
+  lastAccessAt: number;         // for true LRU eviction — touched on every read/write
 }
 
 interface CacheState {
@@ -32,7 +35,11 @@ export const useCacheStore = defineStore('cache', {
   }),
   actions: {
     peek<T>(key: string): CacheEntry<T> | null {
-      return (this.entries[key] as CacheEntry<T> | undefined) ?? null;
+      const entry = this.entries[key] as CacheEntry<T> | undefined;
+      if (!entry) return null;
+      // True LRU: every read counts as a touch.
+      entry.lastAccessAt = Date.now();
+      return entry;
     },
 
     isStale(key: string): boolean {
@@ -44,20 +51,23 @@ export const useCacheStore = defineStore('cache', {
 
     set<T>(key: string, value: T, ttlMs: number): void {
       const existing = this.entries[key];
+      const now = Date.now();
       this.entries[key] = {
         value,
-        fetchedAt: Date.now(),
+        fetchedAt: now,
         ttlMs,
         pending: null,
         abortController: null,
         refCount: existing?.refCount ?? 0,
-        insertedAt: existing?.insertedAt ?? Date.now(),
+        insertedAt: existing?.insertedAt ?? now,
+        lastAccessAt: now,
       };
       this.evictIfNeeded();
     },
 
     beginFetch<T>(key: string, promise: Promise<T>, abortController: AbortController): void {
       const existing = this.entries[key];
+      const now = Date.now();
       this.entries[key] = {
         value: existing?.value ?? null,
         fetchedAt: existing?.fetchedAt ?? 0,
@@ -65,7 +75,8 @@ export const useCacheStore = defineStore('cache', {
         pending: promise as unknown as Promise<unknown>,
         abortController,
         refCount: existing?.refCount ?? 0,
-        insertedAt: existing?.insertedAt ?? Date.now(),
+        insertedAt: existing?.insertedAt ?? now,
+        lastAccessAt: now,
       };
     },
 
@@ -78,6 +89,7 @@ export const useCacheStore = defineStore('cache', {
 
     subscribe(key: string): void {
       const existing = this.entries[key];
+      const now = Date.now();
       if (!existing) {
         // Pre-create a placeholder so refCount survives the first set/beginFetch.
         this.entries[key] = {
@@ -87,11 +99,13 @@ export const useCacheStore = defineStore('cache', {
           pending: null,
           abortController: null,
           refCount: 1,
-          insertedAt: Date.now(),
+          insertedAt: now,
+          lastAccessAt: now,
         };
         return;
       }
       existing.refCount += 1;
+      existing.lastAccessAt = now;
     },
 
     unsubscribe(key: string): void {
@@ -113,9 +127,10 @@ export const useCacheStore = defineStore('cache', {
     evictIfNeeded(): void {
       const keys = Object.keys(this.entries);
       if (keys.length <= MAX_ENTRIES) return;
-      // Sort by insertedAt ascending; evict oldest unpinned entry.
+      // True LRU: sort by lastAccessAt ascending; evict the
+      // least-recently-touched unpinned entry first.
       const sorted = keys
-        .map((k) => ({ k, t: this.entries[k].insertedAt, r: this.entries[k].refCount }))
+        .map((k) => ({ k, t: this.entries[k].lastAccessAt, r: this.entries[k].refCount }))
         .sort((a, b) => a.t - b.t);
       for (const { k, r } of sorted) {
         if (Object.keys(this.entries).length <= MAX_ENTRIES) break;

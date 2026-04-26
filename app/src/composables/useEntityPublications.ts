@@ -17,7 +17,7 @@ export function useEntityPublications(
   const key = computed<string | null>(() => (idRef.value ? `entity-pubs:${idRef.value}` : null));
   return useResource<unknown[]>(
     key,
-    async () => (await getEntityPublications(idRef.value!)) as unknown[],
+    async (signal) => (await getEntityPublications(idRef.value!, {}, { signal })) as unknown[],
     { ttlMs: 60_000 },
   );
 }

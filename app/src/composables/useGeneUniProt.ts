@@ -15,9 +15,9 @@ export function useGeneUniProt(
   const key = computed<string | null>(() => (symRef.value ? `uniprot:${symRef.value}` : null));
   return useResource<UniProtData | null>(
     key,
-    async () => {
+    async (signal) => {
       try {
-        const data = await getUniprotDomains(symRef.value!);
+        const data = await getUniprotDomains(symRef.value!, { signal });
         return data?.domains ? data : null;
       } catch (err) {
         if (isApiError(err) && err.response?.status === 404) return null;
