@@ -41,6 +41,14 @@ export interface ListGenesParams {
   page_after?: string;
   page_size?: string;
   fspec?: string;
+  /**
+   * When true, the server pushes the filter to SQL and skips the
+   * global-fspec computation. Use only for symbol-lookup-style callers
+   * (e.g. `/Genes/<symbol>` resolution); the main /Genes table page must
+   * leave this unset because the filter-dropdown facet counts depend on
+   * the global fspec. See `api/endpoints/gene_endpoints.R`.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -100,8 +108,16 @@ export async function listGenes(
   params: ListGenesParams = {},
   config?: AxiosRequestConfig,
 ): Promise<PaginatedGeneResponse> {
+  // The server accepts `true|1|yes` for the compact toggle. Serialize the
+  // boolean explicitly so axios emits `compact=true` (not `compact=true&...`
+  // with mixed casing or coercion surprises).
+  const { compact, ...rest } = params;
+  const wireParams: Record<string, unknown> = { ...rest };
+  if (compact) {
+    wireParams.compact = 'true';
+  }
   return apiClient.get<PaginatedGeneResponse>('/api/gene', {
     ...config,
-    params: { ...(config?.params as object | undefined), ...params },
+    params: { ...(config?.params as object | undefined), ...wireParams },
   });
 }

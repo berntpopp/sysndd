@@ -357,3 +357,148 @@ test_that("publication endpoint without filter returns full first page (regressi
 
   expect_gt(length(body$data), 0)
 })
+
+# =============================================================================
+# /api/gene/ — pre-pushdown baseline (default mode)
+# =============================================================================
+
+test_that("/api/gene/ returns the GRIN2B row when filtered by symbol", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data), 1L)
+  expect_true(any(vapply(body$data, function(r) r$symbol == "GRIN2B", logical(1L))))
+})
+
+test_that("/api/gene/ returns the GRIN2B row when filtered by hgnc_id", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(hgnc_id,HGNC:4586)") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_true(any(vapply(body$data, function(r) r$symbol == "GRIN2B", logical(1L))))
+})
+
+test_that("/api/gene/ default and compact modes return same data for GRIN2B (parity)", {
+  skip_if_api_not_running()
+  default_body <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)") %>%
+    req_perform() %>% resp_body_json()
+  compact_body <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  expect_equal(length(default_body$data), length(compact_body$data))
+  default_grin <- Filter(function(r) r$symbol == "GRIN2B", default_body$data)[[1L]]
+  compact_grin <- Filter(function(r) r$symbol == "GRIN2B", compact_body$data)[[1L]]
+  expect_equal(default_grin$entities_count, compact_grin$entities_count)
+})
+
+# =============================================================================
+# /api/gene/?compact=true — edge cases
+# =============================================================================
+
+test_that("/api/gene/?compact=true is case-insensitive (utf8mb3_general_ci)", {
+  skip_if_api_not_running()
+  upper <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  lower <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,grin2b)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  expect_equal(length(upper$data), length(lower$data))
+})
+
+test_that("/api/gene/?compact=true returns empty data for unknown symbol", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,DEFINITELY_NOT_REAL)", compact = "true") %>%
+    req_perform()
+  body <- resp_body_json(resp)
+  expect_equal(length(body$data), 0L)
+})
+
+test_that("/api/gene/?compact=true accepts composed and(equals(...),equals(...))", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "and(equals(symbol,GRIN2B),equals(category,Definitive))",
+                  compact = "true") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})
+
+test_that("/api/gene/?compact=true falls back to in-R when filter cannot be SQL-translated", {
+  skip_if_api_not_running()
+  # contains() with a substring may or may not translate to SQL via dbplyr.
+  # Whichever path is taken, the response should still be correct.
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "contains(symbol,GRIN)", compact = "true") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data), 1L)
+})
+
+# =============================================================================
+# /api/statistics/entities_over_time — pre-pushdown baseline
+# =============================================================================
+
+test_that("/api/statistics/entities_over_time returns aggregated counts (default)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(aggregate = "entity_id", group = "category", summarize = "year") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data %||% body), 1L)
+})
+
+test_that("/api/statistics/entities_over_time respects a category filter", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(
+      aggregate = "entity_id", group = "category", summarize = "year",
+      filter = "equals(category,Definitive)"
+    ) %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})
+
+test_that("/api/statistics/entities_over_time pushdown parity (filtered <= unfiltered)", {
+  skip_if_api_not_running()
+  unfiltered <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(aggregate = "entity_id", group = "category", summarize = "year") %>%
+    req_perform() %>% resp_body_json()
+  filtered <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(
+      aggregate = "entity_id", group = "category", summarize = "year",
+      filter = "equals(category,Definitive)"
+    ) %>%
+    req_perform() %>% resp_body_json()
+  expect_lte(length(filtered$data %||% filtered),
+             length(unfiltered$data %||% unfiltered))
+})
+
+# =============================================================================
+# /api/statistics/publication_stats — pre-pushdown baseline
+# =============================================================================
+
+test_that("/api/statistics/publication_stats returns aggregated stats (default)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/publication_stats") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_true(!is.null(body$publication_type_counts %||% body))
+})
+
+test_that("/api/statistics/publication_stats filter pushdown round-trip (Journal Article)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/publication_stats") %>%
+    req_url_query(filter = 'equals(publication_type,"Journal Article")') %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})

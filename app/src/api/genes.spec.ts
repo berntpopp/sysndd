@@ -168,6 +168,40 @@ describe('api/genes — typed helpers', () => {
       const envelope = await listGenes();
       expect(envelope).toHaveProperty('data');
     });
+
+    it('forwards compact=true when params.compact is set', async () => {
+      let observedQuery: URLSearchParams | null = null;
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQuery = new URL(request.url).searchParams;
+          return HttpResponse.json(geneListOk);
+        }),
+      );
+
+      await listGenes({ filter: 'equals(symbol,GRIN2B)', compact: true });
+
+      expect(observedQuery).not.toBeNull();
+      const q = observedQuery as unknown as URLSearchParams;
+      expect(q.get('compact')).toBe('true');
+      expect(q.get('filter')).toBe('equals(symbol,GRIN2B)');
+    });
+
+    it('omits compact entirely when params.compact is false or undefined', async () => {
+      const observedQueries: URLSearchParams[] = [];
+      server.use(
+        http.get('/api/gene', ({ request }) => {
+          observedQueries.push(new URL(request.url).searchParams);
+          return HttpResponse.json(geneListOk);
+        }),
+      );
+
+      await listGenes({ filter: 'equals(symbol,GRIN2B)' });
+      await listGenes({ filter: 'equals(symbol,GRIN2B)', compact: false });
+
+      expect(observedQueries).toHaveLength(2);
+      expect(observedQueries[0].has('compact')).toBe(false);
+      expect(observedQueries[1].has('compact')).toBe(false);
+    });
   });
 });
 

@@ -106,16 +106,34 @@ function(res,
 
   # Generate filter expressions
   filter_exprs <- generate_filter_expressions(filter)
+  has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
-  # Collect and filter data
-  entity_view_coll <- pool %>%
-    tbl("ndd_entity_view") %>%
-    collect()
+  # Push filter to SQL when present; aggregations stay post-collect.
+  entity_view_lazy <- pool %>% tbl("ndd_entity_view")
+  entity_view_coll <- if (has_text_filter) {
+    tryCatch(
+      entity_view_lazy %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[entities_over_time] SQL filter pushdown failed (%s); collecting full view",
+          conditionMessage(e)
+        ))
+        entity_view_lazy %>% collect()
+      }
+    )
+  } else {
+    entity_view_lazy %>% collect()
+  }
 
   # Log initial count for diagnostics
   initial_count <- nrow(entity_view_coll)
   log_debug("Entities over time: Initial entity_view count = {initial_count}")
 
+  # Filter is now already applied in SQL when fast-path succeeded; the in-R
+  # filter call below is a no-op fast-pass on the fast path, and the actual
+  # filter on the slow path. Keeping it unconditional simplifies the code.
   entity_view_filtered <- entity_view_coll %>%
     dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(entry_date, entity_id) %>%
@@ -450,12 +468,26 @@ function(req,
 
   # 1) Generate filter expressions from the user-provided 'filter' string
   filter_exprs <- generate_filter_expressions(filter)
+  has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
-  # 2) Collect from the publication table, then apply filter
-  publication_tbl <- pool %>%
-    tbl("publication") %>%
-    collect() %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  # 2) Push filter to SQL where possible; fall back to in-R if dbplyr can't translate.
+  publication_lazy <- pool %>% tbl("publication")
+  publication_tbl <- if (has_text_filter) {
+    tryCatch(
+      publication_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[publication_stats] SQL filter pushdown failed (%s); falling back to in-R filter",
+          conditionMessage(e)
+        ))
+        publication_lazy %>% collect() %>% filter(!!!rlang::parse_exprs(filter_exprs))
+      }
+    )
+  } else {
+    publication_lazy %>% collect()
+  }
 
   # 3) Aggregate counts for publication_type (no min count threshold)
   publication_type_counts <- publication_tbl %>%

@@ -152,3 +152,32 @@ the DB) to a new `test-integration-pagination.R` block:
    translate (e.g. injection of `if_any(...)` via crafted column name) and
    assert the warning is logged and the legacy in-R path produces the same
    answer it always did.
+
+---
+
+## Status snapshot (after 2026-04-29 follow-up plan)
+
+| Site | v11.3 status | Follow-up status | Notes |
+|---|---|---|---|
+| `entity_endpoints.R` | ✅ fixed (compact dual-path) | — | |
+| `publication_endpoints.R:252` (`/publication/`) | ✅ fixed (unconditional) | — | |
+| `publication_endpoints.R:418` (`/publication/pubtator/table`) | ✅ fixed (unconditional) | — | |
+| `re_review_endpoints.R:243` | ✅ fixed (unconditional) | — | |
+| `gene_endpoints.R:66` (`/gene/`) | — | ✅ fixed (compact dual-path) | Plan 2026-04-29 Phase A. Server-side path plumbed end-to-end; current frontend callers all use default mode (the main /Genes table needs the global fspec). Ready for opt-in by future single-symbol-list callers. |
+| `statistics_endpoints.R:113` (`entities_over_time`) | — | ✅ fixed (unconditional, with try/catch fallback) | Plan 2026-04-29 Phase B |
+| `statistics_endpoints.R:457` (`publication_stats`) | — | ✅ fixed (unconditional) | Plan 2026-04-29 Phase C |
+| `publication_endpoints.R:548` (`/publication/pubtator/genes`) | — | ⏸ deferred | Filter on computed fields; needs view refactor |
+| `user_endpoints.R:62/82` (`/user/table`) | — | ⏸ skipped | 62 rows, negligible |
+| `ontology_endpoints.R:127` (`/ontology/variant/table`) | — | ⏸ skipped | 495 rows, manual fspec, low cost |
+
+| Helper (Section 3) | Status | Notes |
+|---|---|---|
+| `endpoint-functions.R::generate_panels_list` | ✅ already pushed down | No action |
+| `endpoint-functions.R::generate_gene_news_tibble` | ✅ already pushed down | No action |
+| `endpoint-functions.R::generate_comparisons_list` | ⏸ deferred | Needs SQL view; separate plan |
+| `endpoint-functions.R::generate_phenotype_entities_list` | ⏸ deferred | `paste0` aggregate blocks naive pushdown |
+| `endpoint-functions.R::generate_variant_entities_list` | ⏸ deferred | Same shape as phenotype helper |
+
+Reference plans:
+- v11.3 work: `.planning/superpowers/plans/2026-04-26-v11.3-genes-entities-perf-ux-plan.md`
+- This work: `.planning/superpowers/plans/2026-04-29-filter-pushdown-followups-plan.md`
