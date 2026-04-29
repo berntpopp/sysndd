@@ -117,16 +117,24 @@ function(req,
       arrange(!!!rlang::parse_exprs(sort_exprs))
   }
 
-  # In compact mode the filtered set IS the working set, so global fspec ==
-  # filtered fspec. In default mode keep the two-pass split.
-  sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(
-    sysndd_db_genes_table,
-    fspec
-  )
+  # In compact mode the response represents the filtered set, so the fspec
+  # must be derived from the filtered tibble — both for the fast-path
+  # (where filtered IS the working set) AND for the in-R fallback path
+  # (where `sysndd_db_genes_table` is the full collected view but the
+  # response data is `sysndd_db_genes_table_filtered`). Otherwise the
+  # fallback path returns count_filtered = count(global), which is wrong.
   if (is_compact) {
+    sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(
+      sysndd_db_genes_table_filtered,
+      fspec
+    )
     sysndd_db_genes_table_fspec$fspec$count_filtered <-
       sysndd_db_genes_table_fspec$fspec$count
   } else {
+    sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(
+      sysndd_db_genes_table,
+      fspec
+    )
     sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(
       sysndd_db_genes_table_filtered,
       fspec
