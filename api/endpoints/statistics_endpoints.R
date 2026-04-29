@@ -468,12 +468,26 @@ function(req,
 
   # 1) Generate filter expressions from the user-provided 'filter' string
   filter_exprs <- generate_filter_expressions(filter)
+  has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
-  # 2) Collect from the publication table, then apply filter
-  publication_tbl <- pool %>%
-    tbl("publication") %>%
-    collect() %>%
-    filter(!!!rlang::parse_exprs(filter_exprs))
+  # 2) Push filter to SQL where possible; fall back to in-R if dbplyr can't translate.
+  publication_lazy <- pool %>% tbl("publication")
+  publication_tbl <- if (has_text_filter) {
+    tryCatch(
+      publication_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[publication_stats] SQL filter pushdown failed (%s); falling back to in-R filter",
+          conditionMessage(e)
+        ))
+        publication_lazy %>% collect() %>% filter(!!!rlang::parse_exprs(filter_exprs))
+      }
+    )
+  } else {
+    publication_lazy %>% collect()
+  }
 
   # 3) Aggregate counts for publication_type (no min count threshold)
   publication_type_counts <- publication_tbl %>%
