@@ -466,3 +466,18 @@ test_that("/api/statistics/entities_over_time respects a category filter", {
     req_perform()
   expect_equal(resp_status(resp), 200)
 })
+
+test_that("/api/statistics/entities_over_time pushdown parity (filtered <= unfiltered)", {
+  skip_if_api_not_running()
+  unfiltered <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(aggregate = "entity_id", group = "category", summarize = "year") %>%
+    req_perform() %>% resp_body_json()
+  filtered <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(
+      aggregate = "entity_id", group = "category", summarize = "year",
+      filter = "equals(category,Definitive)"
+    ) %>%
+    req_perform() %>% resp_body_json()
+  expect_lte(length(filtered$data %||% filtered),
+             length(unfiltered$data %||% unfiltered))
+})
