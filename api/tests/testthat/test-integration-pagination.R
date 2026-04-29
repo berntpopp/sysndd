@@ -441,3 +441,28 @@ test_that("/api/gene/?compact=true falls back to in-R when filter cannot be SQL-
   body <- resp_body_json(resp)
   expect_gte(length(body$data), 1L)
 })
+
+# =============================================================================
+# /api/statistics/entities_over_time — pre-pushdown baseline
+# =============================================================================
+
+test_that("/api/statistics/entities_over_time returns aggregated counts (default)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(aggregate = "entity_id", group = "category", summarize = "year") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data %||% body), 1L)
+})
+
+test_that("/api/statistics/entities_over_time respects a category filter", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/entities_over_time") %>%
+    req_url_query(
+      aggregate = "entity_id", group = "category", summarize = "year",
+      filter = "equals(category,Definitive)"
+    ) %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})
