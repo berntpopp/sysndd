@@ -413,3 +413,56 @@ PR for `feature/v11.2-monolith-cleanup` lands the three remaining items from v11
 ### Backlog (unchanged from v11.1)
 
 `#98` (replace VariO ontology), `#175`, `#105`, `#89`, `#55`, `#54`, `#48`, `#46`, `#37`, `#33`, `#32`, `#25`, `#22`, `#15`, `#14`.
+
+---
+
+## Status update (2026-04-29, post v11.3 PR #309 + 2026-04-29 perf PRs #313 #314)
+
+Three PRs landed since the v11.2 closeout above:
+
+| PR | Merged | Summary |
+|---|---|---|
+| #309 `feat(v11.3): genes/entities perf + UX overhaul` | 2026-04-26 | SWR composable layer (`useResource.ts` + Pinia `cacheStore`), per-source hooks (~12), section-card skeletons, hide-when-empty pattern, ClinVar above-fold split, SQL filter pushdown for entity/publication/re-review endpoints, Playwright perf+axe bench at `app/tests/perf/genes-entities.bench.spec.ts` |
+| #313 `feat(api): gnomAD chrX/Y/M constraint fallback via batched GraphQL` | 2026-04-29 | `api/functions/external-proxy-gnomad-batch.R` exposes `fetch_gnomad_constraints_batch()` with sentinel disk cache (30-day), alias-batched GraphQL (≤25/req), `httr2::req_perform_parallel(max_active = 5)`, `EXTERNAL_API_THROTTLE$gnomad` token bucket. Wired into `enrich_gnomad_constraints` Step 4/4. Job result lists gain `gnomad_fallback_recovered` / `gnomad_fallback_unresolved`. HGNC card idle copy fix |
+| #314 `perf(api): filter-pushdown follow-ups (gene + statistics endpoints)` | 2026-04-29 | Closes the v11.3 filter-pushdown audit (`.planning/perf/2026-04-27-filter-pushdown-audit.md`): dual-path compact mode for `GET /api/gene/`; unconditional pushdown for `GET /api/statistics/entities_over_time` and `GET /api/statistics/publication_stats`. All three guard with `tryCatch` fallback to in-R filter when dbplyr can't translate |
+
+Versions: api/version_spec.json + app/package.json bumped 0.14.0 → **0.16.0** (0.15.0 with #313, 0.16.0 with #314).
+
+### Findings updates
+
+| Finding | Status | Where |
+|---|---|---|
+| **P3.10** Browser-level regression coverage | ⚠️ LOCAL-ONLY (unchanged) | v11.3 added `app/tests/perf/genes-entities.bench.spec.ts` (perf+axe bench, local-only). No CI Playwright lane. |
+| **P2.7** Large frontend monoliths | ⚠️ NEW SURFACE | The three original monoliths stayed decomposed (`ManageUser.vue` 577, `ModifyEntity.vue` 552, `Review.vue` 521). Newly visible monoliths in `app/src/components/**` (not in the original review scope which was `app/src/views/**`): `analyses/AnalyseGeneClusters.vue` 1383, `gene/GeneStructurePlotWithVariants.vue` 1355, `analyses/NetworkVisualization.vue` 1237, `analyses/PubtatorNDDGenes.vue` 1221, `tables/TablesPhenotypes.vue` 1209, `tables/TablesLogs.vue` 1130, `analyses/PublicationsNDDTable.vue` 1073, `tables/TablesEntities.vue` 873. View-level: `views/curate/ManageReReview.vue` 1125, `views/UserView.vue` 933, `views/curate/ApproveUser.vue` 828. |
+| (new) **Filter-pushdown audit** | ✅ CLOSED | All three follow-up sites in #314 done; deferred items documented in `.planning/perf/2026-04-27-filter-pushdown-audit.md` status snapshot table |
+| (new) **gnomAD constraint coverage** | ✅ FIXED | ~700 chrX/Y/M genes (FMR1, MECP2, CDKL5, ATRX, KDM5C, …) that gnomAD's autosomal-only bulk TSV omits now backfill via the GraphQL fallback during HGNC update; results cached, sentinel-encoded "gene-not-found" responses won't re-fetch |
+
+### Test counts (host run)
+
+- Frontend Vitest: **110 spec files** (was 90 at v11.1; +20 from v11.3 SWR composables, per-source hooks, and the new `HgncAnnotationsCard.spec.ts` / `genes.spec.ts` additions in #313/#314).
+- R API testthat: **80 test files**. `make ci-local` reports 2289 PASS / 0 FAIL on master (snapshot from #313's pre-merge run).
+
+### What's next after 2026-04-29
+
+Most v11.2 carry-forward items remain. Newly surfaced or re-prioritized:
+
+1. **Component-level monoliths** in `analyses/`, `gene/`, `tables/` — the v11.1 / v11.2 decomposition pattern (composable extraction → orchestration shell) applies. `AnalyseGeneClusters.vue`, `GeneStructurePlotWithVariants.vue`, `NetworkVisualization.vue` are the largest; each mixes data fetching, visualization config, and UI concerns. `TablesPhenotypes.vue` and `TablesLogs.vue` are the cleanest extraction candidates because the table pattern is well understood.
+2. **`views/curate/ManageReReview.vue`** has crept back to 1125 LoC (+41 since v11.2 closeout's 1084) — schedule the W3 follow-up that was deferred in v11.2 item §2.10.
+3. **`apiClient.raw.*` → typed-client adoption** in the new W1/W2 composables (`useUserData`, `useUserMutations`, `useBulkUserActions`, `useEntityMutations`) and the v11.3 SWR per-source hooks — if any of those bypass the typed `app/src/api/*.ts` clients they should be flipped before the typed surface area drifts.
+4. **Filter-pushdown deferred items** (per audit doc) when their blockers lift:
+   - `/publication/pubtator/genes` — needs DB view that exposes `is_novel` and `entities_count` so the filter can be pushed.
+   - `endpoint-functions.R::generate_comparisons_list` — needs SQL view replacing the post-collect pivot.
+   - `generate_phenotype_entities_list` / `generate_variant_entities_list` — blocked by `paste0(collapse=",")` aggregates; would need `GROUP_CONCAT` in a view.
+5. **gnomAD batch live integration** — `api/tests/testthat/test-integration-gnomad-batch.R` is env-gated by `RUN_GNOMAD_INTEGRATION=1`. Run it on a schedule (or before each release) to detect upstream GraphQL schema drift early. A monthly nightly job would catch the 30-day disk-cache TTL boundary.
+6. **`/api/gene/?compact=true` opt-in** — the server-side path is plumbed but no current frontend caller flips it; the only `listGenes()` consumer (`TablesGenes.vue:698`) needs default mode for facet counts. Future single-symbol resolvers (typeahead, programmatic lookup) should pass `compact: true`.
+
+### Forward-looking (carried forward)
+
+7. **Redis queue + heavy/light worker split** (originally #154) — durable-jobs MVP in production; queue/worker split is the layered next step.
+8. **`make playwright-stack` automation in CI** — manual after v11.1's lean-CI choice. Re-introduce as `workflow_dispatch` lane if E2E coverage in CI becomes valuable. v11.3's perf bench is in the same boat.
+9. **GHA Node 24 forced rollout** — June 2026 deadline; nothing newer than v11.1 needs sweeping yet.
+10. **Drop `'unsafe-eval'` from CSP** — full close of #299. Unchanged from v11.1.
+
+### Backlog (unchanged)
+
+`#98` (replace VariO ontology), `#175`, `#105`, `#89`, `#55`, `#54`, `#48`, `#46`, `#37`, `#33`, `#32`, `#25`, `#22`, `#15`, `#14`. Open dependabot PRs at time of writing: `#311` (npm dev-deps), `#312` (Docker base image), `#315` (npm production minor/patch).
