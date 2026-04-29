@@ -27,7 +27,7 @@
 
     <JobProgressDisplay
       :job="hgncJob"
-      idle-message="Downloading HGNC data and enriching with gnomAD constraints (this may take hours on first run)..."
+      idle-message="Downloading HGNC data; enriching with gnomAD constraints, AlphaFold IDs, and Ensembl coordinates. Typically a few minutes."
     />
   </BCard>
 </template>
