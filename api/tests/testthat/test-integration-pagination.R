@@ -494,3 +494,11 @@ test_that("/api/statistics/publication_stats returns aggregated stats (default)"
   body <- resp_body_json(resp)
   expect_true(!is.null(body$publication_type_counts %||% body))
 })
+
+test_that("/api/statistics/publication_stats filter pushdown round-trip (Journal Article)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/publication_stats") %>%
+    req_url_query(filter = 'equals(publication_type,"Journal Article")') %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})
