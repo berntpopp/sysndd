@@ -34,3 +34,35 @@ GNOMAD_BATCH_MAX_PER_REQUEST <- 25L
 # gnomAD GraphQL endpoint. The ?raw query bypasses the GraphiQL HTML wrapper that
 # would otherwise be served when the Accept header does not survive a proxy.
 GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
+
+#' Build an aliased GraphQL query for ≤25 gene constraint lookups
+#' @noRd
+.build_aliased_constraint_query <- function(symbols) {
+  if (length(symbols) == 0L) return(NULL)
+  if (length(symbols) > GNOMAD_BATCH_MAX_PER_REQUEST) {
+    stop(sprintf(
+      "[gnomad-batch] internal error: builder called with %d symbols (max %d). The caller should chunk before calling.",
+      length(symbols), GNOMAD_BATCH_MAX_PER_REQUEST
+    ))
+  }
+  valid_mask <- vapply(symbols, validate_gene_symbol, logical(1L), USE.NAMES = FALSE)
+  if (any(!valid_mask)) {
+    warning(sprintf(
+      "[gnomad-batch] filtered %d invalid symbols from query (will be returned as NA): %s",
+      sum(!valid_mask),
+      paste(shQuote(symbols[!valid_mask]), collapse = ", ")
+    ), call. = FALSE)
+  }
+  valid_syms <- symbols[valid_mask]
+  if (length(valid_syms) == 0L) return(NULL)
+
+  field_block <- paste(GNOMAD_BATCH_FIELDS, collapse = " ")
+  parts <- vapply(seq_along(valid_syms), function(i) {
+    sprintf(
+      'g%d: gene(gene_symbol: "%s", reference_genome: GRCh38) { gnomad_constraint { %s } }',
+      i - 1L, valid_syms[i], field_block
+    )
+  }, character(1L), USE.NAMES = FALSE)
+
+  paste0("query Batch { ", paste(parts, collapse = " "), " }")
+}
