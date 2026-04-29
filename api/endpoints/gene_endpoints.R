@@ -34,6 +34,12 @@
 #* @param page_size Size of the page for pagination.
 #* @param fspec Field specifications for meta data response.
 #* @param format The output format (e.g., "json" or "xlsx").
+#* @param compact:bool When true, push the filter to SQL where possible and
+#*   skip the global-fspec computation (only the filtered-set fspec is
+#*   computed). Use for lookup-style queries (symbol-by-symbol resolution,
+#*   `/Genes/<symbol>` page loads). Leave false for the main /Genes table
+#*   page where the global fspec drives the filter-dropdown facet counts.
+#*   Default false.
 #*
 #* @response 200 OK. Returns the filtered and paginated list of genes.
 #*
@@ -46,7 +52,8 @@ function(req,
          `page_after` = "0",
          `page_size` = "10",
          fspec = "symbol,category,hpo_mode_of_inheritance_term_name,ndd_phenotype_word,entities_count,details",
-         format = "json") {
+         format = "json",
+         compact = "false") {
   # Set serializers
   res$serializer <- serializers[[format]]
 
@@ -58,6 +65,13 @@ function(req,
 
   # Generate filter expression
   filter_exprs <- generate_filter_expressions(filter)
+
+  is_compact <- isTRUE(tolower(as.character(compact[[1]])) %in% c("true", "1", "yes"))
+
+  # The SQL pushdown is only safe for filters made entirely of expressions
+  # that dbplyr can translate. We try-catch the fast path and fall back to
+  # the in-R loop on any translation error.
+  has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
   # Get data from database and filter
   sysndd_db_genes_table <- pool %>%
