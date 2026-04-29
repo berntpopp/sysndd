@@ -340,6 +340,10 @@ describe("fetch_gnomad_constraints_batch", {
     expect_equal(cache$get(.gnomad_batch_cache_key("MISS")), "__GNOMAD_NA__")
   })
 
+  it("does not collide HLA-B and HLAB cache keys", {
+    expect_false(.gnomad_batch_cache_key("HLA-B") == .gnomad_batch_cache_key("HLAB"))
+  })
+
   it("does NOT cache results from a transport-failed batch", {
     cache <- make_mem_cache()
     httr2::with_mocked_responses(

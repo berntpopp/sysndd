@@ -11,23 +11,27 @@ require(jsonlite)
 # never a valid JSON-object response so it's safe as a tag.
 GNOMAD_BATCH_NA_SENTINEL <- "__GNOMAD_NA__"
 
-# Cache key namespace. Bumping the suffix is a clean way to invalidate after a JSON-shape change.
-# cachem (cache_disk / cache_mem) only accepts keys matching ^[a-z0-9]+$, so we keep this
-# prefix lowercase-alphanumeric (no `::` separator) and likewise sanitise the per-symbol
-# tail with `.gnomad_batch_cache_key()`.
-GNOMAD_BATCH_CACHE_PREFIX <- "gnomadconstraintv1"
+# Cache key namespace. Bumping the trailing version (e.g. v1 -> v2) is a clean way
+# to invalidate after a JSON-shape change. cachem (cache_disk / cache_mem) accepts
+# keys matching ^[a-z0-9_-]+$ — lowercase letters, digits, underscore, and hyphen
+# are all valid (despite the misleading "Only lowercase letters and numbers are
+# allowed" error message). The trailing underscore makes the per-symbol tail visually
+# separable in cache filenames (e.g. `gnomad_constraint_v1_hla-b`).
+GNOMAD_BATCH_CACHE_PREFIX <- "gnomad_constraint_v1_"
 
 #' Build a cachem-compatible key for a single gene symbol.
 #'
-#' cachem keys must match `^[a-z0-9]+$`. Most HGNC symbols are alphanumeric but some
-#' contain hyphens (e.g. HLA-B) or other punctuation; we lowercase and strip every
-#' non-alphanumeric character. Collisions across distinct sanitised symbols are
-#' acceptable in practice — the cache value is a JSON blob that the caller never
-#' relies on by symbol identity (the named vector returned to the caller comes from
-#' the GraphQL response, not from cache key lookup).
+#' cachem keys must match `^[a-z0-9_-]+$`. HGNC symbols are alphanumeric or contain
+#' hyphens (HLA-B, HLA-DRB1); both lowercase letters and hyphens are cachem-valid,
+#' so we only need to lowercase to preserve `HLA-B` ≠ `HLAB`. Any other punctuation
+#' (apostrophes, slashes, etc — not present in real HGNC symbols but defensive
+#' against bad input) is replaced with `_` to keep the key unique and avoid silent
+#' collisions across distinct sanitised symbols.
 #' @noRd
 .gnomad_batch_cache_key <- function(symbol) {
-  paste0(GNOMAD_BATCH_CACHE_PREFIX, gsub("[^a-z0-9]", "", tolower(symbol)))
+  normalised <- tolower(symbol)
+  normalised <- gsub("[^a-z0-9_-]", "_", normalised)
+  paste0(GNOMAD_BATCH_CACHE_PREFIX, normalised)
 }
 
 # 19 fields the bulk pipeline emits. Keep this list aligned with
