@@ -357,3 +357,42 @@ test_that("publication endpoint without filter returns full first page (regressi
 
   expect_gt(length(body$data), 0)
 })
+
+# =============================================================================
+# /api/gene/ — pre-pushdown baseline (default mode)
+# =============================================================================
+
+test_that("/api/gene/ returns the GRIN2B row when filtered by symbol", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data), 1L)
+  expect_true(any(vapply(body$data, function(r) r$symbol == "GRIN2B", logical(1L))))
+})
+
+test_that("/api/gene/ returns the GRIN2B row when filtered by hgnc_id", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(hgnc_id,HGNC:4586)") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_true(any(vapply(body$data, function(r) r$symbol == "GRIN2B", logical(1L))))
+})
+
+test_that("/api/gene/ default and compact modes return same data for GRIN2B (parity)", {
+  skip_if_api_not_running()
+  default_body <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)") %>%
+    req_perform() %>% resp_body_json()
+  compact_body <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  expect_equal(length(default_body$data), length(compact_body$data))
+  default_grin <- Filter(function(r) r$symbol == "GRIN2B", default_body$data)[[1L]]
+  compact_grin <- Filter(function(r) r$symbol == "GRIN2B", compact_body$data)[[1L]]
+  expect_equal(default_grin$entities_count, compact_grin$entities_count)
+})
