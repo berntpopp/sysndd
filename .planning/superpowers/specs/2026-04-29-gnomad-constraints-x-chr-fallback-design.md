@@ -60,10 +60,11 @@ Private helpers (also in the new file):
 
 ### 3.2 Caching
 
-- Cache backend: existing `cache_static` (filesystem, 30-day TTL). Same store the per-user `fetch_gnomad_constraints_mem` already uses, so a user lookup that already cached MECP2 will give us a cache hit during the bulk pipeline, and vice versa.
+- Cache backend: existing `cache_static` (filesystem, 30-day TTL) — same `cachem` store used by `fetch_gnomad_constraints_mem`, but a **separate keyspace**.
 - Cache key: `gnomad_constraint_v1::<UPPERCASE_SYMBOL>`. The `_v1` prefix lets us bump and invalidate cleanly when the JSON shape changes.
 - Cache value: the JSON string we'd return, OR a sentinel for NA. Sentinel choice: literal string `"__GNOMAD_NA__"`. We chose a sentinel rather than caching `NA_character_` directly because the `cachem`/`memoise` filesystem cache treats `NULL` and missing key identically, and we need to distinguish "we asked, gnomAD said no" from "we never asked". The sentinel is decoded back to `NA_character_` on read.
 - The cache is consulted on every call. Misses are batched. Successful and "Gene not found" results are both written back. Batches that failed transport-level write **nothing** back (so a transient gnomAD outage doesn't poison the cache for 30 days).
+- **Cross-pollination with `fetch_gnomad_constraints_mem` is explicitly NOT a goal of this work.** That memoised wrapper is keyed by `memoise`'s function-arg hash and stores the structured-list shape `fetch_gnomad_constraints` returns, not the JSON-string-or-sentinel shape we use here. Trying to share keys would force shape conversion on every read. Future cleanup could refactor the per-gene path to use the same JSON-string shape, but that's a separate change with broader callers (the `/api/external/gnomad/constraints/<symbol>` endpoint), out of scope here.
 
 ### 3.3 Network layer
 
@@ -100,14 +101,19 @@ The function silently no-ops when `length(missing_symbols) == 0` (e.g. a future 
 
 ### 3.6 Job result metrics
 
-Edit: `.async_job_run_hgnc_update` in `api/functions/async-job-handlers.R`. Augment its return value (currently `list(rows_processed, columns_written, db_write_completed_at)`) with two new keys:
+There are **two parallel HGNC-update job paths** in this codebase, both of which need the metrics so the user-facing UI sees them regardless of which path runs:
+
+1. **The user-facing admin path** at `api/endpoints/jobs_endpoints.R:652-779` — uses `create_job(operation = "hgnc_update", executor_fn = function(params) { ... })` with the executor inlined into the endpoint. This is what the "Update HGNC Data" button actually invokes today. Its `executor_fn` returns `list(status, rows_processed, columns_written, columns_dropped, message)` at line 771-777.
+2. **The durable-worker handler** at `api/functions/async-job-handlers.R:270` — `.async_job_run_hgnc_update` registered in the dispatch table at lines 775-777 (`hgnc_update = list(run = .async_job_run_hgnc_update, ...)`). This path is exercised by the durable async-job worker (the queue-based path that survives API restarts).
+
+Both return a result list that ends up in the `jobs.result` column of the durable `jobs` table and surfaces in the job-history detail view. **Augment both** with the same two new keys:
 
 - `gnomad_fallback_recovered`: integer count, M from §3.4 step 5
 - `gnomad_fallback_unresolved`: integer count, K from §3.4 step 5
 
-These flow into `jobs.result` (the durable job table) and surface in the job-history detail view automatically. They're informational, not asserted on.
+To pass the counts from `enrich_gnomad_constraints` up to either job handler without reshaping the existing public signature: add a new internal companion `enrich_gnomad_constraints_with_metrics(...)` that wraps the existing function and returns `list(tibble = …, fallback_recovered = M, fallback_unresolved = K)`. The existing public `enrich_gnomad_constraints` keeps its (tibble-in, tibble-out) signature so any other callers and unit-test fixtures don't move. Both job paths call the metrics-returning variant.
 
-To pass the counts from `enrich_gnomad_constraints` up to the job handler: return a list `list(tibble = …, fallback_recovered = M, fallback_unresolved = K)` from a new internal companion `enrich_gnomad_constraints_with_metrics` that wraps the existing function. The existing public `enrich_gnomad_constraints` keeps its (tibble-in, tibble-out) signature. The async handler calls the metrics-returning variant.
+These metrics are informational only — not asserted on, not surfaced in the card UI. They appear in the job-history row's expandable detail / job-result JSON.
 
 Naming note: "unresolved" rather than "failed" because the count includes both transport failures (transient) and clean negatives (gene genuinely unknown to gnomAD — most cases). The cache distinguishes the two internally so re-running won't repeatedly hit gnomAD for confirmed-unknown symbols.
 
@@ -126,6 +132,14 @@ Downloading HGNC data; enriching with gnomAD constraints, AlphaFold IDs, and Ens
 ```
 
 (The "may take hours on first run" claim was true before the v11.x bulk-TSV switch; it has been stale ever since.) No structural changes to the card.
+
+### 3.8 Worker daemon registration
+
+The mirai worker daemons that execute async jobs do **not** auto-source the `api/functions/` directory. They source a hand-picked file list defined in `api/bootstrap/setup_workers.R` (around line 80-120). The HGNC update pipeline runs in a worker daemon, so any helper it depends on must be in this list or it'll fail with "could not find function" at job-execution time, not at API startup.
+
+Required edit: `api/bootstrap/setup_workers.R` — add `source("/app/functions/external-proxy-gnomad-batch.R", local = FALSE)` immediately after the existing `source(".../external-proxy-gnomad.R", ...)` line. Order matters: `external-proxy-gnomad-batch.R` depends on `cache_static` from `external-proxy-functions.R` (already sourced earlier in the file) and on `validate_gene_symbol` from the same.
+
+This is also where the `api/start_sysndd_api.R` source order discipline applies: the new file's load order must respect the existing convention (functions before services before endpoints), but since this is a function-layer file it slots cleanly into the `functions/*` block. Web API process gets the file via the existing `start_sysndd_api.R` glob over `api/functions/*.R`; only the worker bootstrap needs an explicit add.
 
 ## 4. Data flow
 
@@ -151,6 +165,7 @@ update_process_hgnc_data (mirai async job)
 | Scenario | Behaviour |
 |---|---|
 | HGNC has zero NA rows after bulk | Fallback step is a no-op. Counts both 0. |
+| Input symbol fails `validate_gene_symbol` (apostrophe, special char, empty) | Filtered out before any HTTP request. Returns `NA_character_` for that symbol. Single warning log line listing all filtered symbols. **Does not stop the HGNC update** — one rogue symbol from upstream HGNC shouldn't fail the pipeline. |
 | GraphQL says "Gene not found" for one symbol in a batch | That symbol gets `NA_character_`. Cached as NA-sentinel. Other 24 in batch unaffected. |
 | GraphQL response has gene but `gnomad_constraint` is null (non-coding, etc.) | Same as above — NA, cached as NA-sentinel. |
 | HTTP 429 / 503 / 504 on a batch | `req_retry` handles up to 3 attempts. If all fail → batch-level failure (next row). |
@@ -166,7 +181,7 @@ update_process_hgnc_data (mirai async job)
 
 `api/tests/testthat/test-unit-gnomad-batch.R` (new file):
 
-1. `.build_aliased_constraint_query` produces well-formed GraphQL with one alias per input. Empty input → empty query body. Symbols with apostrophes/special chars are rejected/escaped (or, more cleanly, the function asserts via `validate_gene_symbol` on each input and stops with a clear error). Reuses `validate_gene_symbol` from `external-proxy-functions.R` for consistency.
+1. `.build_aliased_constraint_query` produces well-formed GraphQL with one alias per input symbol that passes `validate_gene_symbol(...)`. Empty input → empty query body. **Invalid symbols (apostrophe, special chars, empty) are silently filtered out at this layer**, not stopped on, because they entered via HGNC and one rogue symbol must not fail the whole HGNC update. The filtered-out symbols return `NA_character_` in the public `fetch_gnomad_constraints_batch` output, with a single warning log line listing them. This matches the soft-fail posture from §5. Tests: an input vector containing one valid symbol, one with an apostrophe, one empty string → query body has exactly one alias; output vector has length 3, names match input, two are NA.
 2. `.parse_batched_constraint_response` covers:
    - All-success — every alias has a constraint object → all JSON.
    - Partial null — alias `g3` has `gene` but `gnomad_constraint = null` → that symbol NA, others OK.
