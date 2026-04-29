@@ -73,31 +73,67 @@ function(req,
   # the in-R loop on any translation error.
   has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
-  # Get data from database and filter
-  sysndd_db_genes_table <- pool %>%
+  ndd_entity_view_lazy <- pool %>%
     tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
-    collect() %>%
-    group_by(symbol) %>%
-    mutate(entities_count = n()) %>%
-    ungroup()
+    arrange(entity_id)
 
-  # Apply filters and sorting
-  sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
-    filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-    arrange(!!!rlang::parse_exprs(sort_exprs))
+  # Fast path: compact + a text filter present → push the filter to SQL,
+  # then compute entities_count on the (small) filtered set in R. This avoids
+  # the global view collect (~4 200 rows) for lookup-style queries.
+  fast_path_filtered <- NULL
+  if (is_compact && has_text_filter) {
+    fast_path_filtered <- tryCatch(
+      ndd_entity_view_lazy %>%
+        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect() %>%
+        group_by(symbol) %>%
+        mutate(entities_count = n()) %>%
+        ungroup(),
+      error = function(e) {
+        message(sprintf(
+          "[gene-list] SQL filter pushdown failed (%s); falling back to in-R filter",
+          conditionMessage(e)
+        ))
+        NULL
+      }
+    )
+  }
 
-  # Field specs
+  if (!is.null(fast_path_filtered)) {
+    sysndd_db_genes_table <- fast_path_filtered
+    sysndd_db_genes_table_filtered <- fast_path_filtered %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs))
+  } else {
+    # Default path: collect global view, then group/filter in R. Required for
+    # the main /Genes table page where the global fspec drives the
+    # filter-dropdown facet counts ("X of Y").
+    sysndd_db_genes_table <- ndd_entity_view_lazy %>%
+      collect() %>%
+      group_by(symbol) %>%
+      mutate(entities_count = n()) %>%
+      ungroup()
+    sysndd_db_genes_table_filtered <- sysndd_db_genes_table %>%
+      filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+      arrange(!!!rlang::parse_exprs(sort_exprs))
+  }
+
+  # In compact mode the filtered set IS the working set, so global fspec ==
+  # filtered fspec. In default mode keep the two-pass split.
   sysndd_db_genes_table_fspec <- generate_tibble_fspec_mem(
     sysndd_db_genes_table,
     fspec
   )
-  sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(
-    sysndd_db_genes_table_filtered,
-    fspec
-  )
-  sysndd_db_genes_table_fspec$fspec$count_filtered <-
-    sysndd_db_genes_table_filtered_fspec$fspec$count
+  if (is_compact) {
+    sysndd_db_genes_table_fspec$fspec$count_filtered <-
+      sysndd_db_genes_table_fspec$fspec$count
+  } else {
+    sysndd_db_genes_table_filtered_fspec <- generate_tibble_fspec_mem(
+      sysndd_db_genes_table_filtered,
+      fspec
+    )
+    sysndd_db_genes_table_fspec$fspec$count_filtered <-
+      sysndd_db_genes_table_filtered_fspec$fspec$count
+  }
 
   # Nest data
   sysndd_db_genes_nested <- nest_gene_tibble_mem(sysndd_db_genes_table_filtered)
