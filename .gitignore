@@ -29,3 +29,6 @@ __pycache__/
 
 # Parallel worktree workflow (v11.0+ phase worktrees)
 /worktrees/
+
+# git worktrees (created by superpowers workflow)
+.worktrees/
