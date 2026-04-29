@@ -121,3 +121,73 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
 
   setNames(out, symbols)
 }
+
+#' Fire one POST to the gnomAD GraphQL endpoint for ≤25 symbols
+#'
+#' @param symbols Character vector, length ≤ GNOMAD_BATCH_MAX_PER_REQUEST.
+#' @return Named character vector of length `length(symbols)`, names equal to `symbols`.
+#'   Every element is either a JSON string or `NA_character_`. Network/parse failures
+#'   surface as all-NA with a warning (no error thrown — the caller treats batch failures
+#'   as non-fatal per spec §5).
+#' @noRd
+.fetch_gnomad_constraints_chunk <- function(symbols) {
+  if (length(symbols) == 0L) {
+    return(setNames(character(0), character(0)))
+  }
+  query_body <- .build_aliased_constraint_query(symbols)
+  if (is.null(query_body)) {
+    # Every symbol was invalid; .build_aliased_constraint_query already warned.
+    return(setNames(rep(NA_character_, length(symbols)), symbols))
+  }
+
+  req <- httr2::request(GNOMAD_BATCH_ENDPOINT) |>
+    httr2::req_method("POST") |>
+    httr2::req_headers("Content-Type" = "application/json", "Accept" = "application/json") |>
+    httr2::req_body_json(list(query = query_body)) |>
+    httr2::req_timeout(30) |>
+    httr2::req_retry(
+      max_tries = 3L,
+      max_seconds = 30L,
+      is_transient = function(resp) httr2::resp_status(resp) %in% c(429L, 503L, 504L)
+    ) |>
+    httr2::req_error(is_error = function(resp) FALSE) # handle errors manually
+
+  resp <- tryCatch(
+    httr2::req_perform(req),
+    error = function(e) {
+      warning(sprintf(
+        "[gnomad-batch] transport error for batch of %d symbols (%s..): %s",
+        length(symbols), symbols[1L], conditionMessage(e)
+      ), call. = FALSE)
+      return(NULL)
+    }
+  )
+  if (is.null(resp)) {
+    return(setNames(rep(NA_character_, length(symbols)), symbols))
+  }
+
+  status <- httr2::resp_status(resp)
+  if (status != 200L) {
+    warning(sprintf(
+      "[gnomad-batch] HTTP %d for batch of %d symbols (%s..)",
+      status, length(symbols), symbols[1L]
+    ), call. = FALSE)
+    return(setNames(rep(NA_character_, length(symbols)), symbols))
+  }
+
+  parsed <- tryCatch(
+    httr2::resp_body_json(resp),
+    error = function(e) {
+      warning(sprintf(
+        "[gnomad-batch] could not parse json response for batch of %d symbols (%s..): %s",
+        length(symbols), symbols[1L], conditionMessage(e)
+      ), call. = FALSE)
+      return(NULL)
+    }
+  )
+  if (is.null(parsed)) {
+    return(setNames(rep(NA_character_, length(symbols)), symbols))
+  }
+
+  .parse_batched_constraint_response(parsed, symbols)
+}

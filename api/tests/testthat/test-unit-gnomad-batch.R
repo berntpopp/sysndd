@@ -148,3 +148,67 @@ describe(".parse_batched_constraint_response", {
     expect_true(is.null(parsed$oe_lof) || is.na(parsed$oe_lof))
   })
 })
+
+describe(".fetch_gnomad_constraints_chunk", {
+  it("returns named char vec on a 200 response with all aliases populated", {
+    body <- jsonlite::toJSON(list(
+      data = setNames(
+        lapply(seq_len(2), function(i) list(gnomad_constraint = list(
+          pLI = 0.99, oe_lof = 0.1, oe_lof_lower = 0.05, oe_lof_upper = 0.2,
+          oe_mis = 1, oe_mis_lower = 0.9, oe_mis_upper = 1.1,
+          oe_syn = 1, oe_syn_lower = 0.9, oe_syn_upper = 1.1,
+          exp_lof = 50, obs_lof = 5, exp_mis = 500, obs_mis = 500,
+          exp_syn = 200, obs_syn = 200, lof_z = 3.5, mis_z = 0, syn_z = 0
+        ))),
+        c("g0", "g1")
+      )
+    ), auto_unbox = TRUE)
+
+    httr2::with_mocked_responses(
+      # Local httr2 requires raw body in response() and a function/list mock; plan used
+      # string body and bare response. Wrap body via charToRaw and mock as function.
+      mock = function(req) httr2::response(status_code = 200L, body = charToRaw(body), headers = list("content-type" = "application/json")),
+      {
+        out <- .fetch_gnomad_constraints_chunk(c("MECP2", "CDKL5"))
+        expect_named(out, c("MECP2", "CDKL5"))
+        expect_false(any(is.na(out)))
+      }
+    )
+  })
+
+  it("returns all-NA on a 500 response, with a warning", {
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(status_code = 500L, body = charToRaw('{"error":"oops"}')),
+      {
+        expect_warning(
+          out <- .fetch_gnomad_constraints_chunk(c("MECP2", "CDKL5")),
+          # Escape brackets — bare `[gnomad-batch]` is read as a char-class with invalid range.
+          "\\[gnomad-batch\\].*HTTP",
+          ignore.case = TRUE
+        )
+        expect_named(out, c("MECP2", "CDKL5"))
+        expect_true(all(is.na(out)))
+      }
+    )
+  })
+
+  it("returns all-NA on an unparseable body, with a warning", {
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(status_code = 200L, body = charToRaw("<html>not json</html>")),
+      {
+        expect_warning(
+          out <- .fetch_gnomad_constraints_chunk(c("MECP2", "CDKL5")),
+          "\\[gnomad-batch\\].*(parse|json)",
+          ignore.case = TRUE
+        )
+        expect_true(all(is.na(out)))
+      }
+    )
+  })
+
+  it("returns empty named char vec for empty input without firing a request", {
+    # If a request fires under empty input, the mock's absence will cause an error.
+    out <- .fetch_gnomad_constraints_chunk(character(0))
+    expect_length(out, 0L)
+  })
+})
