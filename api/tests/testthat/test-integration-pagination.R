@@ -481,3 +481,16 @@ test_that("/api/statistics/entities_over_time pushdown parity (filtered <= unfil
   expect_lte(length(filtered$data %||% filtered),
              length(unfiltered$data %||% unfiltered))
 })
+
+# =============================================================================
+# /api/statistics/publication_stats — pre-pushdown baseline
+# =============================================================================
+
+test_that("/api/statistics/publication_stats returns aggregated stats (default)", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/statistics/publication_stats") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_true(!is.null(body$publication_type_counts %||% body))
+})
