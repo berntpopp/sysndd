@@ -773,6 +773,12 @@ function(req, res) {
         rows_processed = nrow(hgnc_data),
         columns_written = ncol(hgnc_data),
         columns_dropped = length(extra_cols),
+        gnomad_fallback_recovered = as.integer(
+          attr(hgnc_data, "fallback_recovered", exact = TRUE) %||% 0L
+        ),
+        gnomad_fallback_unresolved = as.integer(
+          attr(hgnc_data, "fallback_unresolved", exact = TRUE) %||% 0L
+        ),
         message = "HGNC data updated and written to database successfully"
       )
     }

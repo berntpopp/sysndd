@@ -263,7 +263,13 @@
   list(
     rows_processed = nrow(hgnc_data),
     columns_written = ncol(hgnc_data),
-    columns_dropped = length(extra_cols)
+    columns_dropped = length(extra_cols),
+    gnomad_fallback_recovered = as.integer(
+      attr(hgnc_data, "fallback_recovered", exact = TRUE) %||% 0L
+    ),
+    gnomad_fallback_unresolved = as.integer(
+      attr(hgnc_data, "fallback_unresolved", exact = TRUE) %||% 0L
+    )
   )
 }
 
@@ -283,6 +289,8 @@
     rows_processed = write_result$rows_processed,
     columns_written = write_result$columns_written,
     columns_dropped = write_result$columns_dropped,
+    gnomad_fallback_recovered = write_result$gnomad_fallback_recovered,
+    gnomad_fallback_unresolved = write_result$gnomad_fallback_unresolved,
     message = "HGNC data updated and written to database successfully"
   )
 }

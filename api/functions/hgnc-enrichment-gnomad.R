@@ -69,11 +69,11 @@ GNOMAD_TSV_COLUMN_MAP <- c(
 #'
 #' @export
 enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
-  total_steps <- 3
+  total_steps <- 4L
   message("[gnomAD enrichment] Starting bulk constraint enrichment")
 
   # --- Step 1: Download TSV ---
-  message("[gnomAD enrichment] Step 1/3: Downloading constraint metrics TSV")
+  message("[gnomAD enrichment] Step 1/4: Downloading constraint metrics TSV")
   if (!is.null(progress_fn)) {
     tryCatch(
       progress_fn("gnomad", "gnomAD: downloading TSV", current = 1, total = total_steps),
@@ -110,7 +110,7 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   ))
 
   # --- Step 2: Parse and filter ---
-  message("[gnomAD enrichment] Step 2/3: Parsing and filtering for MANE Select transcripts")
+  message("[gnomAD enrichment] Step 2/4: Parsing and filtering for MANE Select transcripts")
   if (!is.null(progress_fn)) {
     tryCatch(
       progress_fn("gnomad", "gnomAD: parsing TSV", current = 2, total = total_steps),
@@ -154,7 +154,7 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
   }
 
   # --- Step 3: Build JSON and join ---
-  message("[gnomAD enrichment] Step 3/3: Building JSON and joining to HGNC tibble")
+  message("[gnomAD enrichment] Step 3/4: Building JSON and joining to HGNC tibble")
   if (!is.null(progress_fn)) {
     tryCatch(
       progress_fn("gnomad", "gnomAD: joining data", current = 3, total = total_steps),
@@ -200,7 +200,98 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
     n_mapped, nrow(hgnc_tibble)
   ))
 
+  # Initialize fallback counters so they exist on every code path (used by the
+  # metrics-wrapper companion to expose recovered/unresolved counts via attributes).
+  n_recovered <- 0L
+  n_unresolved <- 0L
+
+  # === Step 4/4 — chrX/Y/M fallback via GraphQL ===
+  missing_idx <- which(is.na(hgnc_tibble$gnomad_constraints))
+  if (length(missing_idx) > 0L) {
+    missing_symbols <- hgnc_tibble$symbol[missing_idx]
+    message(sprintf(
+      "[gnomAD enrichment] Step 4/4: GraphQL fallback for %d symbols missing from bulk TSV",
+      length(missing_symbols)
+    ))
+    if (!is.null(progress_fn)) {
+      tryCatch(
+        progress_fn(
+          "gnomad-fallback",
+          sprintf("gnomAD: querying API for %d missing genes", length(missing_symbols)),
+          current = 4L, total = total_steps
+        ),
+        error = function(e) NULL
+      )
+    }
+    fallback_results <- tryCatch(
+      fetch_gnomad_constraints_batch(missing_symbols),
+      error = function(e) {
+        warning(sprintf(
+          "[gnomAD enrichment] Fallback batch fetcher itself errored (%s); leaving %d genes as NA",
+          conditionMessage(e), length(missing_symbols)
+        ), call. = FALSE)
+        setNames(rep(NA_character_, length(missing_symbols)), missing_symbols)
+      }
+    )
+    recovered_mask <- !is.na(fallback_results)
+    if (any(recovered_mask)) {
+      hgnc_tibble$gnomad_constraints[missing_idx[recovered_mask]] <-
+        fallback_results[recovered_mask]
+    }
+    n_recovered <- sum(recovered_mask)
+    n_unresolved <- length(missing_symbols) - n_recovered
+    message(sprintf(
+      "[gnomAD enrichment] Fallback recovered %d / %d missing genes (%d still NA)",
+      n_recovered, length(missing_symbols), n_unresolved
+    ))
+  } else {
+    message("[gnomAD enrichment] No fallback needed — bulk join populated every row")
+  }
+
+  # Attach counts as attributes so the metrics-wrapper companion can read them
+  # without re-deriving from the tibble. NULL-safe via existing initialisation above.
+  attr(hgnc_tibble, "fallback_recovered") <- as.integer(n_recovered)
+  attr(hgnc_tibble, "fallback_unresolved") <- as.integer(n_unresolved)
+
   return(hgnc_tibble)
+}
+
+
+#' Wrapper of enrich_gnomad_constraints that also returns fallback counts
+#'
+#' Convenience wrapper for callers that want the gnomAD fallback
+#' recovered/unresolved counts as explicit return values rather than reading
+#' them from attributes on the enriched tibble. The current job paths
+#' (`update_process_hgnc_data` → inline executor in `jobs_endpoints.R` and
+#' the durable handler `.async_job_run_hgnc_update`) read the counts via
+#' `attr(hgnc_data, ...)` directly because the broader pipeline preserves
+#' attribute survival through dplyr cleanup; this wrapper is provided for
+#' callers that prefer not to depend on that contract.
+#'
+#' Reads the counts from attributes attached by `enrich_gnomad_constraints`,
+#' then strips them from the returned tibble so downstream code does not
+#' depend on attribute survival across mutate/select.
+#'
+#' @param hgnc_tibble As enrich_gnomad_constraints.
+#' @param progress_fn As enrich_gnomad_constraints.
+#' @return list(tibble = <enriched tibble>, fallback_recovered = <int>, fallback_unresolved = <int>)
+#' @export
+enrich_gnomad_constraints_with_metrics <- function(hgnc_tibble, progress_fn = NULL) {
+  enriched <- enrich_gnomad_constraints(hgnc_tibble, progress_fn = progress_fn)
+
+  recovered <- attr(enriched, "fallback_recovered", exact = TRUE)
+  unresolved <- attr(enriched, "fallback_unresolved", exact = TRUE)
+  if (is.null(recovered)) recovered <- 0L
+  if (is.null(unresolved)) unresolved <- sum(is.na(enriched$gnomad_constraints))
+
+  attr(enriched, "fallback_recovered") <- NULL
+  attr(enriched, "fallback_unresolved") <- NULL
+
+  list(
+    tibble = enriched,
+    fallback_recovered = as.integer(recovered),
+    fallback_unresolved = as.integer(unresolved)
+  )
 }
 
 
