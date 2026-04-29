@@ -176,7 +176,10 @@ describe(".fetch_gnomad_constraints_chunk", {
     )
   })
 
-  it("returns all-NA on a 500 response, with a warning", {
+  it("returns NULL on a 500 response, with a warning (transport-fail signal)", {
+    # Contract change (2026-04-29): the chunk fetcher returns NULL — not an
+    # all-NA vec — on transport failure, so the batch caller can distinguish
+    # transport-fail from gene-not-found unambiguously and skip cache writes.
     httr2::with_mocked_responses(
       mock = function(req) httr2::response(status_code = 500L, body = charToRaw('{"error":"oops"}')),
       {
@@ -186,13 +189,12 @@ describe(".fetch_gnomad_constraints_chunk", {
           "\\[gnomad-batch\\].*HTTP",
           ignore.case = TRUE
         )
-        expect_named(out, c("MECP2", "CDKL5"))
-        expect_true(all(is.na(out)))
+        expect_null(out)
       }
     )
   })
 
-  it("returns all-NA on an unparseable body, with a warning", {
+  it("returns NULL on an unparseable body, with a warning (transport-fail signal)", {
     httr2::with_mocked_responses(
       mock = function(req) httr2::response(status_code = 200L, body = charToRaw("<html>not json</html>")),
       {
@@ -201,7 +203,7 @@ describe(".fetch_gnomad_constraints_chunk", {
           "\\[gnomad-batch\\].*(parse|json)",
           ignore.case = TRUE
         )
-        expect_true(all(is.na(out)))
+        expect_null(out)
       }
     )
   })
@@ -312,6 +314,9 @@ describe("fetch_gnomad_constraints_batch", {
     )
     expect_equal(chunk_count, 3L)
     expect_length(out, 60L)
+    # Reviewer minor #10: assert names match the input order so the function's
+    # name (`fetch_gnomad_constraints_batch`) is not "structurally weaker than its name suggests".
+    expect_named(out, syms)
     expect_true(all(is.na(out)))
   })
 
@@ -355,5 +360,34 @@ describe("fetch_gnomad_constraints_batch", {
       }
     )
     expect_false(cache$exists(.gnomad_batch_cache_key("MECP2")))
+  })
+
+  it("caches sentinels for ALL aliases when a successful chunk returns all-null", {
+    # Regression for the brittle `chunk_had_success` heuristic: when a 200-OK
+    # chunk legitimately returns null for every alias (chrX/Y/M long tail —
+    # pseudogenes, withdrawn aliases, etc.), every slot must be cached as the
+    # sentinel so the next pipeline run does not pay the HTTP cost again.
+    cache <- cachem::cache_mem()
+    body <- jsonlite::toJSON(list(
+      data = list(
+        g0 = NULL, g1 = NULL, g2 = NULL
+      )
+    ), auto_unbox = TRUE, null = "null")
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(
+        status_code = 200L,
+        body = charToRaw(body),
+        headers = list("content-type" = "application/json")
+      ),
+      {
+        out <- fetch_gnomad_constraints_batch(c("FAKE1", "FAKE2", "FAKE3"), cache = cache)
+      }
+    )
+    expect_true(all(is.na(out)))
+    for (s in c("FAKE1", "FAKE2", "FAKE3")) {
+      expect_true(cache$exists(.gnomad_batch_cache_key(s)),
+        info = sprintf("expected sentinel for %s", s))
+      expect_equal(cache$get(.gnomad_batch_cache_key(s)), GNOMAD_BATCH_NA_SENTINEL)
+    }
   })
 })

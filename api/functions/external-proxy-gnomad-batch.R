@@ -1,9 +1,9 @@
 # api/functions/external-proxy-gnomad-batch.R
 #### Batched gnomAD GraphQL fallback for HGNC-update pipeline
 #### See spec: .planning/superpowers/specs/2026-04-29-gnomad-constraints-x-chr-fallback-design.md
-
-require(httr2)
-require(jsonlite)
+#
+# Per AGENTS.md, every package call uses explicit `httr2::` / `jsonlite::` /
+# `cachem::` namespacing — no bare require() at top of file.
 
 # Sentinel value stored in cache_static when gnomAD confirmed a symbol has no constraint data.
 # We need to distinguish "we asked, gnomAD said no" from "we never asked", and the
@@ -142,25 +142,15 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
   setNames(out, symbols)
 }
 
-#' Fire one POST to the gnomAD GraphQL endpoint for ≤25 symbols
+#' Build a prepared httr2 request for a chunk's GraphQL body.
 #'
-#' @param symbols Character vector, length ≤ GNOMAD_BATCH_MAX_PER_REQUEST.
-#' @return Named character vector of length `length(symbols)`, names equal to `symbols`.
-#'   Every element is either a JSON string or `NA_character_`. Network/parse failures
-#'   surface as all-NA with a warning (no error thrown — the caller treats batch failures
-#'   as non-fatal per spec §5).
+#' Shared by the single-chunk path (`.fetch_gnomad_constraints_chunk`) and the
+#' parallel path (`fetch_gnomad_constraints_batch`). Centralising request
+#' construction keeps headers, retries, and the "non-2xx is not an error"
+#' policy identical between the two dispatch modes.
 #' @noRd
-.fetch_gnomad_constraints_chunk <- function(symbols) {
-  if (length(symbols) == 0L) {
-    return(setNames(character(0), character(0)))
-  }
-  query_body <- .build_aliased_constraint_query(symbols)
-  if (is.null(query_body)) {
-    # Every symbol was invalid; .build_aliased_constraint_query already warned.
-    return(setNames(rep(NA_character_, length(symbols)), symbols))
-  }
-
-  req <- httr2::request(GNOMAD_BATCH_ENDPOINT) |>
+.build_chunk_request <- function(query_body) {
+  httr2::request(GNOMAD_BATCH_ENDPOINT) |>
     httr2::req_method("POST") |>
     httr2::req_headers("Content-Type" = "application/json", "Accept" = "application/json") |>
     httr2::req_body_json(list(query = query_body)) |>
@@ -171,32 +161,42 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
       is_transient = function(resp) httr2::resp_status(resp) %in% c(429L, 503L, 504L)
     ) |>
     httr2::req_error(is_error = function(resp) FALSE) # handle errors manually
+}
 
-  resp <- tryCatch(
-    httr2::req_perform(req),
-    error = function(e) {
+#' Post-perform handling: turn a response (or an error condition) into either a
+#' named character vector (JSON-or-NA per symbol) for a successful HTTP+parse,
+#' or NULL for a transport-fail. Used by both dispatch paths.
+#'
+#' @param resp_or_err Either an httr2_response or an error condition.
+#' @param symbols Character vector of HGNC symbols passed to the corresponding query, in alias order.
+#' @return Named character vector on a 200-OK + parseable body (length = length(symbols),
+#'   names = symbols, values JSON-or-NA), or NULL on transport failure / non-200 / parse error.
+#'   Distinguishing NULL (transport-fail) from a vec-of-NAs (gene-not-found) is what lets
+#'   the chunk-stitch loop decide whether to write sentinels to cache.
+#' @noRd
+.parse_chunk_response <- function(resp_or_err, symbols) {
+  if (inherits(resp_or_err, "error") || inherits(resp_or_err, "condition")) {
+    if (!inherits(resp_or_err, "httr2_response")) {
       warning(sprintf(
         "[gnomad-batch] transport error for batch of %d symbols (%s..): %s",
-        length(symbols), symbols[1L], conditionMessage(e)
+        length(symbols), symbols[1L], conditionMessage(resp_or_err)
       ), call. = FALSE)
       return(NULL)
     }
-  )
-  if (is.null(resp)) {
-    return(setNames(rep(NA_character_, length(symbols)), symbols))
   }
-
-  status <- httr2::resp_status(resp)
+  if (!inherits(resp_or_err, "httr2_response")) {
+    return(NULL)
+  }
+  status <- httr2::resp_status(resp_or_err)
   if (status != 200L) {
     warning(sprintf(
       "[gnomad-batch] HTTP %d for batch of %d symbols (%s..)",
       status, length(symbols), symbols[1L]
     ), call. = FALSE)
-    return(setNames(rep(NA_character_, length(symbols)), symbols))
+    return(NULL)
   }
-
   parsed <- tryCatch(
-    httr2::resp_body_json(resp),
+    httr2::resp_body_json(resp_or_err),
     error = function(e) {
       warning(sprintf(
         "[gnomad-batch] could not parse json response for batch of %d symbols (%s..): %s",
@@ -206,23 +206,57 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
     }
   )
   if (is.null(parsed)) {
+    return(NULL)
+  }
+  .parse_batched_constraint_response(parsed, symbols)
+}
+
+#' Fire one POST to the gnomAD GraphQL endpoint for ≤25 symbols
+#'
+#' @param symbols Character vector, length ≤ GNOMAD_BATCH_MAX_PER_REQUEST.
+#' @return On HTTP 200 + parseable JSON: named character vector of length
+#'   `length(symbols)`, names equal to `symbols`, each element a JSON string or
+#'   `NA_character_` (NA = gene-not-found, with a successful transport).
+#'   On transport failure (timeout, non-200, or parse error): `NULL`.
+#'   This NULL-vs-vec distinction is load-bearing for the cache-write decision
+#'   in `fetch_gnomad_constraints_batch`: gene-not-found gets a sentinel, but a
+#'   transport-failed chunk must not poison the cache for those symbols.
+#' @noRd
+.fetch_gnomad_constraints_chunk <- function(symbols) {
+  if (length(symbols) == 0L) {
+    return(setNames(character(0), character(0)))
+  }
+  query_body <- .build_aliased_constraint_query(symbols)
+  if (is.null(query_body)) {
+    # Every symbol was invalid; .build_aliased_constraint_query already warned.
+    # All-invalid is not a transport failure — return all-NA so the caller
+    # treats them as known-bad inputs (no point retrying invalid symbols).
     return(setNames(rep(NA_character_, length(symbols)), symbols))
   }
 
-  .parse_batched_constraint_response(parsed, symbols)
+  req <- .build_chunk_request(query_body)
+  resp <- tryCatch(
+    httr2::req_perform(req),
+    error = function(e) e
+  )
+  .parse_chunk_response(resp, symbols)
 }
 
 #' Fetch gnomAD constraint scores for many symbols, batched and cached
 #'
 #' Consults the disk cache per-symbol; chunks misses ≤25 per HTTP request; dispatches
-#' chunks concurrently via httr2::reqs_perform_parallel. Successful and "Gene not found"
-#' results are written back to cache (the latter as a sentinel). Transport failures
-#' surface as NA without poisoning the cache.
+#' chunks concurrently via `httr2::req_perform_parallel` (single-chunk fast path uses
+#' the synchronous `.fetch_gnomad_constraints_chunk`). Successful and "Gene not found"
+#' results are written back to cache (the latter as the `GNOMAD_BATCH_NA_SENTINEL`).
+#' Transport failures surface as NA without poisoning the cache — the chunk fetcher
+#' returns `NULL` for transport-failed chunks so the stitch loop can skip cache writes
+#' unambiguously (no fragile "all-NA chunk" heuristic).
 #'
 #' @param symbols Character vector of HGNC gene symbols. May be empty.
 #' @param max_concurrency Integer pool size for parallel batch requests. Default 5.
 #'   Benchmarks (2026-04-29, n=20) show gnomAD tolerates 20 concurrent without
-#'   rate-limiting; 5 is well-mannered.
+#'   rate-limiting; 5 is well-mannered. Passed as `max_active` to
+#'   `httr2::req_perform_parallel`.
 #' @param cache cachem cache backend. Default `cache_static` (30-day filesystem).
 #'   Override in tests with `cachem::cache_mem()`.
 #' @return Named character vector of length `length(symbols)`, names equal to `symbols`.
@@ -258,55 +292,79 @@ fetch_gnomad_constraints_batch <- function(
       miss_syms,
       ceiling(seq_along(miss_syms) / GNOMAD_BATCH_MAX_PER_REQUEST)
     )
+    # `chunks` is a list; coerce to a plain unnamed list so Map() pairs cleanly.
+    chunks <- unname(as.list(chunks))
 
-    # Concurrency: build a request per chunk, fire via reqs_perform_parallel.
-    fetch_chunk_async <- function(chunk_syms) {
-      .fetch_gnomad_constraints_chunk(chunk_syms)
-    }
-    if (length(chunks) > 1L && max_concurrency > 1L) {
-      # parallel via mirai pool — but we can also just lapply for now since the
-      # individual chunks are non-blocking via httr2 anyway. Use a simple parallel
-      # strategy: split chunks into waves of `max_concurrency`.
-      chunk_results <- list()
-      for (start in seq(1L, length(chunks), by = max_concurrency)) {
-        end <- min(start + max_concurrency - 1L, length(chunks))
-        wave <- chunks[start:end]
-        wave_results <- lapply(wave, fetch_chunk_async)
-        chunk_results <- c(chunk_results, wave_results)
-      }
+    if (length(chunks) == 1L) {
+      # Single-chunk fast path: skip the parallel-pool spin-up.
+      chunk_results <- list(.fetch_gnomad_constraints_chunk(chunks[[1L]]))
     } else {
-      chunk_results <- lapply(chunks, fetch_chunk_async)
+      # Real parallel dispatch via httr2::req_perform_parallel. Build a request per
+      # chunk; a chunk whose symbols are all invalid yields NULL from
+      # .build_aliased_constraint_query — for those we synthesise an all-NA result
+      # without firing a request. Note: req_perform_parallel honors
+      # `getOption("httr2_mock")`, so `httr2::with_mocked_responses` works in tests.
+      built <- lapply(chunks, function(chunk_syms) {
+        qb <- .build_aliased_constraint_query(chunk_syms)
+        if (is.null(qb)) NULL else .build_chunk_request(qb)
+      })
+      non_null_idx <- which(!vapply(built, is.null, logical(1L)))
+      chunk_results <- vector("list", length(chunks))
+      # All-invalid chunks: known-bad input, treat as gene-not-found (all-NA vec, NOT NULL)
+      # so the stitch loop writes sentinels for any future cache reuse-by-key... but
+      # because invalid symbols never produce a cachem-valid key collision with a
+      # real symbol, we still emit the all-NA vec consistent with single-chunk behaviour.
+      for (i in setdiff(seq_along(chunks), non_null_idx)) {
+        chunk_results[[i]] <- setNames(rep(NA_character_, length(chunks[[i]])), chunks[[i]])
+      }
+      if (length(non_null_idx) > 0L) {
+        resps <- httr2::req_perform_parallel(
+          built[non_null_idx],
+          max_active = max_concurrency,
+          on_error = "continue",
+          progress = FALSE
+        )
+        for (j in seq_along(non_null_idx)) {
+          i <- non_null_idx[[j]]
+          chunk_results[[i]] <- .parse_chunk_response(resps[[j]], chunks[[i]])
+        }
+      }
     }
 
     # Stitch chunk results back into miss_idx slots, write to cache.
-    for (cr in chunk_results) {
+    # Each chunk_result is either:
+    #   - NULL              → transport-failed chunk: skip cache writes for those symbols
+    #   - named char vec    → write per slot: real value as-is, NA → sentinel
+    # Pairing chunks[[i]] with chunk_results[[i]] via Map keeps the input-symbol list
+    # available even when cr is NULL (no names to read off).
+    Map(function(chunk_syms, cr) {
+      if (is.null(cr)) {
+        # Transport-failed chunk: leave cached_decoded slots as NA (already
+        # initialised that way) and DO NOT write sentinels. Next pipeline run
+        # will retry these symbols.
+        return(invisible(NULL))
+      }
       for (sym in names(cr)) {
         upper_sym <- toupper(sym)
         slot <- which(upper_syms == upper_sym & !hit_mask)
         if (length(slot) >= 1L) {
           val <- cr[[sym]]
           if (is.na(val)) {
-            # Distinguish transport-fail (do not cache) from gene-not-found (cache as sentinel).
-            # Both come back as NA from the chunk fetcher; we cannot distinguish here.
-            # Convention: chunks that suffered transport failure return NA for ALL symbols,
-            # successful chunks return NA only for missing genes.
-            # Heuristic: if at least one alias in the chunk returned non-NA, the chunk was
-            # successful; the NA is "gene not found" → cache the sentinel.
-            chunk_had_success <- any(!is.na(cr))
-            if (chunk_had_success) {
-              tryCatch(cache$set(.gnomad_batch_cache_key(sym), GNOMAD_BATCH_NA_SENTINEL),
-                error = function(e) NULL
-              )
-            }
+            # Successful chunk + this alias = NA → gene-not-found per gnomAD.
+            # Cache as sentinel so we don't re-query (chrX/Y/M long tail.)
+            tryCatch(cache$set(.gnomad_batch_cache_key(sym), GNOMAD_BATCH_NA_SENTINEL),
+              error = function(e) NULL
+            )
           } else {
             tryCatch(cache$set(.gnomad_batch_cache_key(sym), val),
               error = function(e) NULL
             )
           }
-          cached_decoded[slot] <- val
+          cached_decoded[slot] <<- val
         }
       }
-    }
+      invisible(NULL)
+    }, chunks, chunk_results)
   }
 
   setNames(cached_decoded, symbols)
