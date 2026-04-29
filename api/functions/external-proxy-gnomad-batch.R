@@ -66,3 +66,58 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
 
   paste0("query Batch { ", paste(parts, collapse = " "), " }")
 }
+
+#' Map a parsed GraphQL response back to a named char vector of JSON-or-NA
+#'
+#' @param parsed_json Already-parsed GraphQL response (`list(data = list(...), errors = ...)`).
+#' @param symbols Character vector of HGNC symbols passed to the corresponding query, in alias order.
+#' @return Named character vector of length `length(symbols)`, names equal to `symbols`,
+#'   each value either a JSON string in the bulk pipeline shape or `NA_character_`.
+#' @noRd
+.parse_batched_constraint_response <- function(parsed_json, symbols) {
+  if (length(symbols) == 0L) {
+    return(setNames(character(0), character(0)))
+  }
+  # Determine which alias indices were called out in the top-level errors block.
+  errored_aliases <- character(0)
+  errs <- parsed_json$errors
+  if (!is.null(errs) && length(errs) > 0L) {
+    for (err in errs) {
+      path <- err$path
+      if (!is.null(path) && length(path) >= 1L) {
+        # path[[1]] is the alias name like "g0"
+        first <- as.character(path[[1L]])
+        if (grepl("^g[0-9]+$", first)) {
+          errored_aliases <- c(errored_aliases, first)
+        }
+      }
+    }
+  }
+
+  out <- vapply(seq_along(symbols), function(i) {
+    alias <- paste0("g", i - 1L)
+    if (alias %in% errored_aliases) {
+      return(NA_character_)
+    }
+    gene_obj <- parsed_json$data[[alias]]
+    if (is.null(gene_obj)) {
+      return(NA_character_)
+    }
+    constraint <- gene_obj$gnomad_constraint
+    if (is.null(constraint)) {
+      return(NA_character_)
+    }
+    # Build JSON in the same shape the bulk pipeline emits (19 fields, sprintf scientific,
+    # `null` for NA). Use jsonlite::toJSON for safety, with auto_unbox = TRUE to emit scalars.
+    # Reorder keys to match GNOMAD_BATCH_FIELDS for deterministic output.
+    ordered <- constraint[GNOMAD_BATCH_FIELDS]
+    names(ordered) <- GNOMAD_BATCH_FIELDS
+    # Coerce numeric NAs to JSON null rather than R NA → "NA"
+    ordered <- lapply(ordered, function(v) {
+      if (is.null(v) || (length(v) == 1L && is.na(v))) NULL else v
+    })
+    jsonlite::toJSON(ordered, auto_unbox = TRUE, na = "null", null = "null")
+  }, character(1L), USE.NAMES = FALSE)
+
+  setNames(out, symbols)
+}
