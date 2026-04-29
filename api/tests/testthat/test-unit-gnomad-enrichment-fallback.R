@@ -55,6 +55,29 @@ describe("enrich_gnomad_constraints with chrX fallback", {
   })
 })
 
+describe("attribute survival through dplyr cleanup", {
+  it("preserves fallback_recovered / fallback_unresolved through mutate(across)", {
+    # Regression guard: update_process_hgnc_data() ends with two
+    # dplyr::mutate(across(...)) cleanup steps. The job result lists read the
+    # fallback_recovered / fallback_unresolved attrs from the returned tibble,
+    # so those attrs must survive the cleanup. As of dplyr 1.x they do; this
+    # test fails fast if a future dplyr update changes that contract.
+    t <- tibble::tibble(
+      symbol = "BRCA1",
+      gnomad_constraints = '{"pLI":0.5}',
+      is_active = TRUE,
+      d = as.Date("2026-01-01")
+    )
+    attr(t, "fallback_recovered") <- 0L
+    attr(t, "fallback_unresolved") <- 0L
+    t2 <- t |>
+      dplyr::mutate(dplyr::across(where(is.logical), ~ as.character(.x))) |>
+      dplyr::mutate(dplyr::across(where(~ inherits(.x, "Date")), ~ as.character(.x)))
+    expect_equal(attr(t2, "fallback_recovered", exact = TRUE), 0L)
+    expect_equal(attr(t2, "fallback_unresolved", exact = TRUE), 0L)
+  })
+})
+
 describe("enrich_gnomad_constraints_with_metrics", {
   it("returns a list with tibble plus recovered/unresolved counts", {
     hgnc <- tibble::tibble(
