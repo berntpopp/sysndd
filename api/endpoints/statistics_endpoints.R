@@ -106,16 +106,34 @@ function(res,
 
   # Generate filter expressions
   filter_exprs <- generate_filter_expressions(filter)
+  has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
-  # Collect and filter data
-  entity_view_coll <- pool %>%
-    tbl("ndd_entity_view") %>%
-    collect()
+  # Push filter to SQL when present; aggregations stay post-collect.
+  entity_view_lazy <- pool %>% tbl("ndd_entity_view")
+  entity_view_coll <- if (has_text_filter) {
+    tryCatch(
+      entity_view_lazy %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+        collect(),
+      error = function(e) {
+        message(sprintf(
+          "[entities_over_time] SQL filter pushdown failed (%s); collecting full view",
+          conditionMessage(e)
+        ))
+        entity_view_lazy %>% collect()
+      }
+    )
+  } else {
+    entity_view_lazy %>% collect()
+  }
 
   # Log initial count for diagnostics
   initial_count <- nrow(entity_view_coll)
   log_debug("Entities over time: Initial entity_view count = {initial_count}")
 
+  # Filter is now already applied in SQL when fast-path succeeded; the in-R
+  # filter call below is a no-op fast-pass on the fast path, and the actual
+  # filter on the slow path. Keeping it unconditional simplifies the code.
   entity_view_filtered <- entity_view_coll %>%
     dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
     arrange(entry_date, entity_id) %>%
