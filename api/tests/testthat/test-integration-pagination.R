@@ -396,3 +396,48 @@ test_that("/api/gene/ default and compact modes return same data for GRIN2B (par
   compact_grin <- Filter(function(r) r$symbol == "GRIN2B", compact_body$data)[[1L]]
   expect_equal(default_grin$entities_count, compact_grin$entities_count)
 })
+
+# =============================================================================
+# /api/gene/?compact=true — edge cases
+# =============================================================================
+
+test_that("/api/gene/?compact=true is case-insensitive (utf8mb3_general_ci)", {
+  skip_if_api_not_running()
+  upper <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,GRIN2B)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  lower <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,grin2b)", compact = "true") %>%
+    req_perform() %>% resp_body_json()
+  expect_equal(length(upper$data), length(lower$data))
+})
+
+test_that("/api/gene/?compact=true returns empty data for unknown symbol", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "equals(symbol,DEFINITELY_NOT_REAL)", compact = "true") %>%
+    req_perform()
+  body <- resp_body_json(resp)
+  expect_equal(length(body$data), 0L)
+})
+
+test_that("/api/gene/?compact=true accepts composed and(equals(...),equals(...))", {
+  skip_if_api_not_running()
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "and(equals(symbol,GRIN2B),equals(category,Definitive))",
+                  compact = "true") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+})
+
+test_that("/api/gene/?compact=true falls back to in-R when filter cannot be SQL-translated", {
+  skip_if_api_not_running()
+  # contains() with a substring may or may not translate to SQL via dbplyr.
+  # Whichever path is taken, the response should still be correct.
+  resp <- request("http://localhost:8000/api/gene/") %>%
+    req_url_query(filter = "contains(symbol,GRIN)", compact = "true") %>%
+    req_perform()
+  expect_equal(resp_status(resp), 200)
+  body <- resp_body_json(resp)
+  expect_gte(length(body$data), 1L)
+})
