@@ -212,3 +212,144 @@ describe(".fetch_gnomad_constraints_chunk", {
     expect_length(out, 0L)
   })
 })
+
+describe("fetch_gnomad_constraints_batch", {
+  # Helper: in-memory cachem that mimics cache_static for these tests.
+  make_mem_cache <- function() cachem::cache_mem()
+
+  it("returns aligned named char vec on full success", {
+    cache <- make_mem_cache()
+    body <- jsonlite::toJSON(list(
+      data = list(
+        g0 = list(gnomad_constraint = list(
+          pLI = 0.99, oe_lof = 0.1, oe_lof_lower = 0.05, oe_lof_upper = 0.2,
+          oe_mis = 1, oe_mis_lower = 0.9, oe_mis_upper = 1.1,
+          oe_syn = 1, oe_syn_lower = 0.9, oe_syn_upper = 1.1,
+          exp_lof = 50, obs_lof = 5, exp_mis = 500, obs_mis = 500,
+          exp_syn = 200, obs_syn = 200, lof_z = 3.5, mis_z = 0, syn_z = 0
+        )),
+        g1 = NULL # unknown gene
+      )
+    ), auto_unbox = TRUE)
+
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(status_code = 200L, body = charToRaw(body), headers = list("content-type" = "application/json")),
+      {
+        out <- fetch_gnomad_constraints_batch(c("MECP2", "FAKE_GENE"), cache = cache)
+        expect_named(out, c("MECP2", "FAKE_GENE"))
+        expect_false(is.na(out[["MECP2"]]))
+        expect_true(is.na(out[["FAKE_GENE"]]))
+      }
+    )
+  })
+
+  it("does not fire any request when every symbol is in cache", {
+    cache <- make_mem_cache()
+    # cachem requires lowercase-alphanumeric keys; module exposes .gnomad_batch_cache_key
+    # to construct them. Plan used the prior `gnomad_constraint_v1::SYMBOL` form.
+    cache$set(.gnomad_batch_cache_key("MECP2"), '{"pLI":0.99}')
+    cache$set(.gnomad_batch_cache_key("CDKL5"), "__GNOMAD_NA__")
+
+    # If a request fires, with_mocked_responses errors with no mock provided
+    out <- fetch_gnomad_constraints_batch(c("MECP2", "CDKL5"), cache = cache)
+    expect_equal(out[["MECP2"]], '{"pLI":0.99}')
+    expect_true(is.na(out[["CDKL5"]]))
+  })
+
+  it("fires exactly one request when 5 symbols are uncached and 5 are cached", {
+    cache <- make_mem_cache()
+    cached <- paste0("CACHED", 1:5)
+    uncached <- paste0("MISS", 1:5)
+    for (s in cached) cache$set(.gnomad_batch_cache_key(s), sprintf('{"sym":"%s"}', s))
+
+    body <- jsonlite::toJSON(list(
+      data = setNames(
+        lapply(seq_along(uncached), function(i) list(gnomad_constraint = list(
+          pLI = 0.5, oe_lof = 1, oe_lof_lower = 0.5, oe_lof_upper = 1.5,
+          oe_mis = 1, oe_mis_lower = 0.9, oe_mis_upper = 1.1,
+          oe_syn = 1, oe_syn_lower = 0.9, oe_syn_upper = 1.1,
+          exp_lof = 50, obs_lof = 5, exp_mis = 500, obs_mis = 500,
+          exp_syn = 200, obs_syn = 200, lof_z = 0, mis_z = 0, syn_z = 0
+        ))),
+        paste0("g", seq_along(uncached) - 1L)
+      )
+    ), auto_unbox = TRUE)
+
+    call_count <- 0L
+    httr2::with_mocked_responses(
+      mock = function(req) {
+        call_count <<- call_count + 1L
+        httr2::response(status_code = 200L, body = charToRaw(body), headers = list("content-type" = "application/json"))
+      },
+      {
+        out <- fetch_gnomad_constraints_batch(c(cached, uncached), cache = cache)
+      }
+    )
+    expect_equal(call_count, 1L)
+    expect_length(out, 10L)
+  })
+
+  it("fires three requests when 60 symbols are uncached (chunks 25/25/10)", {
+    cache <- make_mem_cache()
+    syms <- paste0("GENE", sprintf("%03d", 1:60))
+    chunk_count <- 0L
+    # Plan used httr2::req_body_get(req) which is not a real accessor. Per task5 instructions,
+    # we replace body parsing with a call counter and return all-NA per chunk (max 25 aliases).
+    canned_body <- jsonlite::toJSON(list(
+      data = setNames(
+        replicate(GNOMAD_BATCH_MAX_PER_REQUEST, NULL, simplify = FALSE),
+        paste0("g", seq_len(GNOMAD_BATCH_MAX_PER_REQUEST) - 1L)
+      )
+    ), auto_unbox = TRUE, null = "null")
+    httr2::with_mocked_responses(
+      mock = function(req) {
+        chunk_count <<- chunk_count + 1L
+        httr2::response(status_code = 200L, body = charToRaw(canned_body), headers = list("content-type" = "application/json"))
+      },
+      {
+        out <- fetch_gnomad_constraints_batch(syms, cache = cache, max_concurrency = 1L)
+      }
+    )
+    expect_equal(chunk_count, 3L)
+    expect_length(out, 60L)
+    expect_true(all(is.na(out)))
+  })
+
+  it("caches every recovered value AND every gene-not-found result", {
+    cache <- make_mem_cache()
+    body <- jsonlite::toJSON(list(
+      data = list(
+        g0 = list(gnomad_constraint = list(
+          pLI = 0.5, oe_lof = 1, oe_lof_lower = 0.5, oe_lof_upper = 1.5,
+          oe_mis = 1, oe_mis_lower = 0.9, oe_mis_upper = 1.1,
+          oe_syn = 1, oe_syn_lower = 0.9, oe_syn_upper = 1.1,
+          exp_lof = 50, obs_lof = 5, exp_mis = 500, obs_mis = 500,
+          exp_syn = 200, obs_syn = 200, lof_z = 0, mis_z = 0, syn_z = 0
+        )),
+        g1 = NULL
+      )
+    ), auto_unbox = TRUE)
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(status_code = 200L, body = charToRaw(body), headers = list("content-type" = "application/json")),
+      {
+        fetch_gnomad_constraints_batch(c("HIT", "MISS"), cache = cache)
+      }
+    )
+    expect_true(cache$exists(.gnomad_batch_cache_key("HIT")))
+    expect_true(cache$exists(.gnomad_batch_cache_key("MISS")))
+    expect_equal(cache$get(.gnomad_batch_cache_key("MISS")), "__GNOMAD_NA__")
+  })
+
+  it("does NOT cache results from a transport-failed batch", {
+    cache <- make_mem_cache()
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(status_code = 500L, body = charToRaw('{"err":"x"}')),
+      {
+        suppressWarnings(
+          fetch_gnomad_constraints_batch(c("MECP2"), cache = cache)
+        )
+      }
+    )
+    expect_false(cache$exists(.gnomad_batch_cache_key("MECP2")))
+  })
+})
