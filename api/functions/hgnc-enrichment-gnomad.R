@@ -257,6 +257,38 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
 }
 
 
+#' Wrapper of enrich_gnomad_constraints that also returns fallback counts
+#'
+#' Used by both async-job paths (inline executor in jobs_endpoints.R and the
+#' durable handler .async_job_run_hgnc_update) so the durable job result exposes
+#' the gnomAD fallback recovered/unresolved counts directly. Reads the counts
+#' from the attributes attached by enrich_gnomad_constraints, then strips the
+#' attributes from the returned tibble (downstream code shouldn't depend on
+#' attribute survival across mutate/select).
+#'
+#' @param hgnc_tibble As enrich_gnomad_constraints.
+#' @param progress_fn As enrich_gnomad_constraints.
+#' @return list(tibble = <enriched tibble>, fallback_recovered = <int>, fallback_unresolved = <int>)
+#' @export
+enrich_gnomad_constraints_with_metrics <- function(hgnc_tibble, progress_fn = NULL) {
+  enriched <- enrich_gnomad_constraints(hgnc_tibble, progress_fn = progress_fn)
+
+  recovered <- attr(enriched, "fallback_recovered", exact = TRUE)
+  unresolved <- attr(enriched, "fallback_unresolved", exact = TRUE)
+  if (is.null(recovered)) recovered <- 0L
+  if (is.null(unresolved)) unresolved <- sum(is.na(enriched$gnomad_constraints))
+
+  attr(enriched, "fallback_recovered") <- NULL
+  attr(enriched, "fallback_unresolved") <- NULL
+
+  list(
+    tibble = enriched,
+    fallback_recovered = as.integer(recovered),
+    fallback_unresolved = as.integer(unresolved)
+  )
+}
+
+
 #' Enrich HGNC tibble with AlphaFold model identifiers
 #'
 #' @description

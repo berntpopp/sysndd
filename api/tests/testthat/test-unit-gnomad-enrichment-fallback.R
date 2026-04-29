@@ -54,3 +54,32 @@ describe("enrich_gnomad_constraints with chrX fallback", {
     expect_equal(parsed_fallback$lof_z, 4.5)
   })
 })
+
+describe("enrich_gnomad_constraints_with_metrics", {
+  it("returns a list with tibble plus recovered/unresolved counts", {
+    hgnc <- tibble::tibble(
+      hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
+      symbol = c("BRCA1", "MECP2", "CDKL5")
+    )
+
+    # Stub the inner enrich call to return a deterministic tibble with attrs already set,
+    # simulating the full enrichment pipeline outcome.
+    mockery::stub(enrich_gnomad_constraints_with_metrics, "enrich_gnomad_constraints",
+      function(t, ...) {
+        t$gnomad_constraints <- ifelse(t$symbol == "BRCA1", '{"pLI":0.5}',
+                                       ifelse(t$symbol == "MECP2", '{"pLI":0.999}', NA_character_))
+        attr(t, "fallback_recovered") <- 1L
+        attr(t, "fallback_unresolved") <- 1L
+        t
+      }
+    )
+    out <- enrich_gnomad_constraints_with_metrics(hgnc)
+    expect_named(out, c("tibble", "fallback_recovered", "fallback_unresolved"))
+    expect_equal(out$fallback_recovered, 1L)
+    expect_equal(out$fallback_unresolved, 1L)
+    expect_false(is.na(out$tibble$gnomad_constraints[out$tibble$symbol == "MECP2"]))
+    # Attrs should be stripped from the inner tibble (metrics consumer doesn't need them)
+    expect_null(attr(out$tibble, "fallback_recovered", exact = TRUE))
+    expect_null(attr(out$tibble, "fallback_unresolved", exact = TRUE))
+  })
+})
