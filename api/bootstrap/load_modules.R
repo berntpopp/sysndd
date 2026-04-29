@@ -83,6 +83,7 @@ bootstrap_load_modules <- function() {
     "functions/external-functions.R",
     "functions/external-proxy-functions.R",
     "functions/external-proxy-gnomad.R",
+    "functions/external-proxy-gnomad-batch.R",
     "functions/external-proxy-uniprot.R",
     "functions/external-proxy-ensembl.R",
     "functions/external-proxy-alphafold.R",

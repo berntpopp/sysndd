@@ -33,8 +33,15 @@ describe(".build_aliased_constraint_query", {
       "filtered.*invalid.*Reilly",
       ignore.case = TRUE
     )
+    # Aliases use the ORIGINAL input position (0-based), not the post-filter
+    # position. Input: FMR1 at idx 0, "O'Reilly" at idx 1 (invalid),
+    # "" at idx 2 (invalid), CDKL5 at idx 3. Resulting query has g0 + g3
+    # only — alias numbering preserved so the parser's symbol-vector lookup
+    # still aligns when invalid entries are returned to the caller as NA.
     expect_match(out, 'g0: gene\\(gene_symbol: "FMR1"', fixed = FALSE)
-    expect_match(out, 'g1: gene\\(gene_symbol: "CDKL5"', fixed = FALSE)
+    expect_match(out, 'g3: gene\\(gene_symbol: "CDKL5"', fixed = FALSE)
+    expect_false(grepl(' g1:', out, fixed = TRUE))
+    expect_false(grepl(' g2:', out, fixed = TRUE))
     expect_false(grepl("Reilly", out, fixed = TRUE))
   })
 
@@ -212,6 +219,44 @@ describe(".fetch_gnomad_constraints_chunk", {
     # If a request fires under empty input, the mock's absence will cause an error.
     out <- .fetch_gnomad_constraints_chunk(character(0))
     expect_length(out, 0L)
+  })
+
+  it("preserves alias-symbol alignment when input contains an invalid symbol", {
+    # Regression: with sequential alias numbering (old behaviour), an invalid
+    # symbol in the middle would shift all later aliases by one and the
+    # parser would map valid genes onto the wrong names. New behaviour pins
+    # each alias index to the original input position.
+    body <- jsonlite::toJSON(list(
+      data = list(
+        # Only g1 is present in the response (the valid VALIDX symbol at
+        # original index 1). The invalid "" at idx 0 was filtered out of the
+        # query, so g0 simply does not exist in the response.
+        g1 = list(gnomad_constraint = list(
+          pLI = 0.99, oe_lof = 0.1, oe_lof_lower = 0.05, oe_lof_upper = 0.2,
+          oe_mis = 1, oe_mis_lower = 0.9, oe_mis_upper = 1.1,
+          oe_syn = 1, oe_syn_lower = 0.9, oe_syn_upper = 1.1,
+          exp_lof = 50, obs_lof = 5, exp_mis = 500, obs_mis = 500,
+          exp_syn = 200, obs_syn = 200, lof_z = 3.5, mis_z = 0, syn_z = 0
+        ))
+      )
+    ), auto_unbox = TRUE)
+    httr2::with_mocked_responses(
+      mock = function(req) httr2::response(
+        status_code = 200L,
+        body = charToRaw(body),
+        headers = list("content-type" = "application/json")
+      ),
+      {
+        suppressWarnings(
+          out <- .fetch_gnomad_constraints_chunk(c("", "VALIDX"))
+        )
+      }
+    )
+    expect_named(out, c("", "VALIDX"))
+    expect_true(is.na(out[[1L]]))
+    expect_false(is.na(out[["VALIDX"]]))
+    parsed <- jsonlite::fromJSON(out[["VALIDX"]])
+    expect_equal(parsed$pLI, 0.99)
   })
 })
 

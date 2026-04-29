@@ -259,12 +259,18 @@ enrich_gnomad_constraints <- function(hgnc_tibble, progress_fn = NULL) {
 
 #' Wrapper of enrich_gnomad_constraints that also returns fallback counts
 #'
-#' Used by both async-job paths (inline executor in jobs_endpoints.R and the
-#' durable handler .async_job_run_hgnc_update) so the durable job result exposes
-#' the gnomAD fallback recovered/unresolved counts directly. Reads the counts
-#' from the attributes attached by enrich_gnomad_constraints, then strips the
-#' attributes from the returned tibble (downstream code shouldn't depend on
-#' attribute survival across mutate/select).
+#' Convenience wrapper for callers that want the gnomAD fallback
+#' recovered/unresolved counts as explicit return values rather than reading
+#' them from attributes on the enriched tibble. The current job paths
+#' (`update_process_hgnc_data` → inline executor in `jobs_endpoints.R` and
+#' the durable handler `.async_job_run_hgnc_update`) read the counts via
+#' `attr(hgnc_data, ...)` directly because the broader pipeline preserves
+#' attribute survival through dplyr cleanup; this wrapper is provided for
+#' callers that prefer not to depend on that contract.
+#'
+#' Reads the counts from attributes attached by `enrich_gnomad_constraints`,
+#' then strips them from the returned tibble so downstream code does not
+#' depend on attribute survival across mutate/select.
 #'
 #' @param hgnc_tibble As enrich_gnomad_constraints.
 #' @param progress_fn As enrich_gnomad_constraints.

@@ -73,14 +73,20 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
       paste(shQuote(symbols[!valid_mask]), collapse = ", ")
     ), call. = FALSE)
   }
-  valid_syms <- symbols[valid_mask]
-  if (length(valid_syms) == 0L) return(NULL)
+  valid_idx <- which(valid_mask)
+  if (length(valid_idx) == 0L) return(NULL)
+  valid_syms <- symbols[valid_idx]
 
+  # Use the ORIGINAL input position as the alias index so the parser's
+  # `paste0("g", i - 1L)` lookup keyed on the user-supplied `symbols` vector
+  # still matches up after invalid entries are filtered. With sequential
+  # alias numbering an invalid symbol at position 1 would shift every later
+  # alias by one and the parser would map valid genes onto the wrong names.
   field_block <- paste(GNOMAD_BATCH_FIELDS, collapse = " ")
-  parts <- vapply(seq_along(valid_syms), function(i) {
+  parts <- vapply(seq_along(valid_idx), function(i) {
     sprintf(
       'g%d: gene(gene_symbol: "%s", reference_genome: GRCh38) { gnomad_constraint { %s } }',
-      i - 1L, valid_syms[i], field_block
+      valid_idx[i] - 1L, valid_syms[i], field_block
     )
   }, character(1L), USE.NAMES = FALSE)
 
@@ -150,10 +156,20 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
 #' policy identical between the two dispatch modes.
 #' @noRd
 .build_chunk_request <- function(query_body) {
+  # Apply the same central token-bucket throttle as the per-gene gnomAD proxy
+  # (`fetch_gnomad_constraints` in external-proxy-gnomad.R) so all gnomAD traffic
+  # respects EXTERNAL_API_THROTTLE$gnomad. One batch request returns up to 25
+  # genes' worth of data, so the per-gene rate is effectively 25x higher — but
+  # the upstream rate is what matters for politeness, and gnomAD has confirmed
+  # tolerance for 5 concurrent batch requests in our spike.
   httr2::request(GNOMAD_BATCH_ENDPOINT) |>
     httr2::req_method("POST") |>
     httr2::req_headers("Content-Type" = "application/json", "Accept" = "application/json") |>
     httr2::req_body_json(list(query = query_body)) |>
+    httr2::req_throttle(
+      rate = EXTERNAL_API_THROTTLE$gnomad$capacity / EXTERNAL_API_THROTTLE$gnomad$fill_time_s,
+      realm = "gnomad"
+    ) |>
     httr2::req_timeout(30) |>
     httr2::req_retry(
       max_tries = 3L,
