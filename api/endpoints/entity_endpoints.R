@@ -338,7 +338,14 @@ function(req, res, direct_approval = FALSE) {
 
     # Insert publications into reference table BEFORE transaction
     # (reference data persists even if entity creation fails)
-    pub_result <- new_publication(publications)
+    pub_result <- tryCatch(
+      new_publication(publications),
+      publication_fetch_error = function(e) {
+        list(status = 400,
+             message = paste("Bad Request.", e$message),
+             error = e$message)
+      }
+    )
     if (pub_result$status != 200) {
       logger::log_error(
         "Publication insert failed, aborting entity creation",

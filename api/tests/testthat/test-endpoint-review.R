@@ -252,6 +252,52 @@ test_that("POST /create review: validation — empty synopsis returns 400", {
   })
 })
 
+test_that("POST /create review: publication_fetch_error returns 400 and skips pub connection", {
+  with_test_db_transaction({
+    pub_conn_called <- FALSE
+    env <- make_review_sandbox(
+      new_publication_fn = function(...) {
+        stop(structure(
+          list(message = "PMIDs not retrievable from PubMed: PMID:99999999"),
+          class = c("publication_fetch_error", "error", "condition")
+        ))
+      },
+      put_post_db_pub_con_fn = function(...) {
+        pub_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected pub conn call.")
+      }
+    )
+    handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 7L,
+      argsBody = list(
+        review_json = list(
+          entity_id = 123L,
+          synopsis = "Non-empty synopsis text.",
+          literature = list(
+            additional_references = list(value = "PMID:99999999"),
+            gene_review = list()
+          ),
+          phenotypes = list(),
+          variation_ontology = list(),
+          comment = "test comment"
+        )
+      )
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = FALSE)
+
+    expect_true(all(result$status == 400L))
+    expect_match(
+      paste(result$message, collapse = " "),
+      "Bad Request\\. PMIDs not retrievable from PubMed: PMID:99999999"
+    )
+    expect_false(pub_conn_called)
+  })
+})
+
 test_that("POST /create review: permission — non-Reviewer role blocked with 403", {
   with_test_db_transaction({
     env <- make_review_sandbox(require_role_fn = deny_role)
@@ -319,6 +365,52 @@ test_that("PUT /update review: validation — missing entity_id returns 400", {
     result <- handler(req = req, res = res)
     expect_equal(res$status, 400)
     expect_true(!is.null(result$error))
+  })
+})
+
+test_that("PUT /update review: publication_fetch_error returns 400 and skips pub connection", {
+  with_test_db_transaction({
+    pub_conn_called <- FALSE
+    env <- make_review_sandbox(
+      new_publication_fn = function(...) {
+        stop(structure(
+          list(message = "PMIDs not retrievable from PubMed: PMID:99999999"),
+          class = c("publication_fetch_error", "error", "condition")
+        ))
+      },
+      put_post_db_pub_con_fn = function(...) {
+        pub_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected pub conn call.")
+      }
+    )
+    handler <- extract_review_handler("^#\\*\\s+@put\\s+/update\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "PUT",
+      user_id = 7L,
+      argsBody = list(
+        review_json = list(
+          entity_id = 123L,
+          review_id = 55L,
+          synopsis = "Updated synopsis.",
+          literature = list(
+            additional_references = list(value = "PMID:99999999"),
+            gene_review = list()
+          ),
+          phenotypes = list(),
+          variation_ontology = list()
+        )
+      )
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = TRUE)
+
+    expect_true(all(result$status == 400L))
+    expect_match(
+      paste(result$message, collapse = " "),
+      "Bad Request\\. PMIDs not retrievable from PubMed: PMID:99999999"
+    )
+    expect_false(pub_conn_called)
   })
 })
 
