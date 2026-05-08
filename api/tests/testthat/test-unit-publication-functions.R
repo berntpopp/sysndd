@@ -566,7 +566,8 @@ test_that("table_articles_from_xml handles empty keywords and MeSH", {
 test_that("info_from_pmid raises publication_fetch_error when PubMed returns nothing for a PMID", {
   # We request two PMIDs but the stubbed fetch_pubmed_data returns XML for
   # only one of them. info_from_pmid must abort with publication_fetch_error
-  # listing the unresolved PMID.
+  # listing the unresolved PMID. Both PubMed entrypoints are stubbed so this
+  # unit test cannot perform network I/O before the fetch stub is reached.
 
   one_pmid_xml <- '<?xml version="1.0"?><PubmedArticleSet><PubmedArticle>
    <MedlineCitation><PMID>11111111</PMID>
@@ -579,6 +580,7 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
    </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
    </PubmedArticle></PubmedArticleSet>'
 
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
   mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) one_pmid_xml)
 
   error <- tryCatch(
@@ -588,6 +590,54 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
 
   expect_s3_class(error, "publication_fetch_error")
   expect_match(error$message, "PMID:22222222", fixed = TRUE)
+  expect_equal(error$pmids, "PMID:22222222")
+})
+
+test_that("info_from_pmid de-duplicates unresolved PMID values in publication_fetch_error", {
+  unrelated_pmid_xml <- create_pubmed_xml(pmid = "11111111")
+
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) unrelated_pmid_xml)
+
+  error <- tryCatch(
+    info_from_pmid(c("PMID:22222222", "PMID:22222222")),
+    publication_fetch_error = function(e) e
+  )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_equal(error$pmids, "PMID:22222222")
+  expect_equal(stringr::str_count(error$message, "PMID:22222222"), 1)
+})
+
+test_that("info_from_pmid reports explicit input PMID when parsed response has NA PMID", {
+  parsed_with_na_pmid <- tibble::tibble(
+    pmid = NA_character_,
+    doi = "10.1/na",
+    title = "Missing PubMed identifier",
+    abstract = "x",
+    jabbrv = "JT",
+    journal = "J Test",
+    keywords = "",
+    year = "2024",
+    month = "01",
+    day = "01",
+    lastname = "A",
+    firstname = "B",
+    address = ""
+  )
+
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) "<xml />")
+  mockery::stub(info_from_pmid, "table_articles_from_xml", function(...) parsed_with_na_pmid)
+
+  error <- tryCatch(
+    info_from_pmid("PMID:22222222"),
+    publication_fetch_error = function(e) e
+  )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_match(error$message, "PMID:22222222", fixed = TRUE)
+  expect_false(grepl("PMID:NA", error$message, fixed = TRUE))
   expect_equal(error$pmids, "PMID:22222222")
 })
 

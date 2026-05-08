@@ -353,9 +353,13 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   # missing from input_tibble_request was unresolvable. Fail fast (#318):
   # half-committing a stub publication row and a connected entity is worse
   # than a 400 with a clear message.
-  unresolved <- input_tibble$publication_id[
-    !input_tibble$publication_id %in% input_tibble_request$publication_id
-  ]
+  requested_publication_ids <- unique(
+    input_tibble$publication_id[!is.na(input_tibble$publication_id)]
+  )
+  resolved_publication_ids <- unique(
+    input_tibble_request$publication_id[!is.na(input_tibble_request$publication_id)]
+  )
+  unresolved <- base::setdiff(requested_publication_ids, resolved_publication_ids)
   if (length(unresolved) > 0) {
     unresolved_display <- paste0("PMID:", unresolved)
     rlang::abort(
