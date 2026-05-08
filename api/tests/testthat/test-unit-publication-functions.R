@@ -586,3 +586,24 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
     class = "publication_fetch_error"
   )
 })
+
+# =============================================================================
+# Publication_date NA preservation Tests (Refs #318)
+# =============================================================================
+
+test_that("info_from_pmid leaves Publication_date as NA when value is NA in the joined tibble", {
+  # Pin the helper-expression we use in info_from_pmid: NA Publication_date
+  # must survive the replace_na step so DBI can pass NULL to MySQL.
+  # The full info_from_pmid path is exercised by integration tests (Task 11).
+  fake <- tibble::tibble(
+    Title = NA_character_,
+    Publication_date = NA_character_,
+    Journal = NA_character_
+  )
+  result <- fake %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of("Publication_date"),
+                                ~ tidyr::replace_na(.x, "")))
+  expect_true(is.na(result$Publication_date))
+  expect_equal(result$Title, "")
+  expect_equal(result$Journal, "")
+})

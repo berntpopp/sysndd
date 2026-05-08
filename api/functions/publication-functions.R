@@ -360,7 +360,12 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
     dplyr::select(-publication_id) %>%
-    mutate(across(everything(), ~ replace_na(.x, "")))
+    # Exclude timestamp columns: NA -> NULL via DBI, not "" which MySQL 8.4
+    # strict mode rejects (#318). Belt-and-braces — Task 3's fail-fast
+    # already aborts on unresolved PMIDs, so this branch is currently
+    # unreachable for the documented call path. Kept defensive against
+    # future partial-fetch code or refactors.
+    mutate(across(-any_of("Publication_date"), ~ replace_na(.x, "")))
 
   return(output_tibble)
 }
