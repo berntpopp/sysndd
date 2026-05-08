@@ -252,9 +252,11 @@ test_that("POST /create review: validation — empty synopsis returns 400", {
   })
 })
 
-test_that("POST /create review: publication_fetch_error returns 400 and skips pub connection", {
+test_that("POST /create review: publication_fetch_error returns 400 and skips downstream connections", {
   with_test_db_transaction({
     pub_conn_called <- FALSE
+    phen_conn_called <- FALSE
+    var_conn_called <- FALSE
     env <- make_review_sandbox(
       new_publication_fn = function(...) {
         stop(structure(
@@ -265,6 +267,14 @@ test_that("POST /create review: publication_fetch_error returns 400 and skips pu
       put_post_db_pub_con_fn = function(...) {
         pub_conn_called <<- TRUE
         list(status = 500, message = "Unexpected pub conn call.")
+      },
+      put_post_db_phen_con_fn = function(...) {
+        phen_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected phen conn call.")
+      },
+      put_post_db_var_ont_con_fn = function(...) {
+        var_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected var conn call.")
       }
     )
     handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
@@ -280,8 +290,8 @@ test_that("POST /create review: publication_fetch_error returns 400 and skips pu
             additional_references = list(value = "PMID:99999999"),
             gene_review = list()
           ),
-          phenotypes = list(),
-          variation_ontology = list(),
+          phenotypes = list(phenotype_id = "HP:0000001", modifier_id = "observed"),
+          variation_ontology = list(vario_id = "VO:0000001", modifier_id = "observed"),
           comment = "test comment"
         )
       )
@@ -289,12 +299,15 @@ test_that("POST /create review: publication_fetch_error returns 400 and skips pu
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = FALSE)
 
-    expect_true(all(result$status == 400L))
-    expect_match(
-      paste(result$message, collapse = " "),
-      "Bad Request\\. PMIDs not retrievable from PubMed: PMID:99999999"
+    expect_equal(res$status, 400L)
+    expect_equal(result$status, 400L)
+    expect_equal(
+      result$message,
+      "Bad Request. PMIDs not retrievable from PubMed: PMID:99999999"
     )
     expect_false(pub_conn_called)
+    expect_false(phen_conn_called)
+    expect_false(var_conn_called)
   })
 })
 
@@ -368,9 +381,11 @@ test_that("PUT /update review: validation — missing entity_id returns 400", {
   })
 })
 
-test_that("PUT /update review: publication_fetch_error returns 400 and skips pub connection", {
+test_that("PUT /update review: publication_fetch_error returns 400 and skips downstream connections", {
   with_test_db_transaction({
     pub_conn_called <- FALSE
+    phen_conn_called <- FALSE
+    var_conn_called <- FALSE
     env <- make_review_sandbox(
       new_publication_fn = function(...) {
         stop(structure(
@@ -381,6 +396,14 @@ test_that("PUT /update review: publication_fetch_error returns 400 and skips pub
       put_post_db_pub_con_fn = function(...) {
         pub_conn_called <<- TRUE
         list(status = 500, message = "Unexpected pub conn call.")
+      },
+      put_post_db_phen_con_fn = function(...) {
+        phen_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected phen conn call.")
+      },
+      put_post_db_var_ont_con_fn = function(...) {
+        var_conn_called <<- TRUE
+        list(status = 500, message = "Unexpected var conn call.")
       }
     )
     handler <- extract_review_handler("^#\\*\\s+@put\\s+/update\\s*$", env)
@@ -397,20 +420,23 @@ test_that("PUT /update review: publication_fetch_error returns 400 and skips pub
             additional_references = list(value = "PMID:99999999"),
             gene_review = list()
           ),
-          phenotypes = list(),
-          variation_ontology = list()
+          phenotypes = list(phenotype_id = "HP:0000001", modifier_id = "observed"),
+          variation_ontology = list(vario_id = "VO:0000001", modifier_id = "observed")
         )
       )
     )
     res <- make_mock_res()
     result <- handler(req = req, res = res, re_review = TRUE)
 
-    expect_true(all(result$status == 400L))
-    expect_match(
-      paste(result$message, collapse = " "),
-      "Bad Request\\. PMIDs not retrievable from PubMed: PMID:99999999"
+    expect_equal(res$status, 400L)
+    expect_equal(result$status, 400L)
+    expect_equal(
+      result$message,
+      "Bad Request. PMIDs not retrievable from PubMed: PMID:99999999"
     )
     expect_false(pub_conn_called)
+    expect_false(phen_conn_called)
+    expect_false(var_conn_called)
   })
 })
 
