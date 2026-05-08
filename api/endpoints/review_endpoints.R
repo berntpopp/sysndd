@@ -279,13 +279,30 @@ function(req, res, re_review = FALSE) {
 
       # Publications
       if (length(compact(review_data$literature)) > 0) {
-        response_publication <- new_publication(publications_received)
-        response_publication_conn <- put_post_db_pub_con(
-          req$REQUEST_METHOD,
-          publications_received,
-          as.integer(sysnopsis_received$entity_id),
-          as.integer(response_review$entry$review_id)
+        publication_fetch_failed <- FALSE
+        response_publication <- tryCatch(
+          new_publication(publications_received),
+          publication_fetch_error = function(e) {
+            publication_fetch_failed <<- TRUE
+            res$status <- 400L
+            list(status = 400,
+                 message = paste("Bad Request.", e$message),
+                 error = e$message)
+          }
         )
+        if (publication_fetch_failed) {
+          return(response_publication)
+        }
+        if (response_publication$status == 200) {
+          response_publication_conn <- put_post_db_pub_con(
+            req$REQUEST_METHOD,
+            publications_received,
+            as.integer(sysnopsis_received$entity_id),
+            as.integer(response_review$entry$review_id)
+          )
+        } else {
+          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
+        }
       } else {
         response_publication <- list(status = 200, message = "OK. Skipped.")
         response_publication_conn <- list(status = 200, message = "OK. Skipped.")
@@ -335,13 +352,30 @@ function(req, res, re_review = FALSE) {
       )
 
       if (length(compact(review_data$literature)) > 0) {
-        response_publication <- new_publication(publications_received)
-        response_publication_conn <- put_post_db_pub_con(
-          req$REQUEST_METHOD,
-          publications_received,
-          sysnopsis_received$entity_id,
-          review_data$review_id
+        publication_fetch_failed <- FALSE
+        response_publication <- tryCatch(
+          new_publication(publications_received),
+          publication_fetch_error = function(e) {
+            publication_fetch_failed <<- TRUE
+            res$status <- 400L
+            list(status = 400,
+                 message = paste("Bad Request.", e$message),
+                 error = e$message)
+          }
         )
+        if (publication_fetch_failed) {
+          return(response_publication)
+        }
+        if (response_publication$status == 200) {
+          response_publication_conn <- put_post_db_pub_con(
+            req$REQUEST_METHOD,
+            publications_received,
+            sysnopsis_received$entity_id,
+            review_data$review_id
+          )
+        } else {
+          response_publication_conn <- list(status = 200, message = "OK. Skipped.")
+        }
       } else {
         response_publication <- list(status = 200, message = "OK. Skipped.")
         response_publication_conn <- list(status = 200, message = "OK. Skipped.")

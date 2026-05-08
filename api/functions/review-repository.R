@@ -64,6 +64,11 @@ review_find_by_entity <- function(entity_id) {
 #' @param review_data List or data frame with review fields:
 #'   - entity_id (required)
 #'   - synopsis (required, can be NA)
+#'   - review_user_id (required)
+#'   - is_primary (optional integer 0/1; omit to use DB default)
+#'   - review_approved (optional integer 0/1; omit to use DB default)
+#'   - approving_user_id (optional integer; omit to use DB default)
+#'   - comment (optional character; omit to use DB default)
 #'
 #' @return Integer review_id of the newly created review
 #'
@@ -112,12 +117,33 @@ review_create <- function(review_data, conn = NULL) {
     synopsis <- stringr::str_replace_all(synopsis, "'", "''")
   }
 
-  # Insert review (BUG-01 fix: include review_user_id which is required by database)
-  sql <- "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id) VALUES (?, ?, ?)"
+  # Always-present columns
+  cols <- c("entity_id", "synopsis", "review_user_id")
+  vals <- list(review_data$entity_id, synopsis, review_data$review_user_id)
 
-  params <- list(review_data$entity_id, synopsis, review_data$review_user_id)
+  # Optional approval-state columns: include only when explicitly provided.
+  # Fixes #318: rename flow lost approval state because old INSERT hardcoded
+  # only the three required columns and let defaults apply.
+  optional <- c("is_primary", "review_approved", "approving_user_id", "comment")
+  for (col in optional) {
+    val <- review_data[[col]]
+    if (!is.null(val) && !(length(val) == 1 && is.na(val))) {
+      if (length(val) != 1) {
+        rlang::abort(
+          message = sprintf("review_create: optional column '%s' must be a scalar, got length %d", col, length(val)),
+          class = c("review_validation_error", "validation_error")
+        )
+      }
+      cols <- c(cols, col)
+      vals <- c(vals, list(val))
+    }
+  }
 
-  db_execute_statement(sql, params, conn = conn)
+  placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+  sql <- sprintf("INSERT INTO ndd_entity_review (%s) VALUES (%s)",
+                 paste(cols, collapse = ", "), placeholders)
+
+  db_execute_statement(sql, vals, conn = conn)
 
   # Get last insert ID
   result <- db_execute_query("SELECT LAST_INSERT_ID() as review_id", conn = conn)

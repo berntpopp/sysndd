@@ -1,6 +1,7 @@
 // app/src/views/curate/composables/useEntityMutations.ts
 import { ref } from 'vue';
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
@@ -54,11 +55,12 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The new disease name for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Disease name updated successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to update disease name');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to update disease name', 'assertive');
       throw e;
     } finally {
@@ -69,8 +71,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
   async function deactivate(args: DeactivateArgs): Promise<void> {
     submitting.value = 'deactivate';
     const nextActive = args.deactivate_check ? 0 : 1;
-    const nextReplacedBy =
-      args.replace_entity_input === null ? null : args.replace_entity_input;
+    const nextReplacedBy = args.replace_entity_input === null ? null : args.replace_entity_input;
     // Build the wire payload from a clone so a failed request doesn't
     // leave the caller's reactive entity_info with mutated is_active/replaced_by.
     const deactivated = {
@@ -89,11 +90,12 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The deactivation for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Entity deactivation submitted successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to deactivate entity');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to deactivate entity', 'assertive');
       throw e;
     } finally {
@@ -108,10 +110,10 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
     const replace_literature = new Literature(additional_clean, gene_reviews_clean);
 
     const replace_phenotype = args.select_phenotype.map(
-      (item) => new Phenotype(item.split('-')[1], item.split('-')[0]),
+      (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
     );
     const replace_variation = args.select_variation.map(
-      (item) => new Variation(item.split('-')[1], item.split('-')[0]),
+      (item) => new Variation(item.split('-')[1], item.split('-')[0])
     );
 
     args.review_info.literature = replace_literature;
@@ -125,11 +127,12 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The new review for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Review submitted successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to submit review');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to submit review', 'assertive');
       throw e;
     } finally {

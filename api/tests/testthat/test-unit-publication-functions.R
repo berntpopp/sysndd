@@ -30,8 +30,21 @@ library(stringr)
 library(xml2)
 library(purrr)
 library(rvest)  # Required for genereviews-functions.R
+library(tidyr)
 
 # Source functions being tested
+# publication-functions.R conditionally sources db-helpers.R (which requires
+# RMariaDB) only when db_execute_query is not already defined. Pre-define a
+# no-op stub in globalenv so the source guard is satisfied and the file can
+# load without RMariaDB installed. The actual db helpers are mocked per-test
+# with mockery.
+if (!exists("db_execute_query", mode = "function", envir = globalenv())) {
+  assign("db_execute_query",
+    function(...) stop("db_execute_query stub: mock in each test"),
+    envir = globalenv()
+  )
+}
+
 # publication-functions.R sources genereviews-functions.R with relative path,
 # so we change to api directory and source from there
 # We need to stay in api_dir for the function to work correctly since
@@ -544,4 +557,107 @@ test_that("table_articles_from_xml handles empty keywords and MeSH", {
 
   # keywords should be empty or just whitespace
   expect_true(result$keywords[1] == "" || nchar(trimws(result$keywords[1])) == 0)
+})
+
+# =============================================================================
+# info_from_pmid Fail-Fast Tests (Refs #318)
+# =============================================================================
+
+test_that("info_from_pmid raises publication_fetch_error when PubMed returns nothing for a PMID", {
+  # We request two PMIDs but the stubbed fetch_pubmed_data returns XML for
+  # only one of them. info_from_pmid must abort with publication_fetch_error
+  # listing the unresolved PMID. Both PubMed entrypoints are stubbed so this
+  # unit test cannot perform network I/O before the fetch stub is reached.
+
+  one_pmid_xml <- '<?xml version="1.0"?><PubmedArticleSet><PubmedArticle>
+   <MedlineCitation><PMID>11111111</PMID>
+   <Article><Journal><Title>J Test</Title><ISOAbbreviation>JT</ISOAbbreviation></Journal>
+   <ArticleTitle>Resolvable</ArticleTitle><Abstract><AbstractText>x</AbstractText></Abstract>
+   <AuthorList><Author><LastName>A</LastName><ForeName>B</ForeName></Author></AuthorList>
+   </Article></MedlineCitation>
+   <PubmedData><History>
+    <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>1</Month><Day>1</Day></PubMedPubDate>
+   </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
+   </PubmedArticle></PubmedArticleSet>'
+
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) one_pmid_xml)
+
+  error <- tryCatch(
+    info_from_pmid(c("11111111", "22222222")),
+    publication_fetch_error = function(e) e
+  )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_match(error$message, "PMID:22222222", fixed = TRUE)
+  expect_equal(error$pmids, "PMID:22222222")
+})
+
+test_that("info_from_pmid de-duplicates unresolved PMID values in publication_fetch_error", {
+  unrelated_pmid_xml <- create_pubmed_xml(pmid = "11111111")
+
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) unrelated_pmid_xml)
+
+  error <- tryCatch(
+    info_from_pmid(c("PMID:22222222", "PMID:22222222")),
+    publication_fetch_error = function(e) e
+  )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_equal(error$pmids, "PMID:22222222")
+  expect_equal(stringr::str_count(error$message, "PMID:22222222"), 1)
+})
+
+test_that("info_from_pmid reports explicit input PMID when parsed response has NA PMID", {
+  parsed_with_na_pmid <- tibble::tibble(
+    pmid = NA_character_,
+    doi = "10.1/na",
+    title = "Missing PubMed identifier",
+    abstract = "x",
+    jabbrv = "JT",
+    journal = "J Test",
+    keywords = "",
+    year = "2024",
+    month = "01",
+    day = "01",
+    lastname = "A",
+    firstname = "B",
+    address = ""
+  )
+
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) "<xml />")
+  mockery::stub(info_from_pmid, "table_articles_from_xml", function(...) parsed_with_na_pmid)
+
+  error <- tryCatch(
+    info_from_pmid("PMID:22222222"),
+    publication_fetch_error = function(e) e
+  )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_match(error$message, "PMID:22222222", fixed = TRUE)
+  expect_false(grepl("PMID:NA", error$message, fixed = TRUE))
+  expect_equal(error$pmids, "PMID:22222222")
+})
+
+# =============================================================================
+# Publication_date NA preservation Tests (Refs #318)
+# =============================================================================
+
+test_that("info_from_pmid leaves Publication_date as NA when value is NA in the joined tibble", {
+  # Pin the helper-expression we use in info_from_pmid: NA Publication_date
+  # must survive the replace_na step so DBI can pass NULL to MySQL.
+  # The full info_from_pmid path is exercised by integration tests (Task 11).
+  fake <- tibble::tibble(
+    Title = NA_character_,
+    Publication_date = NA_character_,
+    Journal = NA_character_
+  )
+  result <- fake %>%
+    dplyr::mutate(dplyr::across(-dplyr::any_of("Publication_date"),
+                                ~ tidyr::replace_na(.x, "")))
+  expect_true(is.na(result$Publication_date))
+  expect_equal(result$Title, "")
+  expect_equal(result$Journal, "")
 })

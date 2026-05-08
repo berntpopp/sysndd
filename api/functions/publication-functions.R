@@ -125,16 +125,30 @@ new_publication <- function(publications_received) {
 
     # add new publications to database table "publication" if present and not NA
     if (nrow(publications_list_collected_info) > 0) {
-      # Insert each publication using parameterized query
-      # Use names(tibble) to ensure column order matches INSERT statement
       cols <- names(publications_list_collected_info)
       placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
+      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)",
+                     paste(cols, collapse = ", "), placeholders)
 
-      for (i in seq_len(nrow(publications_list_collected_info))) {
-        row <- publications_list_collected_info[i, ]
-        db_execute_statement(sql, as.list(row))
-      }
+      # Atomic batch (#318): a partial publication batch must never half-commit.
+      # If any INSERT fails (e.g. an unexpected NULL on a NOT NULL column), the
+      # whole batch rolls back and the error propagates as db_transaction_error.
+      tryCatch(
+        db_with_transaction(function(txn_conn) {
+          for (i in seq_len(nrow(publications_list_collected_info))) {
+            row <- publications_list_collected_info[i, ]
+            db_execute_statement(sql, as.list(row), conn = txn_conn)
+          }
+          invisible(NULL)
+        }),
+        db_transaction_error = function(e) {
+          rlang::abort(
+            message = paste("Publication batch insert failed:", e$message),
+            class = c("publication_insert_error", "db_statement_error"),
+            original_error = e$message
+          )
+        }
+      )
     }
 
     # return OK
@@ -334,10 +348,39 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Firstname = firstname
     )
 
+  # Detect PMIDs PubMed did not return any data for. After fetch+parse,
+  # input_tibble_request contains a row per RESOLVED PMID. Any input PMID
+  # missing from input_tibble_request was unresolvable. Fail fast (#318):
+  # half-committing a stub publication row and a connected entity is worse
+  # than a 400 with a clear message.
+  requested_publication_ids <- unique(
+    input_tibble$publication_id[!is.na(input_tibble$publication_id)]
+  )
+  resolved_publication_ids <- unique(
+    input_tibble_request$publication_id[!is.na(input_tibble_request$publication_id)]
+  )
+  unresolved <- base::setdiff(requested_publication_ids, resolved_publication_ids)
+  if (length(unresolved) > 0) {
+    unresolved_display <- paste0("PMID:", unresolved)
+    rlang::abort(
+      message = paste0(
+        "PMIDs not retrievable from PubMed: ",
+        paste(unresolved_display, collapse = ", ")
+      ),
+      class = "publication_fetch_error",
+      pmids = unresolved_display
+    )
+  }
+
   output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
     dplyr::select(-publication_id) %>%
-    mutate(across(everything(), ~ replace_na(.x, "")))
+    # Exclude timestamp columns: NA -> NULL via DBI, not "" which MySQL 8.4
+    # strict mode rejects (#318). Belt-and-braces — Task 3's fail-fast
+    # already aborts on unresolved PMIDs, so this branch is currently
+    # unreachable for the documented call path. Kept defensive against
+    # future partial-fetch code or refactors.
+    mutate(across(-any_of("Publication_date"), ~ replace_na(.x, "")))
 
   return(output_tibble)
 }

@@ -395,3 +395,197 @@ test_that("svc_entity_create_full returns 500 on unexpected error", {
     grepl("Entity creation failed", result$message, ignore.case = TRUE)
   )
 })
+
+# =============================================================================
+# svc_entity_rename_full Signature Tests
+# =============================================================================
+
+test_that("svc_entity_rename_full exists with expected signature", {
+  expect_true(is.function(svc_entity_rename_full))
+  svc_params <- names(formals(svc_entity_rename_full))
+  expect_equal(svc_params, c("rename_data", "user_id", "pool"))
+})
+
+test_that("svc_entity_rename_full does not shadow repository functions", {
+  expect_equal(names(formals(entity_create)), c("entity_data", "conn"))
+  expect_equal(names(formals(review_create)), c("review_data", "conn"))
+  expect_equal(names(formals(status_create)), c("status_data", "conn"))
+})
+
+# =============================================================================
+# svc_entity_rename_full Validation and Transaction Tests
+# =============================================================================
+
+entity_service_valid_rename_payload <- function() {
+  list(
+    entity = list(
+      entity_id = 1L,
+      hgnc_id = 1234L,
+      hpo_mode_of_inheritance_term = "HP:0000006",
+      ndd_phenotype = "Definitive",
+      disease_ontology_id_version = "MONDO:0000002"
+    )
+  )
+}
+
+entity_service_rename_read_conn <- function(status_is_active = 1L) {
+  skip_if_not_installed("RSQLite")
+
+  conn <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
+
+  DBI::dbWriteTable(conn, "ndd_entity", tibble::tibble(
+    entity_id = 1L,
+    hgnc_id = 1234L,
+    hpo_mode_of_inheritance_term = "HP:0000006",
+    disease_ontology_id_version = "MONDO:0000001",
+    ndd_phenotype = "Definitive",
+    is_active = 1L
+  ))
+
+  DBI::dbWriteTable(conn, "ndd_entity_review", tibble::tibble(
+    review_id = integer(),
+    entity_id = integer(),
+    synopsis = character(),
+    is_primary = integer(),
+    review_approved = integer(),
+    approving_user_id = integer(),
+    comment = character()
+  ))
+
+  status_rows <- tibble::tibble(
+    entity_id = integer(),
+    category_id = integer(),
+    status_user_id = integer(),
+    is_active = integer(),
+    status_approved = integer(),
+    approving_user_id = integer(),
+    problematic = integer(),
+    comment = character()
+  )
+
+  if (!is.null(status_is_active)) {
+    status_rows <- tibble::add_row(
+      status_rows,
+      entity_id = 1L,
+      category_id = 2L,
+      status_user_id = 7L,
+      is_active = status_is_active,
+      status_approved = 1L,
+      approving_user_id = 8L,
+      problematic = 0L,
+      comment = "source status"
+    )
+  }
+
+  DBI::dbWriteTable(conn, "ndd_entity_status", status_rows)
+
+  conn
+}
+
+test_that("svc_entity_rename_full rejects missing entity or entity_id before querying pool", {
+  fn <- svc_entity_rename_full
+  payload_without_id <- entity_service_valid_rename_payload()
+  payload_without_id$entity$entity_id <- NULL
+
+  cases <- list(
+    missing_entity = list(),
+    missing_entity_id = payload_without_id
+  )
+
+  for (case_name in names(cases)) {
+    result <- NULL
+    expect_error(
+      result <- fn(cases[[case_name]], user_id = 7L, pool = "pool must not be used"),
+      NA,
+      info = case_name
+    )
+    expect_true(is.list(result), info = case_name)
+    if (is.list(result)) {
+      expect_equal(result$status, 400, info = case_name)
+      expect_match(result$message, "entity", ignore.case = TRUE, info = case_name)
+    }
+  }
+})
+
+test_that("svc_entity_rename_full rejects missing rename fields before querying pool", {
+  fn <- svc_entity_rename_full
+  required_fields <- c(
+    "hgnc_id",
+    "hpo_mode_of_inheritance_term",
+    "ndd_phenotype",
+    "disease_ontology_id_version"
+  )
+
+  for (field in required_fields) {
+    payload <- entity_service_valid_rename_payload()
+    payload$entity[[field]] <- NULL
+
+    result <- NULL
+    expect_error(
+      result <- fn(payload, user_id = 7L, pool = "pool must not be used"),
+      NA,
+      info = field
+    )
+    expect_true(is.list(result), info = field)
+    if (is.list(result)) {
+      expect_equal(result$status, 400, info = field)
+      expect_match(result$message, field, fixed = TRUE, info = field)
+    }
+  }
+})
+
+test_that("svc_entity_rename_full fails before transaction when source has no active status", {
+  conn <- entity_service_rename_read_conn(status_is_active = 0L)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  fn <- svc_entity_rename_full
+  mockery::stub(fn, "svc_entity_check_duplicate", function(entity_data, pool) NULL)
+  mockery::stub(fn, "db_with_transaction", function(...) {
+    stop("transaction should not be called")
+  })
+
+  result <- fn(entity_service_valid_rename_payload(), user_id = 7L, pool = conn)
+
+  expect_equal(result$status, 409)
+  expect_match(result$message, "active source status", ignore.case = TRUE)
+})
+
+test_that("svc_entity_rename_full rolls back when source deactivation affects no rows", {
+  conn <- entity_service_rename_read_conn(status_is_active = 1L)
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+
+  fn <- svc_entity_rename_full
+  deactivation_sql <- NULL
+
+  mockery::stub(fn, "svc_entity_check_duplicate", function(entity_data, pool) NULL)
+  mockery::stub(fn, "entity_create", function(entity_data, conn = NULL) 11L)
+  mockery::stub(fn, "review_create", function(review_data, conn = NULL) 12L)
+  mockery::stub(fn, "status_create", function(status_data, conn = NULL) 13L)
+  mockery::stub(fn, "db_execute_statement", function(sql, params = list(), conn = NULL) {
+    deactivation_sql <<- sql
+    0L
+  })
+  mockery::stub(fn, "db_with_transaction", function(code, pool_obj = NULL) {
+    tryCatch(
+      code("txn_conn"),
+      error = function(e) {
+        rlang::abort(
+          message = paste("Transaction failed:", e$message),
+          class = "db_transaction_error",
+          original_error = e$message
+        )
+      }
+    )
+  })
+
+  result <- fn(entity_service_valid_rename_payload(), user_id = 7L, pool = conn)
+
+  expect_equal(result$status, 500)
+  expect_true(!is.null(result$error))
+  expect_match(
+    deactivation_sql,
+    "WHERE\\s+entity_id\\s*=\\s*\\?\\s+AND\\s+is_active\\s*=\\s*1",
+    ignore.case = TRUE
+  )
+  expect_match(result$error, "source entity.*active|deactivat", ignore.case = TRUE)
+})
