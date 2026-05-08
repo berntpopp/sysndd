@@ -8,6 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.16.1] — 2026-05-08
+
+Patch bump for the atomic entity rename and PubMed validation fix in PR #319.
+
+### Fixed
+
+- **Entity rename is atomic.** `POST /api/entity/rename` now delegates to `svc_entity_rename_full`, carrying source approval/status state to the replacement entity and rolling back all rename writes on failure.
+- **Unresolvable PMIDs fail before partial writes.** PubMed misses now raise `publication_fetch_error`, list the offending `PMID:` values, and return HTTP 400 at entity/review endpoints instead of creating partial publication/entity state.
+- **Curator error toasts show API messages.** Entity mutation failures now surface structured API error text instead of object-shaped toast content.
+- **Rename edge cases are guarded.** Malformed rename payloads, missing active source status, and stale source deactivation are rejected before or inside the transaction.
+
 ## [0.11.14] — 2026-04-24
 
 Patch bump for the durable async job hard cut in PR #305. This replaces process-local async job ownership with a MySQL-backed durable queue/state model, a dedicated worker service, and CI smoke/bootstrap fixes required to verify the new architecture on pristine environments.
@@ -403,7 +414,8 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.11.14...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/berntpopp/sysndd/compare/v0.16.0...v0.16.1
 [0.11.14]: https://github.com/berntpopp/sysndd/compare/v0.11.13...v0.11.14
 [0.11.13]: https://github.com/berntpopp/sysndd/compare/v0.11.12...v0.11.13
 [0.11.6]: https://github.com/berntpopp/sysndd/compare/v0.11.5...v0.11.6
