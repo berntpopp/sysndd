@@ -353,21 +353,18 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   # missing from input_tibble_request was unresolvable. Fail fast (#318):
   # half-committing a stub publication row and a connected entity is worse
   # than a 400 with a clear message.
-  #
-  # Note: input_tibble$publication_id values here are bare digits (the
-  # str_remove("PMID:") was applied above). The error message reflects these
-  # bare digits; endpoint layer (Task 8) can re-prefix if needed.
   unresolved <- input_tibble$publication_id[
     !input_tibble$publication_id %in% input_tibble_request$publication_id
   ]
   if (length(unresolved) > 0) {
+    unresolved_display <- paste0("PMID:", unresolved)
     rlang::abort(
       message = paste0(
         "PMIDs not retrievable from PubMed: ",
-        paste(unresolved, collapse = ", ")
+        paste(unresolved_display, collapse = ", ")
       ),
       class = "publication_fetch_error",
-      pmids = unresolved
+      pmids = unresolved_display
     )
   }
 

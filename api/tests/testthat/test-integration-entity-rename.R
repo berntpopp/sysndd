@@ -752,9 +752,8 @@ test_that("entity submission with unresolvable PMID returns 400 and writes nothi
 
     expect_equal(result$status, 400)
     expect_match(result$message, "PMIDs not retrievable", fixed = TRUE)
-    # info_from_pmid currently strips the PMID: prefix before reporting misses.
-    expect_match(result$message, "99999991", fixed = TRUE)
-    expect_match(result$message, "99999992", fixed = TRUE)
+    expect_match(result$message, "PMID:99999991", fixed = TRUE)
+    expect_match(result$message, "PMID:99999992", fixed = TRUE)
     expect_equal(count_publication_rejection_rows(conn), before_counts)
   })
 })

@@ -581,10 +581,14 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
 
   mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) one_pmid_xml)
 
-  expect_error(
+  error <- tryCatch(
     info_from_pmid(c("11111111", "22222222")),
-    class = "publication_fetch_error"
+    publication_fetch_error = function(e) e
   )
+
+  expect_s3_class(error, "publication_fetch_error")
+  expect_match(error$message, "PMID:22222222", fixed = TRUE)
+  expect_equal(error$pmids, "PMID:22222222")
 })
 
 # =============================================================================
