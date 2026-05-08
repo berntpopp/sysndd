@@ -3,8 +3,10 @@
 
 /// <reference types="vitest-axe/extend-expect" />
 
+import { Blob as NodeBlob } from 'node:buffer';
 import { vi, beforeEach, afterEach, beforeAll, afterAll, expect } from 'vitest';
 import * as matchers from 'vitest-axe/matchers';
+import axios from 'axios';
 
 // =============================================================================
 // Accessibility Testing Matchers (vitest-axe)
@@ -13,9 +15,23 @@ import * as matchers from 'vitest-axe/matchers';
 // Extend Vitest expect with accessibility matchers (toHaveNoViolations)
 expect.extend(matchers);
 
+// Axios 1.16 + MSW 2.14 can fail under Vitest/jsdom when the XHR adapter
+// synthesizes binary responses (`responseType: "blob"`). The fetch adapter
+// preserves the same request surface while letting MSW return Blob bodies.
+function configureAxiosForTests() {
+  axios.defaults.adapter = 'fetch';
+  axios.defaults.baseURL = window.location.origin;
+}
+
+configureAxiosForTests();
+
 // =============================================================================
 // Browser API Mocks (required for Bootstrap and Vue components)
 // =============================================================================
+
+// Keep Blob identity aligned with the Node fetch stack used by Axios/MSW.
+Object.defineProperty(globalThis, 'Blob', { value: NodeBlob });
+Object.defineProperty(window, 'Blob', { value: NodeBlob });
 
 // Mock window.matchMedia (required for Bootstrap components)
 Object.defineProperty(window, 'matchMedia', {
@@ -72,6 +88,7 @@ beforeAll(() => {
 
 // Reset mocks and MSW handlers between tests
 beforeEach(() => {
+  configureAxiosForTests();
   localStorageMock.clear();
   vi.clearAllMocks();
 });

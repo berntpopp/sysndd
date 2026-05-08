@@ -3,7 +3,7 @@
 # SysNDD API - Multi-Stage Optimized R Plumber Docker Image
 # =============================================================================
 #
-# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.5.3)
+# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.6.0)
 # Key optimizations:
 # - Multi-stage build (base -> packages -> production)
 # - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 24.04 (noble)
@@ -18,10 +18,10 @@
 # =============================================================================
 # Stage 1: Base - System dependencies and R configuration
 # =============================================================================
-FROM rocker/r-ver:4.5.3 AS base
+FROM rocker/r-ver:4.6.0 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
-# rocker/r-ver:4.5.3 uses Ubuntu 24.04 (noble) with ICU 74, so we use noble binaries
+# rocker/r-ver:4.6.0 uses Ubuntu 24.04 (noble), so we use noble binaries
 #
 # IMPORTANT: pin to a dated snapshot (not /latest) so that CRAN pruning old
 # versions cannot silently drift the build. Bump this date intentionally,
@@ -198,7 +198,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Image metadata
 LABEL maintainer="SysNDD Team" \
       version="3.2" \
-      description="SysNDD R Plumber API (R 4.5.3, Multi-Stage Optimized)"
+      description="SysNDD R Plumber API (R 4.6.0, Multi-Stage Optimized)"
 
 # Switch to non-root user for security
 USER apiuser

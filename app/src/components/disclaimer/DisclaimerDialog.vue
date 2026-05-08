@@ -74,7 +74,6 @@
       <div class="disclaimer-footer">
         <BButton
           variant="primary"
-          size="md"
           :disabled="loading"
           aria-label="Acknowledge and Continue"
           @click="acknowledgeDisclaimer"

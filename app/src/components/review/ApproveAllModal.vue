@@ -3,7 +3,6 @@
   <BModal
     :id="modalId"
     ref="modalRef"
-    size="md"
     centered
     ok-title="Approve All"
     ok-variant="danger"
@@ -31,9 +30,7 @@
           <i class="bi bi-exclamation-triangle" />
         </span>
       </div>
-      <p class="mb-2">
-        Are you sure you want to approve <strong>ALL</strong> {{ resourceLabel }}?
-      </p>
+      <p class="mb-2">Are you sure you want to approve <strong>ALL</strong> {{ resourceLabel }}?</p>
       <p class="text-muted small mb-3">
         This will approve {{ totalRows }} pending {{ resourceLabel }} at once.
       </p>
@@ -46,9 +43,7 @@
         switch
         @update:model-value="$emit('update:selected', Boolean($event))"
       >
-        <span class="fw-semibold">
-          {{ selected ? 'Yes' : 'No' }}, I confirm this action
-        </span>
+        <span class="fw-semibold"> {{ selected ? 'Yes' : 'No' }}, I confirm this action </span>
       </BFormCheckbox>
     </div>
   </BModal>

@@ -13,7 +13,6 @@
   <BModal
     :id="modalDescriptor.id"
     :ref="modalDescriptor.id"
-    size="md"
     centered
     ok-title="Submit Review"
     ok-variant="success"
@@ -58,8 +57,7 @@ export default {
     modalDescriptor: {
       type: Object,
       required: true,
-      validator: (value) =>
-        typeof value?.id === 'string' && typeof value?.title === 'string',
+      validator: (value) => typeof value?.id === 'string' && typeof value?.title === 'string',
     },
   },
   emits: ['ok'],

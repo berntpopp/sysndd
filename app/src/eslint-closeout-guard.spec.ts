@@ -38,12 +38,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Each `lintText` call loads the full ESLint config (typescript-eslint
-// parser + Vue plugin + project-wide rules), which can take 5–15 seconds
-// on a cold CI runner. Vitest's default 5s per-test timeout fires before
-// the first test's `lintText` completes. Bump the per-test ceiling
-// generously; a `beforeAll` warm-up below also primes the parser so every
-// subsequent test finishes within a few hundred ms.
-vi.setConfig({ testTimeout: 30000, hookTimeout: 30000 });
+// parser + Vue plugin + project-wide rules), which can take tens of seconds
+// on a cold runner after ESLint dependency upgrades. Vitest's default 5s
+// per-test timeout fires before the first test's `lintText` completes. Bump
+// the ceiling generously; a `beforeAll` warm-up below also primes the parser
+// so every subsequent test finishes quickly.
+vi.setConfig({ testTimeout: 120000, hookTimeout: 120000 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -86,7 +86,7 @@ function hasCloseoutViolation(result: ESLint.LintResult): boolean {
     (m) =>
       m.ruleId === 'no-restricted-syntax' &&
       (m.message.includes('localStorage.token / localStorage.user') ||
-        m.message.includes("localStorage.{get,set,remove}Item('token'|'user')")),
+        m.message.includes("localStorage.{get,set,remove}Item('token'|'user')"))
   );
 }
 
@@ -159,9 +159,7 @@ describe('closeout §8.1 guardrail — CallExpression selectors', () => {
   });
 
   it("flags `window.localStorage.getItem('token')`", async () => {
-    const r = await lintSnippet(
-      `const t = window.localStorage.getItem('token');`,
-    );
+    const r = await lintSnippet(`const t = window.localStorage.getItem('token');`);
     expect(hasCloseoutViolation(r)).toBe(true);
   });
 
@@ -171,9 +169,7 @@ describe('closeout §8.1 guardrail — CallExpression selectors', () => {
   });
 
   it("flags `globalThis.localStorage.getItem('user')`", async () => {
-    const r = await lintSnippet(
-      `const u = globalThis.localStorage.getItem('user');`,
-    );
+    const r = await lintSnippet(`const u = globalThis.localStorage.getItem('user');`);
     expect(hasCloseoutViolation(r)).toBe(true);
   });
 
@@ -183,13 +179,11 @@ describe('closeout §8.1 guardrail — CallExpression selectors', () => {
   });
 
   it("does NOT flag `localStorage.getItem('banner_acknowledged')` (non-sensitive key)", async () => {
-    const r = await lintSnippet(
-      `const b = localStorage.getItem('banner_acknowledged');`,
-    );
+    const r = await lintSnippet(`const b = localStorage.getItem('banner_acknowledged');`);
     expect(hasCloseoutViolation(r)).toBe(false);
   });
 
-  it('does NOT flag `sessionStorage.getItem(\'token\')`', async () => {
+  it("does NOT flag `sessionStorage.getItem('token')`", async () => {
     const r = await lintSnippet(`const t = sessionStorage.getItem('token');`);
     expect(hasCloseoutViolation(r)).toBe(false);
   });
@@ -199,7 +193,7 @@ describe('closeout §8.1 guardrail — clean code passes', () => {
   it('accepts `useAuth().token.value` (the approved replacement)', async () => {
     const r = await lintSnippet(
       `import useAuth from '@/composables/useAuth';
-       const t = useAuth().token.value;`,
+       const t = useAuth().token.value;`
     );
     expect(hasCloseoutViolation(r)).toBe(false);
   });

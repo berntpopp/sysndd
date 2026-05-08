@@ -13,7 +13,6 @@
   <BModal
     :id="modalDescriptor.id"
     :ref="modalDescriptor.id"
-    size="md"
     centered
     ok-title="Approve"
     ok-variant="success"
@@ -55,9 +54,7 @@
         @update:model-value="$emit('update:reviewApproved', $event)"
       >
         <span class="fw-semibold">Review</span>
-        <span class="text-muted small d-block"
-          >Approve the clinical synopsis and annotations</span
-        >
+        <span class="text-muted small d-block">Approve the clinical synopsis and annotations</span>
       </BFormCheckbox>
 
       <BFormCheckbox
@@ -95,8 +92,7 @@ export default {
     modalDescriptor: {
       type: Object,
       required: true,
-      validator: (value) =>
-        typeof value?.id === 'string' && typeof value?.title === 'string',
+      validator: (value) => typeof value?.id === 'string' && typeof value?.title === 'string',
     },
     reviewApproved: { type: Boolean, default: false },
     statusApproved: { type: Boolean, default: false },

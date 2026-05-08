@@ -111,9 +111,7 @@
         >
           <i
             :class="
-              data.item.problematic
-                ? 'bi bi-exclamation-triangle-fill'
-                : 'bi bi-check-circle-fill'
+              data.item.problematic ? 'bi bi-exclamation-triangle-fill' : 'bi bi-check-circle-fill'
             "
           />
         </span>
@@ -181,19 +179,14 @@
           :aria-label="`Toggle details for entity ${row.item.entity_id}`"
           @click="row.toggleExpansion"
         >
-          <i
-            :class="'bi bi-' + (row.expansionShowing ? 'eye-slash' : 'eye')"
-            aria-hidden="true"
-          />
+          <i :class="'bi bi-' + (row.expansionShowing ? 'eye-slash' : 'eye')" aria-hidden="true" />
         </BButton>
         <BButton
           v-b-tooltip.hover.left
           size="sm"
           class="me-1 btn-xs"
           variant="secondary"
-          :title="
-            row.item.review_change ? 'Edit status (review change pending)' : 'Edit status'
-          "
+          :title="row.item.review_change ? 'Edit status (review change pending)' : 'Edit status'"
           :aria-label="`Edit status for entity ${row.item.entity_id}${row.item.review_change ? ' (review change pending)' : ''}`"
           @click="$emit('edit-status', row.item)"
         >
@@ -256,7 +249,17 @@
                 </div>
                 <div class="d-flex align-items-center gap-2">
                   <span class="text-muted small" style="min-width: 80px">Category:</span>
-                  <BBadge :variant="(stoplightsStyle[row.item.category as string | number] as 'secondary' | 'primary' | 'success' | 'warning' | 'danger' | 'info') || 'secondary'">
+                  <BBadge
+                    :variant="
+                      (stoplightsStyle[row.item.category as string | number] as
+                        | 'secondary'
+                        | 'primary'
+                        | 'success'
+                        | 'warning'
+                        | 'danger'
+                        | 'info') || 'secondary'
+                    "
+                  >
                     {{ row.item.category }}
                   </BBadge>
                 </div>
@@ -297,7 +300,6 @@
     <BModal
       :id="approveModalId"
       :ref="approveModalId"
-      size="md"
       centered
       ok-title="Approve"
       ok-variant="success"
@@ -326,10 +328,7 @@
           </BBadge>
         </p>
         <p class="text-muted small">Click <strong>Approve</strong> to confirm and submit.</p>
-        <div
-          v-if="approveHasDuplicates"
-          class="alert alert-info small text-start mt-3 mb-0"
-        >
+        <div v-if="approveHasDuplicates" class="alert alert-info small text-start mt-3 mb-0">
           <i class="bi bi-info-circle me-1" />
           Other pending statuses for this entity will be automatically dismissed.
         </div>
@@ -340,7 +339,6 @@
     <BModal
       :id="dismissModalId"
       :ref="dismissModalId"
-      size="md"
       centered
       ok-title="Dismiss"
       ok-variant="danger"
@@ -392,7 +390,6 @@
     <BModal
       :id="approveAllModalId"
       :ref="approveAllModalId"
-      size="md"
       centered
       ok-title="Approve All"
       ok-variant="danger"
