@@ -324,18 +324,12 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
       await vm.submitEntityRename();
       await flushPromises();
 
-      // 1. makeToast was called with the error variant and the rejected
-      //    axios error object (the view forwards `e` through to the toast
-      //    composable, which typically renders `e.response.data.error`).
+      // 1. makeToast was called with the error variant and the API-provided
+      //    conflict message extracted from the rejected axios error.
       const dangerToasts = makeToastSpy.mock.calls.filter((call) => call[2] === 'danger');
       expect(dangerToasts.length).toBeGreaterThanOrEqual(1);
 
-      const dangerArg = dangerToasts[0][0] as {
-        response?: { status?: number; data?: { error?: string } };
-      };
-      expect(dangerArg).toBeDefined();
-      expect(dangerArg.response?.status).toBe(409);
-      expect(dangerArg.response?.data?.error).toBe(entityCreateConflict.error);
+      expect(dangerToasts[0][0]).toBe(entityCreateConflict.error);
 
       // 2. Screen reader was told the operation failed (assertive politeness).
       expect(announceSpy).toHaveBeenCalledWith('Failed to update disease name', 'assertive');

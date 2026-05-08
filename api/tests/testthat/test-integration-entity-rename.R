@@ -88,6 +88,35 @@ make_test_pool <- function() {
   )
 }
 
+skip_if_missing_entity_rename_schema <- function(conn) {
+  required_tables <- c(
+    "ndd_entity",
+    "ndd_entity_review",
+    "ndd_entity_status",
+    "ndd_review_publication_join",
+    "publication",
+    "ndd_review_phenotype_connect",
+    "phenotype_list",
+    "ndd_review_variation_ontology_connect",
+    "variation_ontology_list",
+    "disease_ontology_set",
+    "mode_of_inheritance_list",
+    "non_alt_loci_set"
+  )
+  missing_tables <- required_tables[!vapply(
+    required_tables,
+    function(table) DBI::dbExistsTable(conn, table),
+    logical(1)
+  )]
+
+  if (length(missing_tables) > 0) {
+    skip(paste(
+      "Test database schema is not initialized; missing table(s):",
+      paste(missing_tables, collapse = ", ")
+    ))
+  }
+}
+
 cleanup_entity_rename_fixture <- function(conn) {
   entity_ids <- db_fetch_params(
     conn,
@@ -644,13 +673,19 @@ with_entity_rename_fixture <- function(code) {
 
   conn <- get_test_db_connection()
   pool <- NULL
+  schema_ready <- FALSE
   on.exit({
     if (!is.null(pool)) {
       pool::poolClose(pool)
     }
-    cleanup_entity_rename_fixture(conn)
+    if (schema_ready) {
+      cleanup_entity_rename_fixture(conn)
+    }
     DBI::dbDisconnect(conn)
   }, add = TRUE)
+
+  skip_if_missing_entity_rename_schema(conn)
+  schema_ready <- TRUE
 
   cleanup_entity_rename_fixture(conn)
   seed_reference_rows(conn)
