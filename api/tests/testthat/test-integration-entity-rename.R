@@ -758,3 +758,69 @@ test_that("entity submission with unresolvable PMID returns 400 and writes nothi
     expect_equal(count_publication_rejection_rows(conn), before_counts)
   })
 })
+
+test_that("svc_entity_rename_full returns 404 when source entity is missing", {
+  with_entity_rename_fixture({
+    missing_id <- as.integer(db_fetch_params(
+      conn,
+      "SELECT COALESCE(MAX(entity_id), 0) + 1000000 AS entity_id FROM ndd_entity"
+    )$entity_id[[1]])
+
+    result <- svc_entity_rename_full(
+      rename_payload(missing_id, DEST_ONTOLOGY),
+      user_id = 1L,
+      pool = pool
+    )
+
+    expect_equal(result$status, 404)
+    expect_equal(result$message, "Not Found. Source entity does not exist.")
+  })
+})
+
+test_that("svc_entity_rename_full returns 400 when ontology is unchanged", {
+  with_entity_rename_fixture({
+    seed <- seed_approved_entity_bundle(
+      conn,
+      SOURCE_ONTOLOGY,
+      with_joins = FALSE
+    )
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, SOURCE_ONTOLOGY),
+      user_id = 1L,
+      pool = pool
+    )
+
+    expect_equal(result$status, 400)
+    expect_equal(
+      result$message,
+      "Bad Request. New disease_ontology_id_version is identical to the current one."
+    )
+  })
+})
+
+test_that("svc_entity_rename_full returns 409 when destination quadruple exists", {
+  with_entity_rename_fixture({
+    seed <- seed_approved_entity_bundle(
+      conn,
+      SOURCE_ONTOLOGY,
+      with_joins = FALSE
+    )
+    conflict <- seed_approved_entity_bundle(
+      conn,
+      CONFLICT_DEST_ONTOLOGY,
+      with_joins = FALSE
+    )
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, CONFLICT_DEST_ONTOLOGY),
+      user_id = 1L,
+      pool = pool
+    )
+
+    expect_equal(result$status, 409)
+    expect_equal(result$message, "Conflict. Destination quadruple already exists.")
+    expect_true(!is.null(result$entry))
+    expect_equal(as.integer(result$entry$entity_id[[1]]), conflict$entity_id)
+  })
+})
