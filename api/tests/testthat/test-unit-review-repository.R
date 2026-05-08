@@ -165,3 +165,70 @@ test_that("logical values are converted to integer for MySQL", {
   expect_equal(converted$is_primary, 1L)
   expect_equal(converted$review_approved, 0L)
 })
+
+
+# =============================================================================
+# review_create Approval-State Propagation Tests (Refs #318)
+# =============================================================================
+
+test_that("review_create propagates is_primary, review_approved, approving_user_id, comment when provided", {
+  # Capture the SQL and params passed to db_execute_statement.
+  # review_create is sourced into globalenv; mock its dependencies via mockery::stub
+  # so lookups inside the function body are intercepted.
+  captured <- list()
+  mockery::stub(
+    review_create, "db_execute_statement",
+    function(sql, params, conn = NULL) {
+      captured$sql <<- sql
+      captured$params <<- params
+      invisible(NULL)
+    }
+  )
+  mockery::stub(
+    review_create, "db_execute_query",
+    function(sql, conn = NULL) tibble::tibble(review_id = 42L)
+  )
+
+  review_id <- review_create(list(
+    entity_id = 5,
+    synopsis = "test",
+    review_user_id = 3,
+    is_primary = 1,
+    review_approved = 1,
+    approving_user_id = 7,
+    comment = "carried over"
+  ))
+
+  expect_equal(review_id, 42L)
+  expect_match(captured$sql, "is_primary")
+  expect_match(captured$sql, "review_approved")
+  expect_match(captured$sql, "approving_user_id")
+  expect_match(captured$sql, "comment")
+  # Params order must match the column order in the INSERT
+  expect_true(7 %in% captured$params)
+  expect_true("carried over" %in% captured$params)
+})
+
+test_that("review_create omits approval-state columns when keys are absent (back-compat)", {
+  captured <- list()
+  mockery::stub(
+    review_create, "db_execute_statement",
+    function(sql, params, conn = NULL) {
+      captured$sql <<- sql
+      captured$params <<- params
+      invisible(NULL)
+    }
+  )
+  mockery::stub(
+    review_create, "db_execute_query",
+    function(sql, conn = NULL) tibble::tibble(review_id = 1L)
+  )
+
+  review_create(list(entity_id = 5, synopsis = "x", review_user_id = 3))
+
+  # These columns must be absent so DB defaults apply (back-compat with create-entity flow)
+  expect_false(grepl("is_primary", captured$sql))
+  expect_false(grepl("review_approved", captured$sql))
+  expect_false(grepl("approving_user_id", captured$sql))
+  expect_false(grepl("comment", captured$sql))
+})

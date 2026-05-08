@@ -112,12 +112,27 @@ review_create <- function(review_data, conn = NULL) {
     synopsis <- stringr::str_replace_all(synopsis, "'", "''")
   }
 
-  # Insert review (BUG-01 fix: include review_user_id which is required by database)
-  sql <- "INSERT INTO ndd_entity_review (entity_id, synopsis, review_user_id) VALUES (?, ?, ?)"
+  # Always-present columns
+  cols <- c("entity_id", "synopsis", "review_user_id")
+  vals <- list(review_data$entity_id, synopsis, review_data$review_user_id)
 
-  params <- list(review_data$entity_id, synopsis, review_data$review_user_id)
+  # Optional approval-state columns: include only when explicitly provided.
+  # Fixes #318: rename flow lost approval state because old INSERT hardcoded
+  # only the three required columns and let defaults apply.
+  optional <- c("is_primary", "review_approved", "approving_user_id", "comment")
+  for (col in optional) {
+    val <- review_data[[col]]
+    if (!is.null(val) && !(length(val) == 1 && is.na(val))) {
+      cols <- c(cols, col)
+      vals <- c(vals, list(val))
+    }
+  }
 
-  db_execute_statement(sql, params, conn = conn)
+  placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+  sql <- sprintf("INSERT INTO ndd_entity_review (%s) VALUES (%s)",
+                 paste(cols, collapse = ", "), placeholders)
+
+  db_execute_statement(sql, vals, conn = conn)
 
   # Get last insert ID
   result <- db_execute_query("SELECT LAST_INSERT_ID() as review_id", conn = conn)
