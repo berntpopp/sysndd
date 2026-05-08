@@ -1,6 +1,7 @@
 // app/src/views/curate/composables/useEntityMutations.ts
 import { ref } from 'vue';
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 import Submission from '@/assets/js/classes/submission/submissionSubmission';
 import Phenotype from '@/assets/js/classes/submission/submissionPhenotype';
@@ -58,7 +59,8 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       );
       onAnnounce?.('Disease name updated successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to update disease name');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to update disease name', 'assertive');
       throw e;
     } finally {
@@ -93,7 +95,8 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       );
       onAnnounce?.('Entity deactivation submitted successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to deactivate entity');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to deactivate entity', 'assertive');
       throw e;
     } finally {
@@ -129,7 +132,8 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       );
       onAnnounce?.('Review submitted successfully');
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      const msg = extractApiErrorMessage(e, 'Failed to submit review');
+      onToast?.(msg, 'Error', 'danger');
       onAnnounce?.('Failed to submit review', 'assertive');
       throw e;
     } finally {
