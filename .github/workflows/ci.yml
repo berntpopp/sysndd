@@ -121,9 +121,14 @@ jobs:
             libpoppler-cpp-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
             libjpeg-dev \
             cmake \
             pandoc
+
+      - name: Restore forecast dependency first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -183,9 +188,14 @@ jobs:
             libpoppler-cpp-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
             libjpeg-dev \
             cmake \
             pandoc
+
+      - name: Restore forecast dependency first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -247,9 +257,14 @@ jobs:
             libpoppler-cpp-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
             libjpeg-dev \
             cmake \
             pandoc
+
+      - name: Restore forecast dependency first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -343,9 +358,14 @@ jobs:
             libpoppler-cpp-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
             libjpeg-dev \
             cmake \
             pandoc
+
+      - name: Restore forecast dependency first
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:
@@ -489,9 +509,15 @@ jobs:
             libpoppler-cpp-dev \
             libfontconfig1-dev \
             libfreetype6-dev \
+            libharfbuzz-dev \
+            libfribidi-dev \
             libjpeg-dev \
             cmake \
             pandoc
+
+      - name: Restore forecast dependency first
+        working-directory: ./api
+        run: Rscript -e "if (!requireNamespace('renv', quietly = TRUE)) install.packages('renv'); renv::restore(packages = 'tseries', prompt = FALSE)"
 
       - uses: r-lib/actions/setup-renv@v2
         with:

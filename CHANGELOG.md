@@ -18,7 +18,7 @@ Patch bump for the consolidated dependency refresh in PR #321, combining Dependa
 - **Frontend development dependencies refreshed.** Updates test/build tooling including `@vue/test-utils`, `axios`, `eslint`, `jsdom`, `msw`, `postcss`, `typescript-eslint`, `vue-tsc`, and related tooling packages.
 - **API Docker base image refreshed.** Updates `rocker/r-ver` from `4.5.3` to `4.6.0` with a matching R 4.6 / Bioconductor 3.23 API lockfile refresh.
 - **API CI runners aligned with R 4.6.0.** Updates R-based GitHub Actions jobs so `setup-renv` restores against the same R minor recorded in `api/renv.lock`.
-- **R 4.6 restore compatibility fixed.** Updates stale API package pins that failed from source under R 4.6/GCC 13 (`lazyeval`, `rex`, `RMariaDB`, `base64enc`, and `S7`) and drops the obsolete `plogr` lockfile entry.
+- **R 4.6 restore compatibility fixed.** Updates stale API package pins that failed from source under R 4.6/GCC 13 (`lazyeval`, `rex`, `RMariaDB`, `base64enc`, and `S7`), drops the obsolete `plogr` lockfile entry, adds the host CI system libraries required by `textshaping`, and serializes the `tseries` restore before `forecast` on cold API dependency installs.
 
 ### Fixed
 
