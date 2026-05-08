@@ -395,3 +395,19 @@ test_that("svc_entity_create_full returns 500 on unexpected error", {
     grepl("Entity creation failed", result$message, ignore.case = TRUE)
   )
 })
+
+# =============================================================================
+# svc_entity_rename_full Signature Tests
+# =============================================================================
+
+test_that("svc_entity_rename_full exists with expected signature", {
+  expect_true(is.function(svc_entity_rename_full))
+  svc_params <- names(formals(svc_entity_rename_full))
+  expect_equal(svc_params, c("rename_data", "user_id", "pool"))
+})
+
+test_that("svc_entity_rename_full does not shadow repository functions", {
+  expect_equal(names(formals(entity_create)), c("entity_data", "conn"))
+  expect_equal(names(formals(review_create)), c("review_data", "conn"))
+  expect_equal(names(formals(status_create)), c("status_data", "conn"))
+})
