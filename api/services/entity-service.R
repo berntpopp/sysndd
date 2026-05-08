@@ -729,7 +729,9 @@ svc_entity_create_full <- function(entity_data, review_data, status_data,
 #' Fixes #318. Replaces the previous non-atomic, default-resetting flow that
 #' lived inline in the /rename endpoint handler.
 #'
-#' @param rename_data Parsed JSON body, shape `list(entity = list(entity_id, hgnc_id, hpo_mode_of_inheritance_term, ndd_phenotype, disease_ontology_id_version))`.
+#' @param rename_data Parsed JSON body, shape
+#'   `list(entity = list(entity_id, hgnc_id, hpo_mode_of_inheritance_term,
+#'   ndd_phenotype, disease_ontology_id_version))`.
 #' @param user_id Integer, the curator performing the rename (entry_user_id of the new entity).
 #' @param pool Database connection pool.
 #' @return list(status, message, entry = tibble(entity_id, review_id, status_id))
@@ -750,7 +752,7 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
 
   ndd_entity_original <- pool %>%
     dplyr::tbl("ndd_entity") %>%
-    dplyr::filter(entity_id == !!old_entity_id) %>%
+    dplyr::filter(entity_id == !!old_entity_id, is_active == 1) %>%
     dplyr::collect()
 
   if (nrow(ndd_entity_original) == 0) {
@@ -801,7 +803,9 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
       dplyr::filter(review_id == !!review_original$review_id[1]) %>%
       dplyr::select(publication_id, publication_type) %>%
       dplyr::collect()
-  } else { tibble::tibble() }
+  } else {
+    tibble::tibble()
+  }
 
   phenotypes_original <- if (nrow(review_original) > 0) {
     pool %>%
@@ -809,7 +813,9 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
       dplyr::filter(review_id == !!review_original$review_id[1]) %>%
       dplyr::select(phenotype_id, modifier_id) %>%
       dplyr::collect()
-  } else { tibble::tibble() }
+  } else {
+    tibble::tibble()
+  }
 
   vario_original <- if (nrow(review_original) > 0) {
     pool %>%
@@ -817,7 +823,9 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
       dplyr::filter(review_id == !!review_original$review_id[1]) %>%
       dplyr::select(vario_id, modifier_id) %>%
       dplyr::collect()
-  } else { tibble::tibble() }
+  } else {
+    tibble::tibble()
+  }
 
   logger::log_warn(
     "Disease rename bypassing approval workflow",
