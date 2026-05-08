@@ -737,18 +737,67 @@ svc_entity_create_full <- function(entity_data, review_data, status_data,
 #' @return list(status, message, entry = tibble(entity_id, review_id, status_id))
 #' @export
 svc_entity_rename_full <- function(rename_data, user_id, pool) {
+  rename_entity <- rename_data$entity
+
+  if (is.null(rename_entity) || !is.list(rename_entity)) {
+    return(list(status = 400, message = "Bad Request. entity is required."))
+  }
+
+  if (is.data.frame(rename_entity)) {
+    rename_entity <- as.list(rename_entity[1, ])
+  }
+
+  is_missing_rename_value <- function(value) {
+    if (is.null(value) || length(value) != 1) {
+      return(TRUE)
+    }
+    if (is.na(value)) {
+      return(TRUE)
+    }
+    if (is.character(value) && trimws(value) == "") {
+      return(TRUE)
+    }
+    FALSE
+  }
+
+  if (is_missing_rename_value(rename_entity$entity_id)) {
+    return(list(status = 400, message = "Bad Request. entity_id is required."))
+  }
+
+  old_entity_id <- suppressWarnings(as.integer(rename_entity$entity_id))
+  if (length(old_entity_id) != 1 || is.na(old_entity_id)) {
+    return(list(status = 400, message = "Bad Request. entity_id is required."))
+  }
+
+  required_rename_fields <- c(
+    "hgnc_id",
+    "hpo_mode_of_inheritance_term",
+    "ndd_phenotype",
+    "disease_ontology_id_version"
+  )
+  missing_rename_fields <- required_rename_fields[vapply(
+    required_rename_fields,
+    function(field) is_missing_rename_value(rename_entity[[field]]),
+    logical(1)
+  )]
+
+  if (length(missing_rename_fields) > 0) {
+    return(list(
+      status = 400,
+      message = paste(
+        "Bad Request. Missing or empty required rename field(s):",
+        paste(missing_rename_fields, collapse = ", ")
+      )
+    ))
+  }
+
   logger::log_info(
     "Disease rename started",
-    entity_id = rename_data$entity$entity_id,
+    entity_id = old_entity_id,
     user_id = user_id
   )
 
   # --- Phase 1: validation outside the transaction ---
-
-  old_entity_id <- as.integer(rename_data$entity$entity_id)
-  if (is.na(old_entity_id)) {
-    return(list(status = 400, message = "Bad Request. entity_id is required."))
-  }
 
   ndd_entity_original <- pool %>%
     dplyr::tbl("ndd_entity") %>%
@@ -759,25 +808,25 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
     return(list(status = 404, message = "Not Found. Source entity does not exist."))
   }
 
-  if (rename_data$entity$disease_ontology_id_version ==
+  if (rename_entity$disease_ontology_id_version ==
         ndd_entity_original$disease_ontology_id_version[1]) {
     return(list(status = 400,
                 message = "Bad Request. New disease_ontology_id_version is identical to the current one."))
   }
 
-  if (rename_data$entity$hgnc_id != ndd_entity_original$hgnc_id[1] ||
-      rename_data$entity$hpo_mode_of_inheritance_term != ndd_entity_original$hpo_mode_of_inheritance_term[1] ||
-      rename_data$entity$ndd_phenotype != ndd_entity_original$ndd_phenotype[1]) {
+  if (rename_entity$hgnc_id != ndd_entity_original$hgnc_id[1] ||
+      rename_entity$hpo_mode_of_inheritance_term != ndd_entity_original$hpo_mode_of_inheritance_term[1] ||
+      rename_entity$ndd_phenotype != ndd_entity_original$ndd_phenotype[1]) {
     return(list(status = 400,
                 message = "Bad Request. Only disease_ontology_id_version may differ in a rename."))
   }
 
   # Destination quadruple must not already exist
   destination <- list(
-    hgnc_id = rename_data$entity$hgnc_id,
-    hpo_mode_of_inheritance_term = rename_data$entity$hpo_mode_of_inheritance_term,
-    disease_ontology_id_version = rename_data$entity$disease_ontology_id_version,
-    ndd_phenotype = rename_data$entity$ndd_phenotype
+    hgnc_id = rename_entity$hgnc_id,
+    hpo_mode_of_inheritance_term = rename_entity$hpo_mode_of_inheritance_term,
+    disease_ontology_id_version = rename_entity$disease_ontology_id_version,
+    ndd_phenotype = rename_entity$ndd_phenotype
   )
   duplicate <- svc_entity_check_duplicate(destination, pool)
   if (!is.null(duplicate)) {
@@ -796,6 +845,13 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
     dplyr::tbl("ndd_entity_status") %>%
     dplyr::filter(entity_id == !!old_entity_id, is_active == 1) %>%
     dplyr::collect()
+
+  if (nrow(status_original) == 0) {
+    return(list(
+      status = 409,
+      message = "Conflict. Active source status could not be loaded for rename."
+    ))
+  }
 
   publications_original <- if (nrow(review_original) > 0) {
     pool %>%
@@ -831,7 +887,7 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
     "Disease rename bypassing approval workflow",
     old_entity_id = old_entity_id,
     old_ontology = ndd_entity_original$disease_ontology_id_version[1],
-    new_ontology = rename_data$entity$disease_ontology_id_version
+    new_ontology = rename_entity$disease_ontology_id_version
   )
 
   # --- Phase 2: all DB writes in one transaction ---
@@ -841,19 +897,29 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
       result <- db_with_transaction(function(txn_conn) {
         # 1. Create new entity (carries hgnc_id/MOI/ndd_phenotype from source, new ontology)
         new_entity_id <- entity_create(list(
-          hgnc_id                       = rename_data$entity$hgnc_id,
-          hpo_mode_of_inheritance_term  = rename_data$entity$hpo_mode_of_inheritance_term,
-          disease_ontology_id_version   = rename_data$entity$disease_ontology_id_version,
-          ndd_phenotype                 = rename_data$entity$ndd_phenotype,
+          hgnc_id                       = rename_entity$hgnc_id,
+          hpo_mode_of_inheritance_term  = rename_entity$hpo_mode_of_inheritance_term,
+          disease_ontology_id_version   = rename_entity$disease_ontology_id_version,
+          ndd_phenotype                 = rename_entity$ndd_phenotype,
           entry_user_id                 = user_id
         ), conn = txn_conn)
 
         # 2. Deactivate old entity, set replaced_by
-        db_execute_statement(
-          "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ?",
+        rows_deactivated <- db_execute_statement(
+          "UPDATE ndd_entity SET is_active = 0, replaced_by = ? WHERE entity_id = ? AND is_active = 1",
           list(new_entity_id, old_entity_id),
           conn = txn_conn
         )
+        if (length(rows_deactivated) != 1 || is.na(rows_deactivated) || rows_deactivated != 1L) {
+          rlang::abort(
+            message = paste(
+              "Source entity was not active during rename deactivation.",
+              "Expected 1 row, affected",
+              rows_deactivated
+            ),
+            class = "entity_rename_stale_source_error"
+          )
+        }
 
         # 3. Create new review with approval state propagated from source
         review_payload <- list(
@@ -884,13 +950,13 @@ svc_entity_rename_full <- function(rename_data, user_id, pool) {
         # 5. Create new status with approval state propagated from source
         status_payload <- tibble::tibble(
           entity_id         = new_entity_id,
-          category_id       = if (nrow(status_original) > 0) status_original$category_id[1] else 1,
+          category_id       = status_original$category_id[1],
           status_user_id    = user_id,
-          is_active         = if (nrow(status_original) > 0) status_original$is_active[1] else 0,
-          status_approved   = if (nrow(status_original) > 0) status_original$status_approved[1] else 0,
-          approving_user_id = if (nrow(status_original) > 0) status_original$approving_user_id[1] else NA_integer_,
-          problematic       = if (nrow(status_original) > 0) status_original$problematic[1] else 0,
-          comment           = if (nrow(status_original) > 0) status_original$comment[1] else NA_character_
+          is_active         = status_original$is_active[1],
+          status_approved   = status_original$status_approved[1],
+          approving_user_id = status_original$approving_user_id[1],
+          problematic       = status_original$problematic[1],
+          comment           = status_original$comment[1]
         )
         new_status_id <- status_create(status_payload, conn = txn_conn)
 
