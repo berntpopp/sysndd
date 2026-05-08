@@ -10,7 +10,7 @@ _Nothing yet._
 
 ## [0.16.2] — 2026-05-08
 
-Patch bump for the consolidated dependency refresh in PR #320, combining Dependabot PRs #316, #317, and #312.
+Patch bump for the consolidated dependency refresh in PR #321, combining Dependabot PRs #316, #317, and #312.
 
 ### Changed
 
