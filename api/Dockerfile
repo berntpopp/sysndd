@@ -3,7 +3,7 @@
 # SysNDD API - Multi-Stage Optimized R Plumber Docker Image
 # =============================================================================
 #
-# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.5.3)
+# Build time target: 3-5 minutes (pre-built P3M binaries for R 4.6.0)
 # Key optimizations:
 # - Multi-stage build (base -> packages -> production)
 # - Posit Package Manager (P3M) pre-compiled binaries for Ubuntu 24.04 (noble)
@@ -18,15 +18,15 @@
 # =============================================================================
 # Stage 1: Base - System dependencies and R configuration
 # =============================================================================
-FROM rocker/r-ver:4.5.3 AS base
+FROM rocker/r-ver:4.6.0 AS base
 
 # Set R repository to Posit Package Manager for pre-compiled Linux binaries
-# rocker/r-ver:4.5.3 uses Ubuntu 24.04 (noble) with ICU 74, so we use noble binaries
+# rocker/r-ver:4.6.0 uses Ubuntu 24.04 (noble), so we use noble binaries
 #
 # IMPORTANT: pin to a dated snapshot (not /latest) so that CRAN pruning old
 # versions cannot silently drift the build. Bump this date intentionally,
 # together with renv.lock "Repositories.URL", when refreshing dependencies.
-ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/2026-04-22"
+ENV RENV_CONFIG_REPOS_OVERRIDE="https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08"
 
 # Disable pak to avoid version conflicts
 ENV RENV_CONFIG_PAK_ENABLED=FALSE
@@ -92,6 +92,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     libtiff5-dev \
     libjpeg-dev \
+    libwebp-dev \
     libharfbuzz-dev \
     libfribidi-dev \
     # Git library for gert/usethis
@@ -137,12 +138,14 @@ COPY renv/settings.json renv/settings.json
 # This prevents renv from auto-detecting and using incorrect binary versions
 ENV RENV_CONFIG_RSPM_ENABLED=FALSE
 
-# Restore all packages from lockfile with BuildKit cache
+# Restore all packages from lockfile with BuildKit cache. Restore tseries
+# first because renv 1.2.x can schedule forecast before tseries on a cold
+# source restore, causing forecast's DESCRIPTION dependency check to fail.
 # The renv.lock now contains ALL dependencies including Bioconductor packages
 # No manual install.packages() calls needed - everything is in the lockfile
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
-    R -e 'renv::restore(library = "/usr/local/lib/R/site-library")'
+    R -e 'renv::restore(packages = "tseries", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
 
 # Verify stringi loads correctly (links against correct ICU version)
 RUN R -e 'library(stringi); cat("stringi ICU:", stri_info()$ICU.version, "\n")'
@@ -198,7 +201,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Image metadata
 LABEL maintainer="SysNDD Team" \
       version="3.2" \
-      description="SysNDD R Plumber API (R 4.5.3, Multi-Stage Optimized)"
+      description="SysNDD R Plumber API (R 4.6.0, Multi-Stage Optimized)"
 
 # Switch to non-root user for security
 USER apiuser

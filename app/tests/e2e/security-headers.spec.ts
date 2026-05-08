@@ -29,8 +29,9 @@ test.describe('security: response headers', () => {
     // this assertion can be tightened to forbid it.
     const csp = headers['content-security-policy'] ?? '';
     expect(csp, 'CSP must declare default-src').toMatch(/default-src/);
+    expect(csp, 'CSP must allow self-hosted app fonts').toMatch(/font-src[^;]*'self'/);
     expect(csp, 'CSP must restrict frame-ancestors or X-Frame-Options must be DENY').toMatch(
-      /frame-ancestors|frame-src/,
+      /frame-ancestors|frame-src/
     );
     // script-src must not allow ad-hoc inline scripts; only hashed inline blocks.
     const scriptSrcMatch = csp.match(/script-src ([^;]+);/);
@@ -47,7 +48,7 @@ test.describe('security: response headers', () => {
     const xfo = headers['x-frame-options'];
     if (!xfo) {
       expect(csp, 'CSP must contain frame-ancestors when X-Frame-Options is absent').toMatch(
-        /frame-ancestors/,
+        /frame-ancestors/
       );
     } else {
       expect(xfo).toMatch(/DENY|SAMEORIGIN/i);

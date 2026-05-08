@@ -387,11 +387,11 @@ sys.stderr.write(f"-- Extracted {len(matches)} view definitions\n")' > /tmp/sysn
 	@printf "$(GREEN)✓ Views rebuilt$(RESET)\n"
 	@$(MAKE) cache-clear
 
-cache-clear: ## [docker] Wipe API memoise cache (forces stats endpoints to recompute)
+cache-clear: ## [docker] Wipe API memoise cache (forces cached endpoints to recompute)
 	@printf "$(CYAN)==> Wiping API memoise cache...$(RESET)\n"
 	@docker ps --format '{{.Names}}' | grep -q '^sysndd-api-1$$' || \
 		(printf "$(YELLOW)Warning: sysndd-api-1 not running; cache wipe is a no-op$(RESET)\n" && exit 0)
-	@docker exec sysndd-api-1 sh -c 'rm -f /app/cache/*.rds' && \
+	@docker exec sysndd-api-1 sh -c 'find /app/cache -type f -name "*.rds" -delete' && \
 		printf "$(GREEN)✓ Cache wiped (next stats request will recompute)$(RESET)\n" || \
 		(printf "$(RED)✗ cache-clear failed$(RESET)\n" && exit 1)
 
@@ -690,7 +690,7 @@ worktree-prune: ## [env] Prune stale worktree references and list remaining work
 #   artefacts; we never let CI silently rewrite them by hitting the upstream
 #   APIs.
 # - The capture runs inside the `sysndd-api:latest` Docker image because the
-#   Ubuntu questing host cannot install `httr2` + `httptest2` + `easyPubMed`
+#   Ubuntu questing host cannot install `httr2` + `httptest2` dependencies
 #   cleanly (see CLAUDE.md "Host-Env Workaround"). The image already has
 #   them; we bind-mount the fixtures directory so writes land in-tree.
 # - The capture script is `api/scripts/capture-external-fixtures.R`. See

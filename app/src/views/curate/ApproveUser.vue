@@ -422,7 +422,6 @@
       <!-- Quick Approve Confirmation Modal -->
       <BModal
         v-model="showApproveModal"
-        size="md"
         centered
         ok-title="Approve"
         ok-variant="success"
@@ -464,7 +463,6 @@
       <!-- Reject Confirmation Modal -->
       <BModal
         v-model="showRejectModal"
-        size="md"
         centered
         ok-title="Reject Application"
         ok-variant="danger"

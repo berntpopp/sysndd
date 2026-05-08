@@ -86,7 +86,6 @@
           id="removeSwitch"
           :model-value="formData.problematic"
           switch
-          size="md"
           @update:model-value="$emit('update:form-data', { ...formData, problematic: $event })"
         >
           Suggest removal

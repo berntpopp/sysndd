@@ -67,7 +67,7 @@
       <p class="my-3">Select a new disease name:</p>
       <AutocompleteInput
         v-model:display-value="ontologyDisplayProxy"
-        :model-value="(ontologyInput as any)"
+        :model-value="ontologyInput as any"
         :results="ontologySearchResults"
         :loading="ontologySearchLoading"
         label="Disease"
@@ -90,7 +90,6 @@
           id="deactivateSwitch"
           :model-value="deactivateCheck"
           switch
-          size="md"
           @update:model-value="$emit('update:deactivate-check', $event)"
         >
           <strong>{{ deactivateCheck ? 'Yes' : 'No' }}</strong>
@@ -103,7 +102,6 @@
           id="replaceSwitch"
           :model-value="replaceCheck"
           switch
-          size="md"
           @update:model-value="$emit('update:replace-check', $event)"
         >
           <strong>{{ replaceCheck ? 'Yes' : 'No' }}</strong>
@@ -114,7 +112,7 @@
         <p class="my-2">3. Select the entity replacing the above one:</p>
         <AutocompleteInput
           v-model:display-value="replaceDisplayProxy"
-          :model-value="(replaceEntityInput as any)"
+          :model-value="replaceEntityInput as any"
           :results="replaceSearchResults"
           :loading="replaceSearchLoading"
           label="Replacement Entity"

@@ -141,8 +141,8 @@ try_request("esearch PMID 33054928", quote({
     req_perform()
 }))
 
-# 1b) efetch XML for the same PMID — this is the payload that
-# easyPubMed::fetch_pubmed_data() ultimately parses.
+# 1b) efetch XML for the same PMID. This is the payload parsed by
+# publication-functions.R.
 try_request("efetch PMID 33054928", quote({
   request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi") |>
     req_url_query(

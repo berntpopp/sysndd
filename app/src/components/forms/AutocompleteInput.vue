@@ -153,7 +153,7 @@ export default defineComponent({
      * Input size
      */
     size: {
-      type: String as PropType<'sm' | 'md' | 'lg'>,
+      type: String as PropType<'sm' | 'lg'>,
       default: 'sm',
     },
 

@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.16.2] — 2026-05-08
+
+Patch bump for the consolidated dependency refresh in PR #321, combining Dependabot PRs #316, #317, and #312.
+
+### Changed
+
+- **Frontend production dependencies refreshed.** Updates `@unhead/vue`, `@vueuse/core`, `bootstrap-vue-next`, `cytoscape`, `dompurify`, `swagger-ui`, and `swagger-ui-dist`.
+- **Frontend development dependencies refreshed.** Updates test/build tooling including `@vue/test-utils`, `axios`, `eslint`, `jsdom`, `msw`, `postcss`, `typescript-eslint`, `vue-tsc`, and related tooling packages.
+- **API Docker base image refreshed.** Updates `rocker/r-ver` from `4.5.3` to `4.6.0` with a matching R 4.6 / Bioconductor 3.23 API lockfile refresh.
+- **API CI runners aligned with R 4.6.0.** Updates R-based GitHub Actions jobs so `setup-renv` restores against the same R minor recorded in `api/renv.lock`.
+- **R 4.6 restore compatibility fixed.** Updates stale API package pins that failed from source under R 4.6/GCC 13 (`lazyeval`, `rex`, `RMariaDB`, `base64enc`, and `S7`), drops the obsolete `plogr` lockfile entry, adds the host CI system libraries required by `textshaping`, and serializes the `tseries` restore before `forecast` on cold API dependency installs.
+
+### Fixed
+
+- **Production CSP allows bundled fonts.** Adds `font-src 'self'` so self-hosted SPA font assets are not blocked by `default-src 'none'`.
+- **PubMed parser keeps articles with one-part first-author names.** `table_articles_from_xml()` now treats a missing first-author `ForeName` as an empty string instead of collapsing the parsed PMID row.
+
 ## [0.16.1] — 2026-05-08
 
 Patch bump for the atomic entity rename and PubMed validation fix in PR #319.
@@ -414,7 +431,8 @@ _Context: Phase A.A4 resolves a duplicate `008_` migration prefix by renaming `0
 
 Earlier history is available via `git log --grep="bump version"` on `master`. This CHANGELOG starts documenting the project at 0.11.3.
 
-[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/berntpopp/sysndd/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/berntpopp/sysndd/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/berntpopp/sysndd/compare/v0.16.0...v0.16.1
 [0.11.14]: https://github.com/berntpopp/sysndd/compare/v0.11.13...v0.11.14
 [0.11.13]: https://github.com/berntpopp/sysndd/compare/v0.11.12...v0.11.13

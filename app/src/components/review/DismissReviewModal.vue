@@ -3,7 +3,6 @@
   <BModal
     :id="modalId"
     ref="modalRef"
-    size="md"
     centered
     ok-title="Dismiss"
     ok-variant="danger"

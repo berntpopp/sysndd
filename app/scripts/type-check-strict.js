@@ -30,6 +30,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const appDir = resolve(__dirname, '..');
+const vueTscBin = resolve(appDir, 'node_modules/vue-tsc/bin/vue-tsc.js');
 
 /**
  * @typedef {Object} Scope
@@ -154,11 +155,10 @@ for (const scope of scopes) {
     continue;
   }
 
-  const result = spawnSync(
-    'npx',
-    ['vue-tsc', '--noEmit', '-p', scope.tsconfig],
-    { cwd: appDir, encoding: 'utf8' }
-  );
+  const result = spawnSync(process.execPath, [vueTscBin, '--noEmit', '-p', scope.tsconfig], {
+    cwd: appDir,
+    encoding: 'utf8',
+  });
 
   // Spawn failed outright (e.g. npx not on PATH, ENOENT, permission denied).
   // `result.status` is null in this case, so fall-through would surface as

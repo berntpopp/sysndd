@@ -7,10 +7,8 @@
 # Functions tested:
 # - table_articles_from_xml(): XML to tibble extraction
 #
-# NOT tested (requires database or network):
-# - check_pmid(): Calls PubMed API
+# NOT tested (requires database):
 # - new_publication(): Database writes
-# - info_from_pmid(): Calls PubMed API
 
 # Determine api directory path (handles testthat working directory changes)
 api_dir <- if (basename(getwd()) == "testthat") {
@@ -390,6 +388,48 @@ test_that("table_articles_from_xml extracts first author only", {
   expect_equal(result$firstname[1], "First")
 })
 
+test_that("table_articles_from_xml handles first author without ForeName", {
+  xml <- '<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>41564340</PMID>
+      <Article>
+        <ArticleTitle>Structural Destabilization of FRMD3</ArticleTitle>
+        <Abstract><AbstractText>Test abstract</AbstractText></Abstract>
+        <Journal>
+          <Title>ACS chemical neuroscience</Title>
+          <ISOAbbreviation>ACS Chem Neurosci</ISOAbbreviation>
+        </Journal>
+        <AuthorList>
+          <Author>
+            <LastName>Diksha</LastName>
+            <AffiliationInfo>All India Institute of Medical Sciences</AffiliationInfo>
+          </Author>
+        </AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">41564340</ArticleId>
+      </ArticleIdList>
+      <History>
+        <PubMedPubDate Pubstatus="pubmed">
+          <Year>2026</Year><Month>2</Month><Day>4</Day>
+        </PubMedPubDate>
+      </History>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>'
+
+  result <- table_articles_from_xml(xml)
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$pmid[1], "41564340")
+  expect_equal(result$lastname[1], "Diksha")
+  expect_equal(result$firstname[1], "")
+})
+
 # ============================================================================
 # table_articles_from_xml() Tests - Keywords and MeSH Terms
 # ============================================================================
@@ -551,6 +591,45 @@ test_that("table_articles_from_xml returns tibble with expected columns", {
   expect_equal(nrow(result), 1)
 })
 
+test_that("table_articles_from_xml returns one row per PubMed article", {
+  xml <- '<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>11111111</PMID>
+      <Article>
+        <ArticleTitle>First article</ArticleTitle>
+        <Abstract><AbstractText>First abstract</AbstractText></Abstract>
+        <Journal><Title>J One</Title><ISOAbbreviation>J1</ISOAbbreviation></Journal>
+        <AuthorList><Author><LastName>A</LastName><ForeName>B</ForeName></Author></AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData><History>
+      <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>1</Month><Day>1</Day></PubMedPubDate>
+    </History></PubmedData>
+  </PubmedArticle>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>22222222</PMID>
+      <Article>
+        <ArticleTitle>Second article</ArticleTitle>
+        <Abstract><AbstractText>Second abstract</AbstractText></Abstract>
+        <Journal><Title>J Two</Title><ISOAbbreviation>J2</ISOAbbreviation></Journal>
+        <AuthorList><Author><LastName>C</LastName><ForeName>D</ForeName></Author></AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData><History>
+      <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>2</Month><Day>2</Day></PubMedPubDate>
+    </History></PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>'
+
+  result <- table_articles_from_xml(xml)
+
+  expect_equal(result$pmid, c("11111111", "22222222"))
+  expect_equal(result$title, c("First article", "Second article"))
+})
+
 test_that("table_articles_from_xml handles empty keywords and MeSH", {
   xml <- create_pubmed_xml(keywords = c(), mesh_terms = c())
   result <- table_articles_from_xml(xml)
@@ -560,11 +639,87 @@ test_that("table_articles_from_xml handles empty keywords and MeSH", {
 })
 
 # =============================================================================
+# PubMed E-utilities Helper Tests (Refs #324)
+# =============================================================================
+
+test_that("check_pmid normalizes PMID prefixes before direct PubMed count lookup", {
+  calls <- character()
+  mockery::stub(check_pmid, "pubmed_esearch_count", function(pmid) {
+    calls <<- c(calls, pmid)
+    1L
+  })
+
+  expect_true(check_pmid(c("PMID:41564340", "33054928")))
+  expect_equal(calls, c("41564340", "33054928"))
+})
+
+test_that("check_pmid returns FALSE when direct PubMed count lookup finds no record", {
+  mockery::stub(check_pmid, "pubmed_esearch_count", function(pmid) {
+    if (identical(pmid, "22222222")) 0L else 1L
+  })
+
+  expect_false(check_pmid(c("PMID:11111111", "PMID:22222222")))
+})
+
+test_that("info_from_pmid fetches PubMed XML via direct EFetch helper", {
+  calls <- list()
+  one_pmid_xml <- '<?xml version="1.0"?><PubmedArticleSet><PubmedArticle>
+   <MedlineCitation><PMID>11111111</PMID>
+   <Article><Journal><Title>J Test</Title><ISOAbbreviation>JT</ISOAbbreviation></Journal>
+   <ArticleTitle>Resolvable</ArticleTitle><Abstract><AbstractText>x</AbstractText></Abstract>
+   <AuthorList><Author><LastName>A</LastName><ForeName>B</ForeName></Author></AuthorList>
+   </Article></MedlineCitation>
+   <PubmedData><History>
+    <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>1</Month><Day>1</Day></PubMedPubDate>
+   </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
+   </PubmedArticle></PubmedArticleSet>'
+
+  mockery::stub(info_from_pmid, "pubmed_fetch_xml", function(pmids) {
+    calls[[length(calls) + 1L]] <<- pmids
+    one_pmid_xml
+  })
+
+  result <- info_from_pmid("PMID:11111111")
+
+  expect_equal(calls, list("11111111"))
+  expect_equal(result$Title, "Resolvable")
+})
+
+test_that("info_from_pmid resolves multiple valid PMIDs from one EFetch response", {
+  multi_pmid_xml <- '<?xml version="1.0"?><PubmedArticleSet>
+   <PubmedArticle><MedlineCitation><PMID>11111111</PMID>
+   <Article><Journal><Title>J Test</Title><ISOAbbreviation>JT</ISOAbbreviation></Journal>
+   <ArticleTitle>First</ArticleTitle><Abstract><AbstractText>x</AbstractText></Abstract>
+   <AuthorList><Author><LastName>A</LastName><ForeName>B</ForeName></Author></AuthorList>
+   </Article></MedlineCitation>
+   <PubmedData><History>
+    <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>1</Month><Day>1</Day></PubMedPubDate>
+   </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
+   </PubmedArticle>
+   <PubmedArticle><MedlineCitation><PMID>22222222</PMID>
+   <Article><Journal><Title>J Test</Title><ISOAbbreviation>JT</ISOAbbreviation></Journal>
+   <ArticleTitle>Second</ArticleTitle><Abstract><AbstractText>y</AbstractText></Abstract>
+   <AuthorList><Author><LastName>C</LastName><ForeName>D</ForeName></Author></AuthorList>
+   </Article></MedlineCitation>
+   <PubmedData><History>
+    <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>2</Month><Day>2</Day></PubMedPubDate>
+   </History><ArticleIdList><ArticleId IdType="doi">10.2/y</ArticleId></ArticleIdList></PubmedData>
+   </PubmedArticle></PubmedArticleSet>'
+
+  mockery::stub(info_from_pmid, "pubmed_fetch_xml", function(...) multi_pmid_xml)
+
+  result <- info_from_pmid(c("PMID:11111111", "PMID:22222222"))
+
+  expect_equal(result$Title, c("First", "Second"))
+  expect_equal(result$Publication_date, c("2024-01-01", "2024-02-02"))
+})
+
+# =============================================================================
 # info_from_pmid Fail-Fast Tests (Refs #318)
 # =============================================================================
 
 test_that("info_from_pmid raises publication_fetch_error when PubMed returns nothing for a PMID", {
-  # We request two PMIDs but the stubbed fetch_pubmed_data returns XML for
+  # We request two PMIDs but the stubbed direct EFetch helper returns XML for
   # only one of them. info_from_pmid must abort with publication_fetch_error
   # listing the unresolved PMID. Both PubMed entrypoints are stubbed so this
   # unit test cannot perform network I/O before the fetch stub is reached.
@@ -580,8 +735,7 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
    </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
    </PubmedArticle></PubmedArticleSet>'
 
-  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
-  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) one_pmid_xml)
+  mockery::stub(info_from_pmid, "pubmed_fetch_xml", function(...) one_pmid_xml)
 
   error <- tryCatch(
     info_from_pmid(c("11111111", "22222222")),
@@ -596,8 +750,7 @@ test_that("info_from_pmid raises publication_fetch_error when PubMed returns not
 test_that("info_from_pmid de-duplicates unresolved PMID values in publication_fetch_error", {
   unrelated_pmid_xml <- create_pubmed_xml(pmid = "11111111")
 
-  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
-  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) unrelated_pmid_xml)
+  mockery::stub(info_from_pmid, "pubmed_fetch_xml", function(...) unrelated_pmid_xml)
 
   error <- tryCatch(
     info_from_pmid(c("PMID:22222222", "PMID:22222222")),
@@ -626,8 +779,7 @@ test_that("info_from_pmid reports explicit input PMID when parsed response has N
     address = ""
   )
 
-  mockery::stub(info_from_pmid, "get_pubmed_ids", function(...) list())
-  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) "<xml />")
+  mockery::stub(info_from_pmid, "pubmed_fetch_xml", function(...) "<xml />")
   mockery::stub(info_from_pmid, "table_articles_from_xml", function(...) parsed_with_na_pmid)
 
   error <- tryCatch(

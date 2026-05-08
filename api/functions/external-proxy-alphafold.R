@@ -164,7 +164,7 @@ fetch_alphafold_structure <- function(gene_symbol) {
 #' @seealso fetch_alphafold_structure
 #'
 #' @export
-fetch_alphafold_structure_mem <- memoise::memoise(
+fetch_alphafold_structure_mem <- memoise_external_success_only(
   fetch_alphafold_structure,
   cache = cache_static
 )

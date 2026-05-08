@@ -2,9 +2,9 @@
 # Tests for PubMed API integration (publication-functions.R)
 #
 # These tests use httptest2 to mock external API calls where possible.
-# Note: easyPubMed uses base R's url() connections which httptest2 may not
-# intercept. Pure function tests work without network; integration tests
-# may skip if no network and no fixtures.
+# PubMed calls use httr2 against NCBI E-utilities, so httptest2 can replay
+# recorded eSearch/eFetch fixtures. Integration tests may skip if no network
+# and no fixtures are available.
 #
 # First run: Records live API responses to fixtures/pubmed/
 # Subsequent runs: Replays recorded responses
@@ -24,7 +24,6 @@ source_api_file("functions/publication-functions.R", local = FALSE)
 
 # Skip tests if required packages not available
 skip_if_not_installed("httptest2")
-skip_if_not_installed("easyPubMed")
 
 # ============================================================================
 # Fixture presence gate (Phase B B2)
@@ -239,8 +238,8 @@ test_that("check_pmid handles list of PMIDs", {
   })
 })
 
-# Note: info_from_pmid() tests are more complex due to data transformation
-# and dependency on easyPubMed. These would require more extensive mocking.
+# Note: info_from_pmid() integration coverage is kept in
+# test-unit-publication-functions.R with direct EFetch helper stubs.
 test_that("info_from_pmid strips PMID prefix from input", {
   # This tests the internal transformation without making API calls
   skip("info_from_pmid integration test requires live API - skipped for now")

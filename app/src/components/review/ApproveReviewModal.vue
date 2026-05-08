@@ -3,7 +3,6 @@
   <BModal
     :id="modalId"
     ref="modalRef"
-    size="md"
     centered
     ok-title="Approve"
     ok-variant="success"
@@ -36,10 +35,7 @@
         You have finished checking this review and are ready to <strong>approve</strong> it?
       </p>
 
-      <div
-        v-if="isDuplicate"
-        class="alert alert-info small text-start mt-2 mb-3"
-      >
+      <div v-if="isDuplicate" class="alert alert-info small text-start mt-2 mb-3">
         <i class="bi bi-info-circle me-1" />
         Other pending reviews for this entity will be automatically dismissed.
       </div>

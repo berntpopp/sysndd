@@ -810,7 +810,7 @@ test_that("entity submission with unresolvable PMID returns 400 and writes nothi
     info_fn <- function_with_cloned_env(info_from_pmid)
     mockery::stub(
       info_fn,
-      "fetch_pubmed_data",
+      "pubmed_fetch_xml",
       function(...) unrelated_pubmed_xml()
     )
 
@@ -844,7 +844,7 @@ test_that("POST /api/entity/create returns endpoint 400 for unresolvable PMID an
     info_fn <- function_with_cloned_env(info_from_pmid)
     mockery::stub(
       info_fn,
-      "fetch_pubmed_data",
+      "pubmed_fetch_xml",
       function(...) unrelated_pubmed_xml()
     )
 
