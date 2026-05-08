@@ -114,8 +114,11 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libmariadb-dev \
+            default-jdk \
             libsodium-dev \
             libpng-dev \
+            libtiff5-dev \
+            libwebp-dev \
             libsecret-1-dev \
             libgit2-dev \
             libpoppler-cpp-dev \
@@ -124,6 +127,7 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev \
             libjpeg-dev \
+            libx11-dev \
             cmake \
             pandoc
 
@@ -181,8 +185,11 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libmariadb-dev \
+            default-jdk \
             libsodium-dev \
             libpng-dev \
+            libtiff5-dev \
+            libwebp-dev \
             libsecret-1-dev \
             libgit2-dev \
             libpoppler-cpp-dev \
@@ -191,6 +198,7 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev \
             libjpeg-dev \
+            libx11-dev \
             cmake \
             pandoc
 
@@ -250,8 +258,11 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libmariadb-dev \
+            default-jdk \
             libsodium-dev \
             libpng-dev \
+            libtiff5-dev \
+            libwebp-dev \
             libsecret-1-dev \
             libgit2-dev \
             libpoppler-cpp-dev \
@@ -260,6 +271,7 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev \
             libjpeg-dev \
+            libx11-dev \
             cmake \
             pandoc
 
@@ -351,8 +363,11 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libmariadb-dev \
+            default-jdk \
             libsodium-dev \
             libpng-dev \
+            libtiff5-dev \
+            libwebp-dev \
             libsecret-1-dev \
             libgit2-dev \
             libpoppler-cpp-dev \
@@ -361,6 +376,7 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev \
             libjpeg-dev \
+            libx11-dev \
             cmake \
             pandoc
 
@@ -502,8 +518,11 @@ jobs:
             libcurl4-openssl-dev \
             libssl-dev \
             libmariadb-dev \
+            default-jdk \
             libsodium-dev \
             libpng-dev \
+            libtiff5-dev \
+            libwebp-dev \
             libsecret-1-dev \
             libgit2-dev \
             libpoppler-cpp-dev \
@@ -512,6 +531,7 @@ jobs:
             libharfbuzz-dev \
             libfribidi-dev \
             libjpeg-dev \
+            libx11-dev \
             cmake \
             pandoc
 

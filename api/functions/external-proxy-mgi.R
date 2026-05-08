@@ -222,7 +222,7 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
 #' @seealso fetch_mgi_phenotypes
 #'
 #' @export
-fetch_mgi_phenotypes_mem <- memoise::memoise(
+fetch_mgi_phenotypes_mem <- memoise_external_success_only(
   fetch_mgi_phenotypes,
   cache = cache_stable
 )

@@ -32,7 +32,7 @@ make refresh-fixtures
 The target is deliberately **not** part of `make ci-local` — we never let CI
 silently overwrite committed fixtures by hitting live APIs. Running
 `make refresh-fixtures` uses the `sysndd-api:latest` Docker image (which has
-`httr2` + `httptest2` + `easyPubMed` + `jsonlite` preinstalled, bypassing
+`httr2` + `httptest2` + `xml2` + `jsonlite` preinstalled, bypassing
 host-side R package install pain on Ubuntu questing). The image is mounted
 with the fixtures directory so writes land in-tree.
 
@@ -69,7 +69,7 @@ versionless but stable; see
 |---|---|---|---|
 | `eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi-6ff89c.R` | 2026-04-11 | `GET esearch.fcgi?db=pubmed&term=33054928[PMID]&retmode=xml` | Happy-path PMID lookup (count = 1) used by `check_pmid()`. |
 | `eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi-37eadf.R` | 2026-04-11 | `GET esearch.fcgi?db=pubmed&term=xyzzy12345nonexistent98765[PMID]&retmode=xml` | Empty-result path for `check_pmid()` (count = 0). |
-| `eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi-ba25ae.R` | 2026-04-11 | `GET efetch.fcgi?db=pubmed&id=33054928&retmode=xml&rettype=xml` | Full XML payload of one PubMed article — used by `fetch_pubmed_data()` / `table_articles_from_xml()`. |
+| `eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi-ba25ae.R` | 2026-04-11 | `GET efetch.fcgi?db=pubmed&id=33054928&retmode=xml&rettype=xml` | Full XML payload of one PubMed article — used by `pubmed_fetch_xml()` / `table_articles_from_xml()`. |
 
 **Capture commands (exact):** see `api/scripts/capture-external-fixtures.R`
 section `[1/2]`. In condensed form:
@@ -141,7 +141,7 @@ On Ubuntu questing (25.10) with miniforge R, `make test-api` cannot run on
 the host because renv cannot bootstrap a working library (see
 `CLAUDE.md` "Host-Env Workaround"). Fixture capture and verification are
 therefore done via Docker exec against `sysndd-api:latest`, which ships with
-`httr2` + `httptest2` + `easyPubMed` working out of the box. CI
+`httr2` + `httptest2` + `xml2` working out of the box. CI
 (`ubuntu-latest`) is the authoritative runner for the R test suite once the
 A7 GitHub Actions matrix lands.
 

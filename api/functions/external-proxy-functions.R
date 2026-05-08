@@ -6,10 +6,26 @@ require(cachem)  # Load cachem for disk-based caching
 
 #### Per-source cache backends with different TTLs
 
+#' Resolve a writable external proxy cache directory
+#'
+#' @param name Cache bucket name.
+#' @return Writable directory path.
+#' @noRd
+external_proxy_cache_dir <- function(name) {
+  root <- Sys.getenv("EXTERNAL_PROXY_CACHE_DIR", "/app/cache/external")
+  path <- file.path(root, name)
+  if (dir.exists(path) || dir.create(path, recursive = TRUE, showWarnings = FALSE)) {
+    return(path)
+  }
+
+  fallback <- file.path(tempdir(), "sysndd-external-cache", name)
+  dir.create(fallback, recursive = TRUE, showWarnings = FALSE)
+  fallback
+}
+
 # Static cache for rarely-changing data (constraint scores, AlphaFold URLs)
 # 30 days TTL, 200 MB max size
-cache_static_dir <- "/app/cache/external/static"
-dir.create(cache_static_dir, recursive = TRUE, showWarnings = FALSE)
+cache_static_dir <- external_proxy_cache_dir("static")
 cache_static <- cache_disk(
   dir = cache_static_dir,
   max_age = 30 * 24 * 3600,  # 30 days in seconds
@@ -18,8 +34,7 @@ cache_static <- cache_disk(
 
 # Stable cache for moderately-changing data (protein domains, gene structure, phenotypes)
 # 14 days TTL, 200 MB max size
-cache_stable_dir <- "/app/cache/external/stable"
-dir.create(cache_stable_dir, recursive = TRUE, showWarnings = FALSE)
+cache_stable_dir <- external_proxy_cache_dir("stable")
 cache_stable <- cache_disk(
   dir = cache_stable_dir,
   max_age = 14 * 24 * 3600,  # 14 days in seconds
@@ -28,13 +43,78 @@ cache_stable <- cache_disk(
 
 # Dynamic cache for frequently-changing data (ClinVar variants)
 # 7 days TTL, 200 MB max size
-cache_dynamic_dir <- "/app/cache/external/dynamic"
-dir.create(cache_dynamic_dir, recursive = TRUE, showWarnings = FALSE)
+cache_dynamic_dir <- external_proxy_cache_dir("dynamic")
 cache_dynamic <- cache_disk(
   dir = cache_dynamic_dir,
   max_age = 7 * 24 * 3600,   # 7 days in seconds
   max_size = 200 * 1024^2    # 200 MB
 )
+
+#### External proxy cache policy helpers
+
+#' Check whether an external proxy result represents an upstream error
+#'
+#' @param result External proxy result list.
+#' @return TRUE when the result is an error payload that must not be cached.
+#' @noRd
+external_proxy_is_error <- function(result) {
+  is.list(result) && isTRUE(result$error)
+}
+
+#' Log an external proxy event in a compact structured format
+#'
+#' @param source External source name.
+#' @param event Event name.
+#' @param status Optional upstream or mapped status.
+#' @param detail Optional detail string.
+#' @noRd
+external_proxy_log_event <- function(source, event, status = NULL, detail = NULL) {
+  parts <- c(
+    source = source %||% "unknown",
+    event = event %||% "unknown"
+  )
+  if (!is.null(status)) {
+    parts <- c(parts, status = as.character(status))
+  }
+  if (!is.null(detail) && nzchar(detail)) {
+    parts <- c(parts, detail = detail)
+  }
+  message(paste0("[external-proxy] ", paste(names(parts), parts, sep = "=", collapse = " ")))
+}
+
+#' Memoise an external fetcher while refusing to retain error payloads
+#'
+#' @description
+#' `memoise::memoise()` caches every returned value, including
+#' `list(error = TRUE, ...)`. For external enrichment endpoints, that poisons
+#' the disk cache for the full source TTL after one transient upstream timeout.
+#' This wrapper keeps normal successful/not-found caching, but immediately
+#' clears the memoised cache after an error result so a later request can retry.
+#'
+#' @param f Function to memoise.
+#' @param cache cachem backend.
+#' @return Function with the same call shape as `f`.
+#' @export
+memoise_external_success_only <- function(f, cache) {
+  memoised <- memoise::memoise(f, cache = cache)
+
+  function(...) {
+    result <- memoised(...)
+    if (external_proxy_is_error(result)) {
+      tryCatch(
+        memoise::forget(memoised),
+        error = function(e) FALSE
+      )
+      external_proxy_log_event(
+        source = result$source %||% "unknown",
+        event = "error_not_cached",
+        status = result$status %||% 503L,
+        detail = result$message %||% NULL
+      )
+    }
+    result
+  }
+}
 
 
 #### Rate limit configuration for all external APIs
@@ -154,6 +234,7 @@ make_external_request <- function(url, api_name, throttle_config, method = "GET"
       # Catch network errors, timeouts, JSON parsing failures
       return(list(
         error = TRUE,
+        status = 503L,
         source = api_name,
         message = conditionMessage(e)
       ))

@@ -135,6 +135,16 @@ fetch_uniprot_domains <- function(gene_symbol) {
 
       # Handle non-200 responses
       if (resp_status(features_response) != 200) {
+        if (resp_status(features_response) == 404) {
+          return(list(
+            source = "uniprot",
+            gene_symbol = gene_symbol,
+            accession = accession,
+            protein_name = protein_name,
+            protein_length = protein_length,
+            domains = list()
+          ))
+        }
         return(list(
           error = TRUE,
           status = resp_status(features_response),
@@ -205,7 +215,7 @@ fetch_uniprot_domains <- function(gene_symbol) {
 #' @return Same as fetch_uniprot_domains
 #'
 #' @export
-fetch_uniprot_domains_mem <- memoise::memoise(
+fetch_uniprot_domains_mem <- memoise_external_success_only(
   fetch_uniprot_domains,
   cache = cache_stable
 )

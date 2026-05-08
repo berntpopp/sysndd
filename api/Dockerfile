@@ -92,6 +92,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfreetype6-dev \
     libtiff5-dev \
     libjpeg-dev \
+    libwebp-dev \
     libharfbuzz-dev \
     libfribidi-dev \
     # Git library for gert/usethis

@@ -6,7 +6,8 @@ library(jsonlite)  ##needed for HGNC requests
 library(DBI)    ##needed for MySQL data export
 library(RMariaDB)  ##needed for MySQL data export
 library(sqlr)    ##needed for MySQL data export
-library(easyPubMed)  ##needed for pubmed queries
+library(httr2)  ##needed for direct PubMed E-utilities requests
+library(xml2)  ##needed for PubMed XML parsing
 library(rvest)    ##needed for genereviews scrape
 library(lubridate)  ##needed for genereviews scrape
 library(ssh)    ##needed for SSH connection to sysid database
@@ -70,31 +71,142 @@ sysid_db_disease_collected <- sysid_db_disease %>%
 
 ############################################
 ## define functions
+normalize_pubmed_ids <- function(pmid_input) {
+  if (is.null(pmid_input) || length(pmid_input) == 0) {
+    return(character())
+  }
+
+  pmids <- as.character(unlist(pmid_input, use.names = FALSE))
+  pmids <- str_trim(pmids)
+  pmids <- str_remove(pmids, regex("^PMID:", ignore_case = TRUE))
+  pmids <- pmids[!is.na(pmids) & nzchar(pmids)]
+  pmids
+}
+
+pubmed_fetch_xml <- function(pmids) {
+  pmids <- unique(normalize_pubmed_ids(pmids))
+  pmids <- pmids[str_detect(pmids, "^[0-9]+$")]
+  if (length(pmids) == 0L) {
+    return("<PubmedArticleSet/>")
+  }
+
+  request("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi") %>%
+    req_url_query(
+      db = "pubmed",
+      id = str_c(pmids, collapse = ","),
+      retmode = "xml",
+      rettype = "xml"
+    ) %>%
+    req_retry(
+      max_tries = 3,
+      backoff = ~ 2^.x,
+      is_transient = ~ resp_status(.x) %in% c(429, 500, 502, 503, 504)
+    ) %>%
+    req_timeout(30) %>%
+    req_perform() %>%
+    resp_body_string()
+}
+
+pubmed_text_first <- function(node, xpath, default = "") {
+  value <- xml2::xml_text(xml2::xml_find_first(node, xpath))
+  if (length(value) == 0L || is.na(value)) {
+    return(default)
+  }
+  value
+}
+
+pubmed_text_all <- function(node, xpath) {
+  values <- xml2::xml_text(xml2::xml_find_all(node, xpath))
+  values[!is.na(values)]
+}
+
+pubmed_date_part <- function(article, part) {
+  xpath <- paste0(
+    ".//PubMedPubDate[@PubStatus = 'pubmed' or @Pubstatus = 'pubmed']/",
+    part
+  )
+  value <- pubmed_text_first(article, xpath, default = NA_character_)
+  if (is.na(value)) {
+    value <- pubmed_text_first(article, paste0(".//Article/Journal/JournalIssue/PubDate/", part),
+      default = NA_character_
+    )
+  }
+  value
+}
+
+pubmed_articles_from_xml <- function(pubmed_xml_data) {
+  pmid_xml <- xml2::read_xml(pubmed_xml_data)
+  articles <- xml2::xml_find_all(pmid_xml, "//PubmedArticle")
+
+  purrr::map_dfr(articles, function(article) {
+    doi <- pubmed_text_first(article, ".//Article/ELocationID[@EIdType = 'doi']",
+      default = NA_character_
+    )
+    if (is.na(doi)) {
+      doi <- pubmed_text_first(article, ".//ArticleId[@EIdType = 'doi']",
+        default = NA_character_
+      )
+    }
+    if (is.na(doi)) {
+      doi <- pubmed_text_first(article, ".//ArticleId[@IdType = 'doi' and not(ancestor::ReferenceList)]")
+    }
+
+    lastname <- pubmed_text_first(article, ".//AuthorList/Author[1]/LastName")
+    firstname <- pubmed_text_first(article, ".//AuthorList/Author[1]/ForeName")
+    collective <- pubmed_text_first(article, ".//AuthorList/Author[1]/CollectiveName",
+      default = NA_character_
+    )
+    if ((lastname == "" || firstname == "") && !is.na(collective)) {
+      lastname <- collective
+      firstname <- collective
+    }
+
+    year <- pubmed_date_part(article, "Year")
+    month <- pubmed_date_part(article, "Month")
+    day <- pubmed_date_part(article, "Day")
+    if (is.na(year) || is.na(month) || is.na(day)) {
+      year <- format(Sys.time(), "%Y")
+      month <- format(Sys.time(), "%m")
+      day <- format(Sys.time(), "%d")
+    }
+
+    mesh <- pubmed_text_all(article, ".//DescriptorName")
+    keyword <- pubmed_text_all(article, ".//Keyword")
+
+    tibble::tibble(
+      publication_id = pubmed_text_first(article, ".//MedlineCitation/PMID"),
+      DOI = doi,
+      Title = str_c(pubmed_text_all(article, ".//Article/ArticleTitle"), collapse = " "),
+      Abstract = str_c(pubmed_text_all(article, ".//AbstractText"), collapse = " "),
+      Year = year,
+      Month = str_pad(month, 2, "left", pad = "0"),
+      Day = str_pad(day, 2, "left", pad = "0"),
+      Journal_abbreviation = pubmed_text_first(article, ".//Article/Journal/ISOAbbreviation"),
+      Journal = pubmed_text_first(article, ".//Article/Journal/Title"),
+      Keywords = str_c(unique(str_squish(c(mesh, keyword))), collapse = "; "),
+      Lastname = lastname,
+      Firstname = firstname
+    )
+  })
+}
+
 pubmed_info_from_pmid <- function(pmid_tibble, request_max = 200) {
-  input_tibble <- as_tibble(pmid_tibble) %>%
-    mutate(publication_id = as.character(value)) %>%
-    select(-value)
-  
-  row_number <- nrow(input_tibble)
-  groups_number <- ceiling(row_number/request_max)
-  
-  input_tibble_request <- input_tibble %>%
-    mutate(group = sample(1:groups_number, row_number, replace=T)) %>%
-    group_by(group) %>%
-    mutate(publication_id = paste0(publication_id, "[PMID]")) %>%
-    mutate(publication_id = str_flatten(publication_id, collapse = " or ")) %>%
-    unique() %>%
-    ungroup() %>%
-    rowwise() %>%
-    mutate(response = fetch_pubmed_data(get_pubmed_ids(publication_id), encoding = "ASCII")) %>%
-    ungroup() %>%
-    mutate(new_PM_df = map(response, ~table_articles_byAuth(pubmed_data = .x, 
-                                   included_authors = "first", 
-                                   max_chars = 1000, 
-                                   encoding = "ASCII"))) %>%
-    unnest(cols = new_PM_df) %>%
-    select(-publication_id, -group, -response) %>%
-    select(publication_id = pmid, DOI = doi, Title = title, Abstract = abstract, Year = year, Month = month, Day = day, Journal_abbreviation = jabbrv, Journal = journal, Keywords= keywords, Lastname = lastname, Firstname = firstname)
+  request_max <- as.integer(request_max)
+  if (is.na(request_max) || request_max < 1L) {
+    stop("request_max must be a positive integer")
+  }
+
+  input_tibble <- tibble::tibble(publication_id = normalize_pubmed_ids(pmid_tibble))
+  requested_publication_ids <- unique(input_tibble$publication_id)
+  chunks <- split(
+    requested_publication_ids,
+    ceiling(seq_along(requested_publication_ids) / request_max)
+  )
+
+  input_tibble_request <- purrr::map_dfr(chunks, function(chunk) {
+    pubmed_fetch_xml(chunk) %>%
+      pubmed_articles_from_xml()
+  })
 
   ouput_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id")

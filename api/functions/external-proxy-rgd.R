@@ -225,7 +225,7 @@ fetch_rgd_phenotypes <- function(gene_symbol, rgd_id = NULL) {
 #' @seealso fetch_rgd_phenotypes_by_id
 #'
 #' @export
-fetch_rgd_phenotypes_by_id_mem <- memoise::memoise(
+fetch_rgd_phenotypes_by_id_mem <- memoise_external_success_only(
   fetch_rgd_phenotypes_by_id,
   cache = cache_stable
 )
@@ -245,7 +245,7 @@ fetch_rgd_phenotypes_by_id_mem <- memoise::memoise(
 #' @seealso fetch_rgd_phenotypes
 #'
 #' @export
-fetch_rgd_phenotypes_mem <- memoise::memoise(
+fetch_rgd_phenotypes_mem <- memoise_external_success_only(
   fetch_rgd_phenotypes,
   cache = cache_stable
 )

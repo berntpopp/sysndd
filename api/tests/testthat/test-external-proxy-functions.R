@@ -12,6 +12,7 @@ library(httr2)
 # Source required files using helper-paths.R (loaded automatically by setup.R)
 # Use local = FALSE to make functions available in test scope
 source_api_file("functions/external-proxy-functions.R", local = FALSE)
+source_api_file("functions/external-proxy-uniprot.R", local = FALSE)
 
 # ============================================================================
 # validate_gene_symbol() Tests
@@ -114,6 +115,81 @@ describe("cache backends", {
     expect_false(identical(cache_static, cache_stable))
     expect_false(identical(cache_static, cache_dynamic))
     expect_false(identical(cache_stable, cache_dynamic))
+  })
+})
+
+# ============================================================================
+# External proxy memoisation policy tests
+# ============================================================================
+
+describe("memoise_external_success_only", {
+  it("does not retain transient error results", {
+    call_count <- 0L
+    flaky_fetch <- function(symbol) {
+      call_count <<- call_count + 1L
+      if (call_count == 1L) {
+        return(list(error = TRUE, source = "test", message = "upstream timeout"))
+      }
+      list(source = "test", gene_symbol = symbol, value = "ok")
+    }
+
+    fetch_mem <- memoise_external_success_only(flaky_fetch, cachem::cache_mem())
+
+    first <- fetch_mem("BRCA1")
+    second <- fetch_mem("BRCA1")
+
+    expect_true(isTRUE(first$error))
+    expect_equal(second$value, "ok")
+    expect_equal(call_count, 2L)
+  })
+
+  it("retains successful results", {
+    call_count <- 0L
+    stable_fetch <- function(symbol) {
+      call_count <<- call_count + 1L
+      list(source = "test", gene_symbol = symbol, value = call_count)
+    }
+
+    fetch_mem <- memoise_external_success_only(stable_fetch, cachem::cache_mem())
+
+    first <- fetch_mem("BRCA1")
+    second <- fetch_mem("BRCA1")
+
+    expect_equal(first$value, 1L)
+    expect_equal(second$value, 1L)
+    expect_equal(call_count, 1L)
+  })
+})
+
+# ============================================================================
+# Source-specific no-data mapping tests
+# ============================================================================
+
+describe("fetch_uniprot_domains", {
+  it("maps a UniProt features 404 to an empty domain payload, not an error", {
+    search_result <- list(results = list(list(
+      primaryAccession = "P45381",
+      proteinDescription = list(
+        recommendedName = list(fullName = list(value = "Aspartoacylase"))
+      ),
+      sequence = list(value = "MPEPTIDE")
+    )))
+
+    mockery::stub(fetch_uniprot_domains, "make_external_request", function(...) {
+      search_result
+    })
+    mockery::stub(fetch_uniprot_domains, "req_perform", function(...) {
+      httr2::response(status_code = 404)
+    })
+
+    result <- fetch_uniprot_domains("ASPA")
+
+    expect_false(isTRUE(result$error))
+    expect_equal(result$source, "uniprot")
+    expect_equal(result$gene_symbol, "ASPA")
+    expect_equal(result$accession, "P45381")
+    expect_equal(result$protein_length, 8L)
+    expect_equal(result$domains, list())
   })
 })
 

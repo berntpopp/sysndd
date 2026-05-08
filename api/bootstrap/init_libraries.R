@@ -44,7 +44,6 @@ bootstrap_init_libraries <- function() {
   library(RCurl)
   library(stringdist)
   library(xlsx)
-  library(easyPubMed)
   library(xml2)
   library(rvest)
   library(lubridate)

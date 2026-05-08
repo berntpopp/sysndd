@@ -117,7 +117,7 @@ The recommended workflow for selector discovery is `npx playwright codegen http:
 `/Genes/:symbol` and `/Entities/:entity_id` ship a Playwright perf + axe bench under `app/tests/perf/`. It is **local-only** — there is no CI workflow.
 
 ```bash
-make cache-clear              # cold-pass: wipe API memoise cache (best-effort)
+make cache-clear              # cold-pass: wipe API memoise caches, including external proxy caches
 make playwright-stack         # or `make dev` if the playwright stack lacks views/data
 cd app && npx playwright test tests/perf/genes-entities.bench.spec.ts --workers=1
 cd .. && make playwright-stack-down   # or `make docker-down` if you used `make dev`
@@ -136,5 +136,6 @@ The bench requires `@axe-core/playwright` (a dev dep). If `npm install` complain
 - Auth/signup/password-sensitive API inputs are body-only. Use JSON request bodies for `POST /api/auth/signup`, `POST /api/auth/authenticate`, and password-change flows; do not send those values in query strings or persist raw query strings in request logs.
 - Host-side API quality targets use `Rscript --no-init-file` under the hood to avoid Conda/miniforge bootstrap interference before the repo's own R script entrypoints run.
 - On Conda/miniforge R installs, `Makefile` derives `HOST_R_LD_LIBRARY_PATH` from `R RHOME` and prepends the sibling `mariadb/` runtime directory so `RMariaDB` can load. Override `HOST_R_LD_LIBRARY_PATH` when the MariaDB client runtime lives elsewhere.
+- External proxy cache tests should use `memoise_external_success_only()` when adding new cached source fetchers. It keeps successes cached but evicts transient `error = TRUE` payloads immediately so one upstream timeout does not affect local development for days.
 
 For repository-specific agent guidance and deeper runtime quirks, see the root `AGENTS.md`.

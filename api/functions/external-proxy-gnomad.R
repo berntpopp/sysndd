@@ -305,7 +305,7 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
 #' @return Same as fetch_gnomad_constraints
 #'
 #' @export
-fetch_gnomad_constraints_mem <- memoise::memoise(
+fetch_gnomad_constraints_mem <- memoise_external_success_only(
   fetch_gnomad_constraints,
   cache = cache_static
 )
@@ -321,7 +321,7 @@ fetch_gnomad_constraints_mem <- memoise::memoise(
 #' @return Same as fetch_gnomad_clinvar_variants
 #'
 #' @export
-fetch_gnomad_clinvar_variants_mem <- memoise::memoise(
+fetch_gnomad_clinvar_variants_mem <- memoise_external_success_only(
   fetch_gnomad_clinvar_variants,
   cache = cache_dynamic
 )

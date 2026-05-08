@@ -208,7 +208,7 @@ fetch_ensembl_gene_structure <- function(gene_symbol) {
 #' @return Same as fetch_ensembl_gene_structure
 #'
 #' @export
-fetch_ensembl_gene_structure_mem <- memoise::memoise(
+fetch_ensembl_gene_structure_mem <- memoise_external_success_only(
   fetch_ensembl_gene_structure,
   cache = cache_stable
 )
