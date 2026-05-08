@@ -385,6 +385,133 @@ count_query <- function(conn, sql, params = list()) {
   as.integer(db_fetch_params(conn, sql, params)$n[[1]])
 }
 
+function_with_cloned_env <- function(fn) {
+  environment(fn) <- rlang::env_clone(environment(fn))
+  fn
+}
+
+count_join_table <- function(conn, table, review_ids, entity_ids, extra_column, extra_values) {
+  clauses <- character()
+  params <- list()
+
+  if (length(review_ids) > 0) {
+    clauses <- c(clauses, paste0("review_id IN (", placeholders(review_ids), ")"))
+    params <- c(params, as.list(review_ids))
+  }
+  if (length(entity_ids) > 0) {
+    clauses <- c(clauses, paste0("entity_id IN (", placeholders(entity_ids), ")"))
+    params <- c(params, as.list(entity_ids))
+  }
+  if (length(extra_values) > 0) {
+    clauses <- c(clauses, paste0(extra_column, " IN (", placeholders(extra_values), ")"))
+    params <- c(params, as.list(extra_values))
+  }
+
+  if (length(clauses) == 0) {
+    return(0L)
+  }
+
+  count_query(
+    conn,
+    sprintf(
+      "SELECT COUNT(*) AS n FROM %s WHERE %s",
+      table,
+      paste(clauses, collapse = " OR ")
+    ),
+    params
+  )
+}
+
+count_relevant_rows <- function(conn) {
+  entity_ids <- db_fetch_params(
+    conn,
+    paste0(
+      "SELECT entity_id FROM ndd_entity ",
+      "WHERE hgnc_id = ? OR disease_ontology_id_version IN (",
+      placeholders(TEST_ONTOLOGIES),
+      ")"
+    ),
+    c(list(TEST_HGNC), as.list(TEST_ONTOLOGIES))
+  )$entity_id
+
+  review_ids <- if (length(entity_ids) > 0) {
+    db_fetch_params(
+      conn,
+      paste0(
+        "SELECT review_id FROM ndd_entity_review WHERE entity_id IN (",
+        placeholders(entity_ids),
+        ")"
+      ),
+      as.list(entity_ids)
+    )$review_id
+  } else {
+    integer()
+  }
+
+  c(
+    ndd_entity = count_query(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS n FROM ndd_entity ",
+        "WHERE hgnc_id = ? OR disease_ontology_id_version IN (",
+        placeholders(TEST_ONTOLOGIES),
+        ")"
+      ),
+      c(list(TEST_HGNC), as.list(TEST_ONTOLOGIES))
+    ),
+    ndd_entity_review = if (length(entity_ids) > 0) {
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM ndd_entity_review WHERE entity_id IN (",
+          placeholders(entity_ids),
+          ")"
+        ),
+        as.list(entity_ids)
+      )
+    } else {
+      0L
+    },
+    ndd_entity_status = if (length(entity_ids) > 0) {
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM ndd_entity_status WHERE entity_id IN (",
+          placeholders(entity_ids),
+          ")"
+        ),
+        as.list(entity_ids)
+      )
+    } else {
+      0L
+    },
+    ndd_review_phenotype_connect = count_join_table(
+      conn,
+      "ndd_review_phenotype_connect",
+      review_ids,
+      entity_ids,
+      "phenotype_id",
+      TEST_PHENOTYPE
+    ),
+    ndd_review_publication_join = count_join_table(
+      conn,
+      "ndd_review_publication_join",
+      review_ids,
+      entity_ids,
+      "publication_id",
+      c(TEST_PUBLICATION, TEST_BOGUS_PMIDS)
+    ),
+    ndd_review_variation_ontology_connect = count_join_table(
+      conn,
+      "ndd_review_variation_ontology_connect",
+      review_ids,
+      entity_ids,
+      "vario_id",
+      TEST_VARIO
+    )
+  )
+}
+
 with_entity_rename_fixture <- function(code) {
   skip_if_no_test_db()
 
@@ -483,5 +610,33 @@ test_that("svc_entity_rename_full preserves approval state on the new entity", {
       ),
       1L
     )
+  })
+})
+
+test_that("svc_entity_rename_full rolls back when a downstream insert fails", {
+  with_entity_rename_fixture({
+    user_id <- 1L
+    seed <- seed_approved_entity_bundle(conn, SOURCE_ONTOLOGY, user_id = user_id)
+    before_counts <- count_relevant_rows(conn)
+
+    fn <- function_with_cloned_env(svc_entity_rename_full)
+    mockery::stub(
+      fn,
+      "phenotype_connect_to_review",
+      function(...) stop("forced phenotype copy failure")
+    )
+
+    result <- fn(
+      rename_payload(seed$entity_id, ROLLBACK_DEST_ONTOLOGY),
+      user_id = user_id,
+      pool = pool
+    )
+
+    expect_equal(result$status, 500)
+    expect_equal(count_relevant_rows(conn), before_counts)
+
+    source_entity <- fetch_entity_row(conn, seed$entity_id)
+    expect_equal(as.integer(source_entity$is_active[[1]]), 1L)
+    expect_true(is.na(source_entity$replaced_by[[1]]))
   })
 })
