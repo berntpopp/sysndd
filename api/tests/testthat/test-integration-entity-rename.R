@@ -390,6 +390,50 @@ function_with_cloned_env <- function(fn) {
   fn
 }
 
+entity_endpoint_path <- function() {
+  file.path(get_api_dir(), "endpoints", "entity_endpoints.R")
+}
+
+entity_source <- function() {
+  readLines(entity_endpoint_path(), warn = FALSE)
+}
+
+extract_entity_handler <- function(decorator_regex, envir) {
+  src_lines <- entity_source()
+  dec_hits <- grep(decorator_regex, src_lines)
+  if (length(dec_hits) == 0L) {
+    stop("Decorator not found in entity_endpoints.R: ", decorator_regex)
+  }
+  dec_line <- dec_hits[[1L]]
+
+  parsed <- parse(file = entity_endpoint_path(), keep.source = TRUE)
+  srcrefs <- attr(parsed, "srcref")
+  if (is.null(srcrefs)) {
+    stop("Unable to read source refs for entity_endpoints.R")
+  }
+
+  handler_expr <- NULL
+  for (i in seq_along(parsed)) {
+    start_line <- srcrefs[[i]][1L]
+    if (start_line > dec_line) {
+      handler_expr <- parsed[[i]]
+      break
+    }
+  }
+  if (is.null(handler_expr)) {
+    stop("No top-level expression found after decorator line ", dec_line)
+  }
+
+  eval(handler_expr, envir = envir)
+}
+
+make_mock_res <- function() {
+  res <- new.env(parent = emptyenv())
+  res$status <- 200L
+  res$body <- NULL
+  res
+}
+
 count_join_table <- function(conn, table, review_ids, entity_ids, extra_column, extra_values) {
   clauses <- character()
   params <- list()
@@ -754,6 +798,75 @@ test_that("entity submission with unresolvable PMID returns 400 and writes nothi
     expect_match(result$message, "PMIDs not retrievable", fixed = TRUE)
     expect_match(result$message, "PMID:99999991", fixed = TRUE)
     expect_match(result$message, "PMID:99999992", fixed = TRUE)
+    expect_equal(count_publication_rejection_rows(conn), before_counts)
+  })
+})
+
+test_that("POST /api/entity/create returns endpoint 400 for unresolvable PMID and writes nothing", {
+  with_entity_rename_fixture({
+    before_counts <- count_publication_rejection_rows(conn)
+
+    info_fn <- function_with_cloned_env(info_from_pmid)
+    mockery::stub(
+      info_fn,
+      "fetch_pubmed_data",
+      function(...) unrelated_pubmed_xml()
+    )
+
+    new_publication_fn <- function_with_cloned_env(new_publication)
+    mockery::stub(new_publication_fn, "check_pmid", function(...) TRUE)
+    assign("info_from_pmid", info_fn, envir = environment(new_publication_fn))
+    assign("pool", pool, envir = environment(new_publication_fn))
+
+    env <- new.env(parent = globalenv())
+    env$require_role <- function(req, res, min_role) invisible(TRUE)
+    env$pool <- pool
+    env$new_publication <- new_publication_fn
+    env$genereviews_from_pmid <- function(...) FALSE
+
+    handler <- extract_entity_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+    req <- list(
+      user_id = 1L,
+      argsBody = list(
+        create_json = list(
+          entity = list(
+            hgnc_id = TEST_HGNC,
+            hpo_mode_of_inheritance_term = TEST_MOI,
+            disease_ontology_id_version = DEST_ONTOLOGY,
+            ndd_phenotype = 1L
+          ),
+          review = list(
+            synopsis = list("Entity create publication preflight regression."),
+            comment = "unresolvable PMID test",
+            literature = list(
+              additional_references = list(value = TEST_BOGUS_PMIDS),
+              gene_review = list()
+            ),
+            phenotypes = list(),
+            variation_ontology = list()
+          ),
+          status = list(
+            category_id = 1L,
+            problematic = 0L
+          )
+        )
+      )
+    )
+    res <- make_mock_res()
+
+    result <- handler(req = req, res = res, direct_approval = FALSE)
+
+    expected_message <- paste(
+      "Publication error: Bad Request. PMIDs not retrievable from PubMed:",
+      paste(TEST_BOGUS_PMIDS, collapse = ", ")
+    )
+    expect_equal(result$status, 400)
+    expect_equal(res$status, 400)
+    expect_equal(result$message, expected_message)
+    expect_equal(result$error, paste(
+      "PMIDs not retrievable from PubMed:",
+      paste(TEST_BOGUS_PMIDS, collapse = ", ")
+    ))
     expect_equal(count_publication_rejection_rows(conn), before_counts)
   })
 })
