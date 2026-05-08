@@ -18,6 +18,11 @@ Patch bump for the consolidated dependency refresh in PR #321, combining Dependa
 - **Frontend development dependencies refreshed.** Updates test/build tooling including `@vue/test-utils`, `axios`, `eslint`, `jsdom`, `msw`, `postcss`, `typescript-eslint`, `vue-tsc`, and related tooling packages.
 - **API Docker base image refreshed.** Updates `rocker/r-ver` from `4.5.3` to `4.6.0` with a matching R 4.6 / Bioconductor 3.23 API lockfile refresh.
 - **API CI runners aligned with R 4.6.0.** Updates R-based GitHub Actions jobs so `setup-renv` restores against the same R minor recorded in `api/renv.lock`.
+- **R 4.6 restore compatibility fixed.** Updates stale API package pins that failed from source under R 4.6/GCC 13 (`lazyeval`, `rex`, and `RMariaDB`) and drops the obsolete `plogr` lockfile entry.
+
+### Fixed
+
+- **Production CSP allows bundled fonts.** Adds `font-src 'self'` so self-hosted SPA font assets are not blocked by `default-src 'none'`.
 
 ## [0.16.1] — 2026-05-08
 
