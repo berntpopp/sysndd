@@ -62,13 +62,25 @@ status_find_by_entity <- function(entity_id) {
 
 #' Create a new status record
 #'
-#' @param status_data Tibble or list with entity_id, category_id, and optional problematic
+#' @param status_data Tibble or list with status fields:
+#'   - entity_id (required)
+#'   - category_id (required)
+#'   - status_user_id (required)
+#'   - problematic (optional, default 0)
+#'   - is_active (optional integer 0/1; omit to use DB default of 0)
+#'   - status_approved (optional integer 0/1; omit to use DB default of 0)
+#'   - approving_user_id (optional integer; omit to use DB default)
+#'   - comment (optional character; omit to use DB default)
 #'
 #' @return Integer status_id of newly created record
 #'
 #' @details
-#' - Validates that category_id and entity_id are provided
+#' - Validates that entity_id, category_id, and status_user_id are provided
 #' - Removes status_id if accidentally provided (for POST requests)
+#' - Optional approval-state columns (is_active, status_approved, approving_user_id,
+#'   comment) are included in the INSERT only when explicitly present and non-NA.
+#'   Absent or NA-valued keys cause DB defaults to apply (back-compat with
+#'   svc_entity_create_full which sets approval state via a separate UPDATE).
 #' - Returns the LAST_INSERT_ID() from the database
 #'
 #' @examples
@@ -76,6 +88,7 @@ status_find_by_entity <- function(entity_id) {
 #' status_id <- status_create(tibble(
 #'   entity_id = 5,
 #'   category_id = 2,
+#'   status_user_id = 3,
 #'   problematic = 0
 #' ))
 #' }
@@ -118,19 +131,38 @@ status_create <- function(status_data, conn = NULL) {
   entity_id <- status_data$entity_id[1]
   category_id <- status_data$category_id[1]
   status_user_id <- status_data$status_user_id[1]
-  problematic <- if ("problematic" %in% colnames(status_data)) {
-    status_data$problematic[1]
-  } else {
-    0
+  problematic <- if ("problematic" %in% colnames(status_data)) status_data$problematic[1] else 0
+
+  cols <- c("entity_id", "category_id", "status_user_id", "problematic")
+  vals <- list(entity_id, category_id, status_user_id, problematic)
+
+  # Optional approval-state columns: include only when explicitly provided.
+  # Fixes #318: rename flow lost approval state because old INSERT hardcoded
+  # only the four columns above and let DB defaults of 0 apply.
+  optional <- c("is_active", "status_approved", "approving_user_id", "comment")
+  for (col in optional) {
+    if (col %in% colnames(status_data)) {
+      val <- status_data[[col]][1]
+      if (!is.na(val)) {
+        if (length(val) != 1) {
+          rlang::abort(
+            message = sprintf("status_create: optional column '%s' must be a scalar, got length %d",
+                              col, length(val)),
+            class = c("status_validation_error", "validation_error")
+          )
+        }
+        cols <- c(cols, col)
+        vals <- c(vals, list(val))
+      }
+    }
   }
 
+  placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+  sql <- sprintf("INSERT INTO ndd_entity_status (%s) VALUES (%s)",
+                 paste(cols, collapse = ", "), placeholders)
+
   # Insert record
-  db_execute_statement(
-    "INSERT INTO ndd_entity_status (entity_id, category_id, status_user_id, problematic)
-     VALUES (?, ?, ?, ?)",
-    list(entity_id, category_id, status_user_id, problematic),
-    conn = conn
-  )
+  db_execute_statement(sql, vals, conn = conn)
 
   # Get the last insert ID
   id_result <- db_execute_query("SELECT LAST_INSERT_ID() as status_id", conn = conn)
