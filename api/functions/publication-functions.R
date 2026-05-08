@@ -125,16 +125,30 @@ new_publication <- function(publications_received) {
 
     # add new publications to database table "publication" if present and not NA
     if (nrow(publications_list_collected_info) > 0) {
-      # Insert each publication using parameterized query
-      # Use names(tibble) to ensure column order matches INSERT statement
       cols <- names(publications_list_collected_info)
       placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)", paste(cols, collapse = ", "), placeholders)
+      sql <- sprintf("INSERT INTO publication (%s) VALUES (%s)",
+                     paste(cols, collapse = ", "), placeholders)
 
-      for (i in seq_len(nrow(publications_list_collected_info))) {
-        row <- publications_list_collected_info[i, ]
-        db_execute_statement(sql, as.list(row))
-      }
+      # Atomic batch (#318): a partial publication batch must never half-commit.
+      # If any INSERT fails (e.g. an unexpected NULL on a NOT NULL column), the
+      # whole batch rolls back and the error propagates as db_transaction_error.
+      tryCatch(
+        db_with_transaction(function(txn_conn) {
+          for (i in seq_len(nrow(publications_list_collected_info))) {
+            row <- publications_list_collected_info[i, ]
+            db_execute_statement(sql, as.list(row), conn = txn_conn)
+          }
+          invisible(NULL)
+        }),
+        db_transaction_error = function(e) {
+          rlang::abort(
+            message = paste("Publication batch insert failed:", e$message),
+            class = c("publication_insert_error", "db_statement_error"),
+            original_error = e$message
+          )
+        }
+      )
     }
 
     # return OK
