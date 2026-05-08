@@ -1,0 +1,487 @@
+# tests/testthat/test-integration-entity-rename.R
+# DB-backed integration tests for svc_entity_rename_full (#318).
+# Requires test database (sysndd_db_test) and skips when unavailable.
+
+library(testthat)
+library(tibble)
+library(dplyr)
+library(DBI)
+library(purrr)
+library(stringr)
+library(tidyr)
+library(xml2)
+
+source_api_file("functions/db-helpers.R", local = FALSE)
+source_api_file("functions/entity-repository.R", local = FALSE)
+source_api_file("functions/review-repository.R", local = FALSE)
+source_api_file("functions/status-repository.R", local = FALSE)
+source_api_file("functions/phenotype-repository.R", local = FALSE)
+source_api_file("functions/ontology-repository.R", local = FALSE)
+source_api_file("functions/publication-repository.R", local = FALSE)
+source_api_file("functions/publication-functions.R", local = FALSE)
+source_api_file("core/errors.R", local = FALSE)
+source_api_file("services/entity-service.R", local = FALSE)
+
+TEST_HGNC <- "HGNC:99901"
+TEST_MOI <- "HP:9000001"
+TEST_PHENOTYPE <- "HP:9000002"
+TEST_VARIO <- "VariO:9001"
+TEST_PUBLICATION <- "PMID:990001"
+TEST_BOGUS_PMIDS <- c("PMID:99999991", "PMID:99999992")
+TEST_ONTOLOGIES <- c(
+  "OMIM:990001",
+  "OMIM:990002",
+  "OMIM:990003",
+  "OMIM:990004",
+  "OMIM:990005"
+)
+
+SOURCE_ONTOLOGY <- TEST_ONTOLOGIES[[1]]
+DEST_ONTOLOGY <- TEST_ONTOLOGIES[[2]]
+ROLLBACK_DEST_ONTOLOGY <- TEST_ONTOLOGIES[[3]]
+CONFLICT_DEST_ONTOLOGY <- TEST_ONTOLOGIES[[4]]
+
+db_fetch_params <- function(conn, sql, params = list()) {
+  result <- DBI::dbSendQuery(conn, sql)
+  on.exit(DBI::dbClearResult(result), add = TRUE)
+  if (length(params) > 0) {
+    DBI::dbBind(result, unname(params))
+  }
+  tibble::as_tibble(DBI::dbFetch(result))
+}
+
+db_execute_params <- function(conn, sql, params = list()) {
+  result <- DBI::dbSendStatement(conn, sql)
+  on.exit(DBI::dbClearResult(result), add = TRUE)
+  if (length(params) > 0) {
+    DBI::dbBind(result, unname(params))
+  }
+  DBI::dbGetRowsAffected(result)
+}
+
+placeholders <- function(values) {
+  paste(rep("?", length(values)), collapse = ", ")
+}
+
+db_delete_in <- function(conn, table, column, values) {
+  if (length(values) == 0) {
+    return(invisible(0L))
+  }
+  sql <- sprintf(
+    "DELETE FROM %s WHERE %s IN (%s)",
+    table,
+    column,
+    placeholders(values)
+  )
+  db_execute_params(conn, sql, as.list(values))
+}
+
+make_test_pool <- function() {
+  test_config <- get_test_config()
+  pool::dbPool(
+    RMariaDB::MariaDB(),
+    dbname = test_config$dbname,
+    host = test_config$host,
+    user = test_config$user,
+    password = test_config$password,
+    port = as.integer(test_config$port)
+  )
+}
+
+cleanup_entity_rename_fixture <- function(conn) {
+  entity_ids <- db_fetch_params(
+    conn,
+    paste0(
+      "SELECT entity_id FROM ndd_entity ",
+      "WHERE hgnc_id = ? OR disease_ontology_id_version IN (",
+      placeholders(TEST_ONTOLOGIES),
+      ")"
+    ),
+    c(list(TEST_HGNC), as.list(TEST_ONTOLOGIES))
+  )$entity_id
+
+  review_ids <- integer()
+  if (length(entity_ids) > 0) {
+    review_ids <- db_fetch_params(
+      conn,
+      paste0(
+        "SELECT review_id FROM ndd_entity_review WHERE entity_id IN (",
+        placeholders(entity_ids),
+        ")"
+      ),
+      as.list(entity_ids)
+    )$review_id
+  }
+
+  db_delete_in(conn, "ndd_review_variation_ontology_connect", "review_id", review_ids)
+  db_delete_in(conn, "ndd_review_variation_ontology_connect", "entity_id", entity_ids)
+  db_delete_in(conn, "ndd_review_variation_ontology_connect", "vario_id", TEST_VARIO)
+
+  db_delete_in(conn, "ndd_review_phenotype_connect", "review_id", review_ids)
+  db_delete_in(conn, "ndd_review_phenotype_connect", "entity_id", entity_ids)
+  db_delete_in(conn, "ndd_review_phenotype_connect", "phenotype_id", TEST_PHENOTYPE)
+
+  db_delete_in(conn, "ndd_review_publication_join", "review_id", review_ids)
+  db_delete_in(conn, "ndd_review_publication_join", "entity_id", entity_ids)
+  db_delete_in(
+    conn,
+    "ndd_review_publication_join",
+    "publication_id",
+    c(TEST_PUBLICATION, TEST_BOGUS_PMIDS)
+  )
+
+  db_delete_in(conn, "ndd_entity_status", "entity_id", entity_ids)
+  db_delete_in(conn, "ndd_entity_review", "entity_id", entity_ids)
+
+  if (length(entity_ids) > 0) {
+    db_execute_params(
+      conn,
+      paste0(
+        "UPDATE ndd_entity SET replaced_by = NULL ",
+        "WHERE entity_id IN (", placeholders(entity_ids), ") ",
+        "OR replaced_by IN (", placeholders(entity_ids), ")"
+      ),
+      c(as.list(entity_ids), as.list(entity_ids))
+    )
+  }
+
+  db_delete_in(conn, "ndd_entity", "entity_id", entity_ids)
+  db_delete_in(conn, "publication", "publication_id", c(TEST_PUBLICATION, TEST_BOGUS_PMIDS))
+  db_delete_in(conn, "phenotype_list", "phenotype_id", TEST_PHENOTYPE)
+  db_delete_in(conn, "variation_ontology_list", "vario_id", TEST_VARIO)
+  db_delete_in(conn, "disease_ontology_set", "disease_ontology_id_version", TEST_ONTOLOGIES)
+  db_delete_in(conn, "mode_of_inheritance_list", "hpo_mode_of_inheritance_term", TEST_MOI)
+  db_delete_in(conn, "non_alt_loci_set", "hgnc_id", TEST_HGNC)
+
+  invisible(NULL)
+}
+
+seed_reference_rows <- function(conn) {
+  db_execute_params(
+    conn,
+    "INSERT INTO non_alt_loci_set (hgnc_id, symbol, name) VALUES (?, ?, ?)",
+    list(TEST_HGNC, "SYSNDDTEST", "SysNDD test gene")
+  )
+  db_execute_params(
+    conn,
+    paste0(
+      "INSERT INTO mode_of_inheritance_list ",
+      "(hpo_mode_of_inheritance_term, hpo_mode_of_inheritance_term_name, ",
+      "inheritance_filter, inheritance_short_text, is_active, sort) ",
+      "VALUES (?, ?, ?, ?, ?, ?)"
+    ),
+    list(TEST_MOI, "SysNDD test inheritance", "test", "TST", 1L, 9000001L)
+  )
+
+  for (ontology in TEST_ONTOLOGIES) {
+    db_execute_params(
+      conn,
+      paste0(
+        "INSERT INTO disease_ontology_set ",
+        "(disease_ontology_id_version, disease_ontology_id, ",
+        "disease_ontology_name, disease_ontology_source, ",
+        "disease_ontology_is_specific, hgnc_id, hpo_mode_of_inheritance_term, ",
+        "is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      ),
+      list(
+        ontology,
+        str_remove(ontology, "^OMIM:"),
+        paste("SysNDD test ontology", ontology),
+        "OMIM",
+        1L,
+        TEST_HGNC,
+        TEST_MOI,
+        1L
+      )
+    )
+  }
+
+  db_execute_params(
+    conn,
+    paste0(
+      "INSERT INTO phenotype_list ",
+      "(phenotype_id, HPO_term, HPO_term_definition, HPO_term_synonyms, comment) ",
+      "VALUES (?, ?, ?, ?, ?)"
+    ),
+    list(
+      TEST_PHENOTYPE,
+      "SysNDD test phenotype",
+      "Phenotype used by entity rename integration tests.",
+      "",
+      "test fixture"
+    )
+  )
+  db_execute_params(
+    conn,
+    paste0(
+      "INSERT INTO variation_ontology_list ",
+      "(vario_id, vario_name, definition, obsolete, is_active, sort) ",
+      "VALUES (?, ?, ?, ?, ?, ?)"
+    ),
+    list(
+      TEST_VARIO,
+      "SysNDD test variation",
+      "Variation term used by entity rename integration tests.",
+      0L,
+      1L,
+      9001L
+    )
+  )
+  db_execute_params(
+    conn,
+    paste0(
+      "INSERT INTO publication ",
+      "(publication_id, publication_type, other_publication_id, Title, Abstract, ",
+      "Publication_date, Journal_abbreviation, Journal, Keywords, Lastname, Firstname) ",
+      "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ),
+    list(
+      TEST_PUBLICATION,
+      "additional_references",
+      "DOI:10.9999/sysndd-test",
+      "SysNDD test publication",
+      "Publication used by entity rename integration tests.",
+      "2026-01-01",
+      "SysNDD Test J",
+      "SysNDD Test Journal",
+      "test",
+      "Curator",
+      "Test"
+    )
+  )
+
+  invisible(NULL)
+}
+
+insert_and_get_id <- function(conn, sql, params, id_column) {
+  db_execute_params(conn, sql, params)
+  id <- db_fetch_params(conn, sprintf("SELECT LAST_INSERT_ID() AS %s", id_column))[[id_column]][[1]]
+  as.integer(id)
+}
+
+seed_approved_entity_bundle <- function(conn, ontology, with_joins = TRUE, user_id = 1L) {
+  entity_id <- insert_and_get_id(
+    conn,
+    paste0(
+      "INSERT INTO ndd_entity ",
+      "(hgnc_id, hpo_mode_of_inheritance_term, disease_ontology_id_version, ",
+      "ndd_phenotype, entry_user_id, is_active) VALUES (?, ?, ?, ?, ?, ?)"
+    ),
+    list(TEST_HGNC, TEST_MOI, ontology, 1L, user_id, 1L),
+    "entity_id"
+  )
+  review_id <- insert_and_get_id(
+    conn,
+    paste0(
+      "INSERT INTO ndd_entity_review ",
+      "(entity_id, synopsis, is_primary, review_user_id, review_approved, ",
+      "approving_user_id, comment) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ),
+    list(
+      entity_id,
+      paste("Approved source synopsis for", ontology),
+      1L,
+      user_id,
+      1L,
+      user_id,
+      "approved test review"
+    ),
+    "review_id"
+  )
+  status_id <- insert_and_get_id(
+    conn,
+    paste0(
+      "INSERT INTO ndd_entity_status ",
+      "(entity_id, category_id, is_active, status_user_id, status_approved, ",
+      "approving_user_id, problematic, comment) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    ),
+    list(entity_id, 1L, 1L, user_id, 1L, user_id, 0L, "approved test status"),
+    "status_id"
+  )
+
+  if (isTRUE(with_joins)) {
+    db_execute_params(
+      conn,
+      paste0(
+        "INSERT INTO ndd_review_publication_join ",
+        "(review_id, entity_id, publication_id, publication_type) ",
+        "VALUES (?, ?, ?, ?)"
+      ),
+      list(review_id, entity_id, TEST_PUBLICATION, "additional_references")
+    )
+    db_execute_params(
+      conn,
+      paste0(
+        "INSERT INTO ndd_review_phenotype_connect ",
+        "(review_id, entity_id, phenotype_id, modifier_id) VALUES (?, ?, ?, ?)"
+      ),
+      list(review_id, entity_id, TEST_PHENOTYPE, 1L)
+    )
+    db_execute_params(
+      conn,
+      paste0(
+        "INSERT INTO ndd_review_variation_ontology_connect ",
+        "(review_id, vario_id, modifier_id, entity_id) VALUES (?, ?, ?, ?)"
+      ),
+      list(review_id, TEST_VARIO, 1L, entity_id)
+    )
+  }
+
+  list(entity_id = entity_id, review_id = review_id, status_id = status_id)
+}
+
+rename_payload <- function(entity_id, ontology) {
+  list(entity = list(
+    entity_id = entity_id,
+    hgnc_id = TEST_HGNC,
+    hpo_mode_of_inheritance_term = TEST_MOI,
+    ndd_phenotype = 1L,
+    disease_ontology_id_version = ontology
+  ))
+}
+
+fetch_one <- function(conn, sql, params = list()) {
+  rows <- db_fetch_params(conn, sql, params)
+  expect_equal(nrow(rows), 1L)
+  rows[1, ]
+}
+
+fetch_entity_row <- function(conn, entity_id) {
+  fetch_one(
+    conn,
+    paste0(
+      "SELECT entity_id, hgnc_id, hpo_mode_of_inheritance_term, ",
+      "disease_ontology_id_version, ndd_phenotype, is_active, replaced_by ",
+      "FROM ndd_entity WHERE entity_id = ?"
+    ),
+    list(entity_id)
+  )
+}
+
+fetch_review_row <- function(conn, review_id) {
+  fetch_one(
+    conn,
+    paste0(
+      "SELECT review_id, entity_id, synopsis, is_primary, review_approved, ",
+      "approving_user_id, comment FROM ndd_entity_review WHERE review_id = ?"
+    ),
+    list(review_id)
+  )
+}
+
+fetch_status_row <- function(conn, status_id) {
+  fetch_one(
+    conn,
+    paste0(
+      "SELECT status_id, entity_id, category_id, is_active, status_approved, ",
+      "approving_user_id, problematic, comment FROM ndd_entity_status ",
+      "WHERE status_id = ?"
+    ),
+    list(status_id)
+  )
+}
+
+count_query <- function(conn, sql, params = list()) {
+  as.integer(db_fetch_params(conn, sql, params)$n[[1]])
+}
+
+with_entity_rename_fixture <- function(code) {
+  skip_if_no_test_db()
+
+  conn <- get_test_db_connection()
+  pool <- NULL
+  on.exit({
+    if (!is.null(pool)) {
+      pool::poolClose(pool)
+    }
+    cleanup_entity_rename_fixture(conn)
+    DBI::dbDisconnect(conn)
+  }, add = TRUE)
+
+  cleanup_entity_rename_fixture(conn)
+  seed_reference_rows(conn)
+  pool <- make_test_pool()
+
+  eval(substitute(code), envir = environment(), enclos = parent.frame())
+}
+
+test_that("svc_entity_rename_full preserves approval state on the new entity", {
+  with_entity_rename_fixture({
+    user_id <- 1L
+    seed <- seed_approved_entity_bundle(conn, SOURCE_ONTOLOGY, user_id = user_id)
+
+    result <- svc_entity_rename_full(
+      rename_payload(seed$entity_id, DEST_ONTOLOGY),
+      user_id = user_id,
+      pool = pool
+    )
+
+    expect_equal(result$status, 200)
+    expect_equal(result$message, "OK. Entity renamed.")
+    expect_s3_class(result$entry, "tbl_df")
+    expect_true(all(c("entity_id", "review_id", "status_id") %in% names(result$entry)))
+
+    new_entity_id <- as.integer(result$entry$entity_id[[1]])
+    new_review_id <- as.integer(result$entry$review_id[[1]])
+    new_status_id <- as.integer(result$entry$status_id[[1]])
+
+    old_entity <- fetch_entity_row(conn, seed$entity_id)
+    new_entity <- fetch_entity_row(conn, new_entity_id)
+    new_review <- fetch_review_row(conn, new_review_id)
+    new_status <- fetch_status_row(conn, new_status_id)
+
+    expect_equal(as.integer(old_entity$is_active[[1]]), 0L)
+    expect_equal(as.integer(old_entity$replaced_by[[1]]), new_entity_id)
+
+    expect_equal(as.integer(new_entity$is_active[[1]]), 1L)
+    expect_true(is.na(new_entity$replaced_by[[1]]))
+    expect_equal(new_entity$disease_ontology_id_version[[1]], DEST_ONTOLOGY)
+
+    expect_equal(as.integer(new_review$entity_id[[1]]), new_entity_id)
+    expect_equal(as.integer(new_review$is_primary[[1]]), 1L)
+    expect_equal(as.integer(new_review$review_approved[[1]]), 1L)
+    expect_equal(as.integer(new_review$approving_user_id[[1]]), user_id)
+
+    expect_equal(as.integer(new_status$entity_id[[1]]), new_entity_id)
+    expect_equal(as.integer(new_status$is_active[[1]]), 1L)
+    expect_equal(as.integer(new_status$status_approved[[1]]), 1L)
+    expect_equal(as.integer(new_status$approving_user_id[[1]]), user_id)
+
+    expect_equal(
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM ndd_review_publication_join ",
+          "WHERE review_id = ? AND entity_id = ? AND publication_id = ? ",
+          "AND publication_type = ?"
+        ),
+        list(new_review_id, new_entity_id, TEST_PUBLICATION, "additional_references")
+      ),
+      1L
+    )
+    expect_equal(
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM ndd_review_phenotype_connect ",
+          "WHERE review_id = ? AND entity_id = ? AND phenotype_id = ? ",
+          "AND modifier_id = ?"
+        ),
+        list(new_review_id, new_entity_id, TEST_PHENOTYPE, 1L)
+      ),
+      1L
+    )
+    expect_equal(
+      count_query(
+        conn,
+        paste0(
+          "SELECT COUNT(*) AS n FROM ndd_review_variation_ontology_connect ",
+          "WHERE review_id = ? AND entity_id = ? AND vario_id = ? ",
+          "AND modifier_id = ?"
+        ),
+        list(new_review_id, new_entity_id, TEST_VARIO, 1L)
+      ),
+      1L
+    )
+  })
+})
