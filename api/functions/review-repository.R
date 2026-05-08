@@ -64,6 +64,11 @@ review_find_by_entity <- function(entity_id) {
 #' @param review_data List or data frame with review fields:
 #'   - entity_id (required)
 #'   - synopsis (required, can be NA)
+#'   - review_user_id (required)
+#'   - is_primary (optional integer 0/1; omit to use DB default)
+#'   - review_approved (optional integer 0/1; omit to use DB default)
+#'   - approving_user_id (optional integer; omit to use DB default)
+#'   - comment (optional character; omit to use DB default)
 #'
 #' @return Integer review_id of the newly created review
 #'
@@ -123,6 +128,12 @@ review_create <- function(review_data, conn = NULL) {
   for (col in optional) {
     val <- review_data[[col]]
     if (!is.null(val) && !(length(val) == 1 && is.na(val))) {
+      if (length(val) != 1) {
+        rlang::abort(
+          message = sprintf("review_create: optional column '%s' must be a scalar, got length %d", col, length(val)),
+          class = c("review_validation_error", "validation_error")
+        )
+      }
       cols <- c(cols, col)
       vals <- c(vals, list(val))
     }

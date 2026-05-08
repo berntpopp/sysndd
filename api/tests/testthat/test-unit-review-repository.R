@@ -204,7 +204,7 @@ test_that("review_create propagates is_primary, review_approved, approving_user_
   expect_match(captured$sql, "review_approved")
   expect_match(captured$sql, "approving_user_id")
   expect_match(captured$sql, "comment")
-  # Params order must match the column order in the INSERT
+  # Carried-over values are present in the params list
   expect_true(7 %in% captured$params)
   expect_true("carried over" %in% captured$params)
 })
@@ -231,4 +231,31 @@ test_that("review_create omits approval-state columns when keys are absent (back
   expect_false(grepl("review_approved", captured$sql))
   expect_false(grepl("approving_user_id", captured$sql))
   expect_false(grepl("comment", captured$sql))
+})
+
+test_that("review_create omits optional columns when values are NA", {
+  captured <- list()
+  mockery::stub(
+    review_create, "db_execute_statement",
+    function(sql, params, conn = NULL) {
+      captured$sql <<- sql
+      captured$params <<- params
+      invisible(NULL)
+    }
+  )
+  mockery::stub(
+    review_create, "db_execute_query",
+    function(sql, conn = NULL) tibble::tibble(review_id = 1L)
+  )
+
+  review_create(list(
+    entity_id = 5,
+    synopsis = "x",
+    review_user_id = 3,
+    is_primary = NA_integer_,
+    approving_user_id = NA_integer_
+  ))
+
+  expect_false(grepl("is_primary", captured$sql))
+  expect_false(grepl("approving_user_id", captured$sql))
 })
