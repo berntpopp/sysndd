@@ -27,11 +27,39 @@ api_dir <- if (basename(getwd()) == "testthat") {
 library(dplyr)
 library(tibble)
 library(stringr)
-library(xml2)
 library(purrr)
-library(rvest)  # Required for genereviews-functions.R
+
+# tidyr::unnest is used inside info_from_pmid; load if available.
+# table_articles_from_xml uses xml2 functions; load if available.
+# rvest is required by genereviews-functions.R which publication-functions.R sources.
+# All three are loaded conditionally so the file can still be parsed when absent.
+# - table_articles_from_xml tests guard themselves with skip_if_not_installed("xml2")
+#   so they are skipped (not errored) when xml2/tidyr are absent.
+# - info_from_pmid tests require tidyr (for unnest inside the function) and xml2
+#   (for table_articles_from_xml); they skip when these are unavailable.
+if (requireNamespace("tidyr", quietly = TRUE)) {
+  library(tidyr)
+}
+if (requireNamespace("rvest", quietly = TRUE)) {
+  library(rvest)
+}
+if (requireNamespace("xml2", quietly = TRUE)) {
+  library(xml2)
+}
 
 # Source functions being tested
+# publication-functions.R conditionally sources db-helpers.R (which requires
+# RMariaDB) only when db_execute_query is not already defined. Pre-define a
+# no-op stub in globalenv so the source guard is satisfied and the file can
+# load without RMariaDB installed. The actual db helpers are mocked per-test
+# with mockery.
+if (!exists("db_execute_query", mode = "function", envir = globalenv())) {
+  assign("db_execute_query",
+    function(...) stop("db_execute_query stub: mock in each test"),
+    envir = globalenv()
+  )
+}
+
 # publication-functions.R sources genereviews-functions.R with relative path,
 # so we change to api directory and source from there
 # We need to stay in api_dir for the function to work correctly since
@@ -172,6 +200,7 @@ create_pubmed_xml <- function(
 # ============================================================================
 
 test_that("table_articles_from_xml extracts PMID correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(pmid = "99887766")
   result <- table_articles_from_xml(xml)
 
@@ -180,6 +209,7 @@ test_that("table_articles_from_xml extracts PMID correctly", {
 })
 
 test_that("table_articles_from_xml extracts title correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(title = "Novel Findings in Genetics")
   result <- table_articles_from_xml(xml)
 
@@ -187,6 +217,7 @@ test_that("table_articles_from_xml extracts title correctly", {
 })
 
 test_that("table_articles_from_xml extracts abstract correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(abstract = "This study examines important findings.")
   result <- table_articles_from_xml(xml)
 
@@ -194,6 +225,7 @@ test_that("table_articles_from_xml extracts abstract correctly", {
 })
 
 test_that("table_articles_from_xml extracts journal info correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     journal = "American Journal of Human Genetics",
     journal_abbrev = "Am J Hum Genet"
@@ -205,6 +237,7 @@ test_that("table_articles_from_xml extracts journal info correctly", {
 })
 
 test_that("table_articles_from_xml extracts author info correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(author_last = "Johnson", author_first = "Sarah")
   result <- table_articles_from_xml(xml)
 
@@ -213,6 +246,7 @@ test_that("table_articles_from_xml extracts author info correctly", {
 })
 
 test_that("table_articles_from_xml extracts affiliation correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(affiliation = "Harvard Medical School, Boston, MA")
   result <- table_articles_from_xml(xml)
 
@@ -224,6 +258,7 @@ test_that("table_articles_from_xml extracts affiliation correctly", {
 # ============================================================================
 
 test_that("table_articles_from_xml extracts DOI from ELocationID", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(doi = "10.1016/j.gene.2024.01.001", doi_location = "elocation")
   result <- table_articles_from_xml(xml)
 
@@ -231,6 +266,7 @@ test_that("table_articles_from_xml extracts DOI from ELocationID", {
 })
 
 test_that("table_articles_from_xml extracts DOI from ArticleId EIdType", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(doi = "10.1002/humu.24001", doi_location = "articleid_eid")
   result <- table_articles_from_xml(xml)
 
@@ -238,6 +274,7 @@ test_that("table_articles_from_xml extracts DOI from ArticleId EIdType", {
 })
 
 test_that("table_articles_from_xml extracts DOI from ArticleId IdType", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(doi = "10.1038/ng.2024", doi_location = "articleid_id")
   result <- table_articles_from_xml(xml)
 
@@ -245,6 +282,7 @@ test_that("table_articles_from_xml extracts DOI from ArticleId IdType", {
 })
 
 test_that("table_articles_from_xml handles missing DOI", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(include_doi = FALSE)
   result <- table_articles_from_xml(xml)
 
@@ -257,6 +295,7 @@ test_that("table_articles_from_xml handles missing DOI", {
 # ============================================================================
 
 test_that("table_articles_from_xml extracts and formats date correctly", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(year = "2023", month = "12", day = "25")
   result <- table_articles_from_xml(xml)
 
@@ -266,6 +305,7 @@ test_that("table_articles_from_xml extracts and formats date correctly", {
 })
 
 test_that("table_articles_from_xml pads single-digit month/day", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(year = "2024", month = "3", day = "5")
   result <- table_articles_from_xml(xml)
 
@@ -274,6 +314,7 @@ test_that("table_articles_from_xml pads single-digit month/day", {
 })
 
 test_that("table_articles_from_xml uses current date when date missing", {
+  skip_if_not_installed("xml2")
   # Create XML without date info but with required author
   xml <- '<?xml version="1.0" encoding="UTF-8"?>
 <PubmedArticleSet>
@@ -317,6 +358,7 @@ test_that("table_articles_from_xml uses current date when date missing", {
 # ============================================================================
 
 test_that("table_articles_from_xml handles collective author name", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     author_last = NULL,
     author_first = NULL,
@@ -330,6 +372,7 @@ test_that("table_articles_from_xml handles collective author name", {
 })
 
 test_that("table_articles_from_xml extracts first author only", {
+  skip_if_not_installed("xml2")
   # XML with multiple authors (manual construction)
   xml <- '<?xml version="1.0" encoding="UTF-8"?>
 <PubmedArticleSet>
@@ -382,6 +425,7 @@ test_that("table_articles_from_xml extracts first author only", {
 # ============================================================================
 
 test_that("table_articles_from_xml concatenates keywords", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     keywords = c("genetic variant", "rare disease", "exome sequencing"),
     mesh_terms = c()
@@ -395,6 +439,7 @@ test_that("table_articles_from_xml concatenates keywords", {
 })
 
 test_that("table_articles_from_xml concatenates MeSH terms", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     keywords = c(),
     mesh_terms = c("Humans", "Mutation", "Phenotype")
@@ -407,6 +452,7 @@ test_that("table_articles_from_xml concatenates MeSH terms", {
 })
 
 test_that("table_articles_from_xml combines keywords and MeSH terms", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     keywords = c("OMIM"),
     mesh_terms = c("Genetics")
@@ -418,6 +464,7 @@ test_that("table_articles_from_xml combines keywords and MeSH terms", {
 })
 
 test_that("table_articles_from_xml removes duplicate keywords/MeSH", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(
     keywords = c("Genetics", "Rare disease"),
     mesh_terms = c("Genetics")  # Duplicate with keywords
@@ -436,6 +483,7 @@ test_that("table_articles_from_xml removes duplicate keywords/MeSH", {
 # ============================================================================
 
 test_that("table_articles_from_xml handles multiple abstract sections", {
+  skip_if_not_installed("xml2")
   xml <- '<?xml version="1.0" encoding="UTF-8"?>
 <PubmedArticleSet>
   <PubmedArticle>
@@ -484,6 +532,7 @@ test_that("table_articles_from_xml handles multiple abstract sections", {
 })
 
 test_that("table_articles_from_xml handles articles with multiple titles", {
+  skip_if_not_installed("xml2")
   # Some articles have vernacular titles in addition to English titles
   xml <- '<?xml version="1.0" encoding="UTF-8"?>
 <PubmedArticleSet>
@@ -526,6 +575,7 @@ test_that("table_articles_from_xml handles articles with multiple titles", {
 })
 
 test_that("table_articles_from_xml returns tibble with expected columns", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml()
   result <- table_articles_from_xml(xml)
 
@@ -539,9 +589,42 @@ test_that("table_articles_from_xml returns tibble with expected columns", {
 })
 
 test_that("table_articles_from_xml handles empty keywords and MeSH", {
+  skip_if_not_installed("xml2")
   xml <- create_pubmed_xml(keywords = c(), mesh_terms = c())
   result <- table_articles_from_xml(xml)
 
   # keywords should be empty or just whitespace
   expect_true(result$keywords[1] == "" || nchar(trimws(result$keywords[1])) == 0)
+})
+
+# =============================================================================
+# info_from_pmid Fail-Fast Tests (Refs #318)
+# =============================================================================
+
+test_that("info_from_pmid raises publication_fetch_error when PubMed returns nothing for a PMID", {
+  skip_if_not_installed("mockery")
+  skip_if_not_installed("xml2")   # needed by table_articles_from_xml inside info_from_pmid
+  skip_if_not_installed("tidyr")  # needed for unnest() inside info_from_pmid
+  # We request two PMIDs but the stubbed fetch_pubmed_data returns XML for
+  # only one of them. info_from_pmid must abort with publication_fetch_error
+  # listing the unresolved PMID.
+
+  one_pmid_xml <- '<?xml version="1.0"?><PubmedArticleSet><PubmedArticle>
+   <MedlineCitation><PMID>11111111</PMID>
+   <Article><Journal><Title>J Test</Title><ISOAbbreviation>JT</ISOAbbreviation></Journal>
+   <ArticleTitle>Resolvable</ArticleTitle><Abstract><AbstractText>x</AbstractText></Abstract>
+   <AuthorList><Author><LastName>A</LastName><ForeName>B</ForeName></Author></AuthorList>
+   </Article></MedlineCitation>
+   <PubmedData><History>
+    <PubMedPubDate PubStatus="pubmed"><Year>2024</Year><Month>1</Month><Day>1</Day></PubMedPubDate>
+   </History><ArticleIdList><ArticleId IdType="doi">10.1/x</ArticleId></ArticleIdList></PubmedData>
+   </PubmedArticle></PubmedArticleSet>'
+
+  mockery::stub(info_from_pmid, "fetch_pubmed_data", function(...) one_pmid_xml)
+  mockery::stub(info_from_pmid, "get_pubmed_ids", function(query) list(IdList = list()))
+
+  expect_error(
+    info_from_pmid(c("11111111", "22222222")),
+    class = "publication_fetch_error"
+  )
 })

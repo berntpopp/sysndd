@@ -334,6 +334,29 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Firstname = firstname
     )
 
+  # Detect PMIDs PubMed did not return any data for. After fetch+parse,
+  # input_tibble_request contains a row per RESOLVED PMID. Any input PMID
+  # missing from input_tibble_request was unresolvable. Fail fast (#318):
+  # half-committing a stub publication row and a connected entity is worse
+  # than a 400 with a clear message.
+  #
+  # Note: input_tibble$publication_id values here are bare digits (the
+  # str_remove("PMID:") was applied above). The error message reflects these
+  # bare digits; endpoint layer (Task 8) can re-prefix if needed.
+  unresolved <- input_tibble$publication_id[
+    !input_tibble$publication_id %in% input_tibble_request$publication_id
+  ]
+  if (length(unresolved) > 0) {
+    rlang::abort(
+      message = paste0(
+        "PMIDs not retrievable from PubMed: ",
+        paste(unresolved, collapse = ", ")
+      ),
+      class = "publication_fetch_error",
+      pmids = unresolved
+    )
+  }
+
   output_tibble <- input_tibble %>%
     left_join(input_tibble_request, by = "publication_id") %>%
     dplyr::select(-publication_id) %>%
