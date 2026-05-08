@@ -512,6 +512,89 @@ count_relevant_rows <- function(conn) {
   )
 }
 
+count_publication_rejection_rows <- function(conn) {
+  c(
+    publication = count_query(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS n FROM publication WHERE publication_id IN (",
+        placeholders(TEST_BOGUS_PMIDS),
+        ")"
+      ),
+      as.list(TEST_BOGUS_PMIDS)
+    ),
+    ndd_entity = count_query(
+      conn,
+      "SELECT COUNT(*) AS n FROM ndd_entity WHERE hgnc_id = ?",
+      list(TEST_HGNC)
+    ),
+    ndd_entity_review = count_query(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS n FROM ndd_entity_review r ",
+        "JOIN ndd_entity e ON e.entity_id = r.entity_id WHERE e.hgnc_id = ?"
+      ),
+      list(TEST_HGNC)
+    ),
+    ndd_entity_status = count_query(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS n FROM ndd_entity_status s ",
+        "JOIN ndd_entity e ON e.entity_id = s.entity_id WHERE e.hgnc_id = ?"
+      ),
+      list(TEST_HGNC)
+    ),
+    ndd_review_publication_join = count_query(
+      conn,
+      paste0(
+        "SELECT COUNT(*) AS n FROM ndd_review_publication_join ",
+        "WHERE publication_id IN (",
+        placeholders(TEST_BOGUS_PMIDS),
+        ")"
+      ),
+      as.list(TEST_BOGUS_PMIDS)
+    )
+  )
+}
+
+unrelated_pubmed_xml <- function() {
+  '<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>11111111</PMID>
+      <Article>
+        <ArticleTitle>Resolvable unrelated article</ArticleTitle>
+        <Abstract><AbstractText>Unrelated article for PubMed miss tests.</AbstractText></Abstract>
+        <ELocationID EIdType="doi">10.9999/unrelated</ELocationID>
+        <Journal>
+          <Title>SysNDD Test Journal</Title>
+          <ISOAbbreviation>SysNDD Test J</ISOAbbreviation>
+        </Journal>
+        <AuthorList>
+          <Author>
+            <LastName>Curator</LastName>
+            <ForeName>Test</ForeName>
+            <AffiliationInfo>SysNDD test fixture</AffiliationInfo>
+          </Author>
+        </AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <History>
+        <PubMedPubDate Pubstatus="pubmed">
+          <Year>2026</Year><Month>1</Month><Day>1</Day>
+        </PubMedPubDate>
+      </History>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">11111111</ArticleId>
+        <ArticleId IdType="doi">10.9999/unrelated</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>'
+}
+
 with_entity_rename_fixture <- function(code) {
   skip_if_no_test_db()
 
@@ -638,5 +721,40 @@ test_that("svc_entity_rename_full rolls back when a downstream insert fails", {
     source_entity <- fetch_entity_row(conn, seed$entity_id)
     expect_equal(as.integer(source_entity$is_active[[1]]), 1L)
     expect_true(is.na(source_entity$replaced_by[[1]]))
+  })
+})
+
+test_that("entity submission with unresolvable PMID returns 400 and writes nothing", {
+  with_entity_rename_fixture({
+    before_counts <- count_publication_rejection_rows(conn)
+
+    info_fn <- function_with_cloned_env(info_from_pmid)
+    mockery::stub(
+      info_fn,
+      "fetch_pubmed_data",
+      function(...) unrelated_pubmed_xml()
+    )
+
+    fn <- function_with_cloned_env(new_publication)
+    mockery::stub(fn, "check_pmid", function(...) TRUE)
+    assign("info_from_pmid", info_fn, envir = environment(fn))
+    assign("pool", pool, envir = environment(fn))
+
+    result <- tryCatch(
+      fn(tibble::tibble(
+        publication_id = TEST_BOGUS_PMIDS,
+        publication_type = rep("additional_references", length(TEST_BOGUS_PMIDS))
+      )),
+      publication_fetch_error = function(e) {
+        list(status = 400, message = e$message)
+      }
+    )
+
+    expect_equal(result$status, 400)
+    expect_match(result$message, "PMIDs not retrievable", fixed = TRUE)
+    # info_from_pmid currently strips the PMID: prefix before reporting misses.
+    expect_match(result$message, "99999991", fixed = TRUE)
+    expect_match(result$message, "99999992", fixed = TRUE)
+    expect_equal(count_publication_rejection_rows(conn), before_counts)
   })
 })
