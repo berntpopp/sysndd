@@ -55,7 +55,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The new disease name for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Disease name updated successfully');
     } catch (e) {
@@ -71,8 +71,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
   async function deactivate(args: DeactivateArgs): Promise<void> {
     submitting.value = 'deactivate';
     const nextActive = args.deactivate_check ? 0 : 1;
-    const nextReplacedBy =
-      args.replace_entity_input === null ? null : args.replace_entity_input;
+    const nextReplacedBy = args.replace_entity_input === null ? null : args.replace_entity_input;
     // Build the wire payload from a clone so a failed request doesn't
     // leave the caller's reactive entity_info with mutated is_active/replaced_by.
     const deactivated = {
@@ -91,7 +90,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The deactivation for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Entity deactivation submitted successfully');
     } catch (e) {
@@ -111,10 +110,10 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
     const replace_literature = new Literature(additional_clean, gene_reviews_clean);
 
     const replace_phenotype = args.select_phenotype.map(
-      (item) => new Phenotype(item.split('-')[1], item.split('-')[0]),
+      (item) => new Phenotype(item.split('-')[1], item.split('-')[0])
     );
     const replace_variation = args.select_variation.map(
-      (item) => new Variation(item.split('-')[1], item.split('-')[0]),
+      (item) => new Variation(item.split('-')[1], item.split('-')[0])
     );
 
     args.review_info.literature = replace_literature;
@@ -128,7 +127,7 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
       onToast?.(
         `The new review for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',
-        'success',
+        'success'
       );
       onAnnounce?.('Review submitted successfully');
     } catch (e) {

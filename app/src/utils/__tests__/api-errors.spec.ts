@@ -36,9 +36,9 @@ describe('extractApiErrorMessage', () => {
   it('returns fallback for nullish and unrecognized errors', () => {
     expect(extractApiErrorMessage(undefined, fallback)).toBe(fallback);
     expect(extractApiErrorMessage(null, fallback)).toBe(fallback);
-    expect(extractApiErrorMessage({ response: { data: { detail: 'not supported' } } }, fallback)).toBe(
-      fallback,
-    );
+    expect(
+      extractApiErrorMessage({ response: { data: { detail: 'not supported' } } }, fallback)
+    ).toBe(fallback);
   });
 
   it('returns the first string from array-shaped message and error values', () => {
@@ -51,8 +51,8 @@ describe('extractApiErrorMessage', () => {
             },
           },
         },
-        fallback,
-      ),
+        fallback
+      )
     ).toBe('array');
 
     expect(
@@ -64,8 +64,8 @@ describe('extractApiErrorMessage', () => {
             },
           },
         },
-        fallback,
-      ),
+        fallback
+      )
     ).toBe('missing');
   });
 });

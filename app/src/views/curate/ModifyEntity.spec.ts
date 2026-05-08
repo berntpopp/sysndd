@@ -128,8 +128,7 @@ const createAxiosMock = (): AxiosMock => ({
       })
   ),
   put: vi.fn(
-    (): Promise<AxiosResponse> =>
-      Promise.resolve({ data: {}, status: 200, statusText: 'OK' })
+    (): Promise<AxiosResponse> => Promise.resolve({ data: {}, status: 200, statusText: 'OK' })
   ),
 });
 
@@ -240,7 +239,7 @@ describe('ModifyEntity — functional (Phase C/C4)', () => {
     server.use(
       http.get('/api/list/status', () => HttpResponse.json([])),
       http.get('/api/list/phenotype', () => HttpResponse.json([])),
-      http.get('/api/list/variation_ontology', () => HttpResponse.json([])),
+      http.get('/api/list/variation_ontology', () => HttpResponse.json([]))
     );
   });
 
@@ -478,7 +477,7 @@ describe('ModifyEntity — fix #5 EntityBadge guarded with v-if', () => {
     server.use(
       http.get('/api/list/status', () => HttpResponse.json([])),
       http.get('/api/list/phenotype', () => HttpResponse.json([])),
-      http.get('/api/list/variation_ontology', () => HttpResponse.json([])),
+      http.get('/api/list/variation_ontology', () => HttpResponse.json([]))
     );
     consoleWarnSpy = vi.spyOn(console, 'warn');
   });
@@ -525,7 +524,10 @@ describe('ModifyEntity — fix #5 EntityBadge guarded with v-if', () => {
           BFormInput: { props: ['modelValue'], template: '<input :value="modelValue" />' },
           BFormSelect: { props: ['modelValue'], template: '<select />' },
           BFormSelectOption: { template: '<option><slot /></option>' },
-          BFormTextarea: { props: ['modelValue'], template: '<textarea :value="modelValue"></textarea>' },
+          BFormTextarea: {
+            props: ['modelValue'],
+            template: '<textarea :value="modelValue"></textarea>',
+          },
           BFormCheckbox: { props: ['modelValue'], template: '<input type="checkbox" />' },
           BFormTags: { template: '<div><slot /></div>' },
           BFormTag: { template: '<span><slot /></span>' },
@@ -579,8 +581,7 @@ describe('ModifyEntity — fix #5 EntityBadge guarded with v-if', () => {
     const axiosInstance = createAxiosMock();
     const wrapper = await mountWithRealEntityBadge(axiosInstance);
     const vm = wrapper.vm as unknown as ModifyEntityVM;
-    vm.entity_info = { ...entityByIdOk } as Partial<typeof entityByIdOk> &
-      Record<string, unknown>;
+    vm.entity_info = { ...entityByIdOk } as Partial<typeof entityByIdOk> & Record<string, unknown>;
     vm.entity_loaded = true;
     await flushPromises();
 
