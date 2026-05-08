@@ -390,6 +390,48 @@ test_that("table_articles_from_xml extracts first author only", {
   expect_equal(result$firstname[1], "First")
 })
 
+test_that("table_articles_from_xml handles first author without ForeName", {
+  xml <- '<?xml version="1.0" encoding="UTF-8"?>
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>41564340</PMID>
+      <Article>
+        <ArticleTitle>Structural Destabilization of FRMD3</ArticleTitle>
+        <Abstract><AbstractText>Test abstract</AbstractText></Abstract>
+        <Journal>
+          <Title>ACS chemical neuroscience</Title>
+          <ISOAbbreviation>ACS Chem Neurosci</ISOAbbreviation>
+        </Journal>
+        <AuthorList>
+          <Author>
+            <LastName>Diksha</LastName>
+            <AffiliationInfo>All India Institute of Medical Sciences</AffiliationInfo>
+          </Author>
+        </AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">41564340</ArticleId>
+      </ArticleIdList>
+      <History>
+        <PubMedPubDate Pubstatus="pubmed">
+          <Year>2026</Year><Month>2</Month><Day>4</Day>
+        </PubMedPubDate>
+      </History>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>'
+
+  result <- table_articles_from_xml(xml)
+
+  expect_equal(nrow(result), 1)
+  expect_equal(result$pmid[1], "41564340")
+  expect_equal(result$lastname[1], "Diksha")
+  expect_equal(result$firstname[1], "")
+})
+
 # ============================================================================
 # table_articles_from_xml() Tests - Keywords and MeSH Terms
 # ============================================================================

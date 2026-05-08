@@ -252,10 +252,17 @@ table_articles_from_xml <- function(pubmed_xml_data) {
     xml_text()
 
   if ((length(firstname) == 0 ||
-    length(firstname) == 0) &&
+    length(lastname) == 0) &&
     length(collective) != 0) {
     lastname <- collective
     firstname <- collective
+  } else {
+    if (length(lastname) == 0) {
+      lastname <- ""
+    }
+    if (length(firstname) == 0) {
+      firstname <- ""
+    }
   }
 
   if (length(year) == 0 ||
