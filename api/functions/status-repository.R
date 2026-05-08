@@ -104,21 +104,21 @@ status_create <- function(status_data, conn = NULL) {
   if (!"entity_id" %in% colnames(status_data)) {
     rlang::abort(
       "entity_id is required",
-      class = "status_validation_error"
+      class = c("status_validation_error", "validation_error")
     )
   }
 
   if (!"category_id" %in% colnames(status_data)) {
     rlang::abort(
       "category_id is required",
-      class = "status_validation_error"
+      class = c("status_validation_error", "validation_error")
     )
   }
 
   if (!"status_user_id" %in% colnames(status_data)) {
     rlang::abort(
       "status_user_id is required",
-      class = "status_validation_error"
+      class = c("status_validation_error", "validation_error")
     )
   }
 
@@ -142,15 +142,15 @@ status_create <- function(status_data, conn = NULL) {
   optional <- c("is_active", "status_approved", "approving_user_id", "comment")
   for (col in optional) {
     if (col %in% colnames(status_data)) {
+      if (length(status_data[[col]]) != 1) {
+        rlang::abort(
+          message = sprintf("status_create: optional column '%s' must be a scalar, got length %d",
+                            col, length(status_data[[col]])),
+          class = c("status_validation_error", "validation_error")
+        )
+      }
       val <- status_data[[col]][1]
       if (!is.na(val)) {
-        if (length(val) != 1) {
-          rlang::abort(
-            message = sprintf("status_create: optional column '%s' must be a scalar, got length %d",
-                              col, length(val)),
-            class = c("status_validation_error", "validation_error")
-          )
-        }
         cols <- c(cols, col)
         vals <- c(vals, list(val))
       }
