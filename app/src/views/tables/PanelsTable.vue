@@ -1,248 +1,239 @@
 <template>
-  <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- User Interface controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <h6 class="mb-1 text-start font-weight-bold">
-                Panel compilation and download
-                <BBadge
-                  v-b-tooltip.hover.bottom
-                  variant="primary"
-                  :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-                >
-                  Genes: {{ totalRows }}
-                </BBadge>
+  <div class="container-fluid py-2">
+    <TableShell
+      title="Panel compilation"
+      :meta="`Genes: ${totalRows}`"
+      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :loading="loading"
+    >
+      <template v-if="!loading" #actions>
+        <BButton
+          id="panel-table-help"
+          v-b-tooltip.hover.bottom
+          class="me-1"
+          size="sm"
+          variant="info"
+          aria-label="Show panel table category help"
+        >
+          <i class="bi bi-question-circle-fill" />
+        </BButton>
+        <BPopover target="panel-table-help" variant="info" triggers="focus">
+          <template #title> Gene categories </template>
+          A gene is assigned to the highest category of all entities it is associated with.
+          <br />
+          E.g. if there are two entities for a gene with "Definitive" and "Limited" category,
+          respectively, the gene is assigned to the Definitive panel.
+        </BPopover>
 
-                <BBadge
-                  id="popover-badge-help-comparisons"
-                  class="m-1"
-                  pill
-                  href="#"
-                  variant="info"
-                >
-                  <i class="bi bi-question-circle-fill" />
-                </BBadge>
+        <BButton size="sm" @click="requestExcel">
+          <i class="bi bi-table mx-1" />
+          <i v-if="!downloading" class="bi bi-download" />
+          <BSpinner v-if="downloading" small />
+          .xlsx
+        </BButton>
+      </template>
 
-                <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
-                  <template #title> Gene categories </template>
-                  A gene is assigned to the highest category of all entities it is associated with.
-                  <br />
-                  E.g. if there are two entities for a gene with "Definitive" and "Limited"
-                  category, respectively, the gene is assigned to the Definitive panel.
-                </BPopover>
-              </h6>
-            </template>
+      <template v-if="!loading" #toolbar>
+        <BRow>
+          <BCol class="my-1" sm="6">
+            <BInputGroup prepend="Category" class="mb-1" size="sm">
+              <BFormSelect
+                v-model="selected_category"
+                input-id="category-select"
+                :options="categories_list"
+                text-field="value"
+                size="sm"
+                @update:model-value="requestSelected"
+              />
+            </BInputGroup>
 
-            <BRow>
-              <!-- column 1 -->
-              <BCol class="my-1" sm="6">
-                <BInputGroup prepend="Category" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="selected_category"
-                    input-id="category-select"
-                    :options="categories_list"
-                    text-field="value"
-                    size="sm"
-                    @update:model-value="requestSelected"
-                  />
-                </BInputGroup>
+            <BInputGroup prepend="Inheritance" class="mb-1" size="sm">
+              <BFormSelect
+                v-model="selected_inheritance"
+                input-id="inheritance-select"
+                :options="inheritance_list"
+                text-field="value"
+                size="sm"
+                @update:model-value="requestSelected"
+              />
+            </BInputGroup>
+          </BCol>
 
-                <BInputGroup prepend="Inheritance" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="selected_inheritance"
-                    input-id="inheritance-select"
-                    :options="inheritance_list"
-                    text-field="value"
-                    size="sm"
-                    @update:model-value="requestSelected"
-                  />
-                </BInputGroup>
-              </BCol>
+          <BCol class="my-1" sm="6">
+            <BInputGroup prepend="Columns" class="mb-1" size="sm">
+              <BFormSelect
+                v-model="selected_columns"
+                input-id="columns-select"
+                :options="columns_list"
+                text-field="value"
+                multiple
+                :select-size="3"
+                size="sm"
+                @update:model-value="requestSelected"
+              />
+            </BInputGroup>
+          </BCol>
 
-              <!-- column 2 -->
-              <BCol class="my-1" sm="6">
-                <BInputGroup prepend="Columns" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="selected_columns"
-                    input-id="columns-select"
-                    :options="columns_list"
-                    text-field="value"
-                    multiple
-                    :select-size="3"
-                    size="sm"
-                    @update:model-value="requestSelected"
-                  />
-                </BInputGroup>
-              </BCol>
+          <BCol class="my-1" sm="6">
+            <BInputGroup prepend="Sort" class="mb-1" size="sm">
+              <BFormSelect
+                v-model="sortBy"
+                input-id="sort-select"
+                :options="sort_list"
+                text-field="value"
+                size="sm"
+                @update:model-value="requestSelected"
+              />
+            </BInputGroup>
+          </BCol>
 
-              <!-- column 3 -->
-              <BCol class="my-1" sm="6">
-                <BInputGroup prepend="Sort" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="sortBy"
-                    input-id="sort-select"
-                    :options="sort_list"
-                    text-field="value"
-                    size="sm"
-                    @update:model-value="requestSelected"
-                  />
-                </BInputGroup>
+          <BCol class="my-1" sm="6">
+            <BInputGroup prepend="Per page" class="mb-1" size="sm">
+              <BFormSelect
+                id="per-page-select"
+                :model-value="perPage"
+                :options="pageOptions"
+                size="sm"
+                @update:model-value="handlePerPageChange"
+              />
+            </BInputGroup>
 
-                <BButton block size="sm" @click="requestExcel">
-                  <i class="bi bi-table mx-1" />
-                  <i v-if="!downloading" class="bi bi-download" />
-                  <BSpinner v-if="downloading" small />
-                  .xlsx
-                </BButton>
-              </BCol>
+            <BPagination
+              :model-value="currentPage"
+              :total-rows="totalRows"
+              :per-page="perPage"
+              align="fill"
+              size="sm"
+              class="my-0"
+              limit="2"
+              @update:model-value="handlePageChange"
+            />
+          </BCol>
+        </BRow>
+      </template>
 
-              <!-- column 4 -->
-              <BCol class="my-1" sm="6">
-                <BInputGroup prepend="Per page" class="mb-1" size="sm">
-                  <BFormSelect
-                    id="per-page-select"
-                    :model-value="perPage"
-                    :options="pageOptions"
-                    size="sm"
-                    @update:model-value="handlePerPageChange"
-                  />
-                </BInputGroup>
+      <template #loading>
+        <TableLoadingState label="Loading panel genes" />
+      </template>
 
-                <BPagination
-                  :model-value="currentPage"
-                  :total-rows="totalRows"
-                  :per-page="perPage"
-                  align="fill"
-                  size="sm"
-                  class="my-0"
-                  limit="2"
-                  @update:model-value="handlePageChange"
-                />
-              </BCol>
-            </BRow>
-
-            <!-- Main table element -->
-            <BTable
-              :items="items"
-              :fields="fields"
-              :filter-included-fields="filterOn"
-              :sort-by="sortBy"
-              :busy="isBusy"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              no-local-sorting
-              @update:sort-by="handleSortByUpdate"
+      <div class="d-none d-md-block">
+        <BTable
+          :items="items"
+          :fields="fields"
+          :filter-included-fields="filterOn"
+          :sort-by="sortBy"
+          :busy="isBusy"
+          :stacked="false"
+          head-variant="light"
+          show-empty
+          small
+          fixed
+          hover
+          sort-icon-left
+          no-local-sorting
+          @update:sort-by="handleSortByUpdate"
+        >
+          <template #cell(category)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.category"
+              class="w-100 text-truncate"
             >
-              <template #cell(category)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.category"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.category }}
-                </div>
-              </template>
+              {{ data.item.category }}
+            </div>
+          </template>
 
-              <template #cell(inheritance)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.inheritance"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.inheritance }}
-                </div>
-              </template>
+          <template #cell(inheritance)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.inheritance"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.inheritance }}
+            </div>
+          </template>
 
-              <template #cell(symbol)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.symbol"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.symbol }}
-                </div>
-              </template>
+          <template #cell(symbol)="data">
+            <div v-b-tooltip.hover.leftbottom :title="data.item.symbol" class="w-100 text-truncate">
+              {{ data.item.symbol }}
+            </div>
+          </template>
 
-              <template #cell(hgnc_id)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.hgnc_id"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.hgnc_id }}
-                </div>
-              </template>
+          <template #cell(hgnc_id)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.hgnc_id"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.hgnc_id }}
+            </div>
+          </template>
 
-              <template #cell(entrez_id)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.entrez_id"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.entrez_id }}
-                </div>
-              </template>
+          <template #cell(entrez_id)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.entrez_id"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.entrez_id }}
+            </div>
+          </template>
 
-              <template #cell(ensembl_gene_id)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.ensembl_gene_id"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.ensembl_gene_id }}
-                </div>
-              </template>
+          <template #cell(ensembl_gene_id)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.ensembl_gene_id"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.ensembl_gene_id }}
+            </div>
+          </template>
 
-              <template #cell(ucsc_id)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.ucsc_id"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.ucsc_id }}
-                </div>
-              </template>
+          <template #cell(ucsc_id)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.ucsc_id"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.ucsc_id }}
+            </div>
+          </template>
 
-              <template #cell(bed_hg19)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.bed_hg19"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.bed_hg19 }}
-                </div>
-              </template>
+          <template #cell(bed_hg19)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.bed_hg19"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.bed_hg19 }}
+            </div>
+          </template>
 
-              <template #cell(bed_hg38)="data">
-                <div
-                  v-b-tooltip.hover.leftbottom
-                  :title="data.item.bed_hg38"
-                  class="w-100 text-truncate"
-                >
-                  {{ data.item.bed_hg38 }}
-                </div>
-              </template>
-            </BTable>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
+          <template #cell(bed_hg38)="data">
+            <div
+              v-b-tooltip.hover.leftbottom
+              :title="data.item.bed_hg38"
+              class="w-100 text-truncate"
+            >
+              {{ data.item.bed_hg38 }}
+            </div>
+          </template>
+        </BTable>
+      </div>
+
+      <div class="d-md-none">
+        <PanelsMobileRows :items="items" :selected-field-keys="selected_columns" />
+      </div>
+    </TableShell>
   </div>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
+import TableShell from '@/components/table/TableShell.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
+import PanelsMobileRows from './PanelsMobileRows.vue';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -251,6 +242,11 @@ import { getPanelOptions, browsePanels, browsePanelsXlsx } from '@/api/panels';
 
 export default {
   name: 'PanelsTable',
+  components: {
+    TableShell,
+    TableLoadingState,
+    PanelsMobileRows,
+  },
   setup() {
     const { makeToast } = useToast();
 
@@ -313,9 +309,6 @@ export default {
   },
   mounted() {
     this.loadOptionsData();
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
   },
   methods: {
     handleSortChange() {
@@ -394,6 +387,7 @@ export default {
         this.requestSelected();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.loading = false;
       }
     },
     async requestSelected() {
@@ -431,6 +425,7 @@ export default {
         this.isBusy = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
+        this.isBusy = false;
       }
 
       const uiStore = useUiStore();
