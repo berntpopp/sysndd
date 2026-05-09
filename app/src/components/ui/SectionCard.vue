@@ -37,7 +37,7 @@
   >
     <template #header>
       <slot name="header">
-        <div data-testid="section-card-title" class="section-card-title text-muted">
+        <div data-testid="section-card-title" class="section-card-title">
           {{ title }}
         </div>
       </slot>
@@ -88,7 +88,7 @@
   >
     <template #header>
       <slot name="header">
-        <div data-testid="section-card-title" class="section-card-title text-muted">
+        <div data-testid="section-card-title" class="section-card-title">
           {{ title }}
         </div>
       </slot>
@@ -119,6 +119,9 @@ withDefaults(
   font-size: 0.875rem;
   line-height: 1.2;
   font-weight: 600;
+  color: #4b5563;
+  text-align: left;
+  padding-left: 0.25rem;
 }
 .skeleton-line {
   height: 0.75rem;

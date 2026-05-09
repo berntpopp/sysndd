@@ -56,7 +56,11 @@ const heavyChildStubs = {
   BTable: { template: '<table />' },
   BSpinner: { template: '<div role="status" />' },
   BButton: { template: '<button><slot /></button>' },
-  EntityBadge: { template: '<span />' },
+  EntityBadge: {
+    props: ['entityId', 'size'],
+    template:
+      '<span data-testid="entity-page-badge" :data-size="size">sysndd:{{ entityId }}</span>',
+  },
   GeneBadge: { template: '<span />' },
   DiseaseBadge: { template: '<span />' },
   InheritanceBadge: { template: '<span />' },
@@ -226,6 +230,252 @@ describe('EntityView (v11.3 W3)', () => {
     await flushPromises();
     // The linked-gene hook fired exactly once with the resolved hgnc_id.
     expect(geneCalls).toBe(1);
+    w.unmount();
+  });
+
+  it('renders a copyable clinical synopsis panel without the stacked table wrapper', async () => {
+    const synopsis =
+      'De novo truncating variants with developmental delay, seizures, hypotonia, and multisystem involvement.';
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () =>
+        HttpResponse.json([{ synopsis, review_date: '2025-02-12 11:14:21', comment: '' }])
+      ),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    const synopsisPanel = w.get('[data-testid="clinical-synopsis-panel"]');
+    expect(synopsisPanel.text()).toContain(synopsis);
+    expect(w.get('[data-testid="clinical-synopsis-header"]').text()).toContain(
+      'Last reviewed 2025-02-12 11:14:21'
+    );
+    expect(synopsisPanel.text()).not.toContain('Last reviewed');
+    expect(
+      w.get('[data-testid="clinical-synopsis-header"]').find('.copy-synopsis-button').exists()
+    ).toBe(true);
+    expect(synopsisPanel.find('table').exists()).toBe(false);
+
+    await w
+      .get('[data-testid="clinical-synopsis-header"] [data-testid="copy-synopsis-button"]')
+      .trigger('click');
+    expect(writeText).toHaveBeenCalledWith(synopsis);
+    w.unmount();
+  });
+
+  it('renders the entity hero as a Gene / Inheritance / Disease unit', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () =>
+        HttpResponse.json([{ synopsis: 'Concise clinical text.', comment: '' }])
+      ),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    const unit = w.get('[data-testid="entity-unit"]');
+    const labels = unit.findAll('[data-testid="entity-unit-label"]').map((node) => node.text());
+    expect(labels).toEqual(['Gene', 'Inheritance', 'Disease']);
+    expect(w.get('[data-testid="entity-page-badge"]').attributes('data-size')).toBe('lg');
+    expect(unit.html()).toContain('ARID1B');
+    expect(unit.html()).toContain('Autosomal dominant inheritance');
+    expect(unit.html()).toContain('Coffin-Siris syndrome 1');
+    w.unmount();
+  });
+
+  it('does not render an unrelated Results / Handoff table on the focused entity page', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () =>
+        HttpResponse.json([
+          {
+            synopsis: 'Concise clinical text.',
+            review_date: '2025-02-12 11:14:21',
+            comment: '',
+          },
+        ])
+      ),
+      http.get('*/api/entity/57/publications', () =>
+        HttpResponse.json([
+          { publication_id: 'PMID:22405089', publication_type: 'additional_references' },
+          { publication_id: 'PMID:23556151', publication_type: 'gene_review' },
+        ])
+      ),
+      http.get('*/api/entity/57/phenotypes', () =>
+        HttpResponse.json([
+          { phenotype_id: 'HP:0001249', HPO_term: 'Intellectual disability', modifier_id: 1 },
+          { phenotype_id: 'HP:0001250', HPO_term: 'Seizures', modifier_id: 5 },
+        ])
+      ),
+      http.get('*/api/entity/57/variation', () =>
+        HttpResponse.json([
+          { vario_id: 'VariO:0133', vario_name: 'protein truncation', modifier_id: 3 },
+        ])
+      ),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    expect(w.find('[data-testid="entity-handoff-table"]').exists()).toBe(false);
+    expect(w.text()).not.toContain('Results / Handoff');
+    expect(w.text()).toContain('PMID:22405089');
+    expect(w.text()).toContain('PMID:23556151');
+    expect(w.text()).toContain('Intellectual disability');
+    expect(w.text()).toContain('protein truncation');
+    expect(w.get('[data-testid="phenotype-chip-HP:0001250"]').classes()).toContain(
+      'entity-chip--absent'
+    );
+    expect(w.get('[data-testid="variation-chip-VariO:0133"]').classes()).toContain(
+      'entity-chip--variable'
+    );
+    expect(
+      w.get('[data-testid="publication-chip-PMID:22405089"]').attributes('title')
+    ).toBeUndefined();
+    expect(w.get('[data-testid="publication-chip-PMID:22405089"]').attributes('data-tooltip')).toBe(
+      'Original Article'
+    );
+    expect(w.get('[data-testid="phenotype-chip-HP:0001250"]').attributes('title')).toBeUndefined();
+    expect(w.get('[data-testid="phenotype-chip-HP:0001250"]').attributes('data-tooltip')).toBe(
+      'absent | HP:0001250'
+    );
+    expect(w.get('[data-testid="variation-chip-VariO:0133"]').attributes('title')).toBeUndefined();
+    expect(w.get('[data-testid="variation-chip-VariO:0133"]').attributes('data-tooltip')).toBe(
+      'variable | VariO:0133'
+    );
+    w.unmount();
+  });
+
+  it('keeps source cards visible with clean empty states when optional data is missing', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () => HttpResponse.json([{ synopsis: '', comment: '' }])),
+      http.get('*/api/entity/57/publications', () =>
+        HttpResponse.json([
+          { publication_id: 'PMID:22405089', publication_type: 'additional_references' },
+        ])
+      ),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    expect(w.text()).toContain('Clinical Synopsis');
+    expect(w.text()).toContain('No clinical synopsis available.');
+    expect(w.text()).toContain('Gene Reviews');
+    expect(w.text()).toContain('No GeneReviews linked.');
+    expect(w.text()).toContain('Phenotypes');
+    expect(w.text()).toContain('No phenotype terms linked.');
+    expect(w.text()).toContain('Variation Ontology');
+    expect(w.text()).toContain('No variation ontology terms linked.');
     w.unmount();
   });
 });

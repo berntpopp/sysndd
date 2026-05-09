@@ -1,4 +1,4 @@
-<!-- app/src/views/pages/EntityView.vue (v11.3 W3 rewrite) -->
+<!-- app/src/views/pages/EntityView.vue (v11.3 W3 rewrite, compact clinical UX) -->
 <!--
   Mount order:
     1. useEntityRecord(entityId) fires on tick 0; header card renders skeleton.
@@ -7,392 +7,243 @@
     3. Once the entity record resolves, useGeneRecord(entity.hgnc_id) hydrates
        the linked-gene block.
 
-  Removes the legacy sequential-await bug in the original loader — see spec
-  §2.3 finding 6. The page-level BSpinner gate is gone; each subsection owns
-  its own skeleton via <SectionCard>.
+  The request timing contract is intentionally unchanged: this component only
+  changes presentation of the already-fetched entity resources.
 -->
 <template>
-  <div class="container-fluid bg-gradient">
+  <div class="container-fluid bg-gradient entity-detail-page">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- 1. Entity overview card -->
+        <BCol cols="12">
           <SectionCard
             :loading="entity.loading.value"
             :empty="!entity.loading.value && entity.data.value === null && !entity.error.value"
             :error="entity.error.value ? entity.error.value.message : null"
             :title="entityIdStr ? `Entity: ${entityIdStr}` : 'Entity'"
-            min-height="6rem"
+            min-height="9rem"
           >
             <template #header>
-              <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2 p-1">
-                Entity:
-                <EntityBadge
-                  :entity-id="entityIdStr"
-                  :link-to="`/Entities/${entityIdStr}`"
-                  size="lg"
-                />
-              </h3>
+              <div class="entity-hero-title">
+                <h1 class="entity-page-title mb-0">
+                  <span>Entity</span>
+                  <EntityBadge
+                    :entity-id="entityIdStr"
+                    :link-to="`/Entities/${entityIdStr}`"
+                    size="lg"
+                  />
+                </h1>
+              </div>
             </template>
-            <BTable
-              v-if="entity.data.value"
-              :items="entityItems"
-              :fields="entityFields"
-              stacked
-              small
-              fixed
-              style="width: 100%; white-space: nowrap"
-            >
-              <template #cell(symbol)="data">
-                <GeneBadge
-                  :symbol="String((data.item as EntityRowMap).symbol ?? '')"
-                  :hgnc-id="String((data.item as EntityRowMap).hgnc_id ?? '')"
-                  :link-to="`/Genes/${String((data.item as EntityRowMap).hgnc_id ?? '')}`"
-                />
-              </template>
 
-              <template #cell(disease_ontology_name)="data">
-                <div class="d-flex align-items-center flex-wrap gap-2">
+            <div v-if="entityRow" class="entity-hero-body" data-testid="entity-hero">
+              <div class="entity-unit-grid" data-testid="entity-unit">
+                <div class="entity-unit-cell entity-unit-gene">
+                  <div class="entity-unit-label" data-testid="entity-unit-label">Gene</div>
+                  <GeneBadge :symbol="geneSymbol" :hgnc-id="hgncId" :link-to="geneLink" size="lg" />
+                </div>
+                <div class="entity-unit-cell entity-unit-inheritance">
+                  <div class="entity-unit-label" data-testid="entity-unit-label">Inheritance</div>
+                  <InheritanceBadge :full-name="inheritanceName" :hpo-term="inheritanceTerm" />
+                </div>
+                <div class="entity-unit-cell entity-unit-disease">
+                  <div class="entity-unit-label" data-testid="entity-unit-label">Disease</div>
                   <DiseaseBadge
-                    :name="String((data.item as EntityRowMap).disease_ontology_name ?? '')"
-                    :ontology-id="
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '')
-                    "
-                    :link-to="
-                      '/Ontology/' +
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
-                        /_.+/g,
-                        ''
-                      )
-                    "
+                    :name="diseaseName"
+                    :ontology-id="diseaseOntologyId"
+                    :link-to="diseaseLink"
                     :max-length="0"
                   />
-
-                  <BButton
-                    v-if="
-                      String(
-                        (data.item as EntityRowMap).disease_ontology_id_version ?? ''
-                      ).includes('OMIM')
-                    "
-                    class="btn-xs"
-                    variant="outline-primary"
-                    :href="
-                      'https://www.omim.org/entry/' +
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '')
-                        .replace('OMIM:', '')
-                        .replace(/_.+/g, '')
-                    "
-                    target="_blank"
-                  >
-                    <i class="bi bi-box-arrow-up-right" />
-                    {{
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
-                        /_.+/g,
-                        ''
-                      )
-                    }}
-                  </BButton>
-
-                  <BButton
-                    v-if="
-                      String(
-                        (data.item as EntityRowMap).disease_ontology_id_version ?? ''
-                      ).includes('MONDO')
-                    "
-                    class="btn-xs"
-                    variant="outline-primary"
-                    :href="
-                      'http://purl.obolibrary.org/obo/' +
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
-                        ':',
-                        '_'
-                      )
-                    "
-                    target="_blank"
-                  >
-                    <i class="bi bi-box-arrow-up-right" />
-                    {{ (data.item as EntityRowMap).disease_ontology_id_version }}
-                  </BButton>
                 </div>
-              </template>
-
-              <template #cell(mondo_equivalent)="data">
-                <template v-if="(data.item as EntityRowMap).MONDO">
-                  <template v-if="String((data.item as EntityRowMap).MONDO ?? '').includes(';')">
-                    <!-- Multiple MONDO mappings -->
-                    <span
-                      v-for="(mondoId, index) in String(
-                        (data.item as EntityRowMap).MONDO ?? ''
-                      ).split(';')"
-                      :key="mondoId"
-                    >
-                      <a
-                        :href="`https://monarchinitiative.org/disease/${mondoId.trim()}`"
-                        target="_blank"
-                        rel="noopener"
-                      >
-                        {{ mondoId.trim() }}
-                      </a>
-                      <span
-                        v-if="
-                          index <
-                          String((data.item as EntityRowMap).MONDO ?? '').split(';').length - 1
-                        "
-                        >,
-                      </span>
-                    </span>
-                  </template>
-                  <template v-else>
-                    <a
-                      :href="`https://monarchinitiative.org/disease/${(data.item as EntityRowMap).MONDO}`"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      {{ (data.item as EntityRowMap).MONDO }}
-                    </a>
-                  </template>
-                </template>
-                <span
-                  v-else-if="(data.item as EntityRowMap).disease_ontology_source === 'mim2gene'"
-                  class="text-muted fst-italic"
-                >
-                  No mapping available
+              </div>
+              <div class="entity-metadata-row">
+                <span v-if="categoryLabel" class="entity-classification-pill">
+                  <span class="entity-classification-label">Classification</span>
+                  <CategoryIcon :category="categoryLabel" :show-title="false" size="sm" />
+                  <span>{{ categoryLabel }}</span>
                 </span>
-                <span v-else />
-              </template>
-
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <InheritanceBadge
-                  :full-name="
-                    String((data.item as EntityRowMap).hpo_mode_of_inheritance_term_name ?? '')
-                  "
-                  :hpo-term="String((data.item as EntityRowMap).hpo_mode_of_inheritance_term ?? '')"
-                />
-              </template>
-
-              <template #cell(ndd_phenotype_word)="data">
-                <span
-                  v-b-tooltip.hover.left
-                  :title="
-                    ndd_icon_text[String((data.item as EntityRowMap).ndd_phenotype_word ?? '')]
-                  "
-                >
-                  <NddIcon
-                    :status="String((data.item as EntityRowMap).ndd_phenotype_word ?? '')"
-                    :show-title="false"
-                  />
+                <span v-if="diseaseSourceId" class="entity-meta-pill">
+                  <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                  <a :href="diseaseSourceUrl" target="_blank" rel="noopener">
+                    {{ diseaseSourceId }}
+                  </a>
                 </span>
-              </template>
-            </BTable>
+                <span v-if="mondoEquivalent" class="entity-meta-pill">
+                  MONDO {{ mondoEquivalent }}
+                </span>
+                <span class="entity-meta-pill entity-meta-icon">
+                  <NddIcon :status="nddStatus" :show-title="false" size="sm" />
+                  <span>NDD {{ nddStatus || 'unknown' }}</span>
+                </span>
+              </div>
+            </div>
           </SectionCard>
+        </BCol>
+      </BRow>
 
-          <!-- 2. Status -->
-          <SectionCard
-            :loading="status.loading.value"
-            :empty="!status.loading.value && statusRows.length === 0 && !status.error.value"
-            :error="status.error.value ? status.error.value.message : null"
-            title="Association Category"
-          >
-            <BTable :items="statusRows" :fields="status_fields" stacked small>
-              <template #cell(category)="data">
-                <span
-                  v-b-tooltip.hover.left
-                  :title="String((data.item as EntityRowMap).category ?? '')"
-                >
-                  <CategoryIcon
-                    :category="String((data.item as EntityRowMap).category ?? '')"
-                    :show-title="false"
-                  />
-                </span>
-              </template>
-            </BTable>
-          </SectionCard>
-
-          <!-- 3. Review / clinical synopsis -->
+      <BRow class="entity-clinical-grid">
+        <BCol cols="12" class="mb-2">
           <SectionCard
             :loading="review.loading.value"
-            :empty="!review.loading.value && reviewIsEmpty && !review.error.value"
+            :empty="false"
             :error="review.error.value ? review.error.value.message : null"
             title="Clinical Synopsis"
+            min-height="18rem"
           >
-            <BTable :items="reviewRows" :fields="review_fields" stacked small>
-              <template #cell(synopsis)="data">
-                <BCard border-variant="dark" align="start">
-                  <div class="card-text">
-                    {{ (data.item as EntityRowMap).synopsis }}
-                  </div>
-                </BCard>
-              </template>
-            </BTable>
+            <template #header>
+              <div class="clinical-card-header" data-testid="clinical-synopsis-header">
+                <span>Clinical Synopsis</span>
+                <span class="clinical-card-actions">
+                  <span v-if="reviewDate" class="clinical-panel-meta">
+                    Last reviewed {{ reviewDate }}
+                  </span>
+                  <BButton
+                    data-testid="copy-synopsis-button"
+                    size="sm"
+                    variant="outline-primary"
+                    class="copy-synopsis-button"
+                    :disabled="!synopsisText"
+                    @click="copySynopsis"
+                  >
+                    <i class="bi bi-clipboard" aria-hidden="true" />
+                    {{ copyButtonLabel }}
+                  </BButton>
+                </span>
+              </div>
+            </template>
+            <section
+              class="clinical-synopsis-panel"
+              data-testid="clinical-synopsis-panel"
+              aria-label="Clinical Synopsis"
+            >
+              <p class="clinical-synopsis-text" data-testid="clinical-synopsis-text">
+                <span v-if="synopsisText">{{ synopsisText }}</span>
+                <span v-else class="entity-empty-state">No clinical synopsis available.</span>
+              </p>
+            </section>
           </SectionCard>
+        </BCol>
+      </BRow>
 
-          <!-- 4. Publications (additional_references) -->
+      <BRow class="entity-evidence-grid">
+        <BCol cols="12" lg="6" xl="3" class="mb-2">
           <SectionCard
             :loading="publications.loading.value"
-            :empty="
-              !publications.loading.value &&
-              additionalRefs.length === 0 &&
-              !publications.error.value
-            "
+            :empty="false"
             :error="publications.error.value ? publications.error.value.message : null"
             title="Publications"
+            min-height="9rem"
           >
-            <BTable :items="publications_table" stacked small>
-              <template #cell(publications)>
-                <BRow>
-                  <BRow
-                    v-for="publication in additionalRefs"
-                    :key="String(publication.publication_id)"
-                  >
-                    <BCol>
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        class="btn-xs mx-2"
-                        :variant="
-                          (publication_style[String(publication.publication_type ?? '')] ??
-                            'outline-primary') as ButtonVariant
-                        "
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                          String(publication.publication_id).replace(/^PMID:\s*/, '')
-                        "
-                        target="_blank"
-                        :title="publication_hover_text[String(publication.publication_type ?? '')]"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ publication.publication_id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-            </BTable>
+            <div class="entity-chip-panel">
+              <a
+                v-for="publication in additionalRefs"
+                :key="String(publication.publication_id)"
+                class="entity-chip entity-chip-publication"
+                :href="pubmedUrl(publication)"
+                target="_blank"
+                rel="noopener"
+                :aria-label="publicationAriaLabel(publication)"
+                :data-testid="`publication-chip-${asString(publication.publication_id)}`"
+                :data-tooltip="publicationTitle(publication)"
+              >
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                {{ publication.publication_id }}
+              </a>
+              <span v-if="additionalRefs.length === 0" class="entity-empty-state">
+                No publications linked.
+              </span>
+            </div>
           </SectionCard>
+        </BCol>
 
-          <!-- 5. Gene Reviews (filtered from same publications call) -->
+        <BCol cols="12" lg="6" xl="2" class="mb-2">
           <SectionCard
             :loading="publications.loading.value"
-            :empty="
-              !publications.loading.value && geneReviews.length === 0 && !publications.error.value
-            "
+            :empty="false"
             :error="publications.error.value ? publications.error.value.message : null"
             title="Gene Reviews"
+            min-height="6rem"
           >
-            <BTable :items="genereviews_table" stacked small>
-              <template #cell(genereviews)>
-                <BRow>
-                  <BRow
-                    v-for="publication in geneReviews"
-                    :key="String(publication.publication_id)"
-                  >
-                    <BCol>
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        class="btn-xs mx-2"
-                        :variant="
-                          (publication_style[String(publication.publication_type ?? '')] ??
-                            'outline-primary') as ButtonVariant
-                        "
-                        :href="
-                          'https://pubmed.ncbi.nlm.nih.gov/' +
-                          String(publication.publication_id).replace(/^PMID:\s*/, '')
-                        "
-                        target="_blank"
-                        :title="publication_hover_text[String(publication.publication_type ?? '')]"
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ publication.publication_id }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-            </BTable>
+            <div class="entity-chip-panel">
+              <a
+                v-for="publication in geneReviews"
+                :key="String(publication.publication_id)"
+                class="entity-chip entity-chip-genereview"
+                :href="pubmedUrl(publication)"
+                target="_blank"
+                rel="noopener"
+                :aria-label="publicationAriaLabel(publication)"
+                :data-testid="`publication-chip-${asString(publication.publication_id)}`"
+                :data-tooltip="publicationTitle(publication)"
+              >
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                {{ publication.publication_id }}
+              </a>
+              <span v-if="geneReviews.length === 0" class="entity-empty-state">
+                No GeneReviews linked.
+              </span>
+            </div>
           </SectionCard>
+        </BCol>
 
-          <!-- 6. Phenotypes -->
+        <BCol cols="12" lg="6" xl="5" class="mb-2">
           <SectionCard
             :loading="phenotypes.loading.value"
-            :empty="
-              !phenotypes.loading.value && phenotypesList.length === 0 && !phenotypes.error.value
-            "
+            :empty="false"
             :error="phenotypes.error.value ? phenotypes.error.value.message : null"
             title="Phenotypes"
+            min-height="18rem"
           >
-            <BTable :items="phenotypes_table" stacked small>
-              <template #cell(phenotypes)>
-                <BRow>
-                  <BRow v-for="phenotype in phenotypesList" :key="String(phenotype.phenotype_id)">
-                    <BCol>
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        class="btn-xs mx-2"
-                        :variant="
-                          (modifier_style[Number(phenotype.modifier_id)] ??
-                            'outline-primary') as ButtonVariant
-                        "
-                        :href="
-                          'https://hpo.jax.org/app/browse/term/' +
-                          String(phenotype.phenotype_id ?? '')
-                        "
-                        target="_blank"
-                        :title="
-                          (modifier_text[Number(phenotype.modifier_id)] ?? '') +
-                          '; ' +
-                          String(phenotype.phenotype_id ?? '')
-                        "
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ phenotype.HPO_term }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-            </BTable>
+            <div class="entity-chip-panel">
+              <a
+                v-for="phenotype in phenotypesList"
+                :key="String(phenotype.phenotype_id)"
+                class="entity-chip entity-chip-phenotype"
+                :class="modifierChipClass(phenotype)"
+                :href="hpoUrl(phenotype)"
+                target="_blank"
+                rel="noopener"
+                :aria-label="termAriaLabel(phenotype, 'phenotype_id', 'HPO term')"
+                :data-testid="`phenotype-chip-${asString(phenotype.phenotype_id)}`"
+                :data-tooltip="termTitle(phenotype, 'phenotype_id')"
+              >
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                {{ phenotype.HPO_term }}
+              </a>
+              <span v-if="phenotypesList.length === 0" class="entity-empty-state">
+                No phenotype terms linked.
+              </span>
+            </div>
           </SectionCard>
+        </BCol>
 
-          <!-- 7. Variation -->
+        <BCol cols="12" lg="6" xl="2" class="mb-2">
           <SectionCard
             :loading="variation.loading.value"
-            :empty="
-              !variation.loading.value && variationList.length === 0 && !variation.error.value
-            "
+            :empty="false"
             :error="variation.error.value ? variation.error.value.message : null"
             title="Variation Ontology"
+            min-height="9rem"
           >
-            <BTable :items="variation_table" stacked small>
-              <template #cell(variation)>
-                <BRow>
-                  <BRow v-for="variant in variationList" :key="String(variant.vario_id)">
-                    <BCol>
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        class="btn-xs mx-2"
-                        :variant="
-                          (modifier_style[Number(variant.modifier_id)] ??
-                            'outline-primary') as ButtonVariant
-                        "
-                        :href="
-                          'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
-                          String(variant.vario_id ?? '').replace(':', '_') +
-                          '%3E'
-                        "
-                        target="_blank"
-                        :title="
-                          (modifier_text[Number(variant.modifier_id)] ?? '') +
-                          '; ' +
-                          String(variant.vario_id ?? '')
-                        "
-                      >
-                        <i class="bi bi-box-arrow-up-right" />
-                        {{ variant.vario_name }}
-                      </BButton>
-                    </BCol>
-                  </BRow>
-                </BRow>
-              </template>
-            </BTable>
+            <div class="entity-chip-panel">
+              <a
+                v-for="variant in variationList"
+                :key="String(variant.vario_id)"
+                class="entity-chip entity-chip-variation"
+                :class="modifierChipClass(variant)"
+                :href="varioUrl(variant)"
+                target="_blank"
+                rel="noopener"
+                :aria-label="termAriaLabel(variant, 'vario_id', 'Variation ontology term')"
+                :data-testid="`variation-chip-${asString(variant.vario_id)}`"
+                :data-tooltip="termTitle(variant, 'vario_id')"
+              >
+                <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
+                {{ variant.vario_name }}
+              </a>
+              <span v-if="variationList.length === 0" class="entity-empty-state">
+                No variation ontology terms linked.
+              </span>
+            </div>
           </SectionCard>
         </BCol>
       </BRow>
@@ -401,11 +252,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
-import { BContainer, BRow, BCol, BCard, BTable, BButton } from 'bootstrap-vue-next';
-import type { ButtonVariant } from 'bootstrap-vue-next';
+import { BContainer, BRow, BCol, BButton } from 'bootstrap-vue-next';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
@@ -413,7 +263,7 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import SectionCard from '@/components/ui/SectionCard.vue';
-import { useColorAndSymbols, useText } from '@/composables';
+import { useText } from '@/composables';
 import { useEntityRecord } from '@/composables/useEntityRecord';
 import { useEntityStatus } from '@/composables/useEntityStatus';
 import { useEntityReview } from '@/composables/useEntityReview';
@@ -427,8 +277,8 @@ const router = useRouter();
 
 type EntityRowMap = Record<string, unknown>;
 
-const { publication_style, modifier_style } = useColorAndSymbols();
-const { ndd_icon_text, publication_hover_text, modifier_text } = useText();
+const { publication_hover_text, modifier_text } = useText();
+const copyButtonLabel = ref('Copy');
 
 const entityIdStr = computed(() => String(route.params.entity_id ?? ''));
 
@@ -440,69 +290,132 @@ const publications = useEntityPublications(entityIdStr);
 const phenotypes = useEntityPhenotypes(entityIdStr);
 const variation = useEntityVariation(entityIdStr);
 
+const entityRow = computed(() => entity.data.value as EntityRowMap | null);
+
 // Linked gene fires when the entity record resolves with a hgnc_id.
 const hgncIdRef = computed<string | null>(() => {
-  const e = entity.data.value as Record<string, unknown> | null;
-  const v = e?.hgnc_id;
+  const v = entityRow.value?.hgnc_id;
   return typeof v === 'string' && v ? v : null;
 });
 // Mounted unconditionally; the hook becomes inert when the ref is null.
 useGeneRecord(hgncIdRef);
 
-// Wrap the single entity row in an array so BTable can render it stacked.
-const entityItems = computed(() => {
-  const row = entity.data.value as Record<string, unknown> | null;
-  return row ? [row] : [];
-});
+const asString = (value: unknown): string => (value == null ? '' : String(value));
+const compactId = (value: unknown): string => asString(value).replace(/_.+/g, '').trim();
 
-// API returns arrays for each nested resource; coerce defensively.
 const statusRows = computed(() => {
   const data = status.data.value as unknown;
-  return Array.isArray(data) ? data : data ? [data] : [];
+  return Array.isArray(data) ? (data as EntityRowMap[]) : data ? [data as EntityRowMap] : [];
 });
 const reviewRows = computed(() => {
   const data = review.data.value as unknown;
-  return Array.isArray(data) ? data : data ? [data] : [];
+  return Array.isArray(data) ? (data as EntityRowMap[]) : data ? [data as EntityRowMap] : [];
 });
-const publicationsList = computed<Array<Record<string, unknown>>>(() => {
+const publicationsList = computed<Array<EntityRowMap>>(() => {
   const data = publications.data.value as unknown;
-  return Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+  return Array.isArray(data) ? (data as Array<EntityRowMap>) : [];
 });
-const phenotypesList = computed<Array<Record<string, unknown>>>(() => {
+const phenotypesList = computed<Array<EntityRowMap>>(() => {
   const data = phenotypes.data.value as unknown;
-  return Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+  return Array.isArray(data) ? (data as Array<EntityRowMap>) : [];
 });
-const variationList = computed<Array<Record<string, unknown>>>(() => {
+const variationList = computed<Array<EntityRowMap>>(() => {
   const data = variation.data.value as unknown;
-  return Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
+  return Array.isArray(data) ? (data as Array<EntityRowMap>) : [];
 });
 
 // Publications client-side split — the existing endpoint feeds both cards.
 const additionalRefs = computed(() =>
-  publicationsList.value.filter(
-    (p) => (p as Record<string, unknown>).publication_type === 'additional_references'
-  )
+  publicationsList.value.filter((p) => p.publication_type === 'additional_references')
 );
 const geneReviews = computed(() =>
-  publicationsList.value.filter(
-    (p) => (p as Record<string, unknown>).publication_type === 'gene_review'
-  )
+  publicationsList.value.filter((p) => p.publication_type === 'gene_review')
 );
 
-// Review empty when no row carries a non-blank synopsis or comment.
-const reviewIsEmpty = computed(() => {
-  const rows = reviewRows.value as Array<Record<string, unknown>>;
-  if (rows.length === 0) return true;
-  return rows.every((r) => {
-    const synopsisBlank = !r.synopsis || String(r.synopsis).trim() === '';
-    const commentBlank = !r.comment || String(r.comment).trim() === '';
-    return synopsisBlank && commentBlank;
-  });
+const primaryStatus = computed(() => statusRows.value[0] ?? null);
+const primaryReview = computed(() => reviewRows.value[0] ?? null);
+
+const geneSymbol = computed(() => asString(entityRow.value?.symbol));
+const hgncId = computed(() => asString(entityRow.value?.hgnc_id));
+const geneLink = computed(() => `/Genes/${hgncId.value || geneSymbol.value}`);
+const diseaseName = computed(() => asString(entityRow.value?.disease_ontology_name));
+const diseaseOntologyId = computed(() => asString(entityRow.value?.disease_ontology_id_version));
+const diseaseSourceId = computed(() => compactId(diseaseOntologyId.value));
+const diseaseLink = computed(() =>
+  diseaseSourceId.value ? `/Ontology/${diseaseSourceId.value}` : ''
+);
+const diseaseSourceUrl = computed(() => {
+  if (diseaseSourceId.value.startsWith('OMIM:')) {
+    return `https://www.omim.org/entry/${diseaseSourceId.value.replace('OMIM:', '')}`;
+  }
+  if (diseaseSourceId.value.startsWith('MONDO:')) {
+    return `http://purl.obolibrary.org/obo/${diseaseSourceId.value.replace(':', '_')}`;
+  }
+  return diseaseLink.value;
 });
+const mondoEquivalent = computed(() => asString(entityRow.value?.MONDO));
+const inheritanceName = computed(() =>
+  asString(entityRow.value?.hpo_mode_of_inheritance_term_name)
+);
+const inheritanceTerm = computed(() => asString(entityRow.value?.hpo_mode_of_inheritance_term));
+const nddStatus = computed(() => asString(entityRow.value?.ndd_phenotype_word));
+const categoryLabel = computed(() =>
+  asString(primaryStatus.value?.category ?? entityRow.value?.category)
+);
+const reviewDate = computed(() => asString(primaryReview.value?.review_date));
+const synopsisText = computed(() =>
+  asString(primaryReview.value?.synopsis ?? entityRow.value?.synopsis).trim()
+);
+
+async function copySynopsis(): Promise<void> {
+  if (!synopsisText.value) return;
+  await navigator.clipboard?.writeText(synopsisText.value);
+  copyButtonLabel.value = 'Copied';
+  window.setTimeout(() => {
+    copyButtonLabel.value = 'Copy';
+  }, 1600);
+}
+
+function pubmedUrl(publication: EntityRowMap): string {
+  return `https://pubmed.ncbi.nlm.nih.gov/${asString(publication.publication_id).replace(/^PMID:\s*/, '')}`;
+}
+
+function publicationTitle(publication: EntityRowMap): string {
+  return (publication_hover_text[asString(publication.publication_type)] ?? 'Publication').trim();
+}
+
+function publicationAriaLabel(publication: EntityRowMap): string {
+  return `${publicationTitle(publication)} ${asString(publication.publication_id)}`.trim();
+}
+
+function hpoUrl(phenotype: EntityRowMap): string {
+  return `https://hpo.jax.org/app/browse/term/${asString(phenotype.phenotype_id)}`;
+}
+
+function varioUrl(variant: EntityRowMap): string {
+  return (
+    'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
+    asString(variant.vario_id).replace(':', '_') +
+    '%3E'
+  );
+}
+
+function termTitle(item: EntityRowMap, idKey: string): string {
+  const modifier = modifier_text[Number(item.modifier_id)] ?? 'Evidence term';
+  return `${modifier} | ${asString(item[idKey])}`;
+}
+
+function termAriaLabel(item: EntityRowMap, idKey: string, kind: string): string {
+  return `${kind}: ${termTitle(item, idKey)}`;
+}
+
+function modifierChipClass(item: EntityRowMap): string {
+  const modifier = modifier_text[Number(item.modifier_id)] ?? 'evidence';
+  return `entity-chip--${modifier.replace(/\s+/g, '-').toLowerCase()}`;
+}
 
 // 404 redirect: fire once the record resolves to null without an error. Watch
-// both the loading and data refs so cold null→null transitions still trigger
-// (matches the GeneView watcher pattern from W2).
+// both the loading and data refs so cold null→null transitions still trigger.
 watch([entity.loading, entity.data], () => {
   if (
     !entity.loading.value &&
@@ -513,41 +426,6 @@ watch([entity.loading, entity.data], () => {
     router.push('/PageNotFound');
   }
 });
-
-const entityFields = [
-  { key: 'symbol', label: 'Gene Symbol', sortable: true, class: 'text-start' },
-  {
-    key: 'disease_ontology_name',
-    label: 'Disease',
-    sortable: true,
-    class: 'text-start',
-    sortByFormatted: true,
-    filterByFormatted: true,
-  },
-  {
-    key: 'mondo_equivalent',
-    label: 'MONDO Equivalent',
-    sortable: false,
-    class: 'text-start',
-  },
-  {
-    key: 'hpo_mode_of_inheritance_term_name',
-    label: 'Inheritance',
-    sortable: true,
-    class: 'text-start',
-    sortByFormatted: true,
-    filterByFormatted: true,
-  },
-  { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-start' },
-];
-const status_fields = [{ key: 'category', label: 'Association Category', class: 'text-start' }];
-const review_fields = [{ key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' }];
-
-// Single-row stacked tables for the rich publication / phenotype / variation lists.
-const publications_table = [{ publications: '' }];
-const genereviews_table = [{ genereviews: '' }];
-const phenotypes_table = [{ phenotypes: '' }];
-const variation_table = [{ variation: '' }];
 
 useHead({
   title: computed(() => (entityIdStr.value ? `Entity: ${entityIdStr.value}` : 'Entity')),
@@ -565,11 +443,334 @@ useHead({
 </script>
 
 <style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
+.entity-detail-page {
+  padding-bottom: 1rem;
+}
+.entity-hero-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.entity-page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+.entity-hero-body {
+  padding: 0.65rem 0.75rem;
+}
+.entity-unit-grid {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.9fr) minmax(10rem, 0.7fr) minmax(16rem, 1.4fr);
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.55rem;
+}
+.entity-unit-cell {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 0.45rem;
+  background: #f8fafc;
+}
+.entity-unit-gene {
+  border-left: 0.25rem solid #0f8f51;
+}
+.entity-unit-inheritance {
+  border-left: 0.25rem solid #09a9c9;
+}
+.entity-unit-disease {
+  border-left: 0.25rem solid #65717d;
+}
+.entity-unit-label {
+  color: #667085;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.entity-metadata-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.entity-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  box-sizing: border-box;
+  height: 1.8rem;
+  padding: 0.18rem 0.48rem;
+  border: 1px solid #d5dbe3;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+}
+.entity-classification-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-sizing: border-box;
+  height: 1.8rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.35rem;
+  border: 1px solid #9fd7c4;
+  border-radius: 999px;
+  background: #e8f8f1;
+  color: #064e3b;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+.entity-classification-label {
+  color: #047857;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.entity-meta-pill a {
+  color: #0b5ed7;
+  text-decoration: none;
+}
+.entity-meta-icon {
+  padding-left: 0.28rem;
+}
+.entity-clinical-grid,
+.entity-evidence-grid {
+  padding-top: 0.15rem;
+}
+.clinical-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-left: 0.25rem;
+  color: #4b5563;
   font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.clinical-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.clinical-synopsis-panel,
+.entity-chip-panel {
+  padding: 0.75rem;
+}
+.clinical-panel-meta {
+  color: #667085;
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+.copy-synopsis-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.45rem;
+  padding: 0.08rem 0.4rem;
+  border-color: #0a58ca;
+  color: #0a58ca;
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.copy-synopsis-button:hover,
+.copy-synopsis-button:focus {
+  border-color: #084298;
+  background-color: #0a58ca;
+  color: #fff;
+}
+.clinical-synopsis-text {
+  width: 100%;
+  margin: 0;
+  color: #111827;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  text-align: left;
+}
+.entity-chip-panel {
+  display: flex;
+  align-content: flex-start;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.entity-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  min-height: 1.55rem;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.07);
+  transition:
+    transform 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
+    background-color 0.14s ease;
+}
+.entity-chip::before,
+.entity-chip::after {
+  position: absolute;
+  left: 50%;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 0.25rem);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+.entity-chip::before {
+  bottom: calc(100% + 0.35rem);
+  width: max-content;
+  max-width: min(18rem, 85vw);
+  padding: 0.38rem 0.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 0.4rem;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 0.5rem 1.2rem rgba(15, 23, 42, 0.18);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+.entity-chip::after {
+  bottom: calc(100% + 0.12rem);
+  border: 0.26rem solid transparent;
+  border-top-color: rgba(15, 23, 42, 0.96);
+  content: '';
+}
+.entity-chip-publication {
+  border-color: #0891b2;
+  background: #cffafe;
+}
+.entity-chip-genereview {
+  border-color: #2563eb;
+  background: #dbeafe;
+}
+.entity-chip-phenotype {
+  border-color: #7c3aed;
+  background: #ede9fe;
+}
+.entity-chip-variation {
+  border-color: #16a34a;
+  background: #dcfce7;
+}
+.entity-chip--present {
+  border-color: #16a34a;
+  background: #dcfce7;
+}
+.entity-chip--uncertain {
+  border-color: #d97706;
+  background: #fef3c7;
+}
+.entity-chip--variable {
+  border-color: #2563eb;
+  background: #dbeafe;
+}
+.entity-chip--rare {
+  border-color: #7c3aed;
+  background: #ede9fe;
+}
+.entity-chip--absent {
+  border-color: #64748b;
+  background: #f1f5f9;
+  color: #334155;
+}
+.entity-chip:hover,
+.entity-chip:focus {
+  border-color: #0f172a;
+  background-color: #fff;
+  box-shadow: 0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
+  color: #0f172a;
+  outline: none;
+  transform: translateY(-1px);
+}
+.entity-chip:hover::before,
+.entity-chip:hover::after,
+.entity-chip:focus::before,
+.entity-chip:focus::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+.entity-chip:focus-visible {
+  box-shadow:
+    0 0 0 0.16rem rgba(13, 110, 253, 0.22),
+    0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
+}
+.entity-empty-state {
+  color: #667085;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+@media (prefers-reduced-motion: reduce) {
+  .entity-chip {
+    transition: none;
+  }
+  .entity-chip:hover,
+  .entity-chip:focus {
+    transform: none;
+  }
+  .entity-chip::before,
+  .entity-chip::after {
+    transition: none;
+  }
+}
+@media (max-width: 575.98px) {
+  .entity-page-title {
+    font-size: 1.1rem;
+  }
+  .entity-hero-body,
+  .clinical-synopsis-panel,
+  .entity-chip-panel {
+    padding: 0.65rem;
+  }
+  .entity-unit-grid {
+    grid-template-columns: 1fr;
+  }
+  .clinical-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .clinical-card-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .copy-synopsis-button {
+    justify-content: center;
+  }
+  .clinical-synopsis-text {
+    font-size: 0.92rem;
+  }
 }
 </style>
