@@ -1,247 +1,222 @@
 <!-- components/tables/TablesEntities.vue -->
 <template>
   <div class="container-fluid">
-    <!-- Skeleton table during initial load — same shape as the eventual table to avoid CLS -->
-    <BContainer v-if="loading" fluid>
+    <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-            data-testid="entities-skeleton"
+          <TableShell
+            :title="headerLabel"
+            :meta="'Entities: ' + totalRows"
+            :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+            :loading="loading"
           >
-            <template #header>
-              <div class="d-flex align-items-center justify-content-between px-2">
-                <div class="entities-skeleton-line entities-skeleton-w-30" />
-                <div class="entities-skeleton-line entities-skeleton-w-15" />
-              </div>
+            <template #actions>
+              <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+                <TableDownloadLinkCopyButtons
+                  :downloading="downloading"
+                  :remove-filters-title="removeFiltersButtonTitle"
+                  :remove-filters-variant="removeFiltersButtonVariant"
+                  @request-excel="requestExcel"
+                  @copy-link="copyLinkToClipboard"
+                  @remove-filters="removeFilters"
+                />
+              </h5>
             </template>
-            <div class="px-3 py-2">
-              <div
-                v-for="n in 5"
-                :key="n"
-                class="d-flex align-items-center gap-3 py-2 entities-skeleton-row"
-              >
-                <div class="entities-skeleton-line entities-skeleton-w-8" />
-                <div class="entities-skeleton-line entities-skeleton-w-12" />
-                <div class="entities-skeleton-line entities-skeleton-w-30" />
-                <div class="entities-skeleton-line entities-skeleton-w-15" />
-                <div class="entities-skeleton-line entities-skeleton-w-10" />
-              </div>
-            </div>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- User Interface controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <TableHeaderLabel
-                    :label="headerLabel"
-                    :subtitle="'Entities: ' + totalRows"
-                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+
+            <template #toolbar>
+              <!-- User Interface controls -->
+              <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
+                <BCol v-if="showSearchInput" class="my-1" sm="8">
+                  <TableSearchInput
+                    v-model="filter['any'].content"
+                    :placeholder="'Search any field by typing here'"
+                    :debounce-time="500"
+                    @update:model-value="filtered"
                   />
                 </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <TableDownloadLinkCopyButtons
-                      :downloading="downloading"
-                      :remove-filters-title="removeFiltersButtonTitle"
-                      :remove-filters-variant="removeFiltersButtonVariant"
-                      @request-excel="requestExcel"
-                      @copy-link="copyLinkToClipboard"
-                      @remove-filters="removeFilters"
+
+                <BCol
+                  v-if="totalRows > perPage || showPaginationControls"
+                  class="my-1"
+                  :sm="showSearchInput ? 4 : 12"
+                >
+                  <BContainer>
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="pageOptions"
+                      :current-page="currentPage"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
                     />
-                  </h5>
+                  </BContainer>
                 </BCol>
               </BRow>
+              <!-- User Interface controls -->
             </template>
 
-            <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
-              <BCol v-if="showSearchInput" class="my-1" sm="8">
-                <TableSearchInput
-                  v-model="filter['any'].content"
-                  :placeholder="'Search any field by typing here'"
-                  :debounce-time="500"
-                  @update:model-value="filtered"
-                />
-              </BCol>
+            <template #loading>
+              <TableLoadingState data-testid="entities-skeleton" />
+            </template>
 
-              <BCol
-                v-if="totalRows > perPage || showPaginationControls"
-                class="my-1"
-                :sm="showSearchInput ? 4 : 12"
+            <!-- Main table element -->
+            <div class="d-none d-md-block">
+              <GenericTable
+                :items="items"
+                :fields="fields"
+                :field-details="fields_details"
+                :sort-by="sortBy"
+                :stacked-mode="false"
+                @update-sort="handleSortUpdate"
               >
-                <BContainer>
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- User Interface controls -->
-
-            <!-- Main table element -->
-            <GenericTable
-              :items="items"
-              :fields="fields"
-              :field-details="fields_details"
-              :sort-by="sortBy"
-              @update-sort="handleSortUpdate"
-            >
-              <!-- Column header tooltips -->
-              <template #column-header="{ data }">
-                <div
-                  v-b-tooltip.hover.bottom
-                  :title="
-                    getTooltipText(
-                      fields.find((f) => f.label === data.label) || {
-                        key: data.column,
-                        label: data.label,
-                      }
-                    )
-                  "
-                >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
-                </div>
-              </template>
-
-              <!-- Custom filter fields slot -->
-              <template v-if="showFilterControls" #filter-controls>
-                <td v-for="field in fields" :key="field.key">
-                  <BFormInput
-                    v-if="field.filterable"
-                    v-model="filter[field.key].content"
-                    :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                    debounce="500"
-                    type="search"
-                    autocomplete="off"
-                    @click="removeSearch()"
-                    @update:model-value="filtered()"
-                  />
-
-                  <BFormSelect
-                    v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
-                    v-model="filter[field.key].content"
-                    :options="field.selectOptions"
-                    size="sm"
-                    @update:model-value="
-                      removeSearch();
-                      filtered();
+                <!-- Column header tooltips -->
+                <template #column-header="{ data }">
+                  <div
+                    v-b-tooltip.hover.bottom
+                    :title="
+                      getTooltipText(
+                        fields.find((f) => f.label === data.label) || {
+                          key: data.column,
+                          label: data.label,
+                        }
+                      )
                     "
                   >
-                    <template #first>
-                      <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-                  <BSpinner
-                    v-else-if="
-                      field.selectable && (!field.selectOptions || field.selectOptions.length === 0)
-                    "
-                    small
-                    label="Loading..."
-                  />
+                    {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                  </div>
+                </template>
 
-                  <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
-                  <BFormSelect
-                    v-if="
-                      field.multi_selectable &&
-                      field.selectOptions &&
-                      field.selectOptions.length > 0
-                    "
-                    v-model="filter[field.key].content"
-                    :options="normalizeSelectOptions(field.selectOptions)"
+                <!-- Custom filter fields slot -->
+                <template v-if="showFilterControls" #filter-controls>
+                  <td v-for="field in fields" :key="field.key">
+                    <BFormInput
+                      v-if="field.filterable"
+                      v-model="filter[field.key].content"
+                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                      debounce="500"
+                      type="search"
+                      autocomplete="off"
+                      @click="removeSearch()"
+                      @update:model-value="filtered()"
+                    />
+
+                    <BFormSelect
+                      v-if="
+                        field.selectable && field.selectOptions && field.selectOptions.length > 0
+                      "
+                      v-model="filter[field.key].content"
+                      :options="field.selectOptions"
+                      size="sm"
+                      @update:model-value="
+                        removeSearch();
+                        filtered();
+                      "
+                    >
+                      <template #first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
+                    <BSpinner
+                      v-else-if="
+                        field.selectable &&
+                        (!field.selectOptions || field.selectOptions.length === 0)
+                      "
+                      small
+                      label="Loading..."
+                    />
+
+                    <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
+                    <BFormSelect
+                      v-if="
+                        field.multi_selectable &&
+                        field.selectOptions &&
+                        field.selectOptions.length > 0
+                      "
+                      v-model="filter[field.key].content"
+                      :options="normalizeSelectOptions(field.selectOptions)"
+                      size="sm"
+                      @update:model-value="
+                        removeSearch();
+                        filtered();
+                      "
+                    >
+                      <template #first>
+                        <BFormSelectOption :value="null">
+                          .. {{ truncate(field.label, 20) }} ..
+                        </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
+                    <BSpinner
+                      v-else-if="
+                        field.multi_selectable &&
+                        (!field.selectOptions || field.selectOptions.length === 0)
+                      "
+                      small
+                      label="Loading..."
+                    />
+                  </td>
+                </template>
+                <!-- Custom filter fields slot -->
+
+                <template #cell-entity_id="{ row }">
+                  <EntityBadge
+                    :entity-id="row.entity_id"
+                    :link-to="'/Entities/' + row.entity_id"
                     size="sm"
-                    @update:model-value="
-                      removeSearch();
-                      filtered();
-                    "
-                  >
-                    <template #first>
-                      <BFormSelectOption :value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-                  <BSpinner
-                    v-else-if="
-                      field.multi_selectable &&
-                      (!field.selectOptions || field.selectOptions.length === 0)
-                    "
-                    small
-                    label="Loading..."
                   />
-                </td>
-              </template>
-              <!-- Custom filter fields slot -->
+                </template>
 
-              <template #cell-entity_id="{ row }">
-                <EntityBadge
-                  :entity-id="row.entity_id"
-                  :link-to="'/Entities/' + row.entity_id"
-                  size="sm"
-                />
-              </template>
+                <template #cell-symbol="{ row }">
+                  <GeneBadge
+                    :symbol="row.symbol"
+                    :hgnc-id="row.hgnc_id"
+                    :link-to="'/Genes/' + row.hgnc_id"
+                    size="sm"
+                  />
+                </template>
 
-              <template #cell-symbol="{ row }">
-                <GeneBadge
-                  :symbol="row.symbol"
-                  :hgnc-id="row.hgnc_id"
-                  :link-to="'/Genes/' + row.hgnc_id"
-                  size="sm"
-                />
-              </template>
+                <template #cell-disease_ontology_name="{ row }">
+                  <DiseaseBadge
+                    :name="row.disease_ontology_name"
+                    :ontology-id="row.disease_ontology_id_version"
+                    :link-to="'/Ontology/' + row.disease_ontology_id_version.replace(/_.+/g, '')"
+                    :max-length="35"
+                    size="sm"
+                  />
+                </template>
 
-              <template #cell-disease_ontology_name="{ row }">
-                <DiseaseBadge
-                  :name="row.disease_ontology_name"
-                  :ontology-id="row.disease_ontology_id_version"
-                  :link-to="'/Ontology/' + row.disease_ontology_id_version.replace(/_.+/g, '')"
-                  :max-length="35"
-                  size="sm"
-                />
-              </template>
+                <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
+                <template #cell-hpo_mode_of_inheritance_term_name="{ row }">
+                  <InheritanceBadge
+                    :full-name="row.hpo_mode_of_inheritance_term_name"
+                    :hpo-term="row.hpo_mode_of_inheritance_term"
+                    size="sm"
+                  />
+                </template>
 
-              <!-- Custom slot for the 'hpo_mode_of_inheritance_term_name' column -->
-              <template #cell-hpo_mode_of_inheritance_term_name="{ row }">
-                <InheritanceBadge
-                  :full-name="row.hpo_mode_of_inheritance_term_name"
-                  :hpo-term="row.hpo_mode_of_inheritance_term"
-                  size="sm"
-                />
-              </template>
+                <!-- Custom slot for the 'ndd_phenotype_word' column -->
+                <template #cell-ndd_phenotype_word="{ row }">
+                  <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
+                    <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
+                  </span>
+                </template>
 
-              <!-- Custom slot for the 'ndd_phenotype_word' column -->
-              <template #cell-ndd_phenotype_word="{ row }">
-                <span v-b-tooltip.hover.left :title="ndd_icon_text[row.ndd_phenotype_word]">
-                  <NddIcon :status="row.ndd_phenotype_word" size="sm" :show-title="false" />
-                </span>
-              </template>
-
-              <!-- Custom slot for the 'category' column -->
-              <template #cell-category="{ row }">
-                <span v-b-tooltip.hover.left :title="row.category">
-                  <CategoryIcon :category="row.category" size="sm" :show-title="false" />
-                </span>
-              </template>
-              <!-- Custom slot for the 'category' column -->
-            </GenericTable>
+                <!-- Custom slot for the 'category' column -->
+                <template #cell-category="{ row }">
+                  <span v-b-tooltip.hover.left :title="row.category">
+                    <CategoryIcon :category="row.category" size="sm" :show-title="false" />
+                  </span>
+                </template>
+                <!-- Custom slot for the 'category' column -->
+              </GenericTable>
+            </div>
+            <div class="d-md-none">
+              <EntitiesMobileRows :items="items" />
+            </div>
             <!-- Main table element -->
-          </BCard>
+          </TableShell>
         </BCol>
       </BRow>
     </BContainer>
@@ -286,11 +261,13 @@ import {
 } from '@/composables';
 
 // Import the Table components
-import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import TableShell from '@/components/table/TableShell.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
+import EntitiesMobileRows from '@/components/tables/EntitiesMobileRows.vue';
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -320,9 +297,11 @@ export default {
     // Components used within TablesEntities
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
-    TableHeaderLabel,
     TableSearchInput,
     GenericTable,
+    TableShell,
+    TableLoadingState,
+    EntitiesMobileRows,
     CategoryIcon,
     NddIcon,
     EntityBadge,

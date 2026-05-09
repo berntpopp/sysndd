@@ -1,300 +1,312 @@
 <!-- components/tables/TablesGenes.vue -->
 <template>
   <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
+    <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <!-- User Interface controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <TableHeaderLabel
-                    :label="headerLabel"
-                    :subtitle="'Genes: ' + totalRows"
-                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-                  />
-                </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <TableDownloadLinkCopyButtons
-                      :downloading="downloading"
-                      :remove-filters-title="removeFiltersButtonTitle"
-                      :remove-filters-variant="removeFiltersButtonVariant"
-                      @request-excel="requestExcel"
-                      @copy-link="copyLinkToClipboard"
-                      @remove-filters="removeFilters"
-                    />
-                  </h5>
-                </BCol>
-              </BRow>
+          <TableShell
+            :title="headerLabel"
+            :meta="'Genes: ' + totalRows"
+            :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+            :loading="loading"
+          >
+            <template #actions>
+              <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+                <TableDownloadLinkCopyButtons
+                  :downloading="downloading"
+                  :remove-filters-title="removeFiltersButtonTitle"
+                  :remove-filters-variant="removeFiltersButtonVariant"
+                  @request-excel="requestExcel"
+                  @copy-link="copyLinkToClipboard"
+                  @remove-filters="removeFilters"
+                />
+              </h5>
             </template>
 
-            <BRow>
-              <BCol class="my-1" sm="8">
-                <TableSearchInput
-                  v-model="filter['any'].content"
-                  :placeholder="'Search any field by typing here'"
-                  :debounce-time="500"
-                  @input="filtered"
-                />
-              </BCol>
-
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
+            <template #toolbar>
+              <!-- User Interface controls -->
+              <BRow>
+                <BCol class="my-1" sm="8">
+                  <TableSearchInput
+                    v-model="filter['any'].content"
+                    :placeholder="'Search any field by typing here'"
+                    :debounce-time="500"
+                    @input="filtered"
                   />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- User Interface controls -->
+                </BCol>
+
+                <BCol class="my-1" sm="4">
+                  <BContainer v-if="totalRows > perPage || showPaginationControls">
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="pageOptions"
+                      :current-page="currentPage"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
+                    />
+                  </BContainer>
+                </BCol>
+              </BRow>
+              <!-- User Interface controls -->
+            </template>
+
+            <template #loading>
+              <TableLoadingState mode="cards" />
+            </template>
 
             <!-- Main table element -->
-            <BTable
-              :items="items"
-              :fields="fields"
-              :sort-by="sortBy"
-              :busy="isBusy"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              no-local-sorting
-              @update:sort-by="handleSortByUpdate"
-            >
-              <!-- custom formatted header -->
-              <template #head()="data">
-                <div
-                  v-b-tooltip.hover.top
-                  :data="data"
-                  data-html="true"
-                  :title="
-                    data.label +
-                    ' (unique filtered/total values: ' +
-                    fields
-                      .filter((item) => item.label === data.label)
-                      .map((item) => {
-                        return item.count_filtered;
-                      })[0] +
-                    '/' +
-                    fields
-                      .filter((item) => item.label === data.label)
-                      .map((item) => {
-                        return item.count;
-                      })[0] +
-                    ')'
-                  "
-                >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
-                </div>
-              </template>
-
-              <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
-              <template #thead-top>
-                <tr>
-                  <td v-for="field in fields" :key="field.key">
-                    <BFormInput
-                      v-if="field.filterable"
-                      v-model="filter[field.key].content"
-                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                      debounce="500"
-                      type="search"
-                      autocomplete="off"
-                      @click="removeSearch()"
-                      @update:model-value="filtered()"
-                    />
-
-                    <label
-                      v-if="field.selectable"
-                      :for="'select_' + field.key"
-                      :aria-label="field.label"
-                    >
-                      <BFormSelect
-                        :id="'select_' + field.key"
-                        v-model="filter[field.key].content"
-                        :options="field.selectOptions"
-                        size="sm"
-                        @update:model-value="
-                          removeSearch();
-                          filtered();
-                        "
-                      >
-                        <template #first>
-                          <BFormSelectOption :value="null">
-                            .. {{ truncate(field.label, 20) }} ..
-                          </BFormSelectOption>
-                        </template>
-                      </BFormSelect>
-                    </label>
-
-                    <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
-                    <label
-                      v-if="
-                        field.multi_selectable &&
-                        field.selectOptions &&
-                        field.selectOptions.length > 0
-                      "
-                      :for="'select_' + field.key"
-                      :aria-label="field.label"
-                    >
-                      <BFormSelect
-                        :id="'select_' + field.key"
-                        v-model="filter[field.key].content"
-                        :options="normalizeSelectOptions(field.selectOptions)"
-                        size="sm"
-                        @update:model-value="
-                          removeSearch();
-                          filtered();
-                        "
-                      >
-                        <template #first>
-                          <BFormSelectOption :value="null">
-                            .. {{ truncate(field.label, 20) }} ..
-                          </BFormSelectOption>
-                        </template>
-                      </BFormSelect>
-                    </label>
-                  </td>
-                </tr>
-              </template>
-
-              <template #cell(details)="row">
-                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
-                  {{ row.expansionShowing ? 'Hide' : 'Show' }}
-                </BButton>
-              </template>
-
-              <template #row-expansion="row">
-                <BCard>
-                  <BTable
-                    :items="row.item.entities"
-                    :fields="fields_details"
-                    head-variant="light"
-                    show-empty
-                    small
-                    fixed
-                    striped
-                    sort-icon-left
+            <div class="d-none d-md-block">
+              <BTable
+                :items="items"
+                :fields="fields"
+                :sort-by="sortBy"
+                :busy="isBusy"
+                :stacked="false"
+                head-variant="light"
+                show-empty
+                small
+                fixed
+                striped
+                hover
+                sort-icon-left
+                no-local-sorting
+                @update:sort-by="handleSortByUpdate"
+              >
+                <!-- custom formatted header -->
+                <template #head()="data">
+                  <div
+                    v-b-tooltip.hover.top
+                    :data="data"
+                    data-html="true"
+                    :title="
+                      data.label +
+                      ' (unique filtered/total values: ' +
+                      fields
+                        .filter((item) => item.label === data.label)
+                        .map((item) => {
+                          return item.count_filtered;
+                        })[0] +
+                      '/' +
+                      fields
+                        .filter((item) => item.label === data.label)
+                        .map((item) => {
+                          return item.count;
+                        })[0] +
+                      ')'
+                    "
                   >
-                    <template #cell(entity_id)="data">
-                      <EntityBadge
-                        :entity-id="data.item.entity_id"
-                        :link-to="'/Entities/' + data.item.entity_id"
-                        size="sm"
-                      />
-                    </template>
+                    {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+                  </div>
+                </template>
 
-                    <template #cell(disease_ontology_name)="data">
-                      <DiseaseBadge
-                        :name="data.item.disease_ontology_name"
-                        :ontology-id="data.item.disease_ontology_id_version"
-                        :link-to="
-                          '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                        "
-                        :max-length="35"
-                        size="sm"
+                <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+                <template #thead-top>
+                  <tr>
+                    <td v-for="field in fields" :key="field.key">
+                      <BFormInput
+                        v-if="field.filterable"
+                        v-model="filter[field.key].content"
+                        :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                        debounce="500"
+                        type="search"
+                        autocomplete="off"
+                        @click="removeSearch()"
+                        @update:model-value="filtered()"
                       />
-                    </template>
 
-                    <template #cell(ndd_phenotype_word)="data">
-                      <div
-                        v-b-tooltip.hover.left
-                        :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                      <label
+                        v-if="field.selectable"
+                        :for="'select_' + field.key"
+                        :aria-label="field.label"
                       >
-                        <NddIcon
-                          :status="data.item.ndd_phenotype_word"
+                        <BFormSelect
+                          :id="'select_' + field.key"
+                          v-model="filter[field.key].content"
+                          :options="field.selectOptions"
                           size="sm"
-                          :show-title="false"
-                        />
-                      </div>
-                    </template>
+                          @update:model-value="
+                            removeSearch();
+                            filtered();
+                          "
+                        >
+                          <template #first>
+                            <BFormSelectOption :value="null">
+                              .. {{ truncate(field.label, 20) }} ..
+                            </BFormSelectOption>
+                          </template>
+                        </BFormSelect>
+                      </label>
 
-                    <template #cell(category)="data">
-                      <div v-b-tooltip.hover.left :title="data.item.category">
-                        <CategoryIcon
-                          :category="data.item.category"
+                      <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                      <label
+                        v-if="
+                          field.multi_selectable &&
+                          field.selectOptions &&
+                          field.selectOptions.length > 0
+                        "
+                        :for="'select_' + field.key"
+                        :aria-label="field.label"
+                      >
+                        <BFormSelect
+                          :id="'select_' + field.key"
+                          v-model="filter[field.key].content"
+                          :options="normalizeSelectOptions(field.selectOptions)"
                           size="sm"
-                          :show-title="false"
+                          @update:model-value="
+                            removeSearch();
+                            filtered();
+                          "
+                        >
+                          <template #first>
+                            <BFormSelectOption :value="null">
+                              .. {{ truncate(field.label, 20) }} ..
+                            </BFormSelectOption>
+                          </template>
+                        </BFormSelect>
+                      </label>
+                    </td>
+                  </tr>
+                </template>
+
+                <template #cell(details)="row">
+                  <BButton
+                    class="btn-xs fw-semibold"
+                    variant="outline-primary"
+                    :aria-label="
+                      (row.expansionShowing ? 'Hide details for ' : 'Show details for ') +
+                      row.item.symbol
+                    "
+                    @click="row.toggleExpansion"
+                  >
+                    {{ row.expansionShowing ? 'Hide' : 'Show' }}
+                  </BButton>
+                </template>
+
+                <template #row-expansion="row">
+                  <BCard>
+                    <BTable
+                      :items="row.item.entities"
+                      :fields="fields_details"
+                      head-variant="light"
+                      show-empty
+                      small
+                      fixed
+                      striped
+                      sort-icon-left
+                    >
+                      <template #cell(entity_id)="data">
+                        <EntityBadge
+                          :entity-id="data.item.entity_id"
+                          :link-to="'/Entities/' + data.item.entity_id"
+                          size="sm"
                         />
-                      </div>
-                    </template>
+                      </template>
 
-                    <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                      <InheritanceBadge
-                        :full-name="data.item.hpo_mode_of_inheritance_term_name"
-                        :hpo-term="data.item.hpo_mode_of_inheritance_term"
-                        size="sm"
-                      />
-                    </template>
-                  </BTable>
-                </BCard>
-              </template>
+                      <template #cell(disease_ontology_name)="data">
+                        <DiseaseBadge
+                          :name="data.item.disease_ontology_name"
+                          :ontology-id="data.item.disease_ontology_id_version"
+                          :link-to="
+                            '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                          "
+                          :max-length="35"
+                          size="sm"
+                        />
+                      </template>
 
-              <template #cell(symbol)="data">
-                <GeneBadge
-                  :symbol="data.item.symbol"
-                  :hgnc-id="data.item.hgnc_id"
-                  :link-to="'/Genes/' + data.item.hgnc_id"
-                  size="sm"
-                />
-              </template>
+                      <template #cell(ndd_phenotype_word)="data">
+                        <div
+                          v-b-tooltip.hover.left
+                          :title="ndd_icon_text[data.item.ndd_phenotype_word]"
+                        >
+                          <NddIcon
+                            :status="data.item.ndd_phenotype_word"
+                            size="sm"
+                            :show-title="false"
+                          />
+                        </div>
+                      </template>
 
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <div class="d-flex flex-wrap gap-1">
-                  <InheritanceBadge
-                    v-for="item in data.item.entities"
-                    :key="item.hpo_mode_of_inheritance_term_name + item.entity_id"
-                    :full-name="item.hpo_mode_of_inheritance_term_name"
-                    :hpo-term="item.hpo_mode_of_inheritance_term"
+                      <template #cell(category)="data">
+                        <div v-b-tooltip.hover.left :title="data.item.category">
+                          <CategoryIcon
+                            :category="data.item.category"
+                            size="sm"
+                            :show-title="false"
+                          />
+                        </div>
+                      </template>
+
+                      <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                        <InheritanceBadge
+                          :full-name="data.item.hpo_mode_of_inheritance_term_name"
+                          :hpo-term="data.item.hpo_mode_of_inheritance_term"
+                          size="sm"
+                        />
+                      </template>
+                    </BTable>
+                  </BCard>
+                </template>
+
+                <template #cell(symbol)="data">
+                  <GeneBadge
+                    :symbol="data.item.symbol"
+                    :hgnc-id="data.item.hgnc_id"
+                    :link-to="'/Genes/' + data.item.hgnc_id"
                     size="sm"
                   />
-                </div>
-              </template>
+                </template>
 
-              <template #cell(category)="data">
-                <div class="d-flex flex-wrap gap-1">
-                  <span
-                    v-for="item in data.item.entities"
-                    :key="item.category + item.entity_id"
-                    v-b-tooltip.hover.left
-                    :title="item.category"
-                  >
-                    <CategoryIcon :category="item.category" size="sm" :show-title="false" />
-                  </span>
-                </div>
-              </template>
+                <template #cell(hpo_mode_of_inheritance_term_name)="data">
+                  <div class="d-flex flex-wrap gap-1">
+                    <InheritanceBadge
+                      v-for="item in data.item.entities"
+                      :key="item.hpo_mode_of_inheritance_term_name + item.entity_id"
+                      :full-name="item.hpo_mode_of_inheritance_term_name"
+                      :hpo-term="item.hpo_mode_of_inheritance_term"
+                      size="sm"
+                    />
+                  </div>
+                </template>
 
-              <template #cell(ndd_phenotype_word)="data">
-                <div class="d-flex flex-wrap gap-1">
-                  <span
-                    v-for="item in data.item.entities"
-                    :key="item.ndd_phenotype_word + item.entity_id"
-                    v-b-tooltip.hover.left
-                    :title="ndd_icon_text[item.ndd_phenotype_word]"
-                  >
-                    <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
-                  </span>
-                </div>
-              </template>
+                <template #cell(category)="data">
+                  <div class="d-flex flex-wrap gap-1">
+                    <span
+                      v-for="item in data.item.entities"
+                      :key="item.category + item.entity_id"
+                      v-b-tooltip.hover.left
+                      :title="item.category"
+                    >
+                      <CategoryIcon :category="item.category" size="sm" :show-title="false" />
+                    </span>
+                  </div>
+                </template>
 
-              <template #cell(entities_count)="data">
-                <BBadge variant="secondary" pill class="px-2">
-                  {{ data.item.entities_count }}
-                </BBadge>
-              </template>
-            </BTable>
-          </BCard>
+                <template #cell(ndd_phenotype_word)="data">
+                  <div class="d-flex flex-wrap gap-1">
+                    <span
+                      v-for="item in data.item.entities"
+                      :key="item.ndd_phenotype_word + item.entity_id"
+                      v-b-tooltip.hover.left
+                      :title="ndd_icon_text[item.ndd_phenotype_word]"
+                    >
+                      <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
+                    </span>
+                  </div>
+                </template>
+
+                <template #cell(entities_count)="data">
+                  <BBadge variant="secondary" pill class="px-2">
+                    {{ data.item.entities_count }}
+                  </BBadge>
+                </template>
+              </BTable>
+            </div>
+            <div class="d-md-none">
+              <GenesMobileRows :items="items" />
+            </div>
+          </TableShell>
         </BCol>
       </BRow>
     </BContainer>
@@ -325,10 +337,12 @@ import {
 } from '@/composables';
 
 // Import the Table components
-import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import TableShell from '@/components/table/TableShell.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
+import GenesMobileRows from '@/components/tables/GenesMobileRows.vue';
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -360,8 +374,10 @@ export default {
     BCard,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
-    TableHeaderLabel,
     TableSearchInput,
+    TableShell,
+    TableLoadingState,
+    GenesMobileRows,
     CategoryIcon,
     NddIcon,
     GeneBadge,
