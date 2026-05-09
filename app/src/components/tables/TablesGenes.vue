@@ -693,12 +693,20 @@ export default {
         this.isBusy = true;
         try {
           const sharedData = await moduleInFlightPromise;
+          if (moduleInFlightParams !== urlParam) {
+            return;
+          }
           this.applyApiResponse(sharedData);
         } catch (e) {
+          if (moduleInFlightParams !== urlParam) {
+            return;
+          }
           this.makeToast(e, 'Error', 'danger');
         } finally {
-          this.isBusy = false;
-          this.loading = false;
+          if (moduleInFlightParams === urlParam) {
+            this.isBusy = false;
+            this.loading = false;
+          }
         }
         return;
       }
