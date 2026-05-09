@@ -1,7 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signin } from '@/api/auth';
 import AppNavbar from './AppNavbar.vue';
 
 vi.mock('@/api/auth', () => ({
@@ -31,7 +32,8 @@ const mountNavbar = async () => {
         },
         BNavbarToggle: {
           props: ['target'],
-          template: '<button class="navbar-toggler-stub" :aria-controls="target" />',
+          template:
+            '<button class="navbar-toggler-stub" :aria-controls="target" v-bind="$attrs" />',
         },
         BCollapse: {
           props: ['id', 'modelValue', 'isNav'],
@@ -58,6 +60,11 @@ const mountNavbar = async () => {
 };
 
 describe('AppNavbar', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(signin).mockReset();
+  });
+
   it('keeps the SysNDD logo while using compact modern app chrome classes', async () => {
     const wrapper = await mountNavbar();
 
@@ -73,5 +80,39 @@ describe('AppNavbar', () => {
 
     const triggers = wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text());
     expect(triggers).toEqual(['Tables', 'Analyses', 'Help']);
+  });
+
+  it('labels the collapsed navigation trigger for mobile and assistive tech', async () => {
+    const wrapper = await mountNavbar();
+
+    const toggle = wrapper.get('.navbar-toggler-stub');
+    expect(toggle.attributes('aria-label')).toBe('Open navigation menu');
+    expect(toggle.attributes('aria-expanded')).toBe('false');
+  });
+
+  it('shows admin menus from the persisted auth payload while JWT validation is still pending', async () => {
+    localStorage.setItem('token', 'admin-token');
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
+        user_id: [3],
+        user_name: ['Christiane'],
+        email: ['christiane.zweier@insel.ch'],
+        user_role: ['Administrator'],
+        user_created: ['2022-06-09'],
+        abbreviation: ['CZ'],
+        orcid: ['0000-0001-8002-2020'],
+        exp: [Math.floor(Date.now() / 1000) + 3600],
+      })
+    );
+    vi.mocked(signin).mockReturnValue(new Promise(() => {}));
+
+    const wrapper = await mountNavbar();
+
+    const triggers = wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text());
+    expect(triggers).toContain('Administration');
+    expect(triggers).toContain('Curation');
+    expect(triggers).toContain('Review');
+    expect(triggers).toContain('Christiane');
   });
 });

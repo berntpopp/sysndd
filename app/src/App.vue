@@ -135,6 +135,27 @@ body {
   overflow: hidden;
 }
 
+.toast-container.top-0 {
+  top: 64px !important;
+}
+
+@media (max-width: 575.98px) {
+  .toast-container.top-0 {
+    right: 0 !important;
+    left: 0 !important;
+    width: min(100vw - 1.5rem, 24rem);
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .toast-container.top-0 .toast {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 // Native scrollbar styling
 .scrollable-content {
   height: calc(100vh - 108px);
