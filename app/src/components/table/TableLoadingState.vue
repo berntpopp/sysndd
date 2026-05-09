@@ -89,4 +89,11 @@ withDefaults(
     min-height: 5.5rem;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .table-loading-state__cell {
+    animation: none;
+    background-size: 100% 100%;
+  }
+}
 </style>

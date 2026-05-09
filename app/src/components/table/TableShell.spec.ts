@@ -40,4 +40,19 @@ describe('TableShell', () => {
     expect(wrapper.find('[data-testid="loading"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="body"]').exists()).toBe(false)
   })
+
+  it('renders the default loading state when no loading slot is provided', () => {
+    const wrapper = mount(TableShell, {
+      props: {
+        title: 'Genes',
+        loading: true,
+      },
+      slots: {
+        default: '<div data-testid="body">Loaded</div>',
+      },
+    })
+
+    expect(wrapper.find('[role="status"]').attributes('aria-label')).toBe('Loading table data')
+    expect(wrapper.find('[data-testid="body"]').exists()).toBe(false)
+  })
 })
