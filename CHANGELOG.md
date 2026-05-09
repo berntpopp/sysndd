@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.16.4] — 2026-05-09
+
+Patch bump for the gene detail UI/UX density and ClinVar summary improvements in PR #327.
+
+### Changed
+
+- **Gene detail external evidence cards are denser and more readable.** Tightens gnomAD constraint, ClinVar, Model Organisms, and protein/gene visualization presentation while preserving the Vue 3 + TypeScript + Bootstrap Vue Next architecture.
+- **Associated entities embed no longer shows the global table search row.** Adds a `showSearchInput` option to `TablesEntities` and disables it only for the gene-detail Associated table.
+- **ClinVar summary is richer without loading the full variant list into the card.** The `summary=true` gnomAD ClinVar response now includes compact consequence and per-class breakdowns, and the card renders keyboard-accessible dense chips with popover breakdowns.
+
+### Fixed
+
+- **Gene detail contrast and spacing regressions.** Improves compact label contrast, no-data states, card density, and protein panel overflow behavior.
+- **Gene page accessibility issues.** Addresses page heading semantics, decorative SVG ARIA, model-organism badge accessible names, and navbar list semantics touched by the gene detail audit.
+
 ## [0.16.2] — 2026-05-08
 
 Patch bump for the consolidated dependency refresh in PR #321, combining Dependabot PRs #316, #317, and #312.
