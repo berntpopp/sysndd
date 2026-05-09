@@ -39,6 +39,19 @@ describe('useGeneClinVarCounts', () => {
             likely_benign: 650,
             benign: 120,
           },
+          consequence_counts: [{ key: 'missense', label: 'Missense', count: 850 }],
+          class_breakdowns: {
+            pathogenic: {
+              label: 'Pathogenic',
+              short_label: 'P',
+              count: 235,
+              consequences: [{ key: 'lof', label: 'LoF', count: 200 }],
+            },
+          },
+          quality_counts: {
+            in_gnomad: 300,
+            review_stars: { 0: 10, 1: 250, 2: 30, 3: 8, 4: 2 },
+          },
           variant_count: 1746,
           summary: true,
         });
@@ -49,6 +62,8 @@ describe('useGeneClinVarCounts', () => {
     await nextTick();
     expect(summaryFlag).toBe('true');
     expect(hook.data.value?.counts.pathogenic).toBe(235);
+    expect(hook.data.value?.class_breakdowns.pathogenic.consequences[0].key).toBe('lof');
+    expect(hook.data.value?.consequence_counts[0].label).toBe('Missense');
     expect(hook.data.value?.variant_count).toBe(1746);
     expect(hook.error.value).toBeNull();
     w.unmount();

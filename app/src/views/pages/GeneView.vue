@@ -103,6 +103,8 @@
                 :loading="false"
                 :error="null"
                 :counts="clinvarCounts.data.value?.counts ?? null"
+                :class-breakdowns="clinvarCounts.data.value?.class_breakdowns ?? null"
+                :consequence-counts="clinvarCounts.data.value?.consequence_counts ?? null"
                 :total-count="clinvarCounts.data.value?.variant_count ?? 0"
                 @retry="clinvarCounts.refresh"
               />

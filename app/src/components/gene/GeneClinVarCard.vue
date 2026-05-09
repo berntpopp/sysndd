@@ -42,58 +42,75 @@
       <span class="text-muted small">No ClinVar variants returned for this gene.</span>
     </div>
 
-    <!-- ACMG Badge Row -->
-    <div v-else class="d-flex flex-wrap gap-2 px-3 py-2">
-      <BBadge
-        v-if="counts.pathogenic > 0"
-        variant="danger"
-        class="py-2 px-3"
-        :aria-label="`Pathogenic: ${counts.pathogenic} variants`"
-      >
-        <strong>Pathogenic</strong> ({{ counts.pathogenic }})
-      </BBadge>
+    <!-- Dense ACMG chip row -->
+    <div v-else class="clinvar-chip-panel px-2 py-2">
+      <div class="clinvar-chip-row" aria-label="ClinVar pathogenicity summary">
+        <BButton
+          v-for="chip in visibleChips"
+          :id="chip.id"
+          :key="chip.key"
+          type="button"
+          size="sm"
+          class="clinvar-chip"
+          :class="chip.className"
+          :aria-label="`${chip.shortLabel} ${chip.count} ${chip.label} variants`"
+          @click="toggleChip(chip.key)"
+          @keydown.enter.prevent="toggleChip(chip.key)"
+          @keydown.space.prevent="toggleChip(chip.key)"
+        >
+          <span class="clinvar-chip__text">{{ chip.shortLabel }} {{ chip.count }}</span>
+        </BButton>
 
-      <BBadge
-        v-if="counts.likely_pathogenic > 0"
-        class="badge-lp py-2 px-3"
-        :aria-label="`Likely Pathogenic: ${counts.likely_pathogenic} variants`"
-      >
-        <strong>Likely Pathogenic</strong> ({{ counts.likely_pathogenic }})
-      </BBadge>
+        <BPopover
+          v-for="chip in visibleChips"
+          :key="`${chip.key}-popover`"
+          :target="chip.id"
+          :model-value="openChip === chip.key"
+          placement="bottom"
+          triggers="manual"
+          class="clinvar-breakdown-popover"
+          @update:model-value="openChip = $event ? chip.key : null"
+        >
+          <template #title>
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <span>{{ chip.label }} ({{ chip.count }})</span>
+              <button
+                type="button"
+                class="btn-close btn-close-sm"
+                aria-label="Close"
+                @click="openChip = null"
+              ></button>
+            </div>
+          </template>
 
-      <BBadge
-        v-if="counts.vus > 0"
-        variant="warning"
-        class="py-2 px-3"
-        :aria-label="`VUS: ${counts.vus} variants`"
-      >
-        <strong>VUS</strong> ({{ counts.vus }})
-      </BBadge>
-
-      <BBadge
-        v-if="counts.likely_benign > 0"
-        class="badge-lb py-2 px-3"
-        :aria-label="`Likely Benign: ${counts.likely_benign} variants`"
-      >
-        <strong>Likely Benign</strong> ({{ counts.likely_benign }})
-      </BBadge>
-
-      <BBadge
-        v-if="counts.benign > 0"
-        variant="success"
-        class="py-2 px-3"
-        :aria-label="`Benign: ${counts.benign} variants`"
-      >
-        <strong>Benign</strong> ({{ counts.benign }})
-      </BBadge>
+          <div v-if="chip.consequences.length > 0" class="clinvar-breakdown">
+            <div
+              v-for="item in chip.consequences"
+              :key="`${chip.key}-${item.key}`"
+              class="clinvar-breakdown__row"
+            >
+              <span>{{ item.label }}</span>
+              <span class="clinvar-breakdown__value">
+                {{ item.count }}
+                <span class="text-muted">({{ formatPercent(item.count, chip.count) }})</span>
+              </span>
+            </div>
+          </div>
+          <p v-else class="text-muted small mb-0">No consequence breakdown available.</p>
+        </BPopover>
+      </div>
     </div>
   </BCard>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { BCard, BButton, BSpinner, BBadge } from 'bootstrap-vue-next';
+import { computed, ref } from 'vue';
+import { BCard, BButton, BSpinner, BPopover } from 'bootstrap-vue-next';
 import type { ClinVarVariant } from '@/types/external';
+import type {
+  ClinVarClassBreakdown,
+  ClinVarConsequenceCount,
+} from '@/composables/useGeneClinVarCounts';
 
 export interface ClinVarCounts {
   pathogenic: number;
@@ -111,12 +128,16 @@ interface Props {
   // a precomputed `counts`+`totalCount` pair (preferred — see useGeneClinVarCounts).
   data?: ClinVarVariant[] | null;
   counts?: ClinVarCounts | null;
+  classBreakdowns?: Partial<Record<keyof ClinVarCounts, ClinVarClassBreakdown>> | null;
+  consequenceCounts?: ClinVarConsequenceCount[] | null;
   totalCount?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   data: null,
   counts: null,
+  classBreakdowns: null,
+  consequenceCounts: null,
   totalCount: 0,
 });
 
@@ -173,6 +194,56 @@ const totalCount = computed(() => {
   if (props.counts) return props.totalCount ?? 0;
   return props.data?.length ?? 0;
 });
+
+const openChip = ref<keyof ClinVarCounts | null>(null);
+
+const chipMeta: Array<{
+  key: keyof ClinVarCounts;
+  label: string;
+  shortLabel: string;
+  className: string;
+}> = [
+  { key: 'pathogenic', label: 'Pathogenic', shortLabel: 'P', className: 'clinvar-chip--p' },
+  {
+    key: 'likely_pathogenic',
+    label: 'Likely pathogenic',
+    shortLabel: 'LP',
+    className: 'clinvar-chip--lp',
+  },
+  { key: 'vus', label: 'VUS', shortLabel: 'VUS', className: 'clinvar-chip--vus' },
+  {
+    key: 'likely_benign',
+    label: 'Likely benign',
+    shortLabel: 'LB',
+    className: 'clinvar-chip--lb',
+  },
+  { key: 'benign', label: 'Benign', shortLabel: 'B', className: 'clinvar-chip--b' },
+];
+
+const visibleChips = computed(() =>
+  chipMeta
+    .map((meta) => {
+      const breakdown = props.classBreakdowns?.[meta.key];
+      return {
+        ...meta,
+        id: `clinvar-chip-${props.geneSymbol}-${meta.key}`,
+        label: breakdown?.label ?? meta.label,
+        shortLabel: breakdown?.short_label ?? meta.shortLabel,
+        count: breakdown?.count ?? counts.value[meta.key],
+        consequences: breakdown?.consequences ?? [],
+      };
+    })
+    .filter((chip) => chip.count > 0)
+);
+
+function toggleChip(key: keyof ClinVarCounts): void {
+  openChip.value = openChip.value === key ? null : key;
+}
+
+function formatPercent(count: number, total: number): string {
+  if (total <= 0) return '0%';
+  return `${Math.round((count / total) * 100)}%`;
+}
 </script>
 
 <style scoped>
@@ -185,15 +256,93 @@ const totalCount = computed(() => {
   border-top: 1px dashed #adb5bd;
 }
 
-/* Custom badge color for Likely Pathogenic (orange) */
-.badge-lp {
-  background-color: #fd7e14 !important;
-  color: #212529 !important;
+.clinvar-chip-panel {
+  min-height: 3.25rem;
 }
 
-/* Custom badge color for Likely Benign (light green/teal) */
-.badge-lb {
-  background-color: #20c997 !important;
-  color: #212529 !important;
+.clinvar-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.clinvar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.clinvar-chip:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+.clinvar-chip__text {
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.clinvar-chip--p {
+  background: #b42318;
+  color: #fff;
+}
+
+.clinvar-chip--lp {
+  background: #f97316;
+  color: #111827;
+}
+
+.clinvar-chip--vus {
+  background: #ffc107;
+  color: #212529;
+}
+
+.clinvar-chip--lb {
+  background: #20c997;
+  color: #102a1d;
+}
+
+.clinvar-chip--b {
+  background: #198754;
+  color: #fff;
+}
+
+.clinvar-breakdown {
+  min-width: 12rem;
+}
+
+.clinvar-breakdown__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.clinvar-breakdown__row:last-child {
+  border-bottom: 0;
+}
+
+.clinvar-breakdown__value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.btn-close-sm {
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0.25rem;
+  background-size: 0.75rem;
 }
 </style>

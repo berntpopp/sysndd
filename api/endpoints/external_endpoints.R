@@ -179,36 +179,14 @@ function(symbol, res, summary = "false") {
 
   if (is_summary) {
     variants <- result$variants %||% list()
-    # Mirror app/src/components/gene/GeneClinVarCard.vue:131-145 classification
-    # logic exactly so the server- and client-counted totals stay identical.
-    classify <- function(s) {
-      if (is.null(s) || is.na(s) || s == "") return("uncategorized")
-      key <- gsub("_", " ", tolower(as.character(s)), fixed = TRUE)
-      has_lp <- grepl("likely", key, fixed = TRUE) && grepl("pathogenic", key, fixed = TRUE)
-      has_lb <- grepl("likely", key, fixed = TRUE) && grepl("benign", key, fixed = TRUE)
-      if (grepl("pathogenic", key, fixed = TRUE) && !grepl("likely", key, fixed = TRUE)) return("pathogenic")
-      if (has_lp) return("likely_pathogenic")
-      if (grepl("uncertain", key, fixed = TRUE) || grepl("vus", key, fixed = TRUE)) return("vus")
-      if (has_lb) return("likely_benign")
-      if (grepl("benign", key, fixed = TRUE) && !grepl("likely", key, fixed = TRUE)) return("benign")
-      "other"
-    }
-    sigs <- vapply(variants, function(v) classify(v$clinical_significance), character(1))
-    counts <- list(
-      pathogenic = sum(sigs == "pathogenic"),
-      likely_pathogenic = sum(sigs == "likely_pathogenic"),
-      vus = sum(sigs == "vus"),
-      likely_benign = sum(sigs == "likely_benign"),
-      benign = sum(sigs == "benign")
-    )
-    return(list(
+    summary_payload <- summarise_gnomad_clinvar_variants(variants)
+    return(c(list(
       source = result$source,
       gene_symbol = result$gene_symbol,
       gene_id = result$gene_id,
-      counts = counts,
       variant_count = result$variant_count %||% length(variants),
       summary = TRUE
-    ))
+    ), summary_payload[names(summary_payload) != "variant_count"]))
   }
 
   # Success — full variant payload (default)

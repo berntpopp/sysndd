@@ -21,11 +21,33 @@ export interface ClinVarClassificationCounts {
   benign: number;
 }
 
+export interface ClinVarConsequenceCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface ClinVarClassBreakdown {
+  label: string;
+  short_label: string;
+  count: number;
+  consequences: ClinVarConsequenceCount[];
+}
+
+export interface ClinVarQualityCounts {
+  in_gnomad: number;
+  review_stars: Record<string, number>;
+}
+
 export interface ClinVarSummary {
   source: string;
   gene_symbol: string;
   gene_id: string | null;
   counts: ClinVarClassificationCounts;
+  consequence_counts?: ClinVarConsequenceCount[];
+  class_breakdowns?: Partial<Record<keyof ClinVarClassificationCounts, ClinVarClassBreakdown>>;
+  quality_counts?: ClinVarQualityCounts;
+  other_classifications?: Record<string, number>;
   variant_count: number;
   summary: true;
 }
