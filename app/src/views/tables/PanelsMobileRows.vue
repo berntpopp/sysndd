@@ -80,7 +80,8 @@ function rowKey(item: PanelRow): string {
 
 function geneLink(item: PanelRow): string | undefined {
   const hgncId = getText(item, 'hgnc_id');
-  return hgncId ? `/Genes/${hgncId}` : undefined;
+  const symbol = getText(item, 'symbol');
+  return hgncId ? `/Genes/${hgncId}` : symbol ? `/Genes/${symbol}` : undefined;
 }
 
 function fieldLabel(key: string): string {

@@ -41,4 +41,32 @@ describe('PanelsMobileRows', () => {
     expect(wrapper.text()).toContain('HGNC:18040');
     expect(wrapper.text()).toContain('57492');
   });
+
+  it('falls back to symbol gene links when hgnc id is not selected', () => {
+    const wrapper = mount(PanelsMobileRows, {
+      props: {
+        items: [
+          {
+            symbol: 'ARID1B',
+            category: 'Definitive',
+            inheritance: 'AD',
+          },
+        ],
+        selectedFieldKeys: ['symbol', 'category', 'inheritance'],
+      },
+      global: {
+        directives: {
+          bTooltip: {},
+        },
+        stubs: {
+          BLink: {
+            props: ['to'],
+            template: '<a :href="to"><slot /></a>',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.find('a[href="/Genes/ARID1B"]').exists()).toBe(true);
+  });
 });

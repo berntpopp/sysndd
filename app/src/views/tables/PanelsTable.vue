@@ -34,82 +34,35 @@
       </template>
 
       <template v-if="!loading" #toolbar>
-        <BRow>
-          <BCol class="my-1" sm="6">
-            <BInputGroup prepend="Category" class="mb-1" size="sm">
-              <BFormSelect
-                v-model="selected_category"
-                input-id="category-select"
-                :options="categories_list"
-                text-field="value"
-                size="sm"
-                @update:model-value="requestSelected"
-              />
-            </BInputGroup>
+        <PanelsTableControls
+          :categories="categories_list"
+          :inheritance="inheritance_list"
+          :columns="columns_list"
+          :selected-category="selected_category"
+          :selected-inheritance="selected_inheritance"
+          :selected-columns="selected_columns"
+          :sort-by="sortBy"
+          :per-page="perPage"
+          :page-options="pageOptions"
+          :busy="isBusy"
+          @update:category="handleCategoryChange"
+          @update:inheritance="handleInheritanceChange"
+          @update:columns="handleColumnsChange"
+          @update:sort="handleSortControlChange"
+          @update:per-page="handlePerPageChange"
+        />
 
-            <BInputGroup prepend="Inheritance" class="mb-1" size="sm">
-              <BFormSelect
-                v-model="selected_inheritance"
-                input-id="inheritance-select"
-                :options="inheritance_list"
-                text-field="value"
-                size="sm"
-                @update:model-value="requestSelected"
-              />
-            </BInputGroup>
-          </BCol>
-
-          <BCol class="my-1" sm="6">
-            <BInputGroup prepend="Columns" class="mb-1" size="sm">
-              <BFormSelect
-                v-model="selected_columns"
-                input-id="columns-select"
-                :options="columns_list"
-                text-field="value"
-                multiple
-                :select-size="3"
-                size="sm"
-                @update:model-value="requestSelected"
-              />
-            </BInputGroup>
-          </BCol>
-
-          <BCol class="my-1" sm="6">
-            <BInputGroup prepend="Sort" class="mb-1" size="sm">
-              <BFormSelect
-                v-model="sortBy"
-                input-id="sort-select"
-                :options="sort_list"
-                text-field="value"
-                size="sm"
-                @update:model-value="requestSelected"
-              />
-            </BInputGroup>
-          </BCol>
-
-          <BCol class="my-1" sm="6">
-            <BInputGroup prepend="Per page" class="mb-1" size="sm">
-              <BFormSelect
-                id="per-page-select"
-                :model-value="perPage"
-                :options="pageOptions"
-                size="sm"
-                @update:model-value="handlePerPageChange"
-              />
-            </BInputGroup>
-
-            <BPagination
-              :model-value="currentPage"
-              :total-rows="totalRows"
-              :per-page="perPage"
-              align="fill"
-              size="sm"
-              class="my-0"
-              limit="2"
-              @update:model-value="handlePageChange"
-            />
-          </BCol>
-        </BRow>
+        <BPagination
+          :model-value="currentPage"
+          :total-rows="totalRows"
+          :per-page="perPage"
+          align="fill"
+          size="sm"
+          class="mt-2 mb-0"
+          limit="2"
+          :disabled="isBusy"
+          @update:model-value="handlePageChange"
+        />
       </template>
 
       <template #loading>
@@ -234,6 +187,7 @@ import { useToast } from '@/composables';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import PanelsMobileRows from './PanelsMobileRows.vue';
+import PanelsTableControls from './PanelsTableControls.vue';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -246,6 +200,7 @@ export default {
     TableShell,
     TableLoadingState,
     PanelsMobileRows,
+    PanelsTableControls,
   },
   setup() {
     const { makeToast } = useToast();
@@ -303,9 +258,6 @@ export default {
       },
       deep: true,
     },
-    perPage(_value) {
-      this.handlePerPageChange();
-    },
   },
   mounted() {
     this.loadOptionsData();
@@ -322,7 +274,28 @@ export default {
     handleSortByUpdate(newSortBy) {
       this.sortBy = newSortBy;
     },
+    handleCategoryChange(value) {
+      this.selected_category = value;
+      this.currentItemID = 0;
+      this.requestSelected();
+    },
+    handleInheritanceChange(value) {
+      this.selected_inheritance = value;
+      this.currentItemID = 0;
+      this.requestSelected();
+    },
+    handleColumnsChange(value) {
+      this.selected_columns = value;
+      this.currentItemID = 0;
+      this.requestSelected();
+    },
+    handleSortControlChange(value) {
+      this.sortBy = value;
+      this.currentItemID = 0;
+      this.requestSelected();
+    },
     handlePerPageChange(newPerPage) {
+      if (newPerPage === undefined || newPerPage === null) return;
       this.perPage = typeof newPerPage === 'string' ? parseInt(newPerPage, 10) : newPerPage;
       this.currentItemID = 0;
       this.requestSelected();
