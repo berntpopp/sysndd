@@ -1,0 +1,15 @@
+{
+  "symbol": "CHD8",
+  "name": "chromodomain helicase DNA binding protein 8",
+  "hgncId": "HGNC:20153",
+  "ensemblGeneId": "ENSG00000100888",
+  "entrezId": "57680",
+  "omimId": "610528",
+  "entityCount": 2,
+  "diseases": ["autism", "CHD8-related neurodevelopmental disorder with overgrowth"],
+  "inheritanceModes": ["Autosomal dominant"],
+  "classifications": [{ "label": "Definitive", "count": 1 }],
+  "nddStatuses": [{ "label": "NDD", "count": 2 }],
+  "pmids": ["22495309", "24998929"],
+  "lastModified": "2026-05-09"
+}

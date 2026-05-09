@@ -1,12 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <!-- Modern PWA meta tag (replaces deprecated apple-mobile-web-app-capable) -->
-    <meta name="mobile-web-app-capable" content="yes">
-    <link rel="icon" href="/favicon.ico"><!-- Major Browsers -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- Major Browsers -->
+    <meta
+      name="description"
+      content="SysNDD is the expert curated database of gene-inheritance-disease relationships in neurodevelopmental disorders."
+    />
+    <link rel="canonical" href="https://sysndd.dbmr.unibe.ch/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SysNDD" />
+    <meta
+      property="og:description"
+      content="SysNDD is the expert curated database of gene-inheritance-disease relationships in neurodevelopmental disorders."
+    />
+    <meta property="og:url" content="https://sysndd.dbmr.unibe.ch/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="SysNDD" />
+    <meta
+      name="twitter:description"
+      content="SysNDD is the expert curated database of gene-inheritance-disease relationships in neurodevelopmental disorders."
+    />
 
     <!-- Schema.org JSON-LD -->
     <script type="application/ld+json">
@@ -53,7 +72,12 @@
               "https://orcid.org/0000-0002-3679-1081",
               "https://github.com/berntpopp"
             ],
-            "skills": ["genetics", "bioinformatics", "high-throughput sequencing data analysis", "genetic disease curation"],
+            "skills": [
+              "genetics",
+              "bioinformatics",
+              "high-throughput sequencing data analysis",
+              "genetic disease curation"
+            ],
             "email": "mailto:bernt.popp.md@gmail.com",
             "birthDate": "1985-09-12",
             "birthPlace": "Martinskirch",
@@ -124,12 +148,16 @@
       }
     </script>
 
-    <!--[if IE]><link rel="icon" href="/favicon.ico"><![endif]--><!-- Internet Explorer-->
+    <!--[if IE]><link rel="icon" href="/favicon.ico" /><![endif]-->
+    <!-- Internet Explorer-->
     <title>SysNDD</title>
   </head>
   <body>
     <noscript>
-      <strong>We're sorry but SysNDD doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+      <strong
+        >We're sorry but SysNDD doesn't work properly without JavaScript enabled. Please enable it
+        to continue.</strong
+      >
     </noscript>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
