@@ -55,10 +55,11 @@
             :key="status"
             data-testid="ndd-status"
             class="mobile-record-row__chip"
+            :aria-label="nddLabel(status)"
             :title="nddLabel(status)"
           >
             <NddIcon :status="status" size="sm" :show-title="false" />
-            <span>{{ nddLabel(status) }}</span>
+            <span>{{ compactNddLabel(status) }}</span>
           </span>
         </div>
 
@@ -238,6 +239,10 @@ function uniqueValues(item: Item, key: string): string[] {
 
 function nddLabel(value: unknown): string {
   return displayValue(value) === 'Yes' ? 'Associated with NDD' : 'Not associated with NDD';
+}
+
+function compactNddLabel(value: unknown): string {
+  return displayValue(value) === 'Yes' ? 'NDD Yes' : 'NDD No';
 }
 
 function isExpanded(key: string): boolean {

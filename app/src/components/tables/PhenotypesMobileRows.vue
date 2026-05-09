@@ -65,8 +65,9 @@
             v-if="getText(item, 'modifier_phenotype_id')"
             class="mobile-record-row__chip"
             :aria-label="`Phenotype: ${getText(item, 'modifier_phenotype_id')}`"
+            :title="getText(item, 'modifier_phenotype_id')"
           >
-            {{ getText(item, 'modifier_phenotype_id') }}
+            {{ phenotypeSummary(item) }}
           </span>
         </div>
 
@@ -136,6 +137,19 @@ function geneLink(item: PhenotypeEntityRow): string | undefined {
 function diseaseLink(item: PhenotypeEntityRow): string | undefined {
   const ontologyId = getText(item, 'disease_ontology_id_version');
   return ontologyId ? `/Ontology/${ontologyId.replace(/_.+/g, '')}` : undefined;
+}
+
+function phenotypeSummary(item: PhenotypeEntityRow): string {
+  const ids = getText(item, 'modifier_phenotype_id')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  if (ids.length <= 2) {
+    return ids.join(', ');
+  }
+
+  return `${ids.slice(0, 2).join(', ')} +${ids.length - 2}`;
 }
 
 function getText(item: PhenotypeEntityRow, key: string): string {

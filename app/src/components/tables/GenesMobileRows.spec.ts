@@ -51,6 +51,8 @@ describe('GenesMobileRows', () => {
     expect(wrapper.findAll('[data-testid="inheritance-status"]')).toHaveLength(1);
     expect(wrapper.findAll('[data-testid="category-status"]')).toHaveLength(1);
     expect(wrapper.findAll('[data-testid="ndd-status"]')).toHaveLength(1);
+    expect(wrapper.text()).toContain('NDD Yes');
+    expect(wrapper.find('[aria-label="Associated with NDD"]').exists()).toBe(true);
 
     const detailsButton = wrapper.get('button');
     expect(detailsButton.attributes('aria-expanded')).toBe('false');

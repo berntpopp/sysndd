@@ -39,7 +39,8 @@ describe('EntitiesMobileRows', () => {
     expect(wrapper.text()).toContain('Coffin-Siris syndrome 1');
     expect(wrapper.text()).toContain('AD');
     expect(wrapper.text()).toContain('Definitive');
-    expect(wrapper.text()).toContain('Associated with NDD');
+    expect(wrapper.text()).toContain('NDD Yes');
+    expect(wrapper.find('[aria-label="Associated with NDD"]').exists()).toBe(true);
 
     expect(wrapper.get('a[href="/Entities/57"]').text()).toContain('sysndd:57');
     expect(wrapper.get('a[href="/Genes/HGNC:18040"]').text()).toContain('ARID1B');

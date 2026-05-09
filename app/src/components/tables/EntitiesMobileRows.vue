@@ -37,13 +37,13 @@
           </button>
         </div>
 
-        <div class="mobile-record-row__chips">
+        <div class="mobile-record-row__chips" aria-label="Entity summary">
           <DiseaseBadge
             v-if="hasValue(item.disease_ontology_name)"
             :name="displayValue(item.disease_ontology_name)"
             :ontology-id="displayValue(item.disease_ontology_id_version)"
             :link-to="diseaseLink(item)"
-            :max-length="40"
+            :max-length="28"
             size="sm"
           />
           <InheritanceBadge
@@ -52,20 +52,19 @@
             :hpo-term="displayValue(item.hpo_mode_of_inheritance_term)"
             size="sm"
           />
-        </div>
-
-        <div class="mobile-record-row__chips" aria-label="Entity statuses">
           <span
             v-if="isCategory(item.category)"
             class="mobile-record-row__chip"
+            :aria-label="`Category: ${displayValue(item.category)}`"
             :title="`Category: ${displayValue(item.category)}`"
           >
             <CategoryIcon :category="displayValue(item.category)" size="sm" :show-title="false" />
-            <span>{{ displayValue(item.category) }}</span>
+            <span>{{ compactCategoryLabel(item.category) }}</span>
           </span>
           <span
             v-if="isNddStatus(item.ndd_phenotype_word)"
             class="mobile-record-row__chip"
+            :aria-label="nddLabel(item.ndd_phenotype_word)"
             :title="nddLabel(item.ndd_phenotype_word)"
           >
             <NddIcon
@@ -73,7 +72,7 @@
               size="sm"
               :show-title="false"
             />
-            <span>{{ nddLabel(item.ndd_phenotype_word) }}</span>
+            <span>{{ compactNddLabel(item.ndd_phenotype_word) }}</span>
           </span>
         </div>
 
@@ -175,6 +174,15 @@ function isCategory(value: unknown): boolean {
 
 function isNddStatus(value: unknown): boolean {
   return nddStatuses.has(displayValue(value));
+}
+
+function compactCategoryLabel(value: unknown): string {
+  const category = displayValue(value);
+  return category === 'not applicable' ? 'n/a' : category;
+}
+
+function compactNddLabel(value: unknown): string {
+  return displayValue(value) === 'Yes' ? 'NDD Yes' : 'NDD No';
 }
 
 function nddLabel(value: unknown): string {

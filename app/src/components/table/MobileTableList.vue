@@ -48,7 +48,7 @@ function resolveItemKey(item: Item, index: number): string | number {
 <style>
 .mobile-table-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .mobile-table-list__empty {
@@ -62,7 +62,7 @@ function resolveItemKey(item: Item, index: number): string | number {
 }
 
 .mobile-record-row {
-  padding: 0.875rem;
+  padding: 0.625rem;
   border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 0.5rem;
   background: #fff;
@@ -88,13 +88,13 @@ function resolveItemKey(item: Item, index: number): string | number {
 
 .mobile-record-row__topline + .mobile-record-row__chips,
 .mobile-record-row__chips + .mobile-record-row__chips {
-  margin-top: 0.625rem;
+  margin-top: 0.4rem;
 }
 
 .mobile-record-row__chip {
   gap: 0.25rem;
-  min-height: 1.75rem;
-  padding: 0.2rem 0.45rem;
+  min-height: 1.5rem;
+  padding: 0.15rem 0.4rem;
   border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 999px;
   background: #f8fafc;
@@ -106,8 +106,8 @@ function resolveItemKey(item: Item, index: number): string | number {
 
 .mobile-record-row__details-button {
   flex: 0 0 auto;
-  min-height: 2rem;
-  padding: 0.25rem 0.625rem;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.55rem;
   border: 1px solid #0d6efd;
   border-radius: 0.375rem;
   background: #fff;

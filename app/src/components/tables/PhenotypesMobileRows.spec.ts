@@ -46,4 +46,33 @@ describe('PhenotypesMobileRows', () => {
     expect(wrapper.get('button').attributes('aria-expanded')).toBe('true');
     expect(wrapper.text()).toContain('2025-02-12');
   });
+
+  it('summarizes long phenotype id lists in the collapsed row', () => {
+    const wrapper = mount(PhenotypesMobileRows, {
+      props: {
+        items: [
+          {
+            ...sample,
+            modifier_phenotype_id: 'HP:0001249,HP:0001256,HP:0001871,HP:0003676',
+          },
+        ],
+      },
+      global: {
+        directives: {
+          bTooltip: {},
+        },
+        stubs: {
+          BLink: {
+            props: ['to'],
+            template: '<a :href="to"><slot /></a>',
+          },
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('HP:0001249, HP:0001256 +2');
+    expect(wrapper.get('[aria-label^="Phenotype:"]').attributes('title')).toBe(
+      'HP:0001249,HP:0001256,HP:0001871,HP:0003676'
+    );
+  });
 });
