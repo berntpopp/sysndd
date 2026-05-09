@@ -16,11 +16,7 @@
       </h5>
     </template>
 
-    <BButton
-      variant="primary"
-      :disabled="hgncJob.isLoading.value"
-      @click="$emit('start-hgnc')"
-    >
+    <BButton variant="primary" :disabled="hgncJob.isLoading.value" @click="$emit('start-hgnc')">
       <BSpinner v-if="hgncJob.isLoading.value" small type="grow" class="me-2" />
       {{ hgncJob.isLoading.value ? 'Updating...' : 'Update HGNC Data' }}
     </BButton>

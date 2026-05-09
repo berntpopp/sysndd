@@ -35,13 +35,12 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
           'Bulk Approve Complete',
           'success',
           true,
-          5000,
+          5000
         );
         onSuccess?.();
       }
     } catch (e: any) {
-      const errorMsg =
-        e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
       onToast?.(errorMsg, 'Bulk Approve Failed', 'danger');
       throw e;
     } finally {
@@ -69,13 +68,12 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
           'Bulk Role Assignment Complete',
           'success',
           true,
-          5000,
+          5000
         );
         onSuccess?.();
       }
     } catch (e: any) {
-      const errorMsg =
-        e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
       onToast?.(errorMsg, 'Bulk Role Assignment Failed', 'danger');
       throw e;
     } finally {
@@ -97,13 +95,12 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
           'Bulk Delete Complete',
           'success',
           true,
-          5000,
+          5000
         );
         onSuccess?.();
       }
     } catch (e: any) {
-      const errorMsg =
-        e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
       onToast?.(errorMsg, 'Bulk Delete Failed', 'danger');
       throw e;
     } finally {

@@ -23,7 +23,7 @@ describe('api/logs — listLogs', () => {
       http.get('/api/logs/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listLogs({ sort: '-timestamp', filter: 'status==500' });
@@ -35,9 +35,7 @@ describe('api/logs — listLogs', () => {
 
   it('throws AxiosError on 400 (invalid filter)', async () => {
     server.use(
-      http.get('/api/logs/', () =>
-        HttpResponse.json({ error: 'INVALID_FILTER' }, { status: 400 }),
-      ),
+      http.get('/api/logs/', () => HttpResponse.json({ error: 'INVALID_FILTER' }, { status: 400 }))
     );
 
     let caught: unknown;
@@ -65,7 +63,7 @@ describe('api/logs — listLogsXlsx', () => {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
         });
-      }),
+      })
     );
 
     const blob = await listLogsXlsx({ sort: 'id' });
@@ -88,7 +86,7 @@ describe('api/logs — deleteLogs', () => {
       http.delete('/api/logs/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await deleteLogs({ older_than_days: 30 });
@@ -102,8 +100,8 @@ describe('api/logs — deleteLogs', () => {
         HttpResponse.json({
           message: 'All logs deleted successfully.',
           deleted_count: 42,
-        }),
-      ),
+        })
+      )
     );
 
     const result = await deleteLogs();

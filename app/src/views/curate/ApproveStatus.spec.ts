@@ -82,8 +82,7 @@ vi.mock('@/composables', () => ({
 // factory and pull it back out below.
 vi.mock('@/router', () => {
   const push = vi.fn();
-  (globalThis as unknown as { __routerPushMock: ReturnType<typeof vi.fn> }).__routerPushMock =
-    push;
+  (globalThis as unknown as { __routerPushMock: ReturnType<typeof vi.fn> }).__routerPushMock = push;
   return {
     default: {
       push,
@@ -92,9 +91,8 @@ vi.mock('@/router', () => {
   };
 });
 
-const routerPushMock = (
-  globalThis as unknown as { __routerPushMock: ReturnType<typeof vi.fn> }
-).__routerPushMock;
+const routerPushMock = (globalThis as unknown as { __routerPushMock: ReturnType<typeof vi.fn> })
+  .__routerPushMock;
 
 // Importing the real axios plugin attaches its 401 response interceptor to
 // the shared axios default instance. The plugin also reads `VITE_BASE_URL`
@@ -245,8 +243,7 @@ const mountApproveStatus = async (): Promise<VueWrapper> => {
         BRow: { template: '<div><slot /></div>' },
         BCol: { template: '<div><slot /></div>' },
         BCard: {
-          template:
-            '<div><slot name="header" /><slot /></div>',
+          template: '<div><slot name="header" /><slot /></div>',
         },
         BButton: { template: '<button><slot /></button>' },
         BBadge: { template: '<span><slot /></span>' },
@@ -342,8 +339,7 @@ interface ApproveStatusVm {
   handleStatusOk: (event: unknown) => Promise<void>;
 }
 
-const vm = (wrapper: VueWrapper): ApproveStatusVm =>
-  wrapper.vm as unknown as ApproveStatusVm;
+const vm = (wrapper: VueWrapper): ApproveStatusVm => wrapper.vm as unknown as ApproveStatusVm;
 
 // ---------------------------------------------------------------------------
 // Per-test MSW overrides

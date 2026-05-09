@@ -25,10 +25,7 @@
       {{ ontologyJob.isLoading.value ? 'Updating...' : 'Update Ontology Annotations' }}
     </BButton>
 
-    <JobProgressDisplay
-      :job="ontologyJob"
-      idle-message="This may take several minutes..."
-    />
+    <JobProgressDisplay :job="ontologyJob" idle-message="This may take several minutes..." />
 
     <BAlert v-if="blocked" variant="warning" show class="mt-3 mb-0">
       <h6 class="alert-heading d-flex align-items-center gap-2">
@@ -39,9 +36,9 @@
         </span>
       </h6>
       <p class="mb-2 small">
-        The ontology update detected {{ blocked.critical_count }} entity-referenced version(s)
-        that would disappear with no automatic remapping. These entities need manual review
-        after force-applying.
+        The ontology update detected {{ blocked.critical_count }} entity-referenced version(s) that
+        would disappear with no automatic remapping. These entities need manual review after
+        force-applying.
       </p>
 
       <div v-if="blocked.critical_entities.length > 0" class="mb-3">

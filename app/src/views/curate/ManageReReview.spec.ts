@@ -41,14 +41,7 @@
  *   9. GET    /api/list/status                        (loadStatusOptions)
  */
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
@@ -210,8 +203,7 @@ interface ManageReReviewVm {
   handleBatchRecalculation: () => Promise<void>;
 }
 
-const vm = (wrapper: VueWrapper): ManageReReviewVm =>
-  wrapper.vm as unknown as ManageReReviewVm;
+const vm = (wrapper: VueWrapper): ManageReReviewVm => wrapper.vm as unknown as ManageReReviewVm;
 
 // ---------------------------------------------------------------------------
 // A catch-all handler suite that answers every endpoint the view hits during
@@ -227,10 +219,8 @@ function installDefaultHandlers(): void {
   server.use(
     http.get('*/api/user/list', () => HttpResponse.json([])),
     http.get('*/api/re_review/assignment_table', () => HttpResponse.json([])),
-    http.post('*/api/re_review/batch/preview', () =>
-      HttpResponse.json({ data: [] }),
-    ),
-    http.get('*/api/list/status', () => HttpResponse.json([])),
+    http.post('*/api/re_review/batch/preview', () => HttpResponse.json({ data: [] })),
+    http.get('*/api/list/status', () => HttpResponse.json([]))
   );
 }
 
@@ -275,10 +265,8 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         sawCall = true;
         const url = new URL(request.url);
         expect(url.searchParams.get('roles')).toBe('Curator,Reviewer');
-        return HttpResponse.json([
-          { user_id: 3, user_name: 'alice', user_role: 'Curator' },
-        ]);
-      }),
+        return HttpResponse.json([{ user_id: 3, user_name: 'alice', user_role: 'Curator' }]);
+      })
     );
 
     await mountManageReReview();
@@ -299,7 +287,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         expectBearerHeader(request, token);
         sawCall = true;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await mountManageReReview();
@@ -322,7 +310,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         const url = new URL(request.url);
         expect(url.searchParams.get('user_id')).toBe('7');
         return HttpResponse.json({ message: 'ok' });
-      }),
+      })
     );
 
     const wrapper = await mountManageReReview();
@@ -346,7 +334,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         const url = new URL(request.url);
         expect(url.searchParams.get('re_review_batch')).toBe('42');
         return HttpResponse.json({ message: 'ok' });
-      }),
+      })
     );
 
     const wrapper = await mountManageReReview();
@@ -370,7 +358,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         const body = (await request.json()) as { batch_size: number };
         expect(body.batch_size).toBe(100);
         return HttpResponse.json({ data: [] });
-      }),
+      })
     );
 
     await mountManageReReview();
@@ -400,7 +388,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         return HttpResponse.json({
           entry: { batch_id: 77, entity_count: 2 },
         });
-      }),
+      })
     );
 
     const wrapper = await mountManageReReview();
@@ -427,7 +415,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         expect(url.searchParams.get('re_review_batch')).toBe('42');
         expect(url.searchParams.get('user_id')).toBe('9');
         return HttpResponse.json({ message: 'ok' });
-      }),
+      })
     );
 
     const wrapper = await mountManageReReview();
@@ -458,7 +446,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
         return HttpResponse.json({
           entry: { batch_id: 42, entity_count: 20 },
         });
-      }),
+      })
     );
 
     const wrapper = await mountManageReReview();
@@ -490,7 +478,7 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
           { category_id: 1, category: 'Definitive' },
           { category_id: 2, category: 'Moderate' },
         ]);
-      }),
+      })
     );
 
     await mountManageReReview();

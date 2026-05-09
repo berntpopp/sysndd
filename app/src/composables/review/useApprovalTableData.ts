@@ -111,10 +111,7 @@ export default function useApprovalTableData<Row extends ApprovalRowLike>(
     const values = uniqueStrings(
       items.value.map((row) => (row as Record<string, unknown>)[categoryField])
     );
-    return [
-      { value: null, text: 'All Categories' },
-      ...values.map((c) => ({ value: c, text: c })),
-    ];
+    return [{ value: null, text: 'All Categories' }, ...values.map((c) => ({ value: c, text: c }))];
   });
 
   const userOptions = computed(() => {
@@ -169,13 +166,10 @@ export default function useApprovalTableData<Row extends ApprovalRowLike>(
 
   // Whenever a column filter changes, reset pagination and recompute totalRows
   // so pagination-component drives the right page count.
-  watch(
-    [filters.category, filters.user, filters.dateStart, filters.dateEnd],
-    () => {
-      table.currentPage.value = 1;
-      table.totalRows.value = filteredItems.value.length;
-    }
-  );
+  watch([filters.category, filters.user, filters.dateStart, filters.dateEnd], () => {
+    table.currentPage.value = 1;
+    table.totalRows.value = filteredItems.value.length;
+  });
 
   const clearAllFilters = () => {
     filters.text.value = null;

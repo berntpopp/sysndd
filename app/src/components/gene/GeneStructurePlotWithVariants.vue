@@ -715,7 +715,7 @@ function render(): void {
     .append('svg')
     .attr('viewBox', `0 0 ${WIDTH} ${HEIGHT}`)
     .attr('preserveAspectRatio', 'xMinYMin meet')
-    .attr('role', 'img')
+    .attr('role', 'group')
     .attr('aria-label', `Gene structure diagram for ${props.geneSymbol}`)
     .style('width', '100%')
     .style('height', 'auto');
@@ -761,7 +761,8 @@ function render(): void {
   marker
     .append('path')
     .attr('d', props.geneData.strand === '+' ? 'M 0 0 L 6 3 L 0 6 Z' : 'M 6 0 L 0 3 L 6 6 Z')
-    .attr('fill', INTRON_COLOR);
+    .attr('fill', INTRON_COLOR)
+    .attr('aria-hidden', 'true');
 
   // Render intron lines (back layer)
   props.geneData.introns.forEach((intron) => {
@@ -774,7 +775,8 @@ function render(): void {
       .attr('y2', exonY)
       .attr('stroke', INTRON_COLOR)
       .attr('stroke-width', 1)
-      .attr('marker-end', 'url(#gene-strand-arrow)');
+      .attr('marker-end', 'url(#gene-strand-arrow)')
+      .attr('aria-hidden', 'true');
   });
 
   // Render exon rectangles
@@ -794,6 +796,7 @@ function render(): void {
       .attr('stroke', EXON_STROKE)
       .attr('stroke-width', 0.5)
       .attr('cursor', 'pointer')
+      .attr('aria-hidden', 'true')
       .on('mouseover', (event: MouseEvent) => {
         showExonTooltip(event, exon);
       })
@@ -842,7 +845,8 @@ function render(): void {
           .attr('y2', markerY)
           .attr('stroke', '#999')
           .attr('stroke-width', 1)
-          .attr('opacity', 0.4);
+          .attr('opacity', 0.4)
+          .attr('aria-hidden', 'true');
 
         // Aggregated marker circle (size = count)
         const color = getAggregatedColor(agg);
@@ -858,6 +862,7 @@ function render(): void {
           .attr('stroke-width', MARKER_STROKE_WIDTH)
           .attr('opacity', opacity)
           .attr('cursor', 'pointer')
+          .attr('aria-hidden', 'true')
           .on('mouseover', (event: MouseEvent) => {
             showAggregatedTooltip(event, agg);
           })
@@ -888,7 +893,8 @@ function render(): void {
             .attr('y2', markerY)
             .attr('stroke', '#999')
             .attr('stroke-width', 1)
-            .attr('opacity', 0.6);
+            .attr('opacity', 0.6)
+            .attr('aria-hidden', 'true');
 
           // Marker circle
           const color = getVariantColor(variant);
@@ -896,6 +902,9 @@ function render(): void {
           variantGroup
             .append('circle')
             .attr('class', 'variant-marker')
+            .attr('role', 'button')
+            .attr('tabindex', '0')
+            .attr('aria-label', getVariantMarkerLabel(variant))
             .attr('cx', x)
             .attr('cy', markerY)
             .attr('r', MARKER_RADIUS)
@@ -912,8 +921,13 @@ function render(): void {
             .on('mouseout', hideTooltip)
             .on('click', (event: MouseEvent) => {
               event.stopPropagation(); // Prevent SVG click handler
-              showVariantTooltip(event, variant, true);
-              emit('variant-click', variant);
+              activateVariantMarker(event, variant);
+            })
+            .on('keydown', (event: KeyboardEvent) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              event.stopPropagation();
+              activateVariantMarker(event, variant);
             });
         });
       });
@@ -926,11 +940,15 @@ function render(): void {
     .ticks(6)
     .tickFormat((d) => formatGenomicCoordinate(d as number));
 
-  mainGroup
+  const axisGroup = mainGroup
     .append('g')
     .attr('class', 'x-axis')
     .attr('transform', `translate(0, ${innerHeight})`)
-    .call(xAxis)
+    .call(xAxis);
+
+  axisGroup.selectAll('line, path').attr('aria-hidden', 'true');
+
+  axisGroup
     .append('text')
     .attr('x', innerWidth / 2)
     .attr('y', 30)
@@ -962,6 +980,17 @@ function render(): void {
   isInitialized.value = true;
 }
 
+function getVariantMarkerLabel(variant: GenomicVariant): string {
+  return `${variant.proteinHGVS}, ${variant.classification} variant`;
+}
+
+type TooltipTriggerEvent = MouseEvent | KeyboardEvent;
+
+function activateVariantMarker(event: TooltipTriggerEvent, variant: GenomicVariant): void {
+  showVariantTooltip(event, variant, true);
+  emit('variant-click', variant);
+}
+
 /**
  * Show exon tooltip
  */
@@ -989,7 +1018,11 @@ function showExonTooltip(event: MouseEvent, exon: ClassifiedExon): void {
 /**
  * Show variant tooltip (with optional click-to-pin)
  */
-function showVariantTooltip(event: MouseEvent, variant: GenomicVariant, locked = false): void {
+function showVariantTooltip(
+  event: TooltipTriggerEvent,
+  variant: GenomicVariant,
+  locked = false
+): void {
   if (!tooltipDiv || !plotContainer.value) return;
 
   // If clicking to lock, check if already locked on this variant
@@ -1075,7 +1108,7 @@ function showAggregatedTooltip(event: MouseEvent, agg: AggregatedGenomicVariant)
 /**
  * Position tooltip with edge detection
  */
-function showTooltipAt(event: MouseEvent, html: string, locked = false): void {
+function showTooltipAt(event: TooltipTriggerEvent, html: string, locked = false): void {
   if (!tooltipDiv || !plotContainer.value) return;
 
   tooltipDiv
@@ -1088,21 +1121,43 @@ function showTooltipAt(event: MouseEvent, html: string, locked = false): void {
 
   const tooltipRect = tooltipNode.getBoundingClientRect();
   const containerRect = plotContainer.value.getBoundingClientRect();
+  const point = getTooltipClientPoint(event);
 
-  let left = event.clientX - containerRect.left + 15;
-  let top = event.clientY - containerRect.top - 10;
+  let left = point.clientX - containerRect.left + 15;
+  let top = point.clientY - containerRect.top - 10;
 
   if (left + tooltipRect.width > containerRect.width) {
-    left = event.clientX - containerRect.left - tooltipRect.width - 15;
+    left = point.clientX - containerRect.left - tooltipRect.width - 15;
   }
   if (top + tooltipRect.height > containerRect.height) {
-    top = event.clientY - containerRect.top - tooltipRect.height - 10;
+    top = point.clientY - containerRect.top - tooltipRect.height - 10;
   }
 
   left = Math.max(0, left);
   top = Math.max(0, top);
 
   tooltipDiv.style('left', `${left}px`).style('top', `${top}px`);
+}
+
+function getTooltipClientPoint(event: TooltipTriggerEvent): { clientX: number; clientY: number } {
+  if (event instanceof MouseEvent) {
+    return { clientX: event.clientX, clientY: event.clientY };
+  }
+
+  const target = event.target instanceof Element ? event.target : null;
+  const rect = target?.getBoundingClientRect();
+  if (rect) {
+    return {
+      clientX: rect.left + rect.width / 2,
+      clientY: rect.top + rect.height / 2,
+    };
+  }
+
+  const containerRect = plotContainer.value?.getBoundingClientRect();
+  return {
+    clientX: containerRect ? containerRect.left : 0,
+    clientY: containerRect ? containerRect.top : 0,
+  };
 }
 
 /**

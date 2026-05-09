@@ -71,9 +71,7 @@
               <DiseaseBadge
                 :name="data.item.disease_ontology_name"
                 :ontology-id="data.item.disease_ontology_id_version"
-                :link-to="
-                  '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
-                "
+                :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
                 :max-length="35"
                 size="sm"
               />
@@ -234,9 +232,7 @@ import EditReviewModal, {
   type ReviewInfoShape,
   type EntityInfoShape,
 } from '@/components/review/EditReviewModal.vue';
-import EditStatusModal, {
-  type StatusInfoShape,
-} from '@/components/review/EditStatusModal.vue';
+import EditStatusModal, { type StatusInfoShape } from '@/components/review/EditStatusModal.vue';
 import DismissReviewModal from '@/components/review/DismissReviewModal.vue';
 import ApproveAllModal from '@/components/review/ApproveAllModal.vue';
 
@@ -314,7 +310,9 @@ const {
   initialPerPage: 100,
 });
 const filterText = ref<string | null>(null);
-watch(filteredItems, (list) => { totalRows.value = list.length; });
+watch(filteredItems, (list) => {
+  totalRows.value = list.length;
+});
 
 // Flags
 const loadingReviewApprove = ref(true);
@@ -362,12 +360,17 @@ const status_approved = ref(false);
 const pendingDiscardTarget = ref<'review' | 'status' | null>(null);
 
 interface ReviewLoadedSnapshot {
-  synopsis: string; comment: string;
-  phenotypes: string[]; variationOntology: string[];
-  publications: string[]; genereviews: string[];
+  synopsis: string;
+  comment: string;
+  phenotypes: string[];
+  variationOntology: string[];
+  publications: string[];
+  genereviews: string[];
 }
 interface StatusLoadedSnapshot {
-  category_id: number | null; comment: string; problematic: boolean;
+  category_id: number | null;
+  comment: string;
+  problematic: boolean;
 }
 const reviewLoadedData = ref<ReviewLoadedSnapshot | null>(null);
 const statusLoadedData = ref<StatusLoadedSnapshot | null>(null);
@@ -384,10 +387,7 @@ const hasReviewChanges = computed<boolean>(() => {
     (review_info.value.comment || '') !== s.comment ||
     !arraysAreEqual([...select_phenotype.value].sort(), [...s.phenotypes].sort()) ||
     !arraysAreEqual([...select_variation.value].sort(), [...s.variationOntology].sort()) ||
-    !arraysAreEqual(
-      [...select_additional_references.value].sort(),
-      [...s.publications].sort()
-    ) ||
+    !arraysAreEqual([...select_additional_references.value].sort(), [...s.publications].sort()) ||
     !arraysAreEqual([...select_gene_reviews.value].sort(), [...s.genereviews].sort())
   );
 });
@@ -404,14 +404,22 @@ const hasStatusChanges = computed<boolean>(() => {
 // ---------------------------------------------------------------------------
 // Watchers (PMID sanitization on free-text tag inputs)
 // ---------------------------------------------------------------------------
-watch(select_additional_references, (val) => {
-  const sanitized = val.map(sanitizeInput);
-  if (!arraysAreEqual(val, sanitized)) select_additional_references.value = sanitized;
-}, { deep: true });
-watch(select_gene_reviews, (val) => {
-  const sanitized = val.map(sanitizeInput);
-  if (!arraysAreEqual(val, sanitized)) select_gene_reviews.value = sanitized;
-}, { deep: true });
+watch(
+  select_additional_references,
+  (val) => {
+    const sanitized = val.map(sanitizeInput);
+    if (!arraysAreEqual(val, sanitized)) select_additional_references.value = sanitized;
+  },
+  { deep: true }
+);
+watch(
+  select_gene_reviews,
+  (val) => {
+    const sanitized = val.map(sanitizeInput);
+    if (!arraysAreEqual(val, sanitized)) select_gene_reviews.value = sanitized;
+  },
+  { deep: true }
+);
 
 // ---------------------------------------------------------------------------
 // Data loaders (HTTP surface lives in useReviewApprovalActions for E6 reuse)
@@ -420,21 +428,31 @@ async function loadStatusList(): Promise<void> {
   try {
     const r = await getAxios().get(`${import.meta.env.VITE_API_URL}/api/list/status?tree=true`);
     status_options.value = r.data;
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  }
 }
 async function loadPhenotypesList(): Promise<void> {
   try {
     const r = await getAxios().get(`${import.meta.env.VITE_API_URL}/api/list/phenotype?tree=true`);
     const raw = Array.isArray(r.data) ? r.data : r.data?.data || [];
     phenotypes_options.value = transformModifierTree(raw);
-  } catch (e) { makeToast(e, 'Error', 'danger'); phenotypes_options.value = []; }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+    phenotypes_options.value = [];
+  }
 }
 async function loadVariationOntologyList(): Promise<void> {
   try {
-    const r = await getAxios().get(`${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`);
+    const r = await getAxios().get(
+      `${import.meta.env.VITE_API_URL}/api/list/variation_ontology?tree=true`
+    );
     const raw = Array.isArray(r.data) ? r.data : r.data?.data || [];
     variation_ontology_options.value = transformModifierTree(raw);
-  } catch (e) { makeToast(e, 'Error', 'danger'); variation_ontology_options.value = []; }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+    variation_ontology_options.value = [];
+  }
 }
 async function loadReviewTableData(): Promise<void> {
   isBusy.value = true;
@@ -468,7 +486,9 @@ async function loadReviewInfo(review_id: number): Promise<void> {
     select_gene_reviews.value = loaded.selectGeneReviews;
     reviewLoadedData.value = loaded.snapshot;
     loading_review_modal.value = false;
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  }
 }
 
 async function loadStatusInfo(status_id: number): Promise<void> {
@@ -478,20 +498,26 @@ async function loadStatusInfo(status_id: number): Promise<void> {
     status_info.value = loaded.statusInfo as StatusInfoShape;
     statusLoadedData.value = loaded.snapshot;
     loading_status_modal.value = false;
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  }
 }
 
 async function getEntity(entity_id: number): Promise<void> {
   try {
     const row = await fetchEntity(getAxios(), entity_id);
     if (row) entity_info.value = row as EntityInfoShape;
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Modal openers
 // ---------------------------------------------------------------------------
-function infoReview(item: Record<string, unknown> & { entity_id?: number; review_id?: number }): void {
+function infoReview(
+  item: Record<string, unknown> & { entity_id?: number; review_id?: number }
+): void {
   reviewModal.title = `sysndd:${item.entity_id}`;
   if (item.entity_id != null) getEntity(item.entity_id);
   if (item.review_id != null) loadReviewInfo(item.review_id);
@@ -503,25 +529,34 @@ function infoApproveReview(item: Record<string, unknown>): void {
   entity.value = item;
   showModal(approveModal.id);
 }
-function infoDismissReview(item: Record<string, unknown> & { entity_id?: number; review_id?: number }): void {
+function infoDismissReview(
+  item: Record<string, unknown> & { entity_id?: number; review_id?: number }
+): void {
   dismissModal.title = `sysndd:${item.entity_id}`;
   dismissModal.reviewId = item.review_id ?? null;
   showModal(dismissModal.id);
 }
-function infoStatus(item: Record<string, unknown> & { entity_id?: number; newest_status?: number }): void {
+function infoStatus(
+  item: Record<string, unknown> & { entity_id?: number; newest_status?: number }
+): void {
   statusModal.title = `sysndd:${item.entity_id}`;
   if (item.entity_id != null) getEntity(item.entity_id);
   if (item.newest_status != null) loadStatusInfo(item.newest_status);
   showModal(statusModal.id);
 }
-function checkAllApprove(): void { showModal('approveAllModal'); }
+function checkAllApprove(): void {
+  showModal('approveAllModal');
+}
 
 // ---------------------------------------------------------------------------
 // Submissions (endpoint HTTP in useReviewApprovalActions; the view composes
 // the reactive snapshot, fires the action, then resyncs.)
 // ---------------------------------------------------------------------------
 async function submitReviewChange(): Promise<void> {
-  if (!hasReviewChanges.value) { hideModal(reviewModal.id); return; }
+  if (!hasReviewChanges.value) {
+    hideModal(reviewModal.id);
+    return;
+  }
   isBusy.value = true;
   try {
     await submitReviewUpdate(getAxios(), {
@@ -537,12 +572,18 @@ async function submitReviewChange(): Promise<void> {
     announce(message);
     resetForm();
     loadReviewTableData();
-  } catch (e) { makeToast(e, 'Error', 'danger'); }
-  finally { isBusy.value = false; }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  } finally {
+    isBusy.value = false;
+  }
 }
 
 async function submitStatusChange(): Promise<void> {
-  if (!hasStatusChanges.value) { hideModal(statusModal.id); return; }
+  if (!hasStatusChanges.value) {
+    hideModal(statusModal.id);
+    return;
+  }
   isBusy.value = true;
   try {
     if (status_info.value.status_approved === 0) {
@@ -554,10 +595,15 @@ async function submitStatusChange(): Promise<void> {
         const r = await submitStatusUpdate(getAxios(), status_info.value);
         makeToast(
           `The new status for this entity has been submitted (status ${r.status} (${r.statusText}).`,
-          'Success', 'success'
+          'Success',
+          'success'
         );
-        resetForm(); loadReviewTableData();
-      } catch (e) { makeToast(e, 'Error', 'danger'); announce('Error submitting status', 'assertive'); }
+        resetForm();
+        loadReviewTableData();
+      } catch (e) {
+        makeToast(e, 'Error', 'danger');
+        announce('Error submitting status', 'assertive');
+      }
     } else if (status_info.value.status_approved === 1) {
       status_info.value.status_user_name = null;
       status_info.value.status_user_role = null;
@@ -567,10 +613,16 @@ async function submitStatusChange(): Promise<void> {
         const message = 'The new status for this entity has been submitted successfully.';
         makeToast(message, 'Success', 'success');
         announce(message);
-        resetForm(); loadReviewTableData();
-      } catch (e) { makeToast(e, 'Error', 'danger'); announce('Error submitting status', 'assertive'); }
+        resetForm();
+        loadReviewTableData();
+      } catch (e) {
+        makeToast(e, 'Error', 'danger');
+        announce('Error submitting status', 'assertive');
+      }
     }
-  } finally { isBusy.value = false; }
+  } finally {
+    isBusy.value = false;
+  }
 }
 
 async function handleDismissOk(): Promise<void> {
@@ -578,28 +630,44 @@ async function handleDismissOk(): Promise<void> {
     await dismissReview(getAxios(), dismissModal.reviewId ?? undefined);
     announce('Review dismissed successfully');
     loadReviewTableData();
-  } catch (e) { makeToast(e, 'Error', 'danger'); announce('Error dismissing review', 'assertive'); }
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+    announce('Error dismissing review', 'assertive');
+  }
 }
 async function handleApproveOk(): Promise<void> {
   const reviewId = (entity.value as { review_id?: number }).review_id;
   try {
     await approveReview(getAxios(), reviewId);
     announce('Review approved successfully');
-  } catch (e) { makeToast(e, 'Error', 'danger'); announce('Error approving review', 'assertive'); }
-  if (status_approved.value === true && (entity.value as { status_change?: number }).status_change === 1) {
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+    announce('Error approving review', 'assertive');
+  }
+  if (
+    status_approved.value === true &&
+    (entity.value as { status_change?: number }).status_change === 1
+  ) {
     const newestStatus = (entity.value as { newest_status?: number }).newest_status;
     try {
       await approveStatus(getAxios(), newestStatus);
       announce('Status also approved');
-    } catch (e) { makeToast(e, 'Error', 'danger'); announce('Error approving status', 'assertive'); }
+    } catch (e) {
+      makeToast(e, 'Error', 'danger');
+      announce('Error approving status', 'assertive');
+    }
   }
   resetApproveModal();
   loadReviewTableData();
 }
 async function handleAllReviewsOk(): Promise<void> {
   if (!approve_all_selected.value) return;
-  try { await approveAllReviews(getAxios()); loadReviewTableData(); }
-  catch (e) { makeToast(e, 'Error', 'danger'); }
+  try {
+    await approveAllReviews(getAxios());
+    loadReviewTableData();
+  } catch (e) {
+    makeToast(e, 'Error', 'danger');
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -615,11 +683,18 @@ function resetForm(): void {
   statusLoadedData.value = null;
   reviewLoadedData.value = null;
 }
-function resetApproveModal(): void { status_approved.value = false; }
+function resetApproveModal(): void {
+  status_approved.value = false;
+}
 
-interface ModalHideEvent { preventDefault: () => void }
+interface ModalHideEvent {
+  preventDefault: () => void;
+}
 function onStatusModalHide(event: ModalHideEvent): void {
-  if (pendingDiscardTarget.value === 'status') { pendingDiscardTarget.value = null; return; }
+  if (pendingDiscardTarget.value === 'status') {
+    pendingDiscardTarget.value = null;
+    return;
+  }
   if (hasStatusChanges.value && !isBusy.value) {
     event.preventDefault();
     pendingDiscardTarget.value = 'status';
@@ -627,7 +702,10 @@ function onStatusModalHide(event: ModalHideEvent): void {
   }
 }
 function onReviewModalHide(event: ModalHideEvent): void {
-  if (pendingDiscardTarget.value === 'review') { pendingDiscardTarget.value = null; return; }
+  if (pendingDiscardTarget.value === 'review') {
+    pendingDiscardTarget.value = null;
+    return;
+  }
   if (hasReviewChanges.value && !isBusy.value) {
     event.preventDefault();
     pendingDiscardTarget.value = 'review';
@@ -655,19 +733,46 @@ onMounted(() => {
 // Every name here is part of the documented contract; do not rename.
 // ---------------------------------------------------------------------------
 defineExpose({
-  items_ReviewTable, totalRows, currentPage, perPage, sortBy,
-  entity, entity_info, review_info, status_info,
-  select_phenotype, select_variation, select_additional_references, select_gene_reviews,
-  status_approved, approve_all_selected,
-  reviewLoadedData, statusLoadedData,
-  hasReviewChanges, hasStatusChanges,
-  loadReviewTableData, loadReviewInfo, loadStatusInfo,
-  submitReviewChange, submitStatusChange,
-  handleApproveOk, handleDismissOk, handleAllReviewsOk,
-  infoReview, infoStatus, infoApproveReview, infoDismissReview,
-  checkAllApprove, resetForm, resetApproveModal,
-  onReviewModalHide, onStatusModalHide, onConfirmDiscard, onFiltered,
-  tagValidatorPMID, sanitizeInput,
+  items_ReviewTable,
+  totalRows,
+  currentPage,
+  perPage,
+  sortBy,
+  entity,
+  entity_info,
+  review_info,
+  status_info,
+  select_phenotype,
+  select_variation,
+  select_additional_references,
+  select_gene_reviews,
+  status_approved,
+  approve_all_selected,
+  reviewLoadedData,
+  statusLoadedData,
+  hasReviewChanges,
+  hasStatusChanges,
+  loadReviewTableData,
+  loadReviewInfo,
+  loadStatusInfo,
+  submitReviewChange,
+  submitStatusChange,
+  handleApproveOk,
+  handleDismissOk,
+  handleAllReviewsOk,
+  infoReview,
+  infoStatus,
+  infoApproveReview,
+  infoDismissReview,
+  checkAllApprove,
+  resetForm,
+  resetApproveModal,
+  onReviewModalHide,
+  onStatusModalHide,
+  onConfirmDiscard,
+  onFiltered,
+  tagValidatorPMID,
+  sanitizeInput,
 });
 </script>
 
@@ -680,7 +785,10 @@ defineExpose({
   text-overflow: ellipsis;
   line-height: 1.4;
 }
-.text-popover-trigger { cursor: help; border-bottom: 1px dotted #6c757d; }
+.text-popover-trigger {
+  cursor: help;
+  border-bottom: 1px dotted #6c757d;
+}
 .text-popover-trigger:hover {
   background-color: rgba(0, 123, 255, 0.05);
   border-radius: 2px;
@@ -688,14 +796,23 @@ defineExpose({
 </style>
 
 <style>
-.wide-popover { max-width: 400px !important; }
+.wide-popover {
+  max-width: 400px !important;
+}
 .wide-popover .popover-header {
-  font-size: 0.85rem; font-weight: 600;
-  background-color: #f8f9fa; border-bottom: 1px solid #e9ecef;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
 }
 .wide-popover .popover-body {
-  max-height: 250px; overflow-y: auto;
-  font-size: 0.85rem; line-height: 1.5;
+  max-height: 250px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
-.popover-text-content { white-space: pre-wrap; word-break: break-word; }
+.popover-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 </style>

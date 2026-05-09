@@ -45,7 +45,7 @@ describe('api/analysis — getFunctionalClustering', () => {
       http.get('/api/analysis/functional_clustering', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getFunctionalClustering({
@@ -80,8 +80,8 @@ describe('api/analysis — getFunctionalClustering', () => {
             gene_count: 0,
             cluster_count: 0,
           },
-        }),
-      ),
+        })
+      )
     );
     const result = await getFunctionalClustering();
     expect(result.meta.algorithm).toBe('leiden');
@@ -93,9 +93,7 @@ describe('api/analysis — getPhenotypeClustering', () => {
     const clusters: PhenotypeCluster[] = [
       { cluster: 1, identifiers: [{ entity_id: 1, hgnc_id: 'HGNC:1', symbol: 'A1BG' }] },
     ];
-    server.use(
-      http.get('/api/analysis/phenotype_clustering', () => HttpResponse.json(clusters)),
-    );
+    server.use(http.get('/api/analysis/phenotype_clustering', () => HttpResponse.json(clusters)));
     const result = await getPhenotypeClustering();
     expect(result).toHaveLength(1);
     expect(result[0].identifiers[0].symbol).toBe('A1BG');
@@ -112,7 +110,9 @@ describe('api/analysis — getPhenotypeFunctionalCorrelation', () => {
       correlation_melted: [{ x: 'pc_1', y: 'fc_1', value: 0.2 }],
     };
     server.use(
-      http.get('/api/analysis/phenotype_functional_cluster_correlation', () => HttpResponse.json(ok)),
+      http.get('/api/analysis/phenotype_functional_cluster_correlation', () =>
+        HttpResponse.json(ok)
+      )
     );
     const result = await getPhenotypeFunctionalCorrelation();
     expect(result.correlation_melted).toHaveLength(1);
@@ -138,7 +138,7 @@ describe('api/analysis — getNetworkEdges', () => {
       http.get('/api/analysis/network_edges', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getNetworkEdges({ cluster_type: 'subclusters', min_confidence: '700' });
@@ -161,7 +161,7 @@ describe('api/analysis — getFunctionalClusterSummary', () => {
       http.get('/api/analysis/functional_cluster_summary', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getFunctionalClusterSummary({ cluster_hash: 'abc', cluster_number: '1' });
@@ -173,8 +173,8 @@ describe('api/analysis — getFunctionalClusterSummary', () => {
   it('throws AxiosError on 503 (LLM not configured)', async () => {
     server.use(
       http.get('/api/analysis/functional_cluster_summary', () =>
-        HttpResponse.json({ error: 'LLM not configured' }, { status: 503 }),
-      ),
+        HttpResponse.json({ error: 'LLM not configured' }, { status: 503 })
+      )
     );
 
     let caught: unknown;
@@ -197,9 +197,7 @@ describe('api/analysis — getPhenotypeClusterSummary', () => {
       cluster_number: 2,
       summary_json: { themes: ['ID', 'epilepsy'] },
     };
-    server.use(
-      http.get('/api/analysis/phenotype_cluster_summary', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/analysis/phenotype_cluster_summary', () => HttpResponse.json(ok)));
     const result = await getPhenotypeClusterSummary({ cluster_hash: 'def', cluster_number: '2' });
     expect(result.cluster_hash).toBe('def');
   });

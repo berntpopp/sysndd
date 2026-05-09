@@ -29,11 +29,13 @@ describe('api/review — listReviews', () => {
       http.get('/api/review/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listReviews({ filter_review_approved: true });
-    expect((observedQuery as unknown as URLSearchParams).get('filter_review_approved')).toBe('true');
+    expect((observedQuery as unknown as URLSearchParams).get('filter_review_approved')).toBe(
+      'true'
+    );
   });
 });
 
@@ -45,7 +47,7 @@ describe('api/review — createReview', () => {
       http.post('/api/review/create', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await createReview({
@@ -58,8 +60,8 @@ describe('api/review — createReview', () => {
   it('throws AxiosError on 403 (not Reviewer)', async () => {
     server.use(
       http.post('/api/review/create', () =>
-        HttpResponse.json({ status: 403, message: 'forbidden' }, { status: 403 }),
-      ),
+        HttpResponse.json({ status: 403, message: 'forbidden' }, { status: 403 })
+      )
     );
 
     let caught: unknown;
@@ -82,13 +84,10 @@ describe('api/review — updateReview', () => {
       http.put('/api/review/update', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
-    await updateReview(
-      { review_json: { entity_id: 1, synopsis: 'updated' } },
-      { re_review: true },
-    );
+    await updateReview({ review_json: { entity_id: 1, synopsis: 'updated' } }, { re_review: true });
     expect((receivedBody as { review_json?: unknown }).review_json).toBeDefined();
   });
 });
@@ -100,7 +99,7 @@ describe('api/review — getReviewById', () => {
       http.get('/api/review/:id', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getReviewById('7,8');
@@ -123,9 +122,7 @@ describe('api/review — getReviewById', () => {
         comment: null,
       },
     ];
-    server.use(
-      http.get('/api/review/:id', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/review/:id', () => HttpResponse.json(ok)));
 
     const result = await getReviewById(7);
     expect(result[0].review_id).toBe(7);
@@ -136,8 +133,16 @@ describe('api/review — getReviewPhenotypes', () => {
   it('returns the phenotypes array on 200', async () => {
     server.use(
       http.get('/api/review/:id/phenotypes', () =>
-        HttpResponse.json([{ review_id: 7, entity_id: 1, phenotype_id: 'HP:0001249', HPO_term: 'ID', modifier_id: 1 }]),
-      ),
+        HttpResponse.json([
+          {
+            review_id: 7,
+            entity_id: 1,
+            phenotype_id: 'HP:0001249',
+            HPO_term: 'ID',
+            modifier_id: 1,
+          },
+        ])
+      )
     );
     const rows = await getReviewPhenotypes(7);
     expect(rows[0].phenotype_id).toBe('HP:0001249');
@@ -148,8 +153,16 @@ describe('api/review — getReviewVariation', () => {
   it('returns the variation array on 200', async () => {
     server.use(
       http.get('/api/review/:id/variation', () =>
-        HttpResponse.json([{ review_id: 7, entity_id: 1, vario_id: 'VariO:0001', vario_name: 'missense', modifier_id: 1 }]),
-      ),
+        HttpResponse.json([
+          {
+            review_id: 7,
+            entity_id: 1,
+            vario_id: 'VariO:0001',
+            vario_name: 'missense',
+            modifier_id: 1,
+          },
+        ])
+      )
     );
     const rows = await getReviewVariation(7);
     expect(rows[0].vario_id).toBe('VariO:0001');
@@ -160,8 +173,8 @@ describe('api/review — getReviewPublications', () => {
   it('returns the publications array on 200', async () => {
     server.use(
       http.get('/api/review/:id/publications', () =>
-        HttpResponse.json([{ review_id: 7, entity_id: 1, publication_id: 'PMID:12345' }]),
-      ),
+        HttpResponse.json([{ review_id: 7, entity_id: 1, publication_id: 'PMID:12345' }])
+      )
     );
     const rows = await getReviewPublications(7);
     expect(rows[0].publication_id).toBe('PMID:12345');
@@ -175,7 +188,7 @@ describe('api/review — approveReview', () => {
       http.put('/api/review/approve/:id', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await approveReview(7, { review_ok: true });

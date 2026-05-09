@@ -16,7 +16,7 @@ describe('api/hash — createHash', () => {
       http.post('/api/hash/create', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(expected);
-      }),
+      })
     );
 
     const result = await createHash({
@@ -35,8 +35,8 @@ describe('api/hash — createHash', () => {
     server.use(
       http.post('/api/hash/create', () =>
         // R/Plumber 1-element-array wrapping when @serializer unboxedJSON is omitted.
-        HttpResponse.json([{ hash: 'wrapped123', endpoint: '/api/gene' }]),
-      ),
+        HttpResponse.json([{ hash: 'wrapped123', endpoint: '/api/gene' }])
+      )
     );
 
     const result = await createHash({ json_data: ['x'] });
@@ -46,8 +46,11 @@ describe('api/hash — createHash', () => {
   it('throws AxiosError on 400 (missing json_data)', async () => {
     server.use(
       http.post('/api/hash/create', () =>
-        HttpResponse.json({ error: "Required 'json_data' parameter not provided." }, { status: 400 }),
-      ),
+        HttpResponse.json(
+          { error: "Required 'json_data' parameter not provided." },
+          { status: 400 }
+        )
+      )
     );
     await expect(createHash({ json_data: null })).rejects.toThrow();
   });

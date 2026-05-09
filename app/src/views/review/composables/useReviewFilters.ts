@@ -86,15 +86,11 @@ const QUICK_FILTER_DEFS: readonly QuickFilterDef[] = [
 // Composable
 // ---------------------------------------------------------------------------
 
-export function useReviewFilters<T extends FilterableRow>(
-  source: Ref<T[]>,
-): UseReviewFilters<T> {
+export function useReviewFilters<T extends FilterableRow>(source: Ref<T[]>): UseReviewFilters<T> {
   // BTable bindings
   const filter = ref<string | null>(null);
   const filterOn = ref<string[]>([]);
-  const sortBy = ref<Array<{ key: string; order: string }>>([
-    { key: 'entity_id', order: 'asc' },
-  ]);
+  const sortBy = ref<Array<{ key: string; order: string }>>([{ key: 'entity_id', order: 'asc' }]);
 
   // Column filters
   const categoryFilter = ref<string | null>(null);
@@ -116,17 +112,15 @@ export function useReviewFilters<T extends FilterableRow>(
     quickFilters[key] = false;
   }
 
-  const activeQuickFilters = computed(() =>
-    quickFilterDefs.filter((qf) => quickFilters[qf.key]),
-  );
+  const activeQuickFilters = computed(() => quickFilterDefs.filter((qf) => quickFilters[qf.key]));
   const availableQuickFilters = computed(() =>
-    quickFilterDefs.filter((qf) => !quickFilters[qf.key]),
+    quickFilterDefs.filter((qf) => !quickFilters[qf.key])
   );
 
   // Derived dropdown options — null-safe Set dedup, then prepend a sentinel.
   const categoryFilterOptions = computed<DropdownOption<string | null>[]>(() => {
     const categories = [...new Set(source.value.map((item) => item.category))].filter(
-      (v): v is string => Boolean(v),
+      (v): v is string => Boolean(v)
     );
     return [
       { value: null, text: 'All Categories' },
@@ -136,12 +130,9 @@ export function useReviewFilters<T extends FilterableRow>(
 
   const userFilterOptions = computed<DropdownOption<string | null>[]>(() => {
     const users = [...new Set(source.value.map((item) => item.review_user_name))].filter(
-      (v): v is string => Boolean(v),
+      (v): v is string => Boolean(v)
     );
-    return [
-      { value: null, text: 'All Users' },
-      ...users.map((u) => ({ value: u, text: u })),
-    ];
+    return [{ value: null, text: 'All Users' }, ...users.map((u) => ({ value: u, text: u }))];
   });
 
   const filteredItems = computed<T[]>(() => {

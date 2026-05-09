@@ -28,11 +28,13 @@ describe('api/status — listStatus', () => {
       http.get('/api/status/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listStatus({ filter_status_approved: true });
-    expect((observedQuery as unknown as URLSearchParams).get('filter_status_approved')).toBe('true');
+    expect((observedQuery as unknown as URLSearchParams).get('filter_status_approved')).toBe(
+      'true'
+    );
   });
 });
 
@@ -43,7 +45,7 @@ describe('api/status — getStatusById', () => {
       http.get('/api/status/:id', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getStatusById('1,2');
@@ -68,9 +70,7 @@ describe('api/status — getStatusById', () => {
         problematic: 0,
       },
     ];
-    server.use(
-      http.get('/api/status/:id', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/status/:id', () => HttpResponse.json(ok)));
 
     const result = await getStatusById(1);
     expect(result[0].status_id).toBe(1);
@@ -84,9 +84,7 @@ describe('api/status — listStatusCategories', () => {
       meta: {},
       data: [{ category_id: 5, category: 'Definitive' }],
     };
-    server.use(
-      http.get('/api/status/_list', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/status/_list', () => HttpResponse.json(ok)));
 
     const result = await listStatusCategories();
     expect(result.data[0].category).toBe('Definitive');
@@ -100,7 +98,7 @@ describe('api/status — createStatus / updateStatus', () => {
       http.post('/api/status/create', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200, entry: { status_id: 1 } });
-      }),
+      })
     );
 
     await createStatus({ status_json: { entity_id: 7, category_id: 5 } });
@@ -113,7 +111,7 @@ describe('api/status — createStatus / updateStatus', () => {
       http.put('/api/status/update', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await updateStatus({ status_json: { entity_id: 7, category_id: 5 } });
@@ -123,8 +121,8 @@ describe('api/status — createStatus / updateStatus', () => {
   it('throws AxiosError on 403', async () => {
     server.use(
       http.post('/api/status/create', () =>
-        HttpResponse.json({ status: 403, message: 'forbidden' }, { status: 403 }),
-      ),
+        HttpResponse.json({ status: 403, message: 'forbidden' }, { status: 403 })
+      )
     );
 
     let caught: unknown;
@@ -148,7 +146,7 @@ describe('api/status — approveStatus', () => {
       http.put('/api/status/approve/:id', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await approveStatus(1, { status_ok: true });

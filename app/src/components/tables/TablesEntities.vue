@@ -64,8 +64,8 @@
               </BRow>
             </template>
 
-            <BRow>
-              <BCol class="my-1" sm="8">
+            <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
+              <BCol v-if="showSearchInput" class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
@@ -74,8 +74,12 @@
                 />
               </BCol>
 
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
+              <BCol
+                v-if="totalRows > perPage || showPaginationControls"
+                class="my-1"
+                :sm="showSearchInput ? 4 : 12"
+              >
+                <BContainer>
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -255,6 +259,7 @@
  * @example
  * <TablesEntities
  *  showFilterControls={true}
+ *  showSearchInput={true}
  *  showPaginationControls={true}
  *  headerLabel="Entities table"
  *  sortInput="+entity_id"
@@ -331,6 +336,7 @@ export default {
       default: 'entity',
     },
     showFilterControls: { type: Boolean, default: true },
+    showSearchInput: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Entities table' },
     sortInput: { type: String, default: '+entity_id' },
@@ -855,19 +861,35 @@ export default {
   background-size: 400% 100%;
   animation: entities-skeleton-shimmer 1.4s ease infinite;
 }
-.entities-skeleton-w-8  { width: 8%;  }
-.entities-skeleton-w-10 { width: 10%; }
-.entities-skeleton-w-12 { width: 12%; }
-.entities-skeleton-w-15 { width: 15%; }
-.entities-skeleton-w-30 { width: 30%; }
+.entities-skeleton-w-8 {
+  width: 8%;
+}
+.entities-skeleton-w-10 {
+  width: 10%;
+}
+.entities-skeleton-w-12 {
+  width: 12%;
+}
+.entities-skeleton-w-15 {
+  width: 15%;
+}
+.entities-skeleton-w-30 {
+  width: 30%;
+}
 .entities-skeleton-row + .entities-skeleton-row {
   border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 @keyframes entities-skeleton-shimmer {
-  0%   { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .entities-skeleton-line { animation: none; }
+  .entities-skeleton-line {
+    animation: none;
+  }
 }
 </style>

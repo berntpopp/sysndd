@@ -13,11 +13,7 @@ import { listEntities, type EntityRow } from '@/api/entity';
 import { useResource, type ResourceState } from './useResource';
 
 export function useEntityRecord(
-  entityId:
-    | string
-    | number
-    | Ref<string | number | null>
-    | ComputedRef<string | number | null>,
+  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>
 ): ResourceState<EntityRow | null> {
   const idRef = computed<string | null>(() => {
     let v: string | number | null;
@@ -26,18 +22,13 @@ export function useEntityRecord(
     if (v === null || v === '' || v === undefined) return null;
     return String(v);
   });
-  const key = computed<string | null>(() =>
-    idRef.value ? `entity:${idRef.value}` : null,
-  );
+  const key = computed<string | null>(() => (idRef.value ? `entity:${idRef.value}` : null));
   return useResource<EntityRow | null>(
     key,
     async (signal) => {
-      const res = await listEntities(
-        { filter: `equals(entity_id,${idRef.value})` },
-        { signal },
-      );
+      const res = await listEntities({ filter: `equals(entity_id,${idRef.value})` }, { signal });
       return res.data[0] ?? null;
     },
-    { ttlMs: 60_000 },
+    { ttlMs: 60_000 }
   );
 }

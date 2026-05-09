@@ -101,7 +101,7 @@ export interface InheritanceSearchTreeNode {
 export async function searchEntities(
   searchterm: string,
   params: SearchEntityParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntitySearchHelperResponse | EntitySearchRow[]> {
   const path = `/api/search/${encodeURIComponent(searchterm)}`;
   return apiClient.get<EntitySearchHelperResponse | EntitySearchRow[]>(path, {
@@ -125,17 +125,17 @@ export async function searchEntities(
 export async function searchOntology(
   searchterm: string,
   params: OntologySearchParams & { tree: true },
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<OntologyTreeNode[]>;
 export async function searchOntology(
   searchterm: string,
   params?: OntologySearchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<OntologyTreeNode[] | Record<string, unknown>>;
 export async function searchOntology(
   searchterm: string,
   params: OntologySearchParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<OntologyTreeNode[] | Record<string, unknown>> {
   const path = `/api/search/ontology/${encodeURIComponent(searchterm)}`;
   return apiClient.get<OntologyTreeNode[] | Record<string, unknown>>(path, {
@@ -155,17 +155,17 @@ export async function searchOntology(
 export async function searchGene(
   searchterm: string,
   params: GeneSearchParams & { tree: true },
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<GeneSearchTreeNode[]>;
 export async function searchGene(
   searchterm: string,
   params?: GeneSearchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<GeneSearchTreeNode[] | Record<string, unknown>>;
 export async function searchGene(
   searchterm: string,
   params: GeneSearchParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<GeneSearchTreeNode[] | Record<string, unknown>> {
   const path = `/api/search/gene/${encodeURIComponent(searchterm)}`;
   return apiClient.get<GeneSearchTreeNode[] | Record<string, unknown>>(path, {
@@ -183,7 +183,7 @@ export async function searchGene(
 export async function searchInheritance(
   searchterm: string,
   params: InheritanceSearchParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<InheritanceSearchTreeNode[] | Record<string, unknown>> {
   const path = `/api/search/inheritance/${encodeURIComponent(searchterm)}`;
   return apiClient.get<InheritanceSearchTreeNode[] | Record<string, unknown>>(path, {

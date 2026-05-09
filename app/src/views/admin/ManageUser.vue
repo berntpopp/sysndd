@@ -131,7 +131,10 @@
               <BCol sm="4">
                 <BFormSelect
                   v-model="filter.approved.content"
-                  :options="[{ value: '1', text: 'Approved' }, { value: '0', text: 'Pending' }]"
+                  :options="[
+                    { value: '1', text: 'Approved' },
+                    { value: '0', text: 'Pending' },
+                  ]"
                   size="sm"
                   @update:model-value="filtered()"
                 >
@@ -232,7 +235,7 @@
                 </template>
                 <template #cell-user_role="{ row }">
                   <BBadge
-                    :variant="(getRoleBadgeVariant(row.user_role) as any)"
+                    :variant="getRoleBadgeVariant(row.user_role) as any"
                     class="d-inline-flex align-items-center gap-1"
                   >
                     <i :class="getRoleIcon(row.user_role)" />
@@ -257,7 +260,7 @@
       <!-- Modals -->
       <UserDeleteConfirmModal
         v-model:visible="isDeleteOpen"
-        :user="(userToDelete as any)"
+        :user="userToDelete as any"
         @confirm="onConfirmDelete"
         @cancel="close"
       />
@@ -346,38 +349,100 @@ export default defineComponent({
     const modals = useUserModals({ onToast: toastFn });
     const mutations = useUserMutations({
       onToast: toastFn,
-      onSuccess: () => { void data.loadData(); modals.close(); },
+      onSuccess: () => {
+        void data.loadData();
+        modals.close();
+      },
     });
     const bulk = useBulkUserActions({
       onToast: toastFn,
-      onSuccess: () => { void data.loadData(); bulkSelection.clearSelection(); modals.close(); },
+      onSuccess: () => {
+        void data.loadData();
+        bulkSelection.clearSelection();
+        modals.close();
+      },
     });
 
     // ── Derived state ──────────────────────────────────────────────────────────
     const fields = [
-      { key: 'select', label: '', class: 'text-center', thStyle: { width: '40px' }, sortable: false },
-      { key: 'user_name', label: 'User name', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-start' },
-      { key: 'email', label: 'E-mail', sortable: true, filterable: true, sortDirection: 'asc', class: 'text-start' },
-      { key: 'user_role', label: 'Role', sortable: true, selectable: true, sortDirection: 'asc', class: 'text-start' },
-      { key: 'approved', label: 'Status', sortable: true, selectable: true, sortDirection: 'asc', class: 'text-center' },
-      { key: 'abbreviation', label: 'Abbrev.', sortable: true, sortDirection: 'asc', class: 'text-start' },
-      { key: 'created_at', label: 'Created', sortable: true, sortDirection: 'asc', class: 'text-start' },
+      {
+        key: 'select',
+        label: '',
+        class: 'text-center',
+        thStyle: { width: '40px' },
+        sortable: false,
+      },
+      {
+        key: 'user_name',
+        label: 'User name',
+        sortable: true,
+        filterable: true,
+        sortDirection: 'asc',
+        class: 'text-start',
+      },
+      {
+        key: 'email',
+        label: 'E-mail',
+        sortable: true,
+        filterable: true,
+        sortDirection: 'asc',
+        class: 'text-start',
+      },
+      {
+        key: 'user_role',
+        label: 'Role',
+        sortable: true,
+        selectable: true,
+        sortDirection: 'asc',
+        class: 'text-start',
+      },
+      {
+        key: 'approved',
+        label: 'Status',
+        sortable: true,
+        selectable: true,
+        sortDirection: 'asc',
+        class: 'text-center',
+      },
+      {
+        key: 'abbreviation',
+        label: 'Abbrev.',
+        sortable: true,
+        sortDirection: 'asc',
+        class: 'text-start',
+      },
+      {
+        key: 'created_at',
+        label: 'Created',
+        sortable: true,
+        sortDirection: 'asc',
+        class: 'text-start',
+      },
       { key: 'actions', label: 'Actions', sortable: false, class: 'text-center' },
     ];
 
     const hasActiveFilters = computed(() =>
-      Object.values(data.filter.value).some(
-        (f) => f.content !== null && f.content !== '',
-      ),
+      Object.values(data.filter.value).some((f) => f.content !== null && f.content !== '')
     );
 
     const activeFilters = computed(() => {
       const filters: Array<{ key: string; label: string; value: string }> = [];
       if (data.filter.value.any.content)
-        filters.push({ key: 'any', label: 'Search', value: data.filter.value.any.content as string });
+        filters.push({
+          key: 'any',
+          label: 'Search',
+          value: data.filter.value.any.content as string,
+        });
       if (data.filter.value.user_role.content)
-        filters.push({ key: 'user_role', label: 'Role', value: data.filter.value.user_role.content as string });
-      if (data.filter.value.approved.content !== null && data.filter.value.approved.content !== undefined) {
+        filters.push({
+          key: 'user_role',
+          label: 'Role',
+          value: data.filter.value.user_role.content as string,
+        });
+      if (
+        data.filter.value.approved.content !== null &&
+        data.filter.value.approved.content !== undefined
+      ) {
         filters.push({
           key: 'approved',
           label: 'Status',
@@ -402,28 +467,38 @@ export default defineComponent({
         const pageUserIds = data.users.value.map((u: any) => u.user_id);
         const added = bulkSelection.selectMultiple(pageUserIds);
         if (added < pageUserIds.length && bulkSelection.selectionCount.value >= 20) {
-          makeToast(`Selection limited to 20 users. ${added} users added.`, 'Selection Limit', 'warning');
+          makeToast(
+            `Selection limited to 20 users. ${added} users added.`,
+            'Selection Limit',
+            'warning'
+          );
         }
       }
     }
 
     function handleRowSelect(userId: number): void {
       const success = bulkSelection.toggleSelection(userId);
-      if (!success) makeToast('Maximum 20 users can be selected at once', 'Selection Limit Reached', 'warning');
+      if (!success)
+        makeToast('Maximum 20 users can be selected at once', 'Selection Limit Reached', 'warning');
     }
 
     // ── Utility helpers ────────────────────────────────────────────────────────
     function getRoleBadgeVariant(role: string): string {
       const variants: Record<string, string> = {
-        Administrator: 'danger', Curator: 'primary', Reviewer: 'info', Viewer: 'secondary',
+        Administrator: 'danger',
+        Curator: 'primary',
+        Reviewer: 'info',
+        Viewer: 'secondary',
       };
       return variants[role] || 'secondary';
     }
 
     function getRoleIcon(role: string): string {
       const icons: Record<string, string> = {
-        Administrator: 'bi bi-shield-fill-check', Curator: 'bi bi-pencil-fill',
-        Reviewer: 'bi bi-eye-fill', Viewer: 'bi bi-person-fill',
+        Administrator: 'bi bi-shield-fill-check',
+        Curator: 'bi bi-pencil-fill',
+        Reviewer: 'bi bi-eye-fill',
+        Viewer: 'bi bi-person-fill',
       };
       return icons[role] || 'bi bi-person-fill';
     }
@@ -482,27 +557,36 @@ export default defineComponent({
     // ── Watchers ──────────────────────────────────────────────────────────────
     watch(
       data.filter,
-      () => { if (!data.isInitializing.value) data.filtered(); },
-      { deep: true },
+      () => {
+        if (!data.isInitializing.value) data.filtered();
+      },
+      { deep: true }
     );
     watch(
       data.sortBy,
-      () => { if (!data.isInitializing.value) data.handleSortByOrDescChange(); },
-      { deep: true },
+      () => {
+        if (!data.isInitializing.value) data.handleSortByOrDescChange();
+      },
+      { deep: true }
     );
 
     // ── Exposed actions (plan aliases + legacy aliases for existing spec) ──────
     // Composables re-throw after toasting; swallow at the orchestration layer
     // so callers don't see unhandled rejections (toast already covers UX).
-    const onConfirmDelete = () => mutations.deleteUser(modals.userToDelete.value as any).catch(() => {});
+    const onConfirmDelete = () =>
+      mutations.deleteUser(modals.userToDelete.value as any).catch(() => {});
     // updateUserData reads from modals.userToUpdate.value so the spec can set
     // wrapper.vm.userToUpdate = {...} and then call wrapper.vm.updateUserData()
     // with no args (matching original ManageUser.vue behaviour).
     // Errors are already toasted inside mutations.updateUser; swallow the
     // re-throw here so callers (and the spec) don't see unhandled rejections.
-    const updateUserData = () => mutations.updateUser(modals.userToUpdate.value as any).catch(() => {});
+    const updateUserData = () =>
+      mutations.updateUser(modals.userToUpdate.value as any).catch(() => {});
     const onSubmitUpdate = (payload: any) => {
-      const p = payload !== undefined ? mutations.updateUser(payload) : mutations.updateUser(modals.userToUpdate.value as any);
+      const p =
+        payload !== undefined
+          ? mutations.updateUser(payload)
+          : mutations.updateUser(modals.userToUpdate.value as any);
       return p.catch(() => {});
     };
     // Use a shallowRef so the spec can override wrapper.vm.getSelectedArray and
@@ -510,7 +594,8 @@ export default defineComponent({
     // original Options-API `this.getSelectedArray()`).
     const getSelectedArray = shallowRef<() => number[]>(bulkSelection.getSelectedArray);
     const onConfirmBulkApprove = () => bulk.bulkApprove(getSelectedArray.value()).catch(() => {});
-    const onConfirmBulkRole = () => bulk.bulkAssignRole(getSelectedArray.value(), modals.bulkRoleSelection.value).catch(() => {});
+    const onConfirmBulkRole = () =>
+      bulk.bulkAssignRole(getSelectedArray.value(), modals.bulkRoleSelection.value).catch(() => {});
     const onConfirmBulkDelete = () => bulk.bulkDelete(getSelectedArray.value()).catch(() => {});
     const onChangePassword = () =>
       mutations.changePassword({

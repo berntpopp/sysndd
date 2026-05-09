@@ -35,7 +35,7 @@ describe('useLlmAdmin — F2a coordinated API change (token dropped)', () => {
           gemini_configured: [true],
           current_model: ['gemini-1.5-flash'],
         });
-      }),
+      })
     );
 
     const admin = useLlmAdmin();
@@ -84,7 +84,7 @@ describe('useLlmAdmin — F2a coordinated API change (token dropped)', () => {
       http.get('*/api/llm/prompts', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json(promptsFixture);
-      }),
+      })
     );
 
     const admin = useLlmAdmin();
@@ -107,7 +107,7 @@ describe('useLlmAdmin — F2a coordinated API change (token dropped)', () => {
           by_status: { pending: 4, validated: 7, rejected: 1 },
           estimated_cost_usd: 0.42,
         });
-      }),
+      })
     );
 
     const admin = useLlmAdmin();

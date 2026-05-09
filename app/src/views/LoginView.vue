@@ -202,11 +202,7 @@ export default {
           );
           return;
         }
-        this.makeToast(
-          'You have logged in.',
-          'Success',
-          'success'
-        );
+        this.makeToast('You have logged in.', 'Success', 'success');
         this.signinWithJWT(token);
       } catch (e) {
         // v11.1 finish-hardening fix #2: surface the API's literal message

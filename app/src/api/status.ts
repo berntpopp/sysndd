@@ -116,7 +116,7 @@ export interface ApproveStatusParams {
  */
 export async function listStatus(
   params: ListStatusParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusListRow[]> {
   return apiClient.get<StatusListRow[]>('/api/status/', {
     ...config,
@@ -133,7 +133,7 @@ export async function listStatus(
  */
 export async function getStatusById(
   status_id_requested: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusByIdRow[]> {
   const path = `/api/status/${encodeURIComponent(String(status_id_requested))}`;
   return apiClient.get<StatusByIdRow[]>(path, config);
@@ -147,7 +147,7 @@ export async function getStatusById(
  */
 export async function listStatusCategories(
   params: StatusCategoriesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusCategoriesResponse> {
   return apiClient.get<StatusCategoriesResponse>('/api/status/_list', {
     ...config,
@@ -164,16 +164,12 @@ export async function listStatusCategories(
 export async function createStatus(
   body: StatusMutationRequest,
   params: StatusMutationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusMutationResponse> {
-  return apiClient.post<StatusMutationResponse, StatusMutationRequest>(
-    '/api/status/create',
-    body,
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.post<StatusMutationResponse, StatusMutationRequest>('/api/status/create', body, {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -185,16 +181,12 @@ export async function createStatus(
 export async function updateStatus(
   body: StatusMutationRequest,
   params: StatusMutationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusMutationResponse> {
-  return apiClient.put<StatusMutationResponse, StatusMutationRequest>(
-    '/api/status/update',
-    body,
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.put<StatusMutationResponse, StatusMutationRequest>('/api/status/update', body, {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -206,7 +198,7 @@ export async function updateStatus(
 export async function approveStatus(
   status_id_requested: number | string,
   params: ApproveStatusParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<StatusMutationResponse> {
   const path = `/api/status/approve/${encodeURIComponent(String(status_id_requested))}`;
   return apiClient.put<StatusMutationResponse>(path, undefined, {

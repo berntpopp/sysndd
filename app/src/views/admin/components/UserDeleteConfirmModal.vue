@@ -21,7 +21,8 @@
       <i class="bi bi-person-x-fill text-danger" style="font-size: 3rem" />
       <p class="mt-3 mb-0">
         Are you sure you want to delete the user
-        <strong class="text-danger">{{ user?.user_name }}</strong>?
+        <strong class="text-danger">{{ user?.user_name }}</strong
+        >?
       </p>
       <p class="text-muted small mt-2">This action cannot be undone.</p>
     </div>

@@ -45,12 +45,12 @@ describe('useAnnotationFormatters.authRequestConfig — F2a migration', () => {
       http.get('*/api/admin/annotation_dates', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ dates: [] });
-      }),
+      })
     );
 
     const data = await apiClient.get<{ dates: unknown[] }>(
       '/api/admin/annotation_dates',
-      authRequestConfig(),
+      authRequestConfig()
     );
     expect(data).toEqual({ dates: [] });
   });

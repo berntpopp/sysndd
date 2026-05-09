@@ -132,9 +132,7 @@ describe('/Panels beforeEnter — Vue Router 4 return-based API', () => {
   if (!panelsRoute || typeof panelsRoute.beforeEnter !== 'function') {
     throw new Error('Test setup: /Panels route or its beforeEnter guard not found');
   }
-  const guard = panelsRoute.beforeEnter as (
-    to: RouteLocationNormalized
-  ) => unknown;
+  const guard = panelsRoute.beforeEnter as (to: RouteLocationNormalized) => unknown;
 
   const panelRoute = (
     category_input: string | undefined,

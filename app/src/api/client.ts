@@ -56,18 +56,14 @@ import { useAuth } from '@/composables/useAuth';
 // Handles both `AxiosHeaders` and plain-object shapes, matches the
 // header name case-insensitively (HTTP headers are case-insensitive and
 // axios normalises on flight, but a call site may write any case).
-function hasAuthorizationHeader(
-  headers: AxiosRequestConfig['headers'],
-): boolean {
+function hasAuthorizationHeader(headers: AxiosRequestConfig['headers']): boolean {
   if (!headers) {
     return false;
   }
   if (headers instanceof AxiosHeaders) {
     return headers.has('Authorization');
   }
-  return Object.keys(headers).some(
-    (key) => key.toLowerCase() === 'authorization',
-  );
+  return Object.keys(headers).some((key) => key.toLowerCase() === 'authorization');
 }
 
 axios.interceptors.request.use((config) => {
@@ -123,17 +119,17 @@ export interface ApiClient {
     post<T, B = unknown>(
       path: string,
       body?: B,
-      config?: AxiosRequestConfig,
+      config?: AxiosRequestConfig
     ): Promise<AxiosResponse<T>>;
     put<T, B = unknown>(
       path: string,
       body?: B,
-      config?: AxiosRequestConfig,
+      config?: AxiosRequestConfig
     ): Promise<AxiosResponse<T>>;
     patch<T, B = unknown>(
       path: string,
       body?: B,
-      config?: AxiosRequestConfig,
+      config?: AxiosRequestConfig
     ): Promise<AxiosResponse<T>>;
     delete<T>(path: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
   };
@@ -144,26 +140,18 @@ export const apiClient: ApiClient = {
     const response = await axios.get<T>(path, config);
     return response.data;
   },
-  post: async <T, B = unknown>(
-    path: string,
-    body?: B,
-    config?: AxiosRequestConfig,
-  ): Promise<T> => {
+  post: async <T, B = unknown>(path: string, body?: B, config?: AxiosRequestConfig): Promise<T> => {
     const response = await axios.post<T>(path, body, config);
     return response.data;
   },
-  put: async <T, B = unknown>(
-    path: string,
-    body?: B,
-    config?: AxiosRequestConfig,
-  ): Promise<T> => {
+  put: async <T, B = unknown>(path: string, body?: B, config?: AxiosRequestConfig): Promise<T> => {
     const response = await axios.put<T>(path, body, config);
     return response.data;
   },
   patch: async <T, B = unknown>(
     path: string,
     body?: B,
-    config?: AxiosRequestConfig,
+    config?: AxiosRequestConfig
   ): Promise<T> => {
     const response = await axios.patch<T>(path, body, config);
     return response.data;

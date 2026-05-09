@@ -121,9 +121,6 @@ export async function changePassword(args: PasswordUpdateArgs): Promise<void> {
  * AxiosError (400 / 404 / 415); the caller (`RegisterView`) routes them
  * through its toast handler.
  */
-export async function signup(
-  body: SignupRequest,
-  config?: AxiosRequestConfig,
-): Promise<void> {
+export async function signup(body: SignupRequest, config?: AxiosRequestConfig): Promise<void> {
   await apiClient.post<unknown, SignupRequest>('/api/auth/signup', body, config);
 }

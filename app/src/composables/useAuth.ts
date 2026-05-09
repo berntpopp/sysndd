@@ -237,9 +237,7 @@ syncFromStorage();
 // Computed derivations
 // ---------------------------------------------------------------------------
 
-const isAuthenticated = computed<boolean>(
-  () => tokenRef.value !== null && userRef.value !== null
-);
+const isAuthenticated = computed<boolean>(() => tokenRef.value !== null && userRef.value !== null);
 
 // Reactive wall-clock ref
 // -----------------------

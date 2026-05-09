@@ -107,15 +107,10 @@
       </template>
     </GenericTable>
 
-    <div
-      v-if="!loading && filteredJobHistory.length === 0"
-      class="text-center text-muted py-4"
-    >
+    <div v-if="!loading && filteredJobHistory.length === 0" class="text-center text-muted py-4">
       <i class="bi bi-inbox fs-1 d-block mb-2" />
       <span v-if="searchFilter">No jobs match your search criteria.</span>
-      <span v-else>
-        No job history available. Jobs appear here after they are submitted.
-      </span>
+      <span v-else> No job history available. Jobs appear here after they are submitted. </span>
     </div>
 
     <div v-if="filteredJobHistory.length > pageSize" class="p-2 border-top bg-light">

@@ -7,7 +7,7 @@ import type { ClinVarVariant } from '@/types';
 const apiBase = import.meta.env.VITE_API_URL ?? '';
 
 export function useGeneClinVar(
-  symbol: string | Ref<string | null> | ComputedRef<string | null>,
+  symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<ClinVarVariant[] | null> {
   const symRef = computed<string | null>(() => {
     if (typeof symbol === 'string') return symbol || null;
@@ -29,6 +29,6 @@ export function useGeneClinVar(
         throw err;
       }
     },
-    { ttlMs: 5 * 60_000 },
+    { ttlMs: 5 * 60_000 }
   );
 }

@@ -90,7 +90,7 @@ describe('ModifyEntity accessibility', () => {
     server.use(
       http.get('/api/list/status', () => HttpResponse.json([])),
       http.get('/api/list/phenotype', () => HttpResponse.json([])),
-      http.get('/api/list/variation_ontology', () => HttpResponse.json([])),
+      http.get('/api/list/variation_ontology', () => HttpResponse.json([]))
     );
   });
 

@@ -156,7 +156,7 @@ export interface RereviewLeaderboardResponse {
  */
 export async function getCategoryCount(
   params: CategoryCountParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<CategoryCountRow[]> {
   return apiClient.get<CategoryCountRow[]>('/api/statistics/category_count', {
     ...config,
@@ -172,7 +172,7 @@ export async function getCategoryCount(
  */
 export async function getNews(
   params: NewsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<NewsRow[]> {
   return apiClient.get<NewsRow[]>('/api/statistics/news', {
     ...config,
@@ -188,7 +188,7 @@ export async function getNews(
  */
 export async function getEntitiesOverTime(
   params: EntitiesOverTimeParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntitiesOverTimeResponse> {
   return apiClient.get<EntitiesOverTimeResponse>('/api/statistics/entities_over_time', {
     ...config,
@@ -204,7 +204,7 @@ export async function getEntitiesOverTime(
  */
 export async function getUpdatesStats(
   params: AdminDateRangeParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdatesStats> {
   return apiClient.get<UpdatesStats>('/api/statistics/updates', {
     ...config,
@@ -220,7 +220,7 @@ export async function getUpdatesStats(
  */
 export async function getRereviewStats(
   params: AdminDateRangeParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<RereviewStats> {
   return apiClient.get<RereviewStats>('/api/statistics/rereview', {
     ...config,
@@ -236,7 +236,7 @@ export async function getRereviewStats(
  */
 export async function getUpdatedReviewsStats(
   params: AdminDateRangeParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdatedReviewsStats> {
   return apiClient.get<UpdatedReviewsStats>('/api/statistics/updated_reviews', {
     ...config,
@@ -252,7 +252,7 @@ export async function getUpdatedReviewsStats(
  */
 export async function getUpdatedStatusesStats(
   params: AdminDateRangeParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdatedStatusesStats> {
   return apiClient.get<UpdatedStatusesStats>('/api/statistics/updated_statuses', {
     ...config,
@@ -269,7 +269,7 @@ export async function getUpdatedStatusesStats(
  */
 export async function getPublicationStats(
   params: PublicationStatsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PublicationStatsResponse> {
   return apiClient.get<PublicationStatsResponse>('/api/statistics/publication_stats', {
     ...config,
@@ -285,15 +285,12 @@ export async function getPublicationStats(
  */
 export async function getContributorLeaderboard(
   params: LeaderboardParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ContributorLeaderboardResponse> {
-  return apiClient.get<ContributorLeaderboardResponse>(
-    '/api/statistics/contributor_leaderboard',
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.get<ContributorLeaderboardResponse>('/api/statistics/contributor_leaderboard', {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -304,13 +301,10 @@ export async function getContributorLeaderboard(
  */
 export async function getRereviewLeaderboard(
   params: LeaderboardParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<RereviewLeaderboardResponse> {
-  return apiClient.get<RereviewLeaderboardResponse>(
-    '/api/statistics/rereview_leaderboard',
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.get<RereviewLeaderboardResponse>('/api/statistics/rereview_leaderboard', {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }

@@ -14,7 +14,7 @@ import type { GeneApiData } from '@/types/gene';
 const HGNC_RE = /^HGNC:?\d+$/i;
 
 export function useGeneRecord(
-  input: string | Ref<string | null> | ComputedRef<string | null>,
+  input: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<GeneApiData | null> {
   const inputRef = computed<string | null>(() => {
     if (typeof input === 'string') return input || null;
@@ -43,6 +43,6 @@ export function useGeneRecord(
       const rows = await getGene(v, t, { signal });
       return rows[0] ?? null;
     },
-    { ttlMs: 60_000 },
+    { ttlMs: 60_000 }
   );
 }

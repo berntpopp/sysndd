@@ -162,9 +162,16 @@ const isAvailable = computed(() => props.available && !!props.url);
 }
 
 .resource-badge--unavailable {
-  opacity: 0.45;
+  color: #495057;
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  opacity: 1;
   cursor: default;
   pointer-events: none;
+}
+
+.resource-badge--unavailable .resource-badge__icon {
+  color: #495057;
 }
 
 .resource-badge__icon {

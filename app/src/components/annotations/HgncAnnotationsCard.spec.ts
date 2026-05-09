@@ -30,7 +30,7 @@ describe('HgncAnnotationsCard idle copy', () => {
     const wrapper = mountCard();
     const stub = wrapper.findComponent({ name: 'JobProgressDisplay' });
     expect(stub.exists()).toBe(true);
-    expect((stub.props('idleMessage') as string | undefined)).not.toMatch(/may take hours/i);
+    expect(stub.props('idleMessage') as string | undefined).not.toMatch(/may take hours/i);
   });
 
   it('mentions gnomAD constraints and a realistic timing in the idle message', () => {

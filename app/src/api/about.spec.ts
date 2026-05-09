@@ -24,18 +24,14 @@ const sampleSections: AboutSection[] = [
 
 describe('api/about — getAboutDraft', () => {
   it('returns the draft sections array on 200', async () => {
-    server.use(
-      http.get('/api/about/draft', () => HttpResponse.json(sampleSections)),
-    );
+    server.use(http.get('/api/about/draft', () => HttpResponse.json(sampleSections)));
     const sections = await getAboutDraft();
     expect(sections).toEqual(sampleSections);
   });
 
   it('throws AxiosError on 403 (caller is not an Administrator)', async () => {
     server.use(
-      http.get('/api/about/draft', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 }),
-      ),
+      http.get('/api/about/draft', () => HttpResponse.json({ error: 'forbidden' }, { status: 403 }))
     );
     let caught: unknown;
     try {
@@ -58,7 +54,7 @@ describe('api/about — saveAboutDraft', () => {
         receivedBody = await request.json();
         const ok: AboutMutationResponse = { message: 'Draft saved successfully' };
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await saveAboutDraft(sampleSections);
@@ -69,8 +65,8 @@ describe('api/about — saveAboutDraft', () => {
   it('throws AxiosError on 400 (empty sections)', async () => {
     server.use(
       http.put('/api/about/draft', () =>
-        HttpResponse.json({ error: 'Sections array cannot be empty' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'Sections array cannot be empty' }, { status: 400 })
+      )
     );
     await expect(saveAboutDraft([])).rejects.toThrow();
   });
@@ -87,7 +83,7 @@ describe('api/about — publishAbout', () => {
           version: 7,
         };
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await publishAbout(sampleSections);
@@ -98,9 +94,7 @@ describe('api/about — publishAbout', () => {
 
   it('throws AxiosError on 500', async () => {
     server.use(
-      http.post('/api/about/publish', () =>
-        HttpResponse.json({ error: 'boom' }, { status: 500 }),
-      ),
+      http.post('/api/about/publish', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
     await expect(publishAbout(sampleSections)).rejects.toThrow();
   });
@@ -108,26 +102,20 @@ describe('api/about — publishAbout', () => {
 
 describe('api/about — getPublishedAbout', () => {
   it('returns the latest published sections on 200', async () => {
-    server.use(
-      http.get('/api/about/published', () => HttpResponse.json(sampleSections)),
-    );
+    server.use(http.get('/api/about/published', () => HttpResponse.json(sampleSections)));
     const sections = await getPublishedAbout();
     expect(sections).toEqual(sampleSections);
   });
 
   it('returns an empty array when no content has been published', async () => {
-    server.use(
-      http.get('/api/about/published', () => HttpResponse.json([])),
-    );
+    server.use(http.get('/api/about/published', () => HttpResponse.json([])));
     const sections = await getPublishedAbout();
     expect(sections).toEqual([]);
   });
 
   it('throws AxiosError on 500', async () => {
     server.use(
-      http.get('/api/about/published', () =>
-        HttpResponse.json({ error: 'boom' }, { status: 500 }),
-      ),
+      http.get('/api/about/published', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
     await expect(getPublishedAbout()).rejects.toThrow();
   });

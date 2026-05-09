@@ -2,13 +2,11 @@
 <!-- Password-reset panel lifted from the update-modal template. -->
 <template>
   <div class="mb-3">
-    <h6 class="text-muted border-bottom pb-2 mb-3">
-      <i class="bi bi-key me-2" />Password Reset
-    </h6>
+    <h6 class="text-muted border-bottom pb-2 mb-3"><i class="bi bi-key me-2" />Password Reset</h6>
     <BAlert variant="info" :model-value="true" class="mb-3">
       <i class="bi bi-info-circle me-2" />
-      As an administrator, you can set a new password for this user. Password requirements:
-      8+ characters, uppercase, lowercase, number, and special character (!@#$%^&*).
+      As an administrator, you can set a new password for this user. Password requirements: 8+
+      characters, uppercase, lowercase, number, and special character (!@#$%^&*).
     </BAlert>
     <BRow>
       <BCol md="6">
@@ -27,10 +25,7 @@
               @input="emitInput('newPassword', $event)"
             />
             <template #append>
-              <BButton
-                variant="outline-secondary"
-                @click="toggleShowPassword"
-              >
+              <BButton variant="outline-secondary" @click="toggleShowPassword">
                 <i :class="modelValue.showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'" />
               </BButton>
             </template>
@@ -42,21 +37,14 @@
               class="d-block"
               :class="rule.valid ? 'text-success' : 'text-danger'"
             >
-              <i
-                :class="rule.valid ? 'bi bi-check-circle' : 'bi bi-x-circle'"
-                class="me-1"
-              />
+              <i :class="rule.valid ? 'bi bi-check-circle' : 'bi bi-x-circle'" class="me-1" />
               {{ rule.label }}
             </small>
           </div>
         </BFormGroup>
       </BCol>
       <BCol md="6">
-        <BFormGroup
-          label="Confirm Password"
-          label-for="input-confirm-password"
-          class="mb-3"
-        >
+        <BFormGroup label="Confirm Password" label-for="input-confirm-password" class="mb-3">
           <BInputGroup>
             <template #prepend>
               <BInputGroupText><i class="bi bi-lock-fill" /></BInputGroupText>
@@ -77,8 +65,7 @@
           </BInputGroup>
           <BFormInvalidFeedback
             v-if="
-              modelValue.confirmPassword &&
-              modelValue.newPassword !== modelValue.confirmPassword
+              modelValue.confirmPassword && modelValue.newPassword !== modelValue.confirmPassword
             "
             :state="false"
           >
@@ -150,7 +137,10 @@ export default defineComponent({
       emit('update:modelValue', { ...props.modelValue, [field]: target.value });
     }
     function toggleShowPassword(): void {
-      emit('update:modelValue', { ...props.modelValue, showPassword: !props.modelValue.showPassword });
+      emit('update:modelValue', {
+        ...props.modelValue,
+        showPassword: !props.modelValue.showPassword,
+      });
     }
     return { emitInput, toggleShowPassword };
   },

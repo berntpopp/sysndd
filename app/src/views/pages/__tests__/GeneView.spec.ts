@@ -61,9 +61,24 @@ const heavyChildStubs = {
   GeneBadge: { template: '<span />' },
   IdentifierCard: { template: '<div />' },
   ClinicalResourcesCard: { template: '<div />' },
-  GeneConstraintCard: { template: '<div />' },
-  GeneClinVarCard: { template: '<div />' },
-  ModelOrganismsCard: { template: '<div />' },
+  GeneConstraintCard: {
+    props: ['geneSymbol', 'constraintsJson'],
+    template: `
+      <section aria-label="Gene constraint scores from gnomAD">
+        <span>Gene Constraint (gnomAD)</span>
+        <a :href="'https://gnomad.broadinstitute.org/gene/' + geneSymbol">View on gnomAD</a>
+        <p v-if="constraintsJson === null || constraintsJson === ''">No gnomAD constraint data available for this gene.</p>
+      </section>
+    `,
+  },
+  GeneClinVarCard: {
+    props: ['totalCount'],
+    template:
+      '<section><span>ClinVar Variants</span><p v-if="totalCount === 0">No ClinVar variants returned for this gene.</p></section>',
+  },
+  ModelOrganismsCard: {
+    template: '<section><span>Model Organisms</span><slot /></section>',
+  },
   GenomicVisualizationTabs: { template: '<div />' },
   // TablesEntities pulls in BTable + GenericTable; stub the inner BTable so it
   // doesn't fight jsdom layout. The component's loadData() is the contract we
@@ -105,7 +120,7 @@ describe('GeneView (v11.3 W2)', () => {
           },
         ]);
       }),
-      http.get('*/api/external/*/*/GRIN2B', () => HttpResponse.json({})),
+      http.get('*/api/external/*/*/GRIN2B', () => HttpResponse.json({}))
     );
     const router = makeRouter('/Genes/GRIN2B');
     await router.isReady();
@@ -131,9 +146,9 @@ describe('GeneView (v11.3 W2)', () => {
         return HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] });
       }),
       http.get('*/api/gene/SCN2A', () =>
-        HttpResponse.json([{ symbol: ['SCN2A'], hgnc_id: ['HGNC:10588'] }]),
+        HttpResponse.json([{ symbol: ['SCN2A'], hgnc_id: ['HGNC:10588'] }])
       ),
-      http.get('*/api/external/*/*/SCN2A', () => HttpResponse.json({})),
+      http.get('*/api/external/*/*/SCN2A', () => HttpResponse.json({}))
     );
     const router = makeRouter('/Genes/SCN2A');
     await router.isReady();
@@ -148,6 +163,28 @@ describe('GeneView (v11.3 W2)', () => {
     w.unmount();
   });
 
+  it('hides the embedded Associated entities global search input', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
+      ),
+      http.get('*/api/gene/SYNGAP1', () =>
+        HttpResponse.json([{ symbol: ['SYNGAP1'], hgnc_id: ['HGNC:11497'] }])
+      ),
+      http.get('*/api/external/*/*/SYNGAP1', () => HttpResponse.json({}))
+    );
+
+    const router = makeRouter('/Genes/SYNGAP1');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+
+    expect(w.find('input[placeholder="Search any field by typing here"]').exists()).toBe(false);
+    w.unmount();
+  });
+
   it('uses hgnc_id filter when URL param is HGNC:NNNN', async () => {
     let entityFilterSeen = '';
     server.use(
@@ -157,9 +194,9 @@ describe('GeneView (v11.3 W2)', () => {
       }),
       // axios encodes the colon: HGNC:4586 -> HGNC%3A4586 in the path.
       http.get('*/api/gene/HGNC%3A4586', () =>
-        HttpResponse.json([{ symbol: ['GRIN2B'], hgnc_id: ['HGNC:4586'] }]),
+        HttpResponse.json([{ symbol: ['GRIN2B'], hgnc_id: ['HGNC:4586'] }])
       ),
-      http.get('*/api/external/*/*/GRIN2B', () => HttpResponse.json({})),
+      http.get('*/api/external/*/*/GRIN2B', () => HttpResponse.json({}))
     );
     const router = makeRouter('/Genes/HGNC:4586');
     await router.isReady();
@@ -174,13 +211,13 @@ describe('GeneView (v11.3 W2)', () => {
   it('redirects to /PageNotFound when gene record returns null', async () => {
     server.use(
       http.get('*/api/entity/', () =>
-        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] }),
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
       ),
       // Empty array => useGeneRecord fetcher resolves to null => 404 redirect.
       http.get('*/api/gene/UNKNOWN', () => HttpResponse.json([])),
       // No external calls expected when symbol never resolves, but guard the
       // unhandled-request error in case any hook accepts the route param fallback.
-      http.get('*/api/external/*/*/UNKNOWN', () => HttpResponse.json({})),
+      http.get('*/api/external/*/*/UNKNOWN', () => HttpResponse.json({}))
     );
 
     // GeneView's 404 watcher (`watch(geneRecord.data, ...)`) only fires on a
@@ -199,7 +236,7 @@ describe('GeneView (v11.3 W2)', () => {
     cache.set(
       'gene:symbol:UNKNOWN',
       { symbol: ['UNKNOWN'], hgnc_id: ['HGNC:0'], name: ['stale-sentinel'] },
-      60_000,
+      60_000
     );
     // Force-stale so SWR refetches on mount.
     const entry = cache.peek<unknown>('gene:symbol:UNKNOWN');
@@ -213,6 +250,67 @@ describe('GeneView (v11.3 W2)', () => {
     });
     await flushTablesDebounce();
     expect(push).toHaveBeenCalledWith('/PageNotFound');
+    w.unmount();
+  });
+
+  it('keeps the gnomAD card mounted with link and no-data message when constraints are missing', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
+      ),
+      http.get('*/api/gene/NAA10', () =>
+        HttpResponse.json([
+          {
+            symbol: ['NAA10'],
+            hgnc_id: ['HGNC:18704'],
+            name: ['N-alpha-acetyltransferase 10'],
+            gnomad_constraints: null,
+          },
+        ])
+      ),
+      http.get('*/api/external/*/*/NAA10', () => HttpResponse.json({}))
+    );
+
+    const router = makeRouter('/Genes/NAA10');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+
+    expect(w.text()).toContain('Gene Constraint (gnomAD)');
+    expect(w.text()).toContain('No gnomAD constraint data available for this gene.');
+    expect(w.find('a[href="https://gnomad.broadinstitute.org/gene/NAA10"]').exists()).toBe(true);
+    w.unmount();
+  });
+
+  it('uses one/two/three column responsive breakpoints for external cards', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
+      ),
+      http.get('*/api/gene/ARID1B', () =>
+        HttpResponse.json([
+          { symbol: ['ARID1B'], hgnc_id: ['HGNC:18040'], gnomad_constraints: '{}' },
+        ])
+      ),
+      http.get('*/api/external/*/*/ARID1B', () => HttpResponse.json({}))
+    );
+
+    const router = makeRouter('/Genes/ARID1B');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+
+    const externalCols = w.findAll('[data-testid="gene-external-card-col"]');
+    expect(externalCols).toHaveLength(3);
+    for (const col of externalCols) {
+      expect(col.attributes('cols')).toBe('12');
+      expect(col.attributes('lg')).toBe('6');
+      expect(col.attributes('xxl')).toBe('4');
+    }
     w.unmount();
   });
 });

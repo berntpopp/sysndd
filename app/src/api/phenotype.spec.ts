@@ -24,7 +24,7 @@ describe('api/phenotype — browsePhenotypeEntities', () => {
       http.get('/api/phenotype/entities/browse', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await browsePhenotypeEntities({ filter: 'contains(ndd_phenotype_word,Yes)' });
@@ -46,7 +46,7 @@ describe('api/phenotype — browsePhenotypeEntitiesXlsx', () => {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
         });
-      }),
+      })
     );
 
     const blob = await browsePhenotypeEntitiesXlsx({ sort: 'entity_id' });
@@ -60,9 +60,7 @@ describe('api/phenotype — getPhenotypeCorrelation', () => {
     const ok: PhenotypeCorrelationCell[] = [
       { x: 'a', x_id: 'HP:0001249', y: 'b', y_id: 'HP:0001256', value: 0.42 },
     ];
-    server.use(
-      http.get('/api/phenotype/correlation', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/phenotype/correlation', () => HttpResponse.json(ok)));
 
     const result = await getPhenotypeCorrelation();
     expect(result[0].value).toBe(0.42);
@@ -74,12 +72,12 @@ describe('api/phenotype — getPhenotypeCorrelation', () => {
       http.get('/api/phenotype/correlation', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getPhenotypeCorrelation({ filter: 'any(category,Definitive)' });
     expect((observedQuery as unknown as URLSearchParams).get('filter')).toBe(
-      'any(category,Definitive)',
+      'any(category,Definitive)'
     );
   });
 });
@@ -89,9 +87,7 @@ describe('api/phenotype — getPhenotypeCount', () => {
     const ok: PhenotypeCountRow[] = [
       { HPO_term: 'Intellectual disability', phenotype_id: 'HP:0001249', count: 200 },
     ];
-    server.use(
-      http.get('/api/phenotype/count', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/phenotype/count', () => HttpResponse.json(ok)));
 
     const result = await getPhenotypeCount();
     expect(result[0].count).toBe(200);

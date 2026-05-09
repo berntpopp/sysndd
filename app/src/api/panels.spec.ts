@@ -20,9 +20,7 @@ describe('api/panels — getPanelOptions', () => {
       { lists: 'categories_list', options: [{ value: 'Definitive' }] },
       { lists: 'inheritance_list', options: [{ value: 'Autosomal dominant' }] },
     ];
-    server.use(
-      http.get('/api/panels/options', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/panels/options', () => HttpResponse.json(ok)));
 
     const result = await getPanelOptions();
     expect(result).toHaveLength(2);
@@ -37,7 +35,7 @@ describe('api/panels — browsePanels', () => {
       http.get('/api/panels/browse', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await browsePanels({ filter: "equals(category,'Definitive')", sort: 'symbol' });
@@ -60,7 +58,7 @@ describe('api/panels — browsePanelsXlsx', () => {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
         });
-      }),
+      })
     );
 
     const blob = await browsePanelsXlsx({ sort: 'symbol' });

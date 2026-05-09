@@ -139,7 +139,7 @@ export interface RecalculateBatchRequest extends BatchCriteria {
  */
 export async function submitReReview(
   body: SubmitReReviewRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<unknown> {
   return apiClient.put<unknown, SubmitReReviewRequest>('/api/re_review/submit', body, config);
 }
@@ -152,7 +152,7 @@ export async function submitReReview(
  */
 export async function unsubmitReReview(
   re_review_id: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<unknown> {
   const path = `/api/re_review/unsubmit/${encodeURIComponent(String(re_review_id))}`;
   return apiClient.put<unknown>(path, undefined, config);
@@ -169,7 +169,7 @@ export async function unsubmitReReview(
 export async function approveReReview(
   re_review_id: number | string,
   params: ApproveReReviewParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ApproveReReviewResponse> {
   const path = `/api/re_review/approve/${encodeURIComponent(String(re_review_id))}`;
   return apiClient.put<ApproveReReviewResponse>(path, undefined, {
@@ -188,7 +188,7 @@ export async function approveReReview(
  */
 export async function getReReviewTable(
   params: ReReviewTableParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReReviewTableRow[]> {
   return apiClient.get<ReReviewTableRow[]>('/api/re_review/table', {
     ...config,
@@ -203,9 +203,7 @@ export async function getReReviewTable(
  * Reviewer+ only. Sends an email asking for a new re-review batch
  * assignment. Returns the email-send transport result.
  */
-export async function applyForReReviewBatch(
-  config?: AxiosRequestConfig,
-): Promise<unknown> {
+export async function applyForReReviewBatch(config?: AxiosRequestConfig): Promise<unknown> {
   return apiClient.get<unknown>('/api/re_review/batch/apply', config);
 }
 
@@ -219,7 +217,7 @@ export async function applyForReReviewBatch(
  */
 export async function assignReReviewBatch(
   params: AssignBatchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AssignBatchResponse> {
   return apiClient.put<AssignBatchResponse>('/api/re_review/batch/assign', undefined, {
     ...config,
@@ -237,7 +235,7 @@ export async function assignReReviewBatch(
  */
 export async function unassignReReviewBatch(
   params: UnassignBatchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<unknown> {
   return apiClient.delete<unknown>('/api/re_review/batch/unassign', {
     ...config,
@@ -253,7 +251,7 @@ export async function unassignReReviewBatch(
  */
 export async function getAssignmentTable(
   params: AssignmentTableParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AssignmentRow[]> {
   return apiClient.get<AssignmentRow[]>('/api/re_review/assignment_table', {
     ...config,
@@ -270,12 +268,12 @@ export async function getAssignmentTable(
  */
 export async function createReReviewBatch(
   body: CreateBatchRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.post<BatchServiceResponse, CreateBatchRequest>(
     '/api/re_review/batch/create',
     body,
-    config,
+    config
   );
 }
 
@@ -288,12 +286,12 @@ export async function createReReviewBatch(
  */
 export async function previewReReviewBatch(
   body: BatchCriteria,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.post<BatchServiceResponse, BatchCriteria>(
     '/api/re_review/batch/preview',
     body,
-    config,
+    config
   );
 }
 
@@ -305,7 +303,7 @@ export async function previewReReviewBatch(
  */
 export async function reassignReReviewBatch(
   params: ReassignBatchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.put<BatchServiceResponse>('/api/re_review/batch/reassign', undefined, {
     ...config,
@@ -321,7 +319,7 @@ export async function reassignReReviewBatch(
  */
 export async function archiveReReviewBatch(
   params: ArchiveBatchParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.put<BatchServiceResponse>('/api/re_review/batch/archive', undefined, {
     ...config,
@@ -340,12 +338,12 @@ export async function archiveReReviewBatch(
  */
 export async function assignReReviewEntities(
   body: AssignEntitiesRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.put<BatchServiceResponse, AssignEntitiesRequest>(
     '/api/re_review/entities/assign',
     body,
-    config,
+    config
   );
 }
 
@@ -360,11 +358,11 @@ export async function assignReReviewEntities(
  */
 export async function recalculateReReviewBatch(
   body: RecalculateBatchRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BatchServiceResponse> {
   return apiClient.put<BatchServiceResponse, RecalculateBatchRequest>(
     '/api/re_review/batch/recalculate',
     body,
-    config,
+    config
   );
 }

@@ -18,10 +18,7 @@
 
 import { createHash } from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  evalishRe,
-  hashInlineScript,
-} from '../../../scripts/audit-csp-violations.mjs';
+import { evalishRe, hashInlineScript } from '../../../scripts/audit-csp-violations.mjs';
 
 function matches(re: RegExp, s: string): boolean {
   // The exported regex is a global flag regex; reset lastIndex per call so
@@ -72,12 +69,8 @@ describe('audit-csp-violations hashInlineScript', () => {
     // blocking the script.
     const rawBody = '\n      window.dataLayer = window.dataLayer || [];\n    ';
 
-    const expected = createHash('sha256')
-      .update(rawBody, 'utf8')
-      .digest('base64');
-    const trimmedHash = createHash('sha256')
-      .update(rawBody.trim(), 'utf8')
-      .digest('base64');
+    const expected = createHash('sha256').update(rawBody, 'utf8').digest('base64');
+    const trimmedHash = createHash('sha256').update(rawBody.trim(), 'utf8').digest('base64');
 
     // Sanity check: the two byte sequences really do produce different
     // hashes. If this ever became false, the regression check below
@@ -101,8 +94,6 @@ describe('audit-csp-violations hashInlineScript', () => {
     // `47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU=` minus the URL-safe
     // tweaks; in standard base64 that's the value below. Pinning it
     // documents the exact hash function in use.
-    expect(hashInlineScript('')).toBe(
-      '47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=',
-    );
+    expect(hashInlineScript('')).toBe('47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=');
   });
 });

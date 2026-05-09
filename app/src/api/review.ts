@@ -139,7 +139,7 @@ export interface ApproveReviewParams {
  */
 export async function listReviews(
   params: ListReviewsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewListRow[]> {
   return apiClient.get<ReviewListRow[]>('/api/review/', {
     ...config,
@@ -159,16 +159,12 @@ export async function listReviews(
 export async function createReview(
   body: ReviewMutationRequest,
   params: ReviewMutationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewMutationResponse> {
-  return apiClient.post<ReviewMutationResponse, ReviewMutationRequest>(
-    '/api/review/create',
-    body,
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.post<ReviewMutationResponse, ReviewMutationRequest>('/api/review/create', body, {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -180,16 +176,12 @@ export async function createReview(
 export async function updateReview(
   body: ReviewMutationRequest,
   params: ReviewMutationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewMutationResponse> {
-  return apiClient.put<ReviewMutationResponse, ReviewMutationRequest>(
-    '/api/review/update',
-    body,
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.put<ReviewMutationResponse, ReviewMutationRequest>('/api/review/update', body, {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -201,7 +193,7 @@ export async function updateReview(
  */
 export async function getReviewById(
   review_id_requested: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewByIdRow[]> {
   const path = `/api/review/${encodeURIComponent(String(review_id_requested))}`;
   return apiClient.get<ReviewByIdRow[]>(path, config);
@@ -213,7 +205,7 @@ export async function getReviewById(
  */
 export async function getReviewPhenotypes(
   review_id_requested: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewPhenotypeRow[]> {
   const path = `/api/review/${encodeURIComponent(String(review_id_requested))}/phenotypes`;
   return apiClient.get<ReviewPhenotypeRow[]>(path, config);
@@ -225,7 +217,7 @@ export async function getReviewPhenotypes(
  */
 export async function getReviewVariation(
   review_id_requested: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewVariationRow[]> {
   const path = `/api/review/${encodeURIComponent(String(review_id_requested))}/variation`;
   return apiClient.get<ReviewVariationRow[]>(path, config);
@@ -237,7 +229,7 @@ export async function getReviewVariation(
  */
 export async function getReviewPublications(
   review_id_requested: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewPublicationRow[]> {
   const path = `/api/review/${encodeURIComponent(String(review_id_requested))}/publications`;
   return apiClient.get<ReviewPublicationRow[]>(path, config);
@@ -252,7 +244,7 @@ export async function getReviewPublications(
 export async function approveReview(
   review_id_requested: number | string,
   params: ApproveReviewParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ReviewMutationResponse> {
   const path = `/api/review/approve/${encodeURIComponent(String(review_id_requested))}`;
   return apiClient.put<ReviewMutationResponse>(path, undefined, {

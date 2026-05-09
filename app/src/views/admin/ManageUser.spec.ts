@@ -41,11 +41,7 @@ import axios from '@/plugins/axios';
 import ManageUser from './ManageUser.vue';
 import { server } from '@/test-utils/mocks/server';
 import { bootstrapStubs } from '@/test-utils';
-import {
-  userTableOk,
-  userUpdateForbidden,
-  type UserTableRow,
-} from '@/test-utils/mocks/data/users';
+import { userTableOk, userUpdateForbidden, type UserTableRow } from '@/test-utils/mocks/data/users';
 // v11.0 closeout F2b — apiClient helpers for the 9 new Bearer-header
 // tests below. The Phase C tests above stay on `localStorage.setItem`
 // seeding to keep their assertions stable; the new block uses the
@@ -232,9 +228,7 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
       user_role: 'Curator',
     };
 
-    await (
-      wrapper.vm as unknown as { updateUserData: () => Promise<void> }
-    ).updateUserData();
+    await (wrapper.vm as unknown as { updateUserData: () => Promise<void> }).updateUserData();
 
     // Drain the debounced loadData() kicked off by the success branch.
     await flushPromises();
@@ -257,9 +251,7 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
 
     // A success toast SHOULD fire ('User updated successfully') and must NOT
     // have the danger variant — that would indicate an error branch slipped in.
-    const successCall = makeToastSpy.mock.calls.find(
-      (call) => call[2] === 'success'
-    );
+    const successCall = makeToastSpy.mock.calls.find((call) => call[2] === 'success');
     expect(successCall).toBeDefined();
     const dangerCall = makeToastSpy.mock.calls.find((call) => call[2] === 'danger');
     expect(dangerCall).toBeUndefined();
@@ -281,8 +273,9 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
 
     // Capture the rendered role for Alice (user_id=1) before the attempt so
     // we can assert it did not change after the 403.
-    const aliceRoleCellBefore = wrapper
-      .findAll('tr[data-user-id="1"] [data-test="cell-user-role"]')[0];
+    const aliceRoleCellBefore = wrapper.findAll(
+      'tr[data-user-id="1"] [data-test="cell-user-role"]'
+    )[0];
     expect(aliceRoleCellBefore.text()).toBe('Administrator');
 
     const alice = (userTableOk.data as UserTableRow[]).find((u) => u.user_id === 1)!;
@@ -291,9 +284,7 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
       user_role: 'Viewer', // attempt to demote the last admin
     };
 
-    await (
-      wrapper.vm as unknown as { updateUserData: () => Promise<void> }
-    ).updateUserData();
+    await (wrapper.vm as unknown as { updateUserData: () => Promise<void> }).updateUserData();
 
     await flushPromises();
 
@@ -313,8 +304,9 @@ describe('ManageUser view — functional (Phase C.C6)', () => {
     expect(aliceAfter!.user_role).toBe('Administrator');
 
     // Sanity: the rendered DOM also still shows Administrator for user 1.
-    const aliceRoleCellAfter = wrapper
-      .findAll('tr[data-user-id="1"] [data-test="cell-user-role"]')[0];
+    const aliceRoleCellAfter = wrapper.findAll(
+      'tr[data-user-id="1"] [data-test="cell-user-role"]'
+    )[0];
     expect(aliceRoleCellAfter.text()).toBe('Administrator');
   });
 
@@ -354,17 +346,12 @@ describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () 
     server.use(
       http.get('/api/user/table', () => HttpResponse.json(userTableOk)),
       http.get('/api/user/role_list', () =>
-        HttpResponse.json([
-          { role: 'Administrator' },
-          { role: 'Curator' },
-          { role: 'Viewer' },
-        ])
+        HttpResponse.json([{ role: 'Administrator' }, { role: 'Curator' }, { role: 'Viewer' }])
       ),
       http.get('/api/user/list', () => HttpResponse.json([]))
     );
     return mountComponent();
   }
-
 
   it('1. confirmBulkApprove → POST /api/user/bulk_approve carries the Bearer header', async () => {
     let sawBearer = false;
@@ -390,7 +377,9 @@ describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () 
       }
     ).getSelectedArray = () => [1, 2];
 
-    await (wrapper.vm as unknown as { confirmBulkApprove: () => Promise<void> }).confirmBulkApprove();
+    await (
+      wrapper.vm as unknown as { confirmBulkApprove: () => Promise<void> }
+    ).confirmBulkApprove();
     await flushPromises();
     expect(sawBearer).toBe(true);
   });
@@ -432,13 +421,9 @@ describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () 
     );
 
     const wrapper = await mountWithToken('bulk-delete-token');
-    (
-      wrapper.vm as unknown as { getSelectedArray: () => number[] }
-    ).getSelectedArray = () => [2];
+    (wrapper.vm as unknown as { getSelectedArray: () => number[] }).getSelectedArray = () => [2];
 
-    await (
-      wrapper.vm as unknown as { confirmBulkDelete: () => Promise<void> }
-    ).confirmBulkDelete();
+    await (wrapper.vm as unknown as { confirmBulkDelete: () => Promise<void> }).confirmBulkDelete();
     await flushPromises();
     expect(sawBearer).toBe(true);
   });
@@ -513,9 +498,7 @@ describe('ManageUser view — v11.0 closeout F2b apiClient Bearer contract', () 
       user_id: 2,
     };
 
-    await (
-      wrapper.vm as unknown as { confirmDeleteUser: () => Promise<void> }
-    ).confirmDeleteUser();
+    await (wrapper.vm as unknown as { confirmDeleteUser: () => Promise<void> }).confirmDeleteUser();
     await flushPromises();
     expect(sawBearer).toBe(true);
   });

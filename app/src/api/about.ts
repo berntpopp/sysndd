@@ -52,9 +52,7 @@ export interface AboutMutationResponse {
  *
  * Throws AxiosError on non-2xx (401/403 if the caller is not an Administrator).
  */
-export async function getAboutDraft(
-  config?: AxiosRequestConfig,
-): Promise<AboutSection[]> {
+export async function getAboutDraft(config?: AxiosRequestConfig): Promise<AboutSection[]> {
   return apiClient.get<AboutSection[]>('/api/about/draft', config);
 }
 
@@ -70,12 +68,12 @@ export async function getAboutDraft(
  */
 export async function saveAboutDraft(
   sections: AboutSection[],
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AboutMutationResponse> {
   return apiClient.put<AboutMutationResponse, { sections: AboutSection[] }>(
     '/api/about/draft',
     { sections },
-    config,
+    config
   );
 }
 
@@ -90,12 +88,12 @@ export async function saveAboutDraft(
  */
 export async function publishAbout(
   sections: AboutSection[],
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AboutMutationResponse> {
   return apiClient.post<AboutMutationResponse, { sections: AboutSection[] }>(
     '/api/about/publish',
     { sections },
-    config,
+    config
   );
 }
 
@@ -109,8 +107,6 @@ export async function publishAbout(
  * Throws AxiosError on non-2xx (network errors only — 5xx is the typical
  * failure mode here).
  */
-export async function getPublishedAbout(
-  config?: AxiosRequestConfig,
-): Promise<AboutSection[]> {
+export async function getPublishedAbout(config?: AxiosRequestConfig): Promise<AboutSection[]> {
   return apiClient.get<AboutSection[]>('/api/about/published', config);
 }

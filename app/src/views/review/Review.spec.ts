@@ -441,7 +441,8 @@ async function mountReview(): Promise<VueWrapper> {
         BFormInput: {
           name: 'BFormInput',
           props: ['modelValue', 'id', 'type', 'placeholder'],
-          template: '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
+          template:
+            '<input :id="id" :type="type" :placeholder="placeholder" :value="modelValue" />',
         },
         BFormSelect: {
           name: 'BFormSelect',
@@ -793,10 +794,7 @@ describe('Review.vue — classification wizard (functional)', () => {
 // via real apiClient + MSW in `app/src/api/client.spec.ts`. These two
 // helpers cover the F2c-specific interceptor-capture surface.
 
-function simulateApiClientInterceptor(
-  axiosMock: CapturedAxiosMock,
-  url: string
-): Request {
+function simulateApiClientInterceptor(axiosMock: CapturedAxiosMock, url: string): Request {
   // Plain-object headers branch: hand the interceptor `{ headers: {} }`
   // so `instanceof AxiosHeaders` is false and the fallback Record-cast
   // assignment runs.
@@ -848,9 +846,7 @@ async function simulateApiClientInterceptorWithAxiosHeaders(
     get(name: string): string | null;
   };
   const authorization = enrichedHeaders.get('Authorization');
-  const headersBag: Record<string, string> = authorization
-    ? { Authorization: authorization }
-    : {};
+  const headersBag: Record<string, string> = authorization ? { Authorization: authorization } : {};
   return new Request(`http://localhost${url}`, {
     method: 'GET',
     headers: headersBag,
@@ -1009,10 +1005,7 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     });
 
     // And the Bearer header the interceptor injects matches the primed token.
-    const simulatedRequest = simulateApiClientInterceptor(
-      axiosMock,
-      '/api/re_review/submit'
-    );
+    const simulatedRequest = simulateApiClientInterceptor(axiosMock, '/api/re_review/submit');
     expectBearerHeader(simulatedRequest, token);
   });
 
@@ -1076,10 +1069,7 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     );
     expect(putCall).toBeDefined();
 
-    const simulatedRequest = simulateApiClientInterceptor(
-      axiosMock,
-      '/api/re_review/unsubmit/701'
-    );
+    const simulatedRequest = simulateApiClientInterceptor(axiosMock, '/api/re_review/unsubmit/701');
     expectBearerHeader(simulatedRequest, token);
   });
 
@@ -1099,10 +1089,7 @@ describe('Review.vue — v11.0 closeout F2c migration', () => {
     const getUrls = axiosMock.get.mock.calls.map((c) => c[0] as string);
     expect(getUrls.some((u) => u.includes('/api/re_review/batch/apply'))).toBe(true);
 
-    const simulatedRequest = simulateApiClientInterceptor(
-      axiosMock,
-      '/api/re_review/batch/apply'
-    );
+    const simulatedRequest = simulateApiClientInterceptor(axiosMock, '/api/re_review/batch/apply');
     expectBearerHeader(simulatedRequest, token);
 
     // Success side effects on the batch-apply path: toast + aria-live

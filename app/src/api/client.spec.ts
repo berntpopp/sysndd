@@ -67,11 +67,11 @@ describe('api/client — typed wrapper smoke tests', () => {
       server.use(
         http.delete('/api/test-only/delete-smoke/:id', ({ params }) => {
           return HttpResponse.json({ deleted_id: params.id, ok: true });
-        }),
+        })
       );
 
       const body = await apiClient.delete<{ deleted_id: string; ok: boolean }>(
-        '/api/test-only/delete-smoke/42',
+        '/api/test-only/delete-smoke/42'
       );
       expect(body).toEqual({ deleted_id: '42', ok: true });
     });
@@ -195,7 +195,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping');
@@ -208,7 +208,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping');
@@ -222,7 +222,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       const headers = new AxiosHeaders();
@@ -240,7 +240,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping', {
@@ -262,7 +262,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping', {
@@ -280,7 +280,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping', {
@@ -300,7 +300,7 @@ describe('api/client — typed wrapper smoke tests', () => {
         http.get('*/api/ping', ({ request }) => {
           captured = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping', {

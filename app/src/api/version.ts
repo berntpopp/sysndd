@@ -45,8 +45,6 @@ export interface ApiVersion {
  * Public — no auth filter. Throws AxiosError on non-2xx (5xx is the only
  * realistic failure mode for this endpoint).
  */
-export async function getVersion(
-  config?: AxiosRequestConfig,
-): Promise<ApiVersion> {
+export async function getVersion(config?: AxiosRequestConfig): Promise<ApiVersion> {
   return apiClient.get<ApiVersion>('/api/version', config);
 }

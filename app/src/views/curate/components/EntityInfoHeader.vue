@@ -7,12 +7,7 @@
         <h6 class="mb-0 text-start font-weight-bold d-flex align-items-center">
           <i class="bi bi-info-circle me-2" aria-hidden="true" />
           Selected Entity
-          <EntityBadge
-            :entity-id="entity.entity_id"
-            variant="primary"
-            size="md"
-            class="ms-2"
-          />
+          <EntityBadge :entity-id="entity.entity_id" variant="primary" size="md" class="ms-2" />
         </h6>
       </template>
 

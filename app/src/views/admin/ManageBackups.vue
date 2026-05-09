@@ -723,16 +723,13 @@ async function confirmDelete() {
     const response = await apiClient.raw.delete<{
       error?: unknown;
       message?: string;
-    }>(
-      `${import.meta.env.VITE_API_URL}/api/backup/delete/${filename}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: { confirm: 'DELETE' },
-        withCredentials: true,
-      }
-    );
+    }>(`${import.meta.env.VITE_API_URL}/api/backup/delete/${filename}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: { confirm: 'DELETE' },
+      withCredentials: true,
+    });
 
     if (response.data.error) {
       makeToast(response.data.message || 'Failed to delete backup', 'Error', 'danger');

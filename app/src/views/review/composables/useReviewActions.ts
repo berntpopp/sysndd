@@ -44,10 +44,7 @@ export interface UseReviewActions {
   submitReReviewEntity: (re_review_entity_id: number | string) => Promise<void>;
 
   /** PUT /api/re_review/approve/:id with status_ok + review_ok params. */
-  approveEntity: (
-    re_review_entity_id: number | string,
-    decision: ApproveDecision,
-  ) => Promise<void>;
+  approveEntity: (re_review_entity_id: number | string, decision: ApproveDecision) => Promise<void>;
 
   /** PUT /api/re_review/unsubmit/:id. */
   unsubmitEntity: (re_review_entity_id: number | string) => Promise<void>;
@@ -86,7 +83,7 @@ export function useReviewActions(options: UseReviewActionsOptions = {}): UseRevi
 
   async function approveEntity(
     re_review_entity_id: number | string,
-    decision: ApproveDecision,
+    decision: ApproveDecision
   ): Promise<void> {
     mutating.value = true;
     try {

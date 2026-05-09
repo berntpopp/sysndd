@@ -280,11 +280,7 @@ export default {
 
       try {
         await signup(registration_form);
-        this.makeToast(
-          'Your registration request has been sent.',
-          'Success',
-          'success'
-        );
+        this.makeToast('Your registration request has been sent.', 'Success', 'success');
         this.successfulRegistration();
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

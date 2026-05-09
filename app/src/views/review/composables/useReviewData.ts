@@ -254,7 +254,7 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
 
   async function loadReviewInfo(
     review_id: number | string,
-    re_review_review_saved: number,
+    re_review_review_saved: number
   ): Promise<void> {
     try {
       const rows = await getReviewById(review_id);
@@ -274,7 +274,7 @@ export function useReviewData(options: UseReviewDataOptions = {}): UseReviewData
 
   async function loadStatusInfo(
     status_id: number | string,
-    re_review_status_saved: number,
+    re_review_status_saved: number
   ): Promise<void> {
     loading_status_modal.value = true;
     try {

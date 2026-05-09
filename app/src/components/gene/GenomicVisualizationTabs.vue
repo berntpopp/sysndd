@@ -15,7 +15,9 @@
   <BCard class="shadow-sm border-0 mb-3" body-class="p-0" header-class="py-2 px-3">
     <template #header>
       <div class="d-flex justify-content-between align-items-center">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up" /> Genomic Visualizations</h6>
+        <h2 class="genomic-visualization-title mb-0 fw-bold">
+          <i class="bi bi-graph-up" aria-hidden="true" /> Genomic Visualizations
+        </h2>
         <span v-if="summaryText" class="text-muted small">
           {{ summaryText }}
         </span>
@@ -40,7 +42,7 @@
         <BTab title-item-class="visualization-tab-item">
           <template #title>
             <span class="tab-title">
-              <i class="bi bi-diagram-3" />
+              <i class="bi bi-diagram-3" aria-hidden="true" />
               Protein View
               <BBadge v-if="variantCount > 0" variant="secondary" pill class="ms-1">
                 {{ formatCount(variantCount) }}
@@ -55,7 +57,7 @@
             so revisits are instant. Initial active tab is 0 (protein),
             so the plot mounts on first paint.
           -->
-          <div class="visualization-panel">
+          <div class="visualization-panel visualization-panel--protein">
             <KeepAlive>
               <div v-if="activeTab === 'protein'">
                 <ProteinDomainLollipopPlot
@@ -79,7 +81,7 @@
         <BTab title-item-class="visualization-tab-item" @click="onGeneStructureTabClick">
           <template #title>
             <span class="tab-title">
-              <i class="bi bi-bar-chart-steps" />
+              <i class="bi bi-bar-chart-steps" aria-hidden="true" />
               Gene Structure
               <BBadge v-if="exonCount > 0" variant="secondary" pill class="ms-1">
                 {{ exonCount }} exons
@@ -102,10 +104,7 @@
                   :gene-symbol="geneSymbol"
                   @variant-click="handleGenomicVariantClick"
                 />
-                <div
-                  v-else-if="geneStructureLoading"
-                  class="d-flex justify-content-center py-4"
-                >
+                <div v-else-if="geneStructureLoading" class="d-flex justify-content-center py-4">
                   <BSpinner small label="Loading gene structure..." />
                 </div>
                 <div v-else class="empty-state">
@@ -121,7 +120,7 @@
         <BTab title-item-class="visualization-tab-item" lazy>
           <template #title>
             <span class="tab-title">
-              <i class="bi bi-box" />
+              <i class="bi bi-box" aria-hidden="true" />
               3D Structure
             </span>
           </template>
@@ -606,6 +605,11 @@ watch(
 
 <style scoped>
 /* Visualization tabs styling */
+.genomic-visualization-title {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
 .visualization-tabs {
   width: 100%;
 }
@@ -669,6 +673,11 @@ watch(
   padding: 6px 12px;
 }
 
+.visualization-panel--protein {
+  max-height: none;
+  overflow-y: visible;
+}
+
 /* Visualization panel for 3D structure - full height, no padding */
 .visualization-panel-3d {
   height: 500px; /* Fixed height per Phase 45 spec */
@@ -720,6 +729,11 @@ watch(
   .visualization-panel {
     min-height: 180px;
     max-height: 320px;
+  }
+
+  .visualization-panel--protein {
+    max-height: none;
+    overflow-y: visible;
   }
 
   .visualization-tabs :deep(.visualization-tab-item .nav-link) {

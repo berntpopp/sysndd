@@ -36,9 +36,11 @@
         <!-- Left aligned nav items -->
 
         <!-- Center aligned search bar -->
-        <BNavbarNav v-if="show_search" class="mx-auto d-none d-lg-flex">
-          <SearchCombobox placeholder-string="..." :in-navbar="true" />
-        </BNavbarNav>
+        <ul v-if="show_search" class="navbar-nav mx-auto d-none d-lg-flex">
+          <li class="nav-item navbar-search-item">
+            <SearchCombobox placeholder-string="..." :in-navbar="true" />
+          </li>
+        </ul>
         <!-- Center aligned search bar -->
 
         <!-- Right aligned nav items -->
@@ -59,9 +61,11 @@
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
-        <BNavbarNav v-if="show_search" class="d-lg-none ms-auto">
-          <SearchCombobox placeholder-string="..." :in-navbar="true" />
-        </BNavbarNav>
+        <ul v-if="show_search" class="navbar-nav d-lg-none ms-auto">
+          <li class="nav-item navbar-search-item">
+            <SearchCombobox placeholder-string="..." :in-navbar="true" />
+          </li>
+        </ul>
         <!-- Mobile search bar -->
       </BCollapse>
     </BNavbar>

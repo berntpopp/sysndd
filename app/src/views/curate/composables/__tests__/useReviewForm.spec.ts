@@ -59,7 +59,7 @@ interface ResolverMap {
  */
 function primeReadMocks(map: ResolverMap) {
   reviewApiMocks.getReviewById.mockResolvedValue(
-    map.review ?? [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }],
+    map.review ?? [{ synopsis: 'Test synopsis', comment: '', entity_id: 1 }]
   );
   reviewApiMocks.getReviewPhenotypes.mockResolvedValue(map.phenotypes ?? []);
   reviewApiMocks.getReviewVariation.mockResolvedValue(map.variation ?? []);
@@ -122,8 +122,9 @@ describe('useReviewForm', () => {
       // Verify the typed updateReview helper was called with merged publications
       expect(reviewApiMocks.updateReview).toHaveBeenCalledTimes(1);
       const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
-        .review_json;
+      const submittedData = (
+        putCall[0] as { review_json: { literature: { additional_references: string[] } } }
+      ).review_json;
 
       // Should contain all 3 publications (2 original + 1 new)
       expect(submittedData.literature.additional_references).toHaveLength(3);
@@ -154,8 +155,9 @@ describe('useReviewForm', () => {
 
       // Verify original publication was preserved despite formData being empty
       const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
-        .review_json;
+      const submittedData = (
+        putCall[0] as { review_json: { literature: { additional_references: string[] } } }
+      ).review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
       expect(submittedData.literature.additional_references).toContain('PMID:12345678');
@@ -183,8 +185,9 @@ describe('useReviewForm', () => {
 
       // Verify no duplicates in submitted data
       const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
-        .review_json;
+      const submittedData = (
+        putCall[0] as { review_json: { literature: { additional_references: string[] } } }
+      ).review_json;
 
       expect(submittedData.literature.additional_references).toHaveLength(1);
       expect(submittedData.literature.additional_references).toContain('PMID:12345678');
@@ -228,8 +231,9 @@ describe('useReviewForm', () => {
       await flushPromises();
 
       const putCall = reviewApiMocks.updateReview.mock.calls[0];
-      const submittedData = (putCall[0] as { review_json: { literature: { additional_references: string[] } } })
-        .review_json;
+      const submittedData = (
+        putCall[0] as { review_json: { literature: { additional_references: string[] } } }
+      ).review_json;
 
       // Should only contain the new publication
       expect(submittedData.literature.additional_references).toHaveLength(1);

@@ -24,7 +24,7 @@
             title="View on MGI"
             aria-label="View gene on MGI database (opens in new tab)"
           >
-            <span class="badge bg-secondary me-1">MGI</span>
+            <span class="badge model-org-source-badge me-1">MGI</span>
             <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
           </BButton>
           <!-- RGD external link -->
@@ -39,7 +39,7 @@
             title="View on RGD"
             aria-label="View gene on RGD database (opens in new tab)"
           >
-            <span class="badge bg-secondary me-1">RGD</span>
+            <span class="badge model-org-source-badge me-1">RGD</span>
             <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
           </BButton>
         </div>
@@ -64,6 +64,14 @@
         <BButton variant="link" size="sm" class="p-0 ms-2" @click="$emit('retry')"> Retry </BButton>
       </div>
 
+      <!-- Combined no-data state -->
+      <div v-else-if="hasNoModelOrganismData" class="model-org-empty-state">
+        <i class="bi bi-info-circle model-org-empty-state__icon" aria-hidden="true" />
+        <p class="model-org-empty-state__message mb-0">
+          No mouse or rat phenotype data returned for this gene.
+        </p>
+      </div>
+
       <!-- Data display - two column layout with centered divider -->
       <div v-else class="organism-grid">
         <!-- Mouse (MGI) section - LEFT -->
@@ -86,18 +94,20 @@
           <div v-else-if="mgiData" class="d-flex flex-wrap gap-1 align-items-center">
             <!-- Phenotype count badge - clickable to show popover -->
             <span
+              v-if="mgiData.phenotype_count > 0"
               :id="mgiPopoverId"
-              class="badge bg-primary phenotype-badge"
-              :class="{ 'phenotype-badge-clickable': mgiData.phenotype_count > 0 }"
-              :aria-label="`${mgiData.phenotype_count} mouse phenotypes from MGI. ${mgiData.phenotype_count > 0 ? 'Click to see all.' : ''}`"
+              class="badge bg-primary phenotype-badge phenotype-badge-clickable"
+              :aria-label="`${phenotypeBadgeText(mgiData.phenotype_count, 'mouse')} from MGI. ${mgiData.phenotype_count > 0 ? 'Click to see all.' : ''}`"
               role="button"
               tabindex="0"
-              @click="mgiData.phenotype_count > 0 && toggleMgiPopover()"
-              @keydown.enter="mgiData.phenotype_count > 0 && toggleMgiPopover()"
+              @click="toggleMgiPopover()"
+              @keydown.enter="toggleMgiPopover()"
+              @keydown.space.prevent="toggleMgiPopover()"
             >
-              {{ mgiData.phenotype_count }} phenotype{{ mgiData.phenotype_count === 1 ? '' : 's' }}
-              <i v-if="mgiData.phenotype_count > 0" class="bi bi-chevron-down ms-1 small"></i>
+              {{ phenotypeBadgeText(mgiData.phenotype_count, 'mouse') }}
+              <i class="bi bi-chevron-down ms-1 small"></i>
             </span>
+            <span v-else class="text-muted small"> 0 mouse phenotypes </span>
 
             <!-- MGI Phenotype Popover -->
             <BPopover
@@ -186,16 +196,17 @@
               v-if="rgdData.phenotype_count > 0"
               :id="rgdPopoverId"
               class="badge bg-primary phenotype-badge phenotype-badge-clickable"
-              :aria-label="`${rgdData.phenotype_count} rat phenotypes from RGD. Click to see all.`"
+              :aria-label="`${phenotypeBadgeText(rgdData.phenotype_count, 'rat')} from RGD. ${rgdData.phenotype_count > 0 ? 'Click to see all.' : ''}`"
               role="button"
               tabindex="0"
               @click="toggleRgdPopover()"
               @keydown.enter="toggleRgdPopover()"
+              @keydown.space.prevent="toggleRgdPopover()"
             >
-              {{ rgdData.phenotype_count }} phenotype{{ rgdData.phenotype_count === 1 ? '' : 's' }}
+              {{ phenotypeBadgeText(rgdData.phenotype_count, 'rat') }}
               <i class="bi bi-chevron-down ms-1 small"></i>
             </span>
-            <span v-else class="text-muted small"> 0 phenotypes </span>
+            <span v-else class="text-muted small"> 0 rat phenotypes </span>
 
             <!-- RGD Phenotype Popover -->
             <BPopover
@@ -312,11 +323,34 @@ function getZygosityLabel(zygosity: string | undefined): string {
   return z || '';
 }
 
+function phenotypeBadgeText(count: number, species: 'mouse' | 'rat'): string {
+  return `${count} ${species} phenotype${count === 1 ? '' : 's'}`;
+}
+
+const hasNoModelOrganismData = computed(() => {
+  const mgiEmpty =
+    !props.mgiData ||
+    (props.mgiData.phenotype_count === 0 && (props.mgiData.phenotypes?.length ?? 0) === 0);
+  const rgdEmpty =
+    !props.rgdData ||
+    (props.rgdData.phenotype_count === 0 && (props.rgdData.phenotypes?.length ?? 0) === 0);
+
+  return (
+    mgiEmpty &&
+    rgdEmpty &&
+    !props.mgiLoading &&
+    !props.rgdLoading &&
+    !props.mgiError &&
+    !props.rgdError
+  );
+});
+
 /**
- * Show card if either source has data, error, or is loading
+ * Show card if either source has data, error, loading, or a source-card empty state.
  */
 const showCard = computed(() => {
   return (
+    hasNoModelOrganismData.value ||
     props.mgiData !== null ||
     props.mgiError !== null ||
     props.mgiLoading ||
@@ -346,6 +380,23 @@ const zygosityCounts = computed(() => {
 <style scoped>
 .model-organisms-card {
   /* Match gene info card styling */
+}
+
+.model-org-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-top: 1px dashed #adb5bd;
+  color: #6c757d;
+  text-align: center;
+}
+
+.model-org-empty-state__message {
+  font-size: 0.875rem;
+  font-style: italic;
 }
 
 /* PhyloPic silhouette icons */
@@ -408,6 +459,12 @@ const zygosityCounts = computed(() => {
 .badge-sm {
   font-size: 0.7rem;
   padding: 0.2rem 0.4rem;
+}
+
+.model-org-source-badge {
+  background-color: #495057;
+  color: #fff;
+  font-weight: 700;
 }
 
 /* Custom badge color for heterozygous (yellow/warning) */

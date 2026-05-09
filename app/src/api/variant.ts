@@ -105,7 +105,7 @@ export interface VariantCountRow {
  */
 export async function browseVariantEntities(
   params: BrowseVariantEntitiesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<VariantBrowseResponse> {
   return apiClient.get<VariantBrowseResponse>('/api/variant/browse', {
     ...config,
@@ -126,7 +126,7 @@ export async function browseVariantEntities(
  */
 export async function getVariantCorrelation(
   params: VariantCorrelationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<VariantCorrelationCell[]> {
   return apiClient.get<VariantCorrelationCell[]>('/api/variant/correlation', {
     ...config,
@@ -147,7 +147,7 @@ export async function getVariantCorrelation(
  */
 export async function getVariantCounts(
   params: VariantCountParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<VariantCountRow[]> {
   return apiClient.get<VariantCountRow[]>('/api/variant/count', {
     ...config,

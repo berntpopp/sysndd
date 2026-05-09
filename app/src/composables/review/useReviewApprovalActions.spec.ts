@@ -40,7 +40,7 @@ describe('useReviewApprovalActions — F2a Bearer-via-interceptor', () => {
       http.put('*/api/review/approve/:id', ({ request, params }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ review_id: params.id, review_approved: 1 });
-      }),
+      })
     );
 
     const response = await approveReview(axios, 101);
@@ -53,7 +53,7 @@ describe('useReviewApprovalActions — F2a Bearer-via-interceptor', () => {
       http.put('*/api/review/approve/:id', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ ok: true });
-      }),
+      })
     );
 
     const response = await dismissReview(axios, 202);
@@ -66,7 +66,7 @@ describe('useReviewApprovalActions — F2a Bearer-via-interceptor', () => {
       http.put('*/api/status/approve/:id', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ ok: true });
-      }),
+      })
     );
 
     const response = await approveStatus(axios, 303);
@@ -79,7 +79,7 @@ describe('useReviewApprovalActions — F2a Bearer-via-interceptor', () => {
       http.put('*/api/review/approve/all', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ ok: true });
-      }),
+      })
     );
 
     const response = await approveAllReviews(axios);

@@ -34,9 +34,16 @@ vi.mock('axios', () => {
     ...axiosMock,
     AxiosHeaders: class {
       private store = new Map<string, string>();
-      has(key: string): boolean { return this.store.has(key.toLowerCase()); }
-      get(key: string): string | null { return this.store.get(key.toLowerCase()) ?? null; }
-      set(key: string, value: string): this { this.store.set(key.toLowerCase(), value); return this; }
+      has(key: string): boolean {
+        return this.store.has(key.toLowerCase());
+      }
+      get(key: string): string | null {
+        return this.store.get(key.toLowerCase()) ?? null;
+      }
+      set(key: string, value: string): this {
+        this.store.set(key.toLowerCase(), value);
+        return this;
+      }
     },
     AxiosError: Error,
   };
@@ -51,7 +58,9 @@ vi.mock('@/router', () => ({
 
 import { __resetUserDataCache, useUserData } from '../useUserData';
 
-interface AxiosMock { get: ReturnType<typeof vi.fn> }
+interface AxiosMock {
+  get: ReturnType<typeof vi.fn>;
+}
 async function getAxiosMock(): Promise<AxiosMock> {
   const axios = await import('axios');
   return axios.default as unknown as AxiosMock;
@@ -59,7 +68,13 @@ async function getAxiosMock(): Promise<AxiosMock> {
 
 const userTablePayload = {
   data: [
-    { user_id: 1, user_name: 'alice', email: 'alice@example.org', user_role: 'Curator', approved: 1 },
+    {
+      user_id: 1,
+      user_name: 'alice',
+      email: 'alice@example.org',
+      user_role: 'Curator',
+      approved: 1,
+    },
     { user_id: 2, user_name: 'bob', email: 'bob@example.org', user_role: 'Reviewer', approved: 1 },
   ],
   meta: [

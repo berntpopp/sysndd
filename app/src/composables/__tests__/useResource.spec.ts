@@ -134,7 +134,7 @@ describe('useResource — SWR / dedupe / abort', () => {
       () =>
         new Promise<string>((res) => {
           resolved = () => res('fresh');
-        }),
+        })
     );
     const Comp = defineComponent({
       setup() {
@@ -262,7 +262,7 @@ describe('useResource — SWR / dedupe / abort', () => {
       () =>
         new Promise<number>((res) => {
           resolvers.push(res);
-        }),
+        })
     );
     const Comp = defineComponent({
       setup() {

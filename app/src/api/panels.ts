@@ -68,7 +68,7 @@ export interface BrowsePanelsResponse {
  */
 export async function getPanelOptions(
   params: PanelOptionsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PanelOptionGroup[]> {
   return apiClient.get<PanelOptionGroup[]>('/api/panels/options', {
     ...config,
@@ -86,7 +86,7 @@ export async function getPanelOptions(
  */
 export async function browsePanels(
   params: BrowsePanelsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BrowsePanelsResponse> {
   return apiClient.get<BrowsePanelsResponse>('/api/panels/browse', {
     ...config,
@@ -102,7 +102,7 @@ export async function browsePanels(
  */
 export async function browsePanelsXlsx(
   params: Omit<BrowsePanelsParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/panels/browse', {
     ...config,

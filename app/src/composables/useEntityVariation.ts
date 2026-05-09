@@ -4,7 +4,7 @@ import { getEntityVariation } from '@/api/entity';
 import { useResource, type ResourceState } from './useResource';
 
 export function useEntityVariation(
-  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>,
+  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>
 ): ResourceState<unknown[]> {
   const idRef = computed<string | null>(() => {
     let v: string | number | null;
@@ -16,6 +16,6 @@ export function useEntityVariation(
   return useResource<unknown[]>(
     key,
     async (signal) => (await getEntityVariation(idRef.value!, {}, { signal })) as unknown[],
-    { ttlMs: 60_000 },
+    { ttlMs: 60_000 }
   );
 }

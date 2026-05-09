@@ -165,7 +165,7 @@ export interface ClusterSummary {
  */
 export async function getFunctionalClustering(
   params: FunctionalClusteringParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<FunctionalClusteringResponse> {
   return apiClient.get<FunctionalClusteringResponse>('/api/analysis/functional_clustering', {
     ...config,
@@ -180,7 +180,7 @@ export async function getFunctionalClustering(
  * MCA + hierarchical clustering of entities by phenotype.
  */
 export async function getPhenotypeClustering(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PhenotypeCluster[]> {
   return apiClient.get<PhenotypeCluster[]>('/api/analysis/phenotype_clustering', config);
 }
@@ -193,11 +193,11 @@ export async function getPhenotypeClustering(
  * presence/absence matrices, as both raw matrix and melted form.
  */
 export async function getPhenotypeFunctionalCorrelation(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<CorrelationResponse> {
   return apiClient.get<CorrelationResponse>(
     '/api/analysis/phenotype_functional_cluster_correlation',
-    config,
+    config
   );
 }
 
@@ -211,7 +211,7 @@ export async function getPhenotypeFunctionalCorrelation(
  */
 export async function getNetworkEdges(
   params: NetworkEdgesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<NetworkEdgesResponse> {
   return apiClient.get<NetworkEdgesResponse>('/api/analysis/network_edges', {
     ...config,
@@ -230,7 +230,7 @@ export async function getNetworkEdges(
  */
 export async function getFunctionalClusterSummary(
   params: ClusterSummaryParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ClusterSummary> {
   return apiClient.get<ClusterSummary>('/api/analysis/functional_cluster_summary', {
     ...config,
@@ -246,7 +246,7 @@ export async function getFunctionalClusterSummary(
  */
 export async function getPhenotypeClusterSummary(
   params: ClusterSummaryParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ClusterSummary> {
   return apiClient.get<ClusterSummary>('/api/analysis/phenotype_cluster_summary', {
     ...config,

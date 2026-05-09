@@ -245,13 +245,12 @@ export default function useReviewForm(entityId?: string | number) {
     reviewId.value = reviewIdInput;
 
     try {
-      const [reviewData, phenotypesData, variationData, publicationsData] =
-        await Promise.all([
-          getReviewById(reviewIdInput),
-          getReviewPhenotypes(reviewIdInput),
-          getReviewVariation(reviewIdInput),
-          getReviewPublications(reviewIdInput),
-        ]);
+      const [reviewData, phenotypesData, variationData, publicationsData] = await Promise.all([
+        getReviewById(reviewIdInput),
+        getReviewPhenotypes(reviewIdInput),
+        getReviewVariation(reviewIdInput),
+        getReviewPublications(reviewIdInput),
+      ]);
 
       // Load synopsis and comment
       if (reviewData && reviewData.length > 0) {
@@ -262,12 +261,12 @@ export default function useReviewForm(entityId?: string | number) {
 
       // Load phenotypes (format: "modifier_id-phenotype_id")
       formData.phenotypes = phenotypesData.map(
-        (item) => `${item.modifier_id}-${item.phenotype_id}`,
+        (item) => `${item.modifier_id}-${item.phenotype_id}`
       );
 
       // Load variation ontology (format: "modifier_id-vario_id")
       formData.variationOntology = variationData.map(
-        (item) => `${item.modifier_id}-${item.vario_id}`,
+        (item) => `${item.modifier_id}-${item.vario_id}`
       );
 
       // Load publications (filter by type)

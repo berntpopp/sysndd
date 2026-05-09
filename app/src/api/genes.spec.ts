@@ -52,7 +52,7 @@ describe('api/genes — typed helpers', () => {
         http.get('/api/gene/:gene_input', ({ request }) => {
           observedInputType = new URL(request.url).searchParams.get('input_type');
           return HttpResponse.json(geneLookupOk);
-        }),
+        })
       );
 
       await getGene('HGNC:4586');
@@ -65,7 +65,7 @@ describe('api/genes — typed helpers', () => {
         http.get('/api/gene/:gene_input', ({ request }) => {
           observedInputType = new URL(request.url).searchParams.get('input_type');
           return HttpResponse.json(geneLookupOk);
-        }),
+        })
       );
 
       await getGene('GRIN2B', 'symbol');
@@ -86,7 +86,7 @@ describe('api/genes — typed helpers', () => {
           // Also confirm MSW decoded the path param back to the raw value.
           expect(params.gene_input).toBe('HGNC:4586');
           return HttpResponse.json(geneLookupOk);
-        }),
+        })
       );
 
       await getGene('HGNC:4586', 'hgnc');
@@ -109,7 +109,7 @@ describe('api/genes — typed helpers', () => {
           observedSymbol = String(params.gene_input);
           observedInputType = new URL(request.url).searchParams.get('input_type');
           return HttpResponse.json(geneLookupOk);
-        }),
+        })
       );
 
       const rows = await getGeneBySymbol('GRIN2B');
@@ -142,7 +142,7 @@ describe('api/genes — typed helpers', () => {
         http.get('/api/gene', ({ request }) => {
           observedQuery = new URL(request.url).searchParams;
           return HttpResponse.json(geneListOk);
-        }),
+        })
       );
 
       await listGenes({
@@ -175,7 +175,7 @@ describe('api/genes — typed helpers', () => {
         http.get('/api/gene', ({ request }) => {
           observedQuery = new URL(request.url).searchParams;
           return HttpResponse.json(geneListOk);
-        }),
+        })
       );
 
       await listGenes({ filter: 'equals(symbol,GRIN2B)', compact: true });
@@ -192,7 +192,7 @@ describe('api/genes — typed helpers', () => {
         http.get('/api/gene', ({ request }) => {
           observedQueries.push(new URL(request.url).searchParams);
           return HttpResponse.json(geneListOk);
-        }),
+        })
       );
 
       await listGenes({ filter: 'equals(symbol,GRIN2B)' });
@@ -225,7 +225,7 @@ describe('api/external — getUniprotDomains', () => {
       http.get('/api/external/uniprot/domains/:symbol', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json(uniprotDomainsOk);
-      }),
+      })
     );
 
     await getUniprotDomains('GRIN 2B');

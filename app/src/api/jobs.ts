@@ -114,12 +114,12 @@ export interface JobStatusResponse {
  */
 export async function submitClustering(
   body: ClusteringSubmissionRequest = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobSubmissionResponse> {
   return apiClient.post<JobSubmissionResponse, ClusteringSubmissionRequest>(
     '/api/jobs/clustering/submit',
     body,
-    config,
+    config
   );
 }
 
@@ -131,12 +131,12 @@ export async function submitClustering(
  * the server pulls the relevant data from the DB itself.
  */
 export async function submitPhenotypeClustering(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobSubmissionResponse> {
   return apiClient.post<JobSubmissionResponse>(
     '/api/jobs/phenotype_clustering/submit',
     undefined,
-    config,
+    config
   );
 }
 
@@ -151,12 +151,12 @@ export async function submitPhenotypeClustering(
  * surface.
  */
 export async function submitOntologyUpdate(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobSubmissionResponse> {
   return apiClient.post<JobSubmissionResponse>(
     '/api/jobs/ontology_update/submit',
     undefined,
-    config,
+    config
   );
 }
 
@@ -167,13 +167,9 @@ export async function submitOntologyUpdate(
  * Administrator-only. Submits the HGNC data refresh as an async job.
  */
 export async function submitHgncUpdate(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobSubmissionResponse> {
-  return apiClient.post<JobSubmissionResponse>(
-    '/api/jobs/hgnc_update/submit',
-    undefined,
-    config,
-  );
+  return apiClient.post<JobSubmissionResponse>('/api/jobs/hgnc_update/submit', undefined, config);
 }
 
 /**
@@ -183,12 +179,12 @@ export async function submitHgncUpdate(
  * Administrator-only. Refreshes the cross-database comparisons table.
  */
 export async function submitComparisonsUpdate(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobSubmissionResponse> {
   return apiClient.post<JobSubmissionResponse>(
     '/api/jobs/comparisons_update/submit',
     undefined,
-    config,
+    config
   );
 }
 
@@ -205,7 +201,7 @@ export interface JobHistoryParams {
  */
 export async function getJobHistory(
   params: JobHistoryParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobHistoryResponse> {
   return apiClient.get<JobHistoryResponse>('/api/jobs/history', {
     ...config,
@@ -225,7 +221,7 @@ export async function getJobHistory(
  */
 export async function getJobStatus(
   job_id: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<JobStatusResponse> {
   const path = `/api/jobs/${encodeURIComponent(job_id)}/status`;
   return apiClient.get<JobStatusResponse>(path, config);

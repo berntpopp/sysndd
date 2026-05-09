@@ -20,6 +20,10 @@
             <BCard body-class="p-0" header-class="p-1" border-variant="dark">
               <template #header>
                 <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <h1 class="gene-page-title mb-0">
+                    <span v-if="geneSymbol">{{ geneSymbol }}</span>
+                    <span v-else>Gene</span>
+                  </h1>
                   <GeneBadge
                     v-if="geneSymbol"
                     :symbol="geneSymbol"
@@ -30,7 +34,7 @@
                   <span class="gene-card-name ms-1">{{ geneName }}</span>
                   <span
                     v-if="chromosomeLocation && chromosomeLocation !== 'null'"
-                    class="gene-card-location text-muted ms-1"
+                    class="gene-card-location ms-1"
                   >
                     {{ chromosomeLocation }}
                   </span>
@@ -47,11 +51,7 @@
                 />
               </div>
               <div class="px-3 py-1">
-                <IdentifierCard
-                  v-if="gene"
-                  :gene-data="gene"
-                  compact
-                />
+                <IdentifierCard v-if="gene" :gene-data="gene" compact />
               </div>
             </BCard>
           </BCol>
@@ -62,6 +62,7 @@
     <!-- 2. Associated Entities — mounted on tick 0 from URL-shape filter -->
     <TablesEntities
       :show-filter-controls="false"
+      :show-search-input="false"
       :show-pagination-controls="false"
       header-label="Associated "
       :filter-input="entityFilter"
@@ -73,11 +74,11 @@
     <div class="container-fluid">
       <BContainer fluid>
         <BRow class="justify-content-md-center pt-2">
-          <BCol cols="12" md="4" class="mb-2">
+          <BCol cols="12" lg="6" xxl="4" class="mb-2" data-testid="gene-external-card-col">
             <SectionCard
               frameless
               :loading="geneRecord.loading.value"
-              :empty="!geneRecord.loading.value && (gnomadConstraintsJson === null || gnomadConstraintsJson === '')"
+              :empty="false"
               :error="null"
               title="Gene Constraint (gnomAD)"
               min-height="16rem"
@@ -88,11 +89,11 @@
               />
             </SectionCard>
           </BCol>
-          <BCol cols="12" md="4" class="mb-2">
+          <BCol cols="12" lg="6" xxl="4" class="mb-2" data-testid="gene-external-card-col">
             <SectionCard
               frameless
               :loading="clinvarCounts.loading.value"
-              :empty="!clinvarCounts.loading.value && (clinvarCounts.data.value === null || clinvarCounts.data.value.variant_count === 0) && !clinvarCounts.error.value"
+              :empty="false"
               :error="clinvarCounts.error.value ? clinvarCounts.error.value.message : null"
               title="ClinVar Variants"
               min-height="16rem"
@@ -102,16 +103,18 @@
                 :loading="false"
                 :error="null"
                 :counts="clinvarCounts.data.value?.counts ?? null"
+                :class-breakdowns="clinvarCounts.data.value?.class_breakdowns ?? null"
+                :consequence-counts="clinvarCounts.data.value?.consequence_counts ?? null"
                 :total-count="clinvarCounts.data.value?.variant_count ?? 0"
                 @retry="clinvarCounts.refresh"
               />
             </SectionCard>
           </BCol>
-          <BCol cols="12" md="4" class="mb-2">
+          <BCol cols="12" lg="6" xxl="4" class="mb-2" data-testid="gene-external-card-col">
             <SectionCard
               frameless
               :loading="mgi.loading.value && rgd.loading.value"
-              :empty="modelOrgEmpty"
+              :empty="false"
               :error="modelOrgError"
               title="Model Organisms"
               min-height="16rem"
@@ -196,7 +199,7 @@ const entityFilter = computed(() =>
     ? HGNC_RE.test(routeParam.value)
       ? `equals(hgnc_id,${routeParam.value})`
       : `equals(symbol,${routeParam.value})`
-    : '',
+    : ''
 );
 
 // Per-source hooks — all fire on tick 0. Gene record drives the header card +
@@ -206,9 +209,8 @@ const geneRecord = useGeneRecord(routeParam);
 // Computed projections from the gene record (must be declared before hooks
 // that depend on geneSymbol).
 const gene = computed(() => geneRecord.data.value);
-const geneSymbol = computed(() =>
-  gene.value?.symbol?.[0]
-    ?? (HGNC_RE.test(routeParam.value) ? '' : routeParam.value),
+const geneSymbol = computed(
+  () => gene.value?.symbol?.[0] ?? (HGNC_RE.test(routeParam.value) ? '' : routeParam.value)
 );
 const geneName = computed(() => gene.value?.name?.[0] ?? '');
 const chromosomeLocation = computed(() => gene.value?.bed_hg38?.[0] ?? '');
@@ -219,7 +221,7 @@ const rgdId = computed(() => gene.value?.rgd_id?.[0] ?? '');
 const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints ?? null);
 
 const symbolForExternal = computed<string | null>(() =>
-  geneSymbol.value ? geneSymbol.value : null,
+  geneSymbol.value ? geneSymbol.value : null
 );
 // ClinVar counts power the small above-the-fold card (~250 B response).
 // The full variant list (~520 KB) is fetched separately for the genomic
@@ -236,25 +238,16 @@ const rgd = useGeneRGD(symbolForExternal);
 // The runtime payload matches; cast through `unknown` to satisfy TS without
 // duplicating type definitions.
 const mgiCardData = computed<MGIPhenotypeData | null>(
-  () => mgi.data.value as unknown as MGIPhenotypeData | null,
+  () => mgi.data.value as unknown as MGIPhenotypeData | null
 );
 const rgdCardData = computed<RGDPhenotypeData | null>(
-  () => rgd.data.value as unknown as RGDPhenotypeData | null,
+  () => rgd.data.value as unknown as RGDPhenotypeData | null
 );
 
-// Combined Model Organism empty state — both MGI and RGD must be empty for SectionCard to collapse.
-const modelOrgEmpty = computed(() => {
-  if (mgi.loading.value || rgd.loading.value) return false;
-  const mgiPhenos = mgi.data.value?.phenotypes;
-  const rgdPhenos = rgd.data.value?.phenotypes;
-  const noMgi = !mgi.data.value || !mgiPhenos || mgiPhenos.length === 0;
-  const noRgd = !rgd.data.value || !rgdPhenos || rgdPhenos.length === 0;
-  return noMgi && noRgd;
-});
 const modelOrgError = computed(() =>
-  (mgi.error.value && rgd.error.value)
+  mgi.error.value && rgd.error.value
     ? `${mgi.error.value.message} / ${rgd.error.value.message}`
-    : null,
+    : null
 );
 
 async function retryAllExternalData(): Promise<void> {
@@ -271,7 +264,12 @@ async function retryAllExternalData(): Promise<void> {
 // edge (Ref-identity null→null wouldn't trigger a data-only watcher) and on
 // stale→null SWR background transitions.
 watch([geneRecord.loading, geneRecord.data], () => {
-  if (!geneRecord.loading.value && geneRecord.data.value === null && !geneRecord.error.value && routeParam.value) {
+  if (
+    !geneRecord.loading.value &&
+    geneRecord.data.value === null &&
+    !geneRecord.error.value &&
+    routeParam.value
+  ) {
     router.push('/PageNotFound');
   }
 });
@@ -284,7 +282,7 @@ useHead({
       content: computed(() =>
         geneSymbol.value
           ? `Gene information for ${geneSymbol.value} (${geneName.value})`
-          : 'This Gene view shows specific information for a gene.',
+          : 'This Gene view shows specific information for a gene.'
       ),
     },
   ],
@@ -292,6 +290,11 @@ useHead({
 </script>
 
 <style scoped>
+.gene-page-title {
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
 .gene-card-name {
   font-weight: 600;
   font-size: 0.95rem;
@@ -300,5 +303,6 @@ useHead({
 .gene-card-location {
   font-size: 0.8rem;
   font-family: 'Courier New', monospace;
+  color: #495057;
 }
 </style>

@@ -8,10 +8,7 @@
  */
 
 import axios from 'axios';
-import {
-  unwrapValue,
-  authRequestConfig,
-} from './useAnnotationFormatters';
+import { unwrapValue, authRequestConfig } from './useAnnotationFormatters';
 import type {
   OntologyBlockedState,
   UserOption,
@@ -69,9 +66,7 @@ export async function fetchJobHistory(limit = 20): Promise<JobHistoryItem[]> {
   })) as JobHistoryItem[];
 }
 
-export async function fetchJobHistoryRaw(
-  limit = 1000
-): Promise<Array<Record<string, unknown>>> {
+export async function fetchJobHistoryRaw(limit = 1000): Promise<Array<Record<string, unknown>>> {
   const response = await axios.get(`${API()}/api/jobs/history`, {
     ...authRequestConfig(),
     params: { limit },
@@ -80,10 +75,7 @@ export async function fetchJobHistoryRaw(
 }
 
 export async function fetchDeprecatedEntities(): Promise<DeprecatedData> {
-  const response = await axios.get(
-    `${API()}/api/admin/deprecated_entities`,
-    authRequestConfig()
-  );
+  const response = await axios.get(`${API()}/api/admin/deprecated_entities`, authRequestConfig());
   const data = response.data;
   const unwrappedEntities = (data.affected_entities || []).map(
     (entity: Record<string, unknown>) => {
@@ -104,12 +96,8 @@ export async function fetchDeprecatedEntities(): Promise<DeprecatedData> {
 }
 
 export async function fetchPubtatorStats(): Promise<PubtatorStats> {
-  const metaTotal = (
-    response: { data?: { meta?: unknown } }
-  ): number | null => {
-    const meta = Array.isArray(response.data?.meta)
-      ? response.data?.meta[0]
-      : response.data?.meta;
+  const metaTotal = (response: { data?: { meta?: unknown } }): number | null => {
+    const meta = Array.isArray(response.data?.meta) ? response.data?.meta[0] : response.data?.meta;
     return (meta as { totalItems?: number })?.totalItems ?? null;
   };
 
@@ -157,8 +145,7 @@ export async function fetchComparisonsMetadata(): Promise<ComparisonsMetadata> {
   });
   return {
     last_full_refresh: unwrapValue(response.data.last_full_refresh),
-    last_refresh_status:
-      (unwrapValue(response.data.last_refresh_status) as string) ?? 'never',
+    last_refresh_status: (unwrapValue(response.data.last_refresh_status) as string) ?? 'never',
     last_refresh_error: unwrapValue(response.data.last_refresh_error),
     sources_count: (unwrapValue(response.data.sources_count) as number) ?? 0,
     rows_imported: (unwrapValue(response.data.rows_imported) as number) ?? 0,
@@ -254,10 +241,7 @@ export type OntologyJobResult =
   | null;
 
 export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJobResult> {
-  const statusResp = await axios.get(
-    `${API()}/api/jobs/${jobId}/status`,
-    authRequestConfig()
-  );
+  const statusResp = await axios.get(`${API()}/api/jobs/${jobId}/status`, authRequestConfig());
   const result = statusResp.data?.result;
   if (!result) return null;
   const resultStatus = unwrapValue(result?.status);

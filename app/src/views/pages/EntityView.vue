@@ -55,34 +55,58 @@
                 <div class="d-flex align-items-center flex-wrap gap-2">
                   <DiseaseBadge
                     :name="String((data.item as EntityRowMap).disease_ontology_name ?? '')"
-                    :ontology-id="String((data.item as EntityRowMap).disease_ontology_id_version ?? '')"
+                    :ontology-id="
+                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '')
+                    "
                     :link-to="
-                      '/Ontology/' + String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(/_.+/g, '')
+                      '/Ontology/' +
+                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
+                        /_.+/g,
+                        ''
+                      )
                     "
                     :max-length="0"
                   />
 
                   <BButton
-                    v-if="String((data.item as EntityRowMap).disease_ontology_id_version ?? '').includes('OMIM')"
+                    v-if="
+                      String(
+                        (data.item as EntityRowMap).disease_ontology_id_version ?? ''
+                      ).includes('OMIM')
+                    "
                     class="btn-xs"
                     variant="outline-primary"
                     :href="
                       'https://www.omim.org/entry/' +
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace('OMIM:', '').replace(/_.+/g, '')
+                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '')
+                        .replace('OMIM:', '')
+                        .replace(/_.+/g, '')
                     "
                     target="_blank"
                   >
                     <i class="bi bi-box-arrow-up-right" />
-                    {{ String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(/_.+/g, '') }}
+                    {{
+                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
+                        /_.+/g,
+                        ''
+                      )
+                    }}
                   </BButton>
 
                   <BButton
-                    v-if="String((data.item as EntityRowMap).disease_ontology_id_version ?? '').includes('MONDO')"
+                    v-if="
+                      String(
+                        (data.item as EntityRowMap).disease_ontology_id_version ?? ''
+                      ).includes('MONDO')
+                    "
                     class="btn-xs"
                     variant="outline-primary"
                     :href="
                       'http://purl.obolibrary.org/obo/' +
-                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(':', '_')
+                      String((data.item as EntityRowMap).disease_ontology_id_version ?? '').replace(
+                        ':',
+                        '_'
+                      )
                     "
                     target="_blank"
                   >
@@ -97,7 +121,9 @@
                   <template v-if="String((data.item as EntityRowMap).MONDO ?? '').includes(';')">
                     <!-- Multiple MONDO mappings -->
                     <span
-                      v-for="(mondoId, index) in String((data.item as EntityRowMap).MONDO ?? '').split(';')"
+                      v-for="(mondoId, index) in String(
+                        (data.item as EntityRowMap).MONDO ?? ''
+                      ).split(';')"
                       :key="mondoId"
                     >
                       <a
@@ -107,7 +133,13 @@
                       >
                         {{ mondoId.trim() }}
                       </a>
-                      <span v-if="index < String((data.item as EntityRowMap).MONDO ?? '').split(';').length - 1">, </span>
+                      <span
+                        v-if="
+                          index <
+                          String((data.item as EntityRowMap).MONDO ?? '').split(';').length - 1
+                        "
+                        >,
+                      </span>
                     </span>
                   </template>
                   <template v-else>
@@ -131,7 +163,9 @@
 
               <template #cell(hpo_mode_of_inheritance_term_name)="data">
                 <InheritanceBadge
-                  :full-name="String((data.item as EntityRowMap).hpo_mode_of_inheritance_term_name ?? '')"
+                  :full-name="
+                    String((data.item as EntityRowMap).hpo_mode_of_inheritance_term_name ?? '')
+                  "
                   :hpo-term="String((data.item as EntityRowMap).hpo_mode_of_inheritance_term ?? '')"
                 />
               </template>
@@ -139,7 +173,9 @@
               <template #cell(ndd_phenotype_word)="data">
                 <span
                   v-b-tooltip.hover.left
-                  :title="ndd_icon_text[String((data.item as EntityRowMap).ndd_phenotype_word ?? '')]"
+                  :title="
+                    ndd_icon_text[String((data.item as EntityRowMap).ndd_phenotype_word ?? '')]
+                  "
                 >
                   <NddIcon
                     :status="String((data.item as EntityRowMap).ndd_phenotype_word ?? '')"
@@ -161,10 +197,10 @@
               <template #cell(category)="data">
                 <span
                   v-b-tooltip.hover.left
-                  :title="String((data.item as Record<string, unknown>).category ?? '')"
+                  :title="String((data.item as EntityRowMap).category ?? '')"
                 >
                   <CategoryIcon
-                    :category="String((data.item as Record<string, unknown>).category ?? '')"
+                    :category="String((data.item as EntityRowMap).category ?? '')"
                     :show-title="false"
                   />
                 </span>
@@ -182,9 +218,9 @@
             <BTable :items="reviewRows" :fields="review_fields" stacked small>
               <template #cell(synopsis)="data">
                 <BCard border-variant="dark" align="start">
-                  <BCardText>
-                    {{ (data.item as Record<string, unknown>).synopsis }}
-                  </BCardText>
+                  <div class="card-text">
+                    {{ (data.item as EntityRowMap).synopsis }}
+                  </div>
                 </BCard>
               </template>
             </BTable>
@@ -193,7 +229,11 @@
           <!-- 4. Publications (additional_references) -->
           <SectionCard
             :loading="publications.loading.value"
-            :empty="!publications.loading.value && additionalRefs.length === 0 && !publications.error.value"
+            :empty="
+              !publications.loading.value &&
+              additionalRefs.length === 0 &&
+              !publications.error.value
+            "
             :error="publications.error.value ? publications.error.value.message : null"
             title="Publications"
           >
@@ -208,7 +248,10 @@
                       <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        :variant="(publication_style[String(publication.publication_type ?? '')] ?? 'outline-primary') as ButtonVariant"
+                        :variant="
+                          (publication_style[String(publication.publication_type ?? '')] ??
+                            'outline-primary') as ButtonVariant
+                        "
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                           String(publication.publication_id).replace(/^PMID:\s*/, '')
@@ -229,7 +272,9 @@
           <!-- 5. Gene Reviews (filtered from same publications call) -->
           <SectionCard
             :loading="publications.loading.value"
-            :empty="!publications.loading.value && geneReviews.length === 0 && !publications.error.value"
+            :empty="
+              !publications.loading.value && geneReviews.length === 0 && !publications.error.value
+            "
             :error="publications.error.value ? publications.error.value.message : null"
             title="Gene Reviews"
           >
@@ -244,7 +289,10 @@
                       <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        :variant="(publication_style[String(publication.publication_type ?? '')] ?? 'outline-primary') as ButtonVariant"
+                        :variant="
+                          (publication_style[String(publication.publication_type ?? '')] ??
+                            'outline-primary') as ButtonVariant
+                        "
                         :href="
                           'https://pubmed.ncbi.nlm.nih.gov/' +
                           String(publication.publication_id).replace(/^PMID:\s*/, '')
@@ -265,26 +313,33 @@
           <!-- 6. Phenotypes -->
           <SectionCard
             :loading="phenotypes.loading.value"
-            :empty="!phenotypes.loading.value && phenotypesList.length === 0 && !phenotypes.error.value"
+            :empty="
+              !phenotypes.loading.value && phenotypesList.length === 0 && !phenotypes.error.value
+            "
             :error="phenotypes.error.value ? phenotypes.error.value.message : null"
             title="Phenotypes"
           >
             <BTable :items="phenotypes_table" stacked small>
               <template #cell(phenotypes)>
                 <BRow>
-                  <BRow
-                    v-for="phenotype in phenotypesList"
-                    :key="String(phenotype.phenotype_id)"
-                  >
+                  <BRow v-for="phenotype in phenotypesList" :key="String(phenotype.phenotype_id)">
                     <BCol>
                       <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        :variant="(modifier_style[Number(phenotype.modifier_id)] ?? 'outline-primary') as ButtonVariant"
-                        :href="'https://hpo.jax.org/app/browse/term/' + String(phenotype.phenotype_id ?? '')"
+                        :variant="
+                          (modifier_style[Number(phenotype.modifier_id)] ??
+                            'outline-primary') as ButtonVariant
+                        "
+                        :href="
+                          'https://hpo.jax.org/app/browse/term/' +
+                          String(phenotype.phenotype_id ?? '')
+                        "
                         target="_blank"
                         :title="
-                          (modifier_text[Number(phenotype.modifier_id)] ?? '') + '; ' + String(phenotype.phenotype_id ?? '')
+                          (modifier_text[Number(phenotype.modifier_id)] ?? '') +
+                          '; ' +
+                          String(phenotype.phenotype_id ?? '')
                         "
                       >
                         <i class="bi bi-box-arrow-up-right" />
@@ -300,7 +355,9 @@
           <!-- 7. Variation -->
           <SectionCard
             :loading="variation.loading.value"
-            :empty="!variation.loading.value && variationList.length === 0 && !variation.error.value"
+            :empty="
+              !variation.loading.value && variationList.length === 0 && !variation.error.value
+            "
             :error="variation.error.value ? variation.error.value.message : null"
             title="Variation Ontology"
           >
@@ -312,7 +369,10 @@
                       <BButton
                         v-b-tooltip.hover.bottom
                         class="btn-xs mx-2"
-                        :variant="(modifier_style[Number(variant.modifier_id)] ?? 'outline-primary') as ButtonVariant"
+                        :variant="
+                          (modifier_style[Number(variant.modifier_id)] ??
+                            'outline-primary') as ButtonVariant
+                        "
                         :href="
                           'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
                           String(variant.vario_id ?? '').replace(':', '_') +
@@ -320,7 +380,9 @@
                         "
                         target="_blank"
                         :title="
-                          (modifier_text[Number(variant.modifier_id)] ?? '') + '; ' + String(variant.vario_id ?? '')
+                          (modifier_text[Number(variant.modifier_id)] ?? '') +
+                          '; ' +
+                          String(variant.vario_id ?? '')
                         "
                       >
                         <i class="bi bi-box-arrow-up-right" />
@@ -342,7 +404,7 @@
 import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
-import { BContainer, BRow, BCol, BCard, BCardText, BTable, BButton } from 'bootstrap-vue-next';
+import { BContainer, BRow, BCol, BCard, BTable, BButton } from 'bootstrap-vue-next';
 import type { ButtonVariant } from 'bootstrap-vue-next';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
@@ -418,13 +480,13 @@ const variationList = computed<Array<Record<string, unknown>>>(() => {
 // Publications client-side split — the existing endpoint feeds both cards.
 const additionalRefs = computed(() =>
   publicationsList.value.filter(
-    (p) => (p as Record<string, unknown>).publication_type === 'additional_references',
-  ),
+    (p) => (p as Record<string, unknown>).publication_type === 'additional_references'
+  )
 );
 const geneReviews = computed(() =>
   publicationsList.value.filter(
-    (p) => (p as Record<string, unknown>).publication_type === 'gene_review',
-  ),
+    (p) => (p as Record<string, unknown>).publication_type === 'gene_review'
+  )
 );
 
 // Review empty when no row carries a non-blank synopsis or comment.
@@ -443,10 +505,10 @@ const reviewIsEmpty = computed(() => {
 // (matches the GeneView watcher pattern from W2).
 watch([entity.loading, entity.data], () => {
   if (
-    !entity.loading.value
-    && entity.data.value === null
-    && !entity.error.value
-    && entityIdStr.value
+    !entity.loading.value &&
+    entity.data.value === null &&
+    !entity.error.value &&
+    entityIdStr.value
   ) {
     router.push('/PageNotFound');
   }
@@ -495,7 +557,7 @@ useHead({
       content: computed(() =>
         entityIdStr.value
           ? `Entity ${entityIdStr.value} — gene-disease association in SysNDD.`
-          : 'This Entity view shows specific information for a SysNDD entity.',
+          : 'This Entity view shows specific information for a SysNDD entity.'
       ),
     },
   ],

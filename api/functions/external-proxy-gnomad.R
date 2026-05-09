@@ -293,6 +293,189 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
 }
 
 
+#### ClinVar summary helpers
+
+clinvar_primary_classes <- list(
+  pathogenic = list(label = "Pathogenic", short_label = "P"),
+  likely_pathogenic = list(label = "Likely pathogenic", short_label = "LP"),
+  vus = list(label = "VUS", short_label = "VUS"),
+  likely_benign = list(label = "Likely benign", short_label = "LB"),
+  benign = list(label = "Benign", short_label = "B")
+)
+
+clinvar_consequence_labels <- list(
+  lof = "LoF",
+  missense = "Missense",
+  splice = "Splice",
+  inframe_indel = "In-frame indel",
+  synonymous = "Synonymous",
+  intronic = "Intronic",
+  utr = "UTR",
+  other = "Other"
+)
+
+sanitize_summary_key <- function(value) {
+  key <- gsub("[^a-z0-9]+", "_", tolower(as.character(value)))
+  key <- gsub("^_+|_+$", "", key)
+  if (identical(key, "")) "unknown" else key
+}
+
+#' Normalize ClinVar clinical significance for compact summary chips
+#'
+#' @param significance ClinVar clinical significance string
+#' @return One of the five primary class keys or an `other:*` key
+#' @export
+normalize_clinvar_classification <- function(significance) {
+  if (is.null(significance) || is.na(significance) || significance == "") {
+    return("other:unknown")
+  }
+
+  key <- gsub("_", " ", tolower(as.character(significance)), fixed = TRUE)
+  key <- gsub("\\s+", " ", trimws(key))
+
+  if (key %in% c("pathogenic/likely pathogenic", "pathogenic likely pathogenic")) {
+    return("pathogenic")
+  }
+  if (key %in% c("benign/likely benign", "benign likely benign")) {
+    return("likely_benign")
+  }
+  if (grepl("conflicting", key, fixed = TRUE)) {
+    return("other:conflicting_classifications_of_pathogenicity")
+  }
+  if (grepl("not provided", key, fixed = TRUE)) {
+    return("other:not_provided")
+  }
+  if (grepl("likely", key, fixed = TRUE) && grepl("pathogenic", key, fixed = TRUE)) {
+    return("likely_pathogenic")
+  }
+  if (grepl("pathogenic", key, fixed = TRUE)) {
+    return("pathogenic")
+  }
+  if (grepl("uncertain", key, fixed = TRUE) || grepl("vus", key, fixed = TRUE)) {
+    return("vus")
+  }
+  if (grepl("likely", key, fixed = TRUE) && grepl("benign", key, fixed = TRUE)) {
+    return("likely_benign")
+  }
+  if (grepl("benign", key, fixed = TRUE)) {
+    return("benign")
+  }
+
+  paste0("other:", sanitize_summary_key(key))
+}
+
+#' Normalize gnomAD ClinVar major consequence for compact summaries
+#'
+#' @param consequence gnomAD major_consequence string
+#' @return Normalized consequence key
+#' @export
+normalize_clinvar_consequence <- function(consequence) {
+  if (is.null(consequence) || is.na(consequence) || consequence == "") {
+    return("other")
+  }
+
+  key <- tolower(as.character(consequence))
+  if (key %in% c("missense_variant")) return("missense")
+  if (key %in% c("synonymous_variant")) return("synonymous")
+  if (key %in% c("frameshift_variant", "stop_gained", "start_lost", "stop_lost")) return("lof")
+  if (key %in% c("splice_donor_variant", "splice_acceptor_variant", "splice_region_variant")) {
+    return("splice")
+  }
+  if (key %in% c("inframe_insertion", "inframe_deletion")) return("inframe_indel")
+  if (key %in% c("intron_variant")) return("intronic")
+  if (grepl("utr_variant$", key)) return("utr")
+  "other"
+}
+
+make_named_count_list <- function(keys, default = 0) {
+  stats::setNames(as.list(rep(default, length(keys))), keys)
+}
+
+ordered_count_rows <- function(counts, labels) {
+  keys <- names(counts)[vapply(counts, function(count) count > 0, logical(1))]
+  keys <- keys[order(vapply(counts[keys], identity, numeric(1)), decreasing = TRUE)]
+
+  lapply(keys, function(key) {
+    list(
+      key = key,
+      label = labels[[key]] %||% key,
+      count = counts[[key]]
+    )
+  })
+}
+
+#' Build a compact ClinVar summary from gnomAD ClinVar variants
+#'
+#' @param variants List of ClinVar variant records returned by gnomAD
+#' @return List with legacy counts plus consequence breakdowns
+#' @export
+summarise_gnomad_clinvar_variants <- function(variants) {
+  variants <- variants %||% list()
+  class_keys <- names(clinvar_primary_classes)
+  consequence_keys <- names(clinvar_consequence_labels)
+
+  counts <- make_named_count_list(class_keys)
+  consequence_counts <- make_named_count_list(consequence_keys)
+  other_classifications <- list()
+  quality_counts <- list(
+    in_gnomad = 0,
+    review_stars = make_named_count_list(as.character(0:4))
+  )
+  class_consequence_counts <- stats::setNames(
+    lapply(class_keys, function(...) make_named_count_list(consequence_keys)),
+    class_keys
+  )
+
+  for (variant in variants) {
+    class_key <- normalize_clinvar_classification(variant$clinical_significance)
+    consequence_key <- normalize_clinvar_consequence(variant$major_consequence)
+
+    consequence_counts[[consequence_key]] <- consequence_counts[[consequence_key]] + 1
+
+    if (startsWith(class_key, "other:")) {
+      other_key <- sub("^other:", "", class_key)
+      other_classifications[[other_key]] <- (other_classifications[[other_key]] %||% 0) + 1
+    } else {
+      counts[[class_key]] <- counts[[class_key]] + 1
+      class_consequence_counts[[class_key]][[consequence_key]] <-
+        class_consequence_counts[[class_key]][[consequence_key]] + 1
+    }
+
+    if (isTRUE(variant$in_gnomad)) {
+      quality_counts$in_gnomad <- quality_counts$in_gnomad + 1
+    }
+
+    stars <- suppressWarnings(as.integer(variant$gold_stars %||% 0))
+    if (is.na(stars) || stars < 0) stars <- 0
+    if (stars > 4) stars <- 4
+    star_key <- as.character(stars)
+    quality_counts$review_stars[[star_key]] <- quality_counts$review_stars[[star_key]] + 1
+  }
+
+  class_breakdowns <- stats::setNames(lapply(class_keys, function(class_key) {
+    class_meta <- clinvar_primary_classes[[class_key]]
+    list(
+      label = class_meta$label,
+      short_label = class_meta$short_label,
+      count = counts[[class_key]],
+      consequences = ordered_count_rows(
+        class_consequence_counts[[class_key]],
+        clinvar_consequence_labels
+      )
+    )
+  }), class_keys)
+
+  list(
+    counts = counts,
+    consequence_counts = ordered_count_rows(consequence_counts, clinvar_consequence_labels),
+    class_breakdowns = class_breakdowns,
+    quality_counts = quality_counts,
+    other_classifications = other_classifications,
+    variant_count = length(variants)
+  )
+}
+
+
 #### Memoised wrappers with per-source caching
 
 #' Memoised version of fetch_gnomad_constraints with 30-day cache

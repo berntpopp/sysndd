@@ -244,9 +244,7 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     });
   }
 
-  async function clearCache(
-    clusterType: ClusterType | 'all'
-  ): Promise<CacheClearResponse> {
+  async function clearCache(clusterType: ClusterType | 'all'): Promise<CacheClearResponse> {
     return apiClient.delete<CacheClearResponse>(`${API_BASE}/cache`, {
       params: { cluster_type: clusterType },
       withCredentials: true,
@@ -257,14 +255,10 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     cacheId: number,
     action: 'validate' | 'reject'
   ): Promise<ValidationUpdateResponse> {
-    return apiClient.post<ValidationUpdateResponse>(
-      `${API_BASE}/cache/${cacheId}/validate`,
-      null,
-      {
-        params: { action },
-        withCredentials: true,
-      }
-    );
+    return apiClient.post<ValidationUpdateResponse>(`${API_BASE}/cache/${cacheId}/validate`, null, {
+      params: { action },
+      withCredentials: true,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

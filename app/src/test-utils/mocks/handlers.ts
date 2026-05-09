@@ -137,11 +137,7 @@ import {
   entityStatusListNotFound,
   entityFilterOk,
 } from './data/entities';
-import {
-  listEntityOk,
-  listGeneOk,
-  listDiseaseOk,
-} from './data/lists';
+import { listEntityOk, listGeneOk, listDiseaseOk } from './data/lists';
 import {
   geneLookupOk,
   geneLookupEmpty,
@@ -217,7 +213,12 @@ export const handlers = [
     const userName = typeof body.user_name === 'string' ? body.user_name : '';
     const password = typeof body.password === 'string' ? body.password : '';
 
-    if (userName.length < 5 || userName.length > 20 || password.length < 5 || password.length > 50) {
+    if (
+      userName.length < 5 ||
+      userName.length > 20 ||
+      password.length < 5 ||
+      password.length > 50
+    ) {
       return HttpResponse.text(authenticateBadRequest, { status: 400 });
     }
     if (userName === 'wrong_user' || password === 'wrong_pass') {
@@ -256,8 +257,7 @@ export const handlers = [
       email: typeof body.email === 'string' ? body.email : null,
       orcid: typeof body.orcid === 'string' ? body.orcid : null,
       comment: typeof body.comment === 'string' ? body.comment : null,
-      terms_agreed:
-        typeof body.terms_agreed === 'string' ? body.terms_agreed : null,
+      terms_agreed: typeof body.terms_agreed === 'string' ? body.terms_agreed : null,
     };
 
     if (
@@ -564,12 +564,9 @@ export const handlers = [
   // master), we accept either shape.
   http.post('/api/entity/rename', async ({ request }) => {
     const body = await readJsonBody(request);
-    const renameJson = body?.rename_json as
-      | { entity?: { entity_id?: unknown } }
-      | undefined;
+    const renameJson = body?.rename_json as { entity?: { entity_id?: unknown } } | undefined;
     const hasNewWireShape =
-      renameJson?.entity?.entity_id !== undefined &&
-      renameJson.entity.entity_id !== null;
+      renameJson?.entity?.entity_id !== undefined && renameJson.entity.entity_id !== null;
     const hasLegacyFlatShape = Boolean(body?.sysndd_id) && Boolean(body?.new_symbol);
     if (!hasNewWireShape && !hasLegacyFlatShape) {
       return HttpResponse.json(entityRenameBadRequest, { status: 400 });

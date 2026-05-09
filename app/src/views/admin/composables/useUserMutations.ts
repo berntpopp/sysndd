@@ -47,7 +47,10 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
       hasUppercase: { label: 'At least one uppercase letter', valid: /[A-Z]/.test(pw) },
       hasLowercase: { label: 'At least one lowercase letter', valid: /[a-z]/.test(pw) },
       hasNumber: { label: 'At least one number', valid: /[0-9]/.test(pw) },
-      hasSpecial: { label: 'At least one special character (!@#$%^&*)', valid: /[!@#$%^&*]/.test(pw) },
+      hasSpecial: {
+        label: 'At least one special character (!@#$%^&*)',
+        valid: /[!@#$%^&*]/.test(pw),
+      },
     };
     const isValid = pw.length > 0 && Object.values(rules).every((r) => r.valid);
     return { rules, isValid: pw.length > 0 ? isValid : null };

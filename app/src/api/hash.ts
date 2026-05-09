@@ -65,12 +65,12 @@ export interface HashLink {
  */
 export async function createHash(
   body: HashCreateRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<HashLink> {
   const response = await apiClient.post<HashLink | [HashLink], HashCreateRequest>(
     '/api/hash/create',
     body,
-    config,
+    config
   );
   return unwrapScalar(response);
 }

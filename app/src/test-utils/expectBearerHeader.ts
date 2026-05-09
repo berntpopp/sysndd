@@ -13,15 +13,10 @@
  *   })
  */
 
-export function expectBearerHeader(
-  request: Request,
-  expectedToken: string,
-): void {
+export function expectBearerHeader(request: Request, expectedToken: string): void {
   const actual = request.headers.get('authorization');
   const expected = `Bearer ${expectedToken}`;
   if (actual !== expected) {
-    throw new Error(
-      `expectBearerHeader: expected "${expected}", got "${actual ?? '<missing>'}"`,
-    );
+    throw new Error(`expectBearerHeader: expected "${expected}", got "${actual ?? '<missing>'}"`);
   }
 }

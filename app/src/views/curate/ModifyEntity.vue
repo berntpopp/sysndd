@@ -231,7 +231,11 @@ import { useEntityInfo } from './composables/useEntityInfo';
 import { useEntityMutations } from './composables/useEntityMutations';
 import { useEntityModifyModals } from './composables/useEntityModifyModals';
 
-import { listPhenotypesTree, listVariationOntologyTree, listStatusCategoriesTree } from '@/api/list';
+import {
+  listPhenotypesTree,
+  listVariationOntologyTree,
+  listStatusCategoriesTree,
+} from '@/api/list';
 
 import EntityInfoHeader from './components/EntityInfoHeader.vue';
 import EntitySearchPanel from './components/EntitySearchPanel.vue';
@@ -309,7 +313,7 @@ export default defineComponent({
         } else {
           confirmDiscardDialogRef.value?.hide();
         }
-      },
+      }
     );
 
     onMounted(async () => {
@@ -320,13 +324,19 @@ export default defineComponent({
           listVariationOntologyTree(),
           listStatusCategoriesTree(),
         ]);
-        const raw1: any = Array.isArray(phenotypes_data) ? phenotypes_data : (phenotypes_data as any)?.data || [];
+        const raw1: any = Array.isArray(phenotypes_data)
+          ? phenotypes_data
+          : (phenotypes_data as any)?.data || [];
         phenotypes_options.value = transformModifierTree(raw1);
 
-        const raw2: any = Array.isArray(variation_data) ? variation_data : (variation_data as any)?.data || [];
+        const raw2: any = Array.isArray(variation_data)
+          ? variation_data
+          : (variation_data as any)?.data || [];
         variation_ontology_options.value = transformModifierTree(raw2);
 
-        status_options.value = Array.isArray(status_data) ? status_data : (status_data as any)?.data || [];
+        status_options.value = Array.isArray(status_data)
+          ? status_data
+          : (status_data as any)?.data || [];
       } catch (e) {
         makeToast(e, 'Error', 'danger');
         // Set deterministic empty defaults so downstream modals render

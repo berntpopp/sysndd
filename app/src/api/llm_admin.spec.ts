@@ -45,9 +45,7 @@ describe('api/llm — getLlmConfig', () => {
       ],
       rate_limit: { capacity: 60 },
     };
-    server.use(
-      http.get('/api/llm/config', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/llm/config', () => HttpResponse.json(ok)));
 
     const result = await getLlmConfig();
     expect(result.gemini_configured).toBe(true);
@@ -65,18 +63,20 @@ describe('api/llm — updateLlmModel', () => {
           message: 'Model changed',
           model: 'gemini-3-flash-preview',
         });
-      }),
+      })
     );
 
     await updateLlmModel({ model: 'gemini-3-flash-preview' });
-    expect((observedQuery as unknown as URLSearchParams).get('model')).toBe('gemini-3-flash-preview');
+    expect((observedQuery as unknown as URLSearchParams).get('model')).toBe(
+      'gemini-3-flash-preview'
+    );
   });
 
   it('throws AxiosError on 400 (invalid model)', async () => {
     server.use(
       http.put('/api/llm/config', () =>
-        HttpResponse.json({ error: 'INVALID_MODEL' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'INVALID_MODEL' }, { status: 400 })
+      )
     );
 
     let caught: unknown;
@@ -103,9 +103,7 @@ describe('api/llm — getLlmCacheStats', () => {
       total_tokens_output: 2000,
       estimated_cost_usd: 0.15,
     };
-    server.use(
-      http.get('/api/llm/cache/stats', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/llm/cache/stats', () => HttpResponse.json(ok)));
 
     const result = await getLlmCacheStats();
     expect(result.total_entries).toBe(42);
@@ -125,7 +123,7 @@ describe('api/llm — getLlmCacheSummaries', () => {
       http.get('/api/llm/cache/summaries', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getLlmCacheSummaries({
@@ -147,9 +145,7 @@ describe('api/llm — clearLlmCache', () => {
       message: 'Cache cleared',
       cleared_count: 12,
     };
-    server.use(
-      http.delete('/api/llm/cache', () => HttpResponse.json(ok)),
-    );
+    server.use(http.delete('/api/llm/cache', () => HttpResponse.json(ok)));
     const result = await clearLlmCache({ cluster_type: 'phenotype' });
     expect(result.cleared_count).toBe(12);
   });
@@ -164,9 +160,7 @@ describe('api/llm — regenerateLlm', () => {
       cluster_types: ['functional'],
       results: {},
     };
-    server.use(
-      http.post('/api/llm/regenerate', () => HttpResponse.json(ok, { status: 202 })),
-    );
+    server.use(http.post('/api/llm/regenerate', () => HttpResponse.json(ok, { status: 202 })));
 
     const result = await regenerateLlm({ cluster_type: 'functional', force: true });
     expect(result.job_id).toBe('parent-1');
@@ -181,9 +175,7 @@ describe('api/llm — getLlmLogs', () => {
       page: 1,
       per_page: 50,
     };
-    server.use(
-      http.get('/api/llm/logs', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/llm/logs', () => HttpResponse.json(ok)));
     const result = await getLlmLogs({ status: 'success' });
     expect(result.total).toBe(0);
   });
@@ -204,7 +196,7 @@ describe('api/llm — validateLlmCacheEntry', () => {
         observedPath = new URL(request.url).pathname;
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await validateLlmCacheEntry(42, { action: 'validate' });
@@ -224,9 +216,7 @@ describe('api/llm — getLlmPrompts', () => {
         description: null,
       },
     };
-    server.use(
-      http.get('/api/llm/prompts', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/llm/prompts', () => HttpResponse.json(ok)));
     const result = await getLlmPrompts();
     expect(result.functional_generation?.version).toBe('1.0');
   });
@@ -246,7 +236,7 @@ describe('api/llm — updateLlmPrompt', () => {
           type: 'functional_generation',
           version: '1.1',
         });
-      }),
+      })
     );
 
     await updateLlmPrompt('functional_generation', {
@@ -265,12 +255,12 @@ describe('api/llm — updateLlmPrompt', () => {
   it('throws AxiosError on 400 (missing template)', async () => {
     server.use(
       http.put('/api/llm/prompts/:type', () =>
-        HttpResponse.json({ error: 'MISSING_TEMPLATE' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'MISSING_TEMPLATE' }, { status: 400 })
+      )
     );
 
     await expect(
-      updateLlmPrompt('functional_generation', { template: '', version: '1.0' }),
+      updateLlmPrompt('functional_generation', { template: '', version: '1.0' })
     ).rejects.toThrow();
   });
 });

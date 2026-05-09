@@ -84,8 +84,7 @@
           :name="entityInfo.disease_ontology_name"
           :ontology-id="entityInfo.disease_ontology_id_version"
           :link-to="
-            '/Ontology/' +
-            (entityInfo.disease_ontology_id_version || '').replace(/_.+/g, '')
+            '/Ontology/' + (entityInfo.disease_ontology_id_version || '').replace(/_.+/g, '')
           "
           :max-length="35"
           size="sm"

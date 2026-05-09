@@ -341,12 +341,11 @@
           data-testid="batch-boundary-gene-alert"
         >
           <i class="bi bi-exclamation-triangle me-1" aria-hidden="true" />
-          Batch is gene-atomic: to keep gene <strong>{{ previewBoundaryGene }}</strong>
-          together, the batch will hold {{ previewEntityCount }} entities across
-          {{ previewGeneCount }} gene(s) (you requested
-          {{ formData.batch_size }}). The last gene was extended past the cap to
-          avoid splitting it. Tighten criteria or increase batch size to avoid
-          the overflow.
+          Batch is gene-atomic: to keep gene <strong>{{ previewBoundaryGene }}</strong> together,
+          the batch will hold {{ previewEntityCount }} entities across
+          {{ previewGeneCount }} gene(s) (you requested {{ formData.batch_size }}). The last gene
+          was extended past the cap to avoid splitting it. Tighten criteria or increase batch size
+          to avoid the overflow.
         </BAlert>
         <BTable
           :items="previewEntities"

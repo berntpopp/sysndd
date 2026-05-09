@@ -16,9 +16,7 @@ describe('api/version — getVersion', () => {
       title: 'SysNDD API',
       description: 'Neurodevelopmental disorder gene-disease database',
     };
-    server.use(
-      http.get('/api/version', () => HttpResponse.json(expected)),
-    );
+    server.use(http.get('/api/version', () => HttpResponse.json(expected)));
 
     const result = await getVersion();
     expect(result).toEqual(expected);
@@ -26,9 +24,7 @@ describe('api/version — getVersion', () => {
 
   it('throws AxiosError on 500', async () => {
     server.use(
-      http.get('/api/version', () =>
-        HttpResponse.json({ error: 'boom' }, { status: 500 }),
-      ),
+      http.get('/api/version', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
     await expect(getVersion()).rejects.toThrow();
   });

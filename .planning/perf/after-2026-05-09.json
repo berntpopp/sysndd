@@ -1,0 +1,88 @@
+{
+  "captured_at": "2026-05-09",
+  "results": [
+    {
+      "url": "/Entities/400",
+      "navStartMs": 1778315090719,
+      "entityRequestStartMs": null,
+      "entityRequestDurationMs": null,
+      "firstEntityRowMs": null,
+      "firstSkeletonMs": null,
+      "geneHeaderTextMs": null,
+      "allSettledMs": 8051,
+      "lcpMs": 2064,
+      "cls": 0.108139478200486,
+      "axeViolations": 1,
+      "axeViolationIds": [
+        "color-contrast"
+      ]
+    },
+    {
+      "url": "/Entities/304",
+      "navStartMs": 1778315090719,
+      "entityRequestStartMs": null,
+      "entityRequestDurationMs": null,
+      "firstEntityRowMs": null,
+      "firstSkeletonMs": null,
+      "geneHeaderTextMs": null,
+      "allSettledMs": 8049,
+      "lcpMs": 2516,
+      "cls": 0.08382388580280403,
+      "axeViolations": 1,
+      "axeViolationIds": [
+        "color-contrast"
+      ]
+    },
+    {
+      "url": "/Genes/MECP2",
+      "navStartMs": 1778315090719,
+      "entityRequestStartMs": null,
+      "entityRequestDurationMs": null,
+      "firstEntityRowMs": null,
+      "firstSkeletonMs": null,
+      "geneHeaderTextMs": 6079,
+      "allSettledMs": 15302,
+      "lcpMs": 620,
+      "cls": 0.027907983892412013,
+      "axeViolations": 2,
+      "axeViolationIds": [
+        "aria-prohibited-attr",
+        "color-contrast"
+      ]
+    },
+    {
+      "url": "/Genes/HGNC:4586",
+      "navStartMs": 1778315090720,
+      "entityRequestStartMs": 1675.8999999910593,
+      "entityRequestDurationMs": 6830.600000008941,
+      "firstEntityRowMs": null,
+      "firstSkeletonMs": null,
+      "geneHeaderTextMs": 6064,
+      "allSettledMs": 15724,
+      "lcpMs": 624,
+      "cls": 0.21993472542887038,
+      "axeViolations": 2,
+      "axeViolationIds": [
+        "aria-prohibited-attr",
+        "color-contrast"
+      ]
+    },
+    {
+      "url": "/Genes/GRIN2B",
+      "navStartMs": 1778315090719,
+      "entityRequestStartMs": null,
+      "entityRequestDurationMs": null,
+      "firstEntityRowMs": null,
+      "firstSkeletonMs": null,
+      "geneHeaderTextMs": 6063,
+      "allSettledMs": 15761,
+      "lcpMs": 628,
+      "cls": 0.18676890045291603,
+      "axeViolations": 2,
+      "axeViolationIds": [
+        "aria-prohibited-attr",
+        "color-contrast"
+      ]
+    }
+  ]
+}

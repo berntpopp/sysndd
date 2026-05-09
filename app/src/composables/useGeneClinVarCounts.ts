@@ -21,17 +21,39 @@ export interface ClinVarClassificationCounts {
   benign: number;
 }
 
+export interface ClinVarConsequenceCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface ClinVarClassBreakdown {
+  label: string;
+  short_label: string;
+  count: number;
+  consequences: ClinVarConsequenceCount[];
+}
+
+export interface ClinVarQualityCounts {
+  in_gnomad: number;
+  review_stars: Record<string, number>;
+}
+
 export interface ClinVarSummary {
   source: string;
   gene_symbol: string;
   gene_id: string | null;
   counts: ClinVarClassificationCounts;
+  consequence_counts?: ClinVarConsequenceCount[];
+  class_breakdowns?: Partial<Record<keyof ClinVarClassificationCounts, ClinVarClassBreakdown>>;
+  quality_counts?: ClinVarQualityCounts;
+  other_classifications?: Record<string, number>;
   variant_count: number;
   summary: true;
 }
 
 export function useGeneClinVarCounts(
-  symbol: string | Ref<string | null> | ComputedRef<string | null>,
+  symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<ClinVarSummary | null> {
   const symRef = computed<string | null>(() => {
     if (typeof symbol === 'string') return symbol || null;
@@ -39,7 +61,7 @@ export function useGeneClinVarCounts(
     return null;
   });
   const key = computed<string | null>(() =>
-    symRef.value ? `clinvar-counts:${symRef.value}` : null,
+    symRef.value ? `clinvar-counts:${symRef.value}` : null
   );
   return useResource<ClinVarSummary | null>(
     key,
@@ -47,7 +69,7 @@ export function useGeneClinVarCounts(
       try {
         const res = await axios.get<ClinVarSummary>(
           `${apiBase}/api/external/gnomad/variants/${symRef.value}`,
-          { withCredentials: true, signal, params: { summary: 'true' } },
+          { withCredentials: true, signal, params: { summary: 'true' } }
         );
         return res.data ?? null;
       } catch (err) {
@@ -55,6 +77,6 @@ export function useGeneClinVarCounts(
         throw err;
       }
     },
-    { ttlMs: 5 * 60_000 },
+    { ttlMs: 5 * 60_000 }
   );
 }

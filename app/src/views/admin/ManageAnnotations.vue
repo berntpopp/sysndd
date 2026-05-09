@@ -136,9 +136,7 @@ import PublicationRefreshCard, {
 import DeprecatedEntitiesCard, {
   type DeprecatedData,
 } from '@/components/annotations/DeprecatedEntitiesCard.vue';
-import JobHistoryCard, {
-  type JobHistoryItem,
-} from '@/components/annotations/JobHistoryCard.vue';
+import JobHistoryCard, { type JobHistoryItem } from '@/components/annotations/JobHistoryCard.vue';
 
 // ---------------------------------------------------------------------------
 // Composables
@@ -651,9 +649,7 @@ async function downloadJobHistory(): Promise<void> {
     ]);
     const csv = [
       headers.join(','),
-      ...csvRows.map((row) =>
-        row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')
-      ),
+      ...csvRows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

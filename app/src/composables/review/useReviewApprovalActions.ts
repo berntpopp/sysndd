@@ -98,8 +98,7 @@ export async function fetchReviewDetail(
   const r4 = await ax.get(`${base}/publications`);
 
   const selectPhenotype = r2.data.map(
-    (it: { phenotype_id: number; modifier_id: number }) =>
-      `${it.modifier_id}-${it.phenotype_id}`
+    (it: { phenotype_id: number; modifier_id: number }) => `${it.modifier_id}-${it.phenotype_id}`
   );
   const selectVariation = r3.data.map(
     (it: { vario_id: number; modifier_id: number }) => `${it.modifier_id}-${it.vario_id}`
@@ -157,11 +156,7 @@ export async function fetchStatusDetail(
   const ax = axiosClient as AxiosInstance;
   const r = await ax.get(`${apiBase()}/api/status/${statusId}`);
   const row = r.data[0];
-  const composed = new Status(
-    row.category_id,
-    row.comment,
-    row.problematic
-  ) as StatusInfoPartial;
+  const composed = new Status(row.category_id, row.comment, row.problematic) as StatusInfoPartial;
   composed.status_id = row.status_id;
   composed.entity_id = row.entity_id;
   composed.status_user_role = row.status_user_role;
@@ -179,51 +174,34 @@ export async function fetchStatusDetail(
 }
 
 /** Fetch the entity row used in modal headers. */
-export async function fetchEntity(
-  axiosClient: AxiosLike,
-  entityId: number
-): Promise<unknown> {
+export async function fetchEntity(axiosClient: AxiosLike, entityId: number): Promise<unknown> {
   const ax = axiosClient as AxiosInstance;
-  const r = await ax.get(
-    `${apiBase()}/api/entity?filter=equals(entity_id,${entityId})`
-  );
+  const r = await ax.get(`${apiBase()}/api/entity?filter=equals(entity_id,${entityId})`);
   return r.data.data?.[0];
 }
 
 /** Approve a single review. */
 export function approveReview(axiosClient: AxiosLike, reviewId: number | string | undefined) {
   const ax = axiosClient as AxiosInstance;
-  return ax.put(
-    `${apiBase()}/api/review/approve/${reviewId}?review_ok=true`,
-    {}
-  );
+  return ax.put(`${apiBase()}/api/review/approve/${reviewId}?review_ok=true`, {});
 }
 
 /** Dismiss (reject) a single review. */
 export function dismissReview(axiosClient: AxiosLike, reviewId: number | string | undefined) {
   const ax = axiosClient as AxiosInstance;
-  return ax.put(
-    `${apiBase()}/api/review/approve/${reviewId}?review_ok=false`,
-    {}
-  );
+  return ax.put(`${apiBase()}/api/review/approve/${reviewId}?review_ok=false`, {});
 }
 
 /** Approve the status paired with a review (status-change propagation). */
 export function approveStatus(axiosClient: AxiosLike, statusId: number | string | undefined) {
   const ax = axiosClient as AxiosInstance;
-  return ax.put(
-    `${apiBase()}/api/status/approve/${statusId}?status_ok=true`,
-    {}
-  );
+  return ax.put(`${apiBase()}/api/status/approve/${statusId}?status_ok=true`, {});
 }
 
 /** Bulk-approve every pending review (admin only). */
 export function approveAllReviews(axiosClient: AxiosLike) {
   const ax = axiosClient as AxiosInstance;
-  return ax.put(
-    `${apiBase()}/api/review/approve/all?review_ok=true`,
-    {}
-  );
+  return ax.put(`${apiBase()}/api/review/approve/all?review_ok=true`, {});
 }
 
 export interface ReviewSubmitPayload {
@@ -254,26 +232,17 @@ export function submitReviewUpdate(axiosClient: AxiosLike, payload: ReviewSubmit
   payload.reviewInfo.literature = literature;
   payload.reviewInfo.phenotypes = phenotype;
   payload.reviewInfo.variation_ontology = variation;
-  return ax.put(
-    `${apiBase()}/api/review/update`,
-    { review_json: payload.reviewInfo }
-  );
+  return ax.put(`${apiBase()}/api/review/update`, { review_json: payload.reviewInfo });
 }
 
 /** Submit a status update (non-approved path). */
 export function submitStatusUpdate(axiosClient: AxiosLike, statusInfo: StatusInfoPartial) {
   const ax = axiosClient as AxiosInstance;
-  return ax.put(
-    `${apiBase()}/api/status/update`,
-    { status_json: statusInfo }
-  );
+  return ax.put(`${apiBase()}/api/status/update`, { status_json: statusInfo });
 }
 
 /** Submit a status create (approved path — spawns a new status row). */
 export function submitStatusCreate(axiosClient: AxiosLike, statusInfo: StatusInfoPartial) {
   const ax = axiosClient as AxiosInstance;
-  return ax.post(
-    `${apiBase()}/api/status/create`,
-    { status_json: statusInfo }
-  );
+  return ax.post(`${apiBase()}/api/status/create`, { status_json: statusInfo });
 }

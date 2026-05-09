@@ -252,9 +252,7 @@ export function useAsyncJob(
         if (status.value === 'failed') {
           // Extract specific error message
           error.value =
-            typeof data.error === 'string'
-              ? data.error
-              : data.error?.message || 'Job failed';
+            typeof data.error === 'string' ? data.error : data.error?.message || 'Job failed';
         }
       }
     } catch (err) {

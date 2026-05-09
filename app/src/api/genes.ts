@@ -78,7 +78,7 @@ export interface PaginatedGeneResponse {
 export async function getGene(
   gene_input: string | number,
   input_type: GeneInputType = 'hgnc',
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<GeneLookupResponse> {
   const path = `/api/gene/${encodeURIComponent(String(gene_input))}`;
   return apiClient.get<GeneLookupResponse>(path, {
@@ -93,7 +93,7 @@ export async function getGene(
  */
 export async function getGeneBySymbol(
   symbol: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<GeneLookupResponse> {
   return getGene(symbol, 'symbol', config);
 }
@@ -106,7 +106,7 @@ export async function getGeneBySymbol(
  */
 export async function listGenes(
   params: ListGenesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedGeneResponse> {
   // The server accepts `true|1|yes` for the compact toggle. Serialize the
   // boolean explicitly so axios emits `compact=true` (not `compact=true&...`

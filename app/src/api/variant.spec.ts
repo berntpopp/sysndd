@@ -39,7 +39,7 @@ describe('api/variant — browseVariantEntities', () => {
       http.get('/api/variant/browse', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await browseVariantEntities({
@@ -56,9 +56,7 @@ describe('api/variant — browseVariantEntities', () => {
 
   it('throws AxiosError on 500', async () => {
     server.use(
-      http.get('/api/variant/browse', () =>
-        HttpResponse.json({ error: 'boom' }, { status: 500 }),
-      ),
+      http.get('/api/variant/browse', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
 
     let caught: unknown;
@@ -85,9 +83,7 @@ describe('api/variant — getVariantCorrelation', () => {
         value: 0.42,
       },
     ];
-    server.use(
-      http.get('/api/variant/correlation', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/variant/correlation', () => HttpResponse.json(ok)));
 
     const result = await getVariantCorrelation({ filter: 'any(category,Definitive)' });
     expect(result[0].value).toBe(0.42);
@@ -100,7 +96,7 @@ describe('api/variant — getVariantCorrelation', () => {
       http.get('/api/variant/correlation', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getVariantCorrelation({ limit: 100, offset: 50 });
@@ -116,9 +112,7 @@ describe('api/variant — getVariantCounts', () => {
       { vario_id: 'VariO:0001', variant_name: 'missense variant', count: 42 },
       { vario_id: 'VariO:0002', variant_name: 'splice variant', count: 7 },
     ];
-    server.use(
-      http.get('/api/variant/count', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/variant/count', () => HttpResponse.json(ok)));
 
     const result = await getVariantCounts();
     expect(result.length).toBe(2);
@@ -127,9 +121,7 @@ describe('api/variant — getVariantCounts', () => {
 
   it('throws AxiosError on 500', async () => {
     server.use(
-      http.get('/api/variant/count', () =>
-        HttpResponse.json({ error: 'boom' }, { status: 500 }),
-      ),
+      http.get('/api/variant/count', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
     );
     await expect(getVariantCounts()).rejects.toThrow();
   });

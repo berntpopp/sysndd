@@ -146,7 +146,14 @@ import Utils from '@/assets/js/utils';
 
 const TABLE_FIELDS = Object.freeze([
   { key: 'entity_id', label: 'Entity', sortable: true, sortDirection: 'desc', class: 'text-start' },
-  { key: 'symbol', label: 'Gene', sortable: true, filterable: true, sortDirection: 'desc', class: 'text-start' },
+  {
+    key: 'symbol',
+    label: 'Gene',
+    sortable: true,
+    filterable: true,
+    sortDirection: 'desc',
+    class: 'text-start',
+  },
   {
     key: 'disease_ontology_name',
     label: 'Disease',
@@ -165,7 +172,13 @@ const TABLE_FIELDS = Object.freeze([
   },
   { key: 'category', label: 'Category', sortable: true, class: 'text-center' },
   { key: 'ndd_phenotype_word', label: 'NDD', sortable: true, class: 'text-center' },
-  { key: 'review_date', label: 'Review date', sortable: true, filterable: true, class: 'text-start' },
+  {
+    key: 'review_date',
+    label: 'Review date',
+    sortable: true,
+    filterable: true,
+    class: 'text-start',
+  },
   { key: 'review_user_name', label: 'User', sortable: true, filterable: true, class: 'text-start' },
   { key: 'actions', label: 'Actions', class: 'text-center' },
 ]);

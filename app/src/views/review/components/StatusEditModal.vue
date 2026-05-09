@@ -157,8 +157,8 @@
           <template #title> Removal instructions </template>
           SysNDD does not forget, meaning that entities will not be deleted but they can be
           deactivated. Deactivated entities will not be displayed on the website. Typically
-          duplicate entities should be deactivated especially if there is a more specific
-          disease name.
+          duplicate entities should be deactivated especially if there is a more specific disease
+          name.
         </BPopover>
 
         <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">

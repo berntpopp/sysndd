@@ -79,15 +79,12 @@ export interface PhenotypeCountRow {
  */
 export async function browsePhenotypeEntities(
   params: BrowsePhenotypeEntitiesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BrowsePhenotypeEntitiesResponse> {
-  return apiClient.get<BrowsePhenotypeEntitiesResponse>(
-    '/api/phenotype/entities/browse',
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params, format: 'json' },
-    },
-  );
+  return apiClient.get<BrowsePhenotypeEntitiesResponse>('/api/phenotype/entities/browse', {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params, format: 'json' },
+  });
 }
 
 /**
@@ -98,7 +95,7 @@ export async function browsePhenotypeEntities(
  */
 export async function browsePhenotypeEntitiesXlsx(
   params: Omit<BrowsePhenotypeEntitiesParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/phenotype/entities/browse', {
     ...config,
@@ -117,7 +114,7 @@ export async function browsePhenotypeEntitiesXlsx(
  */
 export async function getPhenotypeCorrelation(
   params: PhenotypeCorrelationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PhenotypeCorrelationCell[]> {
   return apiClient.get<PhenotypeCorrelationCell[]>('/api/phenotype/correlation', {
     ...config,
@@ -133,7 +130,7 @@ export async function getPhenotypeCorrelation(
  */
 export async function getPhenotypeCount(
   params: PhenotypeCountParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PhenotypeCountRow[]> {
   return apiClient.get<PhenotypeCountRow[]>('/api/phenotype/count', {
     ...config,

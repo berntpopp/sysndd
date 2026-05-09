@@ -32,3 +32,10 @@ __pycache__/
 
 # git worktrees (created by superpowers workflow)
 .worktrees/
+
+# Generated UI audit screenshots
+.planning/ui-audit/**/*.png
+.planning/ui-audit/**/lighthouse/
+.planning/ui-audit/**/lighthouse-profile/
+.planning/ui-audit/**/lighthouse-summary.json
+.planning/ui-audit/**/playwright-audit*.json

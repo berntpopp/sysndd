@@ -86,17 +86,17 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       const publications_data: any = await getEntityPublications(entityId);
 
       const new_phenotype = phenotypes_data.map(
-        (item: any) => new Phenotype(item.phenotype_id, item.modifier_id),
+        (item: any) => new Phenotype(item.phenotype_id, item.modifier_id)
       );
       select_phenotype.value = phenotypes_data.map(
-        (item: any) => `${item.modifier_id}-${item.phenotype_id}`,
+        (item: any) => `${item.modifier_id}-${item.phenotype_id}`
       );
 
       const new_variation = variation_data.map(
-        (item: any) => new Variation(item.vario_id, item.modifier_id),
+        (item: any) => new Variation(item.vario_id, item.modifier_id)
       );
       select_variation.value = variation_data.map(
-        (item: any) => `${item.modifier_id}-${item.vario_id}`,
+        (item: any) => `${item.modifier_id}-${item.vario_id}`
       );
 
       const literature_gene_reviews = publications_data
@@ -111,7 +111,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
 
       const new_literature = new Literature(
         literature_additional_references,
-        literature_gene_reviews,
+        literature_gene_reviews
       );
 
       review_info.value = new Review(
@@ -119,7 +119,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
         new_literature,
         new_phenotype,
         new_variation,
-        review_data[0].comment,
+        review_data[0].comment
       );
       review_info.value.review_id = review_data[0].review_id;
       review_info.value.entity_id = review_data[0].entity_id;
@@ -143,7 +143,7 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
       status_info.value = new Status(
         status_data[0].category_id,
         status_data[0].comment,
-        status_data[0].problematic,
+        status_data[0].problematic
       );
       status_info.value.status_id = status_data[0].status_id;
       status_info.value.entity_id = status_data[0].entity_id;

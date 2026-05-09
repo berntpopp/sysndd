@@ -33,7 +33,7 @@ describe('api/statistics — getCategoryCount', () => {
       http.get('/api/statistics/category_count', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getCategoryCount({ type: 'entity', sort: '-n' });
@@ -50,7 +50,7 @@ describe('api/statistics — getNews', () => {
       http.get('/api/statistics/news', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getNews({ n: 10 });
@@ -61,9 +61,7 @@ describe('api/statistics — getNews', () => {
 describe('api/statistics — getEntitiesOverTime', () => {
   it('returns the meta+data envelope on 200', async () => {
     const ok: EntitiesOverTimeResponse = { meta: {}, data: [] };
-    server.use(
-      http.get('/api/statistics/entities_over_time', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/statistics/entities_over_time', () => HttpResponse.json(ok)));
 
     const result = await getEntitiesOverTime();
     expect(result).toHaveProperty('data');
@@ -78,7 +76,7 @@ describe('api/statistics — getUpdatesStats', () => {
       http.get('/api/statistics/updates', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getUpdatesStats({ start_date: '2026-01-01', end_date: '2026-04-01' });
@@ -90,8 +88,8 @@ describe('api/statistics — getUpdatesStats', () => {
   it('throws AxiosError on 403 (not Administrator)', async () => {
     server.use(
       http.get('/api/statistics/updates', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 }),
-      ),
+        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
+      )
     );
 
     let caught: unknown;
@@ -114,9 +112,7 @@ describe('api/statistics — getRereviewStats', () => {
       percentage_finished: 5,
       average_per_day: 0.4,
     };
-    server.use(
-      http.get('/api/statistics/rereview', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/statistics/rereview', () => HttpResponse.json(ok)));
 
     const result = await getRereviewStats({ start_date: '2026-01-01', end_date: '2026-04-01' });
     expect(result.total_rereviews).toBe(12);
@@ -127,20 +123,26 @@ describe('api/statistics — getUpdatedReviewsStats / getUpdatedStatusesStats', 
   it('returns the updated reviews count', async () => {
     server.use(
       http.get('/api/statistics/updated_reviews', () =>
-        HttpResponse.json({ total_updated_reviews: 7 }),
-      ),
+        HttpResponse.json({ total_updated_reviews: 7 })
+      )
     );
-    const result = await getUpdatedReviewsStats({ start_date: '2026-01-01', end_date: '2026-04-01' });
+    const result = await getUpdatedReviewsStats({
+      start_date: '2026-01-01',
+      end_date: '2026-04-01',
+    });
     expect(result.total_updated_reviews).toBe(7);
   });
 
   it('returns the updated statuses count', async () => {
     server.use(
       http.get('/api/statistics/updated_statuses', () =>
-        HttpResponse.json({ total_updated_statuses: 11 }),
-      ),
+        HttpResponse.json({ total_updated_statuses: 11 })
+      )
     );
-    const result = await getUpdatedStatusesStats({ start_date: '2026-01-01', end_date: '2026-04-01' });
+    const result = await getUpdatedStatusesStats({
+      start_date: '2026-01-01',
+      end_date: '2026-04-01',
+    });
     expect(result.total_updated_statuses).toBe(11);
   });
 });
@@ -160,9 +162,7 @@ describe('api/statistics — getPublicationStats', () => {
       min_lastname_count_used: 1,
       min_keyword_count_used: 1,
     };
-    server.use(
-      http.get('/api/statistics/publication_stats', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/statistics/publication_stats', () => HttpResponse.json(ok)));
     const result = await getPublicationStats({ time_aggregate: 'year' });
     expect(result.time_aggregate_used).toBe('year');
   });
@@ -171,12 +171,12 @@ describe('api/statistics — getPublicationStats', () => {
 describe('api/statistics — getContributorLeaderboard', () => {
   it('returns the leaderboard envelope', async () => {
     const ok: ContributorLeaderboardResponse = {
-      data: [{ user_id: 7, user_name: 'pw_curator', display_name: 'PW Curator', entity_count: 100 }],
+      data: [
+        { user_id: 7, user_name: 'pw_curator', display_name: 'PW Curator', entity_count: 100 },
+      ],
       meta: { top: 10, scope: 'all_time', start_date: null, end_date: null, total_contributors: 1 },
     };
-    server.use(
-      http.get('/api/statistics/contributor_leaderboard', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/statistics/contributor_leaderboard', () => HttpResponse.json(ok)));
     const result = await getContributorLeaderboard({ top: 10 });
     expect(result.data).toHaveLength(1);
   });
@@ -188,9 +188,7 @@ describe('api/statistics — getRereviewLeaderboard', () => {
       data: [{ user_id: 7, user_name: 'pw_reviewer', re_review_count: 50 }],
       meta: { top: 10 },
     };
-    server.use(
-      http.get('/api/statistics/rereview_leaderboard', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/statistics/rereview_leaderboard', () => HttpResponse.json(ok)));
     const result = await getRereviewLeaderboard();
     expect(result.data[0].re_review_count).toBe(50);
   });
