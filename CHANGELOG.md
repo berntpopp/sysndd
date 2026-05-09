@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.16.5] — 2026-05-09
+
+Fix bump for entity detail clipboard resiliency after PR #328 feedback.
+
+### Fixed
+
+- **Clinical synopsis copy is now reliable.** The copy button in the Clinical Synopsis card only shows “Copied” when clipboard access succeeds, and resets correctly on failure or when permission/secure-context constraints prevent copying.
+- **Clipboard side effects are scoped cleanly.** The copy timeout is now canceled on navigation/unmount, preventing stale timers and copy-label flicker.
+
 ## [0.16.4] — 2026-05-09
 
 Patch bump for the gene detail UI/UX density and ClinVar summary improvements in PR #327.
