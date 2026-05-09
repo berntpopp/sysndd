@@ -2,12 +2,18 @@
 ARG NODE_VERSION=24
 ARG NGINX_VERSION=1.27.4
 ARG VUE_MODE=docker
+ARG SEO_GENERATE=false
+ARG SEO_API_BASE_URL=
+ARG SEO_PUBLIC_BASE_URL=https://sysndd.dbmr.unibe.ch
 
 # Stage 1: Build Vue.js application with Vite
 FROM node:${NODE_VERSION}-alpine AS builder
 
 # Build mode: docker (default), production, development
 ARG VUE_MODE
+ARG SEO_GENERATE
+ARG SEO_API_BASE_URL
+ARG SEO_PUBLIC_BASE_URL
 
 # Set working directory
 WORKDIR /app
@@ -27,6 +33,14 @@ COPY . .
 # Uses build:docker for docker mode, build:production for production mode
 RUN npm run build:${VUE_MODE}
 
+# Optionally prerender crawlable public route HTML into dist/.
+RUN if [ "${SEO_GENERATE}" = "true" ]; then \
+      if [ -n "${SEO_API_BASE_URL}" ]; then \
+        SEO_API_BASE_URL="${SEO_API_BASE_URL}" SEO_PUBLIC_BASE_URL="${SEO_PUBLIC_BASE_URL}" npm run seo:generate; \
+      else \
+        node scripts/generate-seo-pages.mjs --fixture scripts/fixtures/seo --out dist --base-url "${SEO_PUBLIC_BASE_URL}"; \
+      fi; \
+    fi
 
 # Stage 2: Production nginx server (using pre-built brotli image)
 # fholzer/nginx-brotli has brotli pre-compiled - no 5 min compilation!
