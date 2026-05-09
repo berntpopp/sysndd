@@ -142,7 +142,8 @@ onMounted(() => {
 
 <style scoped>
 .curation-comparisons-page {
-  min-height: calc(100vh - 4rem);
+  box-sizing: border-box;
+  min-height: 100%;
   padding: 0.75rem 1rem 1.5rem;
   background: #f6f8fb;
 }

@@ -1,386 +1,36 @@
 <template>
-  <div class="bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center">
-        <BCol md="12">
-          <BRow class="justify-content-md-center">
-            <BCol md="8">
-              <BContainer fluid="lg" class="py-3">
-                <!-- This is the welcome message that users see when they visit the website. -->
-                <h3 class="text-center font-weight-bold">Welcome to SysNDD,</h3>
+  <div class="home-page">
+    <section class="home-hero" aria-labelledby="home-title">
+      <div class="home-hero__content">
+        <p class="home-hero__eyebrow">Expert curated neurodevelopmental disorder database</p>
+        <h1 id="home-title">SysNDD</h1>
+        <p class="home-hero__summary">
+          Curated gene-disease relationships for clinical diagnostics, counseling, and research.
+        </p>
+      </div>
 
-                <h4 class="text-center">
-                  the expert curated database of gene disease relationships in
-                  <mark>neurodevelopmental</mark> <mark>disorders</mark> (NDD).
-                </h4>
-              </BContainer>
+      <div class="home-search" aria-label="Search SysNDD">
+        <SearchCombobox placeholder-string="Search genes, diseases, IDs" :in-navbar="false" />
+      </div>
+    </section>
 
-              <SearchCombobox
-                placeholder-string="Search by genes, entities and diseases using names or identifiers"
-                :in-navbar="false"
-              />
-            </BCol>
-          </BRow>
+    <main class="home-layout">
+      <div class="home-layout__primary">
+        <HomeStatsPanel
+          :entity-statistics="entity_statistics"
+          :gene-statistics="gene_statistics"
+          :last-update="last_update"
+          :inheritance-overview-text="inheritance_overview_text"
+          :inheritance-link="inheritance_link"
+        />
 
-          <BRow>
-            <BCol md="6">
-              <BCard
-                header-tag="header"
-                class="my-3 text-start"
-                body-class="p-0"
-                header-class="p-1"
-                border-variant="dark"
-              >
-                <template #header>
-                  <h5 class="mb-0 font-weight-bold">
-                    Current database statistics, last update:
-                    <transition name="fade" mode="out-in">
-                      <span :key="last_update">
-                        {{ last_update }}
-                      </span>
-                    </transition>
-                  </h5>
-                </template>
+        <HomeNewsPanel :news="news" />
+      </div>
 
-                <!-- first statistics table for entities -->
-                <!-- This table displays statistics about the various entities in the database. -->
-                <h5 class="mb-0 font-weight-bold mx-2">
-                  <mark>Entities</mark>
-                </h5>
-                <BCardText class="text-start">
-                  <!-- Each row in the table is generated from the data in `entity_statistics.data`. -->
-                  <BTable
-                    :items="entity_statistics.data"
-                    :fields="statistics_fields"
-                    stacked="lg"
-                    head-variant="light"
-                    show-empty
-                    small
-                  >
-                    <template #cell(category)="data">
-                      <div class="d-flex align-items-center gap-2">
-                        <CategoryIcon :category="data.item.category" size="sm" />
-                        {{ data.item.category }}
-                      </div>
-                    </template>
-
-                    <template #cell(n)="data">
-                      <BLink :to="'/Entities?filter=any(category,' + data.item.category + ')'">
-                        <div style="cursor: pointer">
-                          {{ data.item.n }}
-                        </div>
-                      </BLink>
-                    </template>
-
-                    <template #cell(actions)="row">
-                      <BButton
-                        class="btn-xs"
-                        variant="outline-primary"
-                        @click="row.toggleExpansion"
-                      >
-                        {{ row.expansionShowing ? 'hide' : 'show' }}
-                      </BButton>
-                    </template>
-
-                    <!-- These are the details that appear when a row in the entities table is clicked. -->
-                    <template #row-expansion="row">
-                      <BCard>
-                        <BTable
-                          :items="row.item.groups"
-                          :fields="statistics_details_fields"
-                          head-variant="light"
-                          show-empty
-                          small
-                          fixed
-                          striped
-                          sort-icon-left
-                        >
-                          <template #cell(inheritance)="data">
-                            <div>
-                              <BBadge
-                                pill
-                                variant="info"
-                                class="justify-content-md-center px-1 mx-1"
-                                size="1.3em"
-                              >
-                                {{ inheritance_overview_text[data.item.inheritance] }}
-                              </BBadge>
-                              {{ data.item.inheritance }}
-                            </div>
-                          </template>
-
-                          <template #cell(n)="data">
-                            <BLink
-                              :to="
-                                '/Entities?filter=any(category,' +
-                                data.item.category +
-                                '),any(hpo_mode_of_inheritance_term_name,' +
-                                inheritance_link[data.item.inheritance].join(',') +
-                                ')'
-                              "
-                            >
-                              <div style="cursor: pointer">
-                                {{ data.item.n }}
-                              </div>
-                            </BLink>
-                          </template>
-                        </BTable>
-                      </BCard>
-                    </template>
-                  </BTable>
-                </BCardText>
-                <!-- first statistics table for entities -->
-
-                <hr class="dashed" />
-
-                <!-- second statistics table for genes -->
-                <!-- This table displays statistics about the genes in the database. -->
-                <h5 class="mb-0 font-weight-bold mx-2"><mark>Genes</mark> (links to Panels)</h5>
-                <BCardText class="text-start">
-                  <!-- Each row in the table is generated from the data in `gene_statistics.data`. -->
-                  <BTable
-                    :items="gene_statistics.data"
-                    :fields="statistics_fields"
-                    stacked="lg"
-                    head-variant="light"
-                    show-empty
-                    small
-                  >
-                    <template #cell(category)="data">
-                      <div class="d-flex align-items-center gap-2">
-                        <CategoryIcon :category="data.item.category" size="sm" />
-                        {{ data.item.category }}
-                      </div>
-                    </template>
-
-                    <template #cell(n)="data">
-                      <BLink :to="'/Panels/' + data.item.category + '/' + data.item.inheritance">
-                        <div style="cursor: pointer">
-                          {{ data.item.n }}
-                        </div>
-                      </BLink>
-                    </template>
-
-                    <template #cell(actions)="row">
-                      <BButton
-                        class="btn-xs"
-                        variant="outline-primary"
-                        @click="row.toggleExpansion"
-                      >
-                        {{ row.expansionShowing ? 'hide' : 'show' }}
-                      </BButton>
-                    </template>
-
-                    <!-- These are the details that appear when a row in the genes table is clicked. -->
-                    <template #row-expansion="row">
-                      <BCard>
-                        <BTable
-                          :items="row.item.groups"
-                          :fields="statistics_details_fields"
-                          head-variant="light"
-                          show-empty
-                          small
-                          fixed
-                          striped
-                          sort-icon-left
-                        >
-                          <template #cell(inheritance)="data">
-                            <div>
-                              <BBadge
-                                pill
-                                variant="info"
-                                class="justify-content-md-center px-1 mx-1"
-                                size="1.3em"
-                              >
-                                {{ inheritance_overview_text[data.item.inheritance] }}
-                              </BBadge>
-                              {{ data.item.inheritance }}
-                            </div>
-                          </template>
-
-                          <template #cell(n)="data">
-                            <BLink
-                              :to="'/Panels/' + data.item.category + '/' + data.item.inheritance"
-                            >
-                              <div style="cursor: pointer">
-                                {{ data.item.n }}
-                              </div>
-                            </BLink>
-                          </template>
-                        </BTable>
-                      </BCard>
-                    </template>
-                  </BTable>
-                </BCardText>
-                <!-- second statistics table for genes -->
-              </BCard>
-
-              <BCard
-                header-tag="header"
-                class="my-3 text-start"
-                body-class="p-0"
-                header-class="p-1"
-                border-variant="dark"
-              >
-                <template #header>
-                  <!-- This section displays new entities added to the database. -->
-                  <h5 class="mb-0 font-weight-bold">New entities</h5>
-                </template>
-                <transition name="fade" mode="out-in">
-                  <BCardText class="text-start">
-                    <BTable
-                      :items="news"
-                      :fields="news_fields"
-                      stacked="lg"
-                      head-variant="light"
-                      show-empty
-                      small
-                      fixed
-                      style="width: 100%; white-space: nowrap"
-                    >
-                      <template #table-colgroup="scope">
-                        <col
-                          v-for="field in scope.fields"
-                          :key="field.key"
-                          :style="{ width: field.width }"
-                        />
-                      </template>
-
-                      <template #cell(entity_id)="data">
-                        <EntityBadge
-                          :entity-id="data.item.entity_id"
-                          :link-to="'/Entities/' + data.item.entity_id"
-                          :title="'Entry date: ' + data.item.entry_date"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(symbol)="data">
-                        <GeneBadge
-                          :symbol="data.item.symbol"
-                          :hgnc-id="data.item.hgnc_id"
-                          :link-to="'/Genes/' + data.item.hgnc_id"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(disease_ontology_name)="data">
-                        <DiseaseBadge
-                          :name="data.item.disease_ontology_name"
-                          :ontology-id="data.item.disease_ontology_id_version"
-                          :link-to="'/Ontology/' + data.item.disease_ontology_id_version"
-                          :max-length="35"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(inheritance_filter)="data">
-                        <InheritanceBadge
-                          :full-name="data.item.inheritance_filter"
-                          :hpo-term="data.item.hpo_mode_of_inheritance_term"
-                          size="sm"
-                        />
-                      </template>
-
-                      <template #cell(category)="data">
-                        <div v-b-tooltip.hover.left :title="data.item.category">
-                          <CategoryIcon
-                            :category="data.item.category"
-                            size="sm"
-                            :show-title="false"
-                          />
-                        </div>
-                      </template>
-
-                      <template #cell(ndd_phenotype_word)="data">
-                        <div
-                          v-b-tooltip.hover.left
-                          :title="ndd_icon_text[data.item.ndd_phenotype_word]"
-                        >
-                          <NddIcon
-                            :status="data.item.ndd_phenotype_word"
-                            size="sm"
-                            :show-title="false"
-                          />
-                        </div>
-                      </template>
-                    </BTable>
-                  </BCardText>
-                </transition>
-              </BCard>
-            </BCol>
-
-            <BCol md="6">
-              <div class="container-fluid text-start py-2 my-3">
-                <span class="word"
-                  >NDD comprise <mark>developmental delay</mark> (DD),
-                  <mark>intellectual disability</mark> (ID) and
-                  <mark>autism spectrum disorder</mark> (ASD). </span
-                ><br /><br />
-
-                <span class="word"
-                  >This clinically and genetically extremely <mark>heterogeneous</mark> disease
-                  group affects <mark>about 2% of newborns</mark>. </span
-                ><br /><br />
-
-                <span class="word"
-                  >SysNDD aims to empower clinical diagnostics, counseling and research for NDDs
-                  through <mark>expert curation</mark>. </span
-                ><br /><br />
-
-                <span class="word"
-                  >We define “gene-inheritance-disease” units as “<mark>entities</mark>”, </span
-                ><br />
-                <span class="word"
-                  >which are color coded throughout the website:
-                  <span class="entity-concept__container">
-                    <span class="entity-concept__label">Entity:</span>
-                    <GeneBadge symbol="Gene" :show-title="false" size="sm" />
-                    <InheritanceBadge
-                      full-name="Inheritance"
-                      :show-title="false"
-                      :use-abbreviation="false"
-                      size="sm"
-                    />
-                    <DiseaseBadge name="Disease" :show-title="false" :max-length="0" size="sm" />
-                  </span> </span
-                ><br /><br />
-
-                <span class="word"
-                  >The clinical entities are divided into different “<mark>Categories</mark>”, based
-                  on the strength of their association with NDD phenotypes. They are represented
-                  using these differently colored stoplight symbols: </span
-                ><br />
-                <span class="word d-flex align-items-center flex-wrap gap-1">
-                  Definitive:
-                  <CategoryIcon category="Definitive" />
-                  , Moderate:
-                  <CategoryIcon category="Moderate" />
-                  , Limited:
-                  <CategoryIcon category="Limited" />
-                  , Refuted:
-                  <CategoryIcon category="Refuted" /> </span
-                ><br />
-                <span class="word"
-                  >The classification criteria used for the categories are detailed in our
-                  <BLink :href="DOCS_URLS.CURATION_CRITERIA" target="_blank"> Documentation </BLink>
-                  on GitHub.<br />
-                  In the <mark>Panel</mark> views, which are aggregated by gene, we assign the
-                  highest category of associated entities to the gene. </span
-                ><br /><br />
-
-                <span class="word"
-                  >The SysNDD tool allows browsing and download of tabular views for curated NDD
-                  entity components in the <mark>Tables</mark> section. It offers multiple
-                  <mark>Analyses</mark> sections for genes, phenotypes and comparisons with other
-                  curation efforts. </span
-                ><br />
-              </div>
-            </BCol>
-          </BRow>
-        </BCol>
-      </BRow>
-    </BContainer>
+      <aside class="home-layout__secondary" aria-label="SysNDD concepts">
+        <HomeConceptPanel :docs-url="DOCS_URLS.CURATION_CRITERIA" />
+      </aside>
+    </main>
   </div>
 </template>
 
@@ -388,10 +38,7 @@
 import { gsap } from 'gsap';
 
 import { useHead } from '@unhead/vue';
-import { useToast, useColorAndSymbols, useText } from '@/composables';
-
-// Import the utilities file
-import Utils from '@/assets/js/utils';
+import { useToast, useText } from '@/composables';
 
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
@@ -404,27 +51,20 @@ import apiService from '@/assets/js/services/apiService';
 
 // Import global components
 import SearchCombobox from '@/components/small/SearchCombobox.vue';
-import CategoryIcon from '@/components/ui/CategoryIcon.vue';
-import NddIcon from '@/components/ui/NddIcon.vue';
-import EntityBadge from '@/components/ui/EntityBadge.vue';
-import GeneBadge from '@/components/ui/GeneBadge.vue';
-import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
-import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import HomeStatsPanel from '@/components/home/HomeStatsPanel.vue';
+import HomeNewsPanel from '@/components/home/HomeNewsPanel.vue';
+import HomeConceptPanel from '@/components/home/HomeConceptPanel.vue';
 
 export default {
   name: 'HomeView',
   components: {
     SearchCombobox,
-    CategoryIcon,
-    NddIcon,
-    EntityBadge,
-    GeneBadge,
-    DiseaseBadge,
-    InheritanceBadge,
+    HomeStatsPanel,
+    HomeNewsPanel,
+    HomeConceptPanel,
   },
   setup() {
     const { makeToast } = useToast();
-    const colorAndSymbols = useColorAndSymbols();
     const text = useText();
 
     useHead({
@@ -446,7 +86,6 @@ export default {
 
     return {
       makeToast,
-      ...colorAndSymbols,
       ...text,
       DOCS_URLS,
     };
@@ -458,54 +97,7 @@ export default {
       search_object: {},
       entity_statistics: INIT_OBJ.ENTITY_STAT_INIT,
       gene_statistics: INIT_OBJ.GENE_STAT_INIT,
-      statistics_fields: [
-        { key: 'category', label: 'Category', class: 'text-start' },
-        { key: 'n', label: 'Count', class: 'text-start' },
-        { key: 'actions', label: 'Details' },
-      ],
-      statistics_details_fields: [
-        { key: 'inheritance', label: 'Inheritance' },
-        { key: 'n', label: 'Count', class: 'text-start' },
-      ],
       news: INIT_OBJ.NEWS_INIT,
-      news_fields: [
-        {
-          key: 'entity_id',
-          label: 'Entity',
-          class: 'text-start',
-          width: '20%',
-        },
-        {
-          key: 'symbol',
-          label: 'Symbol',
-          class: 'text-start',
-          width: '15%',
-        },
-        {
-          key: 'disease_ontology_name',
-          label: 'Disease',
-          class: 'text-start',
-          width: '30%',
-        },
-        {
-          key: 'inheritance_filter',
-          label: 'Inh.',
-          class: 'text-start',
-          width: '10%',
-        },
-        {
-          key: 'category',
-          label: 'Category',
-          class: 'text-start',
-          width: '15%',
-        },
-        {
-          key: 'ndd_phenotype_word',
-          label: 'NDD',
-          class: 'text-start',
-          width: '10%',
-        },
-      ],
       loadingStates: {
         statistics: false,
         news: false,
@@ -602,35 +194,81 @@ export default {
         this.loadingStates.news = false;
       }
     },
-    // Function to truncate a string to a specified length.
-    // If the string is longer than the specified length, it adds '...' to the end.
-    // imported from utils.js
-    truncate(str, n) {
-      // Use the utility function here
-      return Utils.truncate(str, n);
-    },
   },
 };
 </script>
 
 <style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
+.home-page {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 0.75rem 1rem 1.5rem;
+  background: #f6f8fb;
+  text-align: left;
 }
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #eaadba;
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(20rem, 0.85fr);
+  gap: 1.25rem;
+  align-items: center;
+  width: min(100%, 1480px);
+  margin: 0 auto 1rem;
+  padding: 1.1rem 1rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
-hr.dashed {
-  border-top: 2px dashed #999;
+
+.home-hero__eyebrow {
+  margin: 0 0 0.25rem;
+  color: #244b7a;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
+
+.home-hero h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.home-hero__summary {
+  max-width: 44rem;
+  margin: 0.35rem 0 0;
+  color: #526070;
+  font-size: 0.975rem;
+  line-height: 1.45;
+}
+
+.home-search {
+  min-width: 0;
+}
+
+.home-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(24rem, 0.65fr);
+  gap: 1rem;
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  align-items: start;
+}
+
+.home-layout__primary {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.home-layout__secondary {
+  min-width: 0;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s;
@@ -639,23 +277,30 @@ hr.dashed {
 .fade-leave-to {
   opacity: 0;
 }
-/* Entity concept visual explanation */
-.entity-concept__container {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.5rem;
-  border-radius: 1rem;
-  background: linear-gradient(145deg, #0d6efd 0%, #0a58ca 100%);
-  border: 1.5px solid #084298;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+
+@media (max-width: 991.98px) {
+  .home-hero,
+  .home-layout {
+    grid-template-columns: 1fr;
+  }
 }
-.entity-concept__label {
-  color: white;
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+
+@media (max-width: 575.98px) {
+  .home-page {
+    padding: 0.5rem 0.75rem 1rem;
+  }
+
+  .home-hero {
+    gap: 0.8rem;
+    padding: 0.9rem 0.75rem;
+  }
+
+  .home-hero h1 {
+    font-size: 1.65rem;
+  }
+
+  .home-hero__summary {
+    font-size: 0.9rem;
+  }
 }
 </style>
