@@ -27,14 +27,14 @@
 </template>
 
 <script setup lang="ts">
-import TableLoadingState from './TableLoadingState.vue'
+import TableLoadingState from './TableLoadingState.vue';
 
 defineProps<{
-  title: string
-  description?: string
-  meta?: string
-  loading?: boolean
-}>()
+  title: string;
+  description?: string;
+  meta?: string;
+  loading?: boolean;
+}>();
 </script>
 
 <style scoped>

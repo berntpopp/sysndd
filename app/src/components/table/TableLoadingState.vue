@@ -19,16 +19,16 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    label?: string
-    rows?: number
-    mode?: 'table' | 'cards'
+    label?: string;
+    rows?: number;
+    mode?: 'table' | 'cards';
   }>(),
   {
     label: 'Loading table data',
     rows: 8,
     mode: 'table',
-  },
-)
+  }
+);
 </script>
 
 <style scoped>

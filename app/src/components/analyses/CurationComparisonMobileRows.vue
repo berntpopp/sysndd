@@ -55,11 +55,7 @@
           :id="`curation-mobile-row-details-${index}`"
           class="curation-mobile-row__details"
         >
-          <div
-            v-for="source in sources"
-            :key="source.key"
-            class="curation-mobile-row__detail"
-          >
+          <div v-for="source in sources" :key="source.key" class="curation-mobile-row__detail">
             <dt>{{ source.label }}</dt>
             <dd>{{ sourceDisplayValue(item[source.key]) }}</dd>
           </div>
@@ -70,14 +66,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import MobileTableList from '@/components/table/MobileTableList.vue'
+import { ref, watch } from 'vue';
+import MobileTableList from '@/components/table/MobileTableList.vue';
 
-type Item = Record<string, unknown>
+type Item = Record<string, unknown>;
 
 const props = defineProps<{
-  items: Item[]
-}>()
+  items: Item[];
+}>();
 
 const sources = [
   { key: 'SysNDD', label: 'SysNDD', short: 'S' },
@@ -88,82 +84,82 @@ const sources = [
   { key: 'geisinger_DBD', label: 'Geisinger DBD', short: 'DBD' },
   { key: 'orphanet_id', label: 'Orphanet', short: 'OR' },
   { key: 'omim_ndd', label: 'OMIM NDD', short: 'OMIM' },
-] as const
+] as const;
 
-const negativeMarkers = new Set(['', 'not listed', 'no', 'false', 'null', 'undefined'])
-const expandedRows = ref<Set<string>>(new Set())
+const negativeMarkers = new Set(['', 'not listed', 'no', 'false', 'null', 'undefined']);
+const expandedRows = ref<Set<string>>(new Set());
 
 watch(
   () => props.items,
   (items) => {
-    const currentKeys = new Set(items.map((item, index) => rowKey(item, index)))
-    expandedRows.value = new Set([...expandedRows.value].filter((key) => currentKeys.has(key)))
+    const currentKeys = new Set(items.map((item, index) => rowKey(item, index)));
+    expandedRows.value = new Set([...expandedRows.value].filter((key) => currentKeys.has(key)));
   },
-  { deep: false },
-)
+  { deep: false }
+);
 
 function isPresent(value: unknown): boolean {
   if (value === null || value === undefined || value === false) {
-    return false
+    return false;
   }
 
   if (typeof value === 'string') {
-    return !negativeMarkers.has(value.trim().toLowerCase())
+    return !negativeMarkers.has(value.trim().toLowerCase());
   }
 
-  return true
+  return true;
 }
 
 function displayValue(value: unknown): string {
   if (value === null || value === undefined || value === '') {
-    return 'Unknown gene'
+    return 'Unknown gene';
   }
 
-  return String(value)
+  return String(value);
 }
 
 function geneHref(item: Item): string | null {
-  const hgncId = item.hgnc_id
+  const hgncId = item.hgnc_id;
 
   if (hgncId === null || hgncId === undefined || hgncId === '') {
-    return null
+    return null;
   }
 
-  return `/Genes/${String(hgncId)}`
+  return `/Genes/${String(hgncId)}`;
 }
 
 function rowKey(item: Item, index: number): string {
-  const stableValue = item.hgnc_id ?? item.symbol
+  const stableValue = item.hgnc_id ?? item.symbol;
 
   if (stableValue === null || stableValue === undefined || stableValue === '') {
-    return `row-${index}`
+    return `row-${index}`;
   }
 
-  return String(stableValue)
+  return String(stableValue);
 }
 
 function sourceDisplayValue(value: unknown): string {
-  return isPresent(value) ? String(value) : 'Not present'
+  return isPresent(value) ? String(value) : 'Not present';
 }
 
 function sourceTitle(label: string, value: unknown): string {
-  return `${label}: ${sourceDisplayValue(value)}`
+  return `${label}: ${sourceDisplayValue(value)}`;
 }
 
 function isExpanded(key: string): boolean {
-  return expandedRows.value.has(key)
+  return expandedRows.value.has(key);
 }
 
 function toggleDetails(key: string): void {
-  const nextExpandedRows = new Set(expandedRows.value)
+  const nextExpandedRows = new Set(expandedRows.value);
 
   if (nextExpandedRows.has(key)) {
-    nextExpandedRows.delete(key)
+    nextExpandedRows.delete(key);
   } else {
-    nextExpandedRows.add(key)
+    nextExpandedRows.add(key);
   }
 
-  expandedRows.value = nextExpandedRows
+  expandedRows.value = nextExpandedRows;
 }
 </script>
 

@@ -15,33 +15,33 @@
 </template>
 
 <script setup lang="ts">
-type Item = Record<string, unknown>
-type ItemKey = string | ((item: Item, index: number) => string | number)
+type Item = Record<string, unknown>;
+type ItemKey = string | ((item: Item, index: number) => string | number);
 
 const props = withDefaults(
   defineProps<{
-    items: Item[]
-    label: string
-    emptyText?: string
-    itemKey?: ItemKey
+    items: Item[];
+    label: string;
+    emptyText?: string;
+    itemKey?: ItemKey;
   }>(),
   {
     emptyText: 'No records found.',
     itemKey: undefined,
-  },
-)
+  }
+);
 
 function resolveItemKey(item: Item, index: number): string | number {
   if (typeof props.itemKey === 'function') {
-    return props.itemKey(item, index)
+    return props.itemKey(item, index);
   }
 
   if (typeof props.itemKey === 'string') {
-    const value = item[props.itemKey]
-    return typeof value === 'string' || typeof value === 'number' ? value : index
+    const value = item[props.itemKey];
+    return typeof value === 'string' || typeof value === 'number' ? value : index;
   }
 
-  return index
+  return index;
 }
 </script>
 

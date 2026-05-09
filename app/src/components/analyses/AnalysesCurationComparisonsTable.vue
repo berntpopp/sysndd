@@ -37,10 +37,10 @@
         <br />
         <strong>6) orphanet ID</strong> downloaded and normalized from
         https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
-        <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
-        abnormality" (HP:0012759) using the pre-propagated phenotype_to_genes.txt
-        (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2
-        (genemap2.txt from OMIM, requires download key),
+        <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental abnormality"
+        (HP:0012759) using the pre-propagated phenotype_to_genes.txt
+        (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2 (genemap2.txt
+        from OMIM, requires download key),
         <br />
       </BPopover>
 

@@ -67,7 +67,6 @@
                 show-empty
                 small
                 fixed
-                striped
                 hover
                 sort-icon-left
                 no-local-sorting
@@ -192,7 +191,6 @@
                       show-empty
                       small
                       fixed
-                      striped
                       sort-icon-left
                     >
                       <template #cell(entity_id)="data">

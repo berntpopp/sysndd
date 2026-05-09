@@ -84,10 +84,7 @@
                 <span v-else>Unknown entity</span>
               </dd>
             </div>
-            <div
-              v-if="hasValue(entity.disease_ontology_name)"
-              class="mobile-record-row__detail"
-            >
+            <div v-if="hasValue(entity.disease_ontology_name)" class="mobile-record-row__detail">
               <dt>Disease</dt>
               <dd>
                 <DiseaseBadge

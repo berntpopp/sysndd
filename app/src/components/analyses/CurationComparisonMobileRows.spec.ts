@@ -1,6 +1,6 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import CurationComparisonMobileRows from './CurationComparisonMobileRows.vue'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import CurationComparisonMobileRows from './CurationComparisonMobileRows.vue';
 
 describe('CurationComparisonMobileRows', () => {
   it('renders source presence chips and toggles expanded source details', async () => {
@@ -21,27 +21,27 @@ describe('CurationComparisonMobileRows', () => {
           },
         ],
       },
-    })
+    });
 
-    expect(wrapper.text()).toContain('ARID1B')
-    expect(wrapper.get('a[href="/Genes/18040"]').text()).toContain('ARID1B')
+    expect(wrapper.text()).toContain('ARID1B');
+    expect(wrapper.get('a[href="/Genes/18040"]').text()).toContain('ARID1B');
 
-    expect(wrapper.findAll('[data-testid="source-chip"]')).toHaveLength(8)
-    expect(wrapper.get('[aria-label="SysNDD: Definitive"]').text()).toContain('+')
-    expect(wrapper.get('[aria-label="Orphanet: Not present"]').text()).toContain('-')
+    expect(wrapper.findAll('[data-testid="source-chip"]')).toHaveLength(8);
+    expect(wrapper.get('[aria-label="SysNDD: Definitive"]').text()).toContain('+');
+    expect(wrapper.get('[aria-label="Orphanet: Not present"]').text()).toContain('-');
 
-    expect(wrapper.find('dl').exists()).toBe(false)
+    expect(wrapper.find('dl').exists()).toBe(false);
 
-    const detailsButton = wrapper.get('button')
-    expect(detailsButton.attributes('aria-expanded')).toBe('false')
+    const detailsButton = wrapper.get('button');
+    expect(detailsButton.attributes('aria-expanded')).toBe('false');
 
-    await detailsButton.trigger('click')
+    await detailsButton.trigger('click');
 
-    expect(detailsButton.attributes('aria-expanded')).toBe('true')
-    expect(wrapper.find('dl').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Orphanet')
-    expect(wrapper.text()).toContain('Not present')
-  })
+    expect(detailsButton.attributes('aria-expanded')).toBe('true');
+    expect(wrapper.find('dl').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Orphanet');
+    expect(wrapper.text()).toContain('Not present');
+  });
 
   it('does not leak expanded details when the first row changes identity', async () => {
     const wrapper = mount(CurationComparisonMobileRows, {
@@ -54,10 +54,10 @@ describe('CurationComparisonMobileRows', () => {
           },
         ],
       },
-    })
+    });
 
-    await wrapper.get('button').trigger('click')
-    expect(wrapper.find('dl').exists()).toBe(true)
+    await wrapper.get('button').trigger('click');
+    expect(wrapper.find('dl').exists()).toBe(true);
 
     await wrapper.setProps({
       items: [
@@ -67,10 +67,10 @@ describe('CurationComparisonMobileRows', () => {
           SysNDD: 'Definitive',
         },
       ],
-    })
+    });
 
-    expect(wrapper.text()).toContain('ANKRD11')
-    expect(wrapper.get('button').attributes('aria-expanded')).toBe('false')
-    expect(wrapper.find('dl').exists()).toBe(false)
-  })
-})
+    expect(wrapper.text()).toContain('ANKRD11');
+    expect(wrapper.get('button').attributes('aria-expanded')).toBe('false');
+    expect(wrapper.find('dl').exists()).toBe(false);
+  });
+});

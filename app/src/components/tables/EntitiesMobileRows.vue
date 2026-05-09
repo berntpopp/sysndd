@@ -86,10 +86,7 @@
             <dt>HGNC</dt>
             <dd>{{ displayValue(item.hgnc_id) }}</dd>
           </div>
-          <div
-            v-if="hasValue(item.disease_ontology_id_version)"
-            class="mobile-record-row__detail"
-          >
+          <div v-if="hasValue(item.disease_ontology_id_version)" class="mobile-record-row__detail">
             <dt>Ontology ID</dt>
             <dd>{{ displayValue(item.disease_ontology_id_version) }}</dd>
           </div>
