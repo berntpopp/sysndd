@@ -267,8 +267,8 @@
 
       <UserUpdateModal
         v-model:visible="isUpdateOpen"
-        :user="userToUpdate"
         v-model:password-change="passwordChange"
+        :user="userToUpdate"
         :password-validation="passwordValidation"
         :is-changing-password="isChangingPassword"
         @submit="onSubmitUpdate"
@@ -286,16 +286,16 @@
 
       <UserBulkDeleteModal
         v-model:visible="isBulkDeleteOpen"
-        :usernames="bulkDeleteUsernames"
         v-model:confirm-text="deleteConfirmText"
+        :usernames="bulkDeleteUsernames"
         @confirm="onConfirmBulkDelete"
         @cancel="close"
       />
 
       <UserBulkRoleModal
         v-model:visible="isBulkRoleOpen"
-        :usernames="bulkRoleUsernames"
         v-model:selected-role="bulkRoleSelection"
+        :usernames="bulkRoleUsernames"
         @confirm="onConfirmBulkRole"
         @cancel="close"
       />
