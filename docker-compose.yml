@@ -321,6 +321,25 @@ services:
       - "traefik.http.services.app.loadbalancer.server.port=8080"
       - "traefik.http.routers.app.priority=1"
 
+  seo-prerender:
+    profiles: ["ops"]
+    build:
+      context: ./app/
+      target: builder
+      args:
+        VUE_MODE: production
+        SEO_GENERATE: "false"
+    container_name: sysndd_seo_prerender
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      SEO_API_BASE_URL: http://api:7777/api
+      SEO_PUBLIC_BASE_URL: ${SEO_PUBLIC_BASE_URL:-https://sysndd.dbmr.unibe.ch}
+    command: sh -lc 'npm run seo:generate'
+    networks:
+      - backend
+
 networks:
   proxy:
     name: sysndd_proxy

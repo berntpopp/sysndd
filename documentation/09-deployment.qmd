@@ -57,6 +57,24 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - Use HTTPS in production.
 
+## SEO Prerender Operations
+
+The default production path is build-time prerendering into the frontend image. Set Docker build arg `SEO_GENERATE=true` to generate crawlable public route HTML after the Vite build. If `SEO_API_BASE_URL` is set, the generator reads `/api/seo/*`; otherwise it uses deterministic fixtures.
+
+Runtime refresh is optional and intentionally outside API startup and nginx. The profiled sidecar keeps nginx single-purpose:
+
+```bash
+docker compose --profile ops run --rm seo-prerender
+```
+
+If a deployment mounts `app/dist` through an explicit shared or bind-mounted artifact volume, restart the app only after successful generation:
+
+```bash
+docker compose restart app
+```
+
+Do not add cron or Node to the nginx app container. For periodic refreshes after data releases, run the profiled sidecar from host cron or rebuild the app image with `SEO_GENERATE=true`.
+
 ## Security headers
 
 The frontend nginx config (`app/docker/nginx/security-headers.conf`) emits the following on every SPA response:
