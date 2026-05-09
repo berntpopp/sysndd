@@ -685,6 +685,8 @@ export default {
     },
     async doLoadData() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
+      const currentUrlParam = () =>
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
 
       const now = Date.now();
 
@@ -693,17 +695,17 @@ export default {
         this.isBusy = true;
         try {
           const sharedData = await moduleInFlightPromise;
-          if (moduleInFlightParams !== urlParam) {
+          if (currentUrlParam() !== urlParam) {
             return;
           }
           this.applyApiResponse(sharedData);
         } catch (e) {
-          if (moduleInFlightParams !== urlParam) {
+          if (currentUrlParam() !== urlParam) {
             return;
           }
           this.makeToast(e, 'Error', 'danger');
         } finally {
-          if (moduleInFlightParams === urlParam) {
+          if (currentUrlParam() === urlParam) {
             this.isBusy = false;
             this.loading = false;
           }
