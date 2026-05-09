@@ -686,18 +686,6 @@ export default {
 
       const now = Date.now();
 
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false; // Clear busy state when using cached data
-          this.loading = false;
-        }
-        return;
-      }
-
       // Share same-parameter in-flight requests across remounted instances.
       if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
         this.isBusy = true;
@@ -708,6 +696,18 @@ export default {
           this.makeToast(e, 'Error', 'danger');
         } finally {
           this.isBusy = false;
+          this.loading = false;
+        }
+        return;
+      }
+
+      // Prevent duplicate API calls using module-level tracking
+      // This works across component remounts caused by router.replace()
+      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
+        // Use cached response data for remounted component
+        if (moduleLastApiResponse) {
+          this.applyApiResponse(moduleLastApiResponse);
+          this.isBusy = false; // Clear busy state when using cached data
           this.loading = false;
         }
         return;
