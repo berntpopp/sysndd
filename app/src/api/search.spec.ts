@@ -23,7 +23,7 @@ describe('api/search — searchEntities', () => {
       http.get('/api/search/:searchterm', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await searchEntities('GRIN 2B');
@@ -36,7 +36,7 @@ describe('api/search — searchEntities', () => {
       http.get('/api/search/:searchterm', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await searchEntities('GRIN2B', { helper: false });
@@ -47,9 +47,7 @@ describe('api/search — searchEntities', () => {
     const ok: EntitySearchRow[] = [
       { entity_id: 7, search: 'symbol', results: 'GRIN2B', searchdist: 0, link: '/Genes/GRIN2B' },
     ];
-    server.use(
-      http.get('/api/search/:searchterm', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/search/:searchterm', () => HttpResponse.json(ok)));
 
     const result = await searchEntities('GRIN2B', { helper: false });
     expect((result as EntitySearchRow[])[0].results).toBe('GRIN2B');
@@ -69,9 +67,7 @@ describe('api/search — searchOntology', () => {
         searchdist: 0.0,
       },
     ];
-    server.use(
-      http.get('/api/search/ontology/:searchterm', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/search/ontology/:searchterm', () => HttpResponse.json(ok)));
 
     // The `{ tree: true }` overload narrows the return to
     // `OntologyTreeNode[]`, so no `as OntologyTreeNode[]` cast at the
@@ -93,9 +89,7 @@ describe('api/search — searchGene', () => {
         searchdist: 0,
       },
     ];
-    server.use(
-      http.get('/api/search/gene/:searchterm', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/search/gene/:searchterm', () => HttpResponse.json(ok)));
 
     // Same `{ tree: true }` overload pattern as searchOntology — the
     // return narrows to `GeneSearchTreeNode[]` without an inline cast.
@@ -111,7 +105,7 @@ describe('api/search — searchInheritance', () => {
       http.get('/api/search/inheritance/:searchterm', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await searchInheritance('Autosomal', { tree: true });

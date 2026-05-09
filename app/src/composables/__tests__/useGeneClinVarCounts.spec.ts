@@ -42,7 +42,7 @@ describe('useGeneClinVarCounts', () => {
           variant_count: 1746,
           summary: true,
         });
-      }),
+      })
     );
     const { w, hook } = mountHook('GRIN2B');
     await flushPromises();
@@ -57,8 +57,8 @@ describe('useGeneClinVarCounts', () => {
   it('returns null on 404', async () => {
     server.use(
       http.get('*/api/external/gnomad/variants/UNKNOWN', () =>
-        HttpResponse.json({}, { status: 404 }),
-      ),
+        HttpResponse.json({}, { status: 404 })
+      )
     );
     const { w, hook } = mountHook('UNKNOWN');
     await flushPromises();
@@ -78,13 +78,19 @@ describe('useGeneClinVarCounts', () => {
                 source: 'gnomad_clinvar',
                 gene_symbol: 'MECP2',
                 gene_id: 'ENSG00000169057',
-                counts: { pathogenic: 1, likely_pathogenic: 2, vus: 3, likely_benign: 4, benign: 5 },
+                counts: {
+                  pathogenic: 1,
+                  likely_pathogenic: 2,
+                  vus: 3,
+                  likely_benign: 4,
+                  benign: 5,
+                },
                 variant_count: 15,
                 summary: true,
               }
-            : { variants: [] },
+            : { variants: [] }
         );
-      }),
+      })
     );
     const { w, hook } = mountHook('MECP2');
     await flushPromises();

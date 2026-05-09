@@ -175,9 +175,7 @@ export interface UpdateLlmPromptResponse {
  * Administrator-only. Returns the current LLM configuration including
  * available models and rate-limit settings.
  */
-export async function getLlmConfig(
-  config?: AxiosRequestConfig,
-): Promise<LlmConfig> {
+export async function getLlmConfig(config?: AxiosRequestConfig): Promise<LlmConfig> {
   return apiClient.get<LlmConfig>('/api/llm/config', config);
 }
 
@@ -193,7 +191,7 @@ export async function getLlmConfig(
  */
 export async function updateLlmModel(
   params: UpdateLlmModelParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdateLlmModelResponse> {
   return apiClient.put<UpdateLlmModelResponse>('/api/llm/config', undefined, {
     ...config,
@@ -207,9 +205,7 @@ export async function updateLlmModel(
  *
  * Administrator-only. Aggregate cache statistics for the admin dashboard.
  */
-export async function getLlmCacheStats(
-  config?: AxiosRequestConfig,
-): Promise<LlmCacheStats> {
+export async function getLlmCacheStats(config?: AxiosRequestConfig): Promise<LlmCacheStats> {
   return apiClient.get<LlmCacheStats>('/api/llm/cache/stats', config);
 }
 
@@ -221,7 +217,7 @@ export async function getLlmCacheStats(
  */
 export async function getLlmCacheSummaries(
   params: CacheSummariesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedCacheSummaries> {
   return apiClient.get<PaginatedCacheSummaries>('/api/llm/cache/summaries', {
     ...config,
@@ -239,7 +235,7 @@ export async function getLlmCacheSummaries(
  */
 export async function clearLlmCache(
   params: ClearLlmCacheParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ClearLlmCacheResponse> {
   return apiClient.delete<ClearLlmCacheResponse>('/api/llm/cache', {
     ...config,
@@ -258,7 +254,7 @@ export async function clearLlmCache(
  */
 export async function regenerateLlm(
   params: RegenerateLlmParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<RegenerateLlmResponse> {
   return apiClient.post<RegenerateLlmResponse>('/api/llm/regenerate', undefined, {
     ...config,
@@ -274,7 +270,7 @@ export async function regenerateLlm(
  */
 export async function getLlmLogs(
   params: LogQueryParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedLogs> {
   return apiClient.get<PaginatedLogs>('/api/llm/logs', {
     ...config,
@@ -292,7 +288,7 @@ export async function getLlmLogs(
 export async function validateLlmCacheEntry(
   cache_id: number | string,
   params: ValidateCacheParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ValidateCacheResponse> {
   const path = `/api/llm/cache/${encodeURIComponent(String(cache_id))}/validate`;
   return apiClient.post<ValidateCacheResponse>(path, undefined, {
@@ -307,9 +303,7 @@ export async function validateLlmCacheEntry(
  *
  * Administrator-only. Returns all prompt templates keyed by their type.
  */
-export async function getLlmPrompts(
-  config?: AxiosRequestConfig,
-): Promise<LlmPromptTemplateMap> {
+export async function getLlmPrompts(config?: AxiosRequestConfig): Promise<LlmPromptTemplateMap> {
   return apiClient.get<LlmPromptTemplateMap>('/api/llm/prompts', config);
 }
 
@@ -327,7 +321,7 @@ export async function getLlmPrompts(
 export async function updateLlmPrompt(
   type: LlmPromptType,
   body: UpdateLlmPromptRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdateLlmPromptResponse> {
   const path = `/api/llm/prompts/${encodeURIComponent(type)}`;
   return apiClient.put<UpdateLlmPromptResponse, UpdateLlmPromptRequest>(path, body, config);

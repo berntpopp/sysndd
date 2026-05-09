@@ -208,8 +208,7 @@ const bvnStubs = {
   },
   BAlert: {
     props: ['show', 'variant'],
-    template:
-      '<div role="alert" :data-variant="variant" class="b-alert-stub"><slot /></div>',
+    template: '<div role="alert" :data-variant="variant" class="b-alert-stub"><slot /></div>',
   },
   BButton: {
     props: ['disabled', 'variant'],
@@ -499,13 +498,8 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     const wrapper = await mountView();
 
     const buttons = wrapper.findAll('button');
-    const ontologyButton = buttons.find((b) =>
-      b.text().includes('Update Ontology Annotations')
-    );
-    expect(
-      ontologyButton,
-      'expected an "Update Ontology Annotations" button'
-    ).toBeDefined();
+    const ontologyButton = buttons.find((b) => b.text().includes('Update Ontology Annotations'));
+    expect(ontologyButton, 'expected an "Update Ontology Annotations" button').toBeDefined();
 
     await ontologyButton!.trigger('click');
     await flushPromises();
@@ -641,9 +635,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     const wrapper = await mountView();
 
     const buttons = wrapper.findAll('button');
-    const ontologyButton = buttons.find((b) =>
-      b.text().includes('Update Ontology Annotations')
-    );
+    const ontologyButton = buttons.find((b) => b.text().includes('Update Ontology Annotations'));
     expect(
       ontologyButton,
       'expected an "Update Ontology Annotations" button to trigger the blocked flow'

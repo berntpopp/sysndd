@@ -42,9 +42,7 @@ describe('api/publication — getPublicationStats', () => {
       oldest_update: '2020-01-01',
       outdated_count: 1200,
     };
-    server.use(
-      http.get('/api/publication/stats', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/publication/stats', () => HttpResponse.json(ok)));
 
     const result = await getPublicationStats();
     expect(result.total).toBe(4500);
@@ -58,7 +56,7 @@ describe('api/publication — getPublicationByPmid', () => {
       http.get('/api/publication/:pmid', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getPublicationByPmid('PMID:12345');
@@ -67,9 +65,7 @@ describe('api/publication — getPublicationByPmid', () => {
 
   it('returns the metadata array on 200', async () => {
     const ok: PublicationRecord[] = [{ publication_id: 'PMID:12345', Title: 'foo' }];
-    server.use(
-      http.get('/api/publication/:pmid', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/publication/:pmid', () => HttpResponse.json(ok)));
 
     const result = await getPublicationByPmid('12345');
     expect(result[0].publication_id).toBe('PMID:12345');
@@ -84,7 +80,7 @@ describe('api/publication — listPublications', () => {
       http.get('/api/publication/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listPublications();
@@ -95,12 +91,16 @@ describe('api/publication — listPublications', () => {
 describe('api/publication — listPublicationsXlsx', () => {
   it('returns a Blob and forces format=xlsx', async () => {
     server.use(
-      http.get('/api/publication/', () =>
-        new HttpResponse(new Uint8Array([0x50, 0x4b]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-        }),
-      ),
+      http.get(
+        '/api/publication/',
+        () =>
+          new HttpResponse(new Uint8Array([0x50, 0x4b]), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          })
+      )
     );
     const blob = await listPublicationsXlsx();
     expect(blob).toBeInstanceOf(Blob);
@@ -113,9 +113,7 @@ describe('api/publication — searchPubtator', () => {
       meta: { perPage: 10, currentPage: 1, totalPages: 5 },
       data: [{ pmid: 'PMID:1' }],
     };
-    server.use(
-      http.get('/api/publication/pubtator/search', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/publication/pubtator/search', () => HttpResponse.json(ok)));
 
     const result = await searchPubtator({ current_page: 1 });
     expect(result.meta.totalPages).toBe(5);
@@ -130,7 +128,7 @@ describe('api/publication — listPubtatorTable', () => {
       http.get('/api/publication/pubtator/table', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listPubtatorTable();
@@ -141,12 +139,16 @@ describe('api/publication — listPubtatorTable', () => {
 describe('api/publication — listPubtatorTableXlsx', () => {
   it('returns a Blob and forces format=xlsx', async () => {
     server.use(
-      http.get('/api/publication/pubtator/table', () =>
-        new HttpResponse(new Uint8Array([0x50, 0x4b]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-        }),
-      ),
+      http.get(
+        '/api/publication/pubtator/table',
+        () =>
+          new HttpResponse(new Uint8Array([0x50, 0x4b]), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          })
+      )
     );
     const blob = await listPubtatorTableXlsx();
     expect(blob).toBeInstanceOf(Blob);
@@ -156,9 +158,7 @@ describe('api/publication — listPubtatorTableXlsx', () => {
 describe('api/publication — listPubtatorGenes', () => {
   it('returns the genes envelope on 200', async () => {
     const ok: PubtatorGenesResponse = { data: [] };
-    server.use(
-      http.get('/api/publication/pubtator/genes', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/publication/pubtator/genes', () => HttpResponse.json(ok)));
     const result = await listPubtatorGenes();
     expect(result.data).toHaveLength(0);
   });
@@ -167,12 +167,16 @@ describe('api/publication — listPubtatorGenes', () => {
 describe('api/publication — listPubtatorGenesXlsx', () => {
   it('returns a Blob and forces format=xlsx', async () => {
     server.use(
-      http.get('/api/publication/pubtator/genes', () =>
-        new HttpResponse(new Uint8Array([0x50, 0x4b]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-        }),
-      ),
+      http.get(
+        '/api/publication/pubtator/genes',
+        () =>
+          new HttpResponse(new Uint8Array([0x50, 0x4b]), {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            },
+          })
+      )
     );
     const blob = await listPubtatorGenesXlsx();
     expect(blob).toBeInstanceOf(Blob);
@@ -187,9 +191,7 @@ describe('api/publication — backfillPubtatorGenes', () => {
       execution_time: '5 secs',
       message: 'Updated 12 rows',
     };
-    server.use(
-      http.post('/api/publication/pubtator/backfill-genes', () => HttpResponse.json(ok)),
-    );
+    server.use(http.post('/api/publication/pubtator/backfill-genes', () => HttpResponse.json(ok)));
     const result = await backfillPubtatorGenes();
     expect(result.updated).toBe(12);
   });
@@ -212,7 +214,7 @@ describe('api/publication — getPubtatorCacheStatus', () => {
       http.get('/api/publication/pubtator/cache-status', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getPubtatorCacheStatus({ query: 'epilepsy' });
@@ -222,8 +224,8 @@ describe('api/publication — getPubtatorCacheStatus', () => {
   it('throws AxiosError on 400 (missing query)', async () => {
     server.use(
       http.get('/api/publication/pubtator/cache-status', () =>
-        HttpResponse.json({ error: 'Query parameter is required' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'Query parameter is required' }, { status: 400 })
+      )
     );
 
     let caught: unknown;
@@ -254,7 +256,7 @@ describe('api/publication — updatePubtator', () => {
       http.post('/api/publication/pubtator/update', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await updatePubtator({ query: 'epilepsy', max_pages: 10 });
@@ -275,8 +277,8 @@ describe('api/publication — submitPubtatorUpdate', () => {
     };
     server.use(
       http.post('/api/publication/pubtator/update/submit', () =>
-        HttpResponse.json(ok, { status: 202 }),
-      ),
+        HttpResponse.json(ok, { status: 202 })
+      )
     );
 
     const result = await submitPubtatorUpdate({ query: 'epilepsy', max_pages: 10 });
@@ -292,9 +294,7 @@ describe('api/publication — clearPubtatorCache', () => {
       execution_time: '1 sec',
       message: 'Cleared 1 queries, 100 publications, 200 annotations',
     };
-    server.use(
-      http.post('/api/publication/pubtator/clear-cache', () => HttpResponse.json(ok)),
-    );
+    server.use(http.post('/api/publication/pubtator/clear-cache', () => HttpResponse.json(ok)));
     const result = await clearPubtatorCache();
     expect(result.deleted?.queries).toBe(1);
   });

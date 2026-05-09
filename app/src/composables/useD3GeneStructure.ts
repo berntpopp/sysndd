@@ -254,10 +254,18 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
 
     if (data.strand === '+') {
       // Right-pointing arrowhead for forward strand
-      marker.append('path').attr('d', 'M 0 0 L 6 3 L 0 6 Z').attr('fill', INTRON_COLOR);
+      marker
+        .append('path')
+        .attr('d', 'M 0 0 L 6 3 L 0 6 Z')
+        .attr('fill', INTRON_COLOR)
+        .attr('aria-hidden', 'true');
     } else {
       // Left-pointing arrowhead for reverse strand
-      marker.append('path').attr('d', 'M 6 0 L 0 3 L 6 6 Z').attr('fill', INTRON_COLOR);
+      marker
+        .append('path')
+        .attr('d', 'M 6 0 L 0 3 L 6 6 Z')
+        .attr('fill', INTRON_COLOR)
+        .attr('aria-hidden', 'true');
     }
 
     // Render intron lines (back layer)
@@ -271,7 +279,8 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
         .attr('y2', yBase)
         .attr('stroke', INTRON_COLOR)
         .attr('stroke-width', 1)
-        .attr('marker-end', 'url(#strand-arrow)');
+        .attr('marker-end', 'url(#strand-arrow)')
+        .attr('aria-hidden', 'true');
     });
 
     // Get container element for tooltip positioning
@@ -294,7 +303,7 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
         .attr('stroke', EXON_STROKE)
         .attr('stroke-width', 0.5)
         .attr('cursor', 'pointer')
-        .attr('aria-label', `Exon ${exon.exonNumber}: ${exon.type}`)
+        .attr('aria-hidden', 'true')
         .on('mouseover', (event: MouseEvent) => {
           showExonTooltip(event, exon, containerEl);
         })
@@ -318,9 +327,9 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
     // Style axis
     axisGroup.selectAll('text').style('font-size', '9px').style('fill', '#6b7280'); // gray-500
 
-    axisGroup.selectAll('line').style('stroke', '#d1d5db'); // gray-300
+    axisGroup.selectAll('line').style('stroke', '#d1d5db').attr('aria-hidden', 'true'); // gray-300
 
-    axisGroup.select('.domain').style('stroke', '#d1d5db'); // gray-300
+    axisGroup.select('.domain').style('stroke', '#d1d5db').attr('aria-hidden', 'true'); // gray-300
 
     // Render strand label (top-left)
     mainGroup
@@ -361,7 +370,8 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
       .attr('x2', scaleBarWidth)
       .attr('y2', 0)
       .attr('stroke', '#374151') // gray-700
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 2)
+      .attr('aria-hidden', 'true');
 
     // Left cap
     scaleBarGroup
@@ -371,7 +381,8 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
       .attr('x2', 0)
       .attr('y2', 3)
       .attr('stroke', '#374151')
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 2)
+      .attr('aria-hidden', 'true');
 
     // Right cap
     scaleBarGroup
@@ -381,7 +392,8 @@ export function useD3GeneStructure(options: GeneStructureOptions): D3GeneStructu
       .attr('x2', scaleBarWidth)
       .attr('y2', 3)
       .attr('stroke', '#374151')
-      .attr('stroke-width', 2);
+      .attr('stroke-width', 2)
+      .attr('aria-hidden', 'true');
 
     // Label
     scaleBarGroup

@@ -173,9 +173,7 @@
                     :class="local.approved ? 'bg-success' : 'bg-warning text-dark'"
                   >
                     <i
-                      :class="
-                        local.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'
-                      "
+                      :class="local.approved ? 'bi bi-check-circle-fill' : 'bi bi-clock-fill'"
                       class="me-1"
                     />
                     {{ local.approved ? 'Approved' : 'Pending' }}
@@ -291,7 +289,14 @@ export default defineComponent({
     },
     isChangingPassword: { type: Boolean, default: false },
   },
-  emits: ['update:visible', 'submit', 'cancel', 'change-password', 'generate-password', 'update:password-change'],
+  emits: [
+    'update:visible',
+    'submit',
+    'cancel',
+    'change-password',
+    'generate-password',
+    'update:password-change',
+  ],
   setup(props, { emit }) {
     const modalId = 'update-usermodal';
 
@@ -377,7 +382,7 @@ export default defineComponent({
           });
         }
       },
-      { immediate: true },
+      { immediate: true }
     );
 
     function onSubmit(): void {

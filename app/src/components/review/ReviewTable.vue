@@ -195,13 +195,13 @@
     <!-- eslint-disable @typescript-eslint/no-explicit-any -->
     <BTable
       v-else
-      :items="(items as any)"
-      :fields="(fields as any)"
+      :items="items as any"
+      :fields="fields as any"
       :busy="isBusy"
       :current-page="currentPage"
       :per-page="perPage"
       :filter="filterText"
-      :sort-by="(sortBy as any)"
+      :sort-by="sortBy as any"
       stacked="md"
       head-variant="light"
       show-empty
@@ -214,11 +214,7 @@
       @filtered="(e: any) => $emit('filtered', e as unknown[])"
     >
       <!-- Expose BTable slots to the parent so row templates stay there. -->
-      <template
-        v-for="(_, slotName) in $slots"
-        :key="slotName"
-        #[slotName]="slotProps"
-      >
+      <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
         <slot :name="slotName" v-bind="slotProps || {}" />
       </template>
     </BTable>

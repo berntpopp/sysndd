@@ -98,7 +98,7 @@ function treeQuery(tree: boolean): { tree: 'TRUE' | 'FALSE' } {
  */
 export async function listStatusCategories(
   params: ListPaginationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedListResponse<StatusCategoryRow>> {
   return apiClient.get<PaginatedListResponse<StatusCategoryRow>>('/api/list/status', {
     ...config,
@@ -111,9 +111,7 @@ export async function listStatusCategories(
  *
  * Tree-formatted status categories for treeselect components.
  */
-export async function listStatusCategoriesTree(
-  config?: AxiosRequestConfig,
-): Promise<TreeNode[]> {
+export async function listStatusCategoriesTree(config?: AxiosRequestConfig): Promise<TreeNode[]> {
   return apiClient.get<TreeNode[]>('/api/list/status', {
     ...config,
     params: { ...(config?.params as object | undefined), ...treeQuery(true) },
@@ -128,7 +126,7 @@ export async function listStatusCategoriesTree(
  */
 export async function listPhenotypes(
   params: ListPaginationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedListResponse<PhenotypeRow>> {
   return apiClient.get<PaginatedListResponse<PhenotypeRow>>('/api/list/phenotype', {
     ...config,
@@ -141,9 +139,7 @@ export async function listPhenotypes(
  *
  * Tree-formatted phenotype list with modifier children (treeselect input).
  */
-export async function listPhenotypesTree(
-  config?: AxiosRequestConfig,
-): Promise<TreeNode[]> {
+export async function listPhenotypesTree(config?: AxiosRequestConfig): Promise<TreeNode[]> {
   return apiClient.get<TreeNode[]>('/api/list/phenotype', {
     ...config,
     params: { ...(config?.params as object | undefined), ...treeQuery(true) },
@@ -158,7 +154,7 @@ export async function listPhenotypesTree(
  */
 export async function listInheritance(
   params: ListPaginationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedListResponse<InheritanceRow>> {
   return apiClient.get<PaginatedListResponse<InheritanceRow>>('/api/list/inheritance', {
     ...config,
@@ -171,9 +167,7 @@ export async function listInheritance(
  *
  * Tree-formatted inheritance terms (id + label only).
  */
-export async function listInheritanceTree(
-  config?: AxiosRequestConfig,
-): Promise<TreeNode[]> {
+export async function listInheritanceTree(config?: AxiosRequestConfig): Promise<TreeNode[]> {
   return apiClient.get<TreeNode[]>('/api/list/inheritance', {
     ...config,
     params: { ...(config?.params as object | undefined), ...treeQuery(true) },
@@ -188,14 +182,14 @@ export async function listInheritanceTree(
  */
 export async function listVariationOntology(
   params: ListPaginationParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PaginatedListResponse<VariationOntologyRow>> {
   return apiClient.get<PaginatedListResponse<VariationOntologyRow>>(
     '/api/list/variation_ontology',
     {
       ...config,
       params: { ...(config?.params as object | undefined), ...treeQuery(false), ...params },
-    },
+    }
   );
 }
 
@@ -204,9 +198,7 @@ export async function listVariationOntology(
  *
  * Tree-formatted VariO terms with modifier children.
  */
-export async function listVariationOntologyTree(
-  config?: AxiosRequestConfig,
-): Promise<TreeNode[]> {
+export async function listVariationOntologyTree(config?: AxiosRequestConfig): Promise<TreeNode[]> {
   return apiClient.get<TreeNode[]>('/api/list/variation_ontology', {
     ...config,
     params: { ...(config?.params as object | undefined), ...treeQuery(true) },

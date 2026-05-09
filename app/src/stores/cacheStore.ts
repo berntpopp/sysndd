@@ -15,13 +15,13 @@ const MAX_ENTRIES = 64;
 
 export interface CacheEntry<T = unknown> {
   value: T | null;
-  fetchedAt: number;            // ms since epoch when value was written; 0 means "never"
-  ttlMs: number;                // 0 means "never stale" (not used by current hooks)
-  pending: Promise<T> | null;   // in-flight fetch (shared across subscribers)
+  fetchedAt: number; // ms since epoch when value was written; 0 means "never"
+  ttlMs: number; // 0 means "never stale" (not used by current hooks)
+  pending: Promise<T> | null; // in-flight fetch (shared across subscribers)
   abortController: AbortController | null;
-  refCount: number;             // active subscribers
-  insertedAt: number;           // first creation time (informational)
-  lastAccessAt: number;         // for true LRU eviction — touched on every read/write
+  refCount: number; // active subscribers
+  insertedAt: number; // first creation time (informational)
+  lastAccessAt: number; // for true LRU eviction — touched on every read/write
 }
 
 interface CacheState {

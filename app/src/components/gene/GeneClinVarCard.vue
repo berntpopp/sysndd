@@ -37,9 +37,9 @@
     </div>
 
     <!-- No Data State -->
-    <div v-else-if="totalCount === 0" class="text-center py-3">
-      <i class="bi bi-info-circle text-muted me-2"></i>
-      <span class="text-muted small">No ClinVar variants available for this gene</span>
+    <div v-else-if="totalCount === 0" class="clinvar-empty-state text-center py-3">
+      <i class="bi bi-info-circle text-muted me-2" aria-hidden="true"></i>
+      <span class="text-muted small">No ClinVar variants returned for this gene.</span>
     </div>
 
     <!-- ACMG Badge Row -->
@@ -180,15 +180,20 @@ const totalCount = computed(() => {
   /* Match gene info card styling — no shadow, dark border */
 }
 
+.clinvar-empty-state {
+  background-color: #f8f9fa;
+  border-top: 1px dashed #adb5bd;
+}
+
 /* Custom badge color for Likely Pathogenic (orange) */
 .badge-lp {
   background-color: #fd7e14 !important;
-  color: #fff !important;
+  color: #212529 !important;
 }
 
 /* Custom badge color for Likely Benign (light green/teal) */
 .badge-lb {
   background-color: #20c997 !important;
-  color: #fff !important;
+  color: #212529 !important;
 }
 </style>

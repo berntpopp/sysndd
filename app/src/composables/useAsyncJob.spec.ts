@@ -256,9 +256,7 @@ describe('useAsyncJob', () => {
       // what the consumer (ManageAnnotations.vue) needs to render the
       // "force apply" UI.
       expect(job.status.value).toBe('blocked' as typeof job.status.value);
-      expect(job.step.value).toBe(
-        'Critical ontology changes detected — force-apply required'
-      );
+      expect(job.step.value).toBe('Critical ontology changes detected — force-apply required');
 
       // CURRENT BEHAVIOR PIN: "blocked" is NOT in the terminal-state branch
       // (see useAsyncJob.ts — only 'completed'/'failed' call stopPolling()).
@@ -287,10 +285,7 @@ describe('useAsyncJob', () => {
     it('surfaces an error and stops polling on 500 from the status endpoint', async () => {
       server.use(
         http.get('/api/jobs/:job_id/status', () => {
-          return HttpResponse.json(
-            { error: 'Job worker crashed' },
-            { status: 500 }
-          );
+          return HttpResponse.json({ error: 'Job worker crashed' }, { status: 500 });
         })
       );
 
@@ -412,10 +407,7 @@ describe('useAsyncJob', () => {
       // The POST below goes through the shared axios singleton; the
       // apiClient interceptor will inject the Bearer (SEEDED_TOKEN) so we
       // no longer need to supply an explicit `authorization` header here.
-      const submitResponse = await axios.post(
-        '/api/jobs/hgnc_update/submit',
-        {}
-      );
+      const submitResponse = await axios.post('/api/jobs/hgnc_update/submit', {});
       const rawJobId = submitResponse.data.job_id;
       const unwrappedJobId = Array.isArray(rawJobId) ? rawJobId[0] : rawJobId;
       expect(unwrappedJobId).toBe('hgnc-update-2025-07-01');

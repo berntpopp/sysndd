@@ -223,10 +223,10 @@ const rgdUrl = computed(() => {
 
 .resources-label {
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #868e96;
+  letter-spacing: 0;
+  color: #495057;
   margin-right: 0.25rem;
 }
 

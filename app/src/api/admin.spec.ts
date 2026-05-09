@@ -26,9 +26,7 @@ import { server } from '@/test-utils/mocks/server';
 
 describe('api/admin — getOpenApiSpec', () => {
   it('returns the OpenAPI spec on 200', async () => {
-    server.use(
-      http.get('/api/admin/openapi.json', () => HttpResponse.json({ openapi: '3.0.0' })),
-    );
+    server.use(http.get('/api/admin/openapi.json', () => HttpResponse.json({ openapi: '3.0.0' })));
     const spec = (await getOpenApiSpec()) as { openapi: string };
     expect(spec.openapi).toBe('3.0.0');
   });
@@ -38,7 +36,9 @@ describe('api/admin — updateOntologyAsync', () => {
   it('returns the AsyncJobAccepted envelope on 202', async () => {
     const expected: AsyncJobAccepted = { job_id: 'omim-1', status: 'accepted' };
     server.use(
-      http.put('/api/admin/update_ontology_async', () => HttpResponse.json(expected, { status: 202 })),
+      http.put('/api/admin/update_ontology_async', () =>
+        HttpResponse.json(expected, { status: 202 })
+      )
     );
     const result = await updateOntologyAsync();
     expect(result).toEqual(expected);
@@ -47,8 +47,8 @@ describe('api/admin — updateOntologyAsync', () => {
   it('throws AxiosError on 403 (caller is not Administrator)', async () => {
     server.use(
       http.put('/api/admin/update_ontology_async', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 }),
-      ),
+        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
+      )
     );
     let caught: unknown;
     try {
@@ -71,7 +71,7 @@ describe('api/admin — forceApplyOntology', () => {
       http.put('/api/admin/force_apply_ontology', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(expected, { status: 202 });
-      }),
+      })
     );
 
     const result = await forceApplyOntology({ blocked_job_id: 'omim-blocked-1' });
@@ -84,12 +84,10 @@ describe('api/admin — forceApplyOntology', () => {
   it('throws AxiosError on 410 (pending CSV expired)', async () => {
     server.use(
       http.put('/api/admin/force_apply_ontology', () =>
-        HttpResponse.json({ error: 'stale' }, { status: 410 }),
-      ),
+        HttpResponse.json({ error: 'stale' }, { status: 410 })
+      )
     );
-    await expect(
-      forceApplyOntology({ blocked_job_id: 'omim-blocked-1' }),
-    ).rejects.toThrow();
+    await expect(forceApplyOntology({ blocked_job_id: 'omim-blocked-1' })).rejects.toThrow();
   });
 });
 
@@ -97,8 +95,8 @@ describe('api/admin — updateHgncData', () => {
   it('returns success envelope on 200', async () => {
     server.use(
       http.put('/api/admin/update_hgnc_data', () =>
-        HttpResponse.json({ status: 'Success', message: 'HGNC data update process completed.' }),
-      ),
+        HttpResponse.json({ status: 'Success', message: 'HGNC data update process completed.' })
+      )
     );
     const result = await updateHgncData();
     expect(result.status).toBe('Success');
@@ -108,7 +106,7 @@ describe('api/admin — updateHgncData', () => {
 describe('api/admin — getApiVersion', () => {
   it('returns the API version envelope on 200', async () => {
     server.use(
-      http.get('/api/admin/api_version', () => HttpResponse.json({ api_version: '0.11.14' })),
+      http.get('/api/admin/api_version', () => HttpResponse.json({ api_version: '0.11.14' }))
     );
     const result = await getApiVersion();
     expect(result.api_version).toBe('0.11.14');
@@ -123,9 +121,7 @@ describe('api/admin — getAnnotationDates', () => {
       hgnc_update: '2026-04-20 09:00:00',
       disease_ontology_update: null,
     };
-    server.use(
-      http.get('/api/admin/annotation_dates', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/admin/annotation_dates', () => HttpResponse.json(ok)));
     const result = await getAnnotationDates();
     expect(result).toEqual(ok);
   });
@@ -139,9 +135,7 @@ describe('api/admin — getDeprecatedEntities', () => {
       affected_entities: [],
       mim2gene_date: '2026-04-25',
     };
-    server.use(
-      http.get('/api/admin/deprecated_entities', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/admin/deprecated_entities', () => HttpResponse.json(ok)));
     const result = await getDeprecatedEntities();
     expect(result.deprecated_count).toBe(0);
   });
@@ -155,9 +149,7 @@ describe('api/admin — testSmtp', () => {
       port: 25,
       error: null,
     };
-    server.use(
-      http.get('/api/admin/smtp/test', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/admin/smtp/test', () => HttpResponse.json(ok)));
     const result = await testSmtp();
     expect(result.success).toBe(true);
   });
@@ -175,7 +167,7 @@ describe('api/admin — refreshPublications', () => {
       http.post('/api/admin/publications/refresh', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(expected, { status: 202 });
-      }),
+      })
     );
 
     const result = await refreshPublications({ pmids: ['12345', '67890'] });
@@ -189,9 +181,7 @@ describe('api/admin — refreshPublications', () => {
       filter_date: '2026-01-01',
       count: 0,
     };
-    server.use(
-      http.post('/api/admin/publications/refresh', () => HttpResponse.json(ok)),
-    );
+    server.use(http.post('/api/admin/publications/refresh', () => HttpResponse.json(ok)));
 
     const result = await refreshPublications({ not_updated_since: '2026-01-01' });
     expect((result as PublicationRefreshNoop).count).toBe(0);
@@ -200,8 +190,11 @@ describe('api/admin — refreshPublications', () => {
   it('throws AxiosError on 400 (no pmids and no date filter)', async () => {
     server.use(
       http.post('/api/admin/publications/refresh', () =>
-        HttpResponse.json({ error: 'No PMIDs provided and no date filter specified' }, { status: 400 }),
-      ),
+        HttpResponse.json(
+          { error: 'No PMIDs provided and no date filter specified' },
+          { status: 400 }
+        )
+      )
     );
     await expect(refreshPublications({})).rejects.toThrow();
   });

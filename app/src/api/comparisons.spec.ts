@@ -28,9 +28,7 @@ describe('api/comparisons — getComparisonsOptions', () => {
       category: [{ category: 'Definitive' }],
       pathogenicity_mode: [{ pathogenicity_mode: 'LoF' }],
     };
-    server.use(
-      http.get('/api/comparisons/options', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/comparisons/options', () => HttpResponse.json(ok)));
 
     const result = await getComparisonsOptions();
     expect(result.list).toHaveLength(2);
@@ -45,7 +43,7 @@ describe('api/comparisons — getUpsetData', () => {
       http.get('/api/comparisons/upset', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getUpsetData({ fields: 'SysNDD,panelapp', definitive_only: 'true' });
@@ -58,9 +56,7 @@ describe('api/comparisons — getUpsetData', () => {
 describe('api/comparisons — getSimilarity', () => {
   it('returns the melted similarity matrix on 200', async () => {
     const ok: SimilarityCell[] = [{ x: 'SysNDD', y: 'SysNDD', value: 1.0 }];
-    server.use(
-      http.get('/api/comparisons/similarity', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/comparisons/similarity', () => HttpResponse.json(ok)));
 
     const result = await getSimilarity();
     expect(result[0].value).toBe(1.0);
@@ -79,7 +75,7 @@ describe('api/comparisons — browseComparisons', () => {
       http.get('/api/comparisons/browse', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await browseComparisons({ sort: 'symbol' });
@@ -102,7 +98,7 @@ describe('api/comparisons — browseComparisonsXlsx', () => {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
         });
-      }),
+      })
     );
 
     const blob = await browseComparisonsXlsx({ filter: 'category:Definitive' });
@@ -122,9 +118,7 @@ describe('api/comparisons — getComparisonsMetadata', () => {
       sources_count: 8,
       rows_imported: 12345,
     };
-    server.use(
-      http.get('/api/comparisons/metadata', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/comparisons/metadata', () => HttpResponse.json(ok)));
 
     const result = await getComparisonsMetadata();
     expect(result.last_refresh_status).toBe('success');
@@ -138,9 +132,7 @@ describe('api/comparisons — getComparisonsMetadata', () => {
       sources_count: 0,
       rows_imported: 0,
     };
-    server.use(
-      http.get('/api/comparisons/metadata', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/comparisons/metadata', () => HttpResponse.json(ok)));
 
     const result = await getComparisonsMetadata();
     expect(result.last_refresh_status).toBe('never');

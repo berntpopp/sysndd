@@ -192,8 +192,7 @@ interface LoginViewVm {
   signinWithJWT: (token: string) => Promise<void>;
 }
 
-const vm = (wrapper: VueWrapper): LoginViewVm =>
-  wrapper.vm as unknown as LoginViewVm;
+const vm = (wrapper: VueWrapper): LoginViewVm => wrapper.vm as unknown as LoginViewVm;
 
 describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
   beforeEach(() => {
@@ -224,9 +223,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
 
     let signinAuth: string | null = null;
     server.use(
-      http.post('/api/auth/authenticate', () =>
-        HttpResponse.json(bootstrapTokenEnvelope),
-      ),
+      http.post('/api/auth/authenticate', () => HttpResponse.json(bootstrapTokenEnvelope)),
       http.get('/api/auth/signin', ({ request }) => {
         // Capture the Authorization header off the wire.
         signinAuth = request.headers.get('authorization');
@@ -238,7 +235,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
         expect(localStorage.getItem('token')).toBeNull();
         expect(localStorage.getItem('user')).toBeNull();
         return HttpResponse.json(bootstrapUser);
-      }),
+      })
     );
 
     const wrapper = mountLoginView();
@@ -261,10 +258,8 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
 
   it('E1 bootstrap: useAuth().login() called exactly once, with both token and user', async () => {
     server.use(
-      http.post('/api/auth/authenticate', () =>
-        HttpResponse.json(bootstrapTokenEnvelope),
-      ),
-      http.get('/api/auth/signin', () => HttpResponse.json(bootstrapUser)),
+      http.post('/api/auth/authenticate', () => HttpResponse.json(bootstrapTokenEnvelope)),
+      http.get('/api/auth/signin', () => HttpResponse.json(bootstrapUser))
     );
 
     const wrapper = mountLoginView();
@@ -335,7 +330,7 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
         // token/user setItem may have happened.
         setItemCallsAtSignin = setItemSpy.mock.calls.length;
         return HttpResponse.json(bootstrapUser);
-      }),
+      })
     );
 
     const wrapper = mountLoginView();
@@ -406,7 +401,7 @@ describe('LoginView — fix #2 readable error toast', () => {
     server.use(
       http.post('/api/auth/authenticate', () =>
         HttpResponse.text('User or password wrong.', { status: 401 })
-      ),
+      )
     );
 
     const wrapper = mountLoginView();
@@ -432,7 +427,7 @@ describe('LoginView — fix #2 readable error toast', () => {
     expect(firstArg).toBe('Redirecting to login');
   });
 
-  it('non-401 with literal API string body: toasts the API\'s exact text', async () => {
+  it("non-401 with literal API string body: toasts the API's exact text", async () => {
     // Bypass the 401 interceptor so describeAuthError lands in the
     // `typeof data === "string"` branch. A 400 with a plain-text body is
     // realistic for several Plumber endpoints (the v11.1 auth flow
@@ -440,7 +435,7 @@ describe('LoginView — fix #2 readable error toast', () => {
     server.use(
       http.post('/api/auth/authenticate', () =>
         HttpResponse.text('Account locked: too many attempts.', { status: 400 })
-      ),
+      )
     );
 
     const wrapper = mountLoginView();
@@ -463,7 +458,7 @@ describe('LoginView — fix #2 readable error toast', () => {
     server.use(
       http.post('/api/auth/authenticate', () =>
         HttpResponse.json({ message: 'Database temporarily unavailable.' }, { status: 500 })
-      ),
+      )
     );
 
     const wrapper = mountLoginView();
@@ -488,12 +483,10 @@ describe('LoginView — fix #2 readable error toast', () => {
     // signin-path branch by letting authenticate succeed and forcing /signin
     // to return the API's literal 401 body.
     server.use(
-      http.post('/api/auth/authenticate', () =>
-        HttpResponse.json(['SIGNIN_TOKEN'])
-      ),
+      http.post('/api/auth/authenticate', () => HttpResponse.json(['SIGNIN_TOKEN'])),
       http.get('/api/auth/signin', () =>
         HttpResponse.text('Token rejected by signin endpoint.', { status: 401 })
-      ),
+      )
     );
 
     const wrapper = mountLoginView();

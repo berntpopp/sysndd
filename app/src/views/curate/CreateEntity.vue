@@ -123,10 +123,7 @@ import {
   type GeneSearchTreeNode,
   type OntologyTreeNode,
 } from '@/api/search';
-import {
-  createEntity,
-  type EntityCreatePayload,
-} from '@/api/entity';
+import { createEntity, type EntityCreatePayload } from '@/api/entity';
 
 // Components
 import FormWizard from '@/components/forms/wizard/FormWizard.vue';
@@ -238,11 +235,10 @@ export default defineComponent({
     // the tree into a flat <SelectOption> list.
     const loadFlatOptions = async (
       endpoint: 'inheritance' | 'status',
-      targetRef: typeof inheritanceOptions,
+      targetRef: typeof inheritanceOptions
     ) => {
       try {
-        const fetcher =
-          endpoint === 'inheritance' ? listInheritanceTree : listStatusCategoriesTree;
+        const fetcher = endpoint === 'inheritance' ? listInheritanceTree : listStatusCategoriesTree;
         const data = await fetcher();
         targetRef.value = flattenTreeOptions(data);
       } catch (e) {
@@ -257,7 +253,7 @@ export default defineComponent({
     // an `as unknown` cast.
     const flattenTreeOptions = (
       options: ReadonlyArray<ApiTreeNode | { id: string | number; label: string }>,
-      result: SelectOption[] = [],
+      result: SelectOption[] = []
     ): SelectOption[] => {
       options.forEach((opt) => {
         result.push({
@@ -304,15 +300,14 @@ export default defineComponent({
     // the legacy `endpoint` string to the matching typed-tree client.
     const loadTreeOptions = async (
       endpoint: 'phenotype' | 'variation_ontology',
-      targetRef: typeof phenotypeOptions,
+      targetRef: typeof phenotypeOptions
     ) => {
       try {
-        const fetcher =
-          endpoint === 'phenotype' ? listPhenotypesTree : listVariationOntologyTree;
+        const fetcher = endpoint === 'phenotype' ? listPhenotypesTree : listVariationOntologyTree;
         const data = await fetcher();
-        const rawData = (Array.isArray(data)
-          ? data
-          : ((data as { data?: unknown[] })?.data ?? [])) as {
+        const rawData = (
+          Array.isArray(data) ? data : ((data as { data?: unknown[] })?.data ?? [])
+        ) as {
           id: string;
           label: string;
           children?: { id: string; label: string }[];
@@ -347,7 +342,7 @@ export default defineComponent({
     // `<StepCoreEntity>` wrapper.
     const handleGeneSearch = async (
       query: string,
-      callback: (results: GeneSearchTreeNode[]) => void,
+      callback: (results: GeneSearchTreeNode[]) => void
     ) => {
       try {
         const data = await searchGene(query, { tree: true });
@@ -361,7 +356,7 @@ export default defineComponent({
     // Disease search handler — same overload-narrowing pattern as above.
     const handleDiseaseSearch = async (
       query: string,
-      callback: (results: OntologyTreeNode[]) => void,
+      callback: (results: OntologyTreeNode[]) => void
     ) => {
       try {
         const data = await searchOntology(query, { tree: true });
@@ -412,7 +407,7 @@ export default defineComponent({
 
       const literature = new Literature(
         cleanPMIDs(formData.publications),
-        cleanPMIDs(formData.genereviews),
+        cleanPMIDs(formData.genereviews)
       );
 
       const phenotypes = formData.phenotypes.map((item) => {
@@ -430,7 +425,7 @@ export default defineComponent({
         literature,
         phenotypes,
         variations,
-        formData.comment,
+        formData.comment
       );
 
       const status = new Status(formData.statusId, '', 0);
@@ -439,7 +434,7 @@ export default defineComponent({
         formData.geneId,
         formData.diseaseId,
         formData.inheritanceId,
-        formData.nddPhenotype ? 1 : 0,
+        formData.nddPhenotype ? 1 : 0
       );
 
       // The JS classes have no TS surface; the resulting `Submission`
@@ -468,16 +463,9 @@ export default defineComponent({
         // (`@/api/client`) reads `useAuth().token.value` and injects the
         // Bearer header on every outbound call against the shared axios
         // singleton.
-        await createEntity(
-          { create_json: submission },
-          { direct_approval: directApproval.value },
-        );
+        await createEntity({ create_json: submission }, { direct_approval: directApproval.value });
 
-        makeToast(
-          'Entity submitted successfully',
-          'Success',
-          'success'
-        );
+        makeToast('Entity submitted successfully', 'Success', 'success');
 
         // Clear draft and reset form on success
         clearDraft();

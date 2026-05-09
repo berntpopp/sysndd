@@ -196,7 +196,7 @@ export interface PubtatorClearCacheResponse {
  */
 export async function getPublicationStats(
   params: PublicationStatsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PublicationStats> {
   return apiClient.get<PublicationStats>('/api/publication/stats', {
     ...config,
@@ -214,7 +214,7 @@ export async function getPublicationStats(
  */
 export async function getPublicationByPmid(
   pmid: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PublicationRecord[]> {
   const path = `/api/publication/${encodeURIComponent(pmid)}`;
   return apiClient.get<PublicationRecord[]>(path, config);
@@ -228,7 +228,7 @@ export async function getPublicationByPmid(
  */
 export async function listPublications(
   params: ListPublicationsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PublicationListResponse> {
   return apiClient.get<PublicationListResponse>('/api/publication/', {
     ...config,
@@ -243,7 +243,7 @@ export async function listPublications(
  */
 export async function listPublicationsXlsx(
   params: Omit<ListPublicationsParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/publication/', {
     ...config,
@@ -266,7 +266,7 @@ export async function listPublicationsXlsx(
  */
 export async function searchPubtator(
   params: PubtatorSearchParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorSearchResponse> {
   return apiClient.get<PubtatorSearchResponse>('/api/publication/pubtator/search', {
     ...config,
@@ -282,7 +282,7 @@ export async function searchPubtator(
  */
 export async function listPubtatorTable(
   params: PubtatorTableParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorTableResponse> {
   return apiClient.get<PubtatorTableResponse>('/api/publication/pubtator/table', {
     ...config,
@@ -295,7 +295,7 @@ export async function listPubtatorTable(
  */
 export async function listPubtatorTableXlsx(
   params: Omit<PubtatorTableParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/publication/pubtator/table', {
     ...config,
@@ -314,7 +314,7 @@ export async function listPubtatorTableXlsx(
  */
 export async function listPubtatorGenes(
   params: PubtatorGenesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorGenesResponse> {
   return apiClient.get<PubtatorGenesResponse>('/api/publication/pubtator/genes', {
     ...config,
@@ -327,7 +327,7 @@ export async function listPubtatorGenes(
  */
 export async function listPubtatorGenesXlsx(
   params: Omit<PubtatorGenesParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/publication/pubtator/genes', {
     ...config,
@@ -344,12 +344,12 @@ export async function listPubtatorGenesXlsx(
  * Recomputes `gene_symbols` for cached PubTator rows where it is NULL.
  */
 export async function backfillPubtatorGenes(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorBackfillResponse> {
   return apiClient.post<PubtatorBackfillResponse>(
     '/api/publication/pubtator/backfill-genes',
     undefined,
-    config,
+    config
   );
 }
 
@@ -363,7 +363,7 @@ export async function backfillPubtatorGenes(
  */
 export async function getPubtatorCacheStatus(
   params: PubtatorCacheStatusParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorCacheStatus> {
   return apiClient.get<PubtatorCacheStatus>('/api/publication/pubtator/cache-status', {
     ...config,
@@ -382,7 +382,7 @@ export async function getPubtatorCacheStatus(
  */
 export async function updatePubtator(
   params: PubtatorUpdateParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorUpdateResponse> {
   return apiClient.post<PubtatorUpdateResponse>('/api/publication/pubtator/update', undefined, {
     ...config,
@@ -400,7 +400,7 @@ export async function updatePubtator(
  */
 export async function submitPubtatorUpdate(
   params: PubtatorUpdateParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorAsyncSubmitResponse> {
   return apiClient.post<PubtatorAsyncSubmitResponse>(
     '/api/publication/pubtator/update/submit',
@@ -408,7 +408,7 @@ export async function submitPubtatorUpdate(
     {
       ...config,
       params: { ...(config?.params as object | undefined), ...params },
-    },
+    }
   );
 }
 
@@ -419,11 +419,11 @@ export async function submitPubtatorUpdate(
  * Wipes the entire PubTator cache (queries + publications + annotations).
  */
 export async function clearPubtatorCache(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PubtatorClearCacheResponse> {
   return apiClient.post<PubtatorClearCacheResponse>(
     '/api/publication/pubtator/clear-cache',
     undefined,
-    config,
+    config
   );
 }

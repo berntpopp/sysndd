@@ -4,7 +4,7 @@ import { getEntityReview } from '@/api/entity';
 import { useResource, type ResourceState } from './useResource';
 
 export function useEntityReview(
-  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>,
+  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>
 ): ResourceState<unknown> {
   const idRef = computed<string | null>(() => {
     let v: string | number | null;
@@ -13,9 +13,7 @@ export function useEntityReview(
     return v === null || v === undefined || v === '' ? null : String(v);
   });
   const key = computed<string | null>(() => (idRef.value ? `entity-review:${idRef.value}` : null));
-  return useResource<unknown>(
-    key,
-    async (signal) => getEntityReview(idRef.value!, { signal }),
-    { ttlMs: 60_000 },
-  );
+  return useResource<unknown>(key, async (signal) => getEntityReview(idRef.value!, { signal }), {
+    ttlMs: 60_000,
+  });
 }

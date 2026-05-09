@@ -4,7 +4,7 @@ import { getEntityPhenotypes } from '@/api/entity';
 import { useResource, type ResourceState } from './useResource';
 
 export function useEntityPhenotypes(
-  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>,
+  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>
 ): ResourceState<unknown[]> {
   const idRef = computed<string | null>(() => {
     let v: string | number | null;
@@ -16,6 +16,6 @@ export function useEntityPhenotypes(
   return useResource<unknown[]>(
     key,
     async (signal) => (await getEntityPhenotypes(idRef.value!, {}, { signal })) as unknown[],
-    { ttlMs: 60_000 },
+    { ttlMs: 60_000 }
   );
 }

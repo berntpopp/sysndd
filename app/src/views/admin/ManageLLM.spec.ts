@@ -66,7 +66,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
           by_status: {},
           estimated_cost_usd: 0,
         });
-      }),
+      })
     );
 
     mount(ManageLLM, {

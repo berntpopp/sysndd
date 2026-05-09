@@ -26,7 +26,7 @@ describe('useGeneRecord', () => {
             name: ['glutamate ionotropic receptor NMDA type subunit 2B'],
           },
         ]);
-      }),
+      })
     );
     const Comp = defineComponent({
       setup() {
@@ -51,7 +51,7 @@ describe('useGeneRecord', () => {
       http.get('*/api/gene/HGNC%3A4586', ({ request }) => {
         captured = new URL(request.url).searchParams.get('input_type') ?? '';
         return HttpResponse.json([{ symbol: ['GRIN2B'] }]);
-      }),
+      })
     );
     const Comp = defineComponent({
       setup() {
@@ -75,7 +75,7 @@ describe('useGeneRecord', () => {
       http.get('*/api/gene/HGNC4586', ({ request }) => {
         captured = new URL(request.url).searchParams.get('input_type') ?? '';
         return HttpResponse.json([{ symbol: ['GRIN2B'] }]);
-      }),
+      })
     );
     const Comp = defineComponent({
       setup() {
@@ -94,12 +94,8 @@ describe('useGeneRecord', () => {
 
   it('reacts to a ref input', async () => {
     server.use(
-      http.get('*/api/gene/GRIN2B', () =>
-        HttpResponse.json([{ symbol: ['GRIN2B'] }]),
-      ),
-      http.get('*/api/gene/MECP2', () =>
-        HttpResponse.json([{ symbol: ['MECP2'] }]),
-      ),
+      http.get('*/api/gene/GRIN2B', () => HttpResponse.json([{ symbol: ['GRIN2B'] }])),
+      http.get('*/api/gene/MECP2', () => HttpResponse.json([{ symbol: ['MECP2'] }]))
     );
     const symbol = ref('GRIN2B');
     const Comp = defineComponent({

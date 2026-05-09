@@ -73,7 +73,9 @@
           separator=",;"
           :tag-validator="tagValidator"
           remove-on-delete
-          @update:model-value="$emit('update:selectAdditionalReferences', ($event as string[]) || [])"
+          @update:model-value="
+            $emit('update:selectAdditionalReferences', ($event as string[]) || [])
+          "
         >
           <template #default="{ tags, inputAttrs, inputHandlers, addTag, removeTag }">
             <BInputGroup class="my-0">

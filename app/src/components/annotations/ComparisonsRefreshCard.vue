@@ -25,8 +25,8 @@
     <div class="mb-3">
       <p class="text-muted small mb-2">
         Refresh comparisons data from 7 external NDD databases: Radboudumc, Gene2Phenotype,
-        PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads fresh
-        data and updates the database. Any failure aborts the entire refresh.
+        PanelApp, SFARI, Geisinger DBD, OMIM NDD, and Orphanet. This operation downloads fresh data
+        and updates the database. Any failure aborts the entire refresh.
       </p>
     </div>
 
@@ -40,11 +40,7 @@
         <BSpinner v-if="loadingMetadata" small type="grow" class="me-1" />
         {{ loadingMetadata ? 'Loading...' : 'Refresh Stats' }}
       </BButton>
-      <BButton
-        variant="primary"
-        :disabled="job.isLoading.value"
-        @click="$emit('start-refresh')"
-      >
+      <BButton variant="primary" :disabled="job.isLoading.value" @click="$emit('start-refresh')">
         <BSpinner v-if="job.isLoading.value" small type="grow" class="me-2" />
         {{ job.isLoading.value ? 'Updating...' : 'Refresh Comparisons Data' }}
       </BButton>

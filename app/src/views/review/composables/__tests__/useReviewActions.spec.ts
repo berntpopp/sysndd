@@ -98,7 +98,7 @@ describe('useReviewActions', () => {
             re_review_submitted: 1,
           },
         },
-        undefined,
+        undefined
       );
       expect(a.mutating.value).toBe(false);
     });
@@ -128,7 +128,7 @@ describe('useReviewActions', () => {
       await flushPromises();
 
       const call = axios.put.mock.calls.find(
-        (c) => (c[0] as string) === '/api/re_review/approve/701',
+        (c) => (c[0] as string) === '/api/re_review/approve/701'
       );
       expect(call).toBeDefined();
       const config = (
@@ -149,7 +149,7 @@ describe('useReviewActions', () => {
       await flushPromises();
 
       const call = axios.put.mock.calls.find(
-        (c) => (c[0] as string) === '/api/re_review/unsubmit/701',
+        (c) => (c[0] as string) === '/api/re_review/unsubmit/701'
       );
       expect(call).toBeDefined();
     });

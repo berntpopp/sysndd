@@ -102,7 +102,7 @@ export interface UpdateVariantOntologyResponse {
 export async function getOntology(
   ontology_input: string,
   params: GetOntologyParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<OntologyLookupResponse> {
   const path = `/api/ontology/${encodeURIComponent(ontology_input)}`;
   return apiClient.get<OntologyLookupResponse>(path, {
@@ -120,7 +120,7 @@ export async function getOntology(
  */
 export async function listVariantOntology(
   params: ListVariantOntologyParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<VariantOntologyListResponse> {
   return apiClient.get<VariantOntologyListResponse>('/api/ontology/variant/table', {
     ...config,
@@ -140,11 +140,11 @@ export async function listVariantOntology(
  */
 export async function updateVariantOntology(
   body: UpdateVariantOntologyRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdateVariantOntologyResponse> {
   return apiClient.put<UpdateVariantOntologyResponse, UpdateVariantOntologyRequest>(
     '/api/ontology/variant/update',
     body,
-    config,
+    config
   );
 }

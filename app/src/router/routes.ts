@@ -23,10 +23,7 @@ import { useAuth } from '@/composables/useAuth';
  * otherwise identical to the pre-refactor guards.
  */
 function createAuthGuard(allowed_roles: readonly string[]) {
-  return (
-    _to: RouteLocationNormalized,
-    _from: RouteLocationNormalized
-  ) => {
+  return (_to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
     const { isAuthenticated, isExpired, hasRole } = useAuth();
     const isAllowed = allowed_roles.some((role) => hasRole(role));
     if (!isAuthenticated.value || isExpired.value || !isAllowed) {

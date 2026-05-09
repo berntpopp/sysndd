@@ -39,9 +39,7 @@ describe('UserView — fix #4 BFormText registration', () => {
     // globally. If this assertion fails, `<BFormText>` in any template
     // will fail component resolution at runtime.
     expect(components).toHaveProperty('BFormText');
-    expect(typeof (components as Record<string, unknown>).BFormText).not.toBe(
-      'undefined'
-    );
+    expect(typeof (components as Record<string, unknown>).BFormText).not.toBe('undefined');
   });
 
   it('UserView.vue keeps a <BFormText> tag near the ORCID help text', () => {
@@ -60,10 +58,7 @@ describe('UserView — fix #4 BFormText registration', () => {
   });
 
   it('the BFormText export resolves to a Bootstrap-Vue-Next component object', async () => {
-    const components = (await import('@/bootstrap-vue-next-components')) as Record<
-      string,
-      unknown
-    >;
+    const components = (await import('@/bootstrap-vue-next-components')) as Record<string, unknown>;
     const candidate = components.BFormText;
     // Bootstrap-Vue-Next ships compiled SFCs — they expose a `name` /
     // `setup` / `render` shape. We do not pin the precise internal shape

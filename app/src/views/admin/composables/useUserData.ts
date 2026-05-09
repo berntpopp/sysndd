@@ -143,9 +143,7 @@ export function useUserData(options: UseUserDataOptions = {}) {
 
   async function loadUserList(): Promise<void> {
     try {
-      const response = await apiClient.raw.get(
-        `${apiBase}/api/user/list?roles=Curator,Reviewer`,
-      );
+      const response = await apiClient.raw.get(`${apiBase}/api/user/list?roles=Curator,Reviewer`);
       user_options.value = (
         response.data as Array<{ user_id: number; user_name: string; user_role: string }>
       ).map((item) => ({

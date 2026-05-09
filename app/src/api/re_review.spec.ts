@@ -34,7 +34,7 @@ describe('api/re_review — submitReReview', () => {
       http.put('/api/re_review/submit', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({});
-      }),
+      })
     );
 
     await submitReReview({ submit_json: { re_review_entity_id: 7, comment: 'ok' } });
@@ -49,7 +49,7 @@ describe('api/re_review — unsubmitReReview', () => {
       http.put('/api/re_review/unsubmit/:id', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json({});
-      }),
+      })
     );
 
     await unsubmitReReview(7);
@@ -64,7 +64,7 @@ describe('api/re_review — approveReReview', () => {
       http.put('/api/re_review/approve/:id', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ message: 'Re-review approved successfully' });
-      }),
+      })
     );
 
     await approveReReview(42, { status_ok: true, review_ok: false });
@@ -76,8 +76,8 @@ describe('api/re_review — approveReReview', () => {
   it('throws AxiosError on 404 (record not found)', async () => {
     server.use(
       http.put('/api/re_review/approve/:id', () =>
-        HttpResponse.json({ error: 'Re-review record not found' }, { status: 404 }),
-      ),
+        HttpResponse.json({ error: 'Re-review record not found' }, { status: 404 })
+      )
     );
 
     let caught: unknown;
@@ -100,7 +100,7 @@ describe('api/re_review — getReReviewTable', () => {
       http.get('/api/re_review/table', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getReReviewTable({ filter: 'equals(re_review_approved,0)', curate: true });
@@ -112,9 +112,7 @@ describe('api/re_review — getReReviewTable', () => {
 
 describe('api/re_review — applyForReReviewBatch', () => {
   it('returns the email transport result on 200', async () => {
-    server.use(
-      http.get('/api/re_review/batch/apply', () => HttpResponse.json({ ok: true })),
-    );
+    server.use(http.get('/api/re_review/batch/apply', () => HttpResponse.json({ ok: true })));
     const result = await applyForReReviewBatch();
     expect((result as { ok?: boolean }).ok).toBe(true);
   });
@@ -132,7 +130,7 @@ describe('api/re_review — assignReReviewBatch', () => {
       http.put('/api/re_review/batch/assign', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await assignReReviewBatch({ user_id: 7 });
@@ -143,8 +141,8 @@ describe('api/re_review — assignReReviewBatch', () => {
   it('throws AxiosError on 409 (user does not exist)', async () => {
     server.use(
       http.put('/api/re_review/batch/assign', () =>
-        HttpResponse.json({ error: 'User account does not exist.' }, { status: 409 }),
-      ),
+        HttpResponse.json({ error: 'User account does not exist.' }, { status: 409 })
+      )
     );
 
     await expect(assignReReviewBatch({ user_id: 999 })).rejects.toThrow();
@@ -158,7 +156,7 @@ describe('api/re_review — unassignReReviewBatch', () => {
       http.delete('/api/re_review/batch/unassign', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({});
-      }),
+      })
     );
 
     await unassignReReviewBatch({ re_review_batch: 5 });
@@ -181,9 +179,7 @@ describe('api/re_review — getAssignmentTable', () => {
         entity_count: 20,
       },
     ];
-    server.use(
-      http.get('/api/re_review/assignment_table', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/re_review/assignment_table', () => HttpResponse.json(ok)));
 
     const result = await getAssignmentTable();
     expect(result[0].user_name).toBe('pw_curator');
@@ -202,7 +198,7 @@ describe('api/re_review — createReReviewBatch', () => {
       http.post('/api/re_review/batch/create', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await createReReviewBatch({ batch_size: 10, gene_list: [1, 2, 3] });
@@ -214,8 +210,8 @@ describe('api/re_review — previewReReviewBatch', () => {
   it('POSTs the criteria body', async () => {
     server.use(
       http.post('/api/re_review/batch/preview', () =>
-        HttpResponse.json({ status: 200, entry: { entities: [] } }),
-      ),
+        HttpResponse.json({ status: 200, entry: { entities: [] } })
+      )
     );
     const result = await previewReReviewBatch({});
     expect(result.status).toBe(200);
@@ -229,7 +225,7 @@ describe('api/re_review — reassignReReviewBatch', () => {
       http.put('/api/re_review/batch/reassign', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await reassignReReviewBatch({ re_review_batch: 5, user_id: 7 });
@@ -246,7 +242,7 @@ describe('api/re_review — archiveReReviewBatch', () => {
       http.put('/api/re_review/batch/archive', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await archiveReReviewBatch({ re_review_batch: 5 });
@@ -261,7 +257,7 @@ describe('api/re_review — assignReReviewEntities', () => {
       http.put('/api/re_review/entities/assign', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await assignReReviewEntities({ entity_ids: [1, 2], user_id: 7 });
@@ -276,7 +272,7 @@ describe('api/re_review — recalculateReReviewBatch', () => {
       http.put('/api/re_review/batch/recalculate', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200 });
-      }),
+      })
     );
 
     await recalculateReReviewBatch({ re_review_batch: 5, batch_size: 30 });

@@ -20,7 +20,7 @@ describe('useEntityRecord', () => {
           links: [],
           meta: [{}],
         });
-      }),
+      })
     );
     const Comp = defineComponent({
       setup() {
@@ -40,8 +40,8 @@ describe('useEntityRecord', () => {
   it('accepts string id input', async () => {
     server.use(
       http.get('*/api/entity/', () =>
-        HttpResponse.json({ data: [{ entity_id: 400 }], links: [], meta: [{}] }),
-      ),
+        HttpResponse.json({ data: [{ entity_id: 400 }], links: [], meta: [{}] })
+      )
     );
     const Comp = defineComponent({
       setup() {
@@ -60,9 +60,7 @@ describe('useEntityRecord', () => {
 
   it('returns null when the row list is empty', async () => {
     server.use(
-      http.get('*/api/entity/', () =>
-        HttpResponse.json({ data: [], links: [], meta: [{}] }),
-      ),
+      http.get('*/api/entity/', () => HttpResponse.json({ data: [], links: [], meta: [{}] }))
     );
     const Comp = defineComponent({
       setup() {

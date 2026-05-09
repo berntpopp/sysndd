@@ -37,11 +37,9 @@ describe('useCmsContent — F2a Bearer-via-interceptor', () => {
         return HttpResponse.json({
           status: 'draft',
           version: 3,
-          sections: [
-            { heading: 'Test', body: 'Body', sort_order: 0 },
-          ],
+          sections: [{ heading: 'Test', body: 'Body', sort_order: 0 }],
         });
-      }),
+      })
     );
 
     const cms = useCmsContent();
@@ -56,7 +54,7 @@ describe('useCmsContent — F2a Bearer-via-interceptor', () => {
       http.put('*/api/about/draft', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ ok: true });
-      }),
+      })
     );
 
     const cms = useCmsContent();
@@ -75,7 +73,7 @@ describe('useCmsContent — F2a Bearer-via-interceptor', () => {
       http.post('*/api/about/publish', ({ request }) => {
         expectBearerHeader(request, token);
         return HttpResponse.json({ message: 'published', version: 4 });
-      }),
+      })
     );
 
     const cms = useCmsContent();

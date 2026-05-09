@@ -54,14 +54,15 @@ describe('useAuth.handle401() — preserves redirect query (Copilot)', () => {
         abbreviation: ['SP'],
         orcid: {},
         exp: [Math.floor(Date.now() / 1000) + 3600],
-      }),
+      })
     );
     // Reset between tests so each assertion sees a clean call list.
     (router.push as ReturnType<typeof vi.fn>).mockClear();
     // Default: simulate the user is on a real page when 401 lands.
-    (
-      router.currentRoute as { value: { path: string; fullPath: string } }
-    ).value = { path: '/Entities/123', fullPath: '/Entities/123' };
+    (router.currentRoute as { value: { path: string; fullPath: string } }).value = {
+      path: '/Entities/123',
+      fullPath: '/Entities/123',
+    };
   });
 
   it('passes the current fullPath as query.redirect alongside reason=session-expired', () => {
@@ -105,9 +106,10 @@ describe('useAuth.handle401() — preserves redirect query (Copilot)', () => {
   });
 
   it('does not navigate when already on /Login (avoids redirect loop)', () => {
-    (
-      router.currentRoute as { value: { path: string; fullPath: string } }
-    ).value = { path: '/Login', fullPath: '/Login?reason=session-expired' };
+    (router.currentRoute as { value: { path: string; fullPath: string } }).value = {
+      path: '/Login',
+      fullPath: '/Login?reason=session-expired',
+    };
 
     const auth = useAuth();
     auth.syncFromStorage();

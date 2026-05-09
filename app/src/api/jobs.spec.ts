@@ -34,7 +34,7 @@ describe('api/jobs — submitClustering', () => {
       http.post('/api/jobs/clustering/submit', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(acceptedJob, { status: 202 });
-      }),
+      })
     );
 
     const result = await submitClustering({ algorithm: 'walktrap' });
@@ -52,9 +52,9 @@ describe('api/jobs — submitClustering', () => {
             existing_job_id: 'j-1',
             status_url: '/api/jobs/j-1/status',
           },
-          { status: 409 },
-        ),
-      ),
+          { status: 409 }
+        )
+      )
     );
 
     let caught: unknown;
@@ -74,8 +74,8 @@ describe('api/jobs — submitPhenotypeClustering', () => {
   it('returns the 202 envelope on submission', async () => {
     server.use(
       http.post('/api/jobs/phenotype_clustering/submit', () =>
-        HttpResponse.json(acceptedJob, { status: 202 }),
-      ),
+        HttpResponse.json(acceptedJob, { status: 202 })
+      )
     );
     const result = await submitPhenotypeClustering();
     expect(result.job_id).toBe('j-1');
@@ -86,8 +86,8 @@ describe('api/jobs — submitOntologyUpdate', () => {
   it('returns the 202 envelope on submission', async () => {
     server.use(
       http.post('/api/jobs/ontology_update/submit', () =>
-        HttpResponse.json(acceptedJob, { status: 202 }),
-      ),
+        HttpResponse.json(acceptedJob, { status: 202 })
+      )
     );
     const result = await submitOntologyUpdate();
     expect(result.job_id).toBe('j-1');
@@ -98,8 +98,8 @@ describe('api/jobs — submitHgncUpdate', () => {
   it('returns the 202 envelope on submission', async () => {
     server.use(
       http.post('/api/jobs/hgnc_update/submit', () =>
-        HttpResponse.json(acceptedJob, { status: 202 }),
-      ),
+        HttpResponse.json(acceptedJob, { status: 202 })
+      )
     );
     const result = await submitHgncUpdate();
     expect(result.job_id).toBe('j-1');
@@ -110,8 +110,8 @@ describe('api/jobs — submitComparisonsUpdate', () => {
   it('returns the 202 envelope on submission', async () => {
     server.use(
       http.post('/api/jobs/comparisons_update/submit', () =>
-        HttpResponse.json(acceptedJob, { status: 202 }),
-      ),
+        HttpResponse.json(acceptedJob, { status: 202 })
+      )
     );
     const result = await submitComparisonsUpdate();
     expect(result.job_id).toBe('j-1');
@@ -139,7 +139,7 @@ describe('api/jobs — getJobHistory', () => {
       http.get('/api/jobs/history', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await getJobHistory({ limit: 5 });
@@ -159,7 +159,7 @@ describe('api/jobs — getJobStatus', () => {
       http.get('/api/jobs/:job_id/status', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await getJobStatus('550e/8400');
@@ -169,8 +169,8 @@ describe('api/jobs — getJobStatus', () => {
   it('throws AxiosError on 404 (job expired or not found)', async () => {
     server.use(
       http.get('/api/jobs/:job_id/status', () =>
-        HttpResponse.json({ error: 'JOB_NOT_FOUND' }, { status: 404 }),
-      ),
+        HttpResponse.json({ error: 'JOB_NOT_FOUND' }, { status: 404 })
+      )
     );
 
     let caught: unknown;

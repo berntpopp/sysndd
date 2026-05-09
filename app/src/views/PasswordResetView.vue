@@ -199,11 +199,7 @@ export default {
         await requestPasswordReset({
           email: this.emailEntry,
         });
-        this.makeToast(
-          'If the mail exists your request has been sent.',
-          'Success',
-          'success'
-        );
+        this.makeToast('If the mail exists your request has been sent.', 'Success', 'success');
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');
       }

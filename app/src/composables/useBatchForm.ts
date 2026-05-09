@@ -150,12 +150,8 @@ export function useBatchForm() {
         }
       );
       const payload = response.data as { data?: unknown[] } | unknown[] | null;
-      const data = Array.isArray(payload)
-        ? payload
-        : (payload?.data ?? []);
-      entitySearchResults.value = Array.isArray(data)
-        ? (data as EntitySearchResult[])
-        : [];
+      const data = Array.isArray(payload) ? payload : (payload?.data ?? []);
+      entitySearchResults.value = Array.isArray(data) ? (data as EntitySearchResult[]) : [];
     } catch (error) {
       console.error('Entity search failed:', error);
       entitySearchResults.value = [];
@@ -241,15 +237,12 @@ export function useBatchForm() {
         : [];
 
       // Load status categories from /api/list/status
-      const statusResponse = await apiClient.raw.get<unknown>(
-        `${apiUrl}/api/list/status`,
-        { withCredentials: true }
-      );
+      const statusResponse = await apiClient.raw.get<unknown>(`${apiUrl}/api/list/status`, {
+        withCredentials: true,
+      });
       const statusData = statusResponse.data as { data?: unknown } | unknown[] | null;
       // Handle paginated response format
-      const statusArray = Array.isArray(statusData)
-        ? statusData
-        : (statusData?.data ?? statusData);
+      const statusArray = Array.isArray(statusData) ? statusData : (statusData?.data ?? statusData);
       statusOptions.value = Array.isArray(statusArray)
         ? (statusArray as { category_id: number; category: string }[]).map((s) => ({
             value: s.category_id,
@@ -264,9 +257,7 @@ export function useBatchForm() {
       );
       const genesData = genesResponse.data as { data?: unknown } | unknown[] | null;
       // Handle paginated response format
-      const genesArray = Array.isArray(genesData)
-        ? genesData
-        : (genesData?.data ?? genesData);
+      const genesArray = Array.isArray(genesData) ? genesData : (genesData?.data ?? genesData);
       geneOptions.value = Array.isArray(genesArray)
         ? (genesArray as { hgnc_id: number; symbol: string }[]).map((g) => ({
             value: g.hgnc_id,
@@ -295,19 +286,14 @@ export function useBatchForm() {
         boundary_gene?: string | null;
         gene_count?: number;
         entity_count?: number;
-      }>(
-        `${apiUrl}/api/re_review/batch/preview`,
-        buildCriteria(),
-        { withCredentials: true }
-      );
+      }>(`${apiUrl}/api/re_review/batch/preview`, buildCriteria(), { withCredentials: true });
 
       previewEntities.value = response.data.data || [];
       // Capture gene-atomic boundary hint (issue #29). Plumber's
       // `list(na="string")` serializer emits NA as the literal "NA" string
       // for nullable scalars; treat that as "no boundary engaged".
       const rawBoundary = response.data.boundary_gene;
-      previewBoundaryGene.value =
-        rawBoundary == null || rawBoundary === 'NA' ? null : rawBoundary;
+      previewBoundaryGene.value = rawBoundary == null || rawBoundary === 'NA' ? null : rawBoundary;
       previewGeneCount.value = response.data.gene_count ?? 0;
       previewEntityCount.value = response.data.entity_count ?? 0;
       showPreviewModal.value = true;

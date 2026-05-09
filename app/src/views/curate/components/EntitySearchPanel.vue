@@ -9,7 +9,7 @@
       <BCol class="my-1">
         <AutocompleteInput
           v-model:display-value="displayProxy"
-          :model-value="(modelValue as any)"
+          :model-value="modelValue as any"
           :results="searchResults"
           :loading="loading"
           label="Entity"

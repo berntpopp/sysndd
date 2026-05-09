@@ -26,9 +26,16 @@ vi.mock('axios', () => {
     ...axiosMock,
     AxiosHeaders: class {
       private store = new Map<string, string>();
-      has(key: string): boolean { return this.store.has(key.toLowerCase()); }
-      get(key: string): string | null { return this.store.get(key.toLowerCase()) ?? null; }
-      set(key: string, value: string): this { this.store.set(key.toLowerCase(), value); return this; }
+      has(key: string): boolean {
+        return this.store.has(key.toLowerCase());
+      }
+      get(key: string): string | null {
+        return this.store.get(key.toLowerCase()) ?? null;
+      }
+      set(key: string, value: string): this {
+        this.store.set(key.toLowerCase(), value);
+        return this;
+      }
     },
     AxiosError: Error,
   };
@@ -61,7 +68,11 @@ describe('useUserMutations', () => {
     const axios = await getAxiosMock();
     axios.delete.mockResolvedValueOnce({ status: 200, data: { ok: true } });
     let succeeded = false;
-    const m = useUserMutations({ onSuccess: () => { succeeded = true; } });
+    const m = useUserMutations({
+      onSuccess: () => {
+        succeeded = true;
+      },
+    });
     await m.deleteUser({ user_id: 7 } as any);
     await flushPromises();
     expect(succeeded).toBe(true);
@@ -100,7 +111,11 @@ describe('useUserMutations', () => {
     axios.put.mockResolvedValueOnce({ status: 200, data: { ok: true } });
     const m = useUserMutations();
     expect(m.isChangingPassword.value).toBe(false);
-    const promise = m.changePassword({ userId: 7, newPassword: 'Aa!1aaaaaaaaaaaa', confirmPassword: 'Aa!1aaaaaaaaaaaa' });
+    const promise = m.changePassword({
+      userId: 7,
+      newPassword: 'Aa!1aaaaaaaaaaaa',
+      confirmPassword: 'Aa!1aaaaaaaaaaaa',
+    });
     expect(m.isChangingPassword.value).toBe(true);
     await promise;
     await flushPromises();
@@ -111,7 +126,7 @@ describe('useUserMutations', () => {
     const axios = await getAxiosMock();
     const m = useUserMutations();
     await expect(
-      m.changePassword({ userId: 7, newPassword: 'Aa!1aaaaaaaaaaaa', confirmPassword: 'mismatch' }),
+      m.changePassword({ userId: 7, newPassword: 'Aa!1aaaaaaaaaaaa', confirmPassword: 'mismatch' })
     ).rejects.toThrow();
     expect(axios.put).not.toHaveBeenCalled();
   });

@@ -514,9 +514,7 @@ describe('useTableMethods', () => {
   describe('browser URL synchronization', () => {
     it('handleSortByOrDescChange calls history.replaceState with the new sort query (default updateUrl=true)', () => {
       const td = useTableData();
-      const replaceSpy = vi
-        .spyOn(window.history, 'replaceState')
-        .mockImplementation(() => {});
+      const replaceSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
       const methods = useTableMethods(td); // updateUrl defaults to true
 
       td.sortBy.value = [{ key: 'symbol', order: 'asc' }];
@@ -529,9 +527,7 @@ describe('useTableMethods', () => {
 
     it('does not call history.replaceState when updateUrl is false', () => {
       const td = useTableData();
-      const replaceSpy = vi
-        .spyOn(window.history, 'replaceState')
-        .mockImplementation(() => {});
+      const replaceSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
       const methods = useTableMethods(td, { updateUrl: false });
 
       td.sortBy.value = [{ key: 'symbol', order: 'asc' }];
@@ -581,7 +577,9 @@ describe('useTableMethods', () => {
       td.sort.value = '+symbol';
       td.filter_string.value = 'any=foo';
 
-      const axiosStub = vi.fn().mockResolvedValue({ data: new Blob(['x'], { type: 'text/plain' }) });
+      const axiosStub = vi
+        .fn()
+        .mockResolvedValue({ data: new Blob(['x'], { type: 'text/plain' }) });
       const methods = useTableMethods(td, {
         apiEndpoint: 'user/table',
         axios: axiosStub as unknown as import('axios').AxiosInstance,

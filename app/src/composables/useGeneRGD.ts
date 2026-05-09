@@ -12,7 +12,7 @@ export interface RgdPayload {
 }
 
 export function useGeneRGD(
-  symbol: string | Ref<string | null> | ComputedRef<string | null>,
+  symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<RgdPayload | null> {
   const symRef = computed<string | null>(() => {
     if (typeof symbol === 'string') return symbol || null;
@@ -34,6 +34,6 @@ export function useGeneRGD(
         throw err;
       }
     },
-    { ttlMs: 5 * 60_000 },
+    { ttlMs: 5 * 60_000 }
   );
 }

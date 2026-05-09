@@ -31,7 +31,7 @@ export interface ClinVarSummary {
 }
 
 export function useGeneClinVarCounts(
-  symbol: string | Ref<string | null> | ComputedRef<string | null>,
+  symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<ClinVarSummary | null> {
   const symRef = computed<string | null>(() => {
     if (typeof symbol === 'string') return symbol || null;
@@ -39,7 +39,7 @@ export function useGeneClinVarCounts(
     return null;
   });
   const key = computed<string | null>(() =>
-    symRef.value ? `clinvar-counts:${symRef.value}` : null,
+    symRef.value ? `clinvar-counts:${symRef.value}` : null
   );
   return useResource<ClinVarSummary | null>(
     key,
@@ -47,7 +47,7 @@ export function useGeneClinVarCounts(
       try {
         const res = await axios.get<ClinVarSummary>(
           `${apiBase}/api/external/gnomad/variants/${symRef.value}`,
-          { withCredentials: true, signal, params: { summary: 'true' } },
+          { withCredentials: true, signal, params: { summary: 'true' } }
         );
         return res.data ?? null;
       } catch (err) {
@@ -55,6 +55,6 @@ export function useGeneClinVarCounts(
         throw err;
       }
     },
-    { ttlMs: 5 * 60_000 },
+    { ttlMs: 5 * 60_000 }
   );
 }

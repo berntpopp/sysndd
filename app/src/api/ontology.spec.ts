@@ -22,7 +22,7 @@ describe('api/ontology — getOntology', () => {
       http.get('/api/ontology/:ontology_input', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getOntology('OMIM:613970');
@@ -45,9 +45,7 @@ describe('api/ontology — getOntology', () => {
         EFO: [''],
       },
     ];
-    server.use(
-      http.get('/api/ontology/:ontology_input', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/ontology/:ontology_input', () => HttpResponse.json(ok)));
 
     const result = await getOntology('OMIM:613970');
     expect(result[0].disease_ontology_id[0]).toBe('OMIM:613970');
@@ -62,7 +60,7 @@ describe('api/ontology — listVariantOntology', () => {
       http.get('/api/ontology/variant/table', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listVariantOntology({ filter: 'is_active:equals:1', sort: '-update_date' });
@@ -74,8 +72,8 @@ describe('api/ontology — listVariantOntology', () => {
   it('throws AxiosError on 403 (caller not Administrator)', async () => {
     server.use(
       http.get('/api/ontology/variant/table', () =>
-        HttpResponse.json({ error: 'forbidden' }, { status: 403 }),
-      ),
+        HttpResponse.json({ error: 'forbidden' }, { status: 403 })
+      )
     );
 
     let caught: unknown;
@@ -98,7 +96,7 @@ describe('api/ontology — updateVariantOntology', () => {
       http.put('/api/ontology/variant/update', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ message: 'Ontology details updated successfully.' });
-      }),
+      })
     );
 
     const result = await updateVariantOntology({
@@ -112,12 +110,12 @@ describe('api/ontology — updateVariantOntology', () => {
   it('throws AxiosError on 404 (vario_id not found)', async () => {
     server.use(
       http.put('/api/ontology/variant/update', () =>
-        HttpResponse.json({ error: 'not found' }, { status: 404 }),
-      ),
+        HttpResponse.json({ error: 'not found' }, { status: 404 })
+      )
     );
 
     await expect(
-      updateVariantOntology({ ontology_details: { vario_id: 'missing' } }),
+      updateVariantOntology({ ontology_details: { vario_id: 'missing' } })
     ).rejects.toThrow();
   });
 });

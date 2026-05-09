@@ -82,13 +82,7 @@ describe('useEntityForm', () => {
     });
 
     it('exposes the wizard step labels for UI rendering', () => {
-      expect(form.steps).toEqual([
-        'core',
-        'evidence',
-        'phenotype',
-        'classification',
-        'review',
-      ]);
+      expect(form.steps).toEqual(['core', 'evidence', 'phenotype', 'classification', 'review']);
       expect(form.stepLabels.core).toBe('Core Entity');
       expect(form.stepLabels.review).toBe('Review & Submit');
     });
@@ -127,17 +121,13 @@ describe('useEntityForm', () => {
     });
 
     it('validates inheritanceId as required', () => {
-      expect(form.validateField('inheritanceId')).toBe(
-        'Inheritance pattern is required'
-      );
+      expect(form.validateField('inheritanceId')).toBe('Inheritance pattern is required');
       form.formData.inheritanceId = 'HP:0000006';
       expect(form.validateField('inheritanceId')).toBe(true);
     });
 
     it('validates nddPhenotype (null is invalid, boolean is valid)', () => {
-      expect(form.validateField('nddPhenotype')).toBe(
-        'NDD phenotype selection is required'
-      );
+      expect(form.validateField('nddPhenotype')).toBe('NDD phenotype selection is required');
       form.formData.nddPhenotype = false;
       expect(form.validateField('nddPhenotype')).toBe(true);
       form.formData.nddPhenotype = true;
@@ -147,9 +137,7 @@ describe('useEntityForm', () => {
 
   describe('validation — evidence step fields', () => {
     it('requires at least one publication', () => {
-      expect(form.validateField('publications')).toBe(
-        'At least one publication is required'
-      );
+      expect(form.validateField('publications')).toBe('At least one publication is required');
       form.formData.publications = ['PMID:12345678'];
       expect(form.validateField('publications')).toBe(true);
     });
@@ -162,21 +150,16 @@ describe('useEntityForm', () => {
 
     it('requires a synopsis of at least 10 characters', () => {
       form.formData.synopsis = 'too short';
-      expect(form.validateField('synopsis')).toBe(
-        'Synopsis must be at least 10 characters'
-      );
+      expect(form.validateField('synopsis')).toBe('Synopsis must be at least 10 characters');
     });
 
     it('rejects synopses longer than 2000 characters', () => {
       form.formData.synopsis = 'x'.repeat(2001);
-      expect(form.validateField('synopsis')).toBe(
-        'Synopsis must be less than 2000 characters'
-      );
+      expect(form.validateField('synopsis')).toBe('Synopsis must be less than 2000 characters');
     });
 
     it('accepts a synopsis in the valid length window', () => {
-      form.formData.synopsis =
-        'This synopsis is long enough to satisfy the minimum length rule.';
+      form.formData.synopsis = 'This synopsis is long enough to satisfy the minimum length rule.';
       expect(form.validateField('synopsis')).toBe(true);
     });
 
@@ -390,9 +373,7 @@ describe('useEntityForm', () => {
       });
       expect(form.formData.geneId).toBe('HGNC:999');
       expect(form.formData.geneDisplay).toBe('DRAFT');
-      expect(form.formData.synopsis).toBe(
-        'Draft synopsis that is plenty long enough to pass.'
-      );
+      expect(form.formData.synopsis).toBe('Draft synopsis that is plenty long enough to pass.');
       // Fields not included in the snapshot remain at their defaults.
       expect(form.formData.diseaseId).toBeNull();
     });
@@ -507,9 +488,7 @@ describe('useEntityForm', () => {
       expect(res.data.entity_id).toEqual([502]);
       expect(capturedBody).not.toBeNull();
       expect(capturedBody!.hgnc_id).toBe('HGNC:12345');
-      expect(capturedBody!.disease_ontology_id_version).toBe(
-        'MONDO:0000123_2025-01-01'
-      );
+      expect(capturedBody!.disease_ontology_id_version).toBe('MONDO:0000123_2025-01-01');
     });
 
     it('an invalid form never reaches the handler (isFormValid gates the call)', async () => {

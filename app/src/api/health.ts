@@ -123,9 +123,7 @@ export interface PerformanceMetrics {
  *
  * Lightweight liveness probe — does not query the DB. Public, no auth.
  */
-export async function getHealth(
-  config?: AxiosRequestConfig,
-): Promise<HealthStatus> {
+export async function getHealth(config?: AxiosRequestConfig): Promise<HealthStatus> {
   return apiClient.get<HealthStatus>('/api/health', config);
 }
 
@@ -138,9 +136,7 @@ export async function getHealth(
  * + `status: 'unhealthy'` body when not ready (DB down, migrations pending,
  * or migration error during startup).
  */
-export async function getReadiness(
-  config?: AxiosRequestConfig,
-): Promise<ReadinessStatus> {
+export async function getReadiness(config?: AxiosRequestConfig): Promise<ReadinessStatus> {
   return apiClient.get<ReadinessStatus>('/api/health/ready', config);
 }
 
@@ -151,8 +147,6 @@ export async function getReadiness(
  * Reports worker-pool utilisation, cache statistics, and versioned-cache
  * counts. Public, no auth.
  */
-export async function getPerformance(
-  config?: AxiosRequestConfig,
-): Promise<PerformanceMetrics> {
+export async function getPerformance(config?: AxiosRequestConfig): Promise<PerformanceMetrics> {
   return apiClient.get<PerformanceMetrics>('/api/health/performance', config);
 }

@@ -65,7 +65,7 @@ describe('CreateEntity — F2a Bearer-via-interceptor', () => {
         expectBearerHeader(request, token);
         sawRequest = true;
         return HttpResponse.json({ entity_id: 999 });
-      }),
+      })
     );
 
     const wrapper = mount(CreateEntity, {
@@ -77,7 +77,10 @@ describe('CreateEntity — F2a Bearer-via-interceptor', () => {
           BOverlay: { template: '<div><slot /></div>' },
           BAlert: { template: '<div><slot /></div>' },
           BButton: { template: '<button><slot /></button>' },
-          FormWizard: { template: '<div><slot name="core" /><slot name="evidence" /><slot name="phenotype" /><slot name="classification" /><slot name="review" /></div>' },
+          FormWizard: {
+            template:
+              '<div><slot name="core" /><slot name="evidence" /><slot name="phenotype" /><slot name="classification" /><slot name="review" /></div>',
+          },
           StepCoreEntity: { template: '<div />' },
           StepEvidence: { template: '<div />' },
           StepPhenotypeVariation: { template: '<div />' },

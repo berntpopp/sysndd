@@ -136,10 +136,7 @@ describe('RegisterView — v11.0 closeout F2b auth migration', () => {
     const wrapper = mountRegister();
     primeAuth('direct-token');
     expect(auth.isAuthenticated.value).toBe(true);
-    const logoutSpy = vi.spyOn(
-      (wrapper.vm as unknown as RegisterVm).auth,
-      'logout'
-    );
+    const logoutSpy = vi.spyOn((wrapper.vm as unknown as RegisterVm).auth, 'logout');
 
     (wrapper.vm as unknown as RegisterVm).doUserLogOut();
     await flushPromises();

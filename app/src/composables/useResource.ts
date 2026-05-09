@@ -9,22 +9,14 @@
 // write back to their data ref even if the shared promise eventually resolves
 // (the cacheStore still records the value so a later mount sees fresh data).
 
-import {
-  computed,
-  isRef,
-  onBeforeUnmount,
-  ref,
-  watch,
-  type ComputedRef,
-  type Ref,
-} from 'vue';
+import { computed, isRef, onBeforeUnmount, ref, watch, type ComputedRef, type Ref } from 'vue';
 import { useCacheStore } from '@/stores/cacheStore';
 
 export type ResourceKey = string;
 export type ResourceFetcher<T> = (signal: AbortSignal) => Promise<T>;
 
 export interface ResourceOptions {
-  ttlMs?: number;                 // default 60_000
+  ttlMs?: number; // default 60_000
   staleWhileRevalidate?: boolean; // default true
 }
 
@@ -42,7 +34,7 @@ const DEFAULT_TTL = 60_000;
 export function useResource<T>(
   keyInput: ResourceKey | null | ComputedRef<ResourceKey | null> | Ref<ResourceKey | null>,
   fetcher: ResourceFetcher<T>,
-  opts: ResourceOptions = {},
+  opts: ResourceOptions = {}
 ): ResourceState<T> {
   const { ttlMs = DEFAULT_TTL, staleWhileRevalidate = true } = opts;
   const cache = useCacheStore();
@@ -185,7 +177,7 @@ export function useResource<T>(
     (next) => {
       void activate(next);
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   onBeforeUnmount(() => {

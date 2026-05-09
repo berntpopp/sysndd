@@ -168,10 +168,7 @@ describe('useReviewFilters', () => {
 
     f.addQuickFilter('pending');
     expect(f.activeQuickFilters.value.map((qf) => qf.key)).toEqual(['pending']);
-    expect(f.availableQuickFilters.value.map((qf) => qf.key)).toEqual([
-      'submitted',
-      'needsStatus',
-    ]);
+    expect(f.availableQuickFilters.value.map((qf) => qf.key)).toEqual(['submitted', 'needsStatus']);
 
     f.addQuickFilter('submitted');
     expect(f.activeQuickFilters.value.map((qf) => qf.key)).toEqual(['pending', 'submitted']);

@@ -364,10 +364,7 @@ import 'splitpanes/dist/splitpanes.css';
 import { getClusterColor } from '@/utils/clusterColors';
 
 // Typed API clients (W5)
-import {
-  getFunctionalClustering,
-  getFunctionalClusterSummary,
-} from '@/api/analysis';
+import { getFunctionalClustering, getFunctionalClusterSummary } from '@/api/analysis';
 import { submitClustering, getJobStatus } from '@/api/jobs';
 import { isApiError } from '@/api/client';
 
@@ -770,9 +767,7 @@ export default {
         });
 
         // Extract job info (R returns arrays for scalars)
-        const jobId = Array.isArray(submitData.job_id)
-          ? submitData.job_id[0]
-          : submitData.job_id;
+        const jobId = Array.isArray(submitData.job_id) ? submitData.job_id[0] : submitData.job_id;
         const estSeconds = Array.isArray(submitData.estimated_seconds)
           ? submitData.estimated_seconds[0]
           : submitData.estimated_seconds;

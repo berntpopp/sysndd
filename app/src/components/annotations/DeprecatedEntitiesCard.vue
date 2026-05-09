@@ -29,12 +29,7 @@
     </template>
 
     <div class="mb-3">
-      <BButton
-        variant="outline-secondary"
-        size="sm"
-        :disabled="loading"
-        @click="$emit('check')"
-      >
+      <BButton variant="outline-secondary" size="sm" :disabled="loading" @click="$emit('check')">
         <BSpinner v-if="loading" small type="grow" class="me-1" />
         {{ loading ? 'Checking...' : 'Check for Deprecated Entities' }}
       </BButton>
@@ -49,8 +44,8 @@
 
     <div v-if="data.affected_entities?.length > 0">
       <p class="text-muted small mb-2">
-        The following entities reference OMIM IDs that have been marked as moved/removed.
-        MONDO mappings and replacement suggestions are fetched from the EBI OLS4 API.
+        The following entities reference OMIM IDs that have been marked as moved/removed. MONDO
+        mappings and replacement suggestions are fetched from the EBI OLS4 API.
       </p>
       <BTable
         :items="data.affected_entities"
@@ -127,17 +122,11 @@
               </span>
             </small>
           </div>
-          <span v-else-if="row.item.mondo_id" class="text-muted small">
-            No replacement found
-          </span>
+          <span v-else-if="row.item.mondo_id" class="text-muted small"> No replacement found </span>
           <span v-else class="text-muted small">No MONDO mapping</span>
         </template>
         <template #cell(deprecation_reason)="row">
-          <small
-            v-if="row.value"
-            class="text-muted deprecation-reason"
-            :title="String(row.value)"
-          >
+          <small v-if="row.value" class="text-muted deprecation-reason" :title="String(row.value)">
             {{ truncateText(String(row.value), 80) }}
           </small>
           <span v-else class="text-muted small">-</span>

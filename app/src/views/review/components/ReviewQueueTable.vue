@@ -274,9 +274,7 @@
         <DiseaseBadge
           :name="data.item.disease_ontology_name"
           :ontology-id="data.item.disease_ontology_id_version"
-          :link-to="
-            '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
-          "
+          :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
           :max-length="35"
           size="sm"
         />

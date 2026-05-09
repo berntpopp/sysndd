@@ -212,7 +212,7 @@ export interface BulkAssignRoleRequest {
  */
 export async function getUserTable(
   params: ListUserTableParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UserTableResponse> {
   return apiClient.get<UserTableResponse>('/api/user/table', {
     ...config,
@@ -229,7 +229,7 @@ export async function getUserTable(
  */
 export async function getUserContributions(
   user_id: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UserContributions> {
   const path = `/api/user/${encodeURIComponent(String(user_id))}/contributions`;
   return apiClient.get<UserContributions>(path, config);
@@ -248,7 +248,7 @@ export async function getUserContributions(
 export async function approveUser(
   user_id: number | string,
   params: ApproveUserParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ApproveUserResponse> {
   return apiClient.put<ApproveUserResponse>('/api/user/approval', undefined, {
     ...config,
@@ -270,7 +270,7 @@ export async function approveUser(
 export async function changeUserRole(
   user_id: number | string,
   params: ChangeRoleParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<unknown> {
   return apiClient.put<unknown>('/api/user/change_role', undefined, {
     ...config,
@@ -289,9 +289,7 @@ export async function changeUserRole(
  * Curator+ only. Admin sees every role; Curator sees every role except
  * "Administrator".
  */
-export async function getRoleList(
-  config?: AxiosRequestConfig,
-): Promise<UserRole[]> {
+export async function getRoleList(config?: AxiosRequestConfig): Promise<UserRole[]> {
   return apiClient.get<UserRole[]>('/api/user/role_list', config);
 }
 
@@ -305,7 +303,7 @@ export async function getRoleList(
  */
 export async function listUsersByRole(
   params: ListUsersByRoleParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UserListRow[]> {
   return apiClient.get<UserListRow[]>('/api/user/list', {
     ...config,
@@ -323,12 +321,12 @@ export async function listUsersByRole(
  */
 export async function updateProfile(
   body: UpdateProfileRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdateProfileResponse> {
   return apiClient.put<UpdateProfileResponse, UpdateProfileRequest>(
     '/api/user/profile',
     body,
-    config,
+    config
   );
 }
 
@@ -341,12 +339,12 @@ export async function updateProfile(
  */
 export async function requestPasswordReset(
   body: PasswordResetRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<unknown> {
   return apiClient.post<unknown, PasswordResetRequest>(
     '/api/user/password/reset/request',
     body,
-    config,
+    config
   );
 }
 
@@ -361,12 +359,12 @@ export async function requestPasswordReset(
  */
 export async function resetPasswordWithToken(
   body: PasswordResetChangeRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<PasswordResetChangeResponse> {
   return apiClient.post<PasswordResetChangeResponse, PasswordResetChangeRequest>(
     '/api/user/password/reset/change',
     body,
-    config,
+    config
   );
 }
 
@@ -379,7 +377,7 @@ export async function resetPasswordWithToken(
  */
 export async function deleteUser(
   user_id: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<{ message: string }> {
   return apiClient.delete<{ message: string }>('/api/user/delete', {
     ...config,
@@ -403,13 +401,9 @@ export async function deleteUser(
  */
 export async function updateUser(
   body: UpdateUserRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpdateUserResponse> {
-  return apiClient.put<UpdateUserResponse, UpdateUserRequest>(
-    '/api/user/update',
-    body,
-    config,
-  );
+  return apiClient.put<UpdateUserResponse, UpdateUserRequest>('/api/user/update', body, config);
 }
 
 /**
@@ -421,12 +415,12 @@ export async function updateUser(
  */
 export async function bulkApproveUsers(
   body: BulkApproveRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BulkUserResponse> {
   return apiClient.post<BulkUserResponse, BulkApproveRequest>(
     '/api/user/bulk_approve',
     body,
-    config,
+    config
   );
 }
 
@@ -440,13 +434,9 @@ export async function bulkApproveUsers(
  */
 export async function bulkDeleteUsers(
   body: BulkDeleteRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BulkUserResponse> {
-  return apiClient.post<BulkUserResponse, BulkDeleteRequest>(
-    '/api/user/bulk_delete',
-    body,
-    config,
-  );
+  return apiClient.post<BulkUserResponse, BulkDeleteRequest>('/api/user/bulk_delete', body, config);
 }
 
 /**
@@ -459,11 +449,11 @@ export async function bulkDeleteUsers(
  */
 export async function bulkAssignRole(
   body: BulkAssignRoleRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BulkUserResponse> {
   return apiClient.post<BulkUserResponse, BulkAssignRoleRequest>(
     '/api/user/bulk_assign_role',
     body,
-    config,
+    config
   );
 }

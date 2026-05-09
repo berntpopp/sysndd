@@ -657,11 +657,7 @@ export default {
           new_pass_1: this.newPasswordEntry,
           new_pass_2: this.newPasswordRepeat,
         });
-        this.makeToast(
-          'Password changed successfully.',
-          'Success',
-          'success'
-        );
+        this.makeToast('Password changed successfully.', 'Success', 'success');
         this.pass_change_visible = false;
       } catch (e) {
         this.makeToast(e, 'Error', 'danger');

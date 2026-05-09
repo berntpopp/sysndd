@@ -70,7 +70,7 @@ export interface UniProtData {
  */
 export async function getUniprotDomains(
   symbol: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UniProtData> {
   const path = `/api/external/uniprot/domains/${encodeURIComponent(symbol)}`;
   return apiClient.get<UniProtData>(path, config);
@@ -96,7 +96,7 @@ export async function getUniprotDomains(
  */
 export async function getEnsemblStructure(
   symbol: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EnsemblGeneStructure> {
   const path = `/api/external/ensembl/structure/${encodeURIComponent(symbol)}`;
   return apiClient.get<EnsemblGeneStructure>(path, config);
@@ -144,7 +144,7 @@ export interface InternetArchiveSnapshot {
  */
 export async function createInternetArchiveSnapshot(
   url: string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<InternetArchiveSnapshot> {
   // `AxiosRequestConfig.params` is loosely typed as `unknown`; in practice
   // callers may pass either a plain object or a `URLSearchParams` instance.

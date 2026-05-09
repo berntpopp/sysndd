@@ -144,7 +144,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping');
@@ -161,7 +161,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       await apiClient.get('/api/ping');
@@ -181,7 +181,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
 
       const OVERRIDE_TOKEN = 'route-param-jwt';
@@ -271,7 +271,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
       await apiClient.get('/api/ping');
       expect(capturedAuth).toBe(`Bearer ${REFRESHED_TOKEN}`);
@@ -321,9 +321,7 @@ describe('useAuth', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
-      server.use(
-        http.get('/api/auth/refresh', () => HttpResponse.json([null]))
-      );
+      server.use(http.get('/api/auth/refresh', () => HttpResponse.json([null])));
 
       await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
@@ -336,7 +334,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
       await apiClient.get('/api/ping');
       expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
@@ -349,9 +347,7 @@ describe('useAuth', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
-      server.use(
-        http.get('/api/auth/refresh', () => HttpResponse.json({ foo: 'bar' }))
-      );
+      server.use(http.get('/api/auth/refresh', () => HttpResponse.json({ foo: 'bar' })));
 
       await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
@@ -365,9 +361,7 @@ describe('useAuth', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
-      server.use(
-        http.get('/api/auth/refresh', () => HttpResponse.json([123]))
-      );
+      server.use(http.get('/api/auth/refresh', () => HttpResponse.json([123])));
 
       await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
@@ -379,9 +373,7 @@ describe('useAuth', () => {
       const auth = useAuth();
       auth.login(FRESH_TOKEN, makeFreshUser());
 
-      server.use(
-        http.get('/api/auth/refresh', () => HttpResponse.json([]))
-      );
+      server.use(http.get('/api/auth/refresh', () => HttpResponse.json([])));
 
       await expect(auth.refresh()).rejects.toThrow('Refresh returned invalid token shape');
 
@@ -494,7 +486,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
       await apiClient.get('/api/ping');
       expect(capturedAuth).toBeNull();
@@ -548,7 +540,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
       await apiClient.get('/api/ping');
       expect(capturedAuth).toBe(`Bearer ${FRESH_TOKEN}`);
@@ -567,7 +559,7 @@ describe('useAuth', () => {
         http.get('*/api/ping', ({ request }) => {
           capturedAuth = request.headers.get('authorization');
           return HttpResponse.json({ ok: true });
-        }),
+        })
       );
       await apiClient.get('/api/ping');
       expect(capturedAuth).toBeNull();
@@ -628,7 +620,7 @@ describe('useAuth.handle401() — single-owner contract (W2)', () => {
         abbreviation: ['SP'],
         orcid: {},
         exp: [Math.floor(Date.now() / 1000) + 3600],
-      }),
+      })
     );
     // Reset the navigation hook so test 3 starts from a clean slate.
     delete (globalThis as Record<string, unknown>).__authNavTarget;
@@ -666,8 +658,6 @@ describe('useAuth.handle401() — single-owner contract (W2)', () => {
     // observable surface this spec actually owns.
     delete (globalThis as Record<string, unknown>).__authNavTarget;
     auth.handle401();
-    expect((globalThis as Record<string, unknown>).__authNavTarget).toBe(
-      '/Login',
-    );
+    expect((globalThis as Record<string, unknown>).__authNavTarget).toBe('/Login');
   });
 });

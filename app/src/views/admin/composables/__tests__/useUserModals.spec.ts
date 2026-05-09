@@ -34,10 +34,13 @@ describe('useUserModals', () => {
 
   it('openBulkApprove with users opens modal and exposes usernames', () => {
     const m = useUserModals();
-    m.openBulkApprove([1, 2], [
-      { user_id: 1, user_name: 'alice', user_role: 'Curator' } as any,
-      { user_id: 2, user_name: 'bob', user_role: 'Reviewer' } as any,
-    ]);
+    m.openBulkApprove(
+      [1, 2],
+      [
+        { user_id: 1, user_name: 'alice', user_role: 'Curator' } as any,
+        { user_id: 2, user_name: 'bob', user_role: 'Reviewer' } as any,
+      ]
+    );
     expect(m.isBulkApproveOpen.value).toBe(true);
     expect(m.bulkApproveUsernames.value).toEqual(['alice', 'bob']);
   });
@@ -45,7 +48,7 @@ describe('useUserModals', () => {
   it('openBulkDelete blocks if any selected user is Administrator', () => {
     const m = useUserModals();
     expect(() =>
-      m.openBulkDelete([1], [{ user_id: 1, user_name: 'root', user_role: 'Administrator' } as any]),
+      m.openBulkDelete([1], [{ user_id: 1, user_name: 'root', user_role: 'Administrator' } as any])
     ).toThrow();
     expect(m.isBulkDeleteOpen.value).toBe(false);
   });

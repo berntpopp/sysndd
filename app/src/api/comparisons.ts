@@ -121,7 +121,7 @@ export interface ComparisonsMetadata {
  */
 export async function getComparisonsOptions(
   params: ComparisonsOptionsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ComparisonsOptions> {
   return apiClient.get<ComparisonsOptions>('/api/comparisons/options', {
     ...config,
@@ -138,7 +138,7 @@ export async function getComparisonsOptions(
  */
 export async function getUpsetData(
   params: UpsetParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<UpsetRow[]> {
   return apiClient.get<UpsetRow[]>('/api/comparisons/upset', {
     ...config,
@@ -154,7 +154,7 @@ export async function getUpsetData(
  */
 export async function getSimilarity(
   params: SimilarityParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<SimilarityCell[]> {
   return apiClient.get<SimilarityCell[]>('/api/comparisons/similarity', {
     ...config,
@@ -172,7 +172,7 @@ export async function getSimilarity(
  */
 export async function browseComparisons(
   params: BrowseComparisonsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BrowseComparisonsResponse> {
   return apiClient.get<BrowseComparisonsResponse>('/api/comparisons/browse', {
     ...config,
@@ -187,7 +187,7 @@ export async function browseComparisons(
  */
 export async function browseComparisonsXlsx(
   params: Omit<BrowseComparisonsParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/comparisons/browse', {
     ...config,
@@ -206,7 +206,7 @@ export async function browseComparisonsXlsx(
  * its migration hasn't run yet.
  */
 export async function getComparisonsMetadata(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<ComparisonsMetadata> {
   return apiClient.get<ComparisonsMetadata>('/api/comparisons/metadata', config);
 }

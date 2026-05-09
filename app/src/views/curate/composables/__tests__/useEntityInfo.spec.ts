@@ -13,8 +13,8 @@ describe('useEntityInfo', () => {
       http.get('*/api/entity/*', () =>
         HttpResponse.json({
           data: [{ entity_id: 7, symbol: 'GRIN2B', disease_ontology_name: 'NDD' }],
-        }),
-      ),
+        })
+      )
     );
     const e = useEntityInfo();
     await e.loadEntity(7);
@@ -34,22 +34,20 @@ describe('useEntityInfo', () => {
   test('loadReview snapshots reviewLoadedData for change detection', async () => {
     server.use(
       http.get('*/api/entity/7/review', () =>
-        HttpResponse.json([
-          { synopsis: 'syn', comment: 'cm', review_id: 1, entity_id: 7 },
-        ]),
+        HttpResponse.json([{ synopsis: 'syn', comment: 'cm', review_id: 1, entity_id: 7 }])
       ),
       http.get('*/api/entity/7/phenotypes', () =>
-        HttpResponse.json([{ phenotype_id: 'HP:1', modifier_id: 'present' }]),
+        HttpResponse.json([{ phenotype_id: 'HP:1', modifier_id: 'present' }])
       ),
       http.get('*/api/entity/7/variation', () =>
-        HttpResponse.json([{ vario_id: 'VARIO:1', modifier_id: 'present' }]),
+        HttpResponse.json([{ vario_id: 'VARIO:1', modifier_id: 'present' }])
       ),
       http.get('*/api/entity/7/publications', () =>
         HttpResponse.json([
           { publication_id: 'PMID:1', publication_type: 'gene_review' },
           { publication_id: 'PMID:2', publication_type: 'additional_references' },
-        ]),
-      ),
+        ])
+      )
     );
     const e = useEntityInfo();
     await e.loadReview(7);
@@ -62,11 +60,11 @@ describe('useEntityInfo', () => {
   test('hasReviewChanges flips when a watched field diverges', async () => {
     server.use(
       http.get('*/api/entity/7/review', () =>
-        HttpResponse.json([{ synopsis: 'a', comment: 'b', review_id: 1, entity_id: 7 }]),
+        HttpResponse.json([{ synopsis: 'a', comment: 'b', review_id: 1, entity_id: 7 }])
       ),
       http.get('*/api/entity/7/phenotypes', () => HttpResponse.json([])),
       http.get('*/api/entity/7/variation', () => HttpResponse.json([])),
-      http.get('*/api/entity/7/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/7/publications', () => HttpResponse.json([]))
     );
     const e = useEntityInfo();
     await e.loadReview(7);
@@ -80,8 +78,8 @@ describe('useEntityInfo', () => {
       http.get('*/api/entity/7/status', () =>
         HttpResponse.json([
           { category_id: 'definitive', comment: 'c', problematic: 0, status_id: 1, entity_id: 7 },
-        ]),
-      ),
+        ])
+      )
     );
     const e = useEntityInfo();
     await e.loadStatus(7);

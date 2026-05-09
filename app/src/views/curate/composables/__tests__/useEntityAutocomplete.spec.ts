@@ -20,8 +20,8 @@ describe('useEntityAutocomplete', () => {
       http.get('*/api/entity/*', () =>
         HttpResponse.json({
           data: Array.from({ length: 25 }, (_, i) => ({ entity_id: i + 1, symbol: `G${i}` })),
-        }),
-      ),
+        })
+      )
     );
     const a = useEntityAutocomplete();
     await a.searchEntity('GR');
@@ -31,8 +31,10 @@ describe('useEntityAutocomplete', () => {
   test('searchOntology populates ontology_search_results capped at 10', async () => {
     server.use(
       http.get('*/api/search/ontology*', () =>
-        HttpResponse.json(Array.from({ length: 15 }, (_, i) => ({ id: `HP:${i}`, label: `term ${i}` }))),
-      ),
+        HttpResponse.json(
+          Array.from({ length: 15 }, (_, i) => ({ id: `HP:${i}`, label: `term ${i}` }))
+        )
+      )
     );
     const a = useEntityAutocomplete();
     await a.searchOntology('seizure');
@@ -47,8 +49,8 @@ describe('useEntityAutocomplete', () => {
             { entity_id: 5, symbol: 'CURRENT' },
             { entity_id: 6, symbol: 'OTHER' },
           ],
-        }),
-      ),
+        })
+      )
     );
     const a = useEntityAutocomplete({ getCurrentEntityId: () => 5 });
     await a.searchReplacementEntity('GR');

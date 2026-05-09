@@ -13,10 +13,7 @@
         <span v-if="stats.total !== null" class="badge bg-info ms-2 fw-normal">
           {{ stats.total?.toLocaleString() }} publications
         </span>
-        <span
-          v-if="stats.oldest_update"
-          class="badge bg-warning text-dark ms-2 fw-normal"
-        >
+        <span v-if="stats.oldest_update" class="badge bg-warning text-dark ms-2 fw-normal">
           Oldest: {{ formatDate(stats.oldest_update) }}
         </span>
         <span
@@ -30,8 +27,8 @@
 
     <div class="mb-3">
       <p class="text-muted small mb-2">
-        Refresh publication metadata from PubMed. Publications are updated in place (no
-        deletions). Rate limited to ~3 requests/second to comply with NCBI limits.
+        Refresh publication metadata from PubMed. Publications are updated in place (no deletions).
+        Rate limited to ~3 requests/second to comply with NCBI limits.
       </p>
     </div>
 
@@ -81,10 +78,7 @@
           @input="onCustomDateInput"
         />
 
-        <span
-          v-if="preset !== 'all' && filteredCount !== null"
-          class="badge bg-info"
-        >
+        <span v-if="preset !== 'all' && filteredCount !== null" class="badge bg-info">
           <BSpinner v-if="loadingFilteredCount" small class="me-1" />
           {{ filteredCount?.toLocaleString() }} publications match filter
         </span>
@@ -145,9 +139,7 @@
           <span v-if="job.hasRealProgress.value">
             {{ job.progressPercent.value }}% - {{ job.step.value }}
           </span>
-          <span v-else>
-            {{ job.step.value }} ({{ job.elapsedTimeDisplay.value }})
-          </span>
+          <span v-else> {{ job.step.value }} ({{ job.elapsedTimeDisplay.value }}) </span>
         </template>
       </BProgress>
 

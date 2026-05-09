@@ -79,7 +79,7 @@ describe('EntityView (v11.3 W3)', () => {
           data: [{ entity_id: 304, symbol: 'MECP2', hgnc_id: 'HGNC:6990' }],
           links: [],
           meta: [{}],
-        }),
+        })
       ),
       http.get('*/api/entity/304/status', () => {
         tag('status');
@@ -101,7 +101,7 @@ describe('EntityView (v11.3 W3)', () => {
         tag('var');
         return HttpResponse.json([]);
       }),
-      http.get('*/api/gene/HGNC%3A6990', () => HttpResponse.json([{ symbol: ['MECP2'] }])),
+      http.get('*/api/gene/HGNC%3A6990', () => HttpResponse.json([{ symbol: ['MECP2'] }]))
     );
 
     const router = makeRouter('/Entities/304');
@@ -136,7 +136,7 @@ describe('EntityView (v11.3 W3)', () => {
           data: [{ entity_id: 304, hgnc_id: 'HGNC:6990' }],
           links: [],
           meta: [{}],
-        }),
+        })
       ),
       http.get('*/api/entity/304/status', () => HttpResponse.json([])),
       http.get('*/api/entity/304/review', () => HttpResponse.json([{ synopsis: '' }])),
@@ -150,7 +150,7 @@ describe('EntityView (v11.3 W3)', () => {
       }),
       http.get('*/api/entity/304/phenotypes', () => HttpResponse.json([])),
       http.get('*/api/entity/304/variation', () => HttpResponse.json([])),
-      http.get('*/api/gene/HGNC%3A6990', () => HttpResponse.json([{ symbol: ['MECP2'] }])),
+      http.get('*/api/gene/HGNC%3A6990', () => HttpResponse.json([{ symbol: ['MECP2'] }]))
     );
 
     const router = makeRouter('/Entities/304');
@@ -167,16 +167,14 @@ describe('EntityView (v11.3 W3)', () => {
 
   it('redirects to /PageNotFound when the entity record is empty', async () => {
     server.use(
-      http.get('*/api/entity/', () =>
-        HttpResponse.json({ data: [], links: [], meta: [{}] }),
-      ),
+      http.get('*/api/entity/', () => HttpResponse.json({ data: [], links: [], meta: [{}] })),
       // The remaining sub-resource handlers may still be called by the hooks
       // even when the record is empty; return empty payloads to keep MSW happy.
       http.get('*/api/entity/999999/status', () => HttpResponse.json([])),
       http.get('*/api/entity/999999/review', () => HttpResponse.json([])),
       http.get('*/api/entity/999999/publications', () => HttpResponse.json([])),
       http.get('*/api/entity/999999/phenotypes', () => HttpResponse.json([])),
-      http.get('*/api/entity/999999/variation', () => HttpResponse.json([])),
+      http.get('*/api/entity/999999/variation', () => HttpResponse.json([]))
     );
 
     // Pre-seed the SWR cache with a stale sentinel so the watcher fires on the
@@ -184,11 +182,7 @@ describe('EntityView (v11.3 W3)', () => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const cache = useCacheStore();
-    cache.set(
-      'entity:999999',
-      { entity_id: 999999, hgnc_id: 'HGNC:0' },
-      60_000,
-    );
+    cache.set('entity:999999', { entity_id: 999999, hgnc_id: 'HGNC:0' }, 60_000);
     const entry = cache.peek<unknown>('entity:999999');
     if (entry) entry.fetchedAt = 1;
 
@@ -211,7 +205,7 @@ describe('EntityView (v11.3 W3)', () => {
           data: [{ entity_id: 304, symbol: 'MECP2', hgnc_id: 'HGNC:6990' }],
           links: [],
           meta: [{}],
-        }),
+        })
       ),
       http.get('*/api/entity/304/status', () => HttpResponse.json([])),
       http.get('*/api/entity/304/review', () => HttpResponse.json([{ synopsis: 'r' }])),
@@ -221,10 +215,8 @@ describe('EntityView (v11.3 W3)', () => {
       // axios encodes the colon: HGNC:6990 -> HGNC%3A6990 in the path.
       http.get('*/api/gene/HGNC%3A6990', () => {
         geneCalls += 1;
-        return HttpResponse.json([
-          { symbol: ['MECP2'], name: ['methyl-CpG binding protein 2'] },
-        ]);
-      }),
+        return HttpResponse.json([{ symbol: ['MECP2'], name: ['methyl-CpG binding protein 2'] }]);
+      })
     );
     const router = makeRouter('/Entities/304');
     await router.isReady();

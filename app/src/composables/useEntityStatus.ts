@@ -4,7 +4,7 @@ import { getEntityStatus } from '@/api/entity';
 import { useResource, type ResourceState } from './useResource';
 
 export function useEntityStatus(
-  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>,
+  entityId: string | number | Ref<string | number | null> | ComputedRef<string | number | null>
 ): ResourceState<unknown> {
   const idRef = computed<string | null>(() => {
     let v: string | number | null;
@@ -13,9 +13,7 @@ export function useEntityStatus(
     return v === null || v === undefined || v === '' ? null : String(v);
   });
   const key = computed<string | null>(() => (idRef.value ? `entity-status:${idRef.value}` : null));
-  return useResource<unknown>(
-    key,
-    async (signal) => getEntityStatus(idRef.value!, { signal }),
-    { ttlMs: 60_000 },
-  );
+  return useResource<unknown>(key, async (signal) => getEntityStatus(idRef.value!, { signal }), {
+    ttlMs: 60_000,
+  });
 }

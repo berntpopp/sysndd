@@ -31,7 +31,7 @@ describe('LlmLogViewer — F2a Bearer-via-interceptor', () => {
         expectBearerHeader(request, token);
         sawRequest = true;
         return HttpResponse.json({ data: [], total: 0, page: 1, per_page: 50 });
-      }),
+      })
     );
 
     mount(LlmLogViewer, {

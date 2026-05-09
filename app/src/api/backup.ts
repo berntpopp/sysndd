@@ -95,7 +95,7 @@ export interface DeleteBackupResponse {
  */
 export async function listBackups(
   params: ListBackupsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<BackupListResponse> {
   return apiClient.get<BackupListResponse>('/api/backup/list', {
     ...config,
@@ -113,9 +113,7 @@ export async function listBackups(
  * Throws AxiosError on non-2xx (409 if a backup is already running,
  * 503 capacity exceeded).
  */
-export async function createBackup(
-  config?: AxiosRequestConfig,
-): Promise<AsyncBackupJobAccepted> {
+export async function createBackup(config?: AxiosRequestConfig): Promise<AsyncBackupJobAccepted> {
   return apiClient.post<AsyncBackupJobAccepted>('/api/backup/create', undefined, config);
 }
 
@@ -131,12 +129,12 @@ export async function createBackup(
  */
 export async function restoreBackup(
   body: RestoreBackupRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AsyncBackupJobAccepted> {
   return apiClient.post<AsyncBackupJobAccepted, RestoreBackupRequest>(
     '/api/backup/restore',
     body,
-    config,
+    config
   );
 }
 
@@ -151,10 +149,7 @@ export async function restoreBackup(
  *
  * Throws AxiosError on non-2xx.
  */
-export async function downloadBackup(
-  filename: string,
-  config?: AxiosRequestConfig,
-): Promise<Blob> {
+export async function downloadBackup(filename: string, config?: AxiosRequestConfig): Promise<Blob> {
   const path = `/api/backup/download/${encodeURIComponent(filename)}`;
   const response = await apiClient.raw.get<Blob>(path, {
     ...config,
@@ -177,7 +172,7 @@ export async function downloadBackup(
 export async function deleteBackup(
   filename: string,
   body: DeleteBackupRequest = { confirm: 'DELETE' },
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<DeleteBackupResponse> {
   const path = `/api/backup/delete/${encodeURIComponent(filename)}`;
   return apiClient.delete<DeleteBackupResponse>(path, {

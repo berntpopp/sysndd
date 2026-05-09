@@ -44,10 +44,7 @@ import { createPinia } from 'pinia';
 import axios from 'axios';
 import { bootstrapStubs } from '@/test-utils';
 import { server } from '@/test-utils/mocks/server';
-import {
-  reviewByIdOk,
-  reviewApproveByIdOk,
-} from '@/test-utils/mocks/data/reviews';
+import { reviewByIdOk, reviewApproveByIdOk } from '@/test-utils/mocks/data/reviews';
 // v11.0 closeout F2a: Bearer-header assertion helpers added alongside the
 // pre-existing C1 behaviour. `primeAuth` seeds `useAuth` so the apiClient
 // request interceptor injects the token on every outbound axios call;
@@ -196,7 +193,8 @@ const makeStubs = () => {
     BTable: {
       name: 'BTable',
       props: ['items', 'fields'],
-      template: '<table><tbody><tr v-for="i in items" :key="i.entity_id"><td>{{ i.symbol }}</td></tr></tbody></table>',
+      template:
+        '<table><tbody><tr v-for="i in items" :key="i.entity_id"><td>{{ i.symbol }}</td></tr></tbody></table>',
     },
     BPagination: { template: '<nav />' },
     BFormInput: {
@@ -380,7 +378,7 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
       http.put('/api/review/approve/:id', ({ request }) => {
         expectBearerHeader(request, SEEDED_TOKEN);
         return HttpResponse.json(reviewApproveByIdOk);
-      }),
+      })
     );
 
     const { wrapper, routedAxios } = await mountView();
@@ -398,8 +396,8 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
     // Count how many GETs have been issued to the bare /api/review list
     // BEFORE we approve — the happy path must trigger at least one more via
     // `loadReviewTableData()` (the row-refresh assertion).
-    const reviewListGetsBefore = routedAxios.get.mock.calls.filter(
-      (c) => (c[0] as string).endsWith('/api/review')
+    const reviewListGetsBefore = routedAxios.get.mock.calls.filter((c) =>
+      (c[0] as string).endsWith('/api/review')
     ).length;
 
     // Simulate clicking the approve button for the row: sets `entity` and
@@ -436,8 +434,8 @@ describe('ApproveReview (Phase C.C1 functional spec)', () => {
 
     // --- Assert: row-refresh — a new GET to `/api/review` fired after the
     // PUT (this is `loadReviewTableData()` being called by `handleApproveOk`).
-    const reviewListGetsAfter = routedAxios.get.mock.calls.filter(
-      (c) => (c[0] as string).endsWith('/api/review')
+    const reviewListGetsAfter = routedAxios.get.mock.calls.filter((c) =>
+      (c[0] as string).endsWith('/api/review')
     ).length;
     expect(reviewListGetsAfter).toBeGreaterThan(reviewListGetsBefore);
 

@@ -33,7 +33,7 @@ describe('api/list — listStatusCategories (paginated)', () => {
       http.get('/api/list/status', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await listStatusCategories({ page_size: '50' });
@@ -52,7 +52,7 @@ describe('api/list — listStatusCategoriesTree', () => {
       http.get('/api/list/status', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     const result = await listStatusCategoriesTree();
@@ -68,9 +68,7 @@ describe('api/list — listPhenotypes (paginated)', () => {
       meta: {},
       data: [{ phenotype_id: 'HP:0001249', HPO_term: 'Intellectual disability' }],
     };
-    server.use(
-      http.get('/api/list/phenotype', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/phenotype', () => HttpResponse.json(ok)));
 
     const result = await listPhenotypes();
     expect(result.data[0].phenotype_id).toBe('HP:0001249');
@@ -86,9 +84,7 @@ describe('api/list — listPhenotypesTree', () => {
         children: [{ id: '2-HP:0001249', label: 'absent: Intellectual disability' }],
       },
     ];
-    server.use(
-      http.get('/api/list/phenotype', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/phenotype', () => HttpResponse.json(ok)));
 
     const result = await listPhenotypesTree();
     expect(result[0].children).toHaveLength(1);
@@ -102,9 +98,7 @@ describe('api/list — listInheritance (paginated)', () => {
       meta: {},
       data: [{ hpo_mode_of_inheritance_term: 'AD' }],
     };
-    server.use(
-      http.get('/api/list/inheritance', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/inheritance', () => HttpResponse.json(ok)));
 
     const result = await listInheritance();
     expect(result.data[0].hpo_mode_of_inheritance_term).toBe('AD');
@@ -114,9 +108,7 @@ describe('api/list — listInheritance (paginated)', () => {
 describe('api/list — listInheritanceTree', () => {
   it('returns flat tree nodes (no children)', async () => {
     const ok: TreeNode[] = [{ id: 'AD', label: 'Autosomal dominant' }];
-    server.use(
-      http.get('/api/list/inheritance', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/inheritance', () => HttpResponse.json(ok)));
     const result = await listInheritanceTree();
     expect(result[0].id).toBe('AD');
   });
@@ -129,9 +121,7 @@ describe('api/list — listVariationOntology (paginated)', () => {
       meta: {},
       data: [{ vario_id: 'VariO:0001', vario_name: 'missense' }],
     };
-    server.use(
-      http.get('/api/list/variation_ontology', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/variation_ontology', () => HttpResponse.json(ok)));
 
     const result = await listVariationOntology();
     expect(result.data[0].vario_id).toBe('VariO:0001');
@@ -147,9 +137,7 @@ describe('api/list — listVariationOntologyTree', () => {
         children: [{ id: '2-VariO:0001', label: 'absent: missense' }],
       },
     ];
-    server.use(
-      http.get('/api/list/variation_ontology', () => HttpResponse.json(ok)),
-    );
+    server.use(http.get('/api/list/variation_ontology', () => HttpResponse.json(ok)));
     const result = await listVariationOntologyTree();
     expect(result[0].children).toHaveLength(1);
   });

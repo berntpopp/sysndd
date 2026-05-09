@@ -30,7 +30,7 @@ describe('api/entity — listEntities', () => {
       http.get('/api/entity/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listEntities({ filter: 'symbol:GRIN2B', fields: 'entity_id,symbol' });
@@ -46,7 +46,7 @@ describe('api/entity — listEntities', () => {
       http.get('/api/entity/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ links: {}, meta: {}, data: [] });
-      }),
+      })
     );
     await listEntities({ filter: 'equals(symbol,GRIN2B)', compact: true });
     const q = observedQuery as unknown as URLSearchParams;
@@ -59,7 +59,7 @@ describe('api/entity — listEntities', () => {
       http.get('/api/entity/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ links: {}, meta: {}, data: [] });
-      }),
+      })
     );
     await listEntities({ filter: 'equals(symbol,GRIN2B)' });
     const q = observedQuery as unknown as URLSearchParams;
@@ -72,7 +72,7 @@ describe('api/entity — listEntities', () => {
       http.get('/api/entity/', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json({ links: {}, meta: {}, data: [] });
-      }),
+      })
     );
     await listEntities({ filter: 'equals(symbol,GRIN2B)', compact: false });
     const q = observedQuery as unknown as URLSearchParams;
@@ -92,7 +92,7 @@ describe('api/entity — listEntitiesXlsx', () => {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           },
         });
-      }),
+      })
     );
 
     const blob = await listEntitiesXlsx({ sort: 'entity_id' });
@@ -117,7 +117,7 @@ describe('api/entity — createEntity', () => {
         observedQuery = new URL(request.url).searchParams;
         receivedBody = await request.json();
         return HttpResponse.json(ok, { status: 201 });
-      }),
+      })
     );
 
     const result = await createEntity(
@@ -133,7 +133,7 @@ describe('api/entity — createEntity', () => {
           status: { category_id: 1 },
         },
       },
-      { direct_approval: true },
+      { direct_approval: true }
     );
 
     expect((receivedBody as { create_json?: unknown }).create_json).toBeDefined();
@@ -144,8 +144,8 @@ describe('api/entity — createEntity', () => {
   it('throws AxiosError on 409 (duplicate)', async () => {
     server.use(
       http.post('/api/entity/create', () =>
-        HttpResponse.json({ status: 409, message: 'duplicate' }, { status: 409 }),
-      ),
+        HttpResponse.json({ status: 409, message: 'duplicate' }, { status: 409 })
+      )
     );
 
     let caught: unknown;
@@ -179,7 +179,7 @@ describe('api/entity — renameEntity', () => {
       http.post('/api/entity/rename', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200, entry: { entity_id: 8 } });
-      }),
+      })
     );
 
     await renameEntity({
@@ -205,7 +205,7 @@ describe('api/entity — deactivateEntity', () => {
       http.post('/api/entity/deactivate', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json({ status: 200, message: 'OK' });
-      }),
+      })
     );
 
     await deactivateEntity({
@@ -232,7 +232,7 @@ describe('api/entity — getEntityPhenotypes', () => {
       http.get('/api/entity/:id/phenotypes', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getEntityPhenotypes(7);
@@ -245,7 +245,7 @@ describe('api/entity — getEntityPhenotypes', () => {
       http.get('/api/entity/:id/phenotypes', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json([]);
-      }),
+      })
     );
 
     await getEntityPhenotypes(7, { current_review: false });
@@ -260,8 +260,8 @@ describe('api/entity — getEntityVariation', () => {
       http.get('/api/entity/:id/variation', () =>
         HttpResponse.json([
           { entity_id: 7, vario_id: 'VariO:0001', vario_name: 'missense', modifier_id: 1 },
-        ]),
-      ),
+        ])
+      )
     );
 
     const rows = await getEntityVariation(7);
@@ -282,8 +282,8 @@ describe('api/entity — getEntityReview', () => {
             review_date: '2026-01-01',
             comment: null,
           },
-        ]),
-      ),
+        ])
+      )
     );
 
     const rows = await getEntityReview(7);
@@ -305,8 +305,8 @@ describe('api/entity — getEntityStatus', () => {
             comment: null,
             problematic: 0,
           },
-        ]),
-      ),
+        ])
+      )
     );
 
     const rows = await getEntityStatus(7);
@@ -325,8 +325,8 @@ describe('api/entity — getEntityPublications', () => {
             publication_type: 'gene_review',
             is_reviewed: 1,
           },
-        ]),
-      ),
+        ])
+      )
     );
 
     const rows = await getEntityPublications(7);

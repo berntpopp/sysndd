@@ -32,7 +32,7 @@ const DEFAULT_USER: UserPayload = {
  */
 export function primeAuth(
   token: string = 'test-token',
-  user: UserPayload = DEFAULT_USER,
+  user: UserPayload = DEFAULT_USER
 ): { token: string; user: UserPayload } {
   useAuth().login(token, user);
   return { token, user };

@@ -140,9 +140,7 @@ export interface ForceApplyOntologyParams {
  *
  * Returns the enhanced OpenAPI specification used by the Swagger UI.
  */
-export async function getOpenApiSpec(
-  config?: AxiosRequestConfig,
-): Promise<unknown> {
+export async function getOpenApiSpec(config?: AxiosRequestConfig): Promise<unknown> {
   return apiClient.get<unknown>('/api/admin/openapi.json', config);
 }
 
@@ -158,9 +156,7 @@ export async function getOpenApiSpec(
  *
  * Throws AxiosError on non-2xx (401/403, or 503 worker-pool capacity).
  */
-export async function updateOntologyAsync(
-  config?: AxiosRequestConfig,
-): Promise<AsyncJobAccepted> {
+export async function updateOntologyAsync(config?: AxiosRequestConfig): Promise<AsyncJobAccepted> {
   return apiClient.put<AsyncJobAccepted>('/api/admin/update_ontology_async', undefined, config);
 }
 
@@ -177,7 +173,7 @@ export async function updateOntologyAsync(
  */
 export async function forceApplyOntology(
   params: ForceApplyOntologyParams,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AsyncJobAccepted> {
   return apiClient.put<AsyncJobAccepted>('/api/admin/force_apply_ontology', undefined, {
     ...config,
@@ -197,12 +193,12 @@ export async function forceApplyOntology(
  * failure).
  */
 export async function updateHgncData(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<{ status: string; message: string }> {
   return apiClient.put<{ status: string; message: string }>(
     '/api/admin/update_hgnc_data',
     undefined,
-    config,
+    config
   );
 }
 
@@ -212,9 +208,7 @@ export async function updateHgncData(
  *
  * Public — no auth. Returns the API version (informational).
  */
-export async function getApiVersion(
-  config?: AxiosRequestConfig,
-): Promise<AdminApiVersion> {
+export async function getApiVersion(config?: AxiosRequestConfig): Promise<AdminApiVersion> {
   return apiClient.get<AdminApiVersion>('/api/admin/api_version', config);
 }
 
@@ -226,9 +220,7 @@ export async function getApiVersion(
  * and disease-ontology updates. Falls back to file-modification times on
  * fresh installs.
  */
-export async function getAnnotationDates(
-  config?: AxiosRequestConfig,
-): Promise<AnnotationDates> {
+export async function getAnnotationDates(config?: AxiosRequestConfig): Promise<AnnotationDates> {
   return apiClient.get<AnnotationDates>('/api/admin/annotation_dates', config);
 }
 
@@ -240,7 +232,7 @@ export async function getAnnotationDates(
  * mim2gene.txt) enriched with MONDO / OLS replacement suggestions.
  */
 export async function getDeprecatedEntities(
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<DeprecatedEntitiesResponse> {
   return apiClient.get<DeprecatedEntitiesResponse>('/api/admin/deprecated_entities', config);
 }
@@ -252,9 +244,7 @@ export async function getDeprecatedEntities(
  * Probes the configured SMTP server with a socket connection. Does not send
  * any email. Returns success/failure plus error message.
  */
-export async function testSmtp(
-  config?: AxiosRequestConfig,
-): Promise<SmtpTestResponse> {
+export async function testSmtp(config?: AxiosRequestConfig): Promise<SmtpTestResponse> {
   return apiClient.get<SmtpTestResponse>('/api/admin/smtp/test', config);
 }
 
@@ -270,11 +260,11 @@ export async function testSmtp(
  */
 export async function refreshPublications(
   body: PublicationRefreshRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<AsyncJobAccepted | PublicationRefreshNoop> {
   return apiClient.post<AsyncJobAccepted | PublicationRefreshNoop, PublicationRefreshRequest>(
     '/api/admin/publications/refresh',
     body,
-    config,
+    config
   );
 }

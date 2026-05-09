@@ -51,7 +51,7 @@ describe('api/external — getEnsemblStructure', () => {
       http.get('/api/external/ensembl/structure/:symbol', ({ params }) => {
         expect(params.symbol).toBe('BRCA1');
         return HttpResponse.json(ensemblOk);
-      }),
+      })
     );
 
     const result = await getEnsemblStructure('BRCA1');
@@ -65,7 +65,7 @@ describe('api/external — getEnsemblStructure', () => {
       http.get('/api/external/ensembl/structure/:symbol', ({ request }) => {
         observedPath = new URL(request.url).pathname;
         return HttpResponse.json(ensemblOk);
-      }),
+      })
     );
 
     // Symbols with special characters (rare but possible — e.g. orf-style
@@ -85,9 +85,9 @@ describe('api/external — getEnsemblStructure', () => {
             detail: 'Gene NOPE not found in Ensembl',
             source: 'ensembl',
           },
-          { status: 404 },
-        ),
-      ),
+          { status: 404 }
+        )
+      )
     );
 
     let caught: unknown;
@@ -105,8 +105,8 @@ describe('api/external — getEnsemblStructure', () => {
   it('throws AxiosError on 503 (Ensembl upstream unavailable)', async () => {
     server.use(
       http.get('/api/external/ensembl/structure/:symbol', () =>
-        HttpResponse.json({ error: 'upstream' }, { status: 503 }),
-      ),
+        HttpResponse.json({ error: 'upstream' }, { status: 503 })
+      )
     );
     await expect(getEnsemblStructure('BRCA1')).rejects.toThrow();
   });
@@ -124,7 +124,7 @@ describe('api/external — createInternetArchiveSnapshot', () => {
       http.get('/api/external/internet_archive', ({ request }) => {
         observedParam = new URL(request.url).searchParams.get('parameter_url');
         return HttpResponse.json(expected);
-      }),
+      })
     );
 
     const target = 'https://sysndd.dbmr.unibe.ch/Genes/HGNC:4586';
@@ -141,7 +141,7 @@ describe('api/external — createInternetArchiveSnapshot', () => {
         const url = new URL(request.url);
         observedParams = Object.fromEntries(url.searchParams.entries());
         return HttpResponse.json({ job_id: 'spn2-merged' });
-      }),
+      })
     );
 
     await createInternetArchiveSnapshot('https://sysndd.dbmr.unibe.ch/foo', {
@@ -163,7 +163,7 @@ describe('api/external — createInternetArchiveSnapshot', () => {
         const url = new URL(request.url);
         observedParams = Object.fromEntries(url.searchParams.entries());
         return HttpResponse.json({ job_id: 'spn2-search-params' });
-      }),
+      })
     );
 
     await createInternetArchiveSnapshot('https://example.com', {
@@ -183,9 +183,9 @@ describe('api/external — createInternetArchiveSnapshot', () => {
             status: 400,
             message: "Required 'url' parameter not provided or not valid.",
           },
-          { status: 400 },
-        ),
-      ),
+          { status: 400 }
+        )
+      )
     );
 
     let caught: unknown;

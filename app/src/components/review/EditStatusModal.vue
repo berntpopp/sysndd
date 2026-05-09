@@ -28,10 +28,7 @@
           class="d-flex align-items-center gap-2 text-muted small"
           data-testid="status-audit-trail"
         >
-          <span
-            v-if="statusInfo.status_user_name"
-            class="d-flex align-items-center gap-1"
-          >
+          <span v-if="statusInfo.status_user_name" class="d-flex align-items-center gap-1">
             <i :class="'bi bi-' + (userIcon[statusInfo.status_user_role] || 'person')" />
             <span>{{ statusInfo.status_user_name }}</span>
             <span class="text-muted">·</span>
@@ -69,7 +66,9 @@
         <DiseaseBadge
           :name="entityInfo.disease_ontology_name"
           :ontology-id="entityInfo.disease_ontology_id_version"
-          :link-to="'/Ontology/' + (entityInfo.disease_ontology_id_version || '').replace(/_.+/g, '')"
+          :link-to="
+            '/Ontology/' + (entityInfo.disease_ontology_id_version || '').replace(/_.+/g, '')
+          "
           :max-length="35"
           size="sm"
         />
@@ -153,8 +152,8 @@
           <template #title> Removal instructions </template>
           SysNDD does not forget, meaning that entities will not be deleted but they can be
           deactivated. Deactivated entities will not be displayed on the website. Typically
-          duplicate entities should be deactivated especially if there is a more specific
-          disease name.
+          duplicate entities should be deactivated especially if there is a more specific disease
+          name.
         </BPopover>
 
         <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">

@@ -35,7 +35,7 @@ describe('api/backup — listBackups', () => {
       http.get('/api/backup/list', ({ request }) => {
         observedQuery = new URL(request.url).searchParams;
         return HttpResponse.json(ok);
-      }),
+      })
     );
 
     await listBackups({ limit: 50, offset: 100, sort: 'oldest' });
@@ -50,7 +50,11 @@ describe('api/backup — listBackups', () => {
       http.get('/api/backup/list', () =>
         HttpResponse.json<BackupListResponse>({
           data: [
-            { filename: 'manual_2026-04-25.sql.gz', size_bytes: 1234, created_at: '2026-04-25T00:00:00Z' },
+            {
+              filename: 'manual_2026-04-25.sql.gz',
+              size_bytes: 1234,
+              created_at: '2026-04-25T00:00:00Z',
+            },
           ],
           total: 1,
           page: 1,
@@ -59,8 +63,8 @@ describe('api/backup — listBackups', () => {
           offset: 0,
           links: { next: null },
           meta: { total_count: 1, total_size_bytes: 1234 },
-        }),
-      ),
+        })
+      )
     );
     const result = await listBackups();
     expect(result.data).toHaveLength(1);
@@ -76,9 +80,7 @@ describe('api/backup — createBackup', () => {
       estimated_seconds: 120,
       status_url: '/api/jobs/b-1/status',
     };
-    server.use(
-      http.post('/api/backup/create', () => HttpResponse.json(expected, { status: 202 })),
-    );
+    server.use(http.post('/api/backup/create', () => HttpResponse.json(expected, { status: 202 })));
     const result = await createBackup();
     expect(result.job_id).toBe('b-1');
   });
@@ -86,8 +88,8 @@ describe('api/backup — createBackup', () => {
   it('throws AxiosError on 409 (backup already running)', async () => {
     server.use(
       http.post('/api/backup/create', () =>
-        HttpResponse.json({ error: 'BACKUP_IN_PROGRESS' }, { status: 409 }),
-      ),
+        HttpResponse.json({ error: 'BACKUP_IN_PROGRESS' }, { status: 409 })
+      )
     );
 
     let caught: unknown;
@@ -116,7 +118,7 @@ describe('api/backup — restoreBackup', () => {
       http.post('/api/backup/restore', async ({ request }) => {
         receivedBody = await request.json();
         return HttpResponse.json(expected, { status: 202 });
-      }),
+      })
     );
 
     const result = await restoreBackup({ filename: 'manual_2026-04-25.sql.gz' });
@@ -127,8 +129,8 @@ describe('api/backup — restoreBackup', () => {
   it('throws AxiosError on 404 (backup file not found)', async () => {
     server.use(
       http.post('/api/backup/restore', () =>
-        HttpResponse.json({ error: 'BACKUP_NOT_FOUND' }, { status: 404 }),
-      ),
+        HttpResponse.json({ error: 'BACKUP_NOT_FOUND' }, { status: 404 })
+      )
     );
     await expect(restoreBackup({ filename: 'missing.sql' })).rejects.toThrow();
   });
@@ -145,7 +147,7 @@ describe('api/backup — downloadBackup', () => {
           status: 200,
           headers: { 'Content-Type': 'application/gzip' },
         });
-      }),
+      })
     );
 
     const blob = await downloadBackup('manual 2026-04-25.sql.gz');
@@ -156,8 +158,8 @@ describe('api/backup — downloadBackup', () => {
   it('throws AxiosError on 404', async () => {
     server.use(
       http.get('/api/backup/download/:filename', () =>
-        HttpResponse.json({ error: 'BACKUP_NOT_FOUND' }, { status: 404 }),
-      ),
+        HttpResponse.json({ error: 'BACKUP_NOT_FOUND' }, { status: 404 })
+      )
     );
     await expect(downloadBackup('missing.sql')).rejects.toThrow();
   });
@@ -178,7 +180,7 @@ describe('api/backup — deleteBackup', () => {
         observedPath = new URL(request.url).pathname;
         receivedBody = await request.json();
         return HttpResponse.json(expected);
-      }),
+      })
     );
 
     const result = await deleteBackup('old.sql.gz');
@@ -190,8 +192,8 @@ describe('api/backup — deleteBackup', () => {
   it('throws AxiosError on 400 (missing confirmation)', async () => {
     server.use(
       http.delete('/api/backup/delete/:filename', () =>
-        HttpResponse.json({ error: 'CONFIRMATION_REQUIRED' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'CONFIRMATION_REQUIRED' }, { status: 400 })
+      )
     );
     await expect(deleteBackup('x.sql', { confirm: 'no' })).rejects.toThrow();
   });

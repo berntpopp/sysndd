@@ -59,7 +59,7 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
       http.get('*/api/statistics/updates', () => HttpResponse.json({})),
       http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
       http.get('*/api/statistics/updated_reviews', () => HttpResponse.json({})),
-      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
     );
 
     mount(AdminStatistics, {

@@ -132,9 +132,7 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
 
     // jsdom doesn't fully implement `URL.createObjectURL` / <a>.click() —
     // stub both so the download branch completes without throwing.
-    const createSpy = vi
-      .spyOn(URL, 'createObjectURL')
-      .mockReturnValue('blob:mock');
+    const createSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
     const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
     const wrapper = mountView();

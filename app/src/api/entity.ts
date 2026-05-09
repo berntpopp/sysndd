@@ -104,7 +104,7 @@ export interface EntityCreateParams {
 export interface EntityMutationResponse {
   status: number;
   message?: string;
-  entry?: { entity_id?: number | string;[key: string]: unknown };
+  entry?: { entity_id?: number | string; [key: string]: unknown };
   error?: string | null;
 }
 
@@ -199,7 +199,7 @@ export interface EntityPublicationRow {
  */
 export async function listEntities(
   params: ListEntitiesParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityListResponse> {
   return apiClient.get<EntityListResponse>('/api/entity/', {
     ...config,
@@ -214,7 +214,7 @@ export async function listEntities(
  */
 export async function listEntitiesXlsx(
   params: Omit<ListEntitiesParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/entity/', {
     ...config,
@@ -238,16 +238,12 @@ export async function listEntitiesXlsx(
 export async function createEntity(
   body: EntityCreateRequest,
   params: EntityCreateParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityMutationResponse> {
-  return apiClient.post<EntityMutationResponse, EntityCreateRequest>(
-    '/api/entity/create',
-    body,
-    {
-      ...config,
-      params: { ...(config?.params as object | undefined), ...params },
-    },
-  );
+  return apiClient.post<EntityMutationResponse, EntityCreateRequest>('/api/entity/create', body, {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
 }
 
 /**
@@ -259,12 +255,12 @@ export async function createEntity(
  */
 export async function renameEntity(
   body: EntityRenameRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityMutationResponse> {
   return apiClient.post<EntityMutationResponse, EntityRenameRequest>(
     '/api/entity/rename',
     body,
-    config,
+    config
   );
 }
 
@@ -277,12 +273,12 @@ export async function renameEntity(
  */
 export async function deactivateEntity(
   body: EntityDeactivateRequest,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityMutationResponse> {
   return apiClient.post<EntityMutationResponse, EntityDeactivateRequest>(
     '/api/entity/deactivate',
     body,
-    config,
+    config
   );
 }
 
@@ -290,9 +286,7 @@ export async function deactivateEntity(
  * Build a normalised query-param record for the nested-resource endpoints
  * which all accept `?current_review=TRUE|FALSE`.
  */
-function nestedQuery(
-  params: NestedQueryParams = {},
-): Record<string, string> | undefined {
+function nestedQuery(params: NestedQueryParams = {}): Record<string, string> | undefined {
   if (params.current_review === undefined) {
     return undefined;
   }
@@ -316,7 +310,7 @@ function nestedQuery(
 export async function getEntityPhenotypes(
   sysndd_id: number | string,
   params: NestedQueryParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityPhenotypeRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/phenotypes`;
   const query = nestedQuery(params);
@@ -335,7 +329,7 @@ export async function getEntityPhenotypes(
 export async function getEntityVariation(
   sysndd_id: number | string,
   params: NestedQueryParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityVariationRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/variation`;
   const query = nestedQuery(params);
@@ -354,7 +348,7 @@ export async function getEntityVariation(
  */
 export async function getEntityReview(
   sysndd_id: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityReviewRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/review`;
   return apiClient.get<EntityReviewRow[]>(path, config);
@@ -368,7 +362,7 @@ export async function getEntityReview(
  */
 export async function getEntityStatus(
   sysndd_id: number | string,
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityStatusRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/status`;
   return apiClient.get<EntityStatusRow[]>(path, config);
@@ -383,7 +377,7 @@ export async function getEntityStatus(
 export async function getEntityPublications(
   sysndd_id: number | string,
   params: NestedQueryParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<EntityPublicationRow[]> {
   const path = `/api/entity/${encodeURIComponent(String(sysndd_id))}/publications`;
   const query = nestedQuery(params);

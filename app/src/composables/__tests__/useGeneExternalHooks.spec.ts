@@ -30,8 +30,13 @@ describe('per-source gene external hooks', () => {
   it('useGeneClinVar fetches ClinVar variants', async () => {
     server.use(
       http.get('*/api/external/gnomad/variants/GRIN2B', () =>
-        HttpResponse.json({ source: 'gnomad', gene_symbol: 'GRIN2B', variants: [{ id: 'V1' }], variant_count: 1 }),
-      ),
+        HttpResponse.json({
+          source: 'gnomad',
+          gene_symbol: 'GRIN2B',
+          variants: [{ id: 'V1' }],
+          variant_count: 1,
+        })
+      )
     );
     const w = mountHook(useGeneClinVar, 'GRIN2B');
     await nextTick();
@@ -41,7 +46,9 @@ describe('per-source gene external hooks', () => {
 
   it('useGeneClinVar treats 404 as no-data, not error', async () => {
     server.use(
-      http.get('*/api/external/gnomad/variants/UNKNOWN', () => HttpResponse.json({}, { status: 404 })),
+      http.get('*/api/external/gnomad/variants/UNKNOWN', () =>
+        HttpResponse.json({}, { status: 404 })
+      )
     );
     const w = mountHook(useGeneClinVar, 'UNKNOWN');
     await nextTick();
@@ -53,8 +60,8 @@ describe('per-source gene external hooks', () => {
   it('useGeneAlphaFold treats found:false as no-data', async () => {
     server.use(
       http.get('*/api/external/alphafold/structure/UNKNOWN', () =>
-        HttpResponse.json({ found: false }),
-      ),
+        HttpResponse.json({ found: false })
+      )
     );
     const w = mountHook(useGeneAlphaFold, 'UNKNOWN');
     await nextTick();
@@ -66,8 +73,8 @@ describe('per-source gene external hooks', () => {
   it('useGeneUniProt returns the domains payload on 200', async () => {
     server.use(
       http.get('*/api/external/uniprot/domains/GRIN2B', () =>
-        HttpResponse.json({ domains: [{ name: 'D1', start: 1, end: 50 }] }),
-      ),
+        HttpResponse.json({ domains: [{ name: 'D1', start: 1, end: 50 }] })
+      )
     );
     const w = mountHook(useGeneUniProt, 'GRIN2B');
     await nextTick();
@@ -78,8 +85,8 @@ describe('per-source gene external hooks', () => {
   it('useGeneMGI returns the phenotypes payload', async () => {
     server.use(
       http.get('*/api/external/mgi/phenotypes/GRIN2B', () =>
-        HttpResponse.json({ source: 'mgi', phenotypes: [{ id: 'M1' }], counts: { high: 5 } }),
-      ),
+        HttpResponse.json({ source: 'mgi', phenotypes: [{ id: 'M1' }], counts: { high: 5 } })
+      )
     );
     const w = mountHook(useGeneMGI, 'GRIN2B');
     await nextTick();
@@ -90,8 +97,8 @@ describe('per-source gene external hooks', () => {
   it('useGeneRGD returns the phenotypes payload', async () => {
     server.use(
       http.get('*/api/external/rgd/phenotypes/GRIN2B', () =>
-        HttpResponse.json({ source: 'rgd', phenotypes: [] }),
-      ),
+        HttpResponse.json({ source: 'rgd', phenotypes: [] })
+      )
     );
     const w = mountHook(useGeneRGD, 'GRIN2B');
     await nextTick();

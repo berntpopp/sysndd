@@ -399,10 +399,7 @@ import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
 
 // Typed API clients
-import {
-  browsePhenotypeEntities,
-  browsePhenotypeEntitiesXlsx,
-} from '@/api/phenotype';
+import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
 
 // Module-level variables to track API calls across component remounts

@@ -192,7 +192,7 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
       http.post('/api/user/password/reset/change', ({ request }) => {
         capturedAuth = request.headers.get('authorization');
         return HttpResponse.json({ status: 'ok' });
-      }),
+      })
     );
 
     const wrapper = mountResetView();
@@ -234,7 +234,7 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
           user: localStorage.getItem('user'),
         };
         return HttpResponse.json({ status: 'ok' });
-      }),
+      })
     );
 
     const wrapper = mountResetView();
@@ -258,7 +258,7 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
   // Case 3: useAuth() is never invoked from this view.
   // -------------------------------------------------------------------------
 
-  it('E2 route-param: no direct login() runs against this spec\'s useAuth() wrapper', async () => {
+  it("E2 route-param: no direct login() runs against this spec's useAuth() wrapper", async () => {
     // `useAuth()` returns a fresh object literal each call with `.login`
     // pointing at the module-level function. Spying on `authInstance.login`
     // only intercepts calls routed through this exact wrapper. Today
@@ -272,9 +272,7 @@ describe('PasswordResetView — closeout exception E2 (route-param Bearer)', () 
     const loginSpy = vi.spyOn(authInstance, 'login');
 
     server.use(
-      http.post('/api/user/password/reset/change', () =>
-        HttpResponse.json({ status: 'ok' }),
-      ),
+      http.post('/api/user/password/reset/change', () => HttpResponse.json({ status: 'ok' }))
     );
 
     const wrapper = mountResetView();

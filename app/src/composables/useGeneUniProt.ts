@@ -5,7 +5,7 @@ import { getUniprotDomains, type UniProtData } from '@/api/external';
 import { useResource, type ResourceState } from './useResource';
 
 export function useGeneUniProt(
-  symbol: string | Ref<string | null> | ComputedRef<string | null>,
+  symbol: string | Ref<string | null> | ComputedRef<string | null>
 ): ResourceState<UniProtData | null> {
   const symRef = computed<string | null>(() => {
     if (typeof symbol === 'string') return symbol || null;
@@ -24,6 +24,6 @@ export function useGeneUniProt(
         throw err;
       }
     },
-    { ttlMs: 5 * 60_000 },
+    { ttlMs: 5 * 60_000 }
   );
 }

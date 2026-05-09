@@ -37,9 +37,9 @@
   >
     <template #header>
       <slot name="header">
-        <h6 class="m-0 text-muted">
+        <div data-testid="section-card-title" class="section-card-title text-muted">
           {{ title }}
-        </h6>
+        </div>
       </slot>
     </template>
     <div class="p-3">
@@ -50,11 +50,7 @@
     </div>
   </BCard>
   <!-- Error: small alert-like block (frameless) or full BCard (framed) -->
-  <div
-    v-else-if="error && frameless"
-    data-testid="section-card-error"
-    class="section-error"
-  >
+  <div v-else-if="error && frameless" data-testid="section-card-error" class="section-error">
     <p class="m-0 small text-danger">
       {{ error }}
     </p>
@@ -69,9 +65,9 @@
   >
     <template #header>
       <slot name="header">
-        <h6 class="m-0 text-danger">
+        <div data-testid="section-card-title" class="section-card-title text-danger">
           {{ title }}
-        </h6>
+        </div>
       </slot>
     </template>
     <p class="m-0 small text-danger">
@@ -92,9 +88,9 @@
   >
     <template #header>
       <slot name="header">
-        <h6 class="m-0">
+        <div data-testid="section-card-title" class="section-card-title text-muted">
           {{ title }}
-        </h6>
+        </div>
       </slot>
     </template>
     <slot />
@@ -114,11 +110,16 @@ withDefaults(
     minHeight?: string;
     frameless?: boolean;
   }>(),
-  { minHeight: '8rem', frameless: false },
+  { minHeight: '8rem', frameless: false }
 );
 </script>
 
 <style scoped>
+.section-card-title {
+  font-size: 0.875rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
 .skeleton-line {
   height: 0.75rem;
   border-radius: 4px;
@@ -126,15 +127,29 @@ withDefaults(
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }
-.skeleton-w-60 { width: 60%; }
-.skeleton-w-70 { width: 70%; }
-.skeleton-w-80 { width: 80%; }
-.skeleton-w-90 { width: 90%; }
+.skeleton-w-60 {
+  width: 60%;
+}
+.skeleton-w-70 {
+  width: 70%;
+}
+.skeleton-w-80 {
+  width: 80%;
+}
+.skeleton-w-90 {
+  width: 90%;
+}
 @keyframes shimmer {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-line { animation: none; }
+  .skeleton-line {
+    animation: none;
+  }
 }
 </style>

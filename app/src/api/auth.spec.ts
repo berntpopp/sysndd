@@ -33,7 +33,7 @@ describe('api/auth — signup', () => {
         receivedPath = new URL(request.url).pathname;
         receivedBody = await request.json();
         return HttpResponse.json({ ok: true });
-      }),
+      })
     );
 
     await expect(signup(validSignupBody)).resolves.toBeUndefined();
@@ -44,8 +44,8 @@ describe('api/auth — signup', () => {
   it('throws AxiosError on 400 (validation error)', async () => {
     server.use(
       http.post('/api/auth/signup', () =>
-        HttpResponse.json({ error: 'Invalid signup payload.' }, { status: 400 }),
-      ),
+        HttpResponse.json({ error: 'Invalid signup payload.' }, { status: 400 })
+      )
     );
 
     let caught: unknown;

@@ -29,7 +29,7 @@ describe('per-source entity sub-resource hooks', () => {
 
   it('useEntityStatus returns the status payload', async () => {
     server.use(
-      http.get('*/api/entity/304/status', () => HttpResponse.json({ status: 'approved' })),
+      http.get('*/api/entity/304/status', () => HttpResponse.json({ status: 'approved' }))
     );
     const w = mountHook(useEntityStatus, 304);
     await nextTick();
@@ -40,8 +40,8 @@ describe('per-source entity sub-resource hooks', () => {
   it('useEntityReview returns the review payload', async () => {
     server.use(
       http.get('*/api/entity/304/review', () =>
-        HttpResponse.json({ synopsis: 'Lorem ipsum.', comment: '' }),
-      ),
+        HttpResponse.json({ synopsis: 'Lorem ipsum.', comment: '' })
+      )
     );
     const w = mountHook(useEntityReview, 304);
     await nextTick();
@@ -55,8 +55,8 @@ describe('per-source entity sub-resource hooks', () => {
         HttpResponse.json([
           { publication_type: 'additional_references', pmid: '1' },
           { publication_type: 'gene_review', pmid: '2' },
-        ]),
-      ),
+        ])
+      )
     );
     const w = mountHook(useEntityPublications, 304);
     await nextTick();
@@ -66,9 +66,7 @@ describe('per-source entity sub-resource hooks', () => {
 
   it('useEntityPhenotypes returns phenotypes array', async () => {
     server.use(
-      http.get('*/api/entity/304/phenotypes', () =>
-        HttpResponse.json([{ id: 'HP:0001' }]),
-      ),
+      http.get('*/api/entity/304/phenotypes', () => HttpResponse.json([{ id: 'HP:0001' }]))
     );
     const w = mountHook(useEntityPhenotypes, 304);
     await nextTick();
@@ -77,11 +75,7 @@ describe('per-source entity sub-resource hooks', () => {
   });
 
   it('useEntityVariation returns variation array', async () => {
-    server.use(
-      http.get('*/api/entity/304/variation', () =>
-        HttpResponse.json([{ id: 'VAR:1' }]),
-      ),
-    );
+    server.use(http.get('*/api/entity/304/variation', () => HttpResponse.json([{ id: 'VAR:1' }])));
     const w = mountHook(useEntityVariation, 304);
     await nextTick();
     await new Promise((r) => setTimeout(r, 10));

@@ -69,7 +69,7 @@ export interface DeleteLogsResponse {
  */
 export async function listLogs(
   params: ListLogsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<LogListResponse> {
   return apiClient.get<LogListResponse>('/api/logs/', {
     ...config,
@@ -84,7 +84,7 @@ export async function listLogs(
  */
 export async function listLogsXlsx(
   params: Omit<ListLogsParams, 'format'> = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<Blob> {
   const response = await apiClient.raw.get<Blob>('/api/logs/', {
     ...config,
@@ -105,7 +105,7 @@ export async function listLogsXlsx(
  */
 export async function deleteLogs(
   params: DeleteLogsParams = {},
-  config?: AxiosRequestConfig,
+  config?: AxiosRequestConfig
 ): Promise<DeleteLogsResponse> {
   return apiClient.delete<DeleteLogsResponse>('/api/logs/', {
     ...config,

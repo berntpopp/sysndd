@@ -364,7 +364,7 @@ onMounted(async () => {
     if (Array.isArray(data)) {
       sections = data as unknown as AboutSection[];
     } else if (data && typeof data === 'object' && 'sections' in data) {
-      sections = ((data as unknown as { sections?: AboutSection[] }).sections) || [];
+      sections = (data as unknown as { sections?: AboutSection[] }).sections || [];
     }
 
     if (sections.length > 0) {

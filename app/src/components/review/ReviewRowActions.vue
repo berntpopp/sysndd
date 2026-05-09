@@ -32,7 +32,15 @@
       v-b-tooltip.hover.top
       size="sm"
       class="me-1 btn-xs"
-      :variant="(stoplightsStyle[item.active_category ?? ''] as 'secondary' | 'primary' | 'success' | 'warning' | 'danger' | 'info') || 'secondary'"
+      :variant="
+        (stoplightsStyle[item.active_category ?? ''] as
+          | 'secondary'
+          | 'primary'
+          | 'success'
+          | 'warning'
+          | 'danger'
+          | 'info') || 'secondary'
+      "
       :title="item.status_change ? 'Edit new status' : 'Edit status'"
       :aria-label="`${item.status_change ? 'Edit new status' : 'Edit status'} for entity ${item.entity_id}`"
       @click="$emit('edit-status', item)"

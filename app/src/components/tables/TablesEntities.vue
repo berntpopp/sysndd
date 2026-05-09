@@ -855,19 +855,35 @@ export default {
   background-size: 400% 100%;
   animation: entities-skeleton-shimmer 1.4s ease infinite;
 }
-.entities-skeleton-w-8  { width: 8%;  }
-.entities-skeleton-w-10 { width: 10%; }
-.entities-skeleton-w-12 { width: 12%; }
-.entities-skeleton-w-15 { width: 15%; }
-.entities-skeleton-w-30 { width: 30%; }
+.entities-skeleton-w-8 {
+  width: 8%;
+}
+.entities-skeleton-w-10 {
+  width: 10%;
+}
+.entities-skeleton-w-12 {
+  width: 12%;
+}
+.entities-skeleton-w-15 {
+  width: 15%;
+}
+.entities-skeleton-w-30 {
+  width: 30%;
+}
 .entities-skeleton-row + .entities-skeleton-row {
   border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 @keyframes entities-skeleton-shimmer {
-  0%   { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .entities-skeleton-line { animation: none; }
+  .entities-skeleton-line {
+    animation: none;
+  }
 }
 </style>
