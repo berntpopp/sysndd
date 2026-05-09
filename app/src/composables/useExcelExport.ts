@@ -7,7 +7,6 @@
  */
 
 import { ref } from 'vue';
-import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 
 export interface ExcelExportOptions {
@@ -69,6 +68,7 @@ export function useExcelExport(): UseExcelExportReturn {
 
     try {
       const { filename = 'export', sheetName = 'Data', headers } = options;
+      const { default: ExcelJS } = await import('exceljs');
 
       // Create workbook and worksheet
       const workbook = new ExcelJS.Workbook();
