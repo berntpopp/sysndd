@@ -1,51 +1,25 @@
 <!-- src/views/analyses/PhenotypeCorrelations.vue -->
 <template>
-  <div class="container-fluid bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <div>
-            <BCard title="Phenotype correlations" no-body>
-              <BCardHeader header-tag="nav">
-                <BNav card-header tabs>
-                  <!-- <BNavItem>'s with child routes. Note the trailing slash on the first <BNavItem> -->
-                  <BNavItem to="/PhenotypeCorrelations" exact exact-active-class="active">
-                    Phenotype correlogram
-                  </BNavItem>
-                  <BNavItem
-                    to="/PhenotypeCorrelations/PhenotypeCounts"
-                    exact
-                    exact-active-class="active"
-                  >
-                    Phenotype counts
-                  </BNavItem>
-                  <BNavItem
-                    to="/PhenotypeCorrelations/PhenotypeClusters"
-                    exact
-                    exact-active-class="active"
-                  >
-                    Phenotype clustering
-                  </BNavItem>
-                </BNav>
-              </BCardHeader>
-
-              <BCardBody>
-                <router-view />
-              </BCardBody>
-            </BCard>
-          </div>
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AnalysisShell
+    title="Phenotype correlations"
+    subtitle="Compare phenotype co-occurrence, frequency, and cluster structure across curated SysNDD entities."
+    nav-label="Phenotype correlation views"
+    :tabs="tabs"
+  >
+    <router-view />
+  </AnalysisShell>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
+import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
 export default {
   name: 'PhenotypeCorrelations',
+  components: {
+    AnalysisShell,
+  },
   setup() {
     const { makeToast } = useToast();
     useHead({
@@ -59,7 +33,13 @@ export default {
       ],
     });
 
-    return { makeToast };
+    const tabs = [
+      { label: 'Phenotype correlogram', to: '/PhenotypeCorrelations' },
+      { label: 'Phenotype counts', to: '/PhenotypeCorrelations/PhenotypeCounts' },
+      { label: 'Phenotype clustering', to: '/PhenotypeCorrelations/PhenotypeClusters' },
+    ];
+
+    return { makeToast, tabs };
   },
   data() {
     return {

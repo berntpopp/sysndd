@@ -1,101 +1,90 @@
 <!-- src/components/analyses/PublicationsNDDStats.vue -->
 <template>
-  <BContainer fluid>
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            NDD Publications Statistics
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="Shows aggregated counts for journals, authors, or keywords, from the publication_stats endpoint."
-            >
-              (Bar Plots)
-            </mark>
-            <BBadge id="popover-badge-help-publications-stats" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover
-              target="popover-badge-help-publications-stats"
-              variant="info"
-              triggers="focus"
-            >
-              <template #title> Publications Statistics </template>
-              This bar chart displays counts for selected categories (journal, author/lastname, or
-              keywords).
-            </BPopover>
-          </h6>
-        </div>
-      </template>
+  <AnalysisPanel
+    title="NDD publication statistics"
+    description="Aggregated journal, author, and keyword counts from curated publications."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-publications-stats"
+        aria-label="Explain publication statistics"
+      />
+      <BPopover target="popover-badge-help-publications-stats" variant="info" triggers="focus">
+        <template #title> Publications Statistics </template>
+        This bar chart displays counts for selected categories (journal, author/lastname, or
+        keywords).
+      </BPopover>
+    </template>
 
-      <!-- Metrics Cards Row - Loading skeleton -->
-      <BRow v-if="loadingCount" class="mb-3 px-2">
-        <BCol v-for="n in 4" :key="n" sm="6" md="3" class="mb-2">
-          <BCard class="h-100 text-center">
-            <BSpinner small label="Loading..." />
-          </BCard>
-        </BCol>
-      </BRow>
+    <!-- Metrics Cards Row - Loading skeleton -->
+    <BRow v-if="loadingCount" class="mb-3 px-2">
+      <BCol v-for="n in 4" :key="n" sm="6" md="3" class="mb-2">
+        <BCard class="h-100 text-center">
+          <BSpinner small label="Loading..." />
+        </BCard>
+      </BCol>
+    </BRow>
 
-      <!-- Metrics Cards Row - Loaded -->
-      <BRow v-if="!loadingCount && statsData" class="mb-3 px-2">
-        <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
-          <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
-            <div class="d-flex flex-column align-items-center">
-              <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" />
-              <h6 class="mt-2 mb-1 text-muted">{{ card.title }}</h6>
-              <h4 class="mb-0">{{ card.value }}</h4>
-            </div>
-          </BCard>
-        </BCol>
-      </BRow>
+    <!-- Metrics Cards Row - Loaded -->
+    <BRow v-if="!loadingCount && statsData" class="mb-3 px-2">
+      <BCol v-for="(card, index) in metricsCards" :key="index" sm="6" md="3" class="mb-2">
+        <BCard :border-variant="card.variant" class="h-100 text-center metrics-card">
+          <div class="d-flex flex-column align-items-center">
+            <i :class="['bi', card.icon, 'fs-3', `text-${card.variant}`]" />
+            <h6 class="mt-2 mb-1 text-muted">{{ card.title }}</h6>
+            <h4 class="mb-0">{{ card.value }}</h4>
+          </div>
+        </BCard>
+      </BCol>
+    </BRow>
 
-      <!-- User Interface controls: category selection and min count filter -->
-      <BRow>
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Category" class="mb-1" size="sm">
-            <BFormSelect
-              v-model="selectedCategory"
-              :options="categoryOptions"
-              size="sm"
-              @change="generateBarPlot"
-            />
-          </BInputGroup>
-        </BCol>
+    <!-- User Interface controls: category selection and min count filter -->
+    <BRow>
+      <BCol class="my-1" sm="4">
+        <BInputGroup prepend="Category" class="mb-1" size="sm">
+          <BFormSelect
+            v-model="selectedCategory"
+            :options="categoryOptions"
+            size="sm"
+            @change="generateBarPlot"
+          />
+        </BInputGroup>
+      </BCol>
 
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-            <BFormInput
-              v-model.number="minCount"
-              type="number"
-              min="1"
-              step="1"
-              debounce="500"
-              @update:model-value="fetchStats"
-            />
-          </BInputGroup>
-        </BCol>
+      <BCol class="my-1" sm="4">
+        <BInputGroup prepend="Min Count" class="mb-1" size="sm">
+          <BFormInput
+            v-model.number="minCount"
+            type="number"
+            min="1"
+            step="1"
+            debounce="500"
+            @update:model-value="fetchStats"
+          />
+        </BInputGroup>
+      </BCol>
 
-        <BCol class="my-1" sm="4">
-          <small class="text-muted">
-            Showing {{ filteredItemCount }} items ({{ filteredPublicationCount.toLocaleString() }}
-            pubs)
-          </small>
-        </BCol>
-      </BRow>
+      <BCol class="my-1" sm="4">
+        <small class="text-muted">
+          Showing {{ filteredItemCount }} items ({{ filteredPublicationCount.toLocaleString() }}
+          pubs)
+        </small>
+      </BCol>
+    </BRow>
 
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
-        <div v-show="!loadingCount" id="stats_dataviz" class="svg-container" />
-      </div>
-    </BCard>
-  </BContainer>
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
+      <div v-show="!loadingCount" id="stats_dataviz" class="svg-container" />
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import * as d3 from 'd3';
 import useToast from '@/composables/useToast';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 // Typed API clients (W5)
 import { getPublicationStats } from '@/api/statistics';
@@ -103,6 +92,7 @@ import { listPublications } from '@/api/publication';
 
 export default {
   name: 'PublicationsNDDStats',
+  components: { AnalysisPanel, InlineHelpBadge },
   setup() {
     const { makeToast } = useToast();
     return { makeToast };

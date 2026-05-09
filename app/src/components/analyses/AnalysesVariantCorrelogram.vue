@@ -1,49 +1,32 @@
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Matrix of
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This plot shows the correlation coefficients between various variants."
-            >
-              variant correlations </mark
-            >.
-            <BBadge id="popover-badge-help-variant" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-variant" variant="info" triggers="focus">
-              <template #title> Variant Correlations </template>
-              This plot displays the Pearson correlation coefficients between different genetic
-              variants. The color intensity represents the strength of the correlation:
-              <ul>
-                <li><strong>Red:</strong> Positive correlation</li>
-                <li><strong>Blue:</strong> Negative correlation</li>
-                <li><strong>White:</strong> No correlation</li>
-              </ul>
-              Click on cells to view entities with either variant, or hover to see exact correlation
-              values.
-            </BPopover>
-          </h6>
-          <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />
-        </div>
-      </template>
+  <AnalysisPanel
+    title="Matrix of variant correlations"
+    description="Pearson correlation heatmap for observed genetic variant consequence classes."
+  >
+    <template #actions>
+      <InlineHelpBadge id="popover-badge-help-variant" aria-label="Explain variant correlations" />
+      <BPopover target="popover-badge-help-variant" variant="info" triggers="focus">
+        <template #title> Variant Correlations </template>
+        This plot displays the Pearson correlation coefficients between different genetic variants.
+        Click on cells to view entities with either variant, or hover to see exact correlation
+        values.
+      </BPopover>
+      <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'variant_correlation_matrix'" />
+    </template>
 
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loadingMatrix" label="Loading..." class="spinner" />
-        <div v-show="!loadingMatrix" id="matrix_dataviz" class="svg-container" />
-      </div>
-    </BCard>
-  </BContainer>
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loadingMatrix" label="Loading..." class="spinner" />
+      <div v-show="!loadingMatrix" id="matrix_dataviz" class="svg-container" />
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -52,7 +35,9 @@ import { getVariantCorrelation } from '@/api/variant';
 export default {
   name: 'AnalysesVariantCorrelogram',
   components: {
+    AnalysisPanel,
     DownloadImageButtons,
+    InlineHelpBadge,
   },
   setup() {
     const { makeToast } = useToast();

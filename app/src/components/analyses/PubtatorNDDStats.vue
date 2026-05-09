@@ -1,166 +1,155 @@
 <!-- src/components/analyses/PubtatorNDDStats.vue -->
 <template>
-  <BContainer fluid>
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            PubTator NDD Statistics
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="Shows aggregated statistics from PubTator gene-publication associations."
-            >
-              (Summary &amp; Bar Plots)
-            </mark>
-            <BBadge id="popover-badge-help-pubtator-stats" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-pubtator-stats" variant="info" triggers="focus">
-              <template #title> About PubTator NDD Statistics </template>
-              <p>
-                <strong>PubTator</strong> is NCBI's text mining service that identifies genes
-                mentioned in biomedical literature. These statistics show the distribution of
-                NDD-related publications per gene from our cached PubTator searches.
-              </p>
-              <p class="mb-0">
-                <strong>How to use:</strong><br />
-                - <em>Summary cards</em>: Quick overview of gene coverage<br />
-                - <em>Top Genes</em>: Shows genes with most publication mentions<br />
-                - <em>Publications by Gene Count</em>: Histogram of how many publications mention N
-                genes<br />
-                - Adjust <em>Min Count</em> to filter genes with few mentions<br />
-                - Adjust <em>Top N</em> to show more/fewer bars
-              </p>
-            </BPopover>
-          </h6>
-        </div>
-      </template>
+  <AnalysisPanel
+    title="PubTator NDD statistics"
+    description="Gene-publication coverage summaries from cached PubTator NDD searches."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-pubtator-stats"
+        aria-label="Explain PubTator NDD statistics"
+      />
+      <BPopover target="popover-badge-help-pubtator-stats" variant="info" triggers="focus">
+        <template #title> About PubTator NDD Statistics </template>
+        <p>
+          <strong>PubTator</strong> is NCBI's text mining service that identifies genes mentioned in
+          biomedical literature. These statistics show the distribution of NDD-related publications
+          per gene from our cached PubTator searches.
+        </p>
+        <p class="mb-0">
+          <strong>How to use:</strong><br />
+          - <em>Summary cards</em>: Quick overview of gene coverage<br />
+          - <em>Top Genes</em>: Shows genes with most publication mentions<br />
+          - <em>Publications by Gene Count</em>: Histogram of how many publications mention N
+          genes<br />
+          - Adjust <em>Min Count</em> to filter genes with few mentions<br />
+          - Adjust <em>Top N</em> to show more/fewer bars
+        </p>
+      </BPopover>
+    </template>
 
-      <!-- Summary Stats Cards -->
-      <BRow class="p-3">
-        <BCol md="4">
-          <BCard class="text-center h-100" border-variant="primary">
-            <template #header>
-              <small class="text-muted">Total Genes</small>
-            </template>
-            <BCardBody class="py-2">
-              <BSpinner v-if="loadingStats" small />
-              <template v-else>
-                <h3 class="mb-0 text-primary">
-                  {{ isFilterActive ? filteredTotal : totalGenes }}
-                </h3>
-                <small v-if="isFilterActive" class="text-muted"> of {{ totalGenes }} total </small>
-              </template>
-            </BCardBody>
-          </BCard>
-        </BCol>
-        <BCol md="4">
-          <BCard class="text-center h-100" border-variant="info">
-            <template #header>
-              <small class="text-muted">Literature Only</small>
-            </template>
-            <BCardBody class="py-2">
-              <BSpinner v-if="loadingStats" small />
-              <template v-else>
-                <h3 class="mb-0 text-info">
-                  {{ isFilterActive ? filteredNovel : novelGenes }}
-                </h3>
-                <small v-if="isFilterActive" class="text-muted"> of {{ novelGenes }} total </small>
-                <small v-else class="text-muted">(not yet curated)</small>
-              </template>
-            </BCardBody>
-          </BCard>
-        </BCol>
-        <BCol md="4">
-          <BCard class="text-center h-100" border-variant="success">
-            <template #header>
-              <small class="text-muted">Curated</small>
-            </template>
-            <BCardBody class="py-2">
-              <BSpinner v-if="loadingStats" small />
-              <template v-else>
-                <h3 class="mb-0 text-success">
-                  {{ isFilterActive ? filteredCurated : inSysnddGenes }}
-                </h3>
-                <small v-if="isFilterActive" class="text-muted">
-                  of {{ inSysnddGenes }} total
-                </small>
-                <small v-else class="text-muted">(in SysNDD)</small>
-              </template>
-            </BCardBody>
-          </BCard>
-        </BCol>
-      </BRow>
-
-      <!-- Active filter indicator -->
-      <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
-        <small class="text-muted">
-          <i class="bi bi-funnel-fill me-1" />
-          Showing genes with &ge;{{ minCount }} publications
-          <template v-if="displayedCount < filteredTotal">
-            (top {{ displayedCount }} of {{ filteredTotal }})
+    <!-- Summary Stats Cards -->
+    <BRow class="p-3">
+      <BCol md="4">
+        <BCard class="text-center h-100" border-variant="primary">
+          <template #header>
+            <small class="text-muted">Total Genes</small>
           </template>
-        </small>
-      </div>
+          <BCardBody class="py-2">
+            <BSpinner v-if="loadingStats" small />
+            <template v-else>
+              <h3 class="mb-0 text-primary">
+                {{ isFilterActive ? filteredTotal : totalGenes }}
+              </h3>
+              <small v-if="isFilterActive" class="text-muted"> of {{ totalGenes }} total </small>
+            </template>
+          </BCardBody>
+        </BCard>
+      </BCol>
+      <BCol md="4">
+        <BCard class="text-center h-100" border-variant="info">
+          <template #header>
+            <small class="text-muted">Literature Only</small>
+          </template>
+          <BCardBody class="py-2">
+            <BSpinner v-if="loadingStats" small />
+            <template v-else>
+              <h3 class="mb-0 text-info">
+                {{ isFilterActive ? filteredNovel : novelGenes }}
+              </h3>
+              <small v-if="isFilterActive" class="text-muted"> of {{ novelGenes }} total </small>
+              <small v-else class="text-muted">(not yet curated)</small>
+            </template>
+          </BCardBody>
+        </BCard>
+      </BCol>
+      <BCol md="4">
+        <BCard class="text-center h-100" border-variant="success">
+          <template #header>
+            <small class="text-muted">Curated</small>
+          </template>
+          <BCardBody class="py-2">
+            <BSpinner v-if="loadingStats" small />
+            <template v-else>
+              <h3 class="mb-0 text-success">
+                {{ isFilterActive ? filteredCurated : inSysnddGenes }}
+              </h3>
+              <small v-if="isFilterActive" class="text-muted"> of {{ inSysnddGenes }} total </small>
+              <small v-else class="text-muted">(in SysNDD)</small>
+            </template>
+          </BCardBody>
+        </BCard>
+      </BCol>
+    </BRow>
 
-      <!-- User Interface controls -->
-      <BRow class="p-2">
-        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
-          <BInputGroup prepend="Category" class="mb-1" size="sm">
-            <BFormSelect
-              v-model="selectedCategory"
-              :options="categoryOptions"
-              size="sm"
-              @change="processAndPlot"
-            />
-          </BInputGroup>
-        </BCol>
+    <!-- Active filter indicator -->
+    <div v-if="isFilterActive && !loadingStats" class="text-center pb-1">
+      <small class="text-muted">
+        <i class="bi bi-funnel-fill me-1" />
+        Showing genes with &ge;{{ minCount }} publications
+        <template v-if="displayedCount < filteredTotal">
+          (top {{ displayedCount }} of {{ filteredTotal }})
+        </template>
+      </small>
+    </div>
 
-        <!-- Min Count only applies to gene category (filters genes by publication count) -->
-        <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
-          <BInputGroup prepend="Min Count" class="mb-1" size="sm">
-            <BFormInput v-model.number="minCount" type="number" min="1" step="1" debounce="500" />
-          </BInputGroup>
-        </BCol>
-
-        <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
-          <BInputGroup
-            :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'"
-            class="mb-1"
+    <!-- User Interface controls -->
+    <BRow class="p-2">
+      <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
+        <BInputGroup prepend="Category" class="mb-1" size="sm">
+          <BFormSelect
+            v-model="selectedCategory"
+            :options="categoryOptions"
             size="sm"
-          >
-            <BFormInput
-              v-model.number="topN"
-              type="number"
-              min="5"
-              max="100"
-              step="5"
-              debounce="500"
-            />
-          </BInputGroup>
-        </BCol>
-      </BRow>
+            @change="processAndPlot"
+          />
+        </BInputGroup>
+      </BCol>
 
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loading" label="Loading..." class="spinner" />
-        <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
-        <div
-          v-if="!loading && selectedCategory === 'gene'"
-          class="d-flex justify-content-center gap-2 pb-3"
+      <!-- Min Count only applies to gene category (filters genes by publication count) -->
+      <BCol v-if="selectedCategory === 'gene'" class="my-1" sm="4">
+        <BInputGroup prepend="Min Count" class="mb-1" size="sm">
+          <BFormInput v-model.number="minCount" type="number" min="1" step="1" debounce="500" />
+        </BInputGroup>
+      </BCol>
+
+      <BCol class="my-1" :sm="selectedCategory === 'gene' ? 4 : 6">
+        <BInputGroup
+          :prepend="selectedCategory === 'gene' ? 'Top N' : 'Max Bins'"
+          class="mb-1"
+          size="sm"
         >
-          <BBadge variant="success" pill>
-            <i class="bi bi-check-circle me-1" />
-            Curated
-          </BBadge>
-          <BBadge variant="info" pill>
-            <i class="bi bi-journal-text me-1" />
-            Literature Only
-          </BBadge>
-        </div>
+          <BFormInput
+            v-model.number="topN"
+            type="number"
+            min="5"
+            max="100"
+            step="5"
+            debounce="500"
+          />
+        </BInputGroup>
+      </BCol>
+    </BRow>
+
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loading" label="Loading..." class="spinner" />
+      <div v-show="!loading" id="pubtator_stats_dataviz" class="svg-container" />
+      <div
+        v-if="!loading && selectedCategory === 'gene'"
+        class="d-flex justify-content-center gap-2 pb-3"
+      >
+        <BBadge variant="success" pill>
+          <i class="bi bi-check-circle me-1" />
+          Curated
+        </BBadge>
+        <BBadge variant="info" pill>
+          <i class="bi bi-journal-text me-1" />
+          Literature Only
+        </BBadge>
       </div>
-    </BCard>
-  </BContainer>
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script setup lang="ts">
@@ -168,6 +157,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import * as d3 from 'd3';
 import useToast from '@/composables/useToast';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import { CURATION_COLORS } from '@/utils/chartColors';
 import { listPubtatorGenes } from '@/api/publication';
 

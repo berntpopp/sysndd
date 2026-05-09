@@ -1,71 +1,62 @@
 <!-- src/components/analyses/AnalysesTimePlot.vue -->
 <template>
-  <BContainer fluid>
+  <AnalysisPanel
+    title="NDD entities and genes over time"
+    description="Interactive timeline of curated entities and genes by aggregation and grouping."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-timeplot"
+        aria-label="Explain entities over time plot"
+      />
+      <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
+        <template #title> Time Plot Details </template>
+        This section provides a dynamic visualization of the number of neurodevelopmental disorder
+        (NDD) entities and genes over time. The plot can be customized by aggregation type and
+        grouping criteria. Hover over the points to see detailed information, and use the legend to
+        filter the categories displayed.
+      </BPopover>
+      <DownloadImageButtons :svg-id="'timeplot-svg'" :file-name="'entities_over_time'" />
+    </template>
+    <BRow>
+      <!-- column 1 -->
+      <BCol class="my-1">
+        <BInputGroup prepend="Aggregation" class="mb-1" size="sm">
+          <BFormSelect
+            v-model="selected_aggregate"
+            input-id="aggregate-select"
+            :options="aggregate_list"
+            text-field="text"
+            size="sm"
+          />
+        </BInputGroup>
+
+        <BInputGroup prepend="Grouping" class="mb-1" size="sm">
+          <BFormSelect
+            v-model="selected_group"
+            input-id="group-select"
+            :options="filteredGroupList"
+            text-field="text"
+            size="sm"
+          />
+        </BInputGroup>
+      </BCol>
+    </BRow>
     <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            NDD entities and genes
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This plot shows the number of NDD entities and genes over time, categorized by different criteria. It provides an interactive way to explore trends and patterns in the data."
-              >over time</mark
-            >.
-            <InlineHelpBadge
-              id="popover-badge-help-timeplot"
-              aria-label="Explain entities over time plot"
-            />
-            <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
-              <template #title> Time Plot Details </template>
-              This section provides a dynamic visualization of the number of neurodevelopmental
-              disorder (NDD) entities and genes over time. The plot can be customized by aggregation
-              type and grouping criteria. Hover over the points to see detailed information, and use
-              the legend to filter the categories displayed.
-            </BPopover>
-          </h6>
-          <DownloadImageButtons :svg-id="'timeplot-svg'" :file-name="'entities_over_time'" />
-        </div>
-      </template>
-      <BRow>
-        <!-- column 1 -->
-        <BCol class="my-1">
-          <BInputGroup prepend="Aggregation" class="mb-1" size="sm">
-            <BFormSelect
-              v-model="selected_aggregate"
-              input-id="aggregate-select"
-              :options="aggregate_list"
-              text-field="text"
-              size="sm"
-            />
-          </BInputGroup>
 
-          <BInputGroup prepend="Grouping" class="mb-1" size="sm">
-            <BFormSelect
-              v-model="selected_group"
-              input-id="group-select"
-              :options="filteredGroupList"
-              text-field="text"
-              size="sm"
-            />
-          </BInputGroup>
-        </BCol>
-      </BRow>
-      <!-- User Interface controls -->
-
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loadingData" label="Loading..." class="spinner" />
-        <div v-show="!loadingData" id="my_dataviz" class="svg-container" />
-      </div>
-    </BCard>
-  </BContainer>
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loadingData" label="Loading..." class="spinner" />
+      <div v-show="!loadingData" id="my_dataviz" class="svg-container" />
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import { useToast, useText } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -74,6 +65,7 @@ import { getEntitiesOverTime } from '@/api/statistics';
 export default {
   name: 'AnalysesTimePlot',
   components: {
+    AnalysisPanel,
     DownloadImageButtons,
     InlineHelpBadge,
   },

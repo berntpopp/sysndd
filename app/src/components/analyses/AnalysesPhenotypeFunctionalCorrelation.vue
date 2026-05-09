@@ -1,54 +1,35 @@
 <!-- src/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue -->
 <template>
-  <BContainer fluid>
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <!-- Header with heading, tooltip, and optional DownloadImageButtons -->
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Phenotype & Functional Clusters
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This heatmap shows the pairwise Pearson correlation between clusters derived from phenotype data (MCA) and functional data (STRING), plus optional SFARI genes."
-            >
-              correlation </mark
-            >.
-            <BBadge id="popover-badge-help-correlations" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <!-- The popover with more details -->
-            <BPopover target="popover-badge-help-correlations" variant="info" triggers="focus">
-              <template #title> Correlation Heatmap Details </template>
-              This heatmap displays the Pearson correlation between pairs of clusters:
-              <ul>
-                <li><strong>pc_#</strong> = Phenotype-based clusters (MCA)</li>
-                <li><strong>fc_#</strong> = Functional clusters (STRING)</li>
-              </ul>
-              A correlation of <strong>+1</strong> indicates strong similarity, whereas
-              <strong>-1</strong> implies opposite patterns. Hover over cells to see exact values.
-            </BPopover>
-          </h6>
+  <AnalysisPanel
+    title="Phenotype & functional clusters correlation"
+    description="Heatmap comparing phenotype-derived clusters with STRING functional clusters."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-correlations"
+        aria-label="Explain phenotype and functional cluster correlation"
+      />
+      <BPopover target="popover-badge-help-correlations" variant="info" triggers="focus">
+        <template #title> Correlation Heatmap Details </template>
+        This heatmap displays the Pearson correlation between pairs of clusters:
+        <ul>
+          <li><strong>pc_#</strong> = Phenotype-based clusters (MCA)</li>
+          <li><strong>fc_#</strong> = Functional clusters (STRING)</li>
+        </ul>
+        A correlation of <strong>+1</strong> indicates strong similarity, whereas
+        <strong>-1</strong> implies opposite patterns. Hover over cells to see exact values.
+      </BPopover>
+    </template>
 
-          <!-- Example DownloadImageButtons if you want to capture the SVG -->
-          <!--
-          <DownloadImageButtons
-            :svg-id="'pheno-func-corr-svg'"
-            :file-name="'pheno_func_correlation'"
-          />
-          -->
-        </div>
-      </template>
-
-      <!-- content with overlay spinner -->
-      <div class="position-relative">
-        <div id="phenotypeFunctionalCorrelationViz" class="svg-container" />
-        <div v-show="loadingCorrelation" class="m-3 text-center">
-          <BSpinner label="Loading..." class="spinner" />
-          <p>Loading correlation data...</p>
-        </div>
+    <!-- content with overlay spinner -->
+    <div class="position-relative">
+      <div id="phenotypeFunctionalCorrelationViz" class="svg-container" />
+      <div v-show="loadingCorrelation" class="m-3 text-center">
+        <BSpinner label="Loading..." class="spinner" />
+        <p>Loading correlation data...</p>
       </div>
-    </BCard>
-  </BContainer>
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
@@ -60,6 +41,8 @@
  */
 
 import useToast from '@/composables/useToast';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 // import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue'; // If needed
 
@@ -68,7 +51,7 @@ import { getPhenotypeFunctionalCorrelation } from '@/api/analysis';
 
 export default {
   name: 'AnalysesPhenotypeFunctionalCorrelation',
-  // components: { DownloadImageButtons }, // If you want the download buttons
+  components: { AnalysisPanel, InlineHelpBadge },
   setup() {
     const { makeToast } = useToast();
     return { makeToast };

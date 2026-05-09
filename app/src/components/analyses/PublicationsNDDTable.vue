@@ -1,229 +1,215 @@
 <!-- src/components/analyses/PublicationsNDDTable.vue -->
 <template>
-  <div class="container-fluid">
+  <div>
     <!-- Show an overlay spinner while loading -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Once loaded, show the table container -->
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <!-- b-card wrapper for the table and controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <!-- Card Header -->
-            <template #header>
-              <BRow>
-                <BCol>
-                  <TableHeaderLabel
-                    :label="headerLabel"
-                    :subtitle="'Publications: ' + totalRows"
-                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-                  />
-                </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <TableDownloadLinkCopyButtons
-                      :downloading="downloading"
-                      :remove-filters-title="removeFiltersButtonTitle"
-                      :remove-filters-variant="removeFiltersButtonVariant"
-                      @request-excel="requestExcel"
-                      @copy-link="copyLinkToClipboard"
-                      @remove-filters="removeFilters"
-                    />
-                  </h5>
-                </BCol>
-              </BRow>
-            </template>
+    <AnalysisPanel
+      v-else
+      title="SysNDD curated publications"
+      :description="
+        'Publications: ' +
+        totalRows +
+        ' · Loaded ' +
+        perPage +
+        '/' +
+        totalRows +
+        ' in ' +
+        executionTime
+      "
+    >
+      <template #actions>
+        <TableDownloadLinkCopyButtons
+          v-if="showFilterControls"
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          @request-excel="requestExcel"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
+      </template>
 
-            <!-- Controls (search + pagination) -->
-            <BRow>
-              <!-- Search box for "any" field -->
-              <BCol class="my-1" sm="8">
-                <TableSearchInput
-                  v-model="filter.any.content"
-                  :placeholder="'Search any field by typing here'"
-                  :debounce-time="500"
-                  @input="filtered"
-                />
-              </BCol>
+      <!-- Controls (search + pagination) -->
+      <BRow>
+        <!-- Search box for "any" field -->
+        <BCol class="my-1" sm="8">
+          <TableSearchInput
+            v-model="filter.any.content"
+            :placeholder="'Search any field by typing here'"
+            :debounce-time="500"
+            @input="filtered"
+          />
+        </BCol>
 
-              <!-- Pagination controls -->
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <!--
+        <!-- Pagination controls -->
+        <BCol class="my-1" sm="4">
+          <BContainer v-if="totalRows > perPage || showPaginationControls">
+            <!--
                     TablePaginationControls will emit:
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   -->
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- Controls (search + pagination) -->
-
-            <!-- Main GenericTable -->
-            <GenericTable
-              :items="items"
-              :fields="fields"
-              :field-details="fields_details"
-              :sort-by="sortBy"
-              :sort-desc="sortDesc"
-              @update-sort="handleSortUpdate"
-            >
-              <!-- Custom filter fields slot -->
-              <template v-if="showFilterControls" #filter-controls>
-                <td v-for="field in fields" :key="field.key">
-                  <BFormInput
-                    v-if="field.filterable"
-                    v-model="filter[field.key].content"
-                    :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                    debounce="500"
-                    type="search"
-                    autocomplete="off"
-                    @click="removeSearch()"
-                    @update="filtered()"
-                  />
-
-                  <BFormSelect
-                    v-if="field.selectable"
-                    v-model="filter[field.key].content"
-                    :options="field.selectOptions"
-                    type="search"
-                    @input="removeSearch()"
-                    @change="filtered()"
-                  >
-                    <template #first>
-                      <BFormSelectOption value="null">
-                        .. {{ truncate(field.label, 20) }} ..
-                      </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-
-                  <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
-                  <label
-                    v-if="
-                      field.multi_selectable &&
-                      field.selectOptions &&
-                      field.selectOptions.length > 0
-                    "
-                    :for="'select_' + field.key"
-                    :aria-label="field.label"
-                  >
-                    <BFormSelect
-                      :id="'select_' + field.key"
-                      v-model="filter[field.key].content"
-                      :options="normalizeSelectOptions(field.selectOptions)"
-                      size="sm"
-                      @change="
-                        removeSearch();
-                        filtered();
-                      "
-                    >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
-                  </label>
-                </td>
-              </template>
-              <!-- Custom filter fields slot -->
-
-              <!-- Custom slot for 'publication_id' - links to PubMed -->
-              <template #cell-publication_id="{ row }">
-                <a
-                  :href="getPubMedUrl(row.publication_id)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="publication-link"
-                  :aria-label="`Open PubMed article ${row.publication_id} in new tab`"
-                >
-                  <span class="publication-badge">
-                    <i class="bi bi-journal-medical me-1" />
-                    <span class="publication-id">{{ row.publication_id }}</span>
-                    <i class="bi bi-box-arrow-up-right ms-1 external-icon" />
-                  </span>
-                </a>
-              </template>
-
-              <!-- Custom slot for 'Title' -->
-              <template #cell-Title="{ row }">
-                <div v-b-tooltip.hover.top class="title-cell" :title="row.Title">
-                  <span class="title-text">{{ truncate(row.Title, 60) }}</span>
-                </div>
-              </template>
-
-              <!-- Custom slot for 'Journal' -->
-              <template #cell-Journal="{ row }">
-                <span v-if="row.Journal" class="journal-badge">
-                  <i class="bi bi-book me-1" />
-                  {{ truncate(row.Journal, 35) }}
-                </span>
-                <span v-else class="text-muted">—</span>
-              </template>
-
-              <!-- Custom slot for 'Publication_date' -->
-              <template #cell-Publication_date="{ row }">
-                <span v-if="row.Publication_date" class="date-badge">
-                  <i class="bi bi-calendar3 me-1" />
-                  {{ formatDate(row.Publication_date) }}
-                </span>
-                <span v-else class="text-muted">—</span>
-              </template>
-
-              <!-- Custom row details for expanded publication info -->
-              <template #row-expansion="{ row }">
-                <div class="publication-details">
-                  <!-- Abstract -->
-                  <div v-if="row.Abstract" class="details-section">
-                    <h6 class="details-label"><i class="bi bi-file-text me-2" />Abstract</h6>
-                    <p class="details-abstract">{{ row.Abstract }}</p>
-                  </div>
-
-                  <div class="details-row">
-                    <!-- Authors -->
-                    <div
-                      v-if="row.Lastname || row.Firstname"
-                      class="details-section details-authors"
-                    >
-                      <h6 class="details-label"><i class="bi bi-people me-2" />Authors</h6>
-                      <p class="details-text">{{ formatAuthors(row.Lastname, row.Firstname) }}</p>
-                    </div>
-
-                    <!-- Keywords -->
-                    <div v-if="row.Keywords" class="details-section details-keywords">
-                      <h6 class="details-label"><i class="bi bi-tags me-2" />Keywords</h6>
-                      <div class="keywords-container">
-                        <span
-                          v-for="(keyword, idx) in parseKeywords(row.Keywords)"
-                          :key="idx"
-                          class="keyword-tag"
-                        >
-                          {{ keyword }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Empty state -->
-                  <p v-if="!row.Abstract && !row.Lastname && !row.Keywords" class="text-muted">
-                    No additional details available for this publication.
-                  </p>
-                </div>
-              </template>
-            </GenericTable>
-            <!-- Main GenericTable -->
-          </BCard>
+            <TablePaginationControls
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              :current-page="currentPage"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </BContainer>
         </BCol>
       </BRow>
-    </BContainer>
+      <!-- Controls (search + pagination) -->
+
+      <!-- Main GenericTable -->
+      <GenericTable
+        :items="items"
+        :fields="fields"
+        :field-details="fields_details"
+        :sort-by="sortBy"
+        :sort-desc="sortDesc"
+        @update-sort="handleSortUpdate"
+      >
+        <!-- Custom filter fields slot -->
+        <template v-if="showFilterControls" #filter-controls>
+          <td v-for="field in fields" :key="field.key">
+            <BFormInput
+              v-if="field.filterable"
+              v-model="filter[field.key].content"
+              :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+              debounce="500"
+              type="search"
+              autocomplete="off"
+              @click="removeSearch()"
+              @update="filtered()"
+            />
+
+            <BFormSelect
+              v-if="field.selectable"
+              v-model="filter[field.key].content"
+              :options="field.selectOptions"
+              type="search"
+              @input="removeSearch()"
+              @change="filtered()"
+            >
+              <template #first>
+                <BFormSelectOption value="null">
+                  .. {{ truncate(field.label, 20) }} ..
+                </BFormSelectOption>
+              </template>
+            </BFormSelect>
+
+            <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+            <label
+              v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
+              :for="'select_' + field.key"
+              :aria-label="field.label"
+            >
+              <BFormSelect
+                :id="'select_' + field.key"
+                v-model="filter[field.key].content"
+                :options="normalizeSelectOptions(field.selectOptions)"
+                size="sm"
+                @change="
+                  removeSearch();
+                  filtered();
+                "
+              >
+                <template #first>
+                  <BFormSelectOption :value="null">
+                    .. {{ truncate(field.label, 20) }} ..
+                  </BFormSelectOption>
+                </template>
+              </BFormSelect>
+            </label>
+          </td>
+        </template>
+        <!-- Custom filter fields slot -->
+
+        <!-- Custom slot for 'publication_id' - links to PubMed -->
+        <template #cell-publication_id="{ row }">
+          <a
+            :href="getPubMedUrl(row.publication_id)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="publication-link"
+            :aria-label="`Open PubMed article ${row.publication_id} in new tab`"
+          >
+            <span class="publication-badge">
+              <i class="bi bi-journal-medical me-1" />
+              <span class="publication-id">{{ row.publication_id }}</span>
+              <i class="bi bi-box-arrow-up-right ms-1 external-icon" />
+            </span>
+          </a>
+        </template>
+
+        <!-- Custom slot for 'Title' -->
+        <template #cell-Title="{ row }">
+          <div v-b-tooltip.hover.top class="title-cell" :title="row.Title">
+            <span class="title-text">{{ truncate(row.Title, 60) }}</span>
+          </div>
+        </template>
+
+        <!-- Custom slot for 'Journal' -->
+        <template #cell-Journal="{ row }">
+          <span v-if="row.Journal" class="journal-badge">
+            <i class="bi bi-book me-1" />
+            {{ truncate(row.Journal, 35) }}
+          </span>
+          <span v-else class="text-muted">—</span>
+        </template>
+
+        <!-- Custom slot for 'Publication_date' -->
+        <template #cell-Publication_date="{ row }">
+          <span v-if="row.Publication_date" class="date-badge">
+            <i class="bi bi-calendar3 me-1" />
+            {{ formatDate(row.Publication_date) }}
+          </span>
+          <span v-else class="text-muted">—</span>
+        </template>
+
+        <!-- Custom row details for expanded publication info -->
+        <template #row-expansion="{ row }">
+          <div class="publication-details">
+            <!-- Abstract -->
+            <div v-if="row.Abstract" class="details-section">
+              <h6 class="details-label"><i class="bi bi-file-text me-2" />Abstract</h6>
+              <p class="details-abstract">{{ row.Abstract }}</p>
+            </div>
+
+            <div class="details-row">
+              <!-- Authors -->
+              <div v-if="row.Lastname || row.Firstname" class="details-section details-authors">
+                <h6 class="details-label"><i class="bi bi-people me-2" />Authors</h6>
+                <p class="details-text">{{ formatAuthors(row.Lastname, row.Firstname) }}</p>
+              </div>
+
+              <!-- Keywords -->
+              <div v-if="row.Keywords" class="details-section details-keywords">
+                <h6 class="details-label"><i class="bi bi-tags me-2" />Keywords</h6>
+                <div class="keywords-container">
+                  <span
+                    v-for="(keyword, idx) in parseKeywords(row.Keywords)"
+                    :key="idx"
+                    class="keyword-tag"
+                  >
+                    {{ keyword }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <p v-if="!row.Abstract && !row.Lastname && !row.Keywords" class="text-muted">
+              No additional details available for this publication.
+            </p>
+          </div>
+        </template>
+      </GenericTable>
+      <!-- Main GenericTable -->
+    </AnalysisPanel>
   </div>
 </template>
 
@@ -235,11 +221,11 @@ import { ref } from 'vue';
 import { useToast, useUrlParsing, useColorAndSymbols, useText, useTableData } from '@/composables';
 
 // Small reusable components
-import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
@@ -257,7 +243,7 @@ let moduleLastApiResponse = null; // Cache last API response for remounted compo
 export default {
   name: 'PublicationsNDDTable',
   components: {
-    TableHeaderLabel,
+    AnalysisPanel,
     TableSearchInput,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,

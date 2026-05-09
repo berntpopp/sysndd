@@ -1,14 +1,10 @@
 <template>
-  <div class="container-fluid bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <!-- Use the child component here -->
-          <AnalysesPhenotypeFunctionalCorrelation />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AnalysisShell
+    title="Phenotype & functional clusters correlation"
+    subtitle="Compare phenotype-based clusters with functional gene clusters in a heatmap view."
+  >
+    <AnalysesPhenotypeFunctionalCorrelation />
+  </AnalysisShell>
 </template>
 
 <script>
@@ -16,10 +12,12 @@ import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 // IMPORTANT: Import your child
 import AnalysesPhenotypeFunctionalCorrelation from '@/components/analyses/AnalysesPhenotypeFunctionalCorrelation.vue';
+import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
 export default {
   name: 'PhenotypeFunctionalCorrelation',
   components: {
+    AnalysisShell,
     AnalysesPhenotypeFunctionalCorrelation,
   },
   setup() {

@@ -1,259 +1,246 @@
 <!-- src/components/analyses/PubtatorNDDTable.vue -->
 <template>
-  <div class="container-fluid">
+  <div>
     <!-- Show an overlay spinner while loading -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
     <!-- Once loaded, show the table container -->
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <!-- b-card wrapper for the table and controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <!-- Card Header -->
-            <template #header>
-              <BRow>
-                <BCol>
-                  <TableHeaderLabel
-                    :label="headerLabel"
-                    :subtitle="'Publications: ' + totalRows"
-                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-                  />
-                </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <TableDownloadLinkCopyButtons
-                      :downloading="downloading"
-                      :remove-filters-title="removeFiltersButtonTitle"
-                      :remove-filters-variant="removeFiltersButtonVariant"
-                      @request-excel="requestExcel"
-                      @copy-link="copyLinkToClipboard"
-                      @remove-filters="removeFilters"
-                    />
-                  </h5>
-                </BCol>
-              </BRow>
-            </template>
+    <AnalysisPanel
+      v-else
+      title="PubTator NDD publications"
+      :description="
+        'Publications: ' +
+        totalRows +
+        ' · Loaded ' +
+        perPage +
+        '/' +
+        totalRows +
+        ' in ' +
+        executionTime
+      "
+    >
+      <template #actions>
+        <TableDownloadLinkCopyButtons
+          v-if="showFilterControls"
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          @request-excel="requestExcel"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
+      </template>
 
-            <!-- Controls (search + pagination) -->
-            <BRow>
-              <!-- Search box for "any" field -->
-              <BCol class="my-1" sm="8">
-                <TableSearchInput
-                  v-model="filter.any.content"
-                  :placeholder="'Search any field by typing here'"
-                  :debounce-time="500"
-                  @input="filtered"
-                />
-              </BCol>
+      <!-- Controls (search + pagination) -->
+      <BRow>
+        <!-- Search box for "any" field -->
+        <BCol class="my-1" sm="8">
+          <TableSearchInput
+            v-model="filter.any.content"
+            :placeholder="'Search any field by typing here'"
+            :debounce-time="500"
+            @input="filtered"
+          />
+        </BCol>
 
-              <!-- Pagination controls -->
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <!--
+        <!-- Pagination controls -->
+        <BCol class="my-1" sm="4">
+          <BContainer v-if="totalRows > perPage || showPaginationControls">
+            <!--
                     TablePaginationControls will emit:
                     @page-change="handlePageChange"
                     @per-page-change="handlePerPageChange"
                   -->
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- Controls (search + pagination) -->
-
-            <!-- Main GenericTable -->
-            <GenericTable
-              :items="items"
-              :fields="fields"
-              :field-details="fields_details"
-              :sort-by="sortBy"
-              :sort-desc="sortDesc"
-              @update-sort="handleSortUpdate"
-            >
-              <!-- Filter row removed for cleaner UI - use search box instead -->
-
-              <!-- search_id -->
-              <template #cell-search_id="{ row }">
-                <div>
-                  <BBadge variant="primary" style="cursor: pointer">
-                    {{ row.search_id }}
-                  </BBadge>
-                </div>
-              </template>
-
-              <!-- pmid - clickable button like Genes table -->
-              <template #cell-pmid="{ row }">
-                <BButton
-                  size="sm"
-                  variant="outline-primary"
-                  class="btn-xs"
-                  :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {{ row.pmid }}
-                </BButton>
-              </template>
-
-              <!-- doi -->
-              <template #cell-doi="{ row }">
-                <div class="text-truncate">
-                  <a :href="`https://doi.org/${row.doi}`" target="_blank">
-                    {{ row.doi }}
-                  </a>
-                </div>
-              </template>
-
-              <!-- title -->
-              <template #cell-title="{ row }">
-                <div
-                  v-b-tooltip.hover
-                  :title="row.title"
-                  class="overflow-hidden text-truncate"
-                  style="max-width: 300px"
-                >
-                  {{ truncate(row.title, 60) }}
-                </div>
-              </template>
-
-              <!-- journal -->
-              <template #cell-journal="{ row }">
-                <div>
-                  {{ row.journal }}
-                </div>
-              </template>
-
-              <!-- date -->
-              <template #cell-date="{ row }">
-                <div>
-                  {{ row.date }}
-                </div>
-              </template>
-
-              <!-- score -->
-              <template #cell-score="{ row }">
-                <div>
-                  {{ row.score ? row.score.toFixed(3) : '' }}
-                </div>
-              </template>
-
-              <!-- gene_symbols - clickable gene chips -->
-              <template #cell-gene_symbols="{ row }">
-                <div v-if="row.gene_symbols" class="gene-chips">
-                  <RouterLink
-                    v-for="gene in row.gene_symbols.split(',').slice(0, 3)"
-                    :key="gene"
-                    :to="'/Genes/' + gene.trim()"
-                    class="gene-chip"
-                  >
-                    {{ gene.trim() }}
-                  </RouterLink>
-                  <span
-                    v-if="row.gene_symbols.split(',').length > 3"
-                    class="gene-chip-more"
-                    :title="row.gene_symbols"
-                  >
-                    +{{ row.gene_symbols.split(',').length - 3 }}
-                  </span>
-                </div>
-                <span v-else class="text-muted">—</span>
-              </template>
-
-              <!-- text_hl - truncated preview -->
-              <template #cell-text_hl="{ row }">
-                <div
-                  v-if="row.text_hl"
-                  class="overflow-hidden text-truncate"
-                  style="max-width: 300px"
-                >
-                  <span
-                    v-for="(segment, idx) in parseAnnotations(row.text_hl).slice(0, 5)"
-                    :key="idx"
-                    :class="getSegmentClass(segment)"
-                    >{{ segment.text }}</span
-                  >
-                  <span v-if="parseAnnotations(row.text_hl).length > 5" class="text-muted"
-                    >...</span
-                  >
-                </div>
-                <div v-else>
-                  <span class="text-muted">No highlight text</span>
-                </div>
-              </template>
-
-              <!-- Row details slot for expanded annotation view -->
-              <template #row-expansion="{ row }">
-                <div class="publication-details">
-                  <div class="details-section">
-                    <!-- Title -->
-                    <div v-if="row.title" class="details-title">
-                      {{ row.title }}
-                    </div>
-
-                    <div class="details-row">
-                      <!-- PMID & Date & Journal -->
-                      <div class="details-meta">
-                        <a
-                          :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="details-pmid"
-                        >
-                          <i class="bi bi-journal-medical me-1" />
-                          PMID:{{ row.pmid }}
-                          <i class="bi bi-box-arrow-up-right ms-1" />
-                        </a>
-                        <span v-if="row.date" class="details-date">
-                          <i class="bi bi-calendar3 me-1" />
-                          {{ row.date }}
-                        </span>
-                        <span v-if="row.journal" class="details-journal">
-                          <i class="bi bi-book me-1" />
-                          {{ row.journal }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Annotated Text Section -->
-                    <div v-if="row.text_hl" class="annotated-text-section mt-3">
-                      <div class="annotated-text-label text-muted small mb-1">
-                        <i class="bi bi-highlighter me-1" />Annotated Text:
-                      </div>
-                      <div class="annotated-text">
-                        <span
-                          v-for="(segment, idx) in parseAnnotations(row.text_hl)"
-                          :key="idx"
-                          :class="getSegmentClass(segment)"
-                          :title="getSegmentTooltip(segment)"
-                          >{{ segment.text }}</span
-                        >
-                      </div>
-                      <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
-                        <span><span class="pubtator-gene px-1">Gene</span></span>
-                        <span><span class="pubtator-disease px-1">Disease</span></span>
-                        <span><span class="pubtator-variant px-1">Variant</span></span>
-                        <span><span class="pubtator-species px-1">Species</span></span>
-                        <span><span class="pubtator-chemical px-1">Chemical</span></span>
-                        <span><span class="pubtator-match px-1">Match</span></span>
-                      </div>
-                    </div>
-                    <div v-else class="text-muted mt-3">
-                      <i class="bi bi-info-circle me-1" />No annotated text available.
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </GenericTable>
-            <!-- Main GenericTable -->
-          </BCard>
+            <TablePaginationControls
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </BContainer>
         </BCol>
       </BRow>
-    </BContainer>
+      <!-- Controls (search + pagination) -->
+
+      <!-- Main GenericTable -->
+      <GenericTable
+        :items="items"
+        :fields="fields"
+        :field-details="fields_details"
+        :sort-by="sortBy"
+        :sort-desc="sortDesc"
+        @update-sort="handleSortUpdate"
+      >
+        <!-- Filter row removed for cleaner UI - use search box instead -->
+
+        <!-- search_id -->
+        <template #cell-search_id="{ row }">
+          <div>
+            <BBadge variant="primary" style="cursor: pointer">
+              {{ row.search_id }}
+            </BBadge>
+          </div>
+        </template>
+
+        <!-- pmid - clickable button like Genes table -->
+        <template #cell-pmid="{ row }">
+          <BButton
+            size="sm"
+            variant="outline-primary"
+            class="btn-xs"
+            :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ row.pmid }}
+          </BButton>
+        </template>
+
+        <!-- doi -->
+        <template #cell-doi="{ row }">
+          <div class="text-truncate">
+            <a :href="`https://doi.org/${row.doi}`" target="_blank">
+              {{ row.doi }}
+            </a>
+          </div>
+        </template>
+
+        <!-- title -->
+        <template #cell-title="{ row }">
+          <div
+            v-b-tooltip.hover
+            :title="row.title"
+            class="overflow-hidden text-truncate"
+            style="max-width: 300px"
+          >
+            {{ truncate(row.title, 60) }}
+          </div>
+        </template>
+
+        <!-- journal -->
+        <template #cell-journal="{ row }">
+          <div>
+            {{ row.journal }}
+          </div>
+        </template>
+
+        <!-- date -->
+        <template #cell-date="{ row }">
+          <div>
+            {{ row.date }}
+          </div>
+        </template>
+
+        <!-- score -->
+        <template #cell-score="{ row }">
+          <div>
+            {{ row.score ? row.score.toFixed(3) : '' }}
+          </div>
+        </template>
+
+        <!-- gene_symbols - clickable gene chips -->
+        <template #cell-gene_symbols="{ row }">
+          <div v-if="row.gene_symbols" class="gene-chips">
+            <RouterLink
+              v-for="gene in row.gene_symbols.split(',').slice(0, 3)"
+              :key="gene"
+              :to="'/Genes/' + gene.trim()"
+              class="gene-chip"
+            >
+              {{ gene.trim() }}
+            </RouterLink>
+            <span
+              v-if="row.gene_symbols.split(',').length > 3"
+              class="gene-chip-more"
+              :title="row.gene_symbols"
+            >
+              +{{ row.gene_symbols.split(',').length - 3 }}
+            </span>
+          </div>
+          <span v-else class="text-muted">—</span>
+        </template>
+
+        <!-- text_hl - truncated preview -->
+        <template #cell-text_hl="{ row }">
+          <div v-if="row.text_hl" class="overflow-hidden text-truncate" style="max-width: 300px">
+            <span
+              v-for="(segment, idx) in parseAnnotations(row.text_hl).slice(0, 5)"
+              :key="idx"
+              :class="getSegmentClass(segment)"
+              >{{ segment.text }}</span
+            >
+            <span v-if="parseAnnotations(row.text_hl).length > 5" class="text-muted">...</span>
+          </div>
+          <div v-else>
+            <span class="text-muted">No highlight text</span>
+          </div>
+        </template>
+
+        <!-- Row details slot for expanded annotation view -->
+        <template #row-expansion="{ row }">
+          <div class="publication-details">
+            <div class="details-section">
+              <!-- Title -->
+              <div v-if="row.title" class="details-title">
+                {{ row.title }}
+              </div>
+
+              <div class="details-row">
+                <!-- PMID & Date & Journal -->
+                <div class="details-meta">
+                  <a
+                    :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="details-pmid"
+                  >
+                    <i class="bi bi-journal-medical me-1" />
+                    PMID:{{ row.pmid }}
+                    <i class="bi bi-box-arrow-up-right ms-1" />
+                  </a>
+                  <span v-if="row.date" class="details-date">
+                    <i class="bi bi-calendar3 me-1" />
+                    {{ row.date }}
+                  </span>
+                  <span v-if="row.journal" class="details-journal">
+                    <i class="bi bi-book me-1" />
+                    {{ row.journal }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Annotated Text Section -->
+              <div v-if="row.text_hl" class="annotated-text-section mt-3">
+                <div class="annotated-text-label text-muted small mb-1">
+                  <i class="bi bi-highlighter me-1" />Annotated Text:
+                </div>
+                <div class="annotated-text">
+                  <span
+                    v-for="(segment, idx) in parseAnnotations(row.text_hl)"
+                    :key="idx"
+                    :class="getSegmentClass(segment)"
+                    :title="getSegmentTooltip(segment)"
+                    >{{ segment.text }}</span
+                  >
+                </div>
+                <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
+                  <span><span class="pubtator-gene px-1">Gene</span></span>
+                  <span><span class="pubtator-disease px-1">Disease</span></span>
+                  <span><span class="pubtator-variant px-1">Variant</span></span>
+                  <span><span class="pubtator-species px-1">Species</span></span>
+                  <span><span class="pubtator-chemical px-1">Chemical</span></span>
+                  <span><span class="pubtator-match px-1">Match</span></span>
+                </div>
+              </div>
+              <div v-else class="text-muted mt-3">
+                <i class="bi bi-info-circle me-1" />No annotated text available.
+              </div>
+            </div>
+          </div>
+        </template>
+      </GenericTable>
+      <!-- Main GenericTable -->
+    </AnalysisPanel>
   </div>
 </template>
 
@@ -288,11 +275,11 @@ interface TableField {
 }
 
 // Small reusable components
-import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
@@ -300,7 +287,7 @@ import { useUiStore } from '@/stores/ui';
 export default {
   name: 'PubtatorNDDTable',
   components: {
-    TableHeaderLabel,
+    AnalysisPanel,
     TableSearchInput,
     TablePaginationControls,
     TableDownloadLinkCopyButtons,

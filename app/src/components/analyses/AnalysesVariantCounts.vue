@@ -1,44 +1,30 @@
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Bar plot of
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This plot shows the counts of different variants observed in the data set."
-            >
-              variant counts </mark
-            >.
-            <BBadge id="popover-badge-help-variant-counts" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-variant-counts" variant="info" triggers="focus">
-              <template #title> Variant Counts Information </template>
-              This bar plot displays the counts of different variants observed in the data set. The
-              x-axis represents the different variants, and the y-axis shows the count of each
-              variant.
-            </BPopover>
-          </h6>
-          <DownloadImageButtons :svg-id="'variant-svg'" :file-name="'variant_counts'" />
-        </div>
-      </template>
+  <AnalysisPanel
+    title="Bar plot of variant counts"
+    description="Counts of observed variant consequence classes in curated entities."
+  >
+    <template #actions>
+      <InlineHelpBadge id="popover-badge-help-variant-counts" aria-label="Explain variant counts" />
+      <BPopover target="popover-badge-help-variant-counts" variant="info" triggers="focus">
+        <template #title> Variant Counts Information </template>
+        This bar plot displays the counts of different variants observed in the data set.
+      </BPopover>
+      <DownloadImageButtons :svg-id="'variant-svg'" :file-name="'variant_counts'" />
+    </template>
 
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
-        <div v-show="!loadingCount" id="count_dataviz" class="svg-container" />
-      </div>
-    </BCard>
-    <!-- User Interface controls -->
-  </BContainer>
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loadingCount" label="Loading..." class="spinner" />
+      <div v-show="!loadingCount" id="count_dataviz" class="svg-container" />
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -47,7 +33,9 @@ import { getVariantCounts } from '@/api/variant';
 export default {
   name: 'AnalysesVariantCounts',
   components: {
+    AnalysisPanel,
     DownloadImageButtons,
+    InlineHelpBadge,
   },
   setup() {
     const { makeToast } = useToast();

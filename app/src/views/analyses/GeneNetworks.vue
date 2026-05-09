@@ -1,24 +1,23 @@
 <!-- src/views/analyses/GeneNetworks.vue -->
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <AnalyseGeneClusters />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AnalysisShell
+    title="Functional gene clusters"
+    subtitle="Explore functionally enriched SysNDD gene clusters and protein-protein interaction networks."
+  >
+    <AnalyseGeneClusters />
+  </AnalysisShell>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
+import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
 export default {
   name: 'GeneNetworks',
   components: {
+    AnalysisShell,
     AnalyseGeneClusters,
   },
   setup() {

@@ -1,14 +1,32 @@
 <template>
-  <BBadge :id="id" pill href="#" variant="info" class="inline-help-badge" :aria-label="ariaLabel">
+  <BBadge
+    :id="id"
+    pill
+    href="#"
+    variant="info"
+    class="inline-help-badge"
+    :aria-label="resolvedAriaLabel"
+  >
     <i class="bi bi-question-circle-fill" aria-hidden="true" />
   </BBadge>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed, useAttrs } from 'vue';
+
+const props = defineProps<{
   id: string;
-  ariaLabel: string;
+  ariaLabel?: string;
 }>();
+
+defineOptions({
+  inheritAttrs: false,
+});
+
+const attrs = useAttrs();
+const resolvedAriaLabel = computed(
+  () => props.ariaLabel ?? (attrs['aria-label'] as string | undefined) ?? 'Explain'
+);
 </script>
 
 <style scoped>

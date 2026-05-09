@@ -1,23 +1,22 @@
 <template>
-  <div class="container-fluid bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <AnalysesTimePlot />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AnalysisShell
+    title="NDD entities and genes over time"
+    subtitle="Track curated SysNDD entities and genes across update years."
+  >
+    <AnalysesTimePlot />
+  </AnalysisShell>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import AnalysesTimePlot from '@/components/analyses/AnalysesTimePlot.vue';
+import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 
 export default {
   name: 'EntriesOverTime',
   components: {
+    AnalysisShell,
     AnalysesTimePlot,
   },
   setup() {

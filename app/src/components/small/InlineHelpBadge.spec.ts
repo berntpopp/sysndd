@@ -7,13 +7,13 @@ describe('InlineHelpBadge', () => {
     const wrapper = mount(InlineHelpBadge, {
       props: {
         id: 'help-target',
-        ariaLabel: 'Explain this view',
+        'aria-label': 'Explain this view',
       },
       global: {
         stubs: {
           BBadge: {
-            props: ['id', 'ariaLabel'],
-            template: '<a :id="id" :aria-label="ariaLabel" class="inline-help-badge"><slot /></a>',
+            props: ['id'],
+            template: '<a :id="id" class="inline-help-badge"><slot /></a>',
           },
         },
       },
