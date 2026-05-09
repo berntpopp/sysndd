@@ -12,6 +12,7 @@
     "build:production": "vite build --mode production",
     "seo:generate:fixture": "node scripts/generate-seo-pages.mjs --fixture scripts/fixtures/seo --out dist --base-url https://sysndd.dbmr.unibe.ch",
     "seo:generate": "node scripts/generate-seo-pages.mjs --out dist",
+    "seo:verify": "node scripts/verify-seo-build.mjs dist",
     "build:seo": "npm run build:production && npm run seo:generate:fixture",
     "type-check": "vue-tsc --noEmit",
     "type-check:strict": "node scripts/type-check-strict.js",
