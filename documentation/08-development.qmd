@@ -66,6 +66,18 @@ npm run type-check
 npm run test:unit
 ```
 
+SEO prerender verification:
+
+```bash
+make verify-seo-app
+cd app
+npm run seo:generate:fixture
+SEO_API_BASE_URL=http://localhost/api SEO_PUBLIC_BASE_URL=https://sysndd.dbmr.unibe.ch npm run seo:generate
+npm run seo:verify
+```
+
+The fixture generator is deterministic and does not require the API. API-backed generation reads `/api/seo/routes`, `/api/seo/gene/:symbol`, and `/api/seo/entity/:id`; run it after `make dev` or against another healthy SysNDD API. The generator writes route-specific HTML and sitemap files into `app/dist`.
+
 API-only verification:
 
 ```bash

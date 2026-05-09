@@ -1,73 +1,66 @@
 <!-- src/components/analyses/PublicationsNDDTimePlot.vue -->
 <template>
-  <BContainer fluid>
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Publications Over Time / Type
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="Select 'Publication date' or 'Update date' or display publication_type counts."
-            >
-              (Interactive)
-            </mark>
-            <BBadge id="popover-badge-help-timeplot" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
-              <template #title> Publications Over Time / Type </template>
-              This plot can display either the publication_date_aggregated, update_date_aggregated
-              line graphs or a bar chart of publication_type_counts. Hover over the points/bars to
-              see the details.
-            </BPopover>
-          </h6>
-        </div>
-      </template>
+  <AnalysisPanel
+    title="Publications over time / type"
+    description="Switch between publication date, update date, and publication type summaries."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-publications-timeplot"
+        aria-label="Explain publications over time plot"
+      />
+      <BPopover target="popover-badge-help-publications-timeplot" variant="info" triggers="focus">
+        <template #title> Publications Over Time / Type </template>
+        This plot can display either the publication_date_aggregated, update_date_aggregated line
+        graphs or a bar chart of publication_type_counts. Hover over the points/bars to see the
+        details.
+      </BPopover>
+    </template>
 
-      <!-- Controls row -->
-      <BRow>
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Display" size="sm" class="mb-1">
-            <BFormSelect v-model="plotMode" :options="plotModeOptions" @change="generateGraph" />
-          </BInputGroup>
-        </BCol>
+    <!-- Controls row -->
+    <BRow>
+      <BCol class="my-1" sm="4">
+        <BInputGroup prepend="Display" size="sm" class="mb-1">
+          <BFormSelect v-model="plotMode" :options="plotModeOptions" @change="generateGraph" />
+        </BInputGroup>
+      </BCol>
 
-        <BCol class="my-1" sm="4">
-          <BInputGroup prepend="Aggregate" size="sm" class="mb-1">
-            <BFormSelect
-              v-model="timeAggregation"
-              :options="timeAggregationOptions"
-              :disabled="plotMode === 'type_counts'"
-              @change="loadData"
-            />
-          </BInputGroup>
-        </BCol>
-
-        <BCol class="my-1" sm="4">
-          <BFormCheckbox
-            v-model="showCumulative"
+      <BCol class="my-1" sm="4">
+        <BInputGroup prepend="Aggregate" size="sm" class="mb-1">
+          <BFormSelect
+            v-model="timeAggregation"
+            :options="timeAggregationOptions"
             :disabled="plotMode === 'type_counts'"
-            switch
-            class="mt-1"
-            @change="generateGraph"
-          >
-            Cumulative View
-          </BFormCheckbox>
-        </BCol>
-      </BRow>
+            @change="loadData"
+          />
+        </BInputGroup>
+      </BCol>
 
-      <!-- Overlay spinner & SVG container -->
-      <div class="position-relative">
-        <BSpinner v-if="loading" label="Loading..." class="spinner" />
-        <div v-show="!loading" id="pubs_dataviz" class="svg-container" />
-      </div>
-    </BCard>
-  </BContainer>
+      <BCol class="my-1" sm="4">
+        <BFormCheckbox
+          v-model="showCumulative"
+          :disabled="plotMode === 'type_counts'"
+          switch
+          class="mt-1"
+          @change="generateGraph"
+        >
+          Cumulative View
+        </BFormCheckbox>
+      </BCol>
+    </BRow>
+
+    <!-- Overlay spinner & SVG container -->
+    <div class="position-relative">
+      <BSpinner v-if="loading" label="Loading..." class="spinner" />
+      <div v-show="!loading" id="pubs_dataviz" class="svg-container" />
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import { useToast, useText } from '@/composables';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -75,6 +68,7 @@ import { getPublicationStats } from '@/api/statistics';
 
 export default {
   name: 'PublicationsNDDTimePlot',
+  components: { AnalysisPanel, InlineHelpBadge },
   setup() {
     const { makeToast } = useToast();
     const text = useText();

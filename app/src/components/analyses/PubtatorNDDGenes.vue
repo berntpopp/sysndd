@@ -1,394 +1,351 @@
 <!-- src/components/analyses/PubtatorNDDGenes.vue -->
 <template>
-  <div class="container-fluid">
+  <div>
     <!-- Loading spinner -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <!-- Main container -->
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <!-- b-card with header controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <!-- Card Header -->
-            <template #header>
-              <BRow class="align-items-center">
-                <BCol>
-                  <h6 class="mb-1 text-start font-weight-bold">
-                    Gene Prioritization
-                    <mark
-                      v-b-tooltip.hover.leftbottom
-                      title="Genes from PubTator NDD literature search, prioritized for curation."
-                    >
-                      ({{ totalRows }} genes)
-                    </mark>
-                    <BBadge id="popover-badge-help-pubtator-genes" pill href="#" variant="info">
-                      <i class="bi bi-question-circle-fill" />
-                    </BBadge>
-                    <BPopover
-                      target="popover-badge-help-pubtator-genes"
-                      variant="info"
-                      triggers="focus"
-                    >
-                      <template #title>Gene Prioritization for Curation</template>
-                      <p>
-                        <strong>Literature Only</strong> genes (marked with
-                        <BBadge variant="info" pill class="me-1">Literature Only</BBadge>) are genes
-                        mentioned in NDD publications but not yet curated in SysNDD - potential
-                        curation candidates.
-                      </p>
-                      <p><strong>Prioritization criteria:</strong></p>
-                      <ul class="mb-2">
-                        <li><em>Literature first:</em> Uncurated genes surface at the top</li>
-                        <li><em>Oldest publication:</em> Long-overlooked genes prioritized</li>
-                        <li><em>Publication count:</em> More mentions = more evidence</li>
-                      </ul>
-                      <p><strong>Filtering:</strong></p>
-                      <ul class="mb-2">
-                        <li><em>Min Publications:</em> Focus on well-cited genes (2+, 5+, 10+)</li>
-                        <li><em>Date Range:</em> Filter by oldest publication date</li>
-                      </ul>
-                      <p class="mb-0">
-                        <strong>Export:</strong> Download filtered list to Excel for offline review.
-                      </p>
-                    </BPopover>
-                  </h6>
-                </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    variant="outline-success"
-                    size="sm"
-                    :disabled="isExporting || items.length === 0"
-                    @click="handleExcelExport"
-                  >
-                    <BSpinner v-if="isExporting" small class="me-1" />
-                    <i v-else class="bi bi-file-earmark-excel me-1" />
-                    Export
-                  </BButton>
-                  <TableDownloadLinkCopyButtons
-                    v-if="showFilterControls"
-                    :downloading="downloading"
-                    :remove-filters-title="removeFiltersButtonTitle"
-                    :remove-filters-variant="removeFiltersButtonVariant"
-                    :show-download="false"
-                    @copy-link="copyLinkToClipboard"
-                    @remove-filters="removeFilters"
-                  />
-                </BCol>
-              </BRow>
-            </template>
+    <AnalysisPanel
+      v-else
+      title="Gene prioritization"
+      :description="'Genes from PubTator NDD literature search: ' + totalRows + ' genes'"
+    >
+      <template #actions>
+        <InlineHelpBadge
+          id="popover-badge-help-pubtator-genes"
+          aria-label="Explain PubTator gene prioritization"
+        />
+        <BPopover target="popover-badge-help-pubtator-genes" variant="info" triggers="focus">
+          <template #title>Gene Prioritization for Curation</template>
+          <p>
+            <strong>Literature Only</strong> genes are mentioned in NDD publications but not yet
+            curated in SysNDD - potential curation candidates.
+          </p>
+          <p><strong>Prioritization criteria:</strong></p>
+          <ul class="mb-2">
+            <li><em>Literature first:</em> Uncurated genes surface at the top</li>
+            <li><em>Oldest publication:</em> Long-overlooked genes prioritized</li>
+            <li><em>Publication count:</em> More mentions = more evidence</li>
+          </ul>
+        </BPopover>
+        <BButton
+          variant="outline-success"
+          size="sm"
+          :disabled="isExporting || items.length === 0"
+          @click="handleExcelExport"
+        >
+          <BSpinner v-if="isExporting" small class="me-1" />
+          <i v-else class="bi bi-file-earmark-excel me-1" />
+          Export
+        </BButton>
+        <TableDownloadLinkCopyButtons
+          v-if="showFilterControls"
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          :show-download="false"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
+      </template>
 
-            <!-- Prioritization Filters + Search + Pagination Controls -->
-            <BRow class="p-2">
-              <!-- Publication count filter -->
-              <BCol class="my-1" sm="3">
-                <BInputGroup prepend="Min Pubs" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="minPublications"
-                    :options="pubCountOptions"
-                    size="sm"
-                    @change="applyPrioritizationFilters"
-                  />
-                </BInputGroup>
-              </BCol>
+      <!-- Prioritization Filters + Search + Pagination Controls -->
+      <BRow class="p-2">
+        <!-- Publication count filter -->
+        <BCol class="my-1" sm="3">
+          <BInputGroup prepend="Min Pubs" class="mb-1" size="sm">
+            <BFormSelect
+              v-model="minPublications"
+              :options="pubCountOptions"
+              size="sm"
+              @change="applyPrioritizationFilters"
+            />
+          </BInputGroup>
+        </BCol>
 
-              <!-- Date range filter -->
-              <BCol class="my-1" sm="3">
-                <BInputGroup prepend="Date Range" class="mb-1" size="sm">
-                  <BFormSelect
-                    v-model="dateRange"
-                    :options="dateRangeOptions"
-                    size="sm"
-                    @change="applyPrioritizationFilters"
-                  />
-                </BInputGroup>
-              </BCol>
+        <!-- Date range filter -->
+        <BCol class="my-1" sm="3">
+          <BInputGroup prepend="Date Range" class="mb-1" size="sm">
+            <BFormSelect
+              v-model="dateRange"
+              :options="dateRangeOptions"
+              size="sm"
+              @change="applyPrioritizationFilters"
+            />
+          </BInputGroup>
+        </BCol>
 
-              <!-- Global "any" search -->
-              <BCol class="my-1" sm="4">
-                <TableSearchInput
-                  v-model="anyFilterContent"
-                  :placeholder="'Search any field...'"
-                  :debounce-time="500"
-                  @input="filtered"
-                />
-              </BCol>
+        <!-- Global "any" search -->
+        <BCol class="my-1" sm="4">
+          <TableSearchInput
+            v-model="anyFilterContent"
+            :placeholder="'Search any field...'"
+            :debounce-time="500"
+            @input="filtered"
+          />
+        </BCol>
 
-              <!-- Pagination controls -->
-              <BCol class="my-1" sm="2">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- End Controls -->
+        <!-- Pagination controls -->
+        <BCol class="my-1" sm="2">
+          <BContainer v-if="totalRows > perPage || showPaginationControls">
+            <TablePaginationControls
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </BContainer>
+        </BCol>
+      </BRow>
+      <!-- End Controls -->
 
-            <!-- Main b-table -->
-            <BTable
-              :items="items"
-              :fields="fields"
-              :busy="isBusy"
-              :sort-by="sortByArray"
-              no-local-sorting
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              stacked="md"
-              @update:sort-by="handleSortByUpdate"
+      <!-- Main b-table -->
+      <BTable
+        :items="items"
+        :fields="fields"
+        :busy="isBusy"
+        :sort-by="sortByArray"
+        no-local-sorting
+        head-variant="light"
+        show-empty
+        small
+        fixed
+        striped
+        hover
+        sort-icon-left
+        stacked="md"
+        @update:sort-by="handleSortByUpdate"
+      >
+        <!-- Custom table header cell with tooltips -->
+        <template #head()="columnData">
+          <div
+            v-b-tooltip.hover.top
+            :title="
+              columnData.label +
+              (fields.find((f) => f.label === columnData.label)?.count_filtered
+                ? ' (unique/total: ' +
+                  fields.find((f) => f.label === columnData.label)?.count_filtered +
+                  '/' +
+                  fields.find((f) => f.label === columnData.label)?.count +
+                  ')'
+                : '')
+            "
+          >
+            {{ truncateText(columnData.label, 20) }}
+          </div>
+        </template>
+
+        <!-- Per-column filters row -->
+        <template #top-row>
+          <td v-for="field in fields" :key="field.key">
+            <BFormInput
+              v-if="field.filterable"
+              :model-value="getFilterContent(field.key)"
+              :placeholder="'.. ' + truncateText(field.label, 12) + ' ..'"
+              debounce="500"
+              type="search"
+              autocomplete="off"
+              size="sm"
+              @click="removeSearch()"
+              @update:model-value="setFilterContent(field.key, String($event))"
+            />
+          </td>
+        </template>
+
+        <!-- Gene symbol column - clickable badge linking to gene page -->
+        <template #cell(gene_symbol)="data">
+          <GeneBadge
+            :symbol="(data.item as GeneItem).gene_symbol"
+            :hgnc-id="(data.item as GeneItem).hgnc_id"
+            :link-to="
+              (data.item as GeneItem).hgnc_id
+                ? '/Genes/' + (data.item as GeneItem).hgnc_id
+                : undefined
+            "
+            size="sm"
+          />
+        </template>
+
+        <!-- Source badge column -->
+        <template #cell(is_novel)="data">
+          <BBadge v-if="(data.item as GeneItem).is_novel === 1" variant="info" pill>
+            <i class="bi bi-journal-text me-1" />
+            Literature Only
+          </BBadge>
+          <BBadge v-else variant="success" pill>
+            <i class="bi bi-check-circle me-1" />
+            Curated
+          </BBadge>
+        </template>
+
+        <!-- PMIDs as clickable chips -->
+        <template #cell(pmids)="data">
+          <div class="d-flex flex-wrap gap-1">
+            <BButton
+              v-for="pmid in parsePmids((data.item as GeneItem).pmids).slice(0, 5)"
+              :key="pmid"
+              size="sm"
+              variant="outline-primary"
+              class="btn-xs"
+              :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <!-- Custom table header cell with tooltips -->
-              <template #head()="columnData">
-                <div
-                  v-b-tooltip.hover.top
-                  :title="
-                    columnData.label +
-                    (fields.find((f) => f.label === columnData.label)?.count_filtered
-                      ? ' (unique/total: ' +
-                        fields.find((f) => f.label === columnData.label)?.count_filtered +
-                        '/' +
-                        fields.find((f) => f.label === columnData.label)?.count +
-                        ')'
-                      : '')
-                  "
-                >
-                  {{ truncateText(columnData.label, 20) }}
+              {{ pmid }}
+            </BButton>
+            <BBadge
+              v-if="parsePmids((data.item as GeneItem).pmids).length > 5"
+              variant="secondary"
+              pill
+              class="align-self-center"
+            >
+              +{{ parsePmids((data.item as GeneItem).pmids).length - 5 }}
+            </BBadge>
+          </div>
+        </template>
+
+        <!-- Actions column with expand button -->
+        <template #cell(actions)="data">
+          <BButton
+            v-if="parsePmids((data.item as GeneItem).pmids).length > 0"
+            class="btn-xs"
+            variant="outline-primary"
+            @click="
+              handleRowExpand(data.item as GeneItem);
+              data.toggleExpansion();
+            "
+          >
+            {{ data.expansionShowing ? 'Hide' : 'Show' }}
+          </BButton>
+        </template>
+
+        <!-- Row details - expanded view with rich publication data -->
+        <template #row-expansion="data">
+          <div class="publication-details">
+            <!-- Loading spinner -->
+            <div
+              v-if="isLoadingPublications((data.item as GeneItem).gene_symbol)"
+              class="text-center py-3"
+            >
+              <BSpinner small label="Loading publications..." />
+              <span class="ms-2 text-muted">Loading publication details...</span>
+            </div>
+
+            <!-- Publication list -->
+            <div v-else>
+              <div
+                v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
+                :key="pub.pmid"
+                class="details-section"
+              >
+                <!-- Title -->
+                <div v-if="pub.title" class="details-title">
+                  {{ pub.title }}
                 </div>
-              </template>
 
-              <!-- Per-column filters row -->
-              <template #top-row>
-                <td v-for="field in fields" :key="field.key">
-                  <BFormInput
-                    v-if="field.filterable"
-                    :model-value="getFilterContent(field.key)"
-                    :placeholder="'.. ' + truncateText(field.label, 12) + ' ..'"
-                    debounce="500"
-                    type="search"
-                    autocomplete="off"
-                    size="sm"
-                    @click="removeSearch()"
-                    @update:model-value="setFilterContent(field.key, String($event))"
-                  />
-                </td>
-              </template>
+                <div class="details-row">
+                  <!-- PMID, DOI, Date, Journal, Score -->
+                  <div class="details-meta">
+                    <a
+                      :href="'https://pubmed.ncbi.nlm.nih.gov/' + pub.pmid"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="details-pmid"
+                    >
+                      <i class="bi bi-journal-medical me-1" />
+                      PMID:{{ pub.pmid }}
+                      <i class="bi bi-box-arrow-up-right ms-1" />
+                    </a>
+                    <a
+                      v-if="pub.doi"
+                      :href="'https://doi.org/' + pub.doi"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="details-doi"
+                    >
+                      <i class="bi bi-link-45deg me-1" />
+                      {{ pub.doi }}
+                    </a>
+                    <span v-if="pub.date" class="details-date">
+                      <i class="bi bi-calendar3 me-1" />
+                      {{ pub.date }}
+                    </span>
+                    <span v-if="pub.journal" class="details-journal">
+                      <i class="bi bi-book me-1" />
+                      {{ pub.journal }}
+                    </span>
+                    <BBadge
+                      v-if="pub.score != null"
+                      :variant="
+                        pub.score >= 500 ? 'success' : pub.score >= 100 ? 'warning' : 'secondary'
+                      "
+                      pill
+                    >
+                      Score: {{ pub.score }}
+                    </BBadge>
+                  </div>
+                </div>
 
-              <!-- Gene symbol column - clickable badge linking to gene page -->
-              <template #cell(gene_symbol)="data">
-                <GeneBadge
-                  :symbol="(data.item as GeneItem).gene_symbol"
-                  :hgnc-id="(data.item as GeneItem).hgnc_id"
-                  :link-to="
-                    (data.item as GeneItem).hgnc_id
-                      ? '/Genes/' + (data.item as GeneItem).hgnc_id
-                      : undefined
-                  "
-                  size="sm"
-                />
-              </template>
+                <!-- Annotated Text Section -->
+                <div v-if="pub.text_hl" class="annotated-text-section mt-2">
+                  <div class="annotated-text-label text-muted small mb-1">
+                    <i class="bi bi-highlighter me-1" />Annotated Text:
+                  </div>
+                  <div class="annotated-text">
+                    <span
+                      v-for="(segment, idx) in parseAnnotations(pub.text_hl)"
+                      :key="idx"
+                      :class="getSegmentClass(segment)"
+                      :title="getSegmentTooltip(segment)"
+                      >{{ segment.text }}</span
+                    >
+                  </div>
+                  <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
+                    <span><span class="pubtator-gene px-1">Gene</span></span>
+                    <span><span class="pubtator-disease px-1">Disease</span></span>
+                    <span><span class="pubtator-variant px-1">Variant</span></span>
+                    <span><span class="pubtator-species px-1">Species</span></span>
+                    <span><span class="pubtator-chemical px-1">Chemical</span></span>
+                    <span><span class="pubtator-match px-1">Match</span></span>
+                  </div>
+                </div>
 
-              <!-- Source badge column -->
-              <template #cell(is_novel)="data">
-                <BBadge v-if="(data.item as GeneItem).is_novel === 1" variant="info" pill>
-                  <i class="bi bi-journal-text me-1" />
-                  Literature Only
-                </BBadge>
-                <BBadge v-else variant="success" pill>
-                  <i class="bi bi-check-circle me-1" />
-                  Curated
-                </BBadge>
-              </template>
+                <!-- Gene symbols as badges -->
+                <div v-if="pub.gene_symbols" class="gene-symbols-section mt-2">
+                  <div class="gene-chips">
+                    <span v-for="sym in pub.gene_symbols.split(',')" :key="sym" class="gene-chip">
+                      {{ sym.trim() }}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <!-- PMIDs as clickable chips -->
-              <template #cell(pmids)="data">
-                <div class="d-flex flex-wrap gap-1">
-                  <BButton
-                    v-for="pmid in parsePmids((data.item as GeneItem).pmids).slice(0, 5)"
+              <!-- Fallback if no cached data -->
+              <div
+                v-if="getPublications((data.item as GeneItem).gene_symbol).length === 0"
+                class="details-section"
+              >
+                <h6 class="details-label"><i class="bi bi-journal-text me-2" />Publications</h6>
+                <div class="d-flex flex-wrap gap-2">
+                  <a
+                    v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
                     :key="pmid"
-                    size="sm"
-                    variant="outline-primary"
-                    class="btn-xs"
                     :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
                     target="_blank"
                     rel="noopener noreferrer"
+                    class="details-pmid"
                   >
-                    {{ pmid }}
-                  </BButton>
-                  <BBadge
-                    v-if="parsePmids((data.item as GeneItem).pmids).length > 5"
-                    variant="secondary"
-                    pill
-                    class="align-self-center"
-                  >
-                    +{{ parsePmids((data.item as GeneItem).pmids).length - 5 }}
-                  </BBadge>
+                    <i class="bi bi-journal-medical me-1" />
+                    PMID: {{ pmid }}
+                    <i class="bi bi-box-arrow-up-right ms-1" />
+                  </a>
                 </div>
-              </template>
-
-              <!-- Actions column with expand button -->
-              <template #cell(actions)="data">
-                <BButton
-                  v-if="parsePmids((data.item as GeneItem).pmids).length > 0"
-                  class="btn-xs"
-                  variant="outline-primary"
-                  @click="
-                    handleRowExpand(data.item as GeneItem);
-                    data.toggleExpansion();
-                  "
-                >
-                  {{ data.expansionShowing ? 'Hide' : 'Show' }}
-                </BButton>
-              </template>
-
-              <!-- Row details - expanded view with rich publication data -->
-              <template #row-expansion="data">
-                <div class="publication-details">
-                  <!-- Loading spinner -->
-                  <div
-                    v-if="isLoadingPublications((data.item as GeneItem).gene_symbol)"
-                    class="text-center py-3"
-                  >
-                    <BSpinner small label="Loading publications..." />
-                    <span class="ms-2 text-muted">Loading publication details...</span>
-                  </div>
-
-                  <!-- Publication list -->
-                  <div v-else>
-                    <div
-                      v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
-                      :key="pub.pmid"
-                      class="details-section"
-                    >
-                      <!-- Title -->
-                      <div v-if="pub.title" class="details-title">
-                        {{ pub.title }}
-                      </div>
-
-                      <div class="details-row">
-                        <!-- PMID, DOI, Date, Journal, Score -->
-                        <div class="details-meta">
-                          <a
-                            :href="'https://pubmed.ncbi.nlm.nih.gov/' + pub.pmid"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="details-pmid"
-                          >
-                            <i class="bi bi-journal-medical me-1" />
-                            PMID:{{ pub.pmid }}
-                            <i class="bi bi-box-arrow-up-right ms-1" />
-                          </a>
-                          <a
-                            v-if="pub.doi"
-                            :href="'https://doi.org/' + pub.doi"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="details-doi"
-                          >
-                            <i class="bi bi-link-45deg me-1" />
-                            {{ pub.doi }}
-                          </a>
-                          <span v-if="pub.date" class="details-date">
-                            <i class="bi bi-calendar3 me-1" />
-                            {{ pub.date }}
-                          </span>
-                          <span v-if="pub.journal" class="details-journal">
-                            <i class="bi bi-book me-1" />
-                            {{ pub.journal }}
-                          </span>
-                          <BBadge
-                            v-if="pub.score != null"
-                            :variant="
-                              pub.score >= 500
-                                ? 'success'
-                                : pub.score >= 100
-                                  ? 'warning'
-                                  : 'secondary'
-                            "
-                            pill
-                          >
-                            Score: {{ pub.score }}
-                          </BBadge>
-                        </div>
-                      </div>
-
-                      <!-- Annotated Text Section -->
-                      <div v-if="pub.text_hl" class="annotated-text-section mt-2">
-                        <div class="annotated-text-label text-muted small mb-1">
-                          <i class="bi bi-highlighter me-1" />Annotated Text:
-                        </div>
-                        <div class="annotated-text">
-                          <span
-                            v-for="(segment, idx) in parseAnnotations(pub.text_hl)"
-                            :key="idx"
-                            :class="getSegmentClass(segment)"
-                            :title="getSegmentTooltip(segment)"
-                            >{{ segment.text }}</span
-                          >
-                        </div>
-                        <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
-                          <span><span class="pubtator-gene px-1">Gene</span></span>
-                          <span><span class="pubtator-disease px-1">Disease</span></span>
-                          <span><span class="pubtator-variant px-1">Variant</span></span>
-                          <span><span class="pubtator-species px-1">Species</span></span>
-                          <span><span class="pubtator-chemical px-1">Chemical</span></span>
-                          <span><span class="pubtator-match px-1">Match</span></span>
-                        </div>
-                      </div>
-
-                      <!-- Gene symbols as badges -->
-                      <div v-if="pub.gene_symbols" class="gene-symbols-section mt-2">
-                        <div class="gene-chips">
-                          <span
-                            v-for="sym in pub.gene_symbols.split(',')"
-                            :key="sym"
-                            class="gene-chip"
-                          >
-                            {{ sym.trim() }}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Fallback if no cached data -->
-                    <div
-                      v-if="getPublications((data.item as GeneItem).gene_symbol).length === 0"
-                      class="details-section"
-                    >
-                      <h6 class="details-label">
-                        <i class="bi bi-journal-text me-2" />Publications
-                      </h6>
-                      <div class="d-flex flex-wrap gap-2">
-                        <a
-                          v-for="pmid in parsePmids((data.item as GeneItem).pmids)"
-                          :key="pmid"
-                          :href="'https://pubmed.ncbi.nlm.nih.gov/' + pmid"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="details-pmid"
-                        >
-                          <i class="bi bi-journal-medical me-1" />
-                          PMID: {{ pmid }}
-                          <i class="bi bi-box-arrow-up-right ms-1" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </BTable>
-            <!-- End b-table -->
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
+              </div>
+            </div>
+          </div>
+        </template>
+      </BTable>
+      <!-- End b-table -->
+    </AnalysisPanel>
   </div>
 </template>
 
@@ -406,6 +363,8 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 import { useUiStore } from '@/stores/ui';
 import { useRoute } from 'vue-router';

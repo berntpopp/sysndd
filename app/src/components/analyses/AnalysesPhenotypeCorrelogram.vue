@@ -1,80 +1,70 @@
 <!-- src/components/analyses/AnalysesPhenotypeCorrelogram.vue -->
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Matrix of
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This plot shows the correlation coefficients between various phenotypes."
-              >phenotype correlations</mark
-            >.
-            <BBadge id="popover-badge-help-phenotype" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-phenotype" variant="info" triggers="focus">
-              <template #title> Phenotype Correlations </template>
-              This plot displays the Pearson correlation coefficients between different phenotypes.
-              The color intensity represents the strength of the correlation:
-              <ul>
-                <li><strong>Red:</strong> Positive correlation</li>
-                <li><strong>Blue:</strong> Negative correlation</li>
-                <li><strong>White:</strong> No correlation</li>
-              </ul>
-              Click on the cells to explore the detailed phenotype relationships.
-            </BPopover>
-          </h6>
-          <DownloadImageButtons
-            :svg-id="'matrix-svg'"
-            :file-name="'phenotype_correlation_matrix'"
+  <AnalysisPanel
+    title="Matrix of phenotype correlations"
+    description="Pearson correlation heatmap for curated phenotype co-occurrence patterns."
+  >
+    <template #actions>
+      <InlineHelpBadge
+        id="popover-badge-help-phenotype"
+        aria-label="Explain phenotype correlations"
+      />
+      <BPopover target="popover-badge-help-phenotype" variant="info" triggers="focus">
+        <template #title> Phenotype Correlations </template>
+        This plot displays the Pearson correlation coefficients between different phenotypes. The
+        color intensity represents the strength of the correlation:
+        <ul>
+          <li><strong>Red:</strong> Positive correlation</li>
+          <li><strong>Blue:</strong> Negative correlation</li>
+          <li><strong>White:</strong> No correlation</li>
+        </ul>
+        Click on the cells to explore the detailed phenotype relationships.
+      </BPopover>
+      <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'phenotype_correlation_matrix'" />
+    </template>
+
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <!-- Error state with retry -->
+      <div v-if="error" class="error-state text-center p-4">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+        <p class="text-muted mb-3">
+          {{ error }}
+        </p>
+        <BButton variant="primary" @click="retryLoad">
+          <i class="bi bi-arrow-clockwise me-1" />
+          Retry
+        </BButton>
+      </div>
+
+      <!-- Loading spinner -->
+      <BSpinner v-else-if="loadingMatrix" label="Loading..." class="spinner" />
+
+      <!-- Visualization container -->
+      <template v-else>
+        <div id="matrix_dataviz" class="svg-container" />
+        <!-- Color legend -->
+        <div class="d-flex justify-content-center mt-2 mb-3">
+          <ColorLegend
+            :min="-1"
+            :max="1"
+            :colors="['#000080', '#fff', '#B22222']"
+            title="Correlation Coefficient (R)"
+            :labels="correlationLabels"
           />
         </div>
       </template>
-
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <!-- Error state with retry -->
-        <div v-if="error" class="error-state text-center p-4">
-          <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
-          <p class="text-muted mb-3">
-            {{ error }}
-          </p>
-          <BButton variant="primary" @click="retryLoad">
-            <i class="bi bi-arrow-clockwise me-1" />
-            Retry
-          </BButton>
-        </div>
-
-        <!-- Loading spinner -->
-        <BSpinner v-else-if="loadingMatrix" label="Loading..." class="spinner" />
-
-        <!-- Visualization container -->
-        <template v-else>
-          <div id="matrix_dataviz" class="svg-container" />
-          <!-- Color legend -->
-          <div class="d-flex justify-content-center mt-2 mb-3">
-            <ColorLegend
-              :min="-1"
-              :max="1"
-              :colors="['#000080', '#fff', '#B22222']"
-              title="Correlation Coefficient (R)"
-              :labels="correlationLabels"
-            />
-          </div>
-        </template>
-      </div>
-    </BCard>
-  </BContainer>
+    </div>
+  </AnalysisPanel>
 </template>
 
 <script>
 import { useRouter } from 'vue-router';
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import ColorLegend from '@/components/analyses/ColorLegend.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -98,7 +88,9 @@ function getCorrelationInterpretation(r) {
 export default {
   name: 'AnalysesPhenotypeCorrelogram',
   components: {
+    AnalysisPanel,
     DownloadImageButtons,
+    InlineHelpBadge,
     ColorLegend,
   },
   setup() {

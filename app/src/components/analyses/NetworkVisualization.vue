@@ -1,10 +1,9 @@
 <!-- src/components/analyses/NetworkVisualization.vue -->
 <template>
   <div class="network-visualization">
-    <!-- Card with header controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <section class="network-panel">
+      <header class="network-panel__header">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="d-flex align-items-center flex-wrap">
             <h6 class="mb-0 font-weight-bold me-2">Protein-Protein Interaction Network</h6>
             <!-- Visible / Total in network -->
@@ -200,7 +199,7 @@
             </BButton>
           </div>
         </div>
-      </template>
+      </header>
 
       <!-- Network container -->
       <div class="network-container">
@@ -299,7 +298,7 @@
           </div>
         </div>
       </div>
-    </BCard>
+    </section>
   </div>
 </template>
 
@@ -307,7 +306,6 @@
 import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  BCard,
   BButton,
   BBadge,
   BSpinner,
@@ -904,6 +902,18 @@ defineExpose({
 <style scoped>
 .network-visualization {
   width: 100%;
+}
+
+.network-panel {
+  overflow: hidden;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.network-panel__header {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #e6ebf2;
 }
 
 .network-container {

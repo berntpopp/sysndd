@@ -1,42 +1,23 @@
 <template>
-  <div class="container-fluid bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <div>
-            <BCard title="Variant correlations" no-body>
-              <BCardHeader header-tag="nav">
-                <BNav card-header tabs>
-                  <!-- Child routes for variant analyses -->
-                  <BNavItem to="/VariantCorrelations" exact exact-active-class="active">
-                    Variant correlogram
-                  </BNavItem>
-                  <BNavItem
-                    to="/VariantCorrelations/VariantCounts"
-                    exact
-                    exact-active-class="active"
-                  >
-                    Variant counts
-                  </BNavItem>
-                </BNav>
-              </BCardHeader>
-
-              <BCardBody>
-                <router-view />
-              </BCardBody>
-            </BCard>
-          </div>
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AnalysisShell
+    title="Variant correlations"
+    subtitle="Compare variant consequence patterns and counts across curated SysNDD entities."
+    nav-label="Variant correlation views"
+    :tabs="tabs"
+  >
+    <router-view />
+  </AnalysisShell>
 </template>
 
 <script>
 import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
+import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 export default {
   name: 'VariantCorrelations',
+  components: {
+    AnalysisShell,
+  },
   setup() {
     const { makeToast } = useToast();
     useHead({
@@ -50,7 +31,12 @@ export default {
       ],
     });
 
-    return { makeToast };
+    const tabs = [
+      { label: 'Variant correlogram', to: '/VariantCorrelations' },
+      { label: 'Variant counts', to: '/VariantCorrelations/VariantCounts' },
+    ];
+
+    return { makeToast, tabs };
   },
   data() {
     return {

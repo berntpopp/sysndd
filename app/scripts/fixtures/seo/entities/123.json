@@ -1,0 +1,15 @@
+{
+  "entityId": "123",
+  "symbol": "CHD8",
+  "hgncId": "HGNC:20153",
+  "diseaseName": "autism",
+  "diseaseOntologyId": "OMIM:209850",
+  "inheritanceName": "Autosomal dominant",
+  "classification": "Definitive",
+  "nddStatus": "NDD",
+  "synopsis": "Curated CHD8 association with autism and developmental delay.",
+  "hpoTerms": [{ "id": "HP:0000729", "label": "Autistic behavior" }],
+  "variationTerms": [{ "id": "VariO:0133", "label": "loss of function variant" }],
+  "pmids": ["22495309"],
+  "lastModified": "2026-05-09"
+}

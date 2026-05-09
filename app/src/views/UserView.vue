@@ -9,395 +9,67 @@
   - Clean minimalist layout with clear hierarchy
 -->
 <template>
-  <div class="container-fluid">
-    <BContainer class="py-4">
-      <BRow class="justify-content-center">
-        <BCol lg="8" xl="6">
-          <!-- Profile Header Card -->
-          <BCard class="border-0 shadow-sm mb-4 overflow-hidden">
-            <!-- Header Background -->
-            <div class="profile-header-bg" :class="`bg-${roleVariant}-subtle`" />
+  <AuthenticatedPageShell
+    title="User profile"
+    description="Manage your SysNDD profile, contribution summary, and session security."
+    :meta="user.user_role[0] || 'User'"
+    content-class="user-profile-page"
+  >
+    <UserProfileHeader
+      :user="user"
+      :role-variant="roleVariant"
+      :role-icon="roleIcon"
+      :member-since="formatDate(user.user_created[0])"
+      :session-status-class="sessionStatusClass"
+      :session-status-text="sessionStatusText"
+    />
 
-            <BCardBody class="position-relative pt-0">
-              <!-- Avatar & Identity Zone -->
-              <div
-                class="d-flex flex-column flex-sm-row align-items-center align-items-sm-end gap-3 profile-identity"
-              >
-                <div class="avatar-wrapper">
-                  <div
-                    class="avatar-circle d-flex align-items-center justify-content-center"
-                    :class="`bg-${roleVariant} text-white`"
-                  >
-                    <span class="avatar-initials">{{ user.abbreviation[0] }}</span>
-                  </div>
-                  <span
-                    class="avatar-badge d-flex align-items-center justify-content-center"
-                    :class="`bg-${roleVariant}`"
-                  >
-                    <i :class="`bi bi-${roleIcon}`" />
-                  </span>
-                </div>
+    <UserContributionStats
+      :active-reviews="activeReviewsCount"
+      :active-status="activeStatusCount"
+    />
 
-                <div class="text-center text-sm-start flex-grow-1 pb-2">
-                  <h4 class="mb-1 fw-bold">
-                    {{ user.user_name[0] }}
-                  </h4>
-                  <div
-                    class="d-flex flex-wrap align-items-center justify-content-center justify-content-sm-start gap-2"
-                  >
-                    <BBadge :variant="roleVariant" class="d-inline-flex align-items-center gap-1">
-                      <i :class="`bi bi-${roleIcon}`" />
-                      {{ user.user_role[0] }}
-                    </BBadge>
-                    <span class="text-muted small">
-                      <i class="bi bi-calendar3 me-1" />
-                      Member since {{ formatDate(user.user_created[0]) }}
-                    </span>
-                  </div>
-                </div>
+    <div class="user-profile-grid">
+      <UserProfileDetails
+        :user="user"
+        :is-editing="isEditingProfile"
+        :is-saving="isSavingProfile"
+        :email="editForm.email"
+        :orcid="editForm.orcid"
+        :email-error="emailError"
+        :orcid-error="orcidError"
+        :email-validation-state="emailValidationState"
+        :orcid-validation-state="orcidValidationState"
+        @edit="startEditProfile"
+        @save="saveProfile"
+        @cancel="cancelEditProfile"
+        @update:email="editForm.email = $event"
+        @update:orcid="editForm.orcid = $event"
+      />
 
-                <!-- Session Status -->
-                <div class="session-badge d-none d-md-flex align-items-center gap-2">
-                  <span
-                    class="d-flex align-items-center gap-1 px-2 py-1 rounded-pill"
-                    :class="sessionStatusClass"
-                  >
-                    <i class="bi bi-circle-fill" style="font-size: 0.5rem" />
-                    <span class="small">{{ sessionStatusText }}</span>
-                  </span>
-                </div>
-              </div>
-            </BCardBody>
-          </BCard>
-
-          <!-- Stats Cards Row -->
-          <BRow class="mb-4 g-3">
-            <BCol cols="6">
-              <BCard class="border-0 shadow-sm h-100 stat-card" body-class="text-center py-4">
-                <div class="stat-icon mb-2">
-                  <span
-                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
-                  >
-                    <i class="bi bi-journal-check" />
-                  </span>
-                </div>
-                <h3 class="mb-1 fw-bold text-primary">
-                  {{ user.active_reviews }}
-                </h3>
-                <p class="mb-0 text-muted small">Active Reviews</p>
-              </BCard>
-            </BCol>
-            <BCol cols="6">
-              <BCard class="border-0 shadow-sm h-100 stat-card" body-class="text-center py-4">
-                <div class="stat-icon mb-2">
-                  <span
-                    class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success"
-                  >
-                    <i class="bi bi-check2-square" />
-                  </span>
-                </div>
-                <h3 class="mb-1 fw-bold text-success">
-                  {{ user.active_status }}
-                </h3>
-                <p class="mb-0 text-muted small">Status Contributions</p>
-              </BCard>
-            </BCol>
-          </BRow>
-
-          <!-- Profile Details Card -->
-          <BCard class="border-0 shadow-sm mb-4">
-            <BCardBody>
-              <div class="d-flex align-items-center justify-content-between mb-3">
-                <h6 class="text-muted fw-semibold mb-0 d-flex align-items-center">
-                  <i class="bi bi-person-lines-fill me-2" />
-                  Profile Details
-                </h6>
-                <BButton
-                  v-if="!isEditingProfile"
-                  variant="outline-primary"
-                  size="sm"
-                  class="d-flex align-items-center gap-1"
-                  @click="startEditProfile"
-                >
-                  <i class="bi bi-pencil" />
-                  <span class="d-none d-sm-inline">Edit</span>
-                </BButton>
-                <div v-else class="d-flex gap-2">
-                  <BButton
-                    variant="primary"
-                    size="sm"
-                    class="d-flex align-items-center gap-1"
-                    :disabled="isSavingProfile"
-                    @click="saveProfile"
-                  >
-                    <BSpinner v-if="isSavingProfile" small />
-                    <i v-else class="bi bi-check-lg" />
-                    Save
-                  </BButton>
-                  <BButton
-                    variant="outline-secondary"
-                    size="sm"
-                    :disabled="isSavingProfile"
-                    @click="cancelEditProfile"
-                  >
-                    Cancel
-                  </BButton>
-                </div>
-              </div>
-
-              <div class="profile-details">
-                <div class="detail-row">
-                  <div class="detail-icon">
-                    <i class="bi bi-at text-muted" />
-                  </div>
-                  <div class="detail-content">
-                    <span class="detail-label">Username</span>
-                    <span class="detail-value">{{ user.user_name[0] }}</span>
-                  </div>
-                </div>
-
-                <!-- Email Row - Editable -->
-                <div class="detail-row">
-                  <div class="detail-icon">
-                    <i class="bi bi-envelope text-muted" />
-                  </div>
-                  <div class="detail-content flex-grow-1">
-                    <span class="detail-label">Email</span>
-                    <template v-if="isEditingProfile">
-                      <BFormInput
-                        v-model="editForm.email"
-                        type="email"
-                        size="sm"
-                        placeholder="Enter email address"
-                        :state="emailValidationState"
-                        class="mt-1"
-                      />
-                      <BFormInvalidFeedback v-if="emailError">
-                        {{ emailError }}
-                      </BFormInvalidFeedback>
-                    </template>
-                    <span v-else class="detail-value">{{ user.email[0] }}</span>
-                  </div>
-                </div>
-
-                <!-- ORCID Row - Editable -->
-                <div class="detail-row">
-                  <div class="detail-icon">
-                    <i class="bi bi-link-45deg text-muted" />
-                  </div>
-                  <div class="detail-content flex-grow-1">
-                    <span class="detail-label d-flex align-items-center gap-1">
-                      ORCID
-                      <i
-                        v-if="isEditingProfile"
-                        id="orcid-help"
-                        class="bi bi-question-circle text-muted"
-                        style="cursor: help; font-size: 0.75rem"
-                      />
-                      <BTooltip
-                        v-if="isEditingProfile"
-                        target="orcid-help"
-                        triggers="hover"
-                        placement="right"
-                      >
-                        Format: 0000-0000-0000-000X (16 digits with dashes)
-                      </BTooltip>
-                    </span>
-                    <template v-if="isEditingProfile">
-                      <BFormInput
-                        v-model="editForm.orcid"
-                        type="text"
-                        size="sm"
-                        placeholder="0000-0000-0000-0000"
-                        :state="orcidValidationState"
-                        class="mt-1"
-                      />
-                      <BFormInvalidFeedback v-if="orcidError">
-                        {{ orcidError }}
-                      </BFormInvalidFeedback>
-                      <BFormText v-else class="text-muted"> Leave empty to remove ORCID </BFormText>
-                    </template>
-                    <template v-else>
-                      <a
-                        v-if="user.orcid[0]"
-                        :href="'https://orcid.org/' + user.orcid[0]"
-                        target="_blank"
-                        class="detail-value text-decoration-none"
-                      >
-                        <i class="bi bi-box-arrow-up-right me-1" style="font-size: 0.75rem" />
-                        {{ user.orcid[0] }}
-                      </a>
-                      <span v-else class="detail-value text-muted">Not provided</span>
-                    </template>
-                  </div>
-                </div>
-
-                <div class="detail-row">
-                  <div class="detail-icon">
-                    <i class="bi bi-hash text-muted" />
-                  </div>
-                  <div class="detail-content">
-                    <span class="detail-label">Abbreviation</span>
-                    <span class="detail-value">
-                      <BBadge variant="secondary">{{ user.abbreviation[0] }}</BBadge>
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </BCardBody>
-          </BCard>
-
-          <!-- Security Card -->
-          <BCard class="border-0 shadow-sm">
-            <BCardBody>
-              <h6 class="text-muted fw-semibold mb-3 d-flex align-items-center">
-                <i class="bi bi-shield-lock me-2" />
-                Security & Session
-              </h6>
-
-              <!-- Session Info -->
-              <div class="session-info p-3 rounded-3 bg-light mb-3">
-                <div class="d-flex align-items-center justify-content-between">
-                  <div>
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                      <i class="bi bi-clock-history text-muted" />
-                      <span class="small fw-semibold">Auto-logout in</span>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="session-timer fw-bold" :class="sessionTimerClass">
-                        {{ formatTimeRemaining }}
-                      </span>
-                    </div>
-                  </div>
-                  <BButton
-                    variant="outline-success"
-                    size="sm"
-                    class="d-flex align-items-center gap-1"
-                    @click="refreshWithJWT"
-                  >
-                    <i class="bi bi-arrow-repeat" />
-                    <span class="d-none d-sm-inline">Refresh</span>
-                  </BButton>
-                </div>
-              </div>
-
-              <!-- Change Password Section -->
-              <div class="password-section">
-                <BButton
-                  variant="outline-secondary"
-                  class="w-100 d-flex align-items-center justify-content-between"
-                  :class="{ 'mb-3': pass_change_visible }"
-                  @click="pass_change_visible = !pass_change_visible"
-                >
-                  <span class="d-flex align-items-center gap-2">
-                    <i class="bi bi-key" />
-                    Change Password
-                  </span>
-                  <i
-                    class="bi transition-transform"
-                    :class="pass_change_visible ? 'bi-chevron-up' : 'bi-chevron-down'"
-                  />
-                </BButton>
-
-                <BCollapse id="collapse-pass-change" v-model="pass_change_visible">
-                  <div class="password-form p-3 rounded-3 bg-light">
-                    <form @submit.prevent="onPasswordSubmit">
-                      <BFormGroup class="mb-3">
-                        <template #label>
-                          <span class="small fw-semibold">Current Password</span>
-                        </template>
-                        <BFormInput
-                          v-model="currentPassword"
-                          type="password"
-                          size="sm"
-                          placeholder="Enter current password"
-                          :state="
-                            currentPasswordMeta.touched
-                              ? currentPasswordError
-                                ? false
-                                : true
-                              : null
-                          "
-                        />
-                        <BFormInvalidFeedback v-if="currentPasswordError">
-                          {{ currentPasswordError }}
-                        </BFormInvalidFeedback>
-                      </BFormGroup>
-
-                      <BFormGroup class="mb-3">
-                        <template #label>
-                          <span class="small fw-semibold d-flex align-items-center gap-1">
-                            New Password
-                            <i
-                              id="password-help"
-                              class="bi bi-question-circle text-muted"
-                              style="cursor: help"
-                            />
-                            <BTooltip target="password-help" triggers="hover" placement="right">
-                              Must be 8+ characters with uppercase, lowercase, number, and special
-                              character (!@#$%^&*)
-                            </BTooltip>
-                          </span>
-                        </template>
-                        <BFormInput
-                          v-model="newPasswordEntry"
-                          type="password"
-                          size="sm"
-                          placeholder="Enter new password"
-                          :state="
-                            newPasswordMeta.touched ? (newPasswordError ? false : true) : null
-                          "
-                        />
-                        <BFormInvalidFeedback v-if="newPasswordError">
-                          {{ newPasswordError }}
-                        </BFormInvalidFeedback>
-                      </BFormGroup>
-
-                      <BFormGroup class="mb-3">
-                        <template #label>
-                          <span class="small fw-semibold">Confirm New Password</span>
-                        </template>
-                        <BFormInput
-                          v-model="newPasswordRepeat"
-                          type="password"
-                          size="sm"
-                          placeholder="Repeat new password"
-                          :state="
-                            confirmPasswordMeta.touched
-                              ? confirmPasswordError
-                                ? false
-                                : true
-                              : null
-                          "
-                        />
-                        <BFormInvalidFeedback v-if="confirmPasswordError">
-                          {{ confirmPasswordError }}
-                        </BFormInvalidFeedback>
-                      </BFormGroup>
-
-                      <div class="d-flex gap-2">
-                        <BButton type="submit" variant="primary" size="sm">
-                          <i class="bi bi-check-lg me-1" />
-                          Update Password
-                        </BButton>
-                        <BButton
-                          variant="outline-secondary"
-                          size="sm"
-                          @click="cancelPasswordChange"
-                        >
-                          Cancel
-                        </BButton>
-                      </div>
-                    </form>
-                  </div>
-                </BCollapse>
-              </div>
-            </BCardBody>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+      <UserSecurityPanel
+        :time-remaining="formatTimeRemaining"
+        :session-timer-class="sessionTimerClass"
+        :password-visible="pass_change_visible"
+        :current-password="currentPassword"
+        :new-password="newPasswordEntry"
+        :confirm-password="newPasswordRepeat"
+        :current-password-error="currentPasswordError"
+        :new-password-error="newPasswordError"
+        :confirm-password-error="confirmPasswordError"
+        :current-password-state="currentPasswordState"
+        :new-password-state="newPasswordState"
+        :confirm-password-state="confirmPasswordState"
+        @refresh="refreshWithJWT"
+        @toggle-password="pass_change_visible = !pass_change_visible"
+        @submit-password="onPasswordSubmit"
+        @cancel-password="cancelPasswordChange"
+        @update:current-password="currentPassword = $event"
+        @update:new-password="newPasswordEntry = $event"
+        @update:confirm-password="newPasswordRepeat = $event"
+      />
+    </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
@@ -407,6 +79,11 @@ import { useToast, useColorAndSymbols } from '@/composables';
 import { useAuth } from '@/composables/useAuth';
 import { signin, changePassword } from '@/api/auth';
 import { getUserContributions, updateProfile } from '@/api/user';
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import UserContributionStats from '@/views/user/UserContributionStats.vue';
+import UserProfileDetails from '@/views/user/UserProfileDetails.vue';
+import UserProfileHeader from '@/views/user/UserProfileHeader.vue';
+import UserSecurityPanel from '@/views/user/UserSecurityPanel.vue';
 
 // Define validation rules globally
 defineRule('required', required);
@@ -426,6 +103,13 @@ defineRule('password_complexity', (value) => {
 
 export default {
   name: 'UserView',
+  components: {
+    AuthenticatedPageShell,
+    UserContributionStats,
+    UserProfileDetails,
+    UserProfileHeader,
+    UserSecurityPanel,
+  },
   setup() {
     const { makeToast } = useToast();
     const colorAndSymbols = useColorAndSymbols();
@@ -538,6 +222,21 @@ export default {
       const seconds = Math.floor((this.time_to_logout - minutes) * 60);
       return `${minutes}m ${seconds}s`;
     },
+    activeReviewsCount() {
+      return Number(this.user.active_reviews ?? 0);
+    },
+    activeStatusCount() {
+      return Number(this.user.active_status ?? 0);
+    },
+    currentPasswordState() {
+      return this.passwordFieldState(this.currentPasswordMeta, this.currentPasswordError);
+    },
+    newPasswordState() {
+      return this.passwordFieldState(this.newPasswordMeta, this.newPasswordError);
+    },
+    confirmPasswordState() {
+      return this.passwordFieldState(this.confirmPasswordMeta, this.confirmPasswordError);
+    },
     emailValidationState() {
       if (!this.isEditingProfile) return null;
       if (this.emailError) return false;
@@ -587,6 +286,9 @@ export default {
       this.handleSubmit(() => {
         this.changePassword();
       })();
+    },
+    passwordFieldState(meta, error) {
+      return meta?.touched ? (error ? false : true) : null;
     },
     cancelPasswordChange() {
       this.pass_change_visible = false;
@@ -771,159 +473,22 @@ export default {
 </script>
 
 <style scoped>
-/* Profile Header */
-.profile-header-bg {
-  height: 80px;
-  margin: -1rem -1rem 0 -1rem;
+.user-profile-page {
+  display: grid;
+  gap: 0.9rem;
+  background: #fbfcfe;
 }
 
-.profile-identity {
-  margin-top: -40px;
+.user-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(22rem, 0.85fr);
+  gap: 0.9rem;
+  align-items: start;
 }
 
-/* Avatar Styling */
-.avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.avatar-circle {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  border: 4px solid white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.avatar-initials {
-  font-size: 2rem;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.avatar-badge {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid white;
-  color: white;
-  font-size: 0.75rem;
-}
-
-/* Stats Cards */
-.stat-card {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
-}
-
-.stat-icon span {
-  width: 48px;
-  height: 48px;
-  font-size: 1.25rem;
-}
-
-/* Profile Details */
-.profile-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.detail-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.detail-content {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.detail-label {
-  font-size: 0.75rem;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.detail-value {
-  font-size: 0.95rem;
-  color: #212529;
-  word-break: break-word;
-}
-
-/* Session Info */
-.session-timer {
-  font-size: 1.25rem;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Password Form */
-.password-form {
-  border: 1px solid #e9ecef;
-}
-
-/* Transitions */
-.transition-transform {
-  transition: transform 0.2s ease;
-}
-
-/* Responsive */
-@media (max-width: 575.98px) {
-  .avatar-circle {
-    width: 80px;
-    height: 80px;
-  }
-
-  .avatar-initials {
-    font-size: 1.5rem;
-  }
-
-  .avatar-badge {
-    width: 24px;
-    height: 24px;
-    font-size: 0.65rem;
-  }
-
-  .profile-identity {
-    margin-top: -32px;
-  }
-
-  .stat-icon span {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-
-  .stat-card h3 {
-    font-size: 1.5rem;
+@media (max-width: 991.98px) {
+  .user-profile-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

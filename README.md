@@ -63,6 +63,12 @@ The app runs at http://localhost:5173
 cd app && npm run build:production
 ```
 
+To generate and verify crawlable public SEO pages:
+
+```bash
+make verify-seo-app
+```
+
 ### Run Tests
 
 ```bash

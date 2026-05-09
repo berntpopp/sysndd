@@ -1,239 +1,221 @@
 <!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
-  <BContainer fluid>
-    <!-- The main card -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Entities
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="Entities clustered based on their phenotype annotations to identify groups with similar characteristics. Interactive visualization allows exploration of cluster details."
-            >
-              clustered using phenotype
-            </mark>
-            annotation.
-            <BBadge id="popover-badge-help-clusters" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-clusters" variant="info" triggers="focus">
-              <template #title> Cluster Analysis Details </template>
-              This section provides an interactive visualization of entities grouped by phenotype
-              annotations. The graphical part allows you to explore the clusters by clicking on the
-              nodes, and the table displays detailed information about the variables within each
-              cluster.
-            </BPopover>
-          </h6>
-          <!-- Add export buttons for Cytoscape network -->
-          <div class="btn-group btn-group-sm">
-            <BButton variant="outline-secondary" size="sm" title="Export as PNG" @click="exportPNG">
-              <i class="bi bi-image" />
-            </BButton>
-            <BButton variant="outline-secondary" size="sm" title="Export as SVG" @click="exportSVG">
-              <i class="bi bi-filetype-svg" />
-            </BButton>
-          </div>
-        </div>
-      </template>
+  <AnalysisPanel
+    title="Entities clustered using phenotype annotation"
+    description="Interactive phenotype-cluster network with linked entity and variable tables."
+  >
+    <template #actions>
+      <InlineHelpBadge id="popover-badge-help-clusters" aria-label="Explain phenotype clusters" />
+      <BPopover target="popover-badge-help-clusters" variant="info" triggers="focus">
+        <template #title> Cluster Analysis Details </template>
+        This section provides an interactive visualization of entities grouped by phenotype
+        annotations. The graphical part allows you to explore the clusters by clicking on the nodes,
+        and the table displays detailed information about the variables within each cluster.
+      </BPopover>
+      <div class="btn-group btn-group-sm">
+        <BButton variant="outline-secondary" size="sm" title="Export as PNG" @click="exportPNG">
+          <i class="bi bi-image" />
+        </BButton>
+        <BButton variant="outline-secondary" size="sm" title="Export as SVG" @click="exportSVG">
+          <i class="bi bi-filetype-svg" />
+        </BButton>
+      </div>
+    </template>
 
-      <!-- Put both graph and table in ONE row -->
-      <BRow>
-        <!-- LEFT COLUMN (Graph) -->
-        <BCol md="4">
-          <BCard
-            header-tag="header"
-            class="my-3 mx-2 text-start"
-            body-class="p-0"
-            header-class="p-1"
-            footer-class="p-1"
-            border-variant="dark"
-          >
-            <template #header>
-              <h6 class="mb-0 font-weight-bold">
-                Selected cluster {{ selectedCluster.cluster }}
-                with
-                <BBadge variant="primary">
-                  {{ selectedCluster.cluster_size }}
-                </BBadge>
-                entities
-              </h6>
-            </template>
+    <!-- Put both graph and table in ONE row -->
+    <BRow>
+      <!-- LEFT COLUMN (Graph) -->
+      <BCol md="4">
+        <BCard
+          header-tag="header"
+          class="my-3 mx-2 text-start"
+          body-class="p-0"
+          header-class="p-1"
+          footer-class="p-1"
+          border-variant="light"
+        >
+          <template #header>
+            <h6 class="mb-0 font-weight-bold">
+              Selected cluster {{ selectedCluster.cluster }}
+              with
+              <BBadge variant="primary">
+                {{ selectedCluster.cluster_size }}
+              </BBadge>
+              entities
+            </h6>
+          </template>
 
-            <div id="cluster_dataviz" class="svg-container">
-              <!-- Error state with retry -->
-              <div v-if="error" class="error-state text-center p-4">
-                <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
-                <p class="text-muted mb-3">
-                  {{ error }}
-                </p>
-                <BButton variant="primary" @click="retryLoad">
-                  <i class="bi bi-arrow-clockwise me-1" />
-                  Retry
-                </BButton>
-              </div>
-
-              <!-- Loading spinner -->
-              <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
-
-              <div
-                v-else
-                ref="cytoscapeContainer"
-                class="cytoscape-container"
-                :style="{ height: '380px', width: '100%' }"
-              />
+          <div id="cluster_dataviz" class="svg-container">
+            <!-- Error state with retry -->
+            <div v-if="error" class="error-state text-center p-4">
+              <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+              <p class="text-muted mb-3">
+                {{ error }}
+              </p>
+              <BButton variant="primary" @click="retryLoad">
+                <i class="bi bi-arrow-clockwise me-1" />
+                Retry
+              </BButton>
             </div>
 
-            <template #footer>
-              <div class="d-flex justify-content-between align-items-center">
-                <BLink :to="entitiesLink">
-                  Entities for cluster {{ selectedCluster.cluster }}
-                </BLink>
-                <small class="text-muted">
-                  <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
-                  <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
-                </small>
-              </div>
-            </template>
-          </BCard>
-        </BCol>
+            <!-- Loading spinner -->
+            <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
 
-        <!-- RIGHT COLUMN (Table) -->
-        <BCol md="8">
-          <!-- LLM Summary Card (above table) -->
-          <LlmSummaryCard
-            v-if="currentSummary && !summaryLoading"
-            class="my-3 mx-2"
-            :summary="currentSummary.summary_json"
-            :model-name="
-              Array.isArray(currentSummary.model_name)
-                ? currentSummary.model_name[0]
-                : currentSummary.model_name
-            "
-            :created-at="
-              Array.isArray(currentSummary.created_at)
-                ? currentSummary.created_at[0]
-                : currentSummary.created_at
-            "
-            :validation-status="
-              Array.isArray(currentSummary.validation_status)
-                ? currentSummary.validation_status[0]
-                : currentSummary.validation_status
-            "
-            :cluster-number="Number(selectedCluster?.cluster)"
-          />
-          <div v-else-if="summaryLoading" class="my-3 mx-2">
-            <BSpinner small class="me-2" />
-            <span class="text-muted">Loading AI summary...</span>
+            <div
+              v-else
+              ref="cytoscapeContainer"
+              class="cytoscape-container"
+              :style="{ height: '380px', width: '100%' }"
+            />
           </div>
-          <!-- No placeholder when summary doesn't exist -->
 
-          <BCard
-            header-tag="header"
-            class="my-3 mx-2 text-start"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-          >
-            <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
-            <template #header>
-              <div class="mb-0 font-weight-bold">
-                <BRow>
-                  <BCol sm="6" class="mb-1">
-                    <BInputGroup prepend="Table type" size="sm">
-                      <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
-                    </BInputGroup>
-                  </BCol>
+          <template #footer>
+            <div class="d-flex justify-content-between align-items-center">
+              <BLink :to="entitiesLink"> Entities for cluster {{ selectedCluster.cluster }} </BLink>
+              <small class="text-muted">
+                <i class="bi bi-circle-fill" style="font-size: 6px" /> = fewer entities |
+                <i class="bi bi-circle-fill" style="font-size: 12px" /> = more entities
+              </small>
+            </div>
+          </template>
+        </BCard>
+      </BCol>
 
-                  <BCol sm="6" class="mb-1 text-end">
-                    <div class="d-flex align-items-center justify-content-end gap-2">
-                      <!-- A search input controlling the 'any' filter -->
-                      <TableSearchInput
-                        v-model="filter.any.content"
-                        :placeholder="'Search variables here...'"
-                        :debounce-time="500"
-                        @input="onFilterChange"
-                      />
-                      <!-- Excel download button -->
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        size="sm"
-                        variant="outline-secondary"
-                        title="Download table data as Excel file"
-                        :disabled="isExporting"
-                        @click="downloadExcel"
-                      >
-                        <i class="bi bi-table me-1" />
-                        <i v-if="!isExporting" class="bi bi-download" />
-                        <BSpinner v-else small />
-                        .xlsx
-                      </BButton>
-                    </div>
-                  </BCol>
-                </BRow>
-              </div>
-            </template>
+      <!-- RIGHT COLUMN (Table) -->
+      <BCol md="8">
+        <!-- LLM Summary Card (above table) -->
+        <LlmSummaryCard
+          v-if="currentSummary && !summaryLoading"
+          class="my-3 mx-2"
+          :summary="currentSummary.summary_json"
+          :model-name="
+            Array.isArray(currentSummary.model_name)
+              ? currentSummary.model_name[0]
+              : currentSummary.model_name
+          "
+          :created-at="
+            Array.isArray(currentSummary.created_at)
+              ? currentSummary.created_at[0]
+              : currentSummary.created_at
+          "
+          :validation-status="
+            Array.isArray(currentSummary.validation_status)
+              ? currentSummary.validation_status[0]
+              : currentSummary.validation_status
+          "
+          :cluster-number="Number(selectedCluster?.cluster)"
+        />
+        <div v-else-if="summaryLoading" class="my-3 mx-2">
+          <BSpinner small class="me-2" />
+          <span class="text-muted">Loading AI summary...</span>
+        </div>
+        <!-- No placeholder when summary doesn't exist -->
 
-            <!-- MAIN TABLE -->
-            <BCardText class="text-start">
-              <GenericTable
-                :items="displayedItems"
-                :fields="fields"
-                :sort-by="sortBy"
-                :sort-desc="sortDesc"
-                @update-sort="handleSortUpdate"
-              >
-                <!-- Column-level filter slot (optional) -->
-                <template #filter-controls>
-                  <td v-for="field in fields" :key="field.key">
-                    <BFormInput
-                      v-if="field.key !== 'details'"
-                      v-model="filter[field.key].content"
-                      :placeholder="'Filter ' + field.label"
-                      debounce="500"
+        <BCard
+          header-tag="header"
+          class="my-3 mx-2 text-start"
+          body-class="p-0"
+          header-class="p-1"
+          border-variant="light"
+        >
+          <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
+          <template #header>
+            <div class="mb-0 font-weight-bold">
+              <BRow>
+                <BCol sm="6" class="mb-1">
+                  <BInputGroup prepend="Table type" size="sm">
+                    <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
+                  </BInputGroup>
+                </BCol>
+
+                <BCol sm="6" class="mb-1 text-end">
+                  <div class="d-flex align-items-center justify-content-end gap-2">
+                    <!-- A search input controlling the 'any' filter -->
+                    <TableSearchInput
+                      v-model="filter.any.content"
+                      :placeholder="'Search variables here...'"
+                      :debounce-time="500"
                       @input="onFilterChange"
                     />
-                  </td>
-                </template>
-
-                <!-- Optionally define custom column slots -->
-                <template #cell-variable="{ row }">
-                  <BBadge variant="primary">
-                    {{ row.variable }}
-                  </BBadge>
-                </template>
-
-                <template #cell-p.value="{ row }">
-                  <BBadge variant="info">
-                    {{ row['p.value'] }}
-                  </BBadge>
-                </template>
-
-                <template #cell-v.test="{ row }">
-                  <BBadge variant="warning">
-                    {{ row['v.test'] }}
-                  </BBadge>
-                </template>
-              </GenericTable>
-
-              <!-- Bottom pagination controls (optional) -->
-              <BRow class="justify-content-end">
-                <BCol cols="12" md="auto" class="my-1">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="[5, 10, 20]"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
+                    <!-- Excel download button -->
+                    <BButton
+                      v-b-tooltip.hover.bottom
+                      size="sm"
+                      variant="outline-secondary"
+                      title="Download table data as Excel file"
+                      :disabled="isExporting"
+                      @click="downloadExcel"
+                    >
+                      <i class="bi bi-table me-1" />
+                      <i v-if="!isExporting" class="bi bi-download" />
+                      <BSpinner v-else small />
+                      .xlsx
+                    </BButton>
+                  </div>
                 </BCol>
               </BRow>
-            </BCardText>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BCard>
-  </BContainer>
+            </div>
+          </template>
+
+          <!-- MAIN TABLE -->
+          <BCardText class="text-start">
+            <GenericTable
+              :items="displayedItems"
+              :fields="fields"
+              :sort-by="sortBy"
+              :sort-desc="sortDesc"
+              @update-sort="handleSortUpdate"
+            >
+              <!-- Column-level filter slot (optional) -->
+              <template #filter-controls>
+                <td v-for="field in fields" :key="field.key">
+                  <BFormInput
+                    v-if="field.key !== 'details'"
+                    v-model="filter[field.key].content"
+                    :placeholder="'Filter ' + field.label"
+                    debounce="500"
+                    @input="onFilterChange"
+                  />
+                </td>
+              </template>
+
+              <!-- Optionally define custom column slots -->
+              <template #cell-variable="{ row }">
+                <BBadge variant="primary">
+                  {{ row.variable }}
+                </BBadge>
+              </template>
+
+              <template #cell-p.value="{ row }">
+                <BBadge variant="info">
+                  {{ row['p.value'] }}
+                </BBadge>
+              </template>
+
+              <template #cell-v.test="{ row }">
+                <BBadge variant="warning">
+                  {{ row['v.test'] }}
+                </BBadge>
+              </template>
+            </GenericTable>
+
+            <!-- Bottom pagination controls (optional) -->
+            <BRow class="justify-content-end">
+              <BCol cols="12" md="auto" class="my-1">
+                <TablePaginationControls
+                  :total-rows="totalRows"
+                  :initial-per-page="perPage"
+                  :page-options="[5, 10, 20]"
+                  @page-change="handlePageChange"
+                  @per-page-change="handlePerPageChange"
+                />
+              </BCol>
+            </BRow>
+          </BCardText>
+        </BCard>
+      </BCol>
+    </BRow>
+  </AnalysisPanel>
 </template>
 
 <script>
@@ -245,9 +227,11 @@ import { usePhenotypeCytoscape, useExcelExport } from '@/composables';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 
 // Import LLM Summary Card for AI-generated cluster summaries
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
+import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 // Typed API client (W5)
 import { getPhenotypeClustering, getPhenotypeClusterSummary } from '@/api/analysis';
@@ -256,7 +240,9 @@ import { isApiError } from '@/api/client';
 export default {
   name: 'AnalysesPhenotypeClusters',
   components: {
+    AnalysisPanel,
     GenericTable,
+    InlineHelpBadge,
     TableSearchInput,
     TablePaginationControls,
     LlmSummaryCard,

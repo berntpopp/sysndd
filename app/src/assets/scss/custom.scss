@@ -22,6 +22,7 @@
 @use './components/search';
 @use './components/loading';
 @use './components/responsive';
+@use './components/public-pages';
 
 // Import utility classes
 @use './utilities/spacing' as spacing-utilities;

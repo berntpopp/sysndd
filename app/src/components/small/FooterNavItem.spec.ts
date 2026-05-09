@@ -7,7 +7,7 @@
  *
  * Demonstrates:
  * - Testing prop handling
- * - Testing computed properties (relAttribute)
+ * - Testing computed properties (linkAttributes)
  * - Testing error handling (image fallback)
  * - Using bootstrap stubs for isolation
  */
@@ -85,47 +85,50 @@ describe('FooterNavItem', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Computed property tests: relAttribute
+  // Computed property tests: linkAttributes
   // ---------------------------------------------------------------------------
-  describe('relAttribute computed property', () => {
-    it('returns "noopener" for external links (target="_blank")', () => {
+  describe('linkAttributes computed property', () => {
+    it('adds "noopener" to link attributes for external links (target="_blank")', () => {
       const wrapper = mountComponent({
         ...defaultItem,
         target: '_blank',
       });
 
-      const img = wrapper.find('img');
-      expect(img.attributes('rel')).toBe('noopener');
+      expect(wrapper.vm.linkAttributes).toMatchObject({
+        'aria-label': 'Example Link',
+        rel: 'noopener',
+      });
+      expect(wrapper.find('img').attributes('rel')).toBeUndefined();
     });
 
-    it('returns empty string for internal links (no target)', () => {
+    it('preserves link attributes without rel for internal links (no target)', () => {
       const wrapper = mountComponent({
         ...defaultItem,
         target: '',
       });
 
-      const img = wrapper.find('img');
-      expect(img.attributes('rel')).toBe('');
+      expect(wrapper.vm.linkAttributes).toEqual({ 'aria-label': 'Example Link' });
+      expect(wrapper.find('img').attributes('rel')).toBeUndefined();
     });
 
-    it('returns empty string for self target', () => {
+    it('preserves link attributes without rel for self target', () => {
       const wrapper = mountComponent({
         ...defaultItem,
         target: '_self',
       });
 
-      const img = wrapper.find('img');
-      expect(img.attributes('rel')).toBe('');
+      expect(wrapper.vm.linkAttributes).toEqual({ 'aria-label': 'Example Link' });
+      expect(wrapper.find('img').attributes('rel')).toBeUndefined();
     });
 
-    it('returns empty string for parent target', () => {
+    it('preserves link attributes without rel for parent target', () => {
       const wrapper = mountComponent({
         ...defaultItem,
         target: '_parent',
       });
 
-      const img = wrapper.find('img');
-      expect(img.attributes('rel')).toBe('');
+      expect(wrapper.vm.linkAttributes).toEqual({ 'aria-label': 'Example Link' });
+      expect(wrapper.find('img').attributes('rel')).toBeUndefined();
     });
   });
 

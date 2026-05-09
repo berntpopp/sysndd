@@ -1,49 +1,59 @@
 <!-- views/analyses/CurationComparisons.vue -->
 <template>
-  <div class="container-fluid bg-gradient">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <div>
-            <BCard title="Curation comparisons" no-body>
-              <BCardHeader
-                header-tag="nav"
-                class="d-flex justify-content-between align-items-center flex-wrap"
-              >
-                <BNav card-header tabs>
-                  <BNavItem to="/CurationComparisons" exact exact-active-class="active">
-                    Overlap
-                  </BNavItem>
-                  <BNavItem to="/CurationComparisons/Similarity" exact exact-active-class="active">
-                    Similarity
-                  </BNavItem>
-                  <BNavItem to="/CurationComparisons/Table" exact exact-active-class="active">
-                    Table
-                  </BNavItem>
-                </BNav>
-                <div class="d-flex align-items-center">
-                  <span
-                    v-if="metadata.last_full_refresh"
-                    v-b-tooltip.hover.bottom
-                    class="badge bg-secondary"
-                    :title="`Last refresh: ${formatDateTime(metadata.last_full_refresh)} - ${metadata.sources_count} sources, ${metadata.rows_imported?.toLocaleString()} rows`"
-                  >
-                    Data: {{ formatDate(metadata.last_full_refresh) }}
-                  </span>
-                  <span v-else-if="!loadingMetadata" class="badge bg-warning text-dark">
-                    No refresh data
-                  </span>
-                </div>
-              </BCardHeader>
+  <div class="curation-comparisons-page">
+    <div data-testid="curation-comparisons-frame" class="analysis-frame">
+      <header class="analysis-header">
+        <div class="analysis-title-group">
+          <h1 class="analysis-title">Curation comparisons</h1>
+          <p class="analysis-subtitle">
+            Compare SysNDD gene coverage with external neurodevelopmental disorder curation lists.
+          </p>
+        </div>
 
-              <BCardBody>
-                <router-view />
-              </BCardBody>
-            </BCard>
-          </div>
-        </BCol>
-      </BRow>
-    </BContainer>
+        <span
+          v-if="metadata.last_full_refresh"
+          v-b-tooltip.hover.bottom
+          data-testid="comparisons-refresh-badge"
+          class="analysis-meta-badge"
+          :aria-label="`Last comparisons refresh ${formatDateTime(metadata.last_full_refresh)} with ${metadata.sources_count} sources and ${metadata.rows_imported?.toLocaleString()} rows`"
+          :title="`Last refresh: ${formatDateTime(metadata.last_full_refresh)} - ${metadata.sources_count} sources, ${metadata.rows_imported?.toLocaleString()} rows`"
+        >
+          Data {{ formatDate(metadata.last_full_refresh) }}
+        </span>
+        <span
+          v-else-if="!loadingMetadata"
+          data-testid="comparisons-refresh-badge"
+          class="analysis-meta-badge analysis-meta-badge-warning"
+          aria-label="No comparisons refresh data available"
+        >
+          No refresh data
+        </span>
+      </header>
+
+      <nav class="analysis-tabs" aria-label="Curation comparison views">
+        <RouterLink to="/CurationComparisons" class="analysis-tab" exact-active-class="active">
+          Overlap
+        </RouterLink>
+        <RouterLink
+          to="/CurationComparisons/Similarity"
+          class="analysis-tab"
+          exact-active-class="active"
+        >
+          Similarity
+        </RouterLink>
+        <RouterLink
+          to="/CurationComparisons/Table"
+          class="analysis-tab"
+          exact-active-class="active"
+        >
+          Table
+        </RouterLink>
+      </nav>
+
+      <main class="analysis-content">
+        <router-view />
+      </main>
+    </div>
   </div>
 </template>
 
@@ -131,8 +141,139 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Ensure nav tabs align properly with header content */
-.card-header .nav-tabs {
-  margin-bottom: -1px;
+.curation-comparisons-page {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 0.75rem 1rem 1.5rem;
+  background: #f6f8fb;
+}
+
+.analysis-frame {
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.analysis-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem 0.7rem;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.analysis-title-group {
+  min-width: 0;
+  text-align: left;
+}
+
+.analysis-title {
+  margin: 0;
+  color: #172033;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.analysis-subtitle {
+  max-width: 58rem;
+  margin: 0.25rem 0 0;
+  color: #526070;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.analysis-meta-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid #bdc7d4;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #223044;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.analysis-meta-badge-warning {
+  border-color: #f2cf6d;
+  background: #fff6d8;
+  color: #4a3700;
+}
+
+.analysis-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid #e6ebf2;
+  background: #fbfcfe;
+}
+
+.analysis-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.45rem;
+  padding: 0 0.75rem;
+  border-bottom: 2px solid transparent;
+  color: #244b7a;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.analysis-tab:hover,
+.analysis-tab:focus {
+  color: #0b5ed7;
+  background: #eef5ff;
+}
+
+.analysis-tab.active {
+  border-bottom-color: #0d6efd;
+  color: #111827;
+  background: #fff;
+}
+
+.analysis-content {
+  padding: 1rem;
+}
+
+@media (max-width: 575.98px) {
+  .curation-comparisons-page {
+    padding: 0.5rem 0.75rem 1rem;
+  }
+
+  .analysis-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.75rem;
+  }
+
+  .analysis-subtitle {
+    font-size: 0.8125rem;
+  }
+
+  .analysis-tabs {
+    justify-content: space-between;
+    padding: 0 0.4rem;
+  }
+
+  .analysis-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 0 0.35rem;
+  }
+
+  .analysis-content {
+    padding: 0.75rem;
+  }
 }
 </style>

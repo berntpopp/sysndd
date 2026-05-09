@@ -1,59 +1,43 @@
 <!-- src/components/analyses/AnalysesCurationMatrixPlot.vue -->
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            Matrix plot of the
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="This is a measure of similarity between two sequences of numbers used to quantify the similarity between two word lists."
-              >cosine similarity</mark
-            >
-            between different curation efforts for neurodevelopmental disorders.
-            <BBadge id="popover-badge-help-similarity" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
-              <template #title> Cosine Similarity Analysis </template>
-              Cosine similarity measures the cosine of the angle between two non-zero vectors. It is
-              used to calculate the similarity between different curation efforts by comparing their
-              respective gene lists. The values range from -1 (completely dissimilar) to 1
-              (completely similar), with 0 indicating orthogonality (no similarity).
-            </BPopover>
-          </h6>
-          <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'matrix_plot'" />
-        </div>
-      </template>
-      <BRow>
-        <!-- column 1 -->
-        <BCol class="my-1" />
-        <!-- column 2 -->
-        <BCol class="my-1" />
-        <!-- column 3 -->
-        <BCol class="my-1" />
-        <!-- column 4 -->
-        <BCol class="my-1" />
-      </BRow>
-      <!-- User Interface controls -->
-
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <div id="matrix_dataviz" class="svg-container" />
-        <div v-show="loadingMatrix" class="float-center m-5">
-          <BSpinner label="Loading..." class="spinner" />
-        </div>
+  <section class="analysis-panel similarity-panel">
+    <header class="panel-header">
+      <div class="panel-heading">
+        <h2 class="panel-title">
+          Similarity
+          <InlineHelpBadge
+            id="popover-badge-help-similarity"
+            aria-label="Explain cosine similarity matrix"
+          />
+        </h2>
+        <p class="panel-description">
+          Cosine similarity matrix comparing gene-list overlap between curation efforts.
+        </p>
+        <BPopover target="popover-badge-help-similarity" variant="info" triggers="focus">
+          <template #title>Cosine Similarity Analysis</template>
+          Cosine similarity measures the angle between two non-zero vectors. Here it compares
+          curation efforts by their gene lists. Values range from -1 for dissimilar to 1 for
+          completely similar, with 0 indicating no similarity.
+        </BPopover>
       </div>
-    </BCard>
-  </BContainer>
+
+      <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'matrix_plot'" />
+    </header>
+
+    <div class="matrix-body position-relative">
+      <div id="matrix_dataviz" class="svg-container" />
+      <div v-show="loadingMatrix" class="loading-state">
+        <BSpinner label="Loading..." class="spinner" />
+      </div>
+    </div>
+  </section>
 </template>
 
 <script>
 import useToast from '@/composables/useToast';
 import * as d3 from 'd3';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 
 // Typed API client (W5)
 import { getSimilarity } from '@/api/comparisons';
@@ -62,6 +46,7 @@ export default {
   name: 'AnalysesCurationMatrixPlot',
   components: {
     DownloadImageButtons,
+    InlineHelpBadge,
   },
   setup() {
     const { makeToast } = useToast();
@@ -217,39 +202,91 @@ export default {
 </script>
 
 <style scoped>
+.analysis-panel {
+  overflow: hidden;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem 0.7rem;
+  border-bottom: 1px solid #e6ebf2;
+  background: #fbfcfe;
+}
+
+.panel-heading {
+  min-width: 0;
+  text-align: left;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #27364a;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.panel-description {
+  margin: 0.25rem 0 0;
+  color: #526070;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.matrix-body {
+  min-height: 20rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
 .svg-container {
-  display: inline-block;
+  display: block;
   position: relative;
   width: 100%;
-  max-width: 600px;
-  vertical-align: top;
+  max-width: 680px;
+  margin: 0 auto;
   overflow: hidden;
 }
+
 .svg-content {
   display: inline-block;
   position: absolute;
   top: 0;
   left: 0;
 }
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #eaadba;
+
+.loading-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.75);
 }
+
 .spinner {
   width: 2rem;
   height: 2rem;
-  animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
+@media (max-width: 575.98px) {
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    padding: 0.75rem;
   }
-  100% {
-    transform: rotate(360deg);
+
+  .matrix-body {
+    padding: 0.5rem 0.75rem 0.75rem;
   }
 }
 </style>

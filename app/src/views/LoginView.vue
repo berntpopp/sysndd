@@ -1,66 +1,109 @@
 <!-- src/views/LoginView.vue -->
 <template>
-  <div class="container-fluid">
+  <div class="login-page">
     <!-- Loading Spinner -->
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
 
     <!-- Login Form -->
-    <BContainer v-else>
-      <BRow class="justify-content-md-center py-4">
-        <BCol md="6">
-          <BCard header="Sign in" header-bg-variant="dark" header-text-variant="white">
-            <BCardText>
-              <form @submit.prevent="onSubmit">
-                <!-- Username Field -->
-                <BFormGroup description="Enter your user name">
-                  <BFormInput
-                    v-model="user_name"
-                    placeholder="User"
-                    :state="usernameMeta.touched ? (usernameError ? false : true) : null"
-                  />
-                  <BFormInvalidFeedback v-if="usernameError">
-                    {{ usernameError }}
-                  </BFormInvalidFeedback>
-                </BFormGroup>
+    <div v-else class="login-shell">
+      <section class="login-context" aria-labelledby="login-context-title">
+        <div>
+          <div class="login-brand">
+            <img
+              src="/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
+              width="52"
+              height="52"
+              alt="SysNDD Logo"
+              class="login-brand__logo"
+            />
+            <div>
+              <p class="login-kicker">SysNDD account</p>
+              <h1 id="login-context-title" class="login-title">Curator sign in</h1>
+            </div>
+          </div>
+          <p class="login-description">
+            Access review, curation, and administration workflows for the expert-curated
+            neurodevelopmental disorder database.
+          </p>
+          <ul class="login-feature-list">
+            <li>
+              <i class="bi bi-check2-circle" aria-hidden="true" />
+              Public tables, gene pages, documentation, and analyses remain available without an
+              account.
+            </li>
+            <li>
+              <i class="bi bi-shield-check" aria-hidden="true" />
+              Authenticated workflows use the existing SysNDD account and role model.
+            </li>
+          </ul>
+        </div>
+      </section>
 
-                <!-- Password Field -->
-                <BFormGroup description="Enter your user password">
-                  <BFormInput
-                    v-model="password"
-                    placeholder="Password"
-                    type="password"
-                    :state="passwordMeta.touched ? (passwordError ? false : true) : null"
-                  />
-                  <BFormInvalidFeedback v-if="passwordError">
-                    {{ passwordError }}
-                  </BFormInvalidFeedback>
-                </BFormGroup>
+      <section class="login-panel" aria-labelledby="login-title">
+        <header class="login-panel__header">
+          <p class="login-kicker">Secure access</p>
+          <h2 id="login-title" class="login-title">Sign in</h2>
+          <p class="login-description">Use your SysNDD username and password.</p>
+        </header>
 
-                <!-- Form Buttons -->
-                <BFormGroup>
-                  <BButton class="ms-2" variant="outline-dark" @click="handleReset">
-                    Reset
-                  </BButton>
-                  <BButton class="ms-2" :class="{ shake: animated }" type="submit" variant="dark">
-                    Login
-                  </BButton>
-                </BFormGroup>
-              </form>
+        <form class="login-form" @submit.prevent="onSubmit">
+          <!-- Username Field -->
+          <BFormGroup
+            label="Username"
+            label-for="login-username"
+            description="Enter your user name"
+          >
+            <BFormInput
+              id="login-username"
+              v-model="user_name"
+              autocomplete="username"
+              placeholder="User"
+              :state="usernameMeta.touched ? (usernameError ? false : true) : null"
+            />
+            <BFormInvalidFeedback v-if="usernameError">
+              {{ usernameError }}
+            </BFormInvalidFeedback>
+          </BFormGroup>
 
-              <!-- Additional Links -->
-              <div>
-                Don't have an account yet and want to help?
-                <BLink :to="'/Register'"> Register now. </BLink>
-              </div>
-              <div>
-                Forgot your password?
-                <BLink :to="'/PasswordReset'"> Reset now. </BLink>
-              </div>
-            </BCardText>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
+          <!-- Password Field -->
+          <BFormGroup
+            label="Password"
+            label-for="login-password"
+            description="Enter your user password"
+          >
+            <BFormInput
+              id="login-password"
+              v-model="password"
+              autocomplete="current-password"
+              placeholder="Password"
+              type="password"
+              :state="passwordMeta.touched ? (passwordError ? false : true) : null"
+            />
+            <BFormInvalidFeedback v-if="passwordError">
+              {{ passwordError }}
+            </BFormInvalidFeedback>
+          </BFormGroup>
+
+          <!-- Form Buttons -->
+          <div class="login-actions">
+            <BButton variant="outline-secondary" @click="handleReset"> Reset </BButton>
+            <BButton :class="{ shake: animated }" type="submit" variant="primary"> Login </BButton>
+          </div>
+        </form>
+
+        <!-- Additional Links -->
+        <div class="login-links">
+          <div>
+            Don't have an account yet and want to help?
+            <BLink :to="'/Register'">Register now.</BLink>
+          </div>
+          <div>
+            Forgot your password?
+            <BLink :to="'/PasswordReset'">Reset now.</BLink>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -251,21 +294,6 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <!-- Shake based on https://codepen.io/aut0maat10/pen/ExaNZNo -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #0502a0;
-}
-
 .shake {
   animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   transform: translate3d(0, 0, 0);

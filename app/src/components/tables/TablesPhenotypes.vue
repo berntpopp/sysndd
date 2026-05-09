@@ -1,373 +1,359 @@
 <template>
-  <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- User Interface controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <h4 class="mb-1 text-start font-weight-bold">
-                    Phenotype search
-                    <BBadge
-                      v-b-tooltip.hover.bottom
-                      variant="primary"
-                      :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-                    >
-                      Associated entities: {{ totalRows }}
-                    </BBadge>
-                  </h4>
-                </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <BButton
-                      v-b-tooltip.hover.bottom
-                      class="me-1"
-                      size="sm"
-                      title="Download data as Excel file."
-                      @click="requestSelectedExcel()"
-                    >
-                      <i class="bi bi-table mx-1" />
-                      <i v-if="!downloading" class="bi bi-download" />
-                      <BSpinner v-if="downloading" small />
-                      .xlsx
-                    </BButton>
+  <div class="container-fluid py-2">
+    <TableShell
+      title="Phenotype search"
+      :meta="`Associated entities: ${totalRows}`"
+      :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+      :loading="loading"
+    >
+      <template v-if="!loading && showFilterControls" #actions>
+        <BButton
+          v-b-tooltip.hover.bottom
+          class="me-1"
+          size="sm"
+          title="Download data as Excel file."
+          @click="requestSelectedExcel()"
+        >
+          <i class="bi bi-table mx-1" />
+          <i v-if="!downloading" class="bi bi-download" />
+          <BSpinner v-if="downloading" small />
+          .xlsx
+        </BButton>
 
-                    <BButton
-                      v-b-tooltip.hover.bottom
-                      class="me-1"
-                      size="sm"
-                      title="Copy link to this page."
-                      variant="success"
-                      @click="copyLinkToClipboard()"
-                    >
-                      <i class="bi bi-link" />
-                    </BButton>
+        <BButton
+          v-b-tooltip.hover.bottom
+          class="me-1"
+          size="sm"
+          title="Copy link to this page."
+          variant="success"
+          @click="copyLinkToClipboard()"
+        >
+          <i class="bi bi-link" />
+        </BButton>
 
-                    <BButton
-                      v-b-tooltip.hover.bottom
-                      size="sm"
-                      class="me-1"
-                      :title="
-                        'The table is ' +
-                        (filter_string === '' || filter_string === null || filter_string === 'null'
-                          ? 'not'
-                          : '') +
-                        ' filtered.' +
-                        (filter_string === '' || filter_string === null || filter_string === 'null'
-                          ? ''
-                          : ' Click to remove all filters.')
-                      "
-                      :variant="
-                        filter_string === '' || filter_string === null || filter_string === 'null'
-                          ? 'info'
-                          : 'warning'
-                      "
-                      @click="removeFilters()"
-                    >
-                      <i class="bi bi-filter" />
-                    </BButton>
-                  </h5>
-                </BCol>
-              </BRow>
-            </template>
+        <BButton
+          v-b-tooltip.hover.bottom
+          size="sm"
+          class="me-1"
+          :title="
+            'The table is ' +
+            (filter_string === '' || filter_string === null || filter_string === 'null'
+              ? 'not'
+              : '') +
+            ' filtered.' +
+            (filter_string === '' || filter_string === null || filter_string === 'null'
+              ? ''
+              : ' Click to remove all filters.')
+          "
+          :variant="
+            filter_string === '' || filter_string === null || filter_string === 'null'
+              ? 'info'
+              : 'warning'
+          "
+          @click="removeFilters()"
+        >
+          <i class="bi bi-filter" />
+        </BButton>
+      </template>
 
-            <BRow class="align-items-center gx-2">
-              <BCol class="my-1" sm="6">
-                <!-- Phenotype Multi-Select - Unified Input Style -->
-                <div v-if="showFilterControls" class="phenotype-select-container">
-                  <div class="phenotype-select-control" @click="openPhenotypeDropdown">
-                    <!-- Selected phenotypes as inline tags -->
-                    <div class="phenotype-tags">
-                      <span
-                        v-for="phenotypeId in filter.modifier_phenotype_id.content"
-                        :key="phenotypeId"
-                        class="phenotype-tag"
-                      >
-                        {{ getPhenotypeName(phenotypeId) }}
-                        <i class="bi bi-x tag-remove" @click.stop="removePhenotype(phenotypeId)" />
-                      </span>
-                      <span
-                        v-if="filter.modifier_phenotype_id.content.length === 0"
-                        class="phenotype-placeholder"
-                      >
-                        Select phenotypes...
-                      </span>
-                    </div>
+      <template v-if="!loading" #toolbar>
+        <BRow class="align-items-center gx-2">
+          <BCol class="my-1" sm="6">
+            <div v-if="showFilterControls" class="phenotype-select-container">
+              <div class="phenotype-select-control" @click="openPhenotypeDropdown">
+                <div class="phenotype-tags">
+                  <span
+                    v-for="phenotypeId in filter.modifier_phenotype_id.content"
+                    :key="phenotypeId"
+                    class="phenotype-tag"
+                  >
+                    {{ getPhenotypeName(phenotypeId) }}
+                    <i class="bi bi-x tag-remove" @click.stop="removePhenotype(phenotypeId)" />
+                  </span>
+                  <span
+                    v-if="filter.modifier_phenotype_id.content.length === 0"
+                    class="phenotype-placeholder"
+                  >
+                    Select phenotypes...
+                  </span>
+                </div>
 
-                    <!-- Control buttons -->
-                    <div class="phenotype-controls">
-                      <i
-                        v-if="filter.modifier_phenotype_id.content.length > 0"
-                        v-b-tooltip.hover
-                        class="bi bi-x-lg control-icon clear-icon"
-                        title="Clear all"
-                        @click.stop="clearAllPhenotypes"
-                      />
-                      <BDropdown
-                        ref="phenotypeDropdownRef"
-                        no-caret
-                        variant="link"
+                <div class="phenotype-controls">
+                  <i
+                    v-if="filter.modifier_phenotype_id.content.length > 0"
+                    v-b-tooltip.hover
+                    class="bi bi-x-lg control-icon clear-icon"
+                    title="Clear all"
+                    @click.stop="clearAllPhenotypes"
+                  />
+                  <BDropdown
+                    ref="phenotypeDropdownRef"
+                    no-caret
+                    variant="link"
+                    size="sm"
+                    class="phenotype-dropdown-trigger"
+                    menu-class="phenotype-dropdown-menu"
+                    @shown="focusSearchInput"
+                  >
+                    <template #button-content>
+                      <i class="bi bi-chevron-down control-icon" />
+                    </template>
+                    <BDropdownForm @submit.prevent>
+                      <BFormInput
+                        ref="phenotypeSearchInput"
+                        v-model="phenotypeSearch"
+                        placeholder="Search phenotypes..."
                         size="sm"
-                        class="phenotype-dropdown-trigger"
-                        menu-class="phenotype-dropdown-menu"
-                        @shown="focusSearchInput"
+                        class="mb-2"
+                        autocomplete="off"
+                      />
+                    </BDropdownForm>
+                    <BDropdownDivider />
+                    <div class="phenotype-options-list">
+                      <BDropdownItemButton
+                        v-for="option in filteredPhenotypeOptions"
+                        :key="option.phenotype_id"
+                        :active="isPhenotypeSelected(option.phenotype_id)"
+                        @click="togglePhenotype(option.phenotype_id)"
                       >
-                        <template #button-content>
-                          <i class="bi bi-chevron-down control-icon" />
-                        </template>
-                        <BDropdownForm @submit.prevent>
-                          <BFormInput
-                            ref="phenotypeSearchInput"
-                            v-model="phenotypeSearch"
-                            placeholder="Search phenotypes..."
-                            size="sm"
-                            class="mb-2"
-                            autocomplete="off"
-                          />
-                        </BDropdownForm>
-                        <BDropdownDivider />
-                        <div class="phenotype-options-list">
-                          <BDropdownItemButton
-                            v-for="option in filteredPhenotypeOptions"
-                            :key="option.phenotype_id"
-                            :active="isPhenotypeSelected(option.phenotype_id)"
-                            @click="togglePhenotype(option.phenotype_id)"
-                          >
-                            <i
-                              v-if="isPhenotypeSelected(option.phenotype_id)"
-                              class="bi bi-check-square me-2 text-primary"
-                            />
-                            <i v-else class="bi bi-square me-2 text-muted" />
-                            {{ option.HPO_term }}
-                          </BDropdownItemButton>
-                          <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
-                            No matching phenotypes
-                          </BDropdownText>
-                        </div>
-                      </BDropdown>
+                        <i
+                          v-if="isPhenotypeSelected(option.phenotype_id)"
+                          class="bi bi-check-square me-2 text-primary"
+                        />
+                        <i v-else class="bi bi-square me-2 text-muted" />
+                        {{ option.HPO_term }}
+                      </BDropdownItemButton>
+                      <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
+                        No matching phenotypes
+                      </BDropdownText>
                     </div>
-                  </div>
-                  <BSpinner
-                    v-if="phenotypes_options.length === 0"
-                    small
-                    class="ms-2"
-                    label="Loading..."
-                  />
+                  </BDropdown>
                 </div>
-              </BCol>
+              </div>
+              <BSpinner
+                v-if="phenotypes_options.length === 0"
+                small
+                class="ms-2"
+                label="Loading..."
+              />
+            </div>
+          </BCol>
 
-              <BCol class="my-1 d-flex align-items-center" sm="2">
-                <!-- AND/OR Toggle - Clean Pill Style -->
-                <div class="logic-toggle">
-                  <button
-                    type="button"
-                    class="logic-btn"
-                    :class="{ active: !checked }"
-                    @click="setLogicMode(false)"
-                  >
-                    AND
-                  </button>
-                  <button
-                    type="button"
-                    class="logic-btn"
-                    :class="{ active: checked }"
-                    @click="setLogicMode(true)"
-                  >
-                    OR
-                  </button>
-                </div>
-              </BCol>
+          <BCol class="my-1 d-flex align-items-center" sm="2">
+            <div class="logic-toggle">
+              <button
+                type="button"
+                class="logic-btn"
+                :class="{ active: !checked }"
+                @click="setLogicMode(false)"
+              >
+                AND
+              </button>
+              <button
+                type="button"
+                class="logic-btn"
+                :class="{ active: checked }"
+                @click="setLogicMode(true)"
+              >
+                OR
+              </button>
+            </div>
+          </BCol>
 
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-            <!-- User Interface controls -->
+          <BCol class="my-1" sm="4">
+            <TablePaginationControls
+              v-if="totalRows > perPage || showPaginationControls"
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              :current-page="currentPage"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </BCol>
+        </BRow>
+      </template>
 
-            <!-- Main table element -->
-            <BTable
-              :items="items"
-              :fields="fields"
-              :sort-by="sortBy"
-              :busy="isBusy"
-              stacked="md"
-              head-variant="light"
-              show-empty
-              small
-              fixed
-              striped
-              hover
-              sort-icon-left
-              no-local-sorting
-              @update:sort-by="handleSortByUpdate"
+      <template #loading>
+        <TableLoadingState label="Loading phenotype-associated entities" />
+      </template>
+
+      <div class="d-none d-md-block">
+        <BTable
+          :items="items"
+          :fields="fields"
+          :sort-by="sortBy"
+          :busy="isBusy"
+          :stacked="false"
+          head-variant="light"
+          show-empty
+          small
+          fixed
+          hover
+          sort-icon-left
+          no-local-sorting
+          @update:sort-by="handleSortByUpdate"
+        >
+          <!-- custom formatted header -->
+          <template #head()="data">
+            <div
+              v-b-tooltip.hover.top
+              :data="data"
+              data-html="true"
+              :title="
+                data.label +
+                ' (unique filtered/total values: ' +
+                fields
+                  .filter((item) => item.label === data.label)
+                  .map((item) => {
+                    return item.count_filtered;
+                  })[0] +
+                '/' +
+                fields
+                  .filter((item) => item.label === data.label)
+                  .map((item) => {
+                    return item.count;
+                  })[0] +
+                ')'
+              "
             >
-              <!-- custom formatted header -->
-              <template #head()="data">
-                <div
-                  v-b-tooltip.hover.top
-                  :data="data"
-                  data-html="true"
-                  :title="
-                    data.label +
-                    ' (unique filtered/total values: ' +
-                    fields
-                      .filter((item) => item.label === data.label)
-                      .map((item) => {
-                        return item.count_filtered;
-                      })[0] +
-                    '/' +
-                    fields
-                      .filter((item) => item.label === data.label)
-                      .map((item) => {
-                        return item.count;
-                      })[0] +
-                    ')'
+              {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
+            </div>
+          </template>
+
+          <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+          <template #thead-top>
+            <tr v-if="showFilterControls">
+              <td v-for="field in fields" :key="field.key">
+                <BFormInput
+                  v-if="field.filterable"
+                  v-model="filter[field.key].content"
+                  :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                  debounce="500"
+                  type="search"
+                  autocomplete="off"
+                  @click="removeSearch()"
+                  @update:model-value="filtered()"
+                />
+
+                <BFormSelect
+                  v-if="field.selectable"
+                  v-model="filter[field.key].content"
+                  :options="field.selectOptions"
+                  size="sm"
+                  @update:model-value="
+                    removeSearch();
+                    filtered();
                   "
                 >
-                  {{ truncate(data.label.replace(/( word)|( name)/g, ''), 20) }}
-                </div>
-              </template>
+                  <template #first>
+                    <BFormSelectOption :value="null">
+                      .. {{ truncate(field.label, 20) }} ..
+                    </BFormSelectOption>
+                  </template>
+                </BFormSelect>
 
-              <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
-              <template #thead-top>
-                <tr v-if="showFilterControls">
-                  <td v-for="field in fields" :key="field.key">
-                    <BFormInput
-                      v-if="field.filterable"
-                      v-model="filter[field.key].content"
-                      :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
-                      debounce="500"
-                      type="search"
-                      autocomplete="off"
-                      @click="removeSearch()"
-                      @update:model-value="filtered()"
-                    />
-
-                    <BFormSelect
-                      v-if="field.selectable"
-                      v-model="filter[field.key].content"
-                      :options="field.selectOptions"
-                      size="sm"
-                      @update:model-value="
-                        removeSearch();
-                        filtered();
-                      "
-                    >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
-
-                    <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
-                    <label
-                      v-if="
-                        field.multi_selectable &&
-                        field.selectOptions &&
-                        field.selectOptions.length > 0
-                      "
-                      :for="'select_' + field.key"
-                      :aria-label="field.label"
-                    >
-                      <BFormSelect
-                        :id="'select_' + field.key"
-                        v-model="filter[field.key].content"
-                        :options="normalizeSelectOptions(field.selectOptions)"
-                        size="sm"
-                        @update:model-value="
-                          removeSearch();
-                          filtered();
-                        "
-                      >
-                        <template #first>
-                          <BFormSelectOption :value="null">
-                            .. {{ truncate(field.label, 20) }} ..
-                          </BFormSelectOption>
-                        </template>
-                      </BFormSelect>
-                    </label>
-                  </td>
-                </tr>
-              </template>
-
-              <template #cell(details)="row">
-                <BButton class="btn-xs" variant="outline-primary" @click="row.toggleExpansion">
-                  {{ row.expansionShowing ? 'Hide' : 'Show' }}
-                </BButton>
-              </template>
-
-              <template #row-expansion="row">
-                <BCard>
-                  <BTable :items="[row.item]" :fields="fields_details" stacked small />
-                </BCard>
-              </template>
-
-              <template #cell(entity_id)="data">
-                <EntityBadge
-                  :entity-id="data.item.entity_id"
-                  :link-to="'/Entities/' + data.item.entity_id"
-                  size="sm"
-                />
-              </template>
-
-              <template #cell(symbol)="data">
-                <GeneBadge
-                  :symbol="data.item.symbol"
-                  :hgnc-id="data.item.hgnc_id"
-                  :link-to="'/Genes/' + data.item.hgnc_id"
-                  size="sm"
-                />
-              </template>
-
-              <template #cell(disease_ontology_name)="data">
-                <DiseaseBadge
-                  :name="data.item.disease_ontology_name"
-                  :ontology-id="data.item.disease_ontology_id_version"
-                  :link-to="
-                    '/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')
+                <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                <label
+                  v-if="
+                    field.multi_selectable && field.selectOptions && field.selectOptions.length > 0
                   "
-                  :max-length="35"
-                  size="sm"
-                />
-              </template>
+                  :for="'select_' + field.key"
+                  :aria-label="field.label"
+                >
+                  <BFormSelect
+                    :id="'select_' + field.key"
+                    v-model="filter[field.key].content"
+                    :options="normalizeSelectOptions(field.selectOptions)"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        .. {{ truncate(field.label, 20) }} ..
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </label>
+              </td>
+            </tr>
+          </template>
 
-              <template #cell(hpo_mode_of_inheritance_term_name)="data">
-                <InheritanceBadge
-                  :full-name="data.item.hpo_mode_of_inheritance_term_name"
-                  :hpo-term="data.item.hpo_mode_of_inheritance_term"
-                  size="sm"
-                />
-              </template>
+          <template #cell(details)="row">
+            <BButton
+              class="btn-xs fw-semibold"
+              variant="outline-primary"
+              :aria-label="`${row.expansionShowing ? 'Hide' : 'Show'} details for entity ${
+                row.item.entity_id
+              }`"
+              @click="row.toggleExpansion"
+            >
+              {{ row.expansionShowing ? 'Hide' : 'Show' }}
+            </BButton>
+          </template>
 
-              <template #cell(ndd_phenotype_word)="data">
-                <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
-                  <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
-                </span>
-              </template>
+          <template #row-expansion="row">
+            <BCard>
+              <BTable :items="[row.item]" :fields="fields_details" stacked small />
+            </BCard>
+          </template>
 
-              <template #cell(category)="data">
-                <span v-b-tooltip.hover.left :title="data.item.category">
-                  <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
-                </span>
-              </template>
-            </BTable>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
+          <template #cell(entity_id)="data">
+            <EntityBadge
+              :entity-id="data.item.entity_id"
+              :link-to="'/Entities/' + data.item.entity_id"
+              size="sm"
+            />
+          </template>
+
+          <template #cell(symbol)="data">
+            <GeneBadge
+              :symbol="data.item.symbol"
+              :hgnc-id="data.item.hgnc_id"
+              :link-to="'/Genes/' + data.item.hgnc_id"
+              size="sm"
+            />
+          </template>
+
+          <template #cell(disease_ontology_name)="data">
+            <DiseaseBadge
+              :name="data.item.disease_ontology_name"
+              :ontology-id="data.item.disease_ontology_id_version"
+              :link-to="'/Ontology/' + data.item.disease_ontology_id_version.replace(/_.+/g, '')"
+              :max-length="35"
+              size="sm"
+            />
+          </template>
+
+          <template #cell(hpo_mode_of_inheritance_term_name)="data">
+            <InheritanceBadge
+              :full-name="data.item.hpo_mode_of_inheritance_term_name"
+              :hpo-term="data.item.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+          </template>
+
+          <template #cell(ndd_phenotype_word)="data">
+            <span v-b-tooltip.hover.left :title="ndd_icon_text[data.item.ndd_phenotype_word]">
+              <NddIcon :status="data.item.ndd_phenotype_word" size="sm" :show-title="false" />
+            </span>
+          </template>
+
+          <template #cell(category)="data">
+            <span v-b-tooltip.hover.left :title="data.item.category">
+              <CategoryIcon :category="data.item.category" size="sm" :show-title="false" />
+            </span>
+          </template>
+        </BTable>
+      </div>
+
+      <div class="d-md-none">
+        <PhenotypesMobileRows :items="items" />
+      </div>
+    </TableShell>
   </div>
 </template>
 
@@ -391,6 +377,9 @@ import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import table components
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import TableShell from '@/components/table/TableShell.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
+import PhenotypesMobileRows from '@/components/tables/PhenotypesMobileRows.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
@@ -401,13 +390,9 @@ import { useUiStore } from '@/stores/ui';
 // Typed API clients
 import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
-// Module-level variables to track API calls across component remounts
-// This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null;
+const phenotypeEntitiesRequestCoordinator = createTableRequestCoordinator();
 
 // Module-level cache for phenotypes list (loaded once, reused across remounts)
 let modulePhenotypesListCache = null;
@@ -424,6 +409,9 @@ export default {
     DiseaseBadge,
     InheritanceBadge,
     TablePaginationControls,
+    TableShell,
+    TableLoadingState,
+    PhenotypesMobileRows,
   },
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -642,10 +630,6 @@ export default {
         this.isInitializing = false;
       });
     });
-
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
   },
   methods: {
     // Update browser URL with current table state
@@ -881,50 +865,35 @@ export default {
     },
     async doLoadEntitiesFromPhenotypes() {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-
-      const now = Date.now();
-
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false; // Clear busy state when using cached data
-        }
-        return;
-      }
-
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
-        return;
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
+      const currentUrlParam = () =>
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
       this.isBusy = true;
 
-      try {
-        const data = await browsePhenotypeEntities({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: this.currentItemID,
-          page_size: String(this.perPage),
-        });
-        moduleApiCallInProgress = false;
-        // Cache response for remounted components
-        moduleLastApiResponse = data;
-        this.applyApiResponse(data);
+      const result = await phenotypeEntitiesRequestCoordinator.request({
+        params: urlParam,
+        fetcher: () =>
+          browsePhenotypeEntities({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: this.currentItemID,
+            page_size: String(this.perPage),
+          }),
+        apply: (data, source) => {
+          this.applyApiResponse(data);
+          if (source === 'network') {
+            // Update URL AFTER API success to prevent component remount during API call
+            this.updateBrowserUrl();
+          }
+        },
+        onError: (e) => {
+          this.makeToast(e, 'Error', 'danger');
+        },
+        isCurrent: (params) => currentUrlParam() === params,
+      });
 
-        // Update URL AFTER API success to prevent component remount during API call
-        this.updateBrowserUrl();
-
+      if (result.handled) {
         this.isBusy = false;
-      } catch (e) {
-        moduleApiCallInProgress = false;
-        this.makeToast(e, 'Error', 'danger');
-        this.isBusy = false;
+        this.loading = false;
       }
     },
     /**
@@ -957,6 +926,8 @@ export default {
       } else {
         this.items = [];
         this.totalRows = 0;
+        this.isBusy = false;
+        this.loading = false;
       }
     },
     requestSelectedExcel() {
