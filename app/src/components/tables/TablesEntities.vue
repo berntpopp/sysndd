@@ -64,8 +64,8 @@
               </BRow>
             </template>
 
-            <BRow>
-              <BCol class="my-1" sm="8">
+            <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
+              <BCol v-if="showSearchInput" class="my-1" sm="8">
                 <TableSearchInput
                   v-model="filter['any'].content"
                   :placeholder="'Search any field by typing here'"
@@ -74,8 +74,12 @@
                 />
               </BCol>
 
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
+              <BCol
+                v-if="totalRows > perPage || showPaginationControls"
+                class="my-1"
+                :sm="showSearchInput ? 4 : 12"
+              >
+                <BContainer>
                   <TablePaginationControls
                     :total-rows="totalRows"
                     :initial-per-page="perPage"
@@ -255,6 +259,7 @@
  * @example
  * <TablesEntities
  *  showFilterControls={true}
+ *  showSearchInput={true}
  *  showPaginationControls={true}
  *  headerLabel="Entities table"
  *  sortInput="+entity_id"
@@ -331,6 +336,7 @@ export default {
       default: 'entity',
     },
     showFilterControls: { type: Boolean, default: true },
+    showSearchInput: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Entities table' },
     sortInput: { type: String, default: '+entity_id' },

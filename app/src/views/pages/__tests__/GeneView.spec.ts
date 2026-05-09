@@ -163,6 +163,28 @@ describe('GeneView (v11.3 W2)', () => {
     w.unmount();
   });
 
+  it('hides the embedded Associated entities global search input', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({ data: [], links: [], meta: [{ totalItems: 0 }] })
+      ),
+      http.get('*/api/gene/SYNGAP1', () =>
+        HttpResponse.json([{ symbol: ['SYNGAP1'], hgnc_id: ['HGNC:11497'] }])
+      ),
+      http.get('*/api/external/*/*/SYNGAP1', () => HttpResponse.json({}))
+    );
+
+    const router = makeRouter('/Genes/SYNGAP1');
+    await router.isReady();
+    const w = mount(GeneView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushTablesDebounce();
+
+    expect(w.find('input[placeholder="Search any field by typing here"]').exists()).toBe(false);
+    w.unmount();
+  });
+
   it('uses hgnc_id filter when URL param is HGNC:NNNN', async () => {
     let entityFilterSeen = '';
     server.use(

@@ -62,6 +62,7 @@
     <!-- 2. Associated Entities — mounted on tick 0 from URL-shape filter -->
     <TablesEntities
       :show-filter-controls="false"
+      :show-search-input="false"
       :show-pagination-controls="false"
       header-label="Associated "
       :filter-input="entityFilter"
