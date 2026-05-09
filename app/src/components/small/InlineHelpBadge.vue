@@ -1,8 +1,10 @@
 <template>
   <BBadge
+    v-bind="attrs"
     :id="id"
     pill
-    href="#"
+    tag="button"
+    type="button"
     variant="info"
     class="inline-help-badge"
     :aria-label="resolvedAriaLabel"
@@ -45,6 +47,8 @@ const resolvedAriaLabel = computed(
   line-height: 1;
   text-decoration: none;
   vertical-align: middle;
+  border: 0;
+  cursor: help;
 }
 
 .inline-help-badge :deep(.bi) {

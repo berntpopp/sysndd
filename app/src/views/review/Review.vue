@@ -1,57 +1,58 @@
 <!-- views/review/Review.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Re-review"
+    description="Review assigned entities, update curation status, and submit completed re-review work."
+    :meta="`${totalRows} entities`"
+    content-class="review-page"
+  >
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <ReviewQueueTable
-            :filtered-items="filteredItems"
-            :fields="fields"
-            :is-busy="isBusy"
-            :total-rows="totalRows"
-            :legend-items="legendItems"
-            :user="user"
-            :curator-mode="curator_mode"
-            :empty-text="empty_table_text[curation_selected]"
-            :filter="filter"
-            :filter-on="filterOn"
-            :category-filter="categoryFilter"
-            :user-filter="userFilter"
-            :sort-by="sortBy"
-            :category-filter-options="categoryFilterOptions"
-            :user-filter-options="userFilterOptions"
-            :active-quick-filters="activeQuickFilters"
-            :available-quick-filters="availableQuickFilters"
-            :current-page="currentPage"
-            :per-page="perPage"
-            :page-options="pageOptions"
-            :curation-selected="curation_selected"
-            :user-icon="user_icon"
-            :user-style="user_style"
-            :ndd-icon-text="ndd_icon_text"
-            :data-age-text="data_age_text"
-            :data-age-style="data_age_style"
-            :date-year-age="dateYearAge"
-            @refresh="loadReReviewData"
-            @new-batch="newBatchApplication"
-            @add-quick-filter="addQuickFilter"
-            @remove-quick-filter="removeQuickFilter"
-            @info-review="infoReview"
-            @info-status="infoStatus"
-            @info-submit="infoSubmit"
-            @info-approve="infoApprove"
-            @filtered="onFiltered"
-            @update:filter="filter = $event"
-            @update:category-filter="categoryFilter = $event"
-            @update:user-filter="userFilter = $event"
-            @update:sort-by="handleSortByUpdate"
-            @update:current-page="currentPage = $event"
-            @update:per-page="perPage = $event"
-            @update:curation-selected="curation_selected = $event"
-          />
-        </BCol>
-      </BRow>
+    <template v-else>
+      <ReviewQueueTable
+        :filtered-items="filteredItems"
+        :fields="fields"
+        :is-busy="isBusy"
+        :total-rows="totalRows"
+        :legend-items="legendItems"
+        :user="user"
+        :curator-mode="curator_mode"
+        :empty-text="empty_table_text[curation_selected]"
+        :filter="filter"
+        :filter-on="filterOn"
+        :category-filter="categoryFilter"
+        :user-filter="userFilter"
+        :sort-by="sortBy"
+        :category-filter-options="categoryFilterOptions"
+        :user-filter-options="userFilterOptions"
+        :active-quick-filters="activeQuickFilters"
+        :available-quick-filters="availableQuickFilters"
+        :current-page="currentPage"
+        :per-page="perPage"
+        :page-options="pageOptions"
+        :curation-selected="curation_selected"
+        :user-icon="user_icon"
+        :user-style="user_style"
+        :ndd-icon-text="ndd_icon_text"
+        :data-age-text="data_age_text"
+        :data-age-style="data_age_style"
+        :date-year-age="dateYearAge"
+        @refresh="loadReReviewData"
+        @new-batch="newBatchApplication"
+        @add-quick-filter="addQuickFilter"
+        @remove-quick-filter="removeQuickFilter"
+        @info-review="infoReview"
+        @info-status="infoStatus"
+        @info-submit="infoSubmit"
+        @info-approve="infoApprove"
+        @filtered="onFiltered"
+        @update:filter="filter = $event"
+        @update:category-filter="categoryFilter = $event"
+        @update:user-filter="userFilter = $event"
+        @update:sort-by="handleSortByUpdate"
+        @update:current-page="currentPage = $event"
+        @update:per-page="perPage = $event"
+        @update:curation-selected="curation_selected = $event"
+      />
 
       <!--
         W6 of v11.1 finish-hardening — modals are extracted into focused
@@ -107,8 +108,8 @@
 
       <!-- AriaLiveRegion for screen reader announcements -->
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
-    </BContainer>
-  </div>
+    </template>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
@@ -122,6 +123,7 @@ import useReviewFilters from './composables/useReviewFilters';
 import useReviewModals from './composables/useReviewModals';
 import useReviewActions from './composables/useReviewActions';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 
 // W6 presentational components.
 import ReviewQueueTable from './components/ReviewQueueTable.vue';
@@ -206,6 +208,7 @@ const EMPTY_USER = Object.freeze({
 export default {
   name: 'ReviewView',
   components: {
+    AuthenticatedPageShell,
     AriaLiveRegion,
     ReviewQueueTable,
     ReviewEditModal,

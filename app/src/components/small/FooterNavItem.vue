@@ -1,11 +1,15 @@
 <template>
-  <BNavItem class="footer-link" :link-attrs="item.linkAttr" :href="item.link" :target="item.target">
+  <BNavItem
+    class="footer-link"
+    :link-attrs="linkAttributes"
+    :href="item.link"
+    :target="item.target"
+  >
     <img
       :src="item.imgSrc"
       height="34"
       :width="item.width"
       :alt="item.alt"
-      :rel="relAttribute"
       :class="logoClasses"
       @error="handleImageError"
     />
@@ -21,8 +25,11 @@ export default {
     },
   },
   computed: {
-    relAttribute() {
-      return this.item.target === '_blank' ? 'noopener' : '';
+    linkAttributes() {
+      return {
+        ...this.item.linkAttr,
+        ...(this.item.target === '_blank' ? { rel: 'noopener' } : {}),
+      };
     },
     logoClasses() {
       return [

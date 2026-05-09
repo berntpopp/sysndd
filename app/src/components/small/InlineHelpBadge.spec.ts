@@ -12,8 +12,9 @@ describe('InlineHelpBadge', () => {
       global: {
         stubs: {
           BBadge: {
-            props: ['id'],
-            template: '<a :id="id" class="inline-help-badge"><slot /></a>',
+            props: ['id', 'tag', 'type'],
+            template:
+              '<component :is="tag || \'span\'" :id="id" :type="type" class="inline-help-badge" v-bind="$attrs"><slot /></component>',
           },
         },
       },
@@ -23,5 +24,29 @@ describe('InlineHelpBadge', () => {
     expect(badge.attributes('aria-label')).toBe('Explain this view');
     expect(badge.classes()).toContain('inline-help-badge');
     expect(wrapper.get('i').classes()).toContain('bi-question-circle-fill');
+  });
+
+  it('forwards tooltip attributes without rendering navigational hrefs', () => {
+    const wrapper = mount(InlineHelpBadge, {
+      props: {
+        id: 'tooltip-target',
+        title: 'Explain UpSet plot',
+      },
+      global: {
+        stubs: {
+          BBadge: {
+            props: ['id', 'tag', 'type'],
+            template:
+              '<component :is="tag || \'span\'" :id="id" :type="type" class="inline-help-badge" v-bind="$attrs"><slot /></component>',
+          },
+        },
+      },
+    });
+
+    const badge = wrapper.get('#tooltip-target');
+    expect(badge.element.tagName).toBe('BUTTON');
+    expect(badge.attributes('type')).toBe('button');
+    expect(badge.attributes('title')).toBe('Explain UpSet plot');
+    expect(badge.attributes('href')).toBeUndefined();
   });
 });

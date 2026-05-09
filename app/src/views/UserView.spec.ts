@@ -42,8 +42,8 @@ describe('UserView — fix #4 BFormText registration', () => {
     expect(typeof (components as Record<string, unknown>).BFormText).not.toBe('undefined');
   });
 
-  it('UserView.vue keeps a <BFormText> tag near the ORCID help text', () => {
-    const userViewPath = path.join(repoSrcRoot, 'views', 'UserView.vue');
+  it('UserProfileDetails.vue keeps a <BFormText> tag near the ORCID help text', () => {
+    const userViewPath = path.join(repoSrcRoot, 'views', 'user', 'UserProfileDetails.vue');
     const source = readFileSync(userViewPath, 'utf8');
     // Pin the literal help text the user asked us to surface, then prove the
     // component wrapping it is still BFormText. If a future refactor moves

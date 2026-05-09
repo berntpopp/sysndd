@@ -1,7 +1,7 @@
 <!-- views/review/components/ReviewQueueTable.vue -->
 <!--
   Re-review queue table extracted from `Review.vue` during W6 of v11.1
-  finish-hardening. Owns the BCard wrapper, the icon legend, the search
+  finish-hardening. Owns the table shell, the icon legend, the search
   + column-filter + quick-filter row, the pagination controls, and the
   BTable itself with all its cell templates.
 
@@ -16,109 +16,76 @@
   locally so the parent doesn't carry their registration anymore.
 -->
 <template>
-  <BCard
-    header-tag="header"
-    body-class="p-0"
-    header-class="p-1"
-    border-variant="dark"
-    header-bg-variant="dark"
-    header-text-variant="light"
+  <TableShell
+    title="Re-review table"
+    :meta="`${totalRows} entities`"
+    description="Assigned entities and review/status updates for the re-review workflow."
   >
-    <template #header>
-      <BRow class="align-items-center">
-        <BCol>
-          <h5 class="mb-0 text-start fw-bold">
-            Re-review table
-            <BBadge variant="primary" class="ms-2"> {{ totalRows }} entities </BBadge>
-          </h5>
-        </BCol>
-        <BCol class="text-end">
-          <div class="d-flex align-items-center justify-content-end gap-2">
-            <!-- Curation mode switch -->
-            <BFormCheckbox
-              v-if="curatorMode"
-              :model-value="curationSelected"
-              switch
-              size="sm"
-              class="mb-0 text-light"
-              @update:model-value="$emit('update:curationSelected', $event)"
-            >
-              Curation mode
-            </BFormCheckbox>
+    <template #actions>
+      <BFormCheckbox
+        v-if="curatorMode"
+        :model-value="curationSelected"
+        switch
+        size="sm"
+        class="mb-0"
+        @update:model-value="$emit('update:curationSelected', $event)"
+      >
+        Curation mode
+      </BFormCheckbox>
 
-            <!-- User info (compact) -->
-            <span class="d-none d-md-inline text-light small">
-              <i :class="'bi bi-' + userIcon[user.user_role[0]]" />
-              {{ user.user_name[0] }}
-            </span>
+      <span class="d-none d-md-inline small text-muted">
+        <i :class="'bi bi-' + userIcon[user.user_role[0]]" aria-hidden="true" />
+        {{ user.user_name[0] }}
+      </span>
 
-            <!-- Refresh button -->
-            <BButton
-              v-b-tooltip.hover.bottom
-              variant="outline-light"
-              size="sm"
-              title="Refresh data"
-              aria-label="Refresh table data"
-              @click="$emit('refresh')"
-            >
-              <i class="bi bi-arrow-clockwise" aria-hidden="true" />
-            </BButton>
-          </div>
-        </BCol>
-      </BRow>
+      <BButton
+        v-b-tooltip.hover.bottom
+        variant="outline-primary"
+        size="sm"
+        title="Refresh data"
+        aria-label="Refresh table data"
+        @click="$emit('refresh')"
+      >
+        <i class="bi bi-arrow-clockwise" aria-hidden="true" />
+      </BButton>
     </template>
 
-    <!-- Icon Legend -->
-    <div class="px-3 pt-2">
-      <IconLegend :legend-items="legendItems" title="Category & Re-review Status Icons" />
-    </div>
+    <template #toolbar>
+      <div class="review-toolbar">
+        <div class="review-toolbar__filters">
+          <BInputGroup size="sm" class="review-toolbar__search">
+            <template #prepend>
+              <BInputGroupText>
+                <i class="bi bi-search" aria-hidden="true" />
+              </BInputGroupText>
+            </template>
+            <BFormInput
+              id="filter-input"
+              :model-value="filter"
+              type="search"
+              placeholder="Search any field..."
+              debounce="500"
+              @update:model-value="$emit('update:filter', $event)"
+            />
+          </BInputGroup>
 
-    <!-- Search, filters, and pagination row (single consolidated row) -->
-    <BRow class="px-3 py-2 align-items-center">
-      <BCol cols="12" md="4" lg="3" class="mb-2 mb-md-0">
-        <BInputGroup size="sm">
-          <template #prepend>
-            <BInputGroupText>
-              <i class="bi bi-search" />
-            </BInputGroupText>
-          </template>
-          <BFormInput
-            id="filter-input"
-            :model-value="filter"
-            type="search"
-            placeholder="Search any field..."
-            debounce="500"
-            @update:model-value="$emit('update:filter', $event)"
+          <BFormSelect
+            :model-value="categoryFilter"
+            size="sm"
+            :options="categoryFilterOptions"
+            aria-label="Filter by category"
+            class="review-toolbar__select"
+            @update:model-value="$emit('update:categoryFilter', $event)"
           />
-        </BInputGroup>
-      </BCol>
+          <BFormSelect
+            :model-value="userFilter"
+            size="sm"
+            :options="userFilterOptions"
+            aria-label="Filter by user"
+            class="review-toolbar__select"
+            @update:model-value="$emit('update:userFilter', $event)"
+          />
 
-      <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
-        <BFormSelect
-          :model-value="categoryFilter"
-          size="sm"
-          :options="categoryFilterOptions"
-          aria-label="Filter by category"
-          @update:model-value="$emit('update:categoryFilter', $event)"
-        />
-      </BCol>
-      <BCol cols="6" md="2" lg="2" class="mb-2 mb-md-0">
-        <BFormSelect
-          :model-value="userFilter"
-          size="sm"
-          :options="userFilterOptions"
-          aria-label="Filter by user"
-          @update:model-value="$emit('update:userFilter', $event)"
-        />
-      </BCol>
-
-      <BCol
-        cols="12"
-        md="4"
-        lg="5"
-        class="d-flex align-items-center justify-content-end gap-2 flex-wrap"
-      >
-        <div class="d-flex align-items-center flex-wrap gap-1 me-2">
           <BBadge
             v-for="qf in activeQuickFilters"
             :key="qf.key"
@@ -146,6 +113,7 @@
               {{ qf.label }}
             </BDropdownItem>
           </BDropdown>
+
           <BBadge
             v-if="totalRows === 0 && (filter === null || filter === '') && !curationSelected"
             variant="warning"
@@ -158,27 +126,33 @@
           </BBadge>
         </div>
 
-        <BInputGroup prepend="Per page" size="sm">
-          <BFormSelect
-            id="per-page-select"
-            :model-value="perPage"
-            :options="pageOptions"
-            size="sm"
-            @update:model-value="$emit('update:perPage', $event)"
-          />
-        </BInputGroup>
+        <div class="review-toolbar__paging">
+          <BInputGroup prepend="Per page" size="sm" class="review-toolbar__per-page">
+            <BFormSelect
+              id="per-page-select"
+              :model-value="perPage"
+              :options="pageOptions"
+              size="sm"
+              @update:model-value="$emit('update:perPage', $event)"
+            />
+          </BInputGroup>
 
-        <BPagination
-          :model-value="currentPage"
-          :total-rows="totalRows"
-          :per-page="perPage"
-          size="sm"
-          class="mb-0"
-          limit="2"
-          @update:model-value="$emit('update:currentPage', $event)"
-        />
-      </BCol>
-    </BRow>
+          <BPagination
+            :model-value="currentPage"
+            :total-rows="totalRows"
+            :per-page="perPage"
+            size="sm"
+            class="mb-0"
+            limit="2"
+            @update:model-value="$emit('update:currentPage', $event)"
+          />
+        </div>
+      </div>
+    </template>
+
+    <div class="review-legend">
+      <IconLegend :legend-items="legendItems" title="Category and review status" />
+    </div>
 
     <BTable
       :items="filteredItems"
@@ -339,10 +313,11 @@
         </div>
       </template>
     </BTable>
-  </BCard>
+  </TableShell>
 </template>
 
 <script>
+import TableShell from '@/components/table/TableShell.vue';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
@@ -354,6 +329,7 @@ import NddIcon from '@/components/ui/NddIcon.vue';
 export default {
   name: 'ReviewQueueTable',
   components: {
+    TableShell,
     IconLegend,
     EntityBadge,
     GeneBadge,
@@ -422,3 +398,70 @@ export default {
   ],
 };
 </script>
+
+<style scoped>
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.review-toolbar__filters,
+.review-toolbar__paging {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.review-toolbar__filters {
+  min-width: 0;
+}
+
+.review-toolbar__paging {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.review-toolbar__search {
+  width: min(22rem, 100%);
+}
+
+.review-toolbar__select {
+  width: 12rem;
+}
+
+.review-toolbar__per-page {
+  width: 10.5rem;
+}
+
+.review-legend {
+  padding-bottom: 0.75rem;
+}
+
+.review-legend :deep(.card),
+.review-legend :deep(.border),
+.review-legend :deep(.shadow-sm) {
+  box-shadow: none !important;
+}
+
+@media (max-width: 767.98px) {
+  .review-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .review-toolbar__filters,
+  .review-toolbar__paging {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .review-toolbar__search,
+  .review-toolbar__select,
+  .review-toolbar__per-page {
+    width: 100%;
+  }
+}
+</style>
