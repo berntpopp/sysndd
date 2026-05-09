@@ -364,6 +364,7 @@ let moduleLastApiParams = null;
 let moduleApiCallInProgress = false;
 let moduleLastApiCallTime = 0;
 let moduleLastApiResponse = null;
+let moduleInFlightPromise = null;
 
 export default {
   name: 'TablesGenes',
@@ -600,10 +601,6 @@ export default {
         this.isInitializing = false;
       });
     });
-
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
   },
   methods: {
     // Update browser URL with current table state
@@ -696,12 +693,23 @@ export default {
         if (moduleLastApiResponse) {
           this.applyApiResponse(moduleLastApiResponse);
           this.isBusy = false; // Clear busy state when using cached data
+          this.loading = false;
         }
         return;
       }
 
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
+      // Share same-parameter in-flight requests across remounted instances.
+      if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
+        this.isBusy = true;
+        try {
+          const sharedData = await moduleInFlightPromise;
+          this.applyApiResponse(sharedData);
+        } catch (e) {
+          this.makeToast(e, 'Error', 'danger');
+        } finally {
+          this.isBusy = false;
+          this.loading = false;
+        }
         return;
       }
 
@@ -710,14 +718,18 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
+      const inFlight = listGenes({
+        sort: this.sort,
+        filter: this.filter_string,
+        page_after: String(this.currentItemID ?? ''),
+        page_size: String(this.perPage),
+      });
+      moduleInFlightPromise = inFlight;
+
       try {
-        const data = await listGenes({
-          sort: this.sort,
-          filter: this.filter_string,
-          page_after: String(this.currentItemID ?? ''),
-          page_size: String(this.perPage),
-        });
+        const data = await inFlight;
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         // Cache response for remounted components
         moduleLastApiResponse = data;
         this.applyApiResponse(data);
@@ -726,10 +738,13 @@ export default {
         this.updateBrowserUrl();
 
         this.isBusy = false;
+        this.loading = false;
       } catch (e) {
         moduleApiCallInProgress = false;
+        moduleInFlightPromise = null;
         this.makeToast(e, 'Error', 'danger');
         this.isBusy = false;
+        this.loading = false;
       }
     },
     /**
