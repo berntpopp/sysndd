@@ -5,7 +5,7 @@
     :fields="fields"
     :busy="isBusy"
     :sort-by="localSortBy"
-    stacked="md"
+    :stacked="stackedMode"
     head-variant="light"
     show-empty
     fixed
@@ -386,6 +386,10 @@ export default {
     sortDesc: {
       type: Boolean,
       default: false,
+    },
+    stackedMode: {
+      type: [String, Boolean],
+      default: 'md',
     },
   },
   emits: ['update-sort', 'update:sort-by', 'head-clicked', 'sorted'],
