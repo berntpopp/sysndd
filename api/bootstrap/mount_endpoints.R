@@ -77,6 +77,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
         add_error_responses = TRUE,
         public_paths = c(
           "/api/health", "/api/version", "/api/about",
+          "/api/seo/routes", "/api/seo/gene", "/api/seo/entity", "/api/seo/static",
           "/__docs__", "/__swagger__"
         )
       )
@@ -122,6 +123,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     plumber::pr_mount("/api/user", plumber::pr("endpoints/user_endpoints.R")) %>%
     plumber::pr_mount("/api/auth", plumber::pr("endpoints/authentication_endpoints.R")) %>%
     plumber::pr_mount("/api/about", plumber::pr("endpoints/about_endpoints.R")) %>%
+    plumber::pr_mount("/api/seo", plumber::pr("endpoints/seo_endpoints.R")) %>%
     plumber::pr_mount("/api/admin", plumber::pr("endpoints/admin_endpoints.R")) %>%
     plumber::pr_mount("/api/llm", plumber::pr("endpoints/llm_admin_endpoints.R")) %>%
     plumber::pr_mount("/api/backup", plumber::pr("endpoints/backup_endpoints.R")) %>%

@@ -132,7 +132,8 @@ bootstrap_load_modules <- function() {
     "services/entity-service.R",
     "services/review-service.R",
     "services/approval-service.R",
-    "services/re-review-service.R"
+    "services/re-review-service.R",
+    "services/seo-service.R"
   )
 
   for (path in function_files) .bootstrap_source(path)
