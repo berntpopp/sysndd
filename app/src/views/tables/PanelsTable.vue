@@ -291,8 +291,6 @@ export default {
     },
     handleSortControlChange(value) {
       this.sortBy = value;
-      this.currentItemID = 0;
-      this.requestSelected();
     },
     handlePerPageChange(newPerPage) {
       if (newPerPage === undefined || newPerPage === null) return;
