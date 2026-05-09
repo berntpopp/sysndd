@@ -1,169 +1,170 @@
 <!-- src/components/analyses/AnalysesCurationUpset.vue -->
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-1 text-start font-weight-bold">
-            <mark
-              v-b-tooltip.hover.leftbottom
-              title="A visualization for set intersections used as an alternative to Venn diagrams. Rows correspond to a set and columns correspond to possible intersections represented by the connected dots."
-            >
-              Upset plot
-            </mark>
-            showing the overlap between different selected curation efforts for neurodevelopmental
-            disorders.
-            <BBadge id="popover-badge-help-upset" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
-            <BPopover target="popover-badge-help-upset" variant="info" triggers="focus">
-              <template #title> Comparisons of Curation Efforts </template>
-              The Upset plot visualizes the overlaps between various curation efforts including:
-              <br />
-              <strong>1) SysNDD</strong>: This curation effort<br />
-              <strong>2) Radboudumc ID</strong>: Clinical curation list<br />
-              <strong>3) SFARI</strong>: Autism gene curation effort<br />
-              <strong>4) Gene2Phenotype</strong>: Gene to phenotype database<br />
-              <strong>5) PanelApp</strong>: Gene panels for genetic disorders<br />
-              <strong>6) Geisinger DBD</strong>: Developmental disorder curation<br />
-            </BPopover>
-          </h6>
-          <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />
-        </div>
-      </template>
-
-      <!-- Source Selection: Dropdown + Chips -->
-      <div
-        v-if="!loadingUpset && columns_list && columns_list.length > 0"
-        class="source-selector p-2"
-      >
-        <div class="d-flex flex-wrap align-items-center gap-2">
-          <!-- Dropdown for adding sources -->
-          <BDropdown
-            variant="outline-primary"
-            size="sm"
-            :auto-close="false"
-            menu-class="source-dropdown-menu"
-          >
-            <template #button-content>
-              <i class="bi bi-plus-circle me-1" />
-              Add Sources
-              <BBadge v-if="availableSources.length > 0" variant="secondary" pill class="ms-1">
-                {{ availableSources.length }}
-              </BBadge>
-            </template>
-
-            <div class="px-3 py-2">
-              <div class="d-flex justify-content-between align-items-center mb-2">
-                <small class="text-muted fw-semibold">Available Sources</small>
-                <BButton
-                  v-if="selected_columns.length < columns_list.length"
-                  variant="link"
-                  size="sm"
-                  class="p-0 text-decoration-none"
-                  @click="selectAllSources"
-                >
-                  Select All
-                </BButton>
-              </div>
-
-              <div v-if="availableSources.length === 0" class="text-muted small text-center py-2">
-                All sources selected
-              </div>
-
-              <BFormCheckbox
-                v-for="source in normalizeSelectOptions(columns_list)"
-                :key="source.value"
-                :model-value="selected_columns.includes(source.value)"
-                class="source-checkbox mb-1"
-                @change="toggleSource(source.value)"
-              >
-                <span class="small">{{ formatSourceName(source.text) }}</span>
-              </BFormCheckbox>
-            </div>
-          </BDropdown>
-
-          <!-- Selected sources as chips -->
-          <TransitionGroup name="chip" tag="div" class="d-flex flex-wrap gap-1">
-            <BFormTag
-              v-for="source in selected_columns"
-              :key="source"
-              :variant="getSourceVariant(source)"
-              class="source-chip"
-              :disabled="selected_columns.length <= 2"
-              :title="
-                selected_columns.length <= 2
-                  ? 'Minimum 2 sources required'
-                  : `Remove ${formatSourceName(source)}`
-              "
-              @remove="removeSource(source)"
-            >
-              {{ formatSourceName(source) }}
-            </BFormTag>
-          </TransitionGroup>
-
-          <!-- Clear all button -->
+  <section class="analysis-panel upset-panel">
+    <header class="panel-header">
+      <div class="panel-heading">
+        <h2 class="panel-title">
+          Overlap
           <BButton
-            v-if="selected_columns.length > 2"
-            variant="link"
+            id="popover-badge-help-upset"
+            v-b-tooltip.hover.bottom
+            aria-label="Explain UpSet plot"
+            class="help-button"
             size="sm"
-            class="text-muted text-decoration-none p-0 ms-1"
-            title="Reset to default selection"
-            @click="resetToDefault"
+            title="Explain UpSet plot"
+            variant="info"
           >
-            <i class="bi bi-arrow-counterclockwise" />
+            <i class="bi bi-question-circle-fill" aria-hidden="true" />
           </BButton>
+        </h2>
+        <p class="panel-description">
+          UpSet plot of selected curation-list intersections for neurodevelopmental disorders.
+        </p>
+        <BPopover target="popover-badge-help-upset" variant="info" triggers="focus hover">
+          <template #title>Comparisons of Curation Efforts</template>
+          UpSet plots show set intersections as connected dots and bars. Sources include SysNDD,
+          Radboudumc, SFARI, Gene2Phenotype, PanelApp, Geisinger DBD, Orphanet and OMIM NDD.
+        </BPopover>
+      </div>
+      <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />
+    </header>
 
-          <!-- Separator -->
-          <span class="border-start mx-2" style="height: 24px" />
+    <!-- Source Selection: Dropdown + Chips -->
+    <div
+      v-if="!loadingUpset && columns_list && columns_list.length > 0"
+      class="source-selector p-2"
+    >
+      <div class="source-toolbar d-flex flex-wrap align-items-center gap-2">
+        <!-- Dropdown for adding sources -->
+        <BDropdown
+          variant="outline-primary"
+          size="sm"
+          :auto-close="false"
+          menu-class="source-dropdown-menu"
+        >
+          <template #button-content>
+            <i class="bi bi-plus-circle me-1" />
+            Add Sources
+            <BBadge v-if="availableSources.length > 0" variant="secondary" pill class="ms-1">
+              {{ availableSources.length }}
+            </BBadge>
+          </template>
 
-          <!-- Definitive Only toggle -->
-          <BFormCheckbox v-model="definitiveOnly" switch size="sm" class="definitive-toggle">
-            <span class="small fw-semibold">Definitive Only</span>
-          </BFormCheckbox>
+          <div class="px-3 py-2">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <small class="text-muted fw-semibold">Available Sources</small>
+              <BButton
+                v-if="selected_columns.length < columns_list.length"
+                variant="link"
+                size="sm"
+                class="p-0 text-decoration-none"
+                @click="selectAllSources"
+              >
+                Select All
+              </BButton>
+            </div>
 
-          <!-- Separator -->
-          <span class="border-start mx-2" style="height: 24px" />
+            <div v-if="availableSources.length === 0" class="text-muted small text-center py-2">
+              All sources selected
+            </div>
 
-          <!-- Highlight SysNDD toggle -->
-          <BFormCheckbox v-model="highlightSysNDD" switch size="sm" class="highlight-toggle">
-            <span class="small fw-semibold">
-              <span class="highlight-indicator sysndd-indicator" />
-              Highlight SysNDD
-            </span>
-          </BFormCheckbox>
+            <BFormCheckbox
+              v-for="source in normalizeSelectOptions(columns_list)"
+              :key="source.value"
+              :model-value="selected_columns.includes(source.value)"
+              class="source-checkbox mb-1"
+              @change="toggleSource(source.value)"
+            >
+              <span class="small">{{ formatSourceName(source.text) }}</span>
+            </BFormCheckbox>
+          </div>
+        </BDropdown>
 
-          <!-- Highlight Core Overlap toggle -->
-          <BFormCheckbox v-model="highlightCoreOverlap" switch size="sm" class="highlight-toggle">
-            <span class="small fw-semibold">
-              <span class="highlight-indicator overlap-indicator" />
-              Core Overlap
-            </span>
-          </BFormCheckbox>
-        </div>
+        <!-- Selected sources as chips -->
+        <TransitionGroup name="chip" tag="div" class="d-flex flex-wrap gap-1">
+          <BFormTag
+            v-for="source in selected_columns"
+            :key="source"
+            :variant="getSourceVariant(source)"
+            class="source-chip"
+            :disabled="selected_columns.length <= 2"
+            :title="
+              selected_columns.length <= 2
+                ? 'Minimum 2 sources required'
+                : `Remove ${formatSourceName(source)}`
+            "
+            @remove="removeSource(source)"
+          >
+            {{ formatSourceName(source) }}
+          </BFormTag>
+        </TransitionGroup>
 
-        <!-- Helper text -->
-        <small class="text-muted d-block mt-1">
-          <i class="bi bi-info-circle me-1" />
-          {{ selected_columns.length }} of {{ columns_list.length }} sources selected
-          <span v-if="selected_columns.length < 2" class="text-danger ms-1">
-            (minimum 2 required)
+        <!-- Clear all button -->
+        <BButton
+          v-if="selected_columns.length > 2"
+          variant="link"
+          size="sm"
+          class="text-muted text-decoration-none p-0 ms-1"
+          title="Reset to default selection"
+          @click="resetToDefault"
+        >
+          <i class="bi bi-arrow-counterclockwise" />
+        </BButton>
+
+        <!-- Separator -->
+        <span class="border-start mx-2" style="height: 24px" />
+
+        <!-- Definitive Only toggle -->
+        <BFormCheckbox v-model="definitiveOnly" switch size="sm" class="definitive-toggle">
+          <span class="small fw-semibold">Definitive Only</span>
+        </BFormCheckbox>
+
+        <!-- Separator -->
+        <span class="border-start mx-2" style="height: 24px" />
+
+        <!-- Highlight SysNDD toggle -->
+        <BFormCheckbox v-model="highlightSysNDD" switch size="sm" class="highlight-toggle">
+          <span class="small fw-semibold">
+            <span class="highlight-indicator sysndd-indicator" />
+            Highlight SysNDD
           </span>
-          <span v-if="definitiveOnly" class="text-success ms-2">
-            <i class="bi bi-check-circle me-1" />
-            Showing only Definitive entries for each source
+        </BFormCheckbox>
+
+        <!-- Highlight Core Overlap toggle -->
+        <BFormCheckbox v-model="highlightCoreOverlap" switch size="sm" class="highlight-toggle">
+          <span class="small fw-semibold">
+            <span class="highlight-indicator overlap-indicator" />
+            Core Overlap
           </span>
-        </small>
+        </BFormCheckbox>
       </div>
 
-      <!-- Content with overlay spinner -->
-      <div class="position-relative">
-        <BSpinner v-if="loadingUpset" label="Loading..." class="spinner" />
-        <div v-else id="comparisons-upset-svg" ref="upsetContainer" class="upset-container" />
-      </div>
-    </BCard>
-  </BContainer>
+      <!-- Helper text -->
+      <small class="text-muted d-block mt-1">
+        <i class="bi bi-info-circle me-1" />
+        {{ selected_columns.length }} of {{ columns_list.length }} sources selected
+        <span v-if="selected_columns.length < 2" class="text-danger ms-1">
+          (minimum 2 required)
+        </span>
+        <span v-if="definitiveOnly" class="text-success ms-2">
+          <i class="bi bi-check-circle me-1" />
+          Showing only Definitive entries for each source
+        </span>
+      </small>
+    </div>
+
+    <!-- Content with overlay spinner -->
+    <div class="position-relative">
+      <BSpinner v-if="loadingUpset" label="Loading..." class="spinner" />
+      <div
+        v-else
+        id="comparisons-upset-svg"
+        ref="upsetContainer"
+        class="upset-container"
+        data-testid="comparisons-upset-plot"
+      />
+    </div>
+  </section>
 </template>
 
 <script>
@@ -201,6 +202,7 @@ export default {
       selected_columns: ['SysNDD', 'panelapp', 'gene2phenotype'],
       selection: null,
       loadingUpset: true,
+      resizeObserver: null,
       definitiveOnly: false,
       highlightSysNDD: true,
       highlightCoreOverlap: true,
@@ -265,6 +267,16 @@ export default {
   },
   mounted() {
     this.loadOptionsData();
+    this.$nextTick(() => {
+      this.attachResizeObserver();
+    });
+  },
+  beforeUnmount() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    window.removeEventListener('resize', this.renderUpset);
   },
   methods: {
     async loadOptionsData() {
@@ -299,6 +311,7 @@ export default {
       }
 
       const sets = extractSets(this.elems);
+      const dimensions = this.getPlotDimensions();
 
       // Build setColors map for coloring individual sets
       const setColors = {};
@@ -343,12 +356,13 @@ export default {
 
       render(this.upsetContainer, {
         sets,
-        width: this.width,
-        height: this.height,
+        width: dimensions.width,
+        height: dimensions.height,
         selection: this.selection,
         theme: 'vega',
         setColors,
         queries: queries.length > 0 ? queries : undefined,
+        exportButtons: false,
         // Enhanced styling
         barPadding: 0.3,
         dotPadding: 0.7,
@@ -356,6 +370,31 @@ export default {
           this.selection = s;
         },
       });
+    },
+    getPlotDimensions() {
+      const containerWidth = this.upsetContainer?.clientWidth || this.upsetContainer?.offsetWidth;
+      const viewportWidth =
+        typeof window !== 'undefined' ? Math.max(window.innerWidth - 64, 300) : this.width;
+      const availableWidth = containerWidth || viewportWidth;
+      const width = Math.max(300, Math.min(Math.floor(availableWidth), 1320));
+      const height = width < 520 ? 430 : width < 900 ? 500 : 560;
+      return { width, height };
+    },
+    attachResizeObserver() {
+      if (!this.upsetContainer) {
+        window.addEventListener('resize', this.renderUpset);
+        return;
+      }
+
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', this.renderUpset);
+        return;
+      }
+
+      this.resizeObserver = new ResizeObserver(() => {
+        this.renderUpset();
+      });
+      this.resizeObserver.observe(this.upsetContainer);
     },
     normalizeLists(node) {
       return {
@@ -441,25 +480,65 @@ export default {
 </script>
 
 <style scoped>
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #eaadba;
-}
-.svg-container {
-  display: inline-block;
-  position: relative;
-  width: 100%;
-  max-width: 1400px;
-  vertical-align: top;
+.analysis-panel {
   overflow: hidden;
+  border: 1px solid #d9e0ea;
+  border-radius: 6px;
+  background: #fff;
 }
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.panel-heading {
+  min-width: 0;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: #27364a;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.panel-description {
+  margin: 0.25rem 0 0;
+  color: #526070;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.help-button {
+  --bs-btn-padding-y: 0.1rem;
+  --bs-btn-padding-x: 0.35rem;
+  --bs-btn-font-size: 0.75rem;
+  border-radius: 999px;
+  color: #fff;
+}
+
 .upset-container {
+  display: flex;
+  justify-content: center;
   width: 100%;
-  min-height: 600px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.5rem 0;
 }
+
+.upset-container :deep(svg) {
+  max-width: 100%;
+}
+
 .spinner {
   width: 2rem;
   height: 2rem;
@@ -469,8 +548,35 @@ mark {
 
 /* Source Selector Styles */
 .source-selector {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f4f7fa;
   border-bottom: 1px solid #dee2e6;
+}
+
+.source-toolbar {
+  row-gap: 0.4rem !important;
+}
+
+.source-selector :deep(.btn-sm) {
+  --bs-btn-padding-y: 0.18rem;
+  --bs-btn-padding-x: 0.45rem;
+  --bs-btn-font-size: 0.8125rem;
+}
+
+.source-selector :deep(.btn-outline-primary) {
+  border-color: #07509b;
+  background: #fff;
+  color: #063f7a;
+}
+
+.source-selector :deep(.btn-outline-primary:hover),
+.source-selector :deep(.btn-outline-primary:focus) {
+  border-color: #063f7a;
+  background: #eaf3ff;
+  color: #052f5c;
+}
+
+.source-selector > small {
+  color: #4a5565 !important;
 }
 
 .source-dropdown-menu {
@@ -491,9 +597,32 @@ mark {
 }
 
 .source-chip {
+  min-height: 1.5rem;
+  max-height: 1.5rem;
+  padding: 0.18rem 0.42rem !important;
+  border-radius: 999px;
   font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1;
+  gap: 0.25rem;
   transition: all 0.2s ease;
+}
+
+.source-chip :deep(.b-form-tag-content) {
+  line-height: 1;
+}
+
+.source-chip :deep(.b-form-tag-remove) {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: 0.1rem;
+  padding: 0;
+  font-size: 0.55rem;
+  opacity: 0.7;
+}
+
+.source-chip :deep(.b-form-tag-remove:hover) {
+  opacity: 1;
 }
 
 .source-chip:hover:not(:disabled) {
@@ -566,5 +695,66 @@ mark {
 
 .chip-move {
   transition: transform 0.2s ease;
+}
+
+@media (max-width: 575.98px) {
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.7rem;
+    text-align: center;
+  }
+
+  .panel-title {
+    justify-content: center;
+    font-size: 1rem;
+  }
+
+  .panel-description {
+    font-size: 0.8125rem;
+  }
+
+  .source-selector {
+    padding: 0.5rem !important;
+  }
+
+  .source-toolbar {
+    gap: 0.35rem !important;
+  }
+
+  .source-selector :deep(.form-check-label),
+  .source-selector .small {
+    padding: 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+
+  .source-selector :deep(.form-check) {
+    min-height: 1.65rem;
+    margin-bottom: 0;
+    padding-top: 0.1rem;
+    padding-bottom: 0.1rem;
+  }
+
+  .source-selector :deep(.form-switch) {
+    align-items: center;
+    width: auto;
+    padding-right: 0.35rem;
+  }
+
+  .source-selector .border-start {
+    display: none;
+  }
+
+  .source-chip {
+    min-height: 1.45rem;
+    max-height: 1.45rem;
+    font-size: 0.75rem;
+  }
+
+  .upset-container {
+    padding-top: 0.25rem;
+  }
 }
 </style>
