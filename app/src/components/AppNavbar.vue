@@ -19,7 +19,11 @@
         </div>
       </BNavbarBrand>
 
-      <BNavbarToggle target="nav-collapse" />
+      <BNavbarToggle
+        target="nav-collapse"
+        aria-label="Open navigation menu"
+        :aria-expanded="navbarCollapsed ? 'true' : 'false'"
+      />
 
       <BCollapse id="nav-collapse" v-model="navbarCollapsed" is-nav>
         <!-- Left aligned nav items -->
@@ -146,6 +150,7 @@ export default {
       // "user payload parsed cleanly" — the composable already refused a
       // corrupt localStorage blob. No direct `localStorage.token` read.
       if (this.auth.isAuthenticated.value) {
+        this.setUserFromAuthPayload();
         this.checkSigninWithJWT();
       } else {
         this.clearUserData();
@@ -168,21 +173,29 @@ export default {
         return;
       }
       if (this.user_from_jwt.user_name[0] === authUser.user_name[0]) {
-        const [user] = authUser.user_name;
-        this.user = user;
-
-        const user_role = authUser.user_role[0];
-        const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(user_role)];
-
-        this.userAllowence = {
-          view: allowence.includes('View'),
-          review: allowence.includes('Review'),
-          curate: allowence.includes('Curate'),
-          admin: allowence.includes('Admin'),
-        };
+        this.setUserFromAuthPayload();
       } else {
         this.clearUserData();
       }
+    },
+    setUserFromAuthPayload() {
+      const authUser = this.auth.user.value;
+      const user = authUser?.user_name?.[0];
+      const userRole = authUser?.user_role?.[0];
+      const allowence = ROLES.ALLOWENCE_NAVIGATION[ROLES.ALLOWED_ROLES.indexOf(userRole)] || [];
+
+      if (!user || !userRole) {
+        this.clearUserData();
+        return;
+      }
+
+      this.user = user;
+      this.userAllowence = {
+        view: allowence.includes('View'),
+        review: allowence.includes('Review'),
+        curate: allowence.includes('Curate'),
+        admin: allowence.includes('Admin'),
+      };
     },
     clearUserData() {
       // Delegates the localStorage + axios-header cleanup to useAuth so the
