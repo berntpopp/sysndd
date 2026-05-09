@@ -1,6 +1,6 @@
 <template>
   <MobileTableList :items="items" label="Phenotype-associated entity records" :item-key="rowKey">
-    <template #default="{ item }">
+    <template #default="{ item, index }">
       <article class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <EntityBadge
@@ -20,9 +20,10 @@
             class="btn btn-sm btn-outline-secondary mobile-record-row__toggle"
             type="button"
             :aria-expanded="expandedKey === rowKey(item) ? 'true' : 'false'"
+            :aria-controls="`phenotypes-mobile-row-details-${index}`"
             @click="toggleDetails(item)"
           >
-            Details
+            {{ expandedKey === rowKey(item) ? 'Hide' : 'Details' }}
           </button>
         </div>
 
@@ -69,7 +70,11 @@
           </span>
         </div>
 
-        <dl v-if="expandedKey === rowKey(item)" class="mobile-record-row__details">
+        <dl
+          v-if="expandedKey === rowKey(item)"
+          :id="`phenotypes-mobile-row-details-${index}`"
+          class="mobile-record-row__details"
+        >
           <dt>HGNC</dt>
           <dd>{{ getText(item, 'hgnc_id') || '-' }}</dd>
           <dt>Ontology</dt>

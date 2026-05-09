@@ -286,7 +286,9 @@
             <BButton
               class="btn-xs fw-semibold"
               variant="outline-primary"
-              :aria-label="`Show details for entity ${row.item.entity_id}`"
+              :aria-label="`${row.expansionShowing ? 'Hide' : 'Show'} details for entity ${
+                row.item.entity_id
+              }`"
               @click="row.toggleExpansion"
             >
               {{ row.expansionShowing ? 'Hide' : 'Show' }}
