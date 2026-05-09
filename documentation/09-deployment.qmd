@@ -61,6 +61,21 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 
 The default production path is build-time prerendering into the frontend image. Set Docker build arg `SEO_GENERATE=true` to generate crawlable public route HTML after the Vite build. If `SEO_API_BASE_URL` is set, the generator reads `/api/seo/*`; otherwise it uses deterministic fixtures.
 
+```bash
+docker build \
+  -f app/Dockerfile \
+  --build-arg VUE_MODE=production \
+  --build-arg SEO_GENERATE=true \
+  --build-arg SEO_API_BASE_URL=https://sysndd.dbmr.unibe.ch/api \
+  app
+```
+
+Verify the generated output locally with:
+
+```bash
+make verify-seo-app
+```
+
 Runtime refresh is optional and intentionally outside API startup and nginx. The profiled sidecar keeps nginx single-purpose:
 
 ```bash
