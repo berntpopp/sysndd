@@ -8,15 +8,24 @@
     <template #default="{ item, index }">
       <article class="curation-mobile-row" role="listitem">
         <div class="curation-mobile-row__header">
-          <h3 class="curation-mobile-row__symbol">{{ displayValue(item.symbol) }}</h3>
+          <h3 class="curation-mobile-row__symbol">
+            <a
+              v-if="geneHref(item)"
+              class="curation-mobile-row__symbol-link"
+              :href="geneHref(item)"
+            >
+              {{ displayValue(item.symbol) }}
+            </a>
+            <span v-else>{{ displayValue(item.symbol) }}</span>
+          </h3>
           <button
             type="button"
             class="curation-mobile-row__details-button"
-            :aria-expanded="isExpanded(index) ? 'true' : 'false'"
+            :aria-expanded="isExpanded(rowKey(item, index)) ? 'true' : 'false'"
             :aria-controls="`curation-mobile-row-details-${index}`"
-            @click="toggleDetails(index)"
+            @click="toggleDetails(rowKey(item, index))"
           >
-            {{ isExpanded(index) ? 'Hide details' : 'Details' }}
+            {{ isExpanded(rowKey(item, index)) ? 'Hide details' : 'Details' }}
           </button>
         </div>
 
@@ -30,14 +39,19 @@
               'curation-mobile-row__source-chip--present': isPresent(item[source.key]),
               'curation-mobile-row__source-chip--absent': !isPresent(item[source.key]),
             }"
+            :aria-label="sourceTitle(source.label, item[source.key])"
+            :data-state="isPresent(item[source.key]) ? 'present' : 'absent'"
             :title="sourceTitle(source.label, item[source.key])"
           >
-            {{ source.short }}
+            <span class="curation-mobile-row__source-state" aria-hidden="true">
+              {{ isPresent(item[source.key]) ? '+' : '-' }}
+            </span>
+            <span>{{ source.short }}</span>
           </span>
         </div>
 
         <dl
-          v-if="isExpanded(index)"
+          v-if="isExpanded(rowKey(item, index))"
           :id="`curation-mobile-row-details-${index}`"
           class="curation-mobile-row__details"
         >
@@ -56,12 +70,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import MobileTableList from '@/components/table/MobileTableList.vue'
 
 type Item = Record<string, unknown>
 
-defineProps<{
+const props = defineProps<{
   items: Item[]
 }>()
 
@@ -77,7 +91,16 @@ const sources = [
 ] as const
 
 const negativeMarkers = new Set(['', 'not listed', 'no', 'false', 'null', 'undefined'])
-const expandedRows = ref<Set<number>>(new Set())
+const expandedRows = ref<Set<string>>(new Set())
+
+watch(
+  () => props.items,
+  (items) => {
+    const currentKeys = new Set(items.map((item, index) => rowKey(item, index)))
+    expandedRows.value = new Set([...expandedRows.value].filter((key) => currentKeys.has(key)))
+  },
+  { deep: false },
+)
 
 function isPresent(value: unknown): boolean {
   if (value === null || value === undefined || value === false) {
@@ -99,6 +122,26 @@ function displayValue(value: unknown): string {
   return String(value)
 }
 
+function geneHref(item: Item): string | null {
+  const hgncId = item.hgnc_id
+
+  if (hgncId === null || hgncId === undefined || hgncId === '') {
+    return null
+  }
+
+  return `/Genes/${String(hgncId)}`
+}
+
+function rowKey(item: Item, index: number): string {
+  const stableValue = item.hgnc_id ?? item.symbol
+
+  if (stableValue === null || stableValue === undefined || stableValue === '') {
+    return `row-${index}`
+  }
+
+  return String(stableValue)
+}
+
 function sourceDisplayValue(value: unknown): string {
   return isPresent(value) ? String(value) : 'Not present'
 }
@@ -107,17 +150,17 @@ function sourceTitle(label: string, value: unknown): string {
   return `${label}: ${sourceDisplayValue(value)}`
 }
 
-function isExpanded(index: number): boolean {
-  return expandedRows.value.has(index)
+function isExpanded(key: string): boolean {
+  return expandedRows.value.has(key)
 }
 
-function toggleDetails(index: number): void {
+function toggleDetails(key: string): void {
   const nextExpandedRows = new Set(expandedRows.value)
 
-  if (nextExpandedRows.has(index)) {
-    nextExpandedRows.delete(index)
+  if (nextExpandedRows.has(key)) {
+    nextExpandedRows.delete(key)
   } else {
-    nextExpandedRows.add(index)
+    nextExpandedRows.add(key)
   }
 
   expandedRows.value = nextExpandedRows
@@ -141,10 +184,19 @@ function toggleDetails(index: number): void {
 
 .curation-mobile-row__symbol {
   margin: 0;
-  color: #0f172a;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
+}
+
+.curation-mobile-row__symbol,
+.curation-mobile-row__symbol-link {
+  color: #0f172a;
+}
+
+.curation-mobile-row__symbol-link {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.16em;
 }
 
 .curation-mobile-row__details-button {
@@ -176,11 +228,17 @@ function toggleDetails(index: number): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.2rem;
   min-height: 1.75rem;
   padding: 0.25rem;
   border-radius: 0.375rem;
   font-size: 0.7rem;
   font-weight: 700;
+  line-height: 1;
+}
+
+.curation-mobile-row__source-state {
+  font-size: 0.75rem;
   line-height: 1;
 }
 
