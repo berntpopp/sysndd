@@ -279,7 +279,7 @@ type EntityRowMap = Record<string, unknown>;
 
 const { publication_hover_text, modifier_text } = useText();
 const copyButtonLabel = ref('Copy');
-let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+let copyResetTimer: number | NodeJS.Timeout | null = null;
 
 const entityIdStr = computed(() => String(route.params.entity_id ?? ''));
 
