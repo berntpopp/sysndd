@@ -362,6 +362,27 @@ describe('LoginView — closeout exception E1 (bootstrap Bearer)', () => {
   });
 });
 
+describe('LoginView — modern public shell', () => {
+  beforeEach(() => {
+    useAuth().logout();
+  });
+
+  afterEach(() => {
+    useAuth().logout();
+    localStorage.clear();
+  });
+
+  it('renders the login form inside the modern public auth layout', async () => {
+    const wrapper = mountLoginView();
+    await flushPromises();
+
+    expect(wrapper.find('.login-page').exists()).toBe(true);
+    expect(wrapper.find('.login-shell').exists()).toBe(true);
+    expect(wrapper.find('.login-panel').exists()).toBe(true);
+    expect(wrapper.find('.login-context').exists()).toBe(true);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // v11.1 finish-hardening fix #2 — readable error message in toast.
 //

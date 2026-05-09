@@ -1,11 +1,12 @@
 <template>
-  <BNavItem :link-attrs="item.linkAttr" :href="item.link" :target="item.target">
+  <BNavItem class="footer-link" :link-attrs="item.linkAttr" :href="item.link" :target="item.target">
     <img
       :src="item.imgSrc"
       height="34"
       :width="item.width"
       :alt="item.alt"
       :rel="relAttribute"
+      :class="logoClasses"
       @error="handleImageError"
     />
   </BNavItem>
@@ -23,6 +24,16 @@ export default {
     relAttribute() {
       return this.item.target === '_blank' ? 'noopener' : '';
     },
+    logoClasses() {
+      return [
+        'footer-logo',
+        {
+          'footer-logo--icon': ['github', 'openapi'].includes(this.item.id),
+          'footer-logo--license': this.item.id === 'cc-license',
+          'footer-logo--partner': ['dfg', 'unibe', 'ern-ithaca'].includes(this.item.id),
+        },
+      ];
+    },
   },
   methods: {
     handleImageError(e) {
@@ -33,5 +44,8 @@ export default {
 </script>
 
 <style scoped>
-/* Style for this component, if any. */
+:deep(.nav-link),
+.footer-link {
+  display: inline-flex;
+}
 </style>

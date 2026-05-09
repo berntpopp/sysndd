@@ -67,15 +67,28 @@ describe('Footer', () => {
         plugins: [pinia],
         stubs: {
           // Stub Bootstrap-Vue-Next components
-          BNavbar: true,
-          BNavbarToggle: true,
-          BNavbarNav: true,
-          BCollapse: true,
+          BNavbar: {
+            props: ['toggleable', 'type', 'variant', 'fixed'],
+            template:
+              '<nav v-bind="$attrs" :toggleable="toggleable" :fixed="fixed" :type="type" :variant="variant"><slot /></nav>',
+          },
+          BNavbarToggle: {
+            props: ['target'],
+            template: '<button class="navbar-toggler-stub" :aria-controls="target" />',
+          },
+          BNavbarNav: {
+            template: '<ul v-bind="$attrs"><slot /></ul>',
+          },
+          BCollapse: {
+            props: ['id', 'isNav'],
+            template: '<div :id="id" v-bind="$attrs"><slot /></div>',
+          },
           // Stub the async FooterNavItem component with a simple implementation
           FooterNavItem: {
             name: 'FooterNavItem',
             props: ['item'],
-            template: '<div class="footer-nav-item-stub" :data-id="item.id">{{ item.alt }}</div>',
+            template:
+              '<li class="footer-nav-item-stub footer-link" :data-id="item.id">{{ item.alt }}</li>',
           },
         },
       },
@@ -122,28 +135,19 @@ describe('Footer', () => {
     it('renders Bootstrap navbar component', async () => {
       const wrapper = await mountComponent();
 
-      // Check for navbar stub in rendered HTML (shallowMount renders as -stub suffix)
-      const html = wrapper.html().toLowerCase();
-      expect(html).toContain('b-navbar-stub');
+      expect(wrapper.find('nav.bg-footer').exists()).toBe(true);
     });
 
     it('renders navbar toggle for mobile responsiveness', async () => {
       const wrapper = await mountComponent();
 
-      // With stubs: true, BNavbarToggle renders as b-navbar-toggle-stub
-      // But since we use shallowMount, child components inside BNavbar are not rendered
-      // The navbar itself contains the toggle, so we just verify the navbar renders
-      const html = wrapper.html().toLowerCase();
-      expect(html).toContain('b-navbar-stub');
+      expect(wrapper.find('.navbar-toggler-stub').exists()).toBe(true);
     });
 
     it('renders collapse container for nav items', async () => {
       const wrapper = await mountComponent();
 
-      // With shallowMount and stubs, child components render as stubs
-      // BCollapse would be inside BNavbar which is stubbed
-      const html = wrapper.html().toLowerCase();
-      expect(html).toContain('b-navbar-stub');
+      expect(wrapper.find('#footer-collapse').exists()).toBe(true);
     });
   });
 
@@ -186,10 +190,13 @@ describe('Footer', () => {
   // Styling tests
   // ---------------------------------------------------------------------------
   describe('styling', () => {
-    it('applies bg-footer class for gradient background', async () => {
+    it('applies the modern app footer chrome classes', async () => {
       const wrapper = await mountComponent();
 
+      expect(wrapper.find('.app-footer').exists()).toBe(true);
       expect(wrapper.find('.bg-footer').exists()).toBe(true);
+      expect(wrapper.find('.footer-links').exists()).toBe(true);
+      expect(wrapper.find('.footer-partners').exists()).toBe(true);
     });
 
     it('uses fixed bottom positioning', async () => {
@@ -216,8 +223,7 @@ describe('Footer', () => {
     it('sets toggleable="sm" for small screen toggle', async () => {
       const wrapper = await mountComponent();
 
-      const html = wrapper.html();
-      expect(html).toContain('toggleable="sm"');
+      expect(wrapper.find('nav').attributes('toggleable')).toBe('sm');
     });
 
     it('has navbar with fixed bottom', async () => {

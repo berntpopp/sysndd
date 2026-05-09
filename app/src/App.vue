@@ -130,14 +130,14 @@ export default {
 }
 
 body {
-  padding-top: 68px;
-  padding-bottom: 50px;
+  padding-top: 60px;
+  padding-bottom: 48px;
   overflow: hidden;
 }
 
 // Native scrollbar styling
 .scrollable-content {
-  height: calc(100vh - 116px);
+  height: calc(100vh - 108px);
   overflow-y: auto;
   overflow-x: hidden;
 }

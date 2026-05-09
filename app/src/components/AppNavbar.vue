@@ -1,13 +1,19 @@
 <!-- src/components/AppNavbar.vue -->
 <template>
-  <div>
-    <BNavbar toggleable="lg" type="dark" variant="dark" fixed="top" class="py-0 bg-navbar">
-      <BNavbarBrand to="/" class="py-0">
-        <div class="brand-container">
+  <div class="app-navbar">
+    <BNavbar
+      toggleable="lg"
+      type="light"
+      variant="light"
+      fixed="top"
+      class="app-navbar__bar bg-navbar"
+    >
+      <BNavbarBrand to="/" class="app-navbar__brand">
+        <div class="brand-container brand-container--compact">
           <img
             src="/SysNDD_brain-dna-magnifying-glass_dall-e_logo.webp"
-            height="68"
-            width="68"
+            height="44"
+            width="44"
             alt="SysNDD Logo"
             rel="preload"
             class="app-logo"
@@ -23,7 +29,7 @@
 
       <BCollapse id="nav-collapse" v-model="navbarCollapsed" is-nav>
         <!-- Left aligned nav items -->
-        <BNavbarNav>
+        <BNavbarNav class="app-navbar__menus">
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsLeft"
             :key="index"
@@ -36,7 +42,7 @@
         <!-- Left aligned nav items -->
 
         <!-- Center aligned search bar -->
-        <ul v-if="show_search" class="navbar-nav mx-auto d-none d-lg-flex">
+        <ul v-if="show_search" class="navbar-nav app-navbar__search mx-auto d-none d-lg-flex">
           <li class="nav-item navbar-search-item">
             <SearchCombobox placeholder-string="..." :in-navbar="true" />
           </li>
@@ -44,7 +50,7 @@
         <!-- Center aligned search bar -->
 
         <!-- Right aligned nav items -->
-        <BNavbarNav v-if="user" class="ms-auto">
+        <BNavbarNav v-if="user" class="app-navbar__account ms-auto">
           <IconPairDropdownMenu
             v-for="(item, index) in dropdownItemsRightDisplay"
             :key="index"
@@ -55,13 +61,13 @@
           />
         </BNavbarNav>
         <!-- Wrap Login button in ul for proper structure -->
-        <ul v-else class="navbar-nav ms-auto">
-          <BNavItem to="/Login"> Login </BNavItem>
+        <ul v-else class="navbar-nav app-navbar__account ms-auto">
+          <BNavItem to="/Login" class="app-navbar__login">Login</BNavItem>
         </ul>
         <!-- Right aligned nav items -->
 
         <!-- Mobile search bar -->
-        <ul v-if="show_search" class="navbar-nav d-lg-none ms-auto">
+        <ul v-if="show_search" class="navbar-nav app-navbar__mobile-search d-lg-none ms-auto">
           <li class="nav-item navbar-search-item">
             <SearchCombobox placeholder-string="..." :in-navbar="true" />
           </li>
@@ -205,71 +211,142 @@ export default {
 </script>
 
 <style scoped>
-/* Keyframe animations for logo appearance */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.app-navbar__bar {
+  z-index: 1040;
+  min-height: 60px;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid #d9e1ec;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 10px 28px rgba(30, 41, 59, 0.08);
+  backdrop-filter: blur(12px);
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-/* Logo styles with animation */
-.app-logo {
-  max-width: 92px; /* Fixed maximum width */
-  margin-right: 20px; /* Spacing between logo and title */
-  animation: fadeIn 2s ease-out forwards;
-}
-.app-logo:hover {
-  animation: pulse 2s infinite;
-}
-
-/* Styles for the navbar */
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-:deep(.nav-link) {
-  color: #fff !important;
-}
-:deep(.nav-link:hover) {
-  color: #bbb !important;
-}
-:deep(.dropdown-menu) {
-  background-color: #343a40 !important;
-  color: #fff !important;
-}
-:deep(.dropdown-item) {
-  color: #fff !important;
-  min-width: 220px;
-}
-:deep(.dropdown-item:hover) {
-  background-color: #999 !important;
-  color: #000 !important;
-}
 .bg-navbar {
-  background-image: linear-gradient(to right, #434343 0%, black 100%);
+  background-image: none;
+}
+
+.app-navbar__brand {
+  padding: 0;
+  margin-right: 1.15rem;
+}
+
+.brand-container {
+  display: flex;
+  align-items: center;
+}
+
+.brand-container--compact {
+  gap: 0.55rem;
+}
+
+.app-logo {
+  display: block;
+  width: 44px;
+  height: 44px;
+  padding: 0.15rem;
+  border: 1px solid #d9e1ec;
+  border-radius: 8px;
+  background: #f6f8fb;
+  object-fit: contain;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.app-logo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(30, 41, 59, 0.12);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+.app-name {
+  margin: 0;
+  color: #102033;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.version-display {
+  margin-top: 0.12rem;
+  color: #667085;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.app-navbar__menus {
+  gap: 0.25rem;
+  align-items: center;
+}
+
+:deep(.nav-link) {
+  min-height: 36px;
+  padding: 0.42rem 0.72rem !important;
+  border-radius: 999px;
+  color: #344054 !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+:deep(.nav-link:hover),
+:deep(.nav-link:focus-visible),
+:deep(.show > .nav-link) {
+  background: #eef4ff;
+  color: #0d47a1 !important;
+}
+
+:deep(.nav-link:hover) {
+  transform: translateY(-1px);
+}
+
+:deep(.dropdown-menu) {
+  min-width: 13rem;
+  padding: 0.35rem;
+  border: 1px solid #d9e1ec;
+  border-radius: 8px;
+  background: #fff !important;
+  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.14);
+}
+
+:deep(.dropdown-item) {
+  min-width: 0;
+  padding: 0.48rem 0.65rem;
+  border-radius: 6px;
+  color: #1d2939 !important;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+:deep(.dropdown-item:hover),
+:deep(.dropdown-item:focus-visible) {
+  background: #f6f8fb !important;
+  color: #0d47a1 !important;
+}
+
+.app-navbar__search {
+  min-width: min(24rem, 34vw);
+}
+
+.navbar-search-item {
+  margin: 0;
+}
+
+.app-navbar__account {
+  align-items: center;
+}
+
+.app-navbar__login :deep(.nav-link) {
+  border: 1px solid #cfd8e3;
+  background: #fff;
 }
 
 /* Navbar toggler (hamburger menu) - WCAG 1.4.11 Non-text Contrast (3:1 minimum)
@@ -277,18 +354,21 @@ a {
  * Using bright white (#ffffff) provides excellent contrast against the dark gradient.
  */
 :deep(.navbar-toggler) {
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  padding: 0.5rem;
-  border-radius: 4px;
+  width: 40px;
+  height: 40px;
+  padding: 0.45rem;
+  border: 1px solid #cfd8e3;
+  border-radius: 8px;
+  background: #fff;
 
   &:focus {
-    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(13, 71, 161, 0.16);
     outline: none;
   }
 
   &:hover {
-    border-color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #9fb3c8;
+    background-color: #f6f8fb;
   }
 }
 
@@ -297,36 +377,63 @@ a {
  * Using solid white (#ffffff) ensures 3:1+ contrast against dark backgrounds.
  */
 :deep(.navbar-toggler-icon) {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-  width: 1.5em;
-  height: 1.5em;
+  width: 1.25em;
+  height: 1.25em;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%23344054' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2.25' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
-/* Styles specific to the brand container in the navbar */
-.brand-container {
-  display: flex;
-  align-items: center;
+@media (max-width: 991.98px) {
+  .app-navbar__bar {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+  }
+
+  :deep(.navbar-collapse) {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0.75rem;
+    left: 0.75rem;
+    z-index: 1050;
+    padding: 0.55rem;
+    border: 1px solid #d9e1ec;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(16, 24, 40, 0.14);
+  }
+
+  .app-navbar__menus,
+  .app-navbar__account,
+  .app-navbar__mobile-search {
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+
+  :deep(.nav-link) {
+    justify-content: flex-start;
+    width: 100%;
+    border-radius: 6px;
+  }
+
+  .app-navbar__mobile-search {
+    margin-top: 0.35rem;
+  }
 }
 
-/* Container for the application name and version information */
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding-left: 10px; /* Adjust spacing between logo and text as needed */
+@media (max-width: 420px) {
+  .brand-text {
+    display: none;
+  }
 }
 
-/* Styling for the application name */
-.app-name {
-  font-size: 1.5rem; /* Adjust the size as needed */
-  color: #ffffff; /* Adjust the color as needed */
-  margin-bottom: 0.25rem; /* Adjust spacing between app name and version as needed */
-}
+@media (prefers-reduced-motion: reduce) {
+  .app-logo,
+  :deep(.nav-link) {
+    transition: none;
+  }
 
-/* Styling for displaying the application version */
-.version-display {
-  color: #fff;
-  font-size: 0.75rem; /* Adjust the size as needed */
-  margin-top: -10px; /* Decrease the top margin to bring it closer to the app name */
+  .app-logo:hover,
+  :deep(.nav-link:hover) {
+    transform: none;
+  }
 }
 </style>
