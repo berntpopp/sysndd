@@ -118,11 +118,11 @@ function displayValue(value: unknown): string {
   return String(value);
 }
 
-function geneHref(item: Item): string | null {
+function geneHref(item: Item): string | undefined {
   const hgncId = item.hgnc_id;
 
   if (hgncId === null || hgncId === undefined || hgncId === '') {
-    return null;
+    return undefined;
   }
 
   return `/Genes/${String(hgncId)}`;

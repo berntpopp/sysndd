@@ -48,6 +48,8 @@ describe('PanelsTableControls', () => {
 
   it('keeps the required symbol column when toggling columns', async () => {
     const wrapper = mountControls();
+    await wrapper.get('button[aria-controls="panel-controls-columns"]').trigger('click');
+
     const symbolCheckbox = wrapper.find('input[value="symbol"]');
     const entrezCheckbox = wrapper.find('input[value="entrez_id"]');
 
@@ -56,6 +58,15 @@ describe('PanelsTableControls', () => {
     await entrezCheckbox.setValue(true);
 
     expect(wrapper.emitted('update:columns')?.[0]).toEqual([['symbol', 'hgnc_id', 'entrez_id']]);
+  });
+
+  it('keeps column controls collapsed by default', () => {
+    const wrapper = mountControls();
+
+    expect(wrapper.find('#panel-controls-columns').exists()).toBe(false);
+    expect(wrapper.get('button[aria-controls="panel-controls-columns"]').text()).toContain(
+      'Columns'
+    );
   });
 
   it('emits per-page changes once from the rows control', async () => {
