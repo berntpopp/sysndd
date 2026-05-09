@@ -364,7 +364,9 @@ let moduleLastApiParams = null;
 let moduleApiCallInProgress = false;
 let moduleLastApiCallTime = 0;
 let moduleLastApiResponse = null;
+let moduleLastApiResponseParams = null;
 let moduleInFlightPromise = null;
+let moduleInFlightParams = null;
 
 export default {
   name: 'TablesGenes',
@@ -687,7 +689,7 @@ export default {
       const now = Date.now();
 
       // Share same-parameter in-flight requests across remounted instances.
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
+      if (moduleApiCallInProgress && moduleInFlightParams === urlParam && moduleInFlightPromise) {
         this.isBusy = true;
         try {
           const sharedData = await moduleInFlightPromise;
@@ -705,7 +707,7 @@ export default {
       // This works across component remounts caused by router.replace()
       if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
         // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
+        if (moduleLastApiResponse && moduleLastApiResponseParams === urlParam) {
           this.applyApiResponse(moduleLastApiResponse);
           this.isBusy = false; // Clear busy state when using cached data
           this.loading = false;
@@ -717,6 +719,7 @@ export default {
       moduleLastApiCallTime = now;
       moduleApiCallInProgress = true;
       moduleLastApiResponse = null;
+      moduleLastApiResponseParams = null;
       this.isBusy = true;
 
       const inFlight = listGenes({
@@ -726,13 +729,21 @@ export default {
         page_size: String(this.perPage),
       });
       moduleInFlightPromise = inFlight;
+      moduleInFlightParams = urlParam;
 
       try {
         const data = await inFlight;
+        const isCurrentRequest = moduleInFlightParams === urlParam;
+        if (!isCurrentRequest) {
+          return;
+        }
+
         moduleApiCallInProgress = false;
         moduleInFlightPromise = null;
+        moduleInFlightParams = null;
         // Cache response for remounted components
         moduleLastApiResponse = data;
+        moduleLastApiResponseParams = urlParam;
         this.applyApiResponse(data);
 
         // Update URL AFTER API success to prevent component remount during API call
@@ -741,8 +752,15 @@ export default {
         this.isBusy = false;
         this.loading = false;
       } catch (e) {
+        if (moduleInFlightParams !== urlParam) {
+          return;
+        }
+
         moduleApiCallInProgress = false;
         moduleInFlightPromise = null;
+        moduleInFlightParams = null;
+        moduleLastApiResponse = null;
+        moduleLastApiResponseParams = null;
         this.makeToast(e, 'Error', 'danger');
         this.isBusy = false;
         this.loading = false;
