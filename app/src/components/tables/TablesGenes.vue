@@ -357,16 +357,11 @@ import { useUiStore } from '@/stores/ui';
 
 // Typed API client
 import { listGenes } from '@/api/genes';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null;
-let moduleLastApiResponseParams = null;
-let moduleInFlightPromise = null;
-let moduleInFlightParams = null;
+const genesRequestCoordinator = createTableRequestCoordinator();
 
 export default {
   name: 'TablesGenes',
@@ -688,90 +683,31 @@ export default {
       const currentUrlParam = () =>
         `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
 
-      const now = Date.now();
-
-      // Share same-parameter in-flight requests across remounted instances.
-      if (moduleApiCallInProgress && moduleInFlightParams === urlParam && moduleInFlightPromise) {
-        this.isBusy = true;
-        try {
-          const sharedData = await moduleInFlightPromise;
-          if (currentUrlParam() !== urlParam) {
-            return;
-          }
-          this.applyApiResponse(sharedData);
-        } catch (e) {
-          if (currentUrlParam() !== urlParam) {
-            return;
-          }
-          this.makeToast(e, 'Error', 'danger');
-        } finally {
-          if (currentUrlParam() === urlParam) {
-            this.isBusy = false;
-            this.loading = false;
-          }
-        }
-        return;
-      }
-
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse && moduleLastApiResponseParams === urlParam) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false; // Clear busy state when using cached data
-          this.loading = false;
-          return;
-        }
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
-      moduleLastApiResponse = null;
-      moduleLastApiResponseParams = null;
       this.isBusy = true;
 
-      const inFlight = listGenes({
-        sort: this.sort,
-        filter: this.filter_string,
-        page_after: String(this.currentItemID ?? ''),
-        page_size: String(this.perPage),
+      const result = await genesRequestCoordinator.request({
+        params: urlParam,
+        fetcher: () =>
+          listGenes({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: String(this.currentItemID ?? ''),
+            page_size: String(this.perPage),
+          }),
+        apply: (data, source) => {
+          this.applyApiResponse(data);
+          if (source === 'network') {
+            // Update URL AFTER API success to prevent component remount during API call
+            this.updateBrowserUrl();
+          }
+        },
+        onError: (e) => {
+          this.makeToast(e, 'Error', 'danger');
+        },
+        isCurrent: (params) => currentUrlParam() === params,
       });
-      moduleInFlightPromise = inFlight;
-      moduleInFlightParams = urlParam;
 
-      try {
-        const data = await inFlight;
-        const isCurrentRequest = moduleInFlightParams === urlParam;
-        if (!isCurrentRequest) {
-          return;
-        }
-
-        moduleApiCallInProgress = false;
-        moduleInFlightPromise = null;
-        moduleInFlightParams = null;
-        // Cache response for remounted components
-        moduleLastApiResponse = data;
-        moduleLastApiResponseParams = urlParam;
-        this.applyApiResponse(data);
-
-        // Update URL AFTER API success to prevent component remount during API call
-        this.updateBrowserUrl();
-
-        this.isBusy = false;
-        this.loading = false;
-      } catch (e) {
-        if (moduleInFlightParams !== urlParam) {
-          return;
-        }
-
-        moduleApiCallInProgress = false;
-        moduleInFlightPromise = null;
-        moduleInFlightParams = null;
-        moduleLastApiResponse = null;
-        moduleLastApiResponseParams = null;
-        this.makeToast(e, 'Error', 'danger');
+      if (result.handled) {
         this.isBusy = false;
         this.loading = false;
       }

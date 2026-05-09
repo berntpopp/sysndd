@@ -282,14 +282,11 @@ import { useUiStore } from '@/stores/ui';
 
 // Typed API client
 import { listEntities } from '@/api/entity';
+import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null; // Cache last API response for remounted components
-let moduleInFlightPromise = null; // Shared promise so late subscribers can await it
+const entitiesRequestCoordinator = createTableRequestCoordinator();
 
 export default {
   name: 'TablesEntities',
@@ -657,73 +654,39 @@ export default {
       const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${
         this.currentItemID
       }&page_size=${this.perPage}&compact=${!this.showFilterControls}`;
-
-      const now = Date.now();
-
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false; // Clear busy state when using cached data
-          this.loading = false;
-        }
-        return;
-      }
-
-      // If a call with the same params is already in flight, share its promise
-      // instead of returning silently. Returning early left late subscribers
-      // stuck on `loading=true` forever because the cached-response branch
-      // above never fired for them and their own fetch was suppressed.
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam && moduleInFlightPromise) {
-        this.isBusy = true;
-        try {
-          const sharedData = await moduleInFlightPromise;
-          this.applyApiResponse(sharedData);
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-        } finally {
-          this.isBusy = false;
-          this.loading = false;
-        }
-        return;
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
+      const currentUrlParam = () =>
+        `sort=${this.sort}&filter=${this.filter_string}&page_after=${
+          this.currentItemID
+        }&page_size=${this.perPage}&compact=${!this.showFilterControls}`;
       this.isBusy = true;
 
-      const inFlight = listEntities({
-        sort: this.sort,
-        filter: this.filter_string,
-        page_after: this.currentItemID,
-        page_size: String(this.perPage),
-        // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
-        // so they don't need the global-fspec round-trip. Compact mode
-        // pushes the filter to SQL and skips the wasted fspec compute.
-        compact: !this.showFilterControls,
+      const result = await entitiesRequestCoordinator.request({
+        params: urlParam,
+        fetcher: () =>
+          listEntities({
+            sort: this.sort,
+            filter: this.filter_string,
+            page_after: this.currentItemID,
+            page_size: String(this.perPage),
+            // Embedded callers (GeneView/EntityView) hide the filter dropdowns,
+            // so they don't need the global-fspec round-trip. Compact mode
+            // pushes the filter to SQL and skips the wasted fspec compute.
+            compact: !this.showFilterControls,
+          }),
+        apply: (data, source) => {
+          this.applyApiResponse(data);
+          if (source === 'network') {
+            // Update URL AFTER API success to prevent component remount during API call
+            this.updateBrowserUrl();
+          }
+        },
+        onError: (e) => {
+          this.makeToast(e, 'Error', 'danger');
+        },
+        isCurrent: (params) => currentUrlParam() === params,
       });
-      moduleInFlightPromise = inFlight;
 
-      try {
-        const data = await inFlight;
-        moduleApiCallInProgress = false;
-        moduleInFlightPromise = null;
-        // Cache response for remounted components
-        moduleLastApiResponse = data;
-        this.applyApiResponse(data);
-
-        // Update URL AFTER API success to prevent component remount during API call
-        this.updateBrowserUrl();
-
-        this.isBusy = false;
-        this.loading = false;
-      } catch (e) {
-        moduleApiCallInProgress = false;
-        moduleInFlightPromise = null;
-        this.makeToast(e, 'Error', 'danger');
+      if (result.handled) {
         this.isBusy = false;
         this.loading = false;
       }
