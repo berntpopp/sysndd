@@ -6,16 +6,16 @@
     :item-key="rowKey"
   >
     <template #default="{ item, index }">
-      <article class="entities-mobile-row" role="listitem">
-        <div class="entities-mobile-row__header">
-          <div class="entities-mobile-row__primary">
+      <article class="mobile-record-row" role="listitem">
+        <div class="mobile-record-row__topline">
+          <div class="mobile-record-row__chips">
             <EntityBadge
               v-if="hasValue(item.entity_id)"
               :entity-id="badgeId(item.entity_id)"
               :link-to="`/Entities/${displayValue(item.entity_id)}`"
               size="sm"
             />
-            <span v-else class="entities-mobile-row__fallback">Unknown entity</span>
+            <span v-else class="mobile-record-row__fallback">Unknown entity</span>
 
             <GeneBadge
               v-if="hasValue(item.symbol)"
@@ -28,7 +28,7 @@
 
           <button
             type="button"
-            class="entities-mobile-row__details-button"
+            class="mobile-record-row__details-button"
             :aria-expanded="isExpanded(rowKey(item, index)) ? 'true' : 'false'"
             :aria-controls="`entities-mobile-row-details-${index}`"
             @click="toggleDetails(rowKey(item, index))"
@@ -37,7 +37,7 @@
           </button>
         </div>
 
-        <div class="entities-mobile-row__secondary">
+        <div class="mobile-record-row__chips">
           <DiseaseBadge
             v-if="hasValue(item.disease_ontology_name)"
             :name="displayValue(item.disease_ontology_name)"
@@ -54,10 +54,10 @@
           />
         </div>
 
-        <div class="entities-mobile-row__statuses" aria-label="Entity statuses">
+        <div class="mobile-record-row__chips" aria-label="Entity statuses">
           <span
             v-if="isCategory(item.category)"
-            class="entities-mobile-row__status"
+            class="mobile-record-row__chip"
             :title="`Category: ${displayValue(item.category)}`"
           >
             <CategoryIcon :category="displayValue(item.category)" size="sm" :show-title="false" />
@@ -65,7 +65,7 @@
           </span>
           <span
             v-if="isNddStatus(item.ndd_phenotype_word)"
-            class="entities-mobile-row__status"
+            class="mobile-record-row__chip"
             :title="nddLabel(item.ndd_phenotype_word)"
           >
             <NddIcon
@@ -80,24 +80,24 @@
         <dl
           v-if="isExpanded(rowKey(item, index))"
           :id="`entities-mobile-row-details-${index}`"
-          class="entities-mobile-row__details"
+          class="mobile-record-row__details"
         >
-          <div v-if="hasValue(item.hgnc_id)" class="entities-mobile-row__detail">
+          <div v-if="hasValue(item.hgnc_id)" class="mobile-record-row__detail">
             <dt>HGNC</dt>
             <dd>{{ displayValue(item.hgnc_id) }}</dd>
           </div>
           <div
             v-if="hasValue(item.disease_ontology_id_version)"
-            class="entities-mobile-row__detail"
+            class="mobile-record-row__detail"
           >
             <dt>Ontology ID</dt>
             <dd>{{ displayValue(item.disease_ontology_id_version) }}</dd>
           </div>
-          <div v-if="hasValue(item.entry_date)" class="entities-mobile-row__detail">
+          <div v-if="hasValue(item.entry_date)" class="mobile-record-row__detail">
             <dt>Entry date</dt>
             <dd>{{ displayValue(item.entry_date) }}</dd>
           </div>
-          <div v-if="hasValue(item.synopsis)" class="entities-mobile-row__detail">
+          <div v-if="hasValue(item.synopsis)" class="mobile-record-row__detail">
             <dt>Synopsis</dt>
             <dd>{{ displayValue(item.synopsis) }}</dd>
           </div>
@@ -200,105 +200,3 @@ function toggleDetails(key: string): void {
   expandedRows.value = nextExpandedRows;
 }
 </script>
-
-<style scoped>
-.entities-mobile-row {
-  padding: 0.875rem;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 0.5rem;
-  background: #fff;
-}
-
-.entities-mobile-row__header,
-.entities-mobile-row__primary,
-.entities-mobile-row__secondary,
-.entities-mobile-row__statuses,
-.entities-mobile-row__status {
-  display: flex;
-  align-items: center;
-}
-
-.entities-mobile-row__header {
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.entities-mobile-row__primary,
-.entities-mobile-row__secondary,
-.entities-mobile-row__statuses {
-  flex-wrap: wrap;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.entities-mobile-row__secondary,
-.entities-mobile-row__statuses {
-  margin-top: 0.625rem;
-}
-
-.entities-mobile-row__status {
-  gap: 0.25rem;
-  min-height: 1.75rem;
-  padding: 0.2rem 0.45rem;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 999px;
-  background: #f8fafc;
-  color: #0f172a;
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.entities-mobile-row__details-button {
-  flex: 0 0 auto;
-  min-height: 2rem;
-  padding: 0.25rem 0.625rem;
-  border: 1px solid #0d6efd;
-  border-radius: 0.375rem;
-  background: #fff;
-  color: #0d6efd;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.entities-mobile-row__details-button:hover,
-.entities-mobile-row__details-button:focus {
-  background: rgba(13, 110, 253, 0.08);
-}
-
-.entities-mobile-row__fallback {
-  color: #475569;
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.entities-mobile-row__details {
-  display: grid;
-  gap: 0.375rem;
-  margin: 0.875rem 0 0;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.entities-mobile-row__detail {
-  display: grid;
-  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.2fr);
-  gap: 0.5rem;
-  align-items: start;
-}
-
-.entities-mobile-row__detail dt {
-  color: #475569;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.entities-mobile-row__detail dd {
-  min-width: 0;
-  margin: 0;
-  color: #0f172a;
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
-</style>

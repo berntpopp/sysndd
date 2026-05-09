@@ -10,7 +10,7 @@
             :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
             :loading="loading"
           >
-            <template #actions>
+            <template v-if="!loading" #actions>
               <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
                 <TableDownloadLinkCopyButtons
                   :downloading="downloading"
@@ -23,7 +23,7 @@
               </h5>
             </template>
 
-            <template #toolbar>
+            <template v-if="!loading" #toolbar>
               <!-- User Interface controls -->
               <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
                 <BCol v-if="showSearchInput" class="my-1" sm="8">

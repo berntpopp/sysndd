@@ -45,7 +45,7 @@ function resolveItemKey(item: Item, index: number): string | number {
 }
 </script>
 
-<style scoped>
+<style>
 .mobile-table-list {
   display: grid;
   gap: 0.75rem;
@@ -59,5 +59,105 @@ function resolveItemKey(item: Item, index: number): string | number {
   color: #64748b;
   font-size: 0.875rem;
   text-align: center;
+}
+
+.mobile-record-row {
+  padding: 0.875rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.mobile-record-row__topline,
+.mobile-record-row__chips,
+.mobile-record-row__chip {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-record-row__topline {
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mobile-record-row__chips {
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.mobile-record-row__topline + .mobile-record-row__chips,
+.mobile-record-row__chips + .mobile-record-row__chips {
+  margin-top: 0.625rem;
+}
+
+.mobile-record-row__chip {
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-record-row__details-button {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid #0d6efd;
+  border-radius: 0.375rem;
+  background: #fff;
+  color: #0d6efd;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.mobile-record-row__details-button:hover,
+.mobile-record-row__details-button:focus {
+  background: rgba(13, 110, 253, 0.08);
+}
+
+.mobile-record-row__fallback {
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.mobile-record-row__details {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0.875rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.mobile-record-row__detail {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.mobile-record-row__detail--full {
+  align-items: center;
+}
+
+.mobile-record-row__detail dt {
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.mobile-record-row__detail dd {
+  min-width: 0;
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
 }
 </style>

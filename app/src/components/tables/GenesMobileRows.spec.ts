@@ -63,5 +63,11 @@ describe('GenesMobileRows', () => {
     expect(wrapper.text()).toContain('Developmental delay, ARID1B-related');
     expect(wrapper.get('a[href="/Entities/57"]').text()).toContain('sysndd:57');
     expect(wrapper.get('a[href="/Entities/58"]').text()).toContain('sysndd:58');
+    expect(wrapper.get('a[href="/Ontology/OMIM:135900"]').text()).toContain(
+      'Coffin-Siris syndrome 1'
+    );
+    expect(wrapper.get('a[href="/Ontology/MONDO:0013342"]').text()).toContain(
+      'Developmental delay, ARID1B-related'
+    );
   });
 });
