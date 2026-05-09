@@ -14,8 +14,6 @@ function mountControls() {
       selectedInheritance: 'All',
       selectedColumns: ['symbol', 'hgnc_id'],
       sortBy: [{ key: 'symbol', order: 'asc' }],
-      perPage: 10,
-      pageOptions: [10, 25],
     },
     global: {
       stubs: {
@@ -67,13 +65,5 @@ describe('PanelsTableControls', () => {
     expect(wrapper.get('button[aria-controls="panel-controls-columns"]').text()).toContain(
       'Columns'
     );
-  });
-
-  it('emits per-page changes once from the rows control', async () => {
-    const wrapper = mountControls();
-
-    await wrapper.findAllComponents({ name: 'BFormSelect' })[4].vm.$emit('update:modelValue', 25);
-
-    expect(wrapper.emitted('update:per-page')).toEqual([[25]]);
   });
 });

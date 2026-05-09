@@ -42,27 +42,23 @@
           :selected-inheritance="selected_inheritance"
           :selected-columns="selected_columns"
           :sort-by="sortBy"
-          :per-page="perPage"
-          :page-options="pageOptions"
           :busy="isBusy"
           @update:category="handleCategoryChange"
           @update:inheritance="handleInheritanceChange"
           @update:columns="handleColumnsChange"
           @update:sort="handleSortControlChange"
-          @update:per-page="handlePerPageChange"
         />
 
-        <BPagination
-          :model-value="currentPage"
-          :total-rows="totalRows"
-          :per-page="perPage"
-          align="fill"
-          size="sm"
-          class="mt-2 mb-0"
-          limit="2"
-          :disabled="isBusy"
-          @update:model-value="handlePageChange"
-        />
+        <div class="panels-table__pagination">
+          <TablePaginationControls
+            :total-rows="totalRows"
+            :initial-per-page="perPage"
+            :page-options="pageOptions"
+            :current-page="currentPage"
+            @page-change="handlePageChange"
+            @per-page-change="handlePerPageChange"
+          />
+        </div>
       </template>
 
       <template #loading>
@@ -184,6 +180,7 @@
 <script>
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import PanelsMobileRows from './PanelsMobileRows.vue';
@@ -201,6 +198,7 @@ export default {
     TableLoadingState,
     PanelsMobileRows,
     PanelsTableControls,
+    TablePaginationControls,
   },
   setup() {
     const { makeToast } = useToast();
@@ -436,6 +434,18 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.panels-table__pagination {
+  margin-top: 0.45rem;
+}
+
+@media (min-width: 768px) {
+  .panels-table__pagination {
+    max-width: 34rem;
+  }
+}
+</style>
 
 <style scoped>
 .btn-group-xs > .btn,

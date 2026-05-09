@@ -48,17 +48,6 @@
         </span>
       </label>
 
-      <label class="panel-controls__field">
-        <span>Rows</span>
-        <BFormSelect
-          :model-value="perPage"
-          :options="pageOptions"
-          size="sm"
-          :disabled="busy"
-          @update:model-value="emit('update:per-page', $event as string | number)"
-        />
-      </label>
-
       <button
         class="panel-controls__advanced-toggle"
         type="button"
@@ -109,8 +98,6 @@ const props = defineProps<{
   selectedInheritance: string | null;
   selectedColumns: string[];
   sortBy: Array<{ key: string; order: 'asc' | 'desc' }>;
-  perPage: number;
-  pageOptions: number[];
   busy?: boolean;
 }>();
 
@@ -119,7 +106,6 @@ const emit = defineEmits<{
   (event: 'update:inheritance', value: string): void;
   (event: 'update:columns', value: string[]): void;
   (event: 'update:sort', value: Array<{ key: string; order: 'asc' | 'desc' }>): void;
-  (event: 'update:per-page', value: string | number): void;
 }>();
 
 const requiredColumns = ['symbol'];
@@ -184,9 +170,7 @@ function toggleColumn(value: string) {
 
 .panel-controls__primary {
   display: grid;
-  grid-template-columns:
-    minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(13rem, 1.35fr) minmax(5rem, 0.55fr)
-    auto;
+  grid-template-columns: minmax(8rem, 1fr) minmax(8rem, 1fr) minmax(13rem, 1.35fr) auto;
   gap: 0.5rem;
   align-items: end;
 }
@@ -278,7 +262,7 @@ function toggleColumn(value: string) {
 
 @media (max-width: 991.98px) {
   .panel-controls__primary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .panel-controls__field--sort {
