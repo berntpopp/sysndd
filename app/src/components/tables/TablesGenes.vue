@@ -709,13 +709,14 @@ export default {
           this.applyApiResponse(moduleLastApiResponse);
           this.isBusy = false; // Clear busy state when using cached data
           this.loading = false;
+          return;
         }
-        return;
       }
 
       moduleLastApiParams = urlParam;
       moduleLastApiCallTime = now;
       moduleApiCallInProgress = true;
+      moduleLastApiResponse = null;
       this.isBusy = true;
 
       const inFlight = listGenes({
