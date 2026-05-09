@@ -6,16 +6,11 @@
     :meta="'Genes: ' + totalRows"
     :loading="loadingTable"
   >
-    <template #actions>
-      <BBadge
+    <template #title-actions>
+      <InlineHelpBadge
         id="popover-badge-help-comparisons"
-        pill
-        href="#"
-        variant="info"
         aria-label="Show curation comparison table help"
-      >
-        <i class="bi bi-question-circle-fill" aria-hidden="true" />
-      </BBadge>
+      />
 
       <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
         <template #title> Comparisons selection [last update 2023-04-13] </template>
@@ -43,15 +38,9 @@
         from OMIM, requires download key),
         <br />
       </BPopover>
+    </template>
 
-      <BBadge
-        v-b-tooltip.hover.bottom
-        variant="success"
-        :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-      >
-        Genes: {{ totalRows }}
-      </BBadge>
-
+    <template #actions>
       <div
         v-if="showFilterControls"
         class="comparison-actions d-flex align-items-center justify-content-end gap-2"
@@ -67,32 +56,14 @@
           <span class="small fw-semibold">Definitive Only</span>
         </BFormCheckbox>
 
-        <BButton
-          v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          title="Download data as Excel file."
-          @click="requestExcel()"
-        >
-          <i class="bi bi-table mx-1" />
-          <i v-if="!downloading" class="bi bi-download" />
-          <BSpinner v-if="downloading" small />
-          .xlsx
-        </BButton>
-        <BButton
-          v-b-tooltip.hover.bottom
-          size="sm"
-          :title="
-            'The table is ' +
-            (filter_string === '' ? 'not' : '') +
-            ' filtered.' +
-            (filter_string === '' ? '' : ' Click to remove all filters.')
-          "
-          :variant="filter_string === '' ? 'info' : 'warning'"
-          @click="removeFilters()"
-        >
-          <i class="bi bi-filter" />
-        </BButton>
+        <TableDownloadLinkCopyButtons
+          :downloading="downloading"
+          :remove-filters-title="removeFiltersButtonTitle"
+          :remove-filters-variant="removeFiltersButtonVariant"
+          @request-excel="requestExcel"
+          @copy-link="copyLinkToClipboard"
+          @remove-filters="removeFilters"
+        />
       </div>
     </template>
 
@@ -116,29 +87,15 @@
         </BCol>
 
         <BCol class="my-1" sm="4">
-          <BContainer v-if="totalRows > perPage || showPaginationControls">
-            <BInputGroup prepend="Per page" class="mb-1" size="sm">
-              <BFormSelect
-                id="per-page-select"
-                :model-value="perPage"
-                :options="pageOptions"
-                class="filter-input"
-                size="sm"
-                @update:model-value="handlePerPageChange"
-              />
-            </BInputGroup>
-
-            <BPagination
-              :model-value="currentPage"
-              :total-rows="totalRows"
-              :per-page="perPage"
-              align="fill"
-              size="sm"
-              class="my-0"
-              limit="2"
-              @update:model-value="handlePageChange"
-            />
-          </BContainer>
+          <TablePaginationControls
+            v-if="totalRows > perPage || showPaginationControls"
+            :total-rows="totalRows"
+            :initial-per-page="perPage"
+            :page-options="pageOptions"
+            :current-page="currentPage"
+            @page-change="handlePageChange"
+            @per-page-change="handlePerPageChange"
+          />
         </BCol>
       </BRow>
     </template>
@@ -294,6 +251,9 @@ import Utils from '@/assets/js/utils';
 
 // Import the GenericTable component
 import GenericTable from '@/components/small/GenericTable.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import CurationComparisonMobileRows from '@/components/analyses/CurationComparisonMobileRows.vue';
@@ -310,6 +270,9 @@ export default {
   // register the GenericTable component (Treeselect temporarily disabled)
   components: {
     GenericTable,
+    InlineHelpBadge,
+    TableDownloadLinkCopyButtons,
+    TablePaginationControls,
     TableLoadingState,
     TableShell,
     CurationComparisonMobileRows,
@@ -445,6 +408,19 @@ export default {
       definitiveOnly: false,
     };
   },
+  computed: {
+    removeFiltersButtonTitle() {
+      return (
+        'The table is ' +
+        (this.filter_string === '' ? 'not' : '') +
+        ' filtered.' +
+        (this.filter_string === '' ? '' : ' Click to remove all filters.')
+      );
+    },
+    removeFiltersButtonVariant() {
+      return this.filter_string === '' ? 'info' : 'warning';
+    },
+  },
   watch: {
     filter: {
       handler(_value) {
@@ -478,9 +454,6 @@ export default {
     },
     sortDesc() {
       this.handleSortByOrDescChange();
-    },
-    perPage() {
-      this.handlePerPageChange();
     },
   },
   created() {

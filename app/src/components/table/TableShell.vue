@@ -4,6 +4,7 @@
       <div class="table-shell__heading">
         <div class="table-shell__title-line">
           <h2 class="table-shell__title">{{ title }}</h2>
+          <slot name="title-actions" />
           <span v-if="meta" class="table-shell__meta">{{ meta }}</span>
         </div>
         <p v-if="description" class="table-shell__description">{{ description }}</p>

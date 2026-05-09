@@ -12,9 +12,10 @@
               title="This plot shows the number of NDD entities and genes over time, categorized by different criteria. It provides an interactive way to explore trends and patterns in the data."
               >over time</mark
             >.
-            <BBadge id="popover-badge-help-timeplot" pill href="#" variant="info">
-              <i class="bi bi-question-circle-fill" />
-            </BBadge>
+            <InlineHelpBadge
+              id="popover-badge-help-timeplot"
+              aria-label="Explain entities over time plot"
+            />
             <BPopover target="popover-badge-help-timeplot" variant="info" triggers="focus">
               <template #title> Time Plot Details </template>
               This section provides a dynamic visualization of the number of neurodevelopmental
@@ -64,6 +65,7 @@
 <script>
 import { useToast, useText } from '@/composables';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import * as d3 from 'd3';
 
 // Typed API client (W5)
@@ -73,6 +75,7 @@ export default {
   name: 'AnalysesTimePlot',
   components: {
     DownloadImageButtons,
+    InlineHelpBadge,
   },
   setup() {
     const { makeToast } = useToast();

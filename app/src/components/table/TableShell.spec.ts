@@ -11,6 +11,7 @@ describe('TableShell', () => {
         meta: '2,605 records',
       },
       slots: {
+        'title-actions': '<button type="button" aria-label="Explain table">?</button>',
         actions: '<button type="button">Export</button>',
         toolbar: '<label>Search<input aria-label="Search entities" /></label>',
         default: '<table><tbody><tr><td>ARID1B</td></tr></tbody></table>',
@@ -20,7 +21,8 @@ describe('TableShell', () => {
     expect(wrapper.text()).toContain('Entities');
     expect(wrapper.text()).toContain('Gene-inheritance-disease records');
     expect(wrapper.text()).toContain('2,605 records');
-    expect(wrapper.find('button').text()).toBe('Export');
+    expect(wrapper.get('button[aria-label="Explain table"]').text()).toBe('?');
+    expect(wrapper.findAll('button').at(1)?.text()).toBe('Export');
     expect(wrapper.find('input[aria-label="Search entities"]').exists()).toBe(true);
     expect(wrapper.find('td').text()).toBe('ARID1B');
   });

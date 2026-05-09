@@ -7,16 +7,11 @@
       :loading="loading"
     >
       <template v-if="!loading" #actions>
-        <BButton
+        <InlineHelpBadge
           id="panel-table-help"
           v-b-tooltip.hover.bottom
-          class="me-1"
-          size="sm"
-          variant="info"
           aria-label="Show panel table category help"
-        >
-          <i class="bi bi-question-circle-fill" />
-        </BButton>
+        />
         <BPopover target="panel-table-help" variant="info" triggers="focus">
           <template #title> Gene categories </template>
           A gene is assigned to the highest category of all entities it is associated with.
@@ -34,30 +29,32 @@
       </template>
 
       <template v-if="!loading" #toolbar>
-        <PanelsTableControls
-          :categories="categories_list"
-          :inheritance="inheritance_list"
-          :columns="columns_list"
-          :selected-category="selected_category"
-          :selected-inheritance="selected_inheritance"
-          :selected-columns="selected_columns"
-          :sort-by="sortBy"
-          :busy="isBusy"
-          @update:category="handleCategoryChange"
-          @update:inheritance="handleInheritanceChange"
-          @update:columns="handleColumnsChange"
-          @update:sort="handleSortControlChange"
-        />
-
-        <div class="panels-table__pagination">
-          <TablePaginationControls
-            :total-rows="totalRows"
-            :initial-per-page="perPage"
-            :page-options="pageOptions"
-            :current-page="currentPage"
-            @page-change="handlePageChange"
-            @per-page-change="handlePerPageChange"
+        <div class="panels-table__toolbar-row">
+          <PanelsTableControls
+            :categories="categories_list"
+            :inheritance="inheritance_list"
+            :columns="columns_list"
+            :selected-category="selected_category"
+            :selected-inheritance="selected_inheritance"
+            :selected-columns="selected_columns"
+            :sort-by="sortBy"
+            :busy="isBusy"
+            @update:category="handleCategoryChange"
+            @update:inheritance="handleInheritanceChange"
+            @update:columns="handleColumnsChange"
+            @update:sort="handleSortControlChange"
           />
+
+          <div class="panels-table__pagination">
+            <TablePaginationControls
+              :total-rows="totalRows"
+              :initial-per-page="perPage"
+              :page-options="pageOptions"
+              :current-page="currentPage"
+              @page-change="handlePageChange"
+              @per-page-change="handlePerPageChange"
+            />
+          </div>
         </div>
       </template>
 
@@ -180,6 +177,7 @@
 <script>
 import { useHead } from '@unhead/vue';
 import { useToast } from '@/composables';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
@@ -199,6 +197,7 @@ export default {
     PanelsMobileRows,
     PanelsTableControls,
     TablePaginationControls,
+    InlineHelpBadge,
   },
   setup() {
     const { makeToast } = useToast();
@@ -436,13 +435,20 @@ export default {
 </script>
 
 <style scoped>
-.panels-table__pagination {
-  margin-top: 0.45rem;
+.panels-table__toolbar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: 0.75rem;
+  align-items: end;
 }
 
-@media (min-width: 768px) {
-  .panels-table__pagination {
-    max-width: 34rem;
+.panels-table__pagination {
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .panels-table__toolbar-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

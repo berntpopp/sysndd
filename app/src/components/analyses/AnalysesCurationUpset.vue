@@ -5,17 +5,12 @@
       <div class="panel-heading">
         <h2 class="panel-title">
           Overlap
-          <BButton
+          <InlineHelpBadge
             id="popover-badge-help-upset"
             v-b-tooltip.hover.bottom
             aria-label="Explain UpSet plot"
-            class="help-button"
-            size="sm"
             title="Explain UpSet plot"
-            variant="info"
-          >
-            <i class="bi bi-question-circle-fill" aria-hidden="true" />
-          </BButton>
+          />
         </h2>
         <p class="panel-description">
           UpSet plot of selected curation-list intersections for neurodevelopmental disorders.
@@ -175,6 +170,7 @@ import { render, extractSets } from '@upsetjs/bundle';
 // import Treeselect from '@zanmato/vue3-treeselect';
 // import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
+import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 
 // Typed API client (W5)
 import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
@@ -182,7 +178,7 @@ import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
 export default {
   name: 'AnalysesCurationUpset',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
-  components: { DownloadImageButtons },
+  components: { DownloadImageButtons, InlineHelpBadge },
   setup() {
     const upsetContainer = ref(null);
     const { makeToast } = useToast();
@@ -516,14 +512,6 @@ export default {
   color: #526070;
   font-size: 0.875rem;
   line-height: 1.35;
-}
-
-.help-button {
-  --bs-btn-padding-y: 0.1rem;
-  --bs-btn-padding-x: 0.35rem;
-  --bs-btn-font-size: 0.75rem;
-  border-radius: 999px;
-  color: #fff;
 }
 
 .upset-container {
