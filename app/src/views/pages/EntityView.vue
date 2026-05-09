@@ -252,7 +252,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { BContainer, BRow, BCol, BButton } from 'bootstrap-vue-next';
@@ -279,6 +279,7 @@ type EntityRowMap = Record<string, unknown>;
 
 const { publication_hover_text, modifier_text } = useText();
 const copyButtonLabel = ref('Copy');
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 const entityIdStr = computed(() => String(route.params.entity_id ?? ''));
 
@@ -369,12 +370,32 @@ const synopsisText = computed(() =>
 
 async function copySynopsis(): Promise<void> {
   if (!synopsisText.value) return;
-  await navigator.clipboard?.writeText(synopsisText.value);
-  copyButtonLabel.value = 'Copied';
-  window.setTimeout(() => {
+  const writeText = navigator?.clipboard?.writeText;
+  if (!writeText) {
     copyButtonLabel.value = 'Copy';
-  }, 1600);
+    return;
+  }
+
+  try {
+    await writeText(synopsisText.value);
+    copyButtonLabel.value = 'Copied';
+    if (copyResetTimer) {
+      window.clearTimeout(copyResetTimer);
+    }
+    copyResetTimer = window.setTimeout(() => {
+      copyButtonLabel.value = 'Copy';
+      copyResetTimer = null;
+    }, 1600);
+  } catch {
+    copyButtonLabel.value = 'Copy';
+  }
 }
+onBeforeUnmount(() => {
+  if (copyResetTimer) {
+    window.clearTimeout(copyResetTimer);
+    copyResetTimer = null;
+  }
+});
 
 function pubmedUrl(publication: EntityRowMap): string {
   return `https://pubmed.ncbi.nlm.nih.gov/${asString(publication.publication_id).replace(/^PMID:\s*/, '')}`;

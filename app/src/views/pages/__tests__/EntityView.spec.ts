@@ -296,6 +296,61 @@ describe('EntityView (v11.3 W3)', () => {
     w.unmount();
   });
 
+  it('does not report copied when clipboard write fails', async () => {
+    const synopsis = 'Refractory seizures and developmental delay';
+    const writeText = vi.fn().mockRejectedValue(new Error('no permission'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () =>
+        HttpResponse.json([{ synopsis, review_date: '2025-02-12 11:14:21', comment: '' }])
+      ),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    const copyButton = w.get(
+      '[data-testid="clinical-synopsis-header"] [data-testid="copy-synopsis-button"]'
+    );
+    await copyButton.trigger('click');
+    await flushPromises();
+
+    expect(writeText).toHaveBeenCalledWith(synopsis);
+    expect(copyButton.text()).toContain('Copy');
+    w.unmount();
+  });
+
   it('renders the entity hero as a Gene / Inheritance / Disease unit', async () => {
     server.use(
       http.get('*/api/entity/', () =>
