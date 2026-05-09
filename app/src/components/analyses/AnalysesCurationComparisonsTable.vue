@@ -1,167 +1,162 @@
 <!-- src/components/analyses/AnalysesCurationComparisonsTable.vue -->
 <template>
-  <BContainer fluid>
-    <!-- User Interface controls -->
-    <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-      <template #header>
-        <BRow>
-          <BCol>
-            <h6 class="mb-1 text-start font-weight-bold">
-              Comparing the presence of a gene in different
-              <mark
-                v-b-tooltip.hover.leftbottom
-                title="These have been reviewed to include lists which are regularly updated. Below table allows users to filter the presence of a gene (normalized category/ not listed) in the respective list overlaps."
-                >curation efforts</mark
-              >
-              for NDDs.
+  <TableShell
+    title="Curation effort comparisons"
+    description="Comparing the presence of a gene in different curation efforts for NDDs."
+    :meta="'Genes: ' + totalRows"
+    :loading="loadingTable"
+  >
+    <template #actions>
+      <BBadge
+        id="popover-badge-help-comparisons"
+        pill
+        href="#"
+        variant="info"
+        aria-label="Show curation comparison table help"
+      >
+        <i class="bi bi-question-circle-fill" aria-hidden="true" />
+      </BBadge>
 
-              <BBadge id="popover-badge-help-comparisons" pill href="#" variant="info">
-                <i class="bi bi-question-circle-fill" />
-              </BBadge>
+      <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
+        <template #title> Comparisons selection [last update 2023-04-13] </template>
+        The NDD databases and lists for the comparison with SysNDD are:
+        <br />
+        <strong>1) radboudumc ID,</strong> downloaded and normalized from
+        https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br />
+        <strong>2) gene2phenotype ID</strong> downloaded and normalized from
+        https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
+        <br />
+        <strong>3) panelapp ID</strong> downloaded and normalized from
+        https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
+        <br />
+        <strong>4) sfari</strong> downloaded and normalized from
+        https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes,
+        <br />
+        <strong>5) geisinger DBD</strong> downloaded and normalized from
+        https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv,
+        <br />
+        <strong>6) orphanet ID</strong> downloaded and normalized from
+        https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
+        <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
+        abnormality" (HP:0012759) using the pre-propagated phenotype_to_genes.txt
+        (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2
+        (genemap2.txt from OMIM, requires download key),
+        <br />
+      </BPopover>
 
-              <BPopover target="popover-badge-help-comparisons" variant="info" triggers="focus">
-                <template #title> Comparisons selection [last update 2023-04-13] </template>
-                The NDD databases and lists for the comparison with SysNDD are:
-                <br />
-                <strong>1) radboudumc ID,</strong> downloaded and normalized from
-                https://order.radboudumc.nl/en/LabProduct/Pdf/30240, <br />
-                <strong>2) gene2phenotype ID</strong> downloaded and normalized from
-                https://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz,
-                <br />
-                <strong>3) panelapp ID</strong> downloaded and normalized from
-                https://panelapp.genomicsengland.co.uk/panels/285/download/01234/,
-                <br />
-                <strong>4) sfari</strong> downloaded and normalized from
-                https://gene.sfari.org//wp-content/themes/sfari-gene/utilities/download-csv.php?api-endpoint=genes,
-                <br />
-                <strong>5) geisinger DBD</strong> downloaded and normalized from
-                https://dbd.geisingeradmi.org/downloads/DBD-Genes-Full-Data.csv,
-                <br />
-                <strong>6) orphanet ID</strong> downloaded and normalized from
-                https://id-genes.orphanet.app/es/index/sysid_index_1, <br />
-                <strong>7) OMIM NDD</strong> filtered OMIM for the HPO term "Neurodevelopmental
-                abnormality" (HP:0012759) using the pre-propagated phenotype_to_genes.txt
-                (http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt) and genemap2
-                (genemap2.txt from OMIM, requires download key),
-                <br />
-              </BPopover>
-            </h6>
+      <BBadge
+        v-b-tooltip.hover.bottom
+        variant="success"
+        :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+      >
+        Genes: {{ totalRows }}
+      </BBadge>
 
-            <h6 class="mb-1 text-start font-weight-bold">
-              <BBadge
-                v-b-tooltip.hover.bottom
-                variant="success"
-                :title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
-              >
-                Genes: {{ totalRows }}
-              </BBadge>
-            </h6>
-          </BCol>
-          <BCol>
-            <h5
-              v-if="showFilterControls"
-              class="mb-1 text-end font-weight-bold d-flex align-items-center justify-content-end gap-2"
-            >
-              <!-- Definitive Only toggle -->
-              <BFormCheckbox
-                v-model="definitiveOnly"
-                v-b-tooltip.hover.bottom
-                switch
-                size="sm"
-                class="definitive-toggle me-2"
-                title="Show only Definitive entries for each source"
-              >
-                <span class="small fw-semibold">Definitive Only</span>
-              </BFormCheckbox>
+      <div
+        v-if="showFilterControls"
+        class="comparison-actions d-flex align-items-center justify-content-end gap-2"
+      >
+        <BFormCheckbox
+          v-model="definitiveOnly"
+          v-b-tooltip.hover.bottom
+          switch
+          size="sm"
+          class="definitive-toggle me-2"
+          title="Show only Definitive entries for each source"
+        >
+          <span class="small fw-semibold">Definitive Only</span>
+        </BFormCheckbox>
 
-              <BButton
-                v-b-tooltip.hover.bottom
-                class="me-1"
-                size="sm"
-                title="Download data as Excel file."
-                @click="requestExcel()"
-              >
-                <i class="bi bi-table mx-1" />
-                <i v-if="!downloading" class="bi bi-download" />
-                <BSpinner v-if="downloading" small />
-                .xlsx
-              </BButton>
-              <BButton
-                v-b-tooltip.hover.bottom
-                size="sm"
-                :title="
-                  'The table is ' +
-                  (filter_string === '' ? 'not' : '') +
-                  ' filtered.' +
-                  (filter_string === '' ? '' : ' Click to remove all filters.')
-                "
-                :variant="filter_string === '' ? 'info' : 'warning'"
-                @click="removeFilters()"
-              >
-                <i class="bi bi-filter" />
-              </BButton>
-            </h5>
-          </BCol>
-        </BRow>
-      </template>
-
-      <div v-if="!loadingTable">
-        <BRow>
-          <BCol class="my-1" sm="6">
-            <BFormGroup class="mb-1 border-dark">
-              <BFormInput
-                v-if="showFilterControls"
-                id="filter-input"
-                v-model="filter['any'].content"
-                class="filter-input mb-1 border-dark"
-                size="sm"
-                type="search"
-                placeholder="Search any field by typing here"
-                debounce="500"
-                @click="removeFilters()"
-                @update:model-value="filtered()"
-              />
-            </BFormGroup>
-          </BCol>
-
-          <BCol class="my-1" sm="4">
-            <BContainer v-if="totalRows > perPage || showPaginationControls">
-              <BInputGroup prepend="Per page" class="mb-1" size="sm">
-                <BFormSelect
-                  id="per-page-select"
-                  :model-value="perPage"
-                  :options="pageOptions"
-                  class="filter-input"
-                  size="sm"
-                  @update:model-value="handlePerPageChange"
-                />
-              </BInputGroup>
-
-              <BPagination
-                :model-value="currentPage"
-                :total-rows="totalRows"
-                :per-page="perPage"
-                align="fill"
-                size="sm"
-                class="my-0"
-                limit="2"
-                @update:model-value="handlePageChange"
-              />
-            </BContainer>
-          </BCol>
-        </BRow>
+        <BButton
+          v-b-tooltip.hover.bottom
+          class="me-1"
+          size="sm"
+          title="Download data as Excel file."
+          @click="requestExcel()"
+        >
+          <i class="bi bi-table mx-1" />
+          <i v-if="!downloading" class="bi bi-download" />
+          <BSpinner v-if="downloading" small />
+          .xlsx
+        </BButton>
+        <BButton
+          v-b-tooltip.hover.bottom
+          size="sm"
+          :title="
+            'The table is ' +
+            (filter_string === '' ? 'not' : '') +
+            ' filtered.' +
+            (filter_string === '' ? '' : ' Click to remove all filters.')
+          "
+          :variant="filter_string === '' ? 'info' : 'warning'"
+          @click="removeFilters()"
+        >
+          <i class="bi bi-filter" />
+        </BButton>
       </div>
+    </template>
 
-      <div class="position-relative">
-        <BSpinner v-if="loadingTable" label="Loading..." class="spinner" />
+    <template #toolbar>
+      <BRow v-if="!loadingTable">
+        <BCol class="my-1" sm="6">
+          <BFormGroup class="mb-1 border-dark">
+            <BFormInput
+              v-if="showFilterControls"
+              id="filter-input"
+              v-model="filter['any'].content"
+              class="filter-input mb-1 border-dark"
+              size="sm"
+              type="search"
+              placeholder="Search any field by typing here"
+              debounce="500"
+              @click="removeFilters()"
+              @update:model-value="filtered()"
+            />
+          </BFormGroup>
+        </BCol>
+
+        <BCol class="my-1" sm="4">
+          <BContainer v-if="totalRows > perPage || showPaginationControls">
+            <BInputGroup prepend="Per page" class="mb-1" size="sm">
+              <BFormSelect
+                id="per-page-select"
+                :model-value="perPage"
+                :options="pageOptions"
+                class="filter-input"
+                size="sm"
+                @update:model-value="handlePerPageChange"
+              />
+            </BInputGroup>
+
+            <BPagination
+              :model-value="currentPage"
+              :total-rows="totalRows"
+              :per-page="perPage"
+              align="fill"
+              size="sm"
+              class="my-0"
+              limit="2"
+              @update:model-value="handlePageChange"
+            />
+          </BContainer>
+        </BCol>
+      </BRow>
+    </template>
+
+    <template #loading>
+      <TableLoadingState label="Loading curation comparison table" />
+    </template>
+
+    <div class="position-relative">
+      <div class="d-none d-md-block">
         <GenericTable
-          v-else
           :items="items"
           :fields="fields"
           :current-page="currentPage"
           :is-busy="isBusy"
           :sort-by="sortBy"
           :sort-desc="sortDesc"
+          :stacked-mode="false"
           @update-sort="handleSortUpdate"
         >
           <!-- Column header tooltips -->
@@ -278,8 +273,12 @@
           </template>
         </GenericTable>
       </div>
-    </BCard>
-  </BContainer>
+
+      <div class="d-md-none">
+        <CurationComparisonMobileRows :items="items" />
+      </div>
+    </div>
+  </TableShell>
 </template>
 
 <script>
@@ -295,6 +294,9 @@ import Utils from '@/assets/js/utils';
 
 // Import the GenericTable component
 import GenericTable from '@/components/small/GenericTable.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
+import TableShell from '@/components/table/TableShell.vue';
+import CurationComparisonMobileRows from '@/components/analyses/CurationComparisonMobileRows.vue';
 
 // Import badge components
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
@@ -308,6 +310,9 @@ export default {
   // register the GenericTable component (Treeselect temporarily disabled)
   components: {
     GenericTable,
+    TableLoadingState,
+    TableShell,
+    CurationComparisonMobileRows,
     CategoryIcon,
     GeneBadge,
   },
