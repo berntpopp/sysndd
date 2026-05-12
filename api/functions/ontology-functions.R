@@ -227,7 +227,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #' @param max_file_age Integer, maximum age of the file in months before regeneration.
 #' @param output_path String, the path where the output CSV file will be stored.
 #' @param progress_callback Optional function for async progress reporting.
-#'   Called with (step, current, total) parameters.
+#'   Called with (step, message, current, total) parameters.
 #' @return A tibble containing the combined ontology dataset.
 #'
 #' @examples
@@ -239,8 +239,8 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #'   # With progress callback (for async jobs)
 #'   combined_ontology_data <- process_combine_ontology(
 #'     non_alt_loci_set, moi_list, 3, "data/",
-#'     progress_callback = function(step, current, total) {
-#'       message(sprintf("%s: %d/%d", step, current, total))
+#'     progress_callback = function(step, message, current, total) {
+#'       message(sprintf("%s: %d/%d", message, current, total))
 #'     }
 #'   )
 #' }
@@ -299,7 +299,12 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
     # Download and apply MONDO SSSOM mappings for OMIM-to-MONDO equivalence
     # This enriches the MONDO column for mim2gene entries via vectorized join
     if (!is.null(progress_callback)) {
-      progress_callback(step = "Applying MONDO SSSOM mappings", current = 4, total = 4)
+      progress_callback(
+        step = "Applying MONDO SSSOM mappings",
+        message = "Applying MONDO SSSOM mappings",
+        current = 4,
+        total = 4
+      )
     }
     mondo_sssom_file <- download_mondo_sssom(paste0(output_path, "mondo_mappings/"))
     mondo_sssom <- parse_mondo_sssom(mondo_sssom_file)
@@ -421,9 +426,9 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'
 #' @param hgnc_list A tibble of HGNC gene symbols and corresponding identifiers (columns: hgnc_id, symbol).
 #' @param moi_list A tibble of mode of inheritance terms for HPO mapping.
-#' @param max_file_age Integer, maximum age of the file in months before re-downloading (default: 3).
+#' @param max_file_age Integer, maximum age in days for the mim2gene deprecation cache (default: 3).
 #' @param progress_callback Optional function for async progress reporting.
-#'   Called with (step, current, total) parameters.
+#'   Called with (step, message, current, total) parameters.
 #' @return A tibble containing processed data from the OMIM ontology.
 #'
 #' @details
@@ -442,8 +447,8 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'   # With progress callback (for async jobs)
 #'   processed_omim_data <- process_omim_ontology(
 #'     hgnc_list, moi_list, 3,
-#'     progress_callback = function(step, current, total) {
-#'       message(sprintf("%s: %d/%d", step, current, total))
+#'     progress_callback = function(step, message, current, total) {
+#'       message(sprintf("%s: %d/%d", message, current, total))
 #'     }
 #'   )
 #' }
@@ -452,19 +457,34 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progress_callback = NULL) {
   # Step 1: Download genemap2.txt (Phase 76 shared infrastructure)
   if (!is.null(progress_callback)) {
-    progress_callback(step = "Downloading genemap2.txt", current = 1, total = 4)
+    progress_callback(
+      step = "Downloading genemap2.txt",
+      message = "Downloading genemap2.txt",
+      current = 1,
+      total = 4
+    )
   }
   genemap2_file <- download_genemap2("data/", force = FALSE)
 
   # Step 2: Parse genemap2 (Phase 76 shared function)
   if (!is.null(progress_callback)) {
-    progress_callback(step = "Parsing genemap2.txt", current = 2, total = 4)
+    progress_callback(
+      step = "Parsing genemap2.txt",
+      message = "Parsing genemap2.txt",
+      current = 2,
+      total = 4
+    )
   }
   genemap2_parsed <- parse_genemap2(genemap2_file)
 
   # Step 3: Build ontology set with inheritance mapping
   if (!is.null(progress_callback)) {
-    progress_callback(step = "Building OMIM ontology set from genemap2", current = 3, total = 4)
+    progress_callback(
+      step = "Building OMIM ontology set from genemap2",
+      message = "Building OMIM ontology set from genemap2",
+      current = 3,
+      total = 4
+    )
   }
   omim_terms <- build_omim_from_genemap2(genemap2_parsed, hgnc_list, moi_list)
 
@@ -473,12 +493,13 @@ process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progres
   if (!is.null(progress_callback)) {
     progress_callback(
       step = "Downloading mim2gene.txt for deprecation tracking",
+      message = "Downloading mim2gene.txt for deprecation tracking",
       current = 4,
       total = 4
     )
   }
   tryCatch({
-    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_months = max_file_age)
+    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_days = max_file_age)
     mim2gene_data <- parse_mim2gene(mim2gene_file)
     deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
     if (length(deprecated_mims) > 0) {
