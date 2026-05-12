@@ -37,7 +37,7 @@
     "@vueuse/core": "^14.3.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "bootstrap-vue-next": "^0.45.2",
+    "bootstrap-vue-next": "^0.45.3",
     "chart.js": "^4.5.1",
     "cytoscape": "^3.33.3",
     "cytoscape-fcose": "^2.2.0",
