@@ -6,133 +6,232 @@
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
           <!-- User Interface controls -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <TableHeaderLabel
-                    :label="headerLabel"
-                    :subtitle="'Log entries: ' + totalRows"
-                    :tool-tip-title="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
+          <TableShell
+            :title="headerLabel"
+            :meta="`${totalRows.toLocaleString()} log entries`"
+            :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+          >
+            <template #actions>
+              <TableDownloadLinkCopyButtons
+                v-if="showFilterControls"
+                :downloading="downloading"
+                :remove-filters-title="removeFiltersButtonTitle"
+                :remove-filters-variant="removeFiltersButtonVariant"
+                @request-excel="requestExcel"
+                @copy-link="copyLinkToClipboard"
+                @remove-filters="removeFilters"
+              />
+            </template>
+
+            <template #toolbar>
+              <BRow class="g-2">
+                <BCol sm="8">
+                  <TableSearchInput
+                    v-model="filter['any'].content"
+                    :placeholder="'Search any field by typing here'"
+                    :debounce-time="500"
+                    @update:model-value="filtered"
                   />
                 </BCol>
-                <BCol>
-                  <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
-                    <TableDownloadLinkCopyButtons
-                      :downloading="downloading"
-                      :remove-filters-title="removeFiltersButtonTitle"
-                      :remove-filters-variant="removeFiltersButtonVariant"
-                      @request-excel="requestExcel"
-                      @copy-link="copyLinkToClipboard"
-                      @remove-filters="removeFilters"
+
+                <BCol sm="4">
+                  <BContainer v-if="totalRows > perPage || showPaginationControls">
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="pageOptions"
+                      :current-page="currentPage"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
                     />
-                  </h5>
+                  </BContainer>
+                </BCol>
+              </BRow>
+
+              <BRow class="g-2 mt-1 align-items-center">
+                <BCol sm="3">
+                  <BFormSelect
+                    v-model="filter.request_method.content"
+                    :options="method_options"
+                    size="sm"
+                    @update:model-value="filtered()"
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">All Methods</BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </BCol>
+                <BCol sm="3">
+                  <BFormSelect
+                    v-model="filter.status.content"
+                    :options="status_options"
+                    size="sm"
+                    @update:model-value="filtered()"
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">All Status</BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </BCol>
+                <BCol sm="3">
+                  <BFormSelect
+                    v-model="filter.path.content"
+                    size="sm"
+                    @update:model-value="filtered()"
+                  >
+                    <BFormSelectOption :value="null">All Paths</BFormSelectOption>
+                    <BFormSelectOption value="/api/">API Calls</BFormSelectOption>
+                    <BFormSelectOption value="/signin">/signin</BFormSelectOption>
+                    <BFormSelectOption value="/api/entity">/api/entity</BFormSelectOption>
+                    <BFormSelectOption value="/api/logs">/api/logs</BFormSelectOption>
+                  </BFormSelect>
+                </BCol>
+                <BCol sm="3" class="text-end">
+                  <span class="text-muted small me-2">
+                    {{ items.length }} of {{ totalRows.toLocaleString() }}
+                  </span>
+                  <BButton
+                    v-b-tooltip.hover
+                    size="sm"
+                    variant="outline-danger"
+                    title="Delete all logs (requires confirmation)"
+                    @click="showDeleteModal = true"
+                  >
+                    <i class="bi bi-trash" />
+                  </BButton>
+                </BCol>
+              </BRow>
+
+              <BRow class="g-2 mt-1 d-md-none">
+                <BCol>
+                  <BInputGroup prepend="Sort" size="sm">
+                    <BFormSelect v-model="mobileSortValue" :options="mobileSortOptions" size="sm" />
+                  </BInputGroup>
+                </BCol>
+              </BRow>
+
+              <details class="log-mobile-filters d-md-none">
+                <summary>
+                  <i class="bi bi-funnel" aria-hidden="true" />
+                  More filters
+                </summary>
+                <div class="log-mobile-filters__grid">
+                  <BFormInput
+                    v-model="filter.id.content"
+                    size="sm"
+                    placeholder="ID"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.timestamp.content"
+                    size="sm"
+                    placeholder="Timestamp"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.address.content"
+                    size="sm"
+                    placeholder="IP address"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.agent.content"
+                    size="sm"
+                    placeholder="Agent"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.host.content"
+                    size="sm"
+                    placeholder="Host"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.user.content"
+                    size="sm"
+                    placeholder="User"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.query.content"
+                    size="sm"
+                    placeholder="Query"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.post.content"
+                    size="sm"
+                    placeholder="POST body"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.duration.content"
+                    size="sm"
+                    placeholder="Duration"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.file.content"
+                    size="sm"
+                    placeholder="File"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                  <BFormInput
+                    v-model="filter.modified.content"
+                    size="sm"
+                    placeholder="Modified"
+                    type="search"
+                    autocomplete="off"
+                    @update:model-value="filtered()"
+                  />
+                </div>
+              </details>
+
+              <!-- Active filter pills -->
+              <BRow v-if="hasActiveFilters" class="g-2 mt-1">
+                <BCol>
+                  <BBadge
+                    v-for="(activeFilter, index) in activeFilters"
+                    :key="index"
+                    variant="secondary"
+                    class="me-2 mb-1"
+                  >
+                    {{ activeFilter.label }}: {{ activeFilter.value }}
+                    <BButton
+                      size="sm"
+                      variant="link"
+                      class="p-0 ms-1 text-light"
+                      @click="clearFilter(activeFilter.key)"
+                    >
+                      <i class="bi bi-x" />
+                    </BButton>
+                  </BBadge>
+                  <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
+                    Clear all
+                  </BButton>
                 </BCol>
               </BRow>
             </template>
-
-            <BRow>
-              <BCol class="my-1" sm="8">
-                <TableSearchInput
-                  v-model="filter['any'].content"
-                  :placeholder="'Search any field by typing here'"
-                  :debounce-time="500"
-                  @update:model-value="filtered"
-                />
-              </BCol>
-
-              <BCol class="my-1" sm="4">
-                <BContainer v-if="totalRows > perPage || showPaginationControls">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-
-            <BRow class="px-2 pb-2 align-items-center">
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.request_method.content"
-                  :options="method_options"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null">All Methods</BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.status.content"
-                  :options="status_options"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null">All Status</BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.path.content"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <BFormSelectOption :value="null">All Paths</BFormSelectOption>
-                  <BFormSelectOption value="/api/">API Calls</BFormSelectOption>
-                  <BFormSelectOption value="/signin">/signin</BFormSelectOption>
-                  <BFormSelectOption value="/api/entity">/api/entity</BFormSelectOption>
-                  <BFormSelectOption value="/api/logs">/api/logs</BFormSelectOption>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="3" class="text-end">
-                <span class="text-muted small me-2">
-                  {{ items.length }} of {{ totalRows.toLocaleString() }}
-                </span>
-                <BButton
-                  v-b-tooltip.hover
-                  size="sm"
-                  variant="outline-danger"
-                  title="Delete all logs (requires confirmation)"
-                  @click="showDeleteModal = true"
-                >
-                  <i class="bi bi-trash" />
-                </BButton>
-              </BCol>
-            </BRow>
-
-            <!-- Active filter pills -->
-            <BRow v-if="hasActiveFilters" class="px-2 pb-2">
-              <BCol>
-                <BBadge
-                  v-for="(activeFilter, index) in activeFilters"
-                  :key="index"
-                  variant="secondary"
-                  class="me-2 mb-1"
-                >
-                  {{ activeFilter.label }}: {{ activeFilter.value }}
-                  <BButton
-                    size="sm"
-                    variant="link"
-                    class="p-0 ms-1 text-light"
-                    @click="clearFilter(activeFilter.key)"
-                  >
-                    <i class="bi bi-x" />
-                  </BButton>
-                </BBadge>
-                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
-                  Clear all
-                </BButton>
-              </BCol>
-            </BRow>
             <!-- User Interface controls -->
 
             <!-- Empty state when no logs match filters -->
@@ -147,6 +246,7 @@
             <!-- Main table element -->
             <GenericTable
               v-else
+              class="d-none d-md-table"
               :items="items"
               :fields="fields"
               :field-details="fields_details"
@@ -290,8 +390,18 @@
                 </BButton>
               </template>
             </GenericTable>
+            <div v-if="isBusy" class="d-md-none text-center text-muted py-3">
+              <BSpinner small class="me-2" />
+              Loading logs...
+            </div>
+            <LogMobileRows
+              v-if="!isBusy && items.length > 0"
+              class="d-md-none"
+              :items="items"
+              @view="handleRowClick"
+            />
             <!-- Main table element -->
-          </BCard>
+          </TableShell>
         </BCol>
       </BRow>
 
@@ -383,12 +493,13 @@ import {
   useTableMethods,
 } from '@/composables';
 
-import TableHeaderLabel from '@/components/small/TableHeaderLabel.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
+import TableShell from '@/components/table/TableShell.vue';
+import LogMobileRows from '@/views/admin/components/LogMobileRows.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
@@ -410,10 +521,11 @@ export default {
   components: {
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
-    TableHeaderLabel,
     TableSearchInput,
     GenericTable,
     LogDetailDrawer,
+    TableShell,
+    LogMobileRows,
   },
   props: {
     apiEndpoint: {
@@ -580,6 +692,14 @@ export default {
         { value: '404', text: '404 Not Found' },
         { value: '500', text: '500 Server Error' },
       ],
+      mobileSortOptions: [
+        { value: '-id', text: 'Newest ID first' },
+        { value: '+id', text: 'Oldest ID first' },
+        { value: '-timestamp', text: 'Newest time first' },
+        { value: '+timestamp', text: 'Oldest time first' },
+        { value: '-duration', text: 'Slowest first' },
+        { value: '+duration', text: 'Fastest first' },
+      ],
       // Delete confirmation modal state
       showDeleteModal: false,
       deleteConfirmText: '',
@@ -588,6 +708,18 @@ export default {
     };
   },
   computed: {
+    mobileSortValue: {
+      get() {
+        return this.sort || '-id';
+      },
+      set(value) {
+        const sort_object = this.sortStringToVariables(value);
+        this.sortBy = sort_object.sortBy;
+        this.sort = value;
+        this.currentItemID = 0;
+        this.filtered();
+      },
+    },
     canNavigatePrev() {
       return this.selectedLogIndex > 0;
     },
@@ -1092,6 +1224,28 @@ export default {
   font-size: 0.875rem;
   line-height: 0.5;
   border-radius: 0.2rem;
+}
+
+.log-mobile-filters {
+  margin-top: 0.5rem;
+}
+
+.log-mobile-filters summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  color: #0d6efd;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.log-mobile-filters__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 /* Input group styles */

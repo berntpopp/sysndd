@@ -32,7 +32,7 @@
 <template>
   <div>
     <ReviewTable
-      title="Approve Status"
+      title="Status Queue"
       total-rows-label="statuses"
       approve-all-title="Approve all pending statuses"
       approve-all-aria-label="Approve all statuses"

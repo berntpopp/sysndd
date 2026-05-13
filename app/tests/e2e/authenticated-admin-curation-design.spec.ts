@@ -84,10 +84,17 @@ async function expectSingleRouteHeading(page: Page): Promise<void> {
         .replace(/[^a-z0-9]+/g, ' ')
         .trim()
         .replace(/\s+/g, ' ');
+    const stemToken = (token: string) =>
+      token.endsWith('ies') && token.length > 4
+        ? `${token.slice(0, -3)}y`
+        : token.endsWith('s') && token.length > 3
+          ? token.slice(0, -1)
+          : token;
     const tokens = (text: string) =>
       normalize(text)
         .split(' ')
-        .filter((token) => token.length > 0 && !['new', 'page'].includes(token));
+        .filter((token) => token.length > 0 && !['new', 'page'].includes(token))
+        .map(stemToken);
     const isDuplicate = (title: string, candidate: string) => {
       const titleText = normalize(title);
       const candidateText = normalize(candidate);

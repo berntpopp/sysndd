@@ -19,131 +19,131 @@ component. */
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <div class="mb-1 text-start fw-semibold">
-                    <strong>Manage Variation Ontology</strong>
-                    <BBadge variant="secondary" class="ms-2"> {{ totalRows }} terms </BBadge>
-                  </div>
+          <TableShell title="Variation Terms" :meta="`${totalRows} terms`">
+            <template #actions>
+              <BButton
+                v-b-tooltip.hover
+                size="sm"
+                class="me-1"
+                :variant="isExporting ? 'secondary' : 'outline-primary'"
+                :disabled="isExporting"
+                title="Export to Excel"
+                @click="handleExport"
+              >
+                <BSpinner v-if="isExporting" small />
+                <i v-else class="bi bi-file-earmark-excel" />
+              </BButton>
+              <BButton
+                v-b-tooltip.hover
+                size="sm"
+                :variant="removeFiltersButtonVariant"
+                :title="removeFiltersButtonTitle"
+                @click="removeFilters"
+              >
+                <i class="bi bi-funnel" />
+              </BButton>
+            </template>
+
+            <template #toolbar>
+              <!-- Search and Pagination Row -->
+              <BRow class="g-2">
+                <BCol sm="8">
+                  <BInputGroup>
+                    <template #prepend>
+                      <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
+                    </template>
+                    <BFormInput
+                      v-model="filter.any.content"
+                      placeholder="Search by ID, name, or definition..."
+                      debounce="300"
+                      type="search"
+                      @update:model-value="filtered()"
+                    />
+                  </BInputGroup>
                 </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    v-b-tooltip.hover
+                <BCol sm="4">
+                  <BContainer v-if="totalRows > perPage">
+                    <TablePaginationControls
+                      :total-rows="totalRows"
+                      :initial-per-page="perPage"
+                      :page-options="pageOptions"
+                      :current-page="currentPage"
+                      @page-change="handlePageChange"
+                      @per-page-change="handlePerPageChange"
+                    />
+                  </BContainer>
+                </BCol>
+              </BRow>
+
+              <!-- Filter Row -->
+              <BRow class="g-2 mt-1">
+                <BCol sm="3">
+                  <BFormSelect
+                    v-model="filter.is_active.content"
+                    :options="activeFilterOptions"
                     size="sm"
-                    class="me-1"
-                    :variant="isExporting ? 'secondary' : 'outline-primary'"
-                    :disabled="isExporting"
-                    title="Export to Excel"
-                    @click="handleExport"
+                    @update:model-value="filtered()"
                   >
-                    <BSpinner v-if="isExporting" small />
-                    <i v-else class="bi bi-file-earmark-excel" />
-                  </BButton>
-                  <BButton
-                    v-b-tooltip.hover
+                    <template #first>
+                      <BFormSelectOption :value="null"> All Status </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </BCol>
+                <BCol sm="3">
+                  <BFormSelect
+                    v-model="filter.obsolete.content"
+                    :options="obsoleteFilterOptions"
                     size="sm"
-                    :variant="removeFiltersButtonVariant"
-                    :title="removeFiltersButtonTitle"
-                    @click="removeFilters"
+                    @update:model-value="filtered()"
                   >
-                    <i class="bi bi-funnel" />
+                    <template #first>
+                      <BFormSelectOption :value="null"> All Terms </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </BCol>
+                <BCol sm="6" class="text-end">
+                  <span class="text-muted small">
+                    Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{
+                      Math.min(currentPage * perPage, totalRows)
+                    }}
+                    of {{ totalRows }}
+                  </span>
+                </BCol>
+              </BRow>
+
+              <BRow class="g-2 mt-1 d-md-none">
+                <BCol>
+                  <BInputGroup prepend="Sort" size="sm">
+                    <BFormSelect v-model="mobileSortValue" :options="mobileSortOptions" size="sm" />
+                  </BInputGroup>
+                </BCol>
+              </BRow>
+
+              <!-- Active Filter Pills -->
+              <BRow v-if="hasActiveFilters" class="g-2 mt-1">
+                <BCol>
+                  <BBadge
+                    v-for="(activeFilter, index) in activeFilters"
+                    :key="index"
+                    variant="secondary"
+                    class="me-2 mb-1"
+                  >
+                    {{ activeFilter.label }}: {{ activeFilter.value }}
+                    <BButton
+                      size="sm"
+                      variant="link"
+                      class="p-0 ms-1 text-light"
+                      @click="clearFilter(activeFilter.key)"
+                    >
+                      <i class="bi bi-x" />
+                    </BButton>
+                  </BBadge>
+                  <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
+                    Clear all
                   </BButton>
                 </BCol>
               </BRow>
             </template>
-
-            <!-- Search and Pagination Row -->
-            <BRow class="px-2 py-2">
-              <BCol sm="8">
-                <BInputGroup>
-                  <template #prepend>
-                    <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
-                  </template>
-                  <BFormInput
-                    v-model="filter.any.content"
-                    placeholder="Search by ID, name, or definition..."
-                    debounce="300"
-                    type="search"
-                    @update:model-value="filtered()"
-                  />
-                </BInputGroup>
-              </BCol>
-              <BCol sm="4">
-                <BContainer v-if="totalRows > perPage">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-
-            <!-- Filter Row -->
-            <BRow class="px-2 pb-2">
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.is_active.content"
-                  :options="activeFilterOptions"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null"> All Status </BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.obsolete.content"
-                  :options="obsoleteFilterOptions"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null"> All Terms </BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="6" class="text-end">
-                <span class="text-muted small">
-                  Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{
-                    Math.min(currentPage * perPage, totalRows)
-                  }}
-                  of {{ totalRows }}
-                </span>
-              </BCol>
-            </BRow>
-
-            <!-- Active Filter Pills -->
-            <BRow v-if="hasActiveFilters" class="px-2 pb-2">
-              <BCol>
-                <BBadge
-                  v-for="(activeFilter, index) in activeFilters"
-                  :key="index"
-                  variant="secondary"
-                  class="me-2 mb-1"
-                >
-                  {{ activeFilter.label }}: {{ activeFilter.value }}
-                  <BButton
-                    size="sm"
-                    variant="link"
-                    class="p-0 ms-1 text-light"
-                    @click="clearFilter(activeFilter.key)"
-                  >
-                    <i class="bi bi-x" />
-                  </BButton>
-                </BBadge>
-                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
-                  Clear all
-                </BButton>
-              </BCol>
-            </BRow>
 
             <!-- Table with loading overlay -->
             <div class="position-relative">
@@ -165,6 +165,7 @@ component. */
 
               <GenericTable
                 v-else
+                class="d-none d-md-table"
                 :items="ontologies"
                 :fields="fields"
                 :sort-by="sortBy"
@@ -201,8 +202,14 @@ component. */
                   </BBadge>
                 </template>
               </GenericTable>
+              <OntologyMobileRows
+                v-if="!isBusy && ontologies.length > 0"
+                class="d-md-none"
+                :items="ontologies"
+                @edit="editOntology"
+              />
             </div>
-          </BCard>
+          </TableShell>
         </BCol>
       </BRow>
 
@@ -314,9 +321,11 @@ component. */
 
 <script>
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import TableShell from '@/components/table/TableShell.vue';
 import { ref, inject } from 'vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import OntologyMobileRows from './components/OntologyMobileRows.vue';
 import useToast from '@/composables/useToast';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
 // v11.0 closeout F2b: reach for `apiClient` instead of the raw axios
@@ -338,8 +347,10 @@ export default {
   name: 'ManageOntology',
   components: {
     AuthenticatedPageShell,
+    TableShell,
     GenericTable,
     TablePaginationControls,
+    OntologyMobileRows,
   },
   setup() {
     const { makeToast } = useToast();
@@ -446,9 +457,29 @@ export default {
           class: 'text-center',
         },
       ],
+      mobileSortOptions: [
+        { value: '+vario_id', text: 'ID ascending' },
+        { value: '-vario_id', text: 'ID descending' },
+        { value: '+vario_name', text: 'Name ascending' },
+        { value: '-vario_name', text: 'Name descending' },
+        { value: '+update_date', text: 'Updated ascending' },
+        { value: '-update_date', text: 'Updated descending' },
+      ],
     };
   },
   computed: {
+    mobileSortValue: {
+      get() {
+        return this.sort || '+vario_id';
+      },
+      set(value) {
+        const sort_object = this.sortStringToVariables(value);
+        this.sortBy = sort_object.sortBy;
+        this.sort = value;
+        this.currentItemID = 0;
+        this.filtered();
+      },
+    },
     /**
      * Computed property to filter out non-editable fields
      *

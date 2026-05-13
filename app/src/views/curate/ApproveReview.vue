@@ -27,7 +27,7 @@
         <BRow class="justify-content-md-center py-2">
           <BCol col md="12">
             <ReviewTable
-              title="Pending Reviews"
+              title="Review Queue"
               :items="filteredItems"
               :fields="fieldsReviewTable"
               :total-rows="totalRows"

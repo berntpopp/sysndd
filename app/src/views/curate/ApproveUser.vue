@@ -9,7 +9,7 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol md="12">
-            <TableShell title="Approve User Applications" :meta="`${totalRows} pending`">
+            <TableShell title="Application Queue" :meta="`${totalRows} pending`">
               <template #actions>
                 <BButton
                   v-b-tooltip.hover.bottom
