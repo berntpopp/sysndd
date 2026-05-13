@@ -1,6 +1,6 @@
 <template>
   <MobileTableList :items="items" label="Panel gene records" :item-key="rowKey">
-    <template #default="{ item }">
+    <template #default="{ item, index }">
       <article class="mobile-record-row" role="listitem">
         <div class="mobile-record-row__topline">
           <GeneBadge
@@ -17,6 +17,7 @@
             class="btn btn-sm btn-outline-secondary mobile-record-row__toggle"
             type="button"
             :aria-expanded="expandedKey === rowKey(item) ? 'true' : 'false'"
+            :aria-controls="detailsId(index)"
             @click="toggleDetails(item)"
           >
             {{ expandedKey === rowKey(item) ? 'Hide' : 'Details' }}
@@ -35,7 +36,11 @@
           </span>
         </div>
 
-        <dl v-if="expandedKey === rowKey(item)" class="mobile-record-row__details">
+        <dl
+          v-if="expandedKey === rowKey(item)"
+          :id="detailsId(index)"
+          class="mobile-record-row__details"
+        >
           <template v-for="fieldKey in selectedFieldKeys" :key="fieldKey">
             <dt>{{ fieldLabel(fieldKey) }}</dt>
             <dd>{{ getText(item, fieldKey) || '-' }}</dd>
@@ -76,6 +81,10 @@ function toggleDetails(item: PanelRow) {
 
 function rowKey(item: PanelRow): string {
   return getText(item, 'hgnc_id') || getText(item, 'symbol');
+}
+
+function detailsId(index: number): string {
+  return `panels-mobile-row-details-${index}`;
 }
 
 function geneLink(item: PanelRow): string | undefined {
