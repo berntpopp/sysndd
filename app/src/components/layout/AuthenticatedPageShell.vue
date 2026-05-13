@@ -1,5 +1,9 @@
 <template>
-  <div class="authenticated-page">
+  <div
+    class="authenticated-page"
+    :class="{ 'authenticated-page--full-width': fullWidth }"
+    data-testid="authenticated-page-shell"
+  >
     <section class="authenticated-frame">
       <header class="authenticated-header">
         <div class="authenticated-heading">
@@ -15,9 +19,9 @@
         </div>
       </header>
 
-      <main class="authenticated-content" :class="contentClass">
+      <div class="authenticated-content" :class="contentClass">
         <slot />
-      </main>
+      </div>
     </section>
   </div>
 </template>
@@ -29,11 +33,13 @@ withDefaults(
     description?: string;
     meta?: string;
     contentClass?: string;
+    fullWidth?: boolean;
   }>(),
   {
     description: '',
     meta: '',
     contentClass: '',
+    fullWidth: false,
   }
 );
 </script>
@@ -42,7 +48,7 @@ withDefaults(
 .authenticated-page {
   box-sizing: border-box;
   min-height: 100%;
-  padding: 0.75rem 1rem 1.5rem;
+  padding: 0.75rem 1rem max(2rem, calc(var(--app-footer-height, 48px) + 1rem));
   background: #f6f8fb;
 }
 
@@ -54,6 +60,10 @@ withDefaults(
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.authenticated-page--full-width .authenticated-frame {
+  width: 100%;
 }
 
 .authenticated-header {
@@ -123,7 +133,7 @@ withDefaults(
 
 @media (max-width: 575.98px) {
   .authenticated-page {
-    padding: 0.5rem 0.75rem 1rem;
+    padding: 0.5rem 0.75rem max(1.5rem, calc(var(--app-footer-height, 48px) + 0.75rem));
   }
 
   .authenticated-header {

@@ -17,7 +17,12 @@
       so the spec's `routedAxios` mock intercepts them.
 -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Approve Reviews"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -207,9 +212,11 @@
       />
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { computed, onMounted, ref, reactive, watch, getCurrentInstance } from 'vue';
 import type { AxiosInstance } from 'axios';
 import { apiClient } from '@/api/client';

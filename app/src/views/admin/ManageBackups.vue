@@ -1,6 +1,11 @@
 <!-- views/admin/ManageBackups.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage Backups"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
@@ -8,15 +13,15 @@
             <template #header>
               <BRow>
                 <BCol>
-                  <h5 class="mb-1 text-start">
-                    <strong>Manage Backups</strong>
+                  <div class="mb-1 text-start fw-semibold">
+                    <span>Backup inventory</span>
                     <BBadge variant="secondary" class="ms-2">
                       {{ meta.total_count }} backups
                     </BBadge>
                     <BBadge variant="info" class="ms-2">
                       {{ formatFileSize(meta.total_size_bytes) }} total
                     </BBadge>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <BButton
@@ -383,9 +388,11 @@
       </BModal>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';

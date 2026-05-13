@@ -11,10 +11,10 @@
     <template #header>
       <BRow class="align-items-center">
         <BCol>
-          <h5 class="mb-0 text-start fw-bold">
+          <div class="mb-0 text-start fw-bold">
             {{ title }}
             <BBadge variant="primary" class="ms-2"> {{ totalRows }} {{ totalRowsLabel }} </BBadge>
-          </h5>
+          </div>
         </BCol>
         <BCol class="text-end">
           <div class="d-flex align-items-center justify-content-end gap-2">

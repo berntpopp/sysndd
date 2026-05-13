@@ -1,6 +1,11 @@
 <!-- views/admin/ManageUser.vue — orchestration shell (v11.2 W1) -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage Users"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
@@ -8,13 +13,13 @@
             <template #header>
               <BRow>
                 <BCol>
-                  <h5 class="mb-1 text-start">
-                    <strong>Manage Users</strong>
+                  <div class="mb-1 text-start fw-semibold">
+                    <span>User table</span>
                     <BBadge variant="secondary" class="ms-2">{{ totalRows }} users</BBadge>
                     <BBadge v-if="selectionCount > 0" variant="primary" class="ms-2">
                       {{ selectionCount }} selected
                     </BBadge>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <!-- Bulk action toolbar -->
@@ -301,9 +306,11 @@
       />
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { computed, defineComponent, nextTick, onMounted, shallowRef, watch } from 'vue';
 import useToast from '@/composables/useToast';
 import { useBulkSelection } from '@/composables';
@@ -327,6 +334,7 @@ import { useUserModals } from './composables/useUserModals';
 export default defineComponent({
   name: 'ManageUser',
   components: {
+    AuthenticatedPageShell,
     GenericTable,
     TablePaginationControls,
     UserBulkActionToolbar,

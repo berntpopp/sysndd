@@ -1,12 +1,16 @@
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Create Entity"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BOverlay :show="isSubmitting" rounded="sm">
         <BRow class="justify-content-md-center py-2">
           <BCol col md="12">
             <!-- Page Header -->
             <div class="page-header mb-4">
-              <h4 class="mb-1">Create New Entity</h4>
               <p class="text-muted mb-0">
                 Add a new gene-disease relationship to the SysNDD database
               </p>
@@ -98,9 +102,11 @@
       </BOverlay>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { defineComponent, ref, provide, onMounted, watch } from 'vue';
 import { BContainer, BRow, BCol, BOverlay, BAlert, BButton } from 'bootstrap-vue-next';
 
@@ -146,6 +152,7 @@ export default defineComponent({
   name: 'CreateEntity',
 
   components: {
+    AuthenticatedPageShell,
     BContainer,
     BRow,
     BCol,

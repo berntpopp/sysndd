@@ -1,6 +1,11 @@
 <!-- src/views/curate/ManageReReview.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage Re-review"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -14,10 +19,10 @@
           >
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 text-start font-weight-bold">
+                <div class="mb-1 text-start font-weight-bold">
                   <i class="bi bi-plus-square me-1" aria-hidden="true" />
                   Create New Batch
-                </h6>
+                </div>
                 <BButton
                   v-b-toggle.batch-form-collapse
                   variant="outline-primary"
@@ -45,10 +50,10 @@
           >
             <template #header>
               <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-1 text-start font-weight-bold">
+                <div class="mb-1 text-start font-weight-bold">
                   <i class="bi bi-person-plus me-1" aria-hidden="true" />
                   Assign Specific Genes to User
-                </h6>
+                </div>
                 <BButton
                   v-b-toggle.entity-assign-collapse
                   variant="outline-info"
@@ -171,7 +176,7 @@
             <template #header>
               <BRow>
                 <BCol>
-                  <h5 class="mb-1 text-start">
+                  <div class="mb-1 text-start fw-semibold">
                     <strong>Manage Re-review Submissions</strong>
                     <BBadge variant="secondary" class="ms-2"> {{ totalRows }} batches </BBadge>
                     <BBadge
@@ -188,7 +193,7 @@
                       Use this section to manage re-review submissions. You can assign new batches
                       to users and view the details of each batch.
                     </BPopover>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <BButton
@@ -575,9 +580,11 @@
     <!-- AriaLiveRegion for screen reader announcements -->
     <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { useToast, useAriaLive } from '@/composables';
 import BatchCriteriaForm from '@/components/forms/BatchCriteriaForm.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
@@ -595,6 +602,7 @@ import { useUiStore } from '@/stores/ui';
 export default {
   name: 'ManageReReview',
   components: {
+    AuthenticatedPageShell,
     BatchCriteriaForm,
     AriaLiveRegion,
     IconLegend,

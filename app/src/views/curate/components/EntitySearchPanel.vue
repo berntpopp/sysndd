@@ -2,7 +2,7 @@
 <template>
   <BCard class="my-2" body-class="p-2" header-class="p-1" border-variant="dark">
     <template #header>
-      <h6 class="mb-1 text-start font-weight-bold">1. Select an entity to modify</h6>
+      <div class="mb-1 text-start font-weight-bold">1. Select an entity to modify</div>
     </template>
 
     <BRow>

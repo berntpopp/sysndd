@@ -1,6 +1,11 @@
 <!-- views/admin/ManageAbout.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage About Page"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12" lg="11">
@@ -8,8 +13,8 @@
             <template #header>
               <BRow>
                 <BCol>
-                  <h5 class="mb-1 text-start">
-                    <strong>Manage About Page</strong>
+                  <div class="mb-1 text-start fw-semibold">
+                    <span>Publication status</span>
                     <BBadge :variant="isDraft ? 'warning' : 'success'" class="ms-2">
                       {{ isDraft ? 'Draft' : 'Published' }}
                     </BBadge>
@@ -19,7 +24,7 @@
                     <BBadge variant="info" class="ms-2">
                       {{ sections.length }} section{{ sections.length !== 1 ? 's' : '' }}
                     </BBadge>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <BButton
@@ -159,9 +164,11 @@
       </BModal>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useCmsContent } from '@/composables';
 import type { AboutSection } from '@/types';

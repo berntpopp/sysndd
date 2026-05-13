@@ -1,11 +1,14 @@
 <!-- views/admin/ManageAnnotations.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage Annotations"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <h3>Manage Annotations</h3>
-
           <OntologyAnnotationsCard
             :ontology-job="ontologyJob"
             :force-apply-job="forceApplyJob"
@@ -108,9 +111,11 @@
       </BRow>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import useToast from '@/composables/useToast';

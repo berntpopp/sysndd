@@ -1,6 +1,11 @@
 <!-- views/curate/ApproveUser.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Approve Users"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
@@ -15,10 +20,10 @@
             <template #header>
               <BRow class="align-items-center">
                 <BCol>
-                  <h5 class="mb-0 text-start fw-bold">
+                  <div class="mb-0 text-start fw-bold">
                     Approve User Applications
                     <BBadge variant="primary" class="ms-2"> {{ totalRows }} pending </BBadge>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <BButton
@@ -326,7 +331,9 @@
               <i class="bi bi-person-fill" />
             </span>
             <div>
-              <h5 class="mb-0">{{ selectedUser.first_name }} {{ selectedUser.family_name }}</h5>
+              <div class="mb-0 fw-semibold">
+                {{ selectedUser.first_name }} {{ selectedUser.family_name }}
+              </div>
               <div class="text-muted small">
                 @{{ selectedUser.user_name }} · Applied {{ formatDate(selectedUser.created_at) }}
               </div>
@@ -336,10 +343,10 @@
 
         <!-- Application Details Section -->
         <div class="mb-4">
-          <h6 class="text-muted border-bottom pb-2 mb-3">
+          <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
             <i class="bi bi-info-circle me-2" />
             Application Details
-          </h6>
+          </div>
           <BRow>
             <BCol md="6">
               <div class="mb-3">
@@ -397,10 +404,10 @@
 
         <!-- Role Assignment Section -->
         <div class="mb-3">
-          <h6 class="text-muted border-bottom pb-2 mb-3">
+          <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
             <i class="bi bi-shield-check me-2" />
             Role Assignment
-          </h6>
+          </div>
           <BFormGroup label="Assign Role" label-for="role-select">
             <BFormSelect
               id="role-select"
@@ -501,9 +508,11 @@
       <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
@@ -516,6 +525,7 @@ import { apiClient } from '@/api/client';
 export default {
   name: 'ApproveUser',
   components: {
+    AuthenticatedPageShell,
     AriaLiveRegion,
   },
   setup() {

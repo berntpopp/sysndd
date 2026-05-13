@@ -1,6 +1,11 @@
 <!-- views/curate/ModifyEntity.vue — thin orchestration shell -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Modify Entity"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
@@ -12,7 +17,7 @@
             border-variant="dark"
           >
             <template #header>
-              <h6 class="mb-1 text-start font-weight-bold">Modify an existing entity</h6>
+              <div class="mb-1 text-start font-weight-bold">Modify an existing entity</div>
             </template>
 
             <!-- 1. Search panel -->
@@ -45,9 +50,9 @@
               border-variant="dark"
             >
               <template #header>
-                <h6 class="mb-1 text-start font-weight-bold">
+                <div class="mb-1 text-start font-weight-bold">
                   2. Options to modify the selected entity
-                </h6>
+                </div>
               </template>
 
               <BRow>
@@ -220,9 +225,11 @@
       />
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { defineComponent, onMounted, ref, watch } from 'vue';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import useStatusForm from './composables/useStatusForm';
@@ -265,6 +272,7 @@ const transformModifierTree = (nodes: any[]) =>
 export default defineComponent({
   name: 'ModifyEntity',
   components: {
+    AuthenticatedPageShell,
     EntityInfoHeader,
     EntitySearchPanel,
     EntityRenameDeactivateModal,

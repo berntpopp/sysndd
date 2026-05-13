@@ -10,7 +10,12 @@ limit the styles to this component only. * - Defines styles for small buttons an
 component. */
 
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage Ontology"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="12">
@@ -18,10 +23,10 @@ component. */
             <template #header>
               <BRow>
                 <BCol>
-                  <h5 class="mb-1 text-start">
+                  <div class="mb-1 text-start fw-semibold">
                     <strong>Manage Variation Ontology</strong>
                     <BBadge variant="secondary" class="ms-2"> {{ totalRows }} terms </BBadge>
-                  </h5>
+                  </div>
                 </BCol>
                 <BCol class="text-end">
                   <BButton
@@ -304,9 +309,11 @@ component. */
       </BModal>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, inject } from 'vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
@@ -330,6 +337,7 @@ let moduleLastApiResponse = null; // Cache last API response for remounted compo
 export default {
   name: 'ManageOntology',
   components: {
+    AuthenticatedPageShell,
     GenericTable,
     TablePaginationControls,
   },

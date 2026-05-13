@@ -6,7 +6,12 @@ entries * * Uses non-blocking async jobs for fetching to avoid request timeouts.
 ManagePubtator */
 
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="Manage PubTator"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol md="10">
@@ -257,9 +262,11 @@ ManagePubtator */
       </BModal>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, computed } from 'vue';
 import {
   BContainer,

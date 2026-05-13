@@ -1,10 +1,14 @@
 <!-- views/admin/ManageLLM.vue -->
 <template>
-  <div class="container-fluid">
+  <AuthenticatedPageShell
+    title="LLM Administration"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
-          <h3>LLM Administration</h3>
           <BCard
             header-tag="header"
             body-class="p-0"
@@ -16,7 +20,7 @@
               <BRow class="align-items-center">
                 <BCol>
                   <h5 class="mb-0 text-start fw-bold">
-                    LLM Administration
+                    LLM configuration
                     <BBadge
                       v-if="config && !config.gemini_configured"
                       variant="warning"
@@ -194,9 +198,11 @@
       </BModal>
     </BContainer>
   </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, onMounted } from 'vue';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import { useAsyncJob } from '@/composables/useAsyncJob';

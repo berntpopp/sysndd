@@ -1,9 +1,13 @@
 <template>
-  <BContainer fluid class="py-3">
+  <AuthenticatedPageShell
+    title="Admin Statistics"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <BContainer fluid class="py-3">
     <!-- Header with date controls -->
     <BRow class="mb-3 align-items-center">
       <BCol md="6">
-        <h3 class="mb-1">Admin Statistics</h3>
         <small v-if="lastUpdated" class="text-muted">
           Data as of {{ formatDateTime(lastUpdated) }}
           <BButton size="sm" variant="link" class="p-0 ms-1" @click="refreshAll">
@@ -232,9 +236,11 @@
       </BCol>
     </BRow>
   </BContainer>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, computed, onMounted, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 import {
