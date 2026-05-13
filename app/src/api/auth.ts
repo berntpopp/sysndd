@@ -73,11 +73,19 @@ export interface SignupRequest {
  * Returns the bare JWT string (plumber serialises it as `[token]`, which
  * `unwrapScalar` collapses before handing it back).
  */
-export async function authenticate(user_name: string, password: string): Promise<string> {
-  const body = await apiClient.post<[string]>('/api/auth/authenticate', {
-    user_name,
-    password,
-  });
+export async function authenticate(
+  user_name: string,
+  password: string,
+  config?: AxiosRequestConfig
+): Promise<string> {
+  const body = await apiClient.post<[string]>(
+    '/api/auth/authenticate',
+    {
+      user_name,
+      password,
+    },
+    config
+  );
   return unwrapScalar(body);
 }
 

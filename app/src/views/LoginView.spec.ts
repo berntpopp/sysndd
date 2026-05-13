@@ -415,10 +415,9 @@ describe('LoginView — fix #2 readable error toast', () => {
   });
 
   it('401 from /api/auth/authenticate: toasts a readable string (not the raw AxiosError object)', async () => {
-    // The shared axios 401 interceptor swallows the original AxiosError and
-    // re-rejects with `new Error('Redirecting to login')`. LoginView's catch
-    // must still surface a string — the regression mode is `[object Object]`
-    // when the catch passes the bare Error reference instead of `.message`.
+    // LoginView opts the bootstrap credential check out of the global
+    // session-expired 401 redirect so invalid credentials can surface the
+    // API's actual message instead of the generic redirect placeholder.
     server.use(
       http.post('/api/auth/authenticate', () =>
         HttpResponse.text('User or password wrong.', { status: 401 })
@@ -443,9 +442,7 @@ describe('LoginView — fix #2 readable error toast', () => {
     // criterion is "string, not [object Object]".
     expect(typeof firstArg).toBe('string');
     expect(firstArg).not.toMatch(/\[object Object\]/);
-    // The handled-401 message is what the user actually sees on a wrong
-    // credentials submit (plus the LoginView redirect).
-    expect(firstArg).toBe('Redirecting to login');
+    expect(firstArg).toBe('User or password wrong.');
   });
 
   it("non-401 with literal API string body: toasts the API's exact text", async () => {

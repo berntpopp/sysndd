@@ -52,7 +52,7 @@ describe('useToast', () => {
           body: 'Test message',
           title: 'Test Title',
           variant: 'success',
-          pos: 'top-end',
+          position: 'top-end',
         })
       );
 
@@ -110,7 +110,7 @@ describe('useToast', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          pos: 'top-end',
+          position: 'top-end',
         })
       );
 
@@ -124,11 +124,12 @@ describe('useToast', () => {
 
       result.makeToast('Critical error', 'Error', 'danger');
 
-      // modelValue: -1 means no auto-hide (negative value disables auto-hide)
+      // modelValue: true keeps the toast visible without starting a countdown.
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'danger',
-          modelValue: -1, // No auto-hide for danger
+          modelValue: true,
+          isStatus: false,
         })
       );
 
@@ -144,7 +145,7 @@ describe('useToast', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           variant: 'danger',
-          modelValue: -1, // Forced to -1 regardless of parameters
+          modelValue: true,
         })
       );
 
@@ -161,6 +162,7 @@ describe('useToast', () => {
         expect.objectContaining({
           variant: 'success',
           modelValue: 3000, // Auto-hide after 3s
+          isStatus: true,
         })
       );
 
@@ -191,6 +193,7 @@ describe('useToast', () => {
         expect.objectContaining({
           variant: 'info',
           modelValue: 3000,
+          isStatus: true,
         })
       );
 
@@ -218,7 +221,25 @@ describe('useToast', () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          modelValue: -1, // Negative value disables auto-hide
+          modelValue: true,
+        })
+      );
+
+      app.unmount();
+    });
+
+    it('adds the app toast classes used by the global layout styling', () => {
+      const [result, app] = withSetup(() => useToast());
+
+      result.makeToast('Styled warning', 'Warning', 'warning');
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          toastClass: 'app-toast app-toast--warning',
+          bodyClass: 'app-toast__body',
+          headerClass: 'app-toast__header',
+          appendToast: true,
+          noProgress: false,
         })
       );
 

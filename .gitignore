@@ -39,3 +39,6 @@ __pycache__/
 .planning/ui-audit/**/lighthouse-profile/
 .planning/ui-audit/**/lighthouse-summary.json
 .planning/ui-audit/**/playwright-audit*.json
+
+# Generated Playwright design-audit captures
+.planning/screenshots/*-design-audit/
