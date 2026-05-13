@@ -8,12 +8,16 @@
   - Accessible form controls with proper ARIA attributes
 -->
 <template>
-  <BForm @submit.prevent="onSubmit">
-    <BRow>
+  <BForm class="batch-criteria-form" @submit.prevent="onSubmit">
+    <div class="batch-form-grid">
       <!-- Left Column: Selection Criteria -->
-      <BCol lg="7" class="pe-lg-4">
+      <section class="batch-form-panel" aria-labelledby="batch-entities-title">
+        <div class="batch-form-panel__header">
+          <h3 id="batch-entities-title">Scope</h3>
+          <p>Add exact entities, or define a criteria-based batch.</p>
+        </div>
         <!-- Entity Search Section -->
-        <div class="mb-3">
+        <div class="batch-field">
           <div class="d-flex align-items-center mb-1">
             <label for="entity-search" class="small fw-semibold mb-0"> Search Entities </label>
             <i id="help-search-entities" class="bi bi-question-circle text-muted ms-1" />
@@ -87,18 +91,18 @@
               </BTooltip>
             </span>
           </div>
-          <small v-if="formData.entity_list.length > 0" class="text-success">
+          <small v-if="formData.entity_list.length > 0" class="batch-field-hint is-success">
             <i class="bi bi-check-circle me-1" />{{ formData.entity_list.length }} entities selected
           </small>
         </div>
 
         <!-- Divider with OR -->
-        <div class="divider-or mb-3">
-          <span class="text-muted small bg-body px-2">OR filter by criteria</span>
+        <div class="divider-or">
+          <span>Criteria filters</span>
         </div>
 
         <!-- Date Range -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Date Range</span>
@@ -130,7 +134,7 @@
         </BFormGroup>
 
         <!-- Gene Filter (Alternative to Entity Search) -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Gene Filter</span>
@@ -161,7 +165,7 @@
         </BFormGroup>
 
         <!-- Status Filter -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Status</span>
@@ -183,12 +187,16 @@
             </template>
           </BFormSelect>
         </BFormGroup>
-      </BCol>
+      </section>
 
       <!-- Right Column: Batch Settings -->
-      <BCol lg="5" class="ps-lg-4 border-start-lg">
+      <section class="batch-form-panel" aria-labelledby="batch-settings-title">
+        <div class="batch-form-panel__header">
+          <h3 id="batch-settings-title">Batch details</h3>
+          <p>Name, size, assignment, and final confirmation.</p>
+        </div>
         <!-- Batch Name -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Batch Name</span>
@@ -209,8 +217,8 @@
         </BFormGroup>
 
         <!-- Batch Size & User Row -->
-        <BRow class="mb-2">
-          <BCol cols="5">
+        <div class="batch-settings-row">
+          <div>
             <BFormGroup>
               <template #label>
                 <div class="d-flex align-items-center">
@@ -231,8 +239,8 @@
                 :disabled="isLoading"
               />
             </BFormGroup>
-          </BCol>
-          <BCol cols="7">
+          </div>
+          <div>
             <BFormGroup>
               <template #label>
                 <div class="d-flex align-items-center">
@@ -256,18 +264,18 @@
                 </template>
               </BFormSelect>
             </BFormGroup>
-          </BCol>
-        </BRow>
+          </div>
+        </div>
 
         <!-- Validation Message -->
-        <BAlert v-if="!isFormValid" variant="warning" class="py-2 px-3 mb-2">
+        <BAlert v-if="!isFormValid" variant="warning" class="py-2 px-3 mb-2 batch-form-alert">
           <i class="bi bi-exclamation-triangle me-1" />
           <small>Select entities, set date range, or choose a gene/status filter</small>
         </BAlert>
 
         <!-- Summary -->
-        <div v-if="isFormValid" class="bg-light rounded p-2 mb-2">
-          <small class="text-muted d-block fw-semibold mb-1">Batch Summary:</small>
+        <div v-if="isFormValid" class="batch-summary">
+          <small>Batch summary</small>
           <ul class="mb-0 ps-3 small">
             <li v-if="formData.entity_list.length > 0">
               {{ formData.entity_list.length }} specific entities
@@ -289,7 +297,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="d-flex gap-2">
+        <div class="batch-actions">
           <BButton
             size="sm"
             variant="outline-primary"
@@ -315,8 +323,8 @@
             <i class="bi bi-x-circle" />
           </BButton>
         </div>
-      </BCol>
-    </BRow>
+      </section>
+    </div>
 
     <!-- Preview Modal -->
     <BModal
@@ -441,11 +449,114 @@ const onReset = () => {
 </script>
 
 <style scoped>
-/* Responsive border for column separation */
-@media (min-width: 992px) {
-  .border-start-lg {
-    border-left: 1px solid #dee2e6 !important;
-  }
+.batch-criteria-form {
+  min-width: 0;
+}
+
+.batch-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
+  gap: 1rem;
+}
+
+.batch-form-panel {
+  min-width: 0;
+}
+
+.batch-form-panel__header {
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.batch-form-panel__header h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.batch-form-panel__header p {
+  margin: 0.15rem 0 0;
+  color: #526070;
+  font-size: 0.78rem;
+}
+
+.batch-field {
+  margin-bottom: 0.75rem;
+}
+
+.batch-field-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.batch-field-hint.is-success {
+  color: #16734c;
+}
+
+.batch-settings-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.6fr) minmax(0, 1fr);
+  gap: 0.7rem;
+  margin-bottom: 0.75rem;
+}
+
+.batch-form-alert {
+  border-radius: 8px;
+}
+
+.batch-summary {
+  margin-bottom: 0.8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.batch-summary small {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #526070;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.batch-criteria-form :deep(.form-label),
+.batch-criteria-form :deep(label) {
+  color: #172033;
+}
+
+.batch-criteria-form :deep(.form-control),
+.batch-criteria-form :deep(.form-select),
+.batch-criteria-form :deep(.input-group-text) {
+  border-color: #cfd7e3;
+  border-radius: 6px;
+}
+
+.batch-criteria-form :deep(.input-group .form-control),
+.batch-criteria-form :deep(.input-group .form-select),
+.batch-criteria-form :deep(.input-group .input-group-text) {
+  border-radius: 0;
+}
+
+.batch-criteria-form :deep(.input-group > :first-child) {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.batch-criteria-form :deep(.input-group > :last-child) {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 
 /* Entity search results dropdown */
@@ -454,15 +565,16 @@ const onReset = () => {
   max-height: 200px;
   overflow-y: auto;
   width: 100%;
-  border: 1px solid #dee2e6;
+  border: 1px solid #cfd7e3;
   border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
+  border-radius: 0 0 8px 8px;
 }
 
 /* Divider with centered text */
 .divider-or {
   display: flex;
   align-items: center;
+  margin: 0.85rem 0 0.75rem;
   text-align: center;
 }
 
@@ -470,7 +582,7 @@ const onReset = () => {
 .divider-or::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #e6ebf2;
 }
 
 .divider-or::before {
@@ -479,6 +591,14 @@ const onReset = () => {
 
 .divider-or::after {
   margin-left: 0.5rem;
+}
+
+.divider-or span {
+  color: #526070;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 /* Compact table styling */
@@ -495,5 +615,15 @@ const onReset = () => {
 .bi-question-circle {
   font-size: 0.75rem;
   cursor: help;
+}
+
+@media (max-width: 991.98px) {
+  .batch-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-settings-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

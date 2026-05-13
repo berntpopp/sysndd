@@ -55,7 +55,6 @@ withDefaults(
 .authenticated-frame {
   width: min(100%, 1480px);
   margin: 0 auto;
-  overflow: hidden;
   border: 1px solid #d9e0ea;
   border-radius: 8px;
   background: #fff;

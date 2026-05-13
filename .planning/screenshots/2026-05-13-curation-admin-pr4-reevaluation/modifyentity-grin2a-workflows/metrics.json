@@ -1,0 +1,180 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "summaryHeight": 122,
+    "workflowHeight": 0,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "summaryHeight": 91,
+    "workflowHeight": 218,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "summaryHeight": 91,
+    "workflowHeight": 177,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "summaryHeight": 91,
+    "workflowHeight": 838,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "summaryHeight": 91,
+    "workflowHeight": 356,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "summaryHeight": 217,
+    "workflowHeight": 0,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "summaryHeight": 217,
+    "workflowHeight": 317,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "summaryHeight": 217,
+    "workflowHeight": 316,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "summaryHeight": 217,
+    "workflowHeight": 1407,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "selectedText": "sysndd:303GRIN2AGRIN2A (HGNC:4585)Epilepsy, focal, with speech disorder and with o…Epilepsy, focal, with speech disorder and with or without impaired intellectual development (OMIM:245570)ADAutosomal dominant inheritance (HP:0000006)Autosomal dominant inheritanceDefinitiveNDD Yes",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "summaryHeight": 217,
+    "workflowHeight": 475,
+    "overflow": [],
+    "clipped": [],
+    "modals": 0,
+    "longBadges": []
+  }
+]

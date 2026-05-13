@@ -2,223 +2,222 @@
 <template>
   <AuthenticatedPageShell
     title="Manage Re-review"
+    description="Create batches, assign entities, and manage re-review submission progress."
     content-class="authenticated-route-content"
     full-width
   >
-    <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- Batch Creation Section (Collapsible) -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="primary"
-            class="mb-3"
-          >
-            <template #header>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="mb-1 text-start font-weight-bold">
-                  <i class="bi bi-plus-square me-1" aria-hidden="true" />
-                  Create New Batch
+    <div class="re-review-page">
+      <BContainer fluid class="px-0">
+        <div class="re-review-layout">
+          <div class="re-review-summary" aria-label="Re-review overview">
+            <div class="re-review-metric">
+              <span class="re-review-metric__label">Batches</span>
+              <strong>{{ totalRows }}</strong>
+            </div>
+            <div class="re-review-metric">
+              <span class="re-review-metric__label">Assigned</span>
+              <strong>{{ assignedBatchCount }}</strong>
+            </div>
+            <div class="re-review-metric">
+              <span class="re-review-metric__label">Unassigned</span>
+              <strong>{{ unassignedBatchCount }}</strong>
+            </div>
+            <div class="re-review-metric">
+              <span class="re-review-metric__label">Available entities</span>
+              <strong>{{ availableEntities.length }}</strong>
+            </div>
+          </div>
+
+          <div class="re-review-workflow-grid">
+            <section class="re-review-section" aria-labelledby="batch-setup-title">
+              <header class="re-review-section__header">
+                <div>
+                  <h2 id="batch-setup-title">
+                    <i class="bi bi-plus-square me-1" aria-hidden="true" />
+                    Create batch
+                  </h2>
+                  <p>Build a dynamic batch from explicit entities or review criteria.</p>
                 </div>
-                <BButton
-                  v-b-toggle.batch-form-collapse
-                  variant="outline-primary"
-                  size="sm"
-                  aria-label="Toggle batch creation form"
-                >
-                  <i class="bi bi-chevron-down" aria-hidden="true" />
-                </BButton>
-              </div>
-            </template>
-            <BCollapse id="batch-form-collapse" visible>
-              <div class="p-3">
-                <BatchCriteriaForm @batch-created="onBatchCreated" />
-              </div>
-            </BCollapse>
-          </BCard>
-
-          <!-- Gene-Specific Assignment Section (Collapsible) - RRV-06 -->
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="info"
-            class="mb-3"
-          >
-            <template #header>
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="mb-1 text-start font-weight-bold">
-                  <i class="bi bi-person-plus me-1" aria-hidden="true" />
-                  Assign Specific Genes to User
-                </div>
-                <BButton
-                  v-b-toggle.entity-assign-collapse
-                  variant="outline-info"
-                  size="sm"
-                  aria-label="Toggle gene-specific assignment form"
-                >
-                  <i class="bi bi-chevron-down" aria-hidden="true" />
-                </BButton>
-              </div>
-            </template>
-            <BCollapse id="entity-assign-collapse">
-              <div class="p-3">
-                <!-- Entity Selection Table -->
-                <BFormGroup
-                  label="Select entities to assign:"
-                  label-for="entity-select-table"
-                  class="mb-3"
-                >
-                  <BTable
-                    id="entity-select-table"
-                    :items="availableEntities"
-                    :fields="entitySelectFields"
-                    selectable
-                    select-mode="multi"
-                    small
-                    striped
-                    hover
-                    responsive
-                    :busy="isLoadingEntities"
-                    @row-selected="onEntitySelected"
-                  >
-                    <template #table-busy>
-                      <div class="text-center my-2">
-                        <BSpinner class="align-middle" />
-                        <strong class="ms-2">Loading entities...</strong>
-                      </div>
-                    </template>
-                  </BTable>
-                  <small class="text-muted d-block mt-1">
-                    {{ selectedEntityIds.length }} entity/entities selected. Click rows to
-                    select/deselect. Hold Shift for range selection.
-                  </small>
-                </BFormGroup>
-
-                <!-- User Selection -->
-                <BFormGroup label="Assign to User:" label-for="entity-assign-user" class="mb-3">
-                  <BFormSelect
-                    id="entity-assign-user"
-                    v-model="entityAssignUserId"
-                    :options="user_options"
-                    aria-label="Select user to assign selected entities to"
-                  >
-                    <template #first>
-                      <option :value="null" disabled>-- Select a user --</option>
-                    </template>
-                  </BFormSelect>
-                </BFormGroup>
-
-                <!-- Batch Name (optional) -->
-                <BFormGroup
-                  label="Batch Name (optional):"
-                  label-for="entity-assign-batch-name"
-                  class="mb-3"
-                >
-                  <BFormInput
-                    id="entity-assign-batch-name"
-                    v-model="entityAssignBatchName"
-                    placeholder="Auto-generated if empty"
-                    aria-label="Custom name for the new batch"
-                  />
-                </BFormGroup>
-
-                <!-- Gene-atomic batch boundary warning (issue #29) -->
-                <BAlert
-                  v-if="boundaryGeneAlertVisible"
-                  variant="warning"
-                  show
-                  class="mb-2"
-                  data-testid="batch-boundary-gene-alert"
-                >
-                  <i class="bi bi-exclamation-triangle me-1" aria-hidden="true" />
-                  {{ boundaryGeneAlertMessage }}
-                </BAlert>
-
-                <!-- Actions -->
-                <div class="d-flex gap-2">
+                <div class="re-review-section__actions">
                   <BButton
-                    variant="info"
-                    :disabled="
-                      selectedEntityIds.length === 0 || !entityAssignUserId || isAssigningEntities
-                    "
-                    @click="handleEntityAssignment"
-                  >
-                    <BSpinner v-if="isAssigningEntities" small class="me-1" />
-                    <i v-else class="bi bi-person-plus me-1" aria-hidden="true" />
-                    Assign {{ selectedEntityIds.length }} Entities to User
-                  </BButton>
-                  <BButton
-                    variant="outline-secondary"
-                    aria-label="Refresh entity list"
-                    @click="loadAvailableEntities"
-                  >
-                    <i class="bi bi-arrow-clockwise me-1" aria-hidden="true" />
-                    Refresh Entity List
-                  </BButton>
-                </div>
-              </div>
-            </BCollapse>
-          </BCard>
-
-          <!-- Icon Legend -->
-          <IconLegend
-            :legend-items="legendItems"
-            title="Batch Status & Action Icons"
-            class="mb-3"
-          />
-
-          <!-- Submissions Management Card -->
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <div class="mb-1 text-start fw-semibold">
-                    <strong>Manage Re-review Submissions</strong>
-                    <BBadge variant="secondary" class="ms-2"> {{ totalRows }} batches </BBadge>
-                    <BBadge
-                      id="popover-badge-help-manage"
-                      pill
-                      href="#"
-                      variant="info"
-                      class="ms-1"
-                    >
-                      <i class="bi bi-question-circle-fill" />
-                    </BBadge>
-                    <BPopover target="popover-badge-help-manage" variant="info" triggers="focus">
-                      <template #title> Re-review Submissions Management </template>
-                      Use this section to manage re-review submissions. You can assign new batches
-                      to users and view the details of each batch.
-                    </BPopover>
-                  </div>
-                </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    id="btn-refresh-table"
+                    v-b-toggle.batch-form-collapse
+                    variant="outline-primary"
                     size="sm"
-                    variant="outline-secondary"
-                    class="me-1"
-                    :disabled="loadingReReviewManagment"
-                    aria-label="Refresh table data"
-                    @click="loadReReviewTableData"
+                    class="re-review-icon-button"
+                    aria-label="Toggle batch creation form"
                   >
-                    <BSpinner v-if="loadingReReviewManagment" small />
-                    <i v-else class="bi bi-arrow-clockwise" aria-hidden="true" />
+                    <i class="bi bi-chevron-down" aria-hidden="true" />
                   </BButton>
-                  <BTooltip target="btn-refresh-table" triggers="hover">
-                    Refresh table data
-                  </BTooltip>
-                </BCol>
-              </BRow>
-            </template>
+                </div>
+              </header>
+              <BCollapse id="batch-form-collapse">
+                <div class="re-review-section__body">
+                  <BatchCriteriaForm @batch-created="onBatchCreated" />
+                </div>
+              </BCollapse>
+            </section>
 
-            <!-- Search and Filters Row -->
-            <BRow class="px-2 py-2">
-              <BCol sm="5">
-                <BInputGroup size="sm">
+            <section class="re-review-section" aria-labelledby="assignment-title">
+              <header class="re-review-section__header">
+                <div>
+                  <h2 id="assignment-title">
+                    <i class="bi bi-person-plus me-1" aria-hidden="true" />
+                    Manual assignment
+                  </h2>
+                  <p>Use only when a batch must contain hand-picked entities.</p>
+                </div>
+                <div class="re-review-section__actions">
+                  <span class="re-review-chip" :class="{ 'is-selected': selectedEntityIds.length }">
+                    {{ selectedEntityIds.length }} selected
+                  </span>
+                  <BButton
+                    v-b-toggle.entity-assign-collapse
+                    variant="outline-primary"
+                    size="sm"
+                    class="re-review-icon-button"
+                    aria-label="Toggle manual assignment form"
+                  >
+                    <i class="bi bi-chevron-down" aria-hidden="true" />
+                  </BButton>
+                </div>
+              </header>
+              <BCollapse id="entity-assign-collapse">
+                <div class="re-review-section__body re-review-section__body--assignment">
+                  <BFormGroup
+                    label="Entities"
+                    label-for="entity-select-table"
+                    class="mb-3 re-review-entity-picker"
+                  >
+                    <BTable
+                      id="entity-select-table"
+                      :items="availableEntities"
+                      :fields="entitySelectFields"
+                      selectable
+                      select-mode="multi"
+                      small
+                      hover
+                      responsive
+                      :busy="isLoadingEntities"
+                      class="re-review-pick-table"
+                      @row-selected="onEntitySelected"
+                    >
+                      <template #table-busy>
+                        <div class="text-center my-2">
+                          <BSpinner class="align-middle" />
+                          <strong class="ms-2">Loading entities...</strong>
+                        </div>
+                      </template>
+                    </BTable>
+                    <small class="text-muted d-block mt-1">
+                      {{ selectedEntityIds.length }} selected. Click rows to select or clear.
+                    </small>
+                  </BFormGroup>
+
+                  <div class="re-review-assignment-grid">
+                    <BFormGroup label="Assign to" label-for="entity-assign-user" class="mb-0">
+                      <BFormSelect
+                        id="entity-assign-user"
+                        v-model="entityAssignUserId"
+                        :options="user_options"
+                        size="sm"
+                        aria-label="Select user to assign selected entities to"
+                      >
+                        <template #first>
+                          <option :value="null" disabled>Select a user</option>
+                        </template>
+                      </BFormSelect>
+                    </BFormGroup>
+
+                    <BFormGroup
+                      label="Batch name"
+                      label-for="entity-assign-batch-name"
+                      class="mb-0"
+                    >
+                      <BFormInput
+                        id="entity-assign-batch-name"
+                        v-model="entityAssignBatchName"
+                        size="sm"
+                        placeholder="Auto-generated"
+                        aria-label="Custom name for the new batch"
+                      />
+                    </BFormGroup>
+                  </div>
+
+                  <BAlert
+                    v-if="boundaryGeneAlertVisible"
+                    variant="warning"
+                    show
+                    class="my-3"
+                    data-testid="batch-boundary-gene-alert"
+                  >
+                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true" />
+                    {{ boundaryGeneAlertMessage }}
+                  </BAlert>
+
+                  <div class="re-review-button-row">
+                    <BButton
+                      variant="primary"
+                      size="sm"
+                      :disabled="
+                        selectedEntityIds.length === 0 || !entityAssignUserId || isAssigningEntities
+                      "
+                      @click="handleEntityAssignment"
+                    >
+                      <BSpinner v-if="isAssigningEntities" small class="me-1" />
+                      <i v-else class="bi bi-person-plus me-1" aria-hidden="true" />
+                      Assign selected
+                    </BButton>
+                    <BButton
+                      variant="outline-secondary"
+                      size="sm"
+                      aria-label="Refresh entity list"
+                      @click="loadAvailableEntities"
+                    >
+                      <i class="bi bi-arrow-clockwise me-1" aria-hidden="true" />
+                      Refresh
+                    </BButton>
+                  </div>
+                </div>
+              </BCollapse>
+            </section>
+          </div>
+
+          <div class="re-review-legend-wrap">
+            <IconLegend :legend-items="legendItems" class="re-review-legend mb-0" />
+          </div>
+
+          <section
+            class="re-review-section re-review-section--table"
+            aria-labelledby="submissions-title"
+          >
+            <header class="re-review-section__header re-review-section__header--table">
+              <div>
+                <h2 id="submissions-title">Submissions</h2>
+                <p>Filter, assign, recalculate, and reassign re-review batches.</p>
+              </div>
+              <div class="re-review-section__actions">
+                <span class="re-review-chip">{{ filteredItems.length }} shown</span>
+                <BButton
+                  id="btn-refresh-table"
+                  size="sm"
+                  variant="outline-secondary"
+                  class="re-review-icon-button"
+                  :disabled="loadingReReviewManagment"
+                  aria-label="Refresh table data"
+                  @click="loadReReviewTableData"
+                >
+                  <BSpinner v-if="loadingReReviewManagment" small />
+                  <i v-else class="bi bi-arrow-clockwise" aria-hidden="true" />
+                </BButton>
+                <BTooltip target="btn-refresh-table" triggers="hover">
+                  Refresh table data
+                </BTooltip>
+              </div>
+            </header>
+
+            <div class="re-review-toolbar">
+              <div class="re-review-toolbar__search">
+                <BInputGroup size="sm" class="re-review-search">
                   <template #prepend>
                     <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
                   </template>
@@ -230,8 +229,8 @@
                     debounce="300"
                   />
                 </BInputGroup>
-              </BCol>
-              <BCol sm="3">
+              </div>
+              <div>
                 <BFormSelect
                   v-model="userFilter"
                   :options="userFilterOptions"
@@ -242,8 +241,8 @@
                     <BFormSelectOption :value="null"> All Users </BFormSelectOption>
                   </template>
                 </BFormSelect>
-              </BCol>
-              <BCol sm="2">
+              </div>
+              <div>
                 <BFormSelect
                   v-model="assignmentFilter"
                   :options="assignmentFilterOptions"
@@ -254,60 +253,62 @@
                     <BFormSelectOption :value="null"> All Status </BFormSelectOption>
                   </template>
                 </BFormSelect>
-              </BCol>
-              <BCol sm="2" class="text-end">
+              </div>
+              <div>
                 <BFormSelect
                   id="per-page-select"
                   v-model="perPage"
                   :options="pageOptions"
                   size="sm"
+                  aria-label="Rows per page"
                 />
-              </BCol>
-            </BRow>
+              </div>
+            </div>
 
-            <!-- Legacy Assignment Row (Compact) -->
-            <BRow class="px-2 pb-2">
-              <BCol sm="6">
-                <div class="d-flex align-items-center gap-2">
-                  <BFormSelect
-                    v-model="user_id_assignment"
-                    :options="user_options"
-                    size="sm"
-                    style="max-width: 180px"
-                  >
-                    <template #first>
-                      <BFormSelectOption :value="0" disabled> Select user... </BFormSelectOption>
-                    </template>
-                  </BFormSelect>
-                  <BButton
-                    size="sm"
-                    variant="outline-secondary"
-                    :disabled="!user_id_assignment"
-                    aria-label="Assign next available pre-computed batch to selected user"
-                    @click="handleNewBatchAssignment"
-                  >
-                    <i class="bi bi-plus-square me-1" aria-hidden="true" />
-                    Assign Legacy Batch
-                  </BButton>
-                  <i id="help-legacy-batch" class="bi bi-question-circle text-muted" />
-                  <BTooltip target="help-legacy-batch" placement="right" triggers="hover">
-                    Assign next available pre-computed batch. Use 'Create New Batch' above for
-                    dynamic batches.
-                  </BTooltip>
-                </div>
-              </BCol>
-              <BCol sm="6" class="text-end">
-                <span class="text-muted small">
-                  Showing {{ Math.min((currentPage - 1) * perPage + 1, totalRows) }}-{{
-                    Math.min(currentPage * perPage, totalRows)
-                  }}
-                  of {{ totalRows }}
-                </span>
-              </BCol>
-            </BRow>
+            <div class="re-review-legacy-strip">
+              <div class="re-review-legacy-strip__controls">
+                <span class="re-review-legacy-strip__label">Assign next legacy batch</span>
+                <BFormSelect
+                  v-model="user_id_assignment"
+                  :options="user_options"
+                  size="sm"
+                  class="re-review-user-select"
+                  aria-label="Select user for next legacy batch"
+                >
+                  <template #first>
+                    <BFormSelectOption :value="0" disabled>Select user</BFormSelectOption>
+                  </template>
+                </BFormSelect>
+                <BButton
+                  size="sm"
+                  variant="outline-secondary"
+                  :disabled="!user_id_assignment"
+                  aria-label="Assign next available pre-computed batch to selected user"
+                  @click="handleNewBatchAssignment"
+                >
+                  <i class="bi bi-plus-square me-1" aria-hidden="true" />
+                  Assign
+                </BButton>
+                <i
+                  id="help-legacy-batch"
+                  class="bi bi-question-circle text-muted"
+                  aria-hidden="true"
+                />
+                <BTooltip target="help-legacy-batch" placement="right" triggers="hover">
+                  Assign next available pre-computed batch. Use 'Create New Batch' above for dynamic
+                  batches.
+                </BTooltip>
+              </div>
+              <span class="re-review-range">
+                Showing {{ Math.min((currentPage - 1) * perPage + 1, totalRows) }}-{{
+                  Math.min(currentPage * perPage, totalRows)
+                }}
+                of {{ totalRows }}
+              </span>
+            </div>
 
             <!-- Table with Loading State -->
-            <div class="position-relative">
+            <div class="position-relative re-review-table-wrap">
               <BSpinner
                 v-if="loadingReReviewManagment"
                 class="position-absolute top-50 start-50 translate-middle"
@@ -485,101 +486,100 @@
                 />
               </BCol>
             </BRow>
-          </BCard>
-        </BCol>
-      </BRow>
-    </BContainer>
-
-    <!-- Reassign Modal -->
-    <BModal
-      v-model="reassignModalShow"
-      title="Reassign Batch"
-      ok-title="Reassign"
-      cancel-title="Cancel"
-      header-close-label="Close"
-      @ok="handleBatchReassignment"
-    >
-      <BFormGroup label="Select new user:" label-for="reassign-user-select">
-        <BFormSelect
-          id="reassign-user-select"
-          v-model="reassignNewUserId"
-          :options="user_options"
-          aria-label="Select user to reassign batch to"
-        />
-      </BFormGroup>
-      <small class="text-muted">
-        This will reassign batch {{ reassignBatchId }} to the selected user.
-      </small>
-    </BModal>
-
-    <!-- Recalculate Modal (RRV-05) -->
-    <BModal
-      v-model="recalculateModalShow"
-      title="Recalculate Batch Contents"
-      size="lg"
-      ok-title="Recalculate"
-      cancel-title="Cancel"
-      header-close-label="Close"
-      :ok-disabled="isRecalculating"
-      @ok="handleBatchRecalculation"
-    >
-      <BAlert variant="info" show class="mb-3">
-        <i class="bi bi-info-circle me-1" />
-        This will replace the current entities in batch {{ recalculateBatchId }} with entities
-        matching the new criteria. Only unassigned batches can be recalculated.
-      </BAlert>
-
-      <!-- Date Range -->
-      <BFormGroup label="Review Date Range" class="mb-3">
-        <div class="d-flex gap-2">
-          <BFormInput
-            v-model="recalculateCriteria.date_range.start"
-            type="date"
-            :disabled="isRecalculating"
-            aria-label="Start date for review date range"
-          />
-          <span class="align-self-center">to</span>
-          <BFormInput
-            v-model="recalculateCriteria.date_range.end"
-            type="date"
-            :disabled="isRecalculating"
-            aria-label="End date for review date range"
-          />
+          </section>
         </div>
-      </BFormGroup>
+      </BContainer>
 
-      <!-- Status Filter -->
-      <BFormGroup label="Status Category" class="mb-3">
-        <BFormSelect
-          v-model="recalculateCriteria.status_filter"
-          :options="status_options"
-          :disabled="isRecalculating"
-          aria-label="Filter by entity status category"
-        >
-          <template #first>
-            <option :value="null">-- Any status --</option>
-          </template>
-        </BFormSelect>
-      </BFormGroup>
+      <!-- Reassign Modal -->
+      <BModal
+        v-model="reassignModalShow"
+        title="Reassign Batch"
+        ok-title="Reassign"
+        cancel-title="Cancel"
+        header-close-label="Close"
+        @ok="handleBatchReassignment"
+      >
+        <BFormGroup label="Select new user:" label-for="reassign-user-select">
+          <BFormSelect
+            id="reassign-user-select"
+            v-model="reassignNewUserId"
+            :options="user_options"
+            aria-label="Select user to reassign batch to"
+          />
+        </BFormGroup>
+        <small class="text-muted">
+          This will reassign batch {{ reassignBatchId }} to the selected user.
+        </small>
+      </BModal>
 
-      <!-- Batch Size -->
-      <BFormGroup label="Batch Size" class="mb-3">
-        <BFormInput
-          v-model.number="recalculateCriteria.batch_size"
-          type="number"
-          min="1"
-          max="100"
-          :disabled="isRecalculating"
-          aria-label="Maximum number of entities in recalculated batch"
-        />
-      </BFormGroup>
+      <!-- Recalculate Modal (RRV-05) -->
+      <BModal
+        v-model="recalculateModalShow"
+        title="Recalculate Batch Contents"
+        size="lg"
+        ok-title="Recalculate"
+        cancel-title="Cancel"
+        header-close-label="Close"
+        :ok-disabled="isRecalculating"
+        @ok="handleBatchRecalculation"
+      >
+        <BAlert variant="info" show class="mb-3">
+          <i class="bi bi-info-circle me-1" />
+          This will replace the current entities in batch {{ recalculateBatchId }} with entities
+          matching the new criteria. Only unassigned batches can be recalculated.
+        </BAlert>
 
-      <BSpinner v-if="isRecalculating" class="me-2" small />
-    </BModal>
+        <!-- Date Range -->
+        <BFormGroup label="Review Date Range" class="mb-3">
+          <div class="d-flex gap-2">
+            <BFormInput
+              v-model="recalculateCriteria.date_range.start"
+              type="date"
+              :disabled="isRecalculating"
+              aria-label="Start date for review date range"
+            />
+            <span class="align-self-center">to</span>
+            <BFormInput
+              v-model="recalculateCriteria.date_range.end"
+              type="date"
+              :disabled="isRecalculating"
+              aria-label="End date for review date range"
+            />
+          </div>
+        </BFormGroup>
 
-    <!-- AriaLiveRegion for screen reader announcements -->
-    <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
-  </div>
+        <!-- Status Filter -->
+        <BFormGroup label="Status Category" class="mb-3">
+          <BFormSelect
+            v-model="recalculateCriteria.status_filter"
+            :options="status_options"
+            :disabled="isRecalculating"
+            aria-label="Filter by entity status category"
+          >
+            <template #first>
+              <option :value="null">-- Any status --</option>
+            </template>
+          </BFormSelect>
+        </BFormGroup>
+
+        <!-- Batch Size -->
+        <BFormGroup label="Batch Size" class="mb-3">
+          <BFormInput
+            v-model.number="recalculateCriteria.batch_size"
+            type="number"
+            min="1"
+            max="100"
+            :disabled="isRecalculating"
+            aria-label="Maximum number of entities in recalculated batch"
+          />
+        </BFormGroup>
+
+        <BSpinner v-if="isRecalculating" class="me-2" small />
+      </BModal>
+
+      <!-- AriaLiveRegion for screen reader announcements -->
+      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+    </div>
   </AuthenticatedPageShell>
 </template>
 
@@ -727,15 +727,21 @@ export default {
 
       // Icon legend items for ManageReReview
       legendItems: [
-        { icon: 'bi bi-check-circle-fill', color: '#198754', label: 'Approved' },
-        { icon: 'bi bi-hourglass-split', color: '#ffc107', label: 'Pending review' },
         { icon: 'bi bi-person-fill', color: '#0d6efd', label: 'Assigned user' },
-        { icon: 'bi bi-arrow-clockwise', color: '#6c757d', label: 'Recalculate batch' },
-        { icon: 'bi bi-archive', color: '#dc3545', label: 'Archive batch' },
+        { icon: 'bi bi-person', color: '#6c757d', label: 'Unassigned batch' },
+        { icon: 'bi bi-calculator', color: '#6c757d', label: 'Recalculate batch' },
+        { icon: 'bi bi-person-lines-fill', color: '#b45309', label: 'Reassign batch' },
+        { icon: 'bi bi-person-dash-fill', color: '#dc3545', label: 'Unassign batch' },
       ],
     };
   },
   computed: {
+    assignedBatchCount() {
+      return this.items_ReReviewTable.filter((item) => item.user_id).length;
+    },
+    unassignedBatchCount() {
+      return this.items_ReReviewTable.filter((item) => !item.user_id).length;
+    },
     // Gene-atomic boundary alert computed properties (issue #29)
     boundaryGeneAlertVisible() {
       return Boolean(this.previewBoundaryGene);
@@ -1074,6 +1080,260 @@ export default {
 </script>
 
 <style scoped>
+.re-review-page {
+  min-width: 0;
+}
+
+.re-review-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.re-review-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.re-review-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.re-review-metric__label {
+  overflow: hidden;
+  color: #526070;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.re-review-metric strong {
+  color: #172033;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.re-review-workflow-grid {
+  order: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.re-review-section {
+  overflow: hidden;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.re-review-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e6ebf2;
+  background: #f8fafc;
+}
+
+.re-review-section__header--table {
+  align-items: center;
+}
+
+.re-review-section__header > .row {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.re-review-section__header h2,
+.re-review-section__heading h2 {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: #172033;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.re-review-section__header p {
+  margin: 0.15rem 0 0;
+  color: #526070;
+  font-size: 0.8125rem;
+}
+
+.re-review-section__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.re-review-section__body {
+  padding: 1rem;
+}
+
+.re-review-section__body--assignment {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.re-review-section__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.re-review-chip {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 1.45rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #d7dee8;
+  border-radius: 999px;
+  background: #fff;
+  color: #526070;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.re-review-chip.is-selected {
+  border-color: #b8d3f7;
+  background: #eef6ff;
+  color: #0b5cad;
+}
+
+.re-review-icon-button {
+  display: inline-grid;
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  place-items: center;
+}
+
+.re-review-legend-wrap {
+  order: 4;
+  min-width: 0;
+}
+
+.re-review-legend-wrap :deep(.card),
+.re-review-legend-wrap :deep(.border),
+.re-review-legend-wrap :deep([class*='border']) {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.re-review-legend-wrap :deep(.card) {
+  margin-bottom: 0 !important;
+  background: transparent;
+}
+
+.re-review-legend-wrap :deep(.card-body) {
+  padding: 0.35rem 0.1rem !important;
+}
+
+.re-review-legend-wrap :deep(strong) {
+  color: #526070;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.re-review-toolbar {
+  display: grid;
+  grid-template-columns: minmax(16rem, 2fr) minmax(11rem, 1fr) minmax(10rem, 0.9fr) minmax(
+      7rem,
+      0.6fr
+    );
+  gap: 0.55rem;
+  padding: 0.8rem 1rem 0.6rem;
+  border-bottom: 1px solid #edf1f6;
+  background: #fff;
+}
+
+.re-review-toolbar > * {
+  min-width: 0;
+}
+
+.re-review-search :deep(.input-group-text) {
+  border-color: #cfd7e3;
+  background: #fff;
+  color: #526070;
+}
+
+.re-review-legacy-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1rem 0.75rem;
+  border-bottom: 1px solid #edf1f6;
+  background: #fff;
+}
+
+.re-review-legacy-strip__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.re-review-legacy-strip__label,
+.re-review-range {
+  color: #526070;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.re-review-user-select {
+  width: 12rem;
+  max-width: 100%;
+}
+
+.re-review-table-wrap {
+  padding: 0.75rem;
+}
+
+.re-review-section--table {
+  order: 2;
+}
+
+.re-review-assignment-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.re-review-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.re-review-entity-picker {
+  min-width: 0;
+}
+
+.re-review-pick-table {
+  margin-bottom: 0;
+}
+
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.2rem 0.35rem;
@@ -1084,11 +1344,15 @@ export default {
 
 /* Action buttons - solid, visible icons */
 .btn-action {
-  padding: 0.25rem 0.5rem;
+  display: inline-grid;
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
   font-size: 0.85rem;
   line-height: 1;
-  border-radius: 0.25rem;
-  min-width: 32px;
+  border-radius: 6px;
+  place-items: center;
 }
 
 .btn-action i {
@@ -1119,6 +1383,10 @@ export default {
   font-size: 0.875rem;
 }
 
+:deep(.table-responsive) {
+  margin-bottom: 0;
+}
+
 :deep(.table th),
 :deep(.table td) {
   padding: 0.4rem 0.5rem;
@@ -1129,5 +1397,50 @@ export default {
 .bi-question-circle {
   font-size: 0.85rem;
   cursor: help;
+}
+
+@media (max-width: 1199.98px) {
+  .re-review-workflow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .re-review-toolbar {
+    grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 1fr);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .re-review-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .re-review-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .re-review-legacy-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .re-review-assignment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .re-review-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .re-review-section__header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.8rem;
+  }
+
+  .re-review-section__body {
+    padding: 0.8rem;
+  }
 }
 </style>

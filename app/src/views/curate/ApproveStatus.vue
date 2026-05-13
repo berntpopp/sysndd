@@ -14,47 +14,47 @@
     full-width
   >
     <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <ApprovalTableView
-            ref="tableView"
-            :items="items_StatusTable"
-            :loading="loading_status_approve"
-            :busy="isBusy"
-            :approve-title="approveModal.title"
-            :dismiss-title="dismissModal.title"
-            :approve-has-duplicates="approveModal.hasDuplicates"
-            :loading-edit="loading_status_modal"
-            :status-info="status_info"
-            :entity-info="entity_info"
-            :status-options="status_options"
-            :approve-all-selected="approve_all_selected"
-            :user-icon="user_icon"
-            :user-style="user_style"
-            :stoplights-style="stoplights_style"
-            @approve-status="infoApproveStatus($event, 0, null)"
-            @dismiss-status="infoDismissStatus($event, 0, null)"
-            @edit-status="infoStatus($event, 0, null)"
-            @approve-all="checkAllApprove"
-            @approve-ok="handleStatusOk(null)"
-            @dismiss-ok="handleDismissOk(null)"
-            @edit-ok="submitStatusChange"
-            @approve-all-ok="handleAllStatusOk"
-            @refresh="loadStatusTableData"
-            @items-synced="
-              (rows) => {
-                totalRows = rows.length;
-              }
-            "
-            @update:status-info="status_info = $event"
-            @update:approve-all-selected="approve_all_selected = $event"
-          />
-        </BCol>
-      </BRow>
-      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
-    </BContainer>
-  </div>
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <ApprovalTableView
+              ref="tableView"
+              :items="items_StatusTable"
+              :loading="loading_status_approve"
+              :busy="isBusy"
+              :approve-title="approveModal.title"
+              :dismiss-title="dismissModal.title"
+              :approve-has-duplicates="approveModal.hasDuplicates"
+              :loading-edit="loading_status_modal"
+              :status-info="status_info"
+              :entity-info="entity_info"
+              :status-options="status_options"
+              :approve-all-selected="approve_all_selected"
+              :user-icon="user_icon"
+              :user-style="user_style"
+              :stoplights-style="stoplights_style"
+              @approve-status="infoApproveStatus($event, 0, null)"
+              @dismiss-status="infoDismissStatus($event, 0, null)"
+              @edit-status="infoStatus($event, 0, null)"
+              @approve-all="checkAllApprove"
+              @approve-ok="handleStatusOk(null)"
+              @dismiss-ok="handleDismissOk(null)"
+              @edit-ok="submitStatusChange"
+              @approve-all-ok="handleAllStatusOk"
+              @refresh="loadStatusTableData"
+              @items-synced="
+                (rows) => {
+                  totalRows = rows.length;
+                }
+              "
+              @update:status-info="status_info = $event"
+              @update:approve-all-selected="approve_all_selected = $event"
+            />
+          </BCol>
+        </BRow>
+        <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+      </BContainer>
+    </div>
   </AuthenticatedPageShell>
 </template>
 <script setup lang="ts">

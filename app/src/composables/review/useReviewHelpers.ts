@@ -66,20 +66,57 @@ export const arraysAreEqual = (a: string[], b: string[]): boolean =>
 
 /** Table field defaults for the review approval table. */
 export const reviewTableFields = [
-  { key: 'entity_id', label: 'Entity', sortable: true, class: 'text-start' },
-  { key: 'symbol', label: 'Gene', sortable: true, class: 'text-start' },
-  { key: 'disease_ontology_name', label: 'Disease', sortable: true, class: 'text-start' },
+  {
+    key: 'entity_id',
+    label: 'Entity',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '90px' },
+  },
+  { key: 'symbol', label: 'Gene', sortable: true, class: 'text-start', thStyle: { width: '95px' } },
+  {
+    key: 'disease_ontology_name',
+    label: 'Disease',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '180px' },
+  },
   {
     key: 'hpo_mode_of_inheritance_term_name',
     label: 'Inheritance',
     sortable: true,
     class: 'text-start',
+    thStyle: { width: '145px' },
   },
-  { key: 'synopsis', label: 'Clinical synopsis', sortable: true, class: 'text-start' },
-  { key: 'comment', label: 'Comment', sortable: true, class: 'text-start' },
-  { key: 'review_date', label: 'Review date', sortable: true, class: 'text-start' },
-  { key: 'review_user_name', label: 'User', sortable: true, class: 'text-start' },
-  { key: 'actions', label: 'Actions', class: 'text-start' },
+  {
+    key: 'synopsis',
+    label: 'Synopsis',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '105px' },
+  },
+  {
+    key: 'comment',
+    label: 'Comment',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '95px' },
+  },
+  {
+    key: 'review_date',
+    label: 'Date',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '120px' },
+  },
+  {
+    key: 'review_user_name',
+    label: 'User',
+    sortable: true,
+    class: 'text-start',
+    thStyle: { width: '120px' },
+  },
+  { key: 'actions', label: 'Actions', class: 'text-start', thStyle: { width: '180px' } },
 ];
 
 /** Legend-item rows shared across the review approval UI. */

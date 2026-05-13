@@ -36,7 +36,9 @@
           </span>
           <span class="mobile-record-row__chip">
             <i
-              :class="isObsolete(item.obsolete) ? 'bi bi-exclamation-circle' : 'bi bi-journal-check'"
+              :class="
+                isObsolete(item.obsolete) ? 'bi bi-exclamation-circle' : 'bi bi-journal-check'
+              "
               aria-hidden="true"
             />
             <span>{{ isObsolete(item.obsolete) ? 'Obsolete' : 'Current' }}</span>

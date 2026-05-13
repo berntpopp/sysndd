@@ -5,237 +5,239 @@
     full-width
   >
     <BContainer fluid class="py-3">
-    <!-- Header with date controls -->
-    <BRow class="mb-3 align-items-center">
-      <BCol md="6">
-        <small v-if="lastUpdated" class="text-muted">
-          Data as of {{ formatDateTime(lastUpdated) }}
-          <BButton size="sm" variant="link" class="p-0 ms-1" @click="refreshAll">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
-          </BButton>
-        </small>
-      </BCol>
-      <BCol md="6">
-        <BForm inline class="justify-content-md-end" @submit.prevent="fetchStatistics">
-          <BFormGroup label="From" label-class="small" class="mb-0 me-2">
-            <BFormInput v-model="startDate" type="date" size="sm" />
-          </BFormGroup>
-          <BFormGroup label="To" label-class="small" class="mb-0 me-2">
-            <BFormInput v-model="endDate" type="date" size="sm" />
-          </BFormGroup>
-          <BButton type="submit" variant="primary" size="sm" class="mt-3"> Apply </BButton>
-        </BForm>
-      </BCol>
-    </BRow>
+      <!-- Header with date controls -->
+      <BRow class="mb-3 align-items-center">
+        <BCol md="6">
+          <small v-if="lastUpdated" class="text-muted">
+            Data as of {{ formatDateTime(lastUpdated) }}
+            <BButton size="sm" variant="link" class="p-0 ms-1" @click="refreshAll">
+              <i class="bi bi-arrow-clockwise"></i> Refresh
+            </BButton>
+          </small>
+        </BCol>
+        <BCol md="6">
+          <BForm inline class="justify-content-md-end" @submit.prevent="fetchStatistics">
+            <BFormGroup label="From" label-class="small" class="mb-0 me-2">
+              <BFormInput v-model="startDate" type="date" size="sm" />
+            </BFormGroup>
+            <BFormGroup label="To" label-class="small" class="mb-0 me-2">
+              <BFormInput v-model="endDate" type="date" size="sm" />
+            </BFormGroup>
+            <BButton type="submit" variant="primary" size="sm" class="mt-3"> Apply </BButton>
+          </BForm>
+        </BCol>
+      </BRow>
 
-    <!-- KPI Cards Row -->
-    <BRow class="mb-4">
-      <BCol v-for="stat in kpiCards" :key="stat.label" md="3" class="mb-3 mb-md-0">
-        <StatCard
-          :label="stat.label"
-          :value="stat.value"
-          :delta="stat.delta"
-          :context="stat.context"
-        />
-      </BCol>
-    </BRow>
+      <!-- KPI Cards Row -->
+      <BRow class="mb-4">
+        <BCol v-for="stat in kpiCards" :key="stat.label" md="3" class="mb-3 mb-md-0">
+          <StatCard
+            :label="stat.label"
+            :value="stat.value"
+            :delta="stat.delta"
+            :context="stat.context"
+          />
+        </BCol>
+      </BRow>
 
-    <!-- Entity Trend Chart -->
-    <BRow class="mb-4">
-      <BCol>
-        <BCard>
-          <template #header>
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Entity Submissions Over Time</h5>
-              <BFormRadioGroup
-                v-model="granularity"
-                :options="granularityOptions"
-                button-variant="outline-primary"
-                size="sm"
-                buttons
-              />
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-2">
-              <div class="d-flex align-items-center gap-2">
+      <!-- Entity Trend Chart -->
+      <BRow class="mb-4">
+        <BCol>
+          <BCard>
+            <template #header>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Entity Submissions Over Time</h5>
                 <BFormRadioGroup
-                  v-model="nddFilter"
-                  :options="nddFilterOptions"
-                  button-variant="outline-secondary"
-                  size="sm"
-                  buttons
-                />
-                <BFormRadioGroup
-                  v-model="categoryDisplay"
-                  :options="categoryDisplayOptions"
-                  button-variant="outline-secondary"
+                  v-model="granularity"
+                  :options="granularityOptions"
+                  button-variant="outline-primary"
                   size="sm"
                   buttons
                 />
               </div>
-              <BFormCheckboxGroup
-                v-model="selectedCategories"
-                :options="categoryFilterOptions"
-                size="sm"
-                buttons
-                button-variant="outline-secondary"
-              />
-            </div>
-          </template>
-          <p class="text-muted small mb-2">
-            {{ trendDescription }}
-          </p>
-          <EntityTrendChart
-            :entity-data="trendData"
-            :category-data="categoryDisplay === 'by_category' ? trendCategoryData : undefined"
-            :display-mode="categoryDisplay"
-            :loading="loading.trend"
-            :show-moving-average="categoryDisplay === 'combined'"
-            :y-max="trendYMax"
-          />
-        </BCard>
-      </BCol>
-    </BRow>
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="d-flex align-items-center gap-2">
+                  <BFormRadioGroup
+                    v-model="nddFilter"
+                    :options="nddFilterOptions"
+                    button-variant="outline-secondary"
+                    size="sm"
+                    buttons
+                  />
+                  <BFormRadioGroup
+                    v-model="categoryDisplay"
+                    :options="categoryDisplayOptions"
+                    button-variant="outline-secondary"
+                    size="sm"
+                    buttons
+                  />
+                </div>
+                <BFormCheckboxGroup
+                  v-model="selectedCategories"
+                  :options="categoryFilterOptions"
+                  size="sm"
+                  buttons
+                  button-variant="outline-secondary"
+                />
+              </div>
+            </template>
+            <p class="text-muted small mb-2">
+              {{ trendDescription }}
+            </p>
+            <EntityTrendChart
+              :entity-data="trendData"
+              :category-data="categoryDisplay === 'by_category' ? trendCategoryData : undefined"
+              :display-mode="categoryDisplay"
+              :loading="loading.trend"
+              :show-moving-average="categoryDisplay === 'combined'"
+              :y-max="trendYMax"
+            />
+          </BCard>
+        </BCol>
+      </BRow>
 
-    <!-- Contributor Leaderboard -->
-    <BRow class="mb-4">
-      <BCol md="6">
-        <BCard class="h-100">
-          <template #header>
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Top Contributors</h5>
-              <BFormRadioGroup
-                v-model="leaderboardScope"
-                :options="leaderboardScopeOptions"
-                button-variant="outline-primary"
-                size="sm"
-                buttons
-                @change="() => fetchLeaderboard(startDate, endDate)"
-              />
-            </div>
-          </template>
-          <p class="text-muted small mb-2">
-            Curator leaderboard ranked by gene-disease association submissions.
-            {{
-              leaderboardScope === 'all_time'
-                ? 'Cumulative all-time contributions.'
-                : `Contributions within selected ${periodLengthDays} day period.`
-            }}
-          </p>
-          <ContributorBarChart :contributors="leaderboardData" :loading="loading.leaderboard" />
-        </BCard>
-      </BCol>
-      <BCol md="6">
-        <BCard class="h-100">
-          <template #header>
-            <div class="d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Top Re-Reviewers</h5>
-              <BFormRadioGroup
-                v-model="reReviewLeaderboardScope"
-                :options="reReviewLeaderboardScopeOptions"
-                button-variant="outline-primary"
-                size="sm"
-                buttons
-                @change="() => fetchReReviewLeaderboard(startDate, endDate)"
-              />
-            </div>
-          </template>
-          <p class="text-muted small mb-2">
-            Reviewer leaderboard ranked by submitted re-reviews.
-            {{
-              reReviewLeaderboardScope === 'all_time'
-                ? 'Cumulative all-time re-reviews.'
-                : `Re-reviews within selected ${periodLengthDays} day period.`
-            }}
-          </p>
-          <ReReviewBarChart
-            :reviewers="reReviewLeaderboardData"
-            :loading="loading.reReviewLeaderboard"
-          />
-        </BCard>
-      </BCol>
-    </BRow>
+      <!-- Contributor Leaderboard -->
+      <BRow class="mb-4">
+        <BCol md="6">
+          <BCard class="h-100">
+            <template #header>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Top Contributors</h5>
+                <BFormRadioGroup
+                  v-model="leaderboardScope"
+                  :options="leaderboardScopeOptions"
+                  button-variant="outline-primary"
+                  size="sm"
+                  buttons
+                  @change="() => fetchLeaderboard(startDate, endDate)"
+                />
+              </div>
+            </template>
+            <p class="text-muted small mb-2">
+              Curator leaderboard ranked by gene-disease association submissions.
+              {{
+                leaderboardScope === 'all_time'
+                  ? 'Cumulative all-time contributions.'
+                  : `Contributions within selected ${periodLengthDays} day period.`
+              }}
+            </p>
+            <ContributorBarChart :contributors="leaderboardData" :loading="loading.leaderboard" />
+          </BCard>
+        </BCol>
+        <BCol md="6">
+          <BCard class="h-100">
+            <template #header>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Top Re-Reviewers</h5>
+                <BFormRadioGroup
+                  v-model="reReviewLeaderboardScope"
+                  :options="reReviewLeaderboardScopeOptions"
+                  button-variant="outline-primary"
+                  size="sm"
+                  buttons
+                  @change="() => fetchReReviewLeaderboard(startDate, endDate)"
+                />
+              </div>
+            </template>
+            <p class="text-muted small mb-2">
+              Reviewer leaderboard ranked by submitted re-reviews.
+              {{
+                reReviewLeaderboardScope === 'all_time'
+                  ? 'Cumulative all-time re-reviews.'
+                  : `Re-reviews within selected ${periodLengthDays} day period.`
+              }}
+            </p>
+            <ReReviewBarChart
+              :reviewers="reReviewLeaderboardData"
+              :loading="loading.reReviewLeaderboard"
+            />
+          </BCard>
+        </BCol>
+      </BRow>
 
-    <!-- Existing text stats (kept for reference) -->
-    <BRow v-if="statistics" class="mb-3">
-      <BCol md="6" class="mb-3">
-        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-          <template #header>
-            <h5 class="mb-0 text-start">
-              Updates Statistics
-              <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-            </h5>
-          </template>
-          <p class="mb-1">
-            Total new entities:
-            <span class="stats-number">{{ statistics.total_new_entities }}</span>
-          </p>
-          <p class="mb-1">
-            Unique genes: <span class="stats-number">{{ statistics.unique_genes }}</span>
-          </p>
-          <p class="mb-0">
-            Average per day:
-            <span class="stats-number">{{ formatDecimal(statistics.average_per_day) }}</span>
-          </p>
-        </BCard>
-      </BCol>
-      <BCol v-if="reReviewStatistics" md="6" class="mb-3">
-        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-          <template #header>
-            <h5 class="mb-0 text-start">
-              Re-review Statistics
-              <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-            </h5>
-          </template>
-          <p class="mb-1">
-            Total re-reviews:
-            <span class="stats-number">{{ reReviewStatistics.total_rereviews }}</span>
-          </p>
-          <p class="mb-1">
-            Percentage finished:
-            <span class="stats-number"
-              >{{ formatDecimal(reReviewStatistics.percentage_finished) }}%</span
-            >
-          </p>
-          <p class="mb-0">
-            Average per day:
-            <span class="stats-number">{{
-              formatDecimal(reReviewStatistics.average_per_day)
-            }}</span>
-          </p>
-        </BCard>
-      </BCol>
-    </BRow>
-    <BRow v-if="updatedReviewsStatistics || updatedStatusesStatistics" class="mb-3">
-      <BCol v-if="updatedReviewsStatistics" md="6" class="mb-3">
-        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-          <template #header>
-            <h5 class="mb-0 text-start">
-              Updated Reviews Statistics
-              <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-            </h5>
-          </template>
-          <p class="mb-0">
-            Total updated reviews:
-            <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span>
-          </p>
-        </BCard>
-      </BCol>
-      <BCol v-if="updatedStatusesStatistics" md="6" class="mb-3">
-        <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-          <template #header>
-            <h5 class="mb-0 text-start">
-              Updated Statuses Statistics
-              <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-            </h5>
-          </template>
-          <p class="mb-0">
-            Total updated statuses:
-            <span class="stats-number">{{ updatedStatusesStatistics.total_updated_statuses }}</span>
-          </p>
-        </BCard>
-      </BCol>
-    </BRow>
-  </BContainer>
+      <!-- Existing text stats (kept for reference) -->
+      <BRow v-if="statistics" class="mb-3">
+        <BCol md="6" class="mb-3">
+          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
+            <template #header>
+              <h5 class="mb-0 text-start">
+                Updates Statistics
+                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p class="mb-1">
+              Total new entities:
+              <span class="stats-number">{{ statistics.total_new_entities }}</span>
+            </p>
+            <p class="mb-1">
+              Unique genes: <span class="stats-number">{{ statistics.unique_genes }}</span>
+            </p>
+            <p class="mb-0">
+              Average per day:
+              <span class="stats-number">{{ formatDecimal(statistics.average_per_day) }}</span>
+            </p>
+          </BCard>
+        </BCol>
+        <BCol v-if="reReviewStatistics" md="6" class="mb-3">
+          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
+            <template #header>
+              <h5 class="mb-0 text-start">
+                Re-review Statistics
+                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p class="mb-1">
+              Total re-reviews:
+              <span class="stats-number">{{ reReviewStatistics.total_rereviews }}</span>
+            </p>
+            <p class="mb-1">
+              Percentage finished:
+              <span class="stats-number"
+                >{{ formatDecimal(reReviewStatistics.percentage_finished) }}%</span
+              >
+            </p>
+            <p class="mb-0">
+              Average per day:
+              <span class="stats-number">{{
+                formatDecimal(reReviewStatistics.average_per_day)
+              }}</span>
+            </p>
+          </BCard>
+        </BCol>
+      </BRow>
+      <BRow v-if="updatedReviewsStatistics || updatedStatusesStatistics" class="mb-3">
+        <BCol v-if="updatedReviewsStatistics" md="6" class="mb-3">
+          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
+            <template #header>
+              <h5 class="mb-0 text-start">
+                Updated Reviews Statistics
+                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p class="mb-0">
+              Total updated reviews:
+              <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span>
+            </p>
+          </BCard>
+        </BCol>
+        <BCol v-if="updatedStatusesStatistics" md="6" class="mb-3">
+          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
+            <template #header>
+              <h5 class="mb-0 text-start">
+                Updated Statuses Statistics
+                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
+              </h5>
+            </template>
+            <p class="mb-0">
+              Total updated statuses:
+              <span class="stats-number">{{
+                updatedStatusesStatistics.total_updated_statuses
+              }}</span>
+            </p>
+          </BCard>
+        </BCol>
+      </BRow>
+    </BContainer>
   </AuthenticatedPageShell>
 </template>
 

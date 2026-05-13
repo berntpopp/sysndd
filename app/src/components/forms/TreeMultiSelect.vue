@@ -72,13 +72,14 @@
     </BDropdown>
 
     <!-- Selected items as chips below selector (matches PMID pattern) -->
-    <div v-if="modelValue?.length" class="mt-2">
+    <div v-if="modelValue?.length" class="tree-multi-select__selected">
       <BFormTag
         v-for="id in modelValue"
         :key="id"
         v-b-tooltip.hover.top
         variant="secondary"
-        class="me-1 mb-1"
+        class="tree-multi-select__tag"
+        :class="modifierTagClass(id)"
         :title="getFullPath(id)"
         @remove="removeSelection(id)"
       >
@@ -166,6 +167,15 @@ function getLabel(id: string): string {
   return node?.label || id;
 }
 
+function modifierTagClass(id: string): string {
+  const label = getLabel(id).toLowerCase();
+  const modifier = label.split(':')[0]?.trim();
+  if (['present', 'uncertain', 'variable', 'rare', 'absent'].includes(modifier)) {
+    return `tree-multi-select__tag--${modifier}`;
+  }
+  return '';
+}
+
 function getFullPath(id: string): string {
   const path = getPathString(id);
   return path || id;
@@ -204,5 +214,75 @@ function clearAll() {
 /* Ensure dropdown stays above other content */
 .tree-multi-select :deep(.dropdown-menu) {
   z-index: 1050;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  min-height: 1.45rem;
+  margin: 0;
+  padding: 0.14rem 0.42rem;
+  border: 1px solid #7c3aed;
+  border-radius: 999px;
+  background-color: #ede9fe !important;
+  color: #0f172a !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.07);
+  white-space: normal;
+}
+
+.tree-multi-select__selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag--present) {
+  border-color: #16a34a;
+  background-color: #dcfce7 !important;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag--uncertain) {
+  border-color: #d97706;
+  background-color: #fef3c7 !important;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag--variable) {
+  border-color: #2563eb;
+  background-color: #dbeafe !important;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag--rare) {
+  border-color: #7c3aed;
+  background-color: #ede9fe !important;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag--absent) {
+  border-color: #64748b;
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag button),
+.tree-multi-select :deep(.tree-multi-select__tag .btn-close) {
+  width: 0.8rem;
+  min-width: 0.8rem;
+  height: 0.8rem;
+  min-height: 0.8rem;
+  margin-left: 0.1rem;
+  padding: 0;
+  background-size: 0.55rem;
+  opacity: 0.62;
+}
+
+.tree-multi-select :deep(.tree-multi-select__tag button:hover),
+.tree-multi-select :deep(.tree-multi-select__tag .btn-close:hover) {
+  opacity: 0.95;
 }
 </style>

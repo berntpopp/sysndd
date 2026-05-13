@@ -1,8 +1,10 @@
 import { mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { createRouter, createWebHistory } from 'vue-router';
+import { nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { signin } from '@/api/auth';
+import { useAuth } from '@/composables/useAuth';
 import AppNavbar from './AppNavbar.vue';
 
 vi.mock('@/api/auth', () => ({
@@ -64,6 +66,7 @@ const mountNavbar = async (initialPath = '/') => {
 
 describe('AppNavbar', () => {
   beforeEach(() => {
+    useAuth().logout();
     localStorage.clear();
     vi.mocked(signin).mockReset();
   });
@@ -118,6 +121,34 @@ describe('AppNavbar', () => {
     vi.mocked(signin).mockReturnValue(new Promise(() => {}));
 
     const wrapper = await mountNavbar();
+
+    const triggers = wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text());
+    expect(triggers).toContain('Administration');
+    expect(triggers).toContain('Curation');
+    expect(triggers).toContain('Review');
+    expect(triggers).toContain('Christiane');
+  });
+
+  it('updates role-gated menus immediately after login without a route reload', async () => {
+    vi.mocked(signin).mockReturnValue(new Promise(() => {}));
+    const wrapper = await mountNavbar();
+
+    expect(wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text())).not.toContain(
+      'Administration'
+    );
+
+    useAuth().login('admin-token', {
+      user_id: [3],
+      user_name: ['Christiane'],
+      email: ['christiane.zweier@insel.ch'],
+      user_role: ['Administrator'],
+      user_created: ['2022-06-09'],
+      abbreviation: ['CZ'],
+      orcid: ['0000-0001-8002-2020'],
+      exp: [Math.floor(Date.now() / 1000) + 3600],
+    });
+    await nextTick();
+    await nextTick();
 
     const triggers = wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text());
     expect(triggers).toContain('Administration');

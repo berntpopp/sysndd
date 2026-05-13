@@ -1,7 +1,7 @@
 <template>
   <div class="form-wizard">
     <!-- Progress Indicator -->
-    <div class="wizard-progress mb-4">
+    <div class="wizard-progress">
       <div class="wizard-steps d-flex justify-content-between position-relative">
         <!-- Progress line background -->
         <div class="wizard-progress-line" />
@@ -36,19 +36,17 @@
     </div>
 
     <!-- Step Content Area -->
-    <BCard class="wizard-content mb-4" body-class="p-4">
-      <div class="step-header mb-4">
-        <h5 class="mb-1">{{ stepLabels[currentStep] }}</h5>
-        <small class="text-muted">Step {{ currentStepIndex + 1 }} of {{ totalSteps }}</small>
-      </div>
-
+    <section
+      class="wizard-content"
+      :aria-label="`${stepLabels[currentStep]} step ${currentStepIndex + 1} of ${totalSteps}`"
+    >
       <!-- Dynamic step content -->
       <transition name="fade" mode="out-in">
         <div :key="currentStep">
           <slot :name="currentStep" />
         </div>
       </transition>
-    </BCard>
+    </section>
 
     <!-- Navigation Footer -->
     <div class="wizard-navigation d-flex justify-content-between align-items-center">
@@ -110,14 +108,13 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, watch, type PropType } from 'vue';
-import { BCard, BButton, BSpinner, BFormCheckbox, vBTooltip } from 'bootstrap-vue-next';
+import { BButton, BSpinner, BFormCheckbox, vBTooltip } from 'bootstrap-vue-next';
 import type { WizardStep } from '@/composables/useEntityForm';
 
 export default defineComponent({
   name: 'FormWizard',
 
   components: {
-    BCard,
     BButton,
     BSpinner,
     BFormCheckbox,
@@ -259,46 +256,42 @@ export default defineComponent({
 
 <style scoped>
 .form-wizard {
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
 /* Progress indicator styles */
 .wizard-progress {
-  padding: 0 1rem;
+  margin-bottom: 0.85rem;
+  padding: 0.1rem 0;
 }
 
 .wizard-steps {
   position: relative;
+  gap: 0.55rem;
 }
 
 .wizard-progress-line {
-  position: absolute;
-  top: 20px;
-  left: 40px;
-  right: 40px;
-  height: 3px;
-  background-color: #e9ecef;
-  z-index: 0;
+  display: none;
 }
 
 .wizard-progress-line-active {
-  position: absolute;
-  top: 20px;
-  left: 40px;
-  height: 3px;
-  background-color: #0d6efd;
-  z-index: 1;
-  transition: width 0.3s ease;
+  display: none;
 }
 
 .wizard-step {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 0;
+  min-width: 0;
   z-index: 2;
-  background: white;
-  padding: 0 0.5rem;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .wizard-step.clickable {
@@ -306,62 +299,80 @@ export default defineComponent({
 }
 
 .wizard-step.clickable:hover .step-indicator {
-  transform: scale(1.1);
+  border-color: #0b5cad;
+  color: #0b5cad;
+}
+
+.wizard-step.active {
+  border-color: #9fc1e8;
+  background: #eef6ff;
+}
+
+.wizard-step.completed {
+  border-color: #b7dbc4;
+  background: #f0fdf4;
 }
 
 .step-indicator {
-  width: 40px;
-  height: 40px;
+  width: 1.45rem;
+  height: 1.45rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
-  font-size: 1rem;
-  background-color: #e9ecef;
-  color: #6c757d;
-  border: 3px solid #e9ecef;
+  font-weight: 750;
+  font-size: 0.78rem;
+  background-color: #f8fafc;
+  color: #526070;
+  border: 1px solid #cbd5e1;
   transition: all 0.3s ease;
 }
 
 .wizard-step.active .step-indicator {
-  background-color: #0d6efd;
+  background-color: #0b5cad;
   color: white;
-  border-color: #0d6efd;
+  border-color: #0b5cad;
 }
 
 .wizard-step.completed .step-indicator {
-  background-color: #198754;
+  background-color: #15803d;
   color: white;
-  border-color: #198754;
+  border-color: #15803d;
 }
 
 .step-label {
-  margin-top: 0.5rem;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
   font-size: 0.75rem;
-  color: #6c757d;
-  text-align: center;
+  color: #526070;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: left;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .wizard-step.active .step-label {
-  color: #0d6efd;
-  font-weight: 600;
+  color: #0b5cad;
+  font-weight: 750;
 }
 
 .wizard-step.completed .step-label {
-  color: #198754;
+  color: #15803d;
 }
 
 /* Content card styles */
 .wizard-content {
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-width: 0;
+  margin-bottom: 1rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
 }
 
-.step-header {
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 1rem;
+.wizard-content > * {
+  padding: 0.9rem;
 }
 
 /* Transition for step content */
@@ -383,10 +394,11 @@ export default defineComponent({
 
 /* Direct approval toggle */
 .direct-approval-toggle {
-  padding: 0.25rem 0.75rem;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 0.375rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  background-color: #fffbeb;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
 }
 
 /* Responsive adjustments */
@@ -397,8 +409,16 @@ export default defineComponent({
   }
 
   .wizard-steps {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .wizard-step {
+    display: flex;
+    min-height: 2rem;
+    justify-content: center;
+    padding: 0.3rem;
   }
 
   .step-label {
@@ -407,6 +427,10 @@ export default defineComponent({
 
   .wizard-step.active .step-label {
     display: block;
+    position: absolute;
+    top: 2.05rem;
+    left: 0;
+    right: 0;
   }
 }
 </style>

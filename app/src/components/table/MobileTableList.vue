@@ -1,5 +1,9 @@
 <template>
-  <div class="mobile-table-list" :role="items.length === 0 ? undefined : 'list'" :aria-label="label">
+  <div
+    class="mobile-table-list"
+    :role="items.length === 0 ? undefined : 'list'"
+    :aria-label="label"
+  >
     <div v-if="items.length === 0" class="mobile-table-list__empty" role="status">
       {{ emptyText }}
     </div>

@@ -1,10 +1,5 @@
 <template>
   <div class="step-evidence">
-    <p class="text-muted mb-4">
-      Add supporting evidence for this gene-disease relationship. Publications and synopsis are
-      required.
-    </p>
-
     <!-- Publications -->
     <BFormGroup
       label="Publications"
@@ -47,14 +42,14 @@
               :key="tag"
               :title="tag"
               variant="secondary"
-              class="publication-tag"
+              class="evidence-tag evidence-tag--publication"
               @remove="removeTag(tag)"
             >
               <BLink
                 :href="getPubMedUrl(tag)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-light text-decoration-none"
+                class="evidence-tag__link"
               >
                 <i class="bi bi-box-arrow-up-right me-1" />
                 {{ tag }}
@@ -104,14 +99,14 @@
               :key="tag"
               :title="tag"
               variant="info"
-              class="genereviews-tag"
+              class="evidence-tag evidence-tag--genereview"
               @remove="removeTag(tag)"
             >
               <BLink
                 :href="getPubMedUrl(tag)"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-light text-decoration-none"
+                class="evidence-tag__link"
               >
                 <i class="bi bi-box-arrow-up-right me-1" />
                 {{ tag }}
@@ -131,7 +126,7 @@
       label-for="synopsis-textarea"
       :state="getFieldState('synopsis')"
       :invalid-feedback="getFieldError('synopsis')"
-      class="mb-3"
+      class="mb-3 step-evidence__synopsis"
     >
       <template #label>
         <span class="fw-bold">Synopsis <span class="text-danger">*</span></span>
@@ -230,12 +225,46 @@ export default defineComponent({
 
 <style scoped>
 .step-evidence {
-  max-width: 700px;
+  max-width: none;
 }
 
-.publication-tag,
-.genereviews-tag {
-  font-size: 0.875rem;
+.step-evidence :deep(.evidence-tag) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.45rem;
+  margin: 0;
+  padding: 0.14rem 0.42rem;
+  border: 1px solid #0891b2;
+  border-radius: 999px;
+  background-color: #cffafe !important;
+  color: #0f172a !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.07);
+}
+
+.step-evidence :deep(.evidence-tag--genereview) {
+  border-color: #2563eb;
+  background-color: #dbeafe !important;
+}
+
+.step-evidence :deep(.evidence-tag__link) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.step-evidence :deep(.evidence-tag button),
+.step-evidence :deep(.evidence-tag .btn-close) {
+  width: 0.8rem;
+  min-width: 0.8rem;
+  height: 0.8rem;
+  min-height: 0.8rem;
+  margin-left: 0.1rem;
+  padding: 0;
+  background-size: 0.55rem;
+  opacity: 0.62;
 }
 
 .publication-tags :deep(.b-form-tags-list),

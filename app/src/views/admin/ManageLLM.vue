@@ -6,198 +6,200 @@
     full-width
   >
     <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-2"
-            border-variant="dark"
-            class="mb-3 text-start"
-          >
-            <template #header>
-              <BRow class="align-items-center">
-                <BCol>
-                  <h5 class="mb-0 text-start fw-bold">
-                    LLM configuration
-                    <BBadge
-                      v-if="config && !config.gemini_configured"
-                      variant="warning"
-                      class="ms-2"
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <BCard
+              header-tag="header"
+              body-class="p-0"
+              header-class="p-2"
+              border-variant="dark"
+              class="mb-3 text-start"
+            >
+              <template #header>
+                <BRow class="align-items-center">
+                  <BCol>
+                    <h5 class="mb-0 text-start fw-bold">
+                      LLM configuration
+                      <BBadge
+                        v-if="config && !config.gemini_configured"
+                        variant="warning"
+                        class="ms-2"
+                      >
+                        Not Configured
+                      </BBadge>
+                      <BBadge v-else-if="config" variant="success" class="ms-2">
+                        {{ config.current_model }}
+                      </BBadge>
+                    </h5>
+                  </BCol>
+                  <BCol class="text-end">
+                    <BButton
+                      variant="outline-primary"
+                      size="sm"
+                      :disabled="loading"
+                      @click="refreshAll"
                     >
-                      Not Configured
-                    </BBadge>
-                    <BBadge v-else-if="config" variant="success" class="ms-2">
-                      {{ config.current_model }}
-                    </BBadge>
-                  </h5>
-                </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    variant="outline-primary"
-                    size="sm"
-                    :disabled="loading"
-                    @click="refreshAll"
-                  >
-                    <BSpinner v-if="loading" small class="me-1" />
-                    Refresh
-                  </BButton>
-                </BCol>
-              </BRow>
-            </template>
-
-            <!-- Tab Navigation -->
-            <BTabs pills card nav-class="px-3 pt-2">
-              <!-- Overview Tab -->
-              <BTab title="Overview">
-                <BRow class="g-3 mb-4">
-                  <BCol md="3">
-                    <BCard class="text-center h-100">
-                      <div class="h2 mb-0">{{ cacheStats?.total_entries ?? 0 }}</div>
-                      <small class="text-muted">Total Summaries</small>
-                    </BCard>
-                  </BCol>
-                  <BCol md="3">
-                    <BCard class="text-center h-100 border-success">
-                      <div class="h2 mb-0 text-success">
-                        {{ cacheStats?.by_status?.validated ?? 0 }}
-                      </div>
-                      <small class="text-muted">Validated</small>
-                    </BCard>
-                  </BCol>
-                  <BCol md="3">
-                    <BCard class="text-center h-100 border-warning">
-                      <div class="h2 mb-0 text-warning">
-                        {{ cacheStats?.by_status?.pending ?? 0 }}
-                      </div>
-                      <small class="text-muted">Pending Review</small>
-                    </BCard>
-                  </BCol>
-                  <BCol md="3">
-                    <BCard class="text-center h-100">
-                      <div class="h2 mb-0">
-                        ${{ (cacheStats?.estimated_cost_usd ?? 0).toFixed(2) }}
-                      </div>
-                      <small class="text-muted">Est. Cost (USD)</small>
-                    </BCard>
+                      <BSpinner v-if="loading" small class="me-1" />
+                      Refresh
+                    </BButton>
                   </BCol>
                 </BRow>
+              </template>
 
-                <!-- Quick Actions -->
-                <BCard class="mb-4">
-                  <template #header>
-                    <h6 class="mb-0">Quick Actions</h6>
-                  </template>
-                  <BRow class="g-2">
-                    <BCol md="4">
-                      <BButton
-                        variant="outline-danger"
-                        class="w-100"
-                        :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
-                        @click="showClearModal = true"
-                      >
-                        Clear Cache & Regenerate
-                      </BButton>
+              <!-- Tab Navigation -->
+              <BTabs pills card nav-class="px-3 pt-2">
+                <!-- Overview Tab -->
+                <BTab title="Overview">
+                  <BRow class="g-3 mb-4">
+                    <BCol md="3">
+                      <BCard class="text-center h-100">
+                        <div class="h2 mb-0">{{ cacheStats?.total_entries ?? 0 }}</div>
+                        <small class="text-muted">Total Summaries</small>
+                      </BCard>
                     </BCol>
-                    <BCol md="4">
-                      <BButton
-                        variant="outline-primary"
-                        class="w-100"
-                        :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
-                        @click="handleRegenerate('functional')"
-                      >
-                        Regenerate Functional
-                      </BButton>
+                    <BCol md="3">
+                      <BCard class="text-center h-100 border-success">
+                        <div class="h2 mb-0 text-success">
+                          {{ cacheStats?.by_status?.validated ?? 0 }}
+                        </div>
+                        <small class="text-muted">Validated</small>
+                      </BCard>
                     </BCol>
-                    <BCol md="4">
-                      <BButton
-                        variant="outline-primary"
-                        class="w-100"
-                        :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
-                        @click="handleRegenerate('phenotype')"
-                      >
-                        Regenerate Phenotype
-                      </BButton>
+                    <BCol md="3">
+                      <BCard class="text-center h-100 border-warning">
+                        <div class="h2 mb-0 text-warning">
+                          {{ cacheStats?.by_status?.pending ?? 0 }}
+                        </div>
+                        <small class="text-muted">Pending Review</small>
+                      </BCard>
+                    </BCol>
+                    <BCol md="3">
+                      <BCard class="text-center h-100">
+                        <div class="h2 mb-0">
+                          ${{ (cacheStats?.estimated_cost_usd ?? 0).toFixed(2) }}
+                        </div>
+                        <small class="text-muted">Est. Cost (USD)</small>
+                      </BCard>
                     </BCol>
                   </BRow>
-                </BCard>
 
-                <!-- Active Job Progress -->
-                <BCard v-if="regenerationJob.isLoading.value" class="mb-4">
-                  <template #header>
-                    <h6 class="mb-0">Regeneration in Progress</h6>
-                  </template>
-                  <BProgress
-                    :value="
-                      regenerationJob.hasRealProgress.value
-                        ? (regenerationJob.progressPercent.value ?? 0)
-                        : 100
-                    "
-                    :max="100"
-                    show-progress
-                    animated
+                  <!-- Quick Actions -->
+                  <BCard class="mb-4">
+                    <template #header>
+                      <h6 class="mb-0">Quick Actions</h6>
+                    </template>
+                    <BRow class="g-2">
+                      <BCol md="4">
+                        <BButton
+                          variant="outline-danger"
+                          class="w-100"
+                          :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
+                          @click="showClearModal = true"
+                        >
+                          Clear Cache & Regenerate
+                        </BButton>
+                      </BCol>
+                      <BCol md="4">
+                        <BButton
+                          variant="outline-primary"
+                          class="w-100"
+                          :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
+                          @click="handleRegenerate('functional')"
+                        >
+                          Regenerate Functional
+                        </BButton>
+                      </BCol>
+                      <BCol md="4">
+                        <BButton
+                          variant="outline-primary"
+                          class="w-100"
+                          :disabled="!config?.gemini_configured || regenerationJob.isLoading.value"
+                          @click="handleRegenerate('phenotype')"
+                        >
+                          Regenerate Phenotype
+                        </BButton>
+                      </BCol>
+                    </BRow>
+                  </BCard>
+
+                  <!-- Active Job Progress -->
+                  <BCard v-if="regenerationJob.isLoading.value" class="mb-4">
+                    <template #header>
+                      <h6 class="mb-0">Regeneration in Progress</h6>
+                    </template>
+                    <BProgress
+                      :value="
+                        regenerationJob.hasRealProgress.value
+                          ? (regenerationJob.progressPercent.value ?? 0)
+                          : 100
+                      "
+                      :max="100"
+                      show-progress
+                      animated
+                    />
+                    <div class="mt-2 text-muted small">
+                      {{ regenerationJob.step.value }}
+                      <span class="float-end">{{ regenerationJob.elapsedTimeDisplay.value }}</span>
+                    </div>
+                  </BCard>
+                </BTab>
+
+                <!-- Configuration Tab -->
+                <BTab title="Configuration">
+                  <LlmConfigPanel
+                    :config="config"
+                    :loading="loading"
+                    @update-model="handleModelUpdate"
                   />
-                  <div class="mt-2 text-muted small">
-                    {{ regenerationJob.step.value }}
-                    <span class="float-end">{{ regenerationJob.elapsedTimeDisplay.value }}</span>
-                  </div>
-                </BCard>
-              </BTab>
+                </BTab>
 
-              <!-- Configuration Tab -->
-              <BTab title="Configuration">
-                <LlmConfigPanel
-                  :config="config"
-                  :loading="loading"
-                  @update-model="handleModelUpdate"
-                />
-              </BTab>
+                <!-- Prompts Tab -->
+                <BTab title="Prompts">
+                  <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
+                </BTab>
 
-              <!-- Prompts Tab -->
-              <BTab title="Prompts">
-                <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
-              </BTab>
+                <!-- Cache Tab -->
+                <BTab title="Cache">
+                  <LlmCacheManager
+                    :stats="cacheStats"
+                    @clear="handleCacheClear"
+                    @validate="handleValidate"
+                    @regenerate="handleRegenerate"
+                  />
+                </BTab>
 
-              <!-- Cache Tab -->
-              <BTab title="Cache">
-                <LlmCacheManager
-                  :stats="cacheStats"
-                  @clear="handleCacheClear"
-                  @validate="handleValidate"
-                  @regenerate="handleRegenerate"
-                />
-              </BTab>
+                <!-- Logs Tab -->
+                <BTab title="Logs">
+                  <LlmLogViewer />
+                </BTab>
+              </BTabs>
+            </BCard>
+          </BCol>
+        </BRow>
 
-              <!-- Logs Tab -->
-              <BTab title="Logs">
-                <LlmLogViewer />
-              </BTab>
-            </BTabs>
-          </BCard>
-        </BCol>
-      </BRow>
-
-      <!-- Clear Cache Confirmation Modal -->
-      <BModal v-model="showClearModal" title="Clear Cache & Regenerate" ok-variant="danger">
-        <template #default>
-          <p>This will:</p>
-          <ol>
-            <li>Delete all cached LLM summaries</li>
-            <li>Trigger regeneration for all clusters</li>
-            <li>This may take several minutes and incur API costs</li>
-          </ol>
-          <BFormGroup label="Clear which clusters?">
-            <BFormRadioGroup v-model="clearType" :options="clearOptions" stacked />
-          </BFormGroup>
-        </template>
-        <template #footer>
-          <BButton variant="secondary" @click="showClearModal = false">Cancel</BButton>
-          <BButton variant="danger" @click="handleClearAndRegenerate"> Clear & Regenerate </BButton>
-        </template>
-      </BModal>
-    </BContainer>
-  </div>
+        <!-- Clear Cache Confirmation Modal -->
+        <BModal v-model="showClearModal" title="Clear Cache & Regenerate" ok-variant="danger">
+          <template #default>
+            <p>This will:</p>
+            <ol>
+              <li>Delete all cached LLM summaries</li>
+              <li>Trigger regeneration for all clusters</li>
+              <li>This may take several minutes and incur API costs</li>
+            </ol>
+            <BFormGroup label="Clear which clusters?">
+              <BFormRadioGroup v-model="clearType" :options="clearOptions" stacked />
+            </BFormGroup>
+          </template>
+          <template #footer>
+            <BButton variant="secondary" @click="showClearModal = false">Cancel</BButton>
+            <BButton variant="danger" @click="handleClearAndRegenerate">
+              Clear & Regenerate
+            </BButton>
+          </template>
+        </BModal>
+      </BContainer>
+    </div>
   </AuthenticatedPageShell>
 </template>
 

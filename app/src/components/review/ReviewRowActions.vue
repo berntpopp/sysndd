@@ -5,11 +5,11 @@
   by swapping this component for a status-actions variant.
 -->
 <template>
-  <div>
+  <div class="review-row-actions" aria-label="Review row actions">
     <BButton
       v-b-tooltip.hover.left
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
       variant="outline-primary"
       title="Toggle details"
       :aria-label="`Toggle details for entity ${item.entity_id}`"
@@ -20,7 +20,7 @@
     <BButton
       v-b-tooltip.hover.left
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
       variant="secondary"
       title="Edit review"
       :aria-label="`Edit review for entity ${item.entity_id}`"
@@ -31,7 +31,7 @@
     <BButton
       v-b-tooltip.hover.top
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
       :variant="
         (stoplightsStyle[item.active_category ?? ''] as
           | 'secondary'
@@ -58,7 +58,7 @@
     <BButton
       v-b-tooltip.hover.right
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
       variant="danger"
       title="Approve review"
       :aria-label="`Approve review for entity ${item.entity_id}`"
@@ -69,7 +69,7 @@
     <BButton
       v-b-tooltip.hover.right
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
       variant="outline-danger"
       title="Dismiss review"
       :aria-label="`Dismiss review for entity ${item.entity_id}`"
@@ -84,7 +84,7 @@
       title="Multiple pending reviews for this entity"
       :aria-label="`Warning: Multiple pending reviews for entity ${item.entity_id}`"
       size="sm"
-      class="me-1 btn-xs"
+      class="review-row-actions__button"
     >
       <i class="bi bi-exclamation-triangle-fill" aria-hidden="true" />
     </BButton>
@@ -120,3 +120,23 @@ defineEmits<{
   (e: 'dismiss', item: ReviewRowItem): void;
 }>();
 </script>
+
+<style scoped>
+.review-row-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.review-row-actions__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  line-height: 1;
+}
+</style>

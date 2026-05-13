@@ -1,0 +1,188 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "empty",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "empty",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "duplicateHeadings": [],
+    "overflow": 0,
+    "clippedButtons": [],
+    "visibleModalCount": 0,
+    "longBadges": []
+  }
+]

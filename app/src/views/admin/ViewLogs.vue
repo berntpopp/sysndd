@@ -1,26 +1,22 @@
 <template>
-  <AuthenticatedPageShell
-    title="View Logs"
-    content-class="authenticated-route-content"
-    full-width
-  >
+  <AuthenticatedPageShell title="View Logs" content-class="authenticated-route-content" full-width>
     <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- Include TablesLogs Component Here -->
-          <TablesLogs
-            :sort-input="sort"
-            :filter-input="filter"
-            :fields-input="fields"
-            :page-after-input="pageAfter"
-            :page-size-input="pageSize"
-            :fspec-input="fspec"
-          />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <!-- Include TablesLogs Component Here -->
+            <TablesLogs
+              :sort-input="sort"
+              :filter-input="filter"
+              :fields-input="fields"
+              :page-after-input="pageAfter"
+              :page-size-input="pageSize"
+              :fspec-input="fspec"
+            />
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
   </AuthenticatedPageShell>
 </template>
 

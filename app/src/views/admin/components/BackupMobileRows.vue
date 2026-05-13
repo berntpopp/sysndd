@@ -1,10 +1,5 @@
 <template>
-  <MobileTableList
-    :items="items"
-    label="Backups"
-    empty-text="No backups found."
-    :item-key="rowKey"
-  >
+  <MobileTableList :items="items" label="Backups" empty-text="No backups found." :item-key="rowKey">
     <template #default="{ item }">
       <article class="mobile-record-row backup-mobile-row" role="listitem">
         <div class="mobile-record-row__topline">

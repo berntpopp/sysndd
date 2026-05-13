@@ -125,6 +125,12 @@ export default {
     };
   },
   computed: {
+    authIsAuthenticated() {
+      return this.auth.isAuthenticated.value;
+    },
+    authUser() {
+      return this.auth.user.value;
+    },
     dropdownItemsRightDisplay() {
       return this.dropdownItemsRight
         .map((item) => {
@@ -140,6 +146,23 @@ export default {
     },
   },
   watch: {
+    authIsAuthenticated(isAuthenticated) {
+      if (isAuthenticated) {
+        this.setUserFromAuthPayload();
+      } else {
+        this.clearUserDisplayData();
+      }
+    },
+    authUser: {
+      handler(user) {
+        if (user) {
+          this.setUserFromAuthPayload();
+        } else {
+          this.clearUserDisplayData();
+        }
+      },
+      deep: true,
+    },
     $route(to, from) {
       if (to !== from) {
         this.isUserLoggedIn();
@@ -170,7 +193,7 @@ export default {
         this.setUserFromAuthPayload();
         this.checkSigninWithJWT();
       } else {
-        this.clearUserData();
+        this.clearUserDisplayData();
       }
     },
     async checkSigninWithJWT() {
@@ -218,6 +241,9 @@ export default {
       // Delegates the localStorage + axios-header cleanup to useAuth so the
       // navbar never touches those keys directly.
       this.auth.logout();
+      this.clearUserDisplayData();
+    },
+    clearUserDisplayData() {
       this.user = null;
       this.userAllowence = {
         view: false,

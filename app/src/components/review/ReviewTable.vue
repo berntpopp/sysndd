@@ -173,50 +173,88 @@
     </template>
 
     <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <!--
-      The BTable prop types (`TableField<T>`, `BTableSortBy`) are tightly
-      parameterised in bootstrap-vue-next. We carry plain shapes on the
-      props boundary so the view stays portable; a single `any` cast here
-      bridges to BVN without polluting the public API of this component.
-    -->
-    <!-- eslint-disable @typescript-eslint/no-explicit-any -->
-    <BTable
-      v-else
-      class="d-none d-md-table"
-      :items="items as any"
-      :fields="fields as any"
-      :busy="isBusy"
-      :current-page="currentPage"
-      :per-page="perPage"
-      :filter="filterText"
-      :sort-by="sortBy as any"
-      head-variant="light"
-      show-empty
-      small
-      fixed
-      striped
-      hover
-      sort-icon-left
-      @update:sort-by="(e: any) => $emit('update:sortBy', e as SortBy[])"
-      @filtered="(e: any) => $emit('filtered', e as unknown[])"
-    >
-      <!-- Expose BTable slots to the parent so row templates stay there. -->
-      <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
-        <slot :name="slotName" v-bind="slotProps || {}" />
-      </template>
-    </BTable>
+    <div v-else class="d-none d-md-block review-table__desktop-scroll">
+      <GenericTable
+        class="review-table__desktop"
+        :items="pageItems"
+        :fields="fields"
+        :is-busy="isBusy"
+        :sort-by="sortBy"
+        :stacked-mode="false"
+        @update:sort-by="$emit('update:sortBy', $event as SortBy[])"
+        @update-sort="
+          ({ sortBy: key, sortDesc }) =>
+            $emit('update:sortBy', [{ key, order: sortDesc ? 'desc' : 'asc' }] as SortBy[])
+        "
+      >
+        <template #column-header="{ data }">
+          <div v-b-tooltip.hover.bottom class="review-table__column-header" :title="data.label">
+            {{ truncateHeader(data.label) }}
+          </div>
+        </template>
+        <template #cell-entity_id="{ row, index }">
+          <slot name="cell(entity_id)" :item="row" :index="index" />
+        </template>
+        <template #cell-symbol="{ row, index }">
+          <slot name="cell(symbol)" :item="row" :index="index" />
+        </template>
+        <template #cell-disease_ontology_name="{ row, index }">
+          <slot name="cell(disease_ontology_name)" :item="row" :index="index" />
+        </template>
+        <template #cell-hpo_mode_of_inheritance_term_name="{ row, index }">
+          <slot name="cell(hpo_mode_of_inheritance_term_name)" :item="row" :index="index" />
+        </template>
+        <template #cell-category="{ row, index }">
+          <slot name="cell(category)" :item="row" :index="index" />
+        </template>
+        <template #cell-problematic="{ row, index }">
+          <slot name="cell(problematic)" :item="row" :index="index" />
+        </template>
+        <template #cell-synopsis="{ row, index }">
+          <slot name="cell(synopsis)" :item="row" :index="index" />
+        </template>
+        <template #cell-comment="{ row, index }">
+          <slot name="cell(comment)" :item="row" :index="index" />
+        </template>
+        <template #cell-review_date="{ row, index }">
+          <slot name="cell(review_date)" :item="row" :index="index" />
+        </template>
+        <template #cell-review_user_name="{ row, index }">
+          <slot name="cell(review_user_name)" :item="row" :index="index" />
+        </template>
+        <template #cell-status_date="{ row, index }">
+          <slot name="cell(status_date)" :item="row" :index="index" />
+        </template>
+        <template #cell-status_user_name="{ row, index }">
+          <slot name="cell(status_user_name)" :item="row" :index="index" />
+        </template>
+        <template #cell-actions="{ row, index, expansionShowing, toggleExpansion }">
+          <slot
+            name="cell(actions)"
+            :item="row"
+            :index="index"
+            :expansion-showing="expansionShowing"
+            :toggle-expansion="toggleExpansion"
+          />
+        </template>
+        <template #row-expansion="{ row, toggle }">
+          <slot name="row-expansion" :item="row" :toggle-expansion="toggle" />
+        </template>
+      </GenericTable>
+    </div>
     <div v-if="!loading" class="d-md-none">
-      <slot name="mobile-rows" :items="mobilePageItems" />
+      <slot name="mobile-rows" :items="pageItems" />
     </div>
   </TableShell>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import type { PropType } from 'vue';
 import type { SortBy, TableField } from '@/types/components';
 import IconLegend from '@/components/accessibility/IconLegend.vue';
 import TableShell from '@/components/table/TableShell.vue';
+import GenericTable from '@/components/small/GenericTable.vue';
 
 export interface LegendItem {
   icon: string;
@@ -257,7 +295,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 });
 
-const mobilePageItems = computed<unknown[]>(() => {
+const filteredSortedItems = computed<unknown[]>(() => {
   const searchTerm = (props.filterText || '').trim().toLowerCase();
   const sortConfig = props.sortBy[0];
   let visibleItems = props.items;
@@ -282,11 +320,15 @@ const mobilePageItems = computed<unknown[]>(() => {
     }
   }
 
-  const start = Math.max(props.currentPage - 1, 0) * props.perPage;
-  return visibleItems.slice(start, start + props.perPage);
+  return visibleItems;
 });
 
-defineEmits<{
+const pageItems = computed<unknown[]>(() => {
+  const start = Math.max(props.currentPage - 1, 0) * props.perPage;
+  return filteredSortedItems.value.slice(start, start + props.perPage);
+});
+
+const emit = defineEmits<{
   (e: 'approve-all'): void;
   (e: 'refresh'): void;
   (e: 'update:currentPage', value: number): void;
@@ -299,6 +341,18 @@ defineEmits<{
   (e: 'update:dateEnd', value: string | null): void;
   (e: 'filtered', value: unknown[]): void;
 }>();
+
+watch(
+  filteredSortedItems,
+  (items) => {
+    emit('filtered', items);
+  },
+  { immediate: true }
+);
+
+function truncateHeader(label: string): string {
+  return label.length > 18 ? `${label.slice(0, 15)}...` : label;
+}
 </script>
 
 <style scoped>
@@ -318,5 +372,13 @@ defineEmits<{
 
 .review-table__legend :deep(.icon-legend) {
   margin-top: 0.5rem;
+}
+
+.review-table__desktop {
+  overflow-x: auto;
+}
+
+.review-table__column-header {
+  white-space: nowrap;
 }
 </style>

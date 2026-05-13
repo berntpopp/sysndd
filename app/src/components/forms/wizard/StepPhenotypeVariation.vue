@@ -1,10 +1,5 @@
 <template>
   <div class="step-phenotype-variation">
-    <p class="text-muted mb-4">
-      Add phenotype and variation ontology terms. These fields are optional but help with data
-      classification.
-    </p>
-
     <!-- Phenotypes -->
     <BFormGroup label="Phenotypes" label-for="phenotype-select" class="mb-4">
       <template #label>
@@ -44,18 +39,12 @@
         Select variation ontology terms that describe the type of genetic variation
       </small>
     </BFormGroup>
-
-    <!-- Info alert for optional step -->
-    <BAlert variant="info" :model-value="true" class="mt-4">
-      <i class="bi bi-info-circle me-2" />
-      This step is optional. You can proceed without selecting any terms.
-    </BAlert>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, inject, type PropType } from 'vue';
-import { BFormGroup, BAlert, BSpinner } from 'bootstrap-vue-next';
+import { BFormGroup, BSpinner } from 'bootstrap-vue-next';
 import TreeMultiSelect from '@/components/forms/TreeMultiSelect.vue';
 import type { EntityFormData } from '@/composables/useEntityForm';
 import type { TreeNode } from '@/composables';
@@ -65,7 +54,6 @@ export default defineComponent({
 
   components: {
     BFormGroup,
-    BAlert,
     BSpinner,
     TreeMultiSelect,
   },
@@ -94,6 +82,6 @@ export default defineComponent({
 
 <style scoped>
 .step-phenotype-variation {
-  max-width: 700px;
+  max-width: none;
 }
 </style>

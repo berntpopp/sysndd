@@ -1,229 +1,143 @@
 <template>
   <div class="step-review">
-    <p class="text-muted mb-4">
-      Review all information before submitting. Click on section headers to edit.
-    </p>
-
-    <!-- Core Entity Summary -->
-    <BCard class="mb-3 review-card" no-body>
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold">
-            <i class="bi bi-1-circle me-2" />
-            Core Entity
-          </span>
-          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 0)">
-            <i class="bi bi-pencil me-1" />
-            Edit
-          </BButton>
+    <section class="review-entity-strip" aria-label="Entity summary">
+      <div class="review-entity-strip__main">
+        <div class="review-entity-strip__gene">
+          {{ formData.geneDisplay || formData.geneId || 'Gene not selected' }}
         </div>
-      </template>
-      <BCardBody>
-        <BRow>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Gene</div>
-            <div class="review-value">
-              {{ formData.geneDisplay || formData.geneId || '—' }}
-            </div>
-          </BCol>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Disease</div>
-            <div class="review-value">
-              {{ formData.diseaseDisplay || formData.diseaseId || '—' }}
-            </div>
-          </BCol>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Inheritance</div>
-            <div class="review-value">
-              {{ getInheritanceLabel(formData.inheritanceId) || '—' }}
-            </div>
-          </BCol>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">NDD Phenotype</div>
-            <div class="review-value">
-              <BBadge :variant="formData.nddPhenotype ? 'success' : 'secondary'">
-                {{
-                  formData.nddPhenotype === true
-                    ? 'Yes'
-                    : formData.nddPhenotype === false
-                      ? 'No'
-                      : '—'
-                }}
-              </BBadge>
-            </div>
-          </BCol>
-        </BRow>
-      </BCardBody>
-    </BCard>
-
-    <!-- Evidence Summary -->
-    <BCard class="mb-3 review-card" no-body>
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold">
-            <i class="bi bi-2-circle me-2" />
-            Evidence
-          </span>
-          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 1)">
-            <i class="bi bi-pencil me-1" />
-            Edit
-          </BButton>
-        </div>
-      </template>
-      <BCardBody>
-        <div class="mb-3">
-          <div class="review-label">Publications</div>
-          <div class="review-value">
-            <template v-if="formData.publications.length > 0">
-              <BBadge
-                v-for="pmid in formData.publications"
-                :key="pmid"
-                variant="secondary"
-                class="me-1 mb-1"
-              >
-                <BLink
-                  :href="getPubMedUrl(pmid)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-light text-decoration-none"
-                >
-                  {{ pmid }}
-                </BLink>
-              </BBadge>
-            </template>
-            <span v-else class="text-muted">—</span>
-          </div>
-        </div>
-        <div v-if="formData.genereviews.length > 0" class="mb-3">
-          <div class="review-label">GeneReviews</div>
-          <div class="review-value">
-            <BBadge
-              v-for="pmid in formData.genereviews"
-              :key="pmid"
-              variant="info"
-              class="me-1 mb-1"
-            >
-              <BLink
-                :href="getPubMedUrl(pmid)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-light text-decoration-none"
-              >
-                {{ pmid }}
-              </BLink>
-            </BBadge>
-          </div>
-        </div>
-        <div>
-          <div class="review-label">Synopsis</div>
-          <div class="review-value synopsis-text">
-            {{ formData.synopsis || '—' }}
-          </div>
-        </div>
-      </BCardBody>
-    </BCard>
-
-    <!-- Phenotype & Variation Summary -->
-    <BCard class="mb-3 review-card" no-body>
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold">
-            <i class="bi bi-3-circle me-2" />
-            Phenotype & Variation
-          </span>
-          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 2)">
-            <i class="bi bi-pencil me-1" />
-            Edit
-          </BButton>
-        </div>
-      </template>
-      <BCardBody>
-        <BRow>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Phenotypes</div>
-            <div class="review-value">
-              <template v-if="formData.phenotypes.length > 0">
-                <BBadge
-                  v-for="p in formData.phenotypes"
-                  :key="p"
-                  variant="primary"
-                  pill
-                  class="me-1 mb-1"
-                >
-                  {{ getPhenotypeLabel(p) }}
-                </BBadge>
-              </template>
-              <span v-else class="text-muted fst-italic">None selected</span>
-            </div>
-          </BCol>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Variation Ontology</div>
-            <div class="review-value">
-              <template v-if="formData.variationOntology.length > 0">
-                <BBadge
-                  v-for="v in formData.variationOntology"
-                  :key="v"
-                  variant="info"
-                  pill
-                  class="me-1 mb-1"
-                >
-                  {{ getVariationLabel(v) }}
-                </BBadge>
-              </template>
-              <span v-else class="text-muted fst-italic">None selected</span>
-            </div>
-          </BCol>
-        </BRow>
-      </BCardBody>
-    </BCard>
-
-    <!-- Classification Summary -->
-    <BCard class="mb-4 review-card" no-body>
-      <template #header>
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="fw-bold">
-            <i class="bi bi-4-circle me-2" />
-            Classification
-          </span>
-          <BButton variant="link" size="sm" class="p-0 text-primary" @click="$emit('edit-step', 3)">
-            <i class="bi bi-pencil me-1" />
-            Edit
-          </BButton>
-        </div>
-      </template>
-      <BCardBody>
-        <BRow>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Status</div>
-            <div class="review-value">
-              <BBadge variant="dark">
-                {{ getStatusLabel(formData.statusId) || '—' }}
-              </BBadge>
-            </div>
-          </BCol>
-          <BCol sm="6" class="mb-2">
-            <div class="review-label">Comment</div>
-            <div class="review-value">
-              {{ formData.comment || '—' }}
-            </div>
-          </BCol>
-        </BRow>
-      </BCardBody>
-    </BCard>
-
-    <!-- Direct Approval Warning -->
-    <BCard v-if="directApproval" border-variant="warning" class="mb-3">
-      <div class="d-flex align-items-start">
-        <i class="bi bi-exclamation-triangle text-warning me-3 fs-4" />
-        <div>
-          <div class="fw-bold text-warning">Direct Approval Enabled</div>
-          <small class="text-muted">
-            This entity will be approved immediately without double review. This should only be used
-            by experienced curators.
-          </small>
+        <div class="review-entity-strip__disease">
+          {{ formData.diseaseDisplay || formData.diseaseId || 'Disease not selected' }}
         </div>
       </div>
-    </BCard>
+      <div class="review-entity-strip__meta">
+        <span class="review-chip review-chip--inheritance">
+          {{ getInheritanceLabel(formData.inheritanceId) || 'Inheritance missing' }}
+        </span>
+        <span class="review-chip review-chip--ndd">
+          NDD
+          {{
+            formData.nddPhenotype === true ? 'Yes' : formData.nddPhenotype === false ? 'No' : '—'
+          }}
+        </span>
+        <span class="review-chip review-chip--status">
+          {{ getStatusLabel(formData.statusId) || 'Status missing' }}
+        </span>
+      </div>
+      <BButton
+        variant="outline-primary"
+        size="sm"
+        class="review-edit"
+        @click="$emit('edit-step', 0)"
+      >
+        <i class="bi bi-pencil" aria-hidden="true" />
+        Edit identity
+      </BButton>
+    </section>
+
+    <section class="review-grid" aria-label="Evidence and classification review">
+      <article class="review-panel review-panel--wide">
+        <header class="review-panel__header">
+          <h3>Synopsis</h3>
+          <BButton variant="link" size="sm" @click="$emit('edit-step', 1)">Edit</BButton>
+        </header>
+        <p class="synopsis-text">{{ formData.synopsis || '—' }}</p>
+      </article>
+
+      <article class="review-panel">
+        <header class="review-panel__header">
+          <h3>Literature</h3>
+          <BButton variant="link" size="sm" @click="$emit('edit-step', 1)">Edit</BButton>
+        </header>
+        <div class="review-value">
+          <BBadge
+            v-for="pmid in formData.publications"
+            :key="pmid"
+            variant="secondary"
+            class="review-chip review-chip--publication"
+          >
+            <BLink
+              :href="getPubMedUrl(pmid)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="review-chip__link"
+            >
+              {{ pmid }}
+            </BLink>
+          </BBadge>
+          <BBadge
+            v-for="pmid in formData.genereviews"
+            :key="pmid"
+            variant="info"
+            class="review-chip review-chip--genereview"
+          >
+            <BLink
+              :href="getPubMedUrl(pmid)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="review-chip__link"
+            >
+              GeneReviews {{ pmid.replace('PMID:', '') }}
+            </BLink>
+          </BBadge>
+          <span
+            v-if="formData.publications.length === 0 && formData.genereviews.length === 0"
+            class="review-empty"
+            >—</span
+          >
+        </div>
+      </article>
+
+      <article class="review-panel">
+        <header class="review-panel__header">
+          <h3>Phenotype & Variation</h3>
+          <BButton variant="link" size="sm" @click="$emit('edit-step', 2)">Edit</BButton>
+        </header>
+        <div class="review-value">
+          <BBadge
+            v-for="p in formData.phenotypes"
+            :key="p"
+            variant="primary"
+            class="review-chip review-chip--phenotype"
+          >
+            {{ getPhenotypeLabel(p) }}
+          </BBadge>
+          <BBadge
+            v-for="v in formData.variationOntology"
+            :key="v"
+            variant="info"
+            class="review-chip review-chip--variation"
+          >
+            {{ getVariationLabel(v) }}
+          </BBadge>
+          <span
+            v-if="formData.phenotypes.length === 0 && formData.variationOntology.length === 0"
+            class="review-empty"
+          >
+            None selected
+          </span>
+        </div>
+      </article>
+
+      <article class="review-panel review-panel--wide">
+        <header class="review-panel__header">
+          <h3>Curator Comment</h3>
+          <BButton variant="link" size="sm" @click="$emit('edit-step', 3)">Edit</BButton>
+        </header>
+        <p class="review-comment">{{ formData.comment || '—' }}</p>
+      </article>
+    </section>
+
+    <!-- Direct Approval Warning -->
+    <section v-if="directApproval" class="review-warning">
+      <i class="bi bi-exclamation-triangle" />
+      <div>
+        <div class="review-warning__title">Direct Approval Enabled</div>
+        <small>
+          This entity will be approved immediately without double review. This should only be used
+          by experienced curators.
+        </small>
+      </div>
+    </section>
 
     <!-- Validation Summary -->
     <BAlert v-if="!isFormValid" variant="danger" :model-value="true">
@@ -240,7 +154,7 @@
 
 <script lang="ts">
 import { defineComponent, inject, type PropType } from 'vue';
-import { BCard, BCardBody, BRow, BCol, BBadge, BButton, BLink, BAlert } from 'bootstrap-vue-next';
+import { BBadge, BButton, BLink, BAlert } from 'bootstrap-vue-next';
 import type { EntityFormData, SelectOption } from '@/composables/useEntityForm';
 import type { TreeNode } from '@/composables';
 
@@ -248,10 +162,6 @@ export default defineComponent({
   name: 'StepReview',
 
   components: {
-    BCard,
-    BCardBody,
-    BRow,
-    BCol,
     BBadge,
     BButton,
     BLink,
@@ -342,37 +252,180 @@ export default defineComponent({
 
 <style scoped>
 .step-review {
-  max-width: 800px;
+  display: grid;
+  gap: 0.85rem;
+  max-width: none;
+  color: #172033;
+  text-align: left;
 }
 
-.review-card {
-  border-radius: 0.5rem;
+.review-entity-strip,
+.review-panel,
+.review-warning {
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
 }
 
-.review-card :deep(.card-header) {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  padding: 0.75rem 1rem;
+.review-entity-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.85rem;
+  background: #f8fafc;
 }
 
-.review-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6c757d;
-  margin-bottom: 0.25rem;
+.review-entity-strip__main {
+  min-width: 0;
 }
 
+.review-entity-strip__gene {
+  color: #172033;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.review-entity-strip__disease {
+  overflow: hidden;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-entity-strip__meta,
 .review-value {
-  font-size: 0.9375rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
-.synopsis-text {
-  white-space: pre-wrap;
-  background-color: #f8f9fa;
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.review-panel {
+  min-width: 0;
   padding: 0.75rem;
-  border-radius: 0.375rem;
-  max-height: 150px;
-  overflow-y: auto;
+  text-align: left;
+}
+
+.review-panel--wide {
+  grid-column: 1 / -1;
+}
+
+.review-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.review-panel__header h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.synopsis-text,
+.review-comment {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #172033;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.review-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.45rem;
+  padding: 0.14rem 0.42rem;
+  border: 1px solid #7c3aed;
+  border-radius: 999px;
+  background-color: #ede9fe !important;
+  color: #0f172a !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.07);
+  white-space: normal;
+}
+
+.review-chip--publication {
+  border-color: #0891b2;
+  background-color: #cffafe !important;
+}
+
+.review-chip--genereview,
+.review-chip--variation {
+  border-color: #2563eb;
+  background-color: #dbeafe !important;
+}
+
+.review-chip--ndd {
+  border-color: #16a34a;
+  background-color: #dcfce7 !important;
+}
+
+.review-chip--status {
+  border-color: #334155;
+  background-color: #f1f5f9 !important;
+}
+
+.review-chip--inheritance {
+  border-color: #2563eb;
+  background-color: #dbeafe !important;
+}
+
+.review-chip__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.review-empty {
+  color: #64748b;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.review-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.review-warning__title {
+  font-weight: 800;
+}
+
+.review-edit {
+  white-space: nowrap;
+}
+
+@media (max-width: 767.98px) {
+  .review-entity-strip,
+  .review-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-edit {
+    justify-self: flex-start;
+  }
 }
 </style>

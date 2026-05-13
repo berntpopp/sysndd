@@ -1,0 +1,326 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 1440,
+          "h": 900
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 1440,
+          "h": 900
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 8,
+    "modal": [
+      {
+        "title": "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 1440,
+          "h": 900
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": [
+      {
+        "text": "uncertain: Abnormality of the nervous system",
+        "w": 289
+      }
+    ]
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 1440,
+          "h": 900
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 390,
+          "h": 844
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 390,
+          "h": 844
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 8,
+    "modal": [
+      {
+        "title": "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 390,
+          "h": 844
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": [
+      {
+        "text": "uncertain: Abnormality of the nervous system",
+        "w": 289
+      }
+    ]
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Edit Workflow",
+      "Current Selection",
+      "Entity Summary",
+      "Rename Entity Disease sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Rename Entity Disease sysndd:408",
+      "Deactivate Entity sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Deactivate Entity sysndd:408",
+      "Modify Review sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Review sysndd:408",
+      "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+      "Modify Status sysndd:408",
+      "Unsaved Changes"
+    ],
+    "overflow": [],
+    "clippedButtons": 0,
+    "modal": [
+      {
+        "title": "Modify Status sysndd:408MED23MED23 (HGNC:2372)Intellectual developmental disorde…Intellectual developmental disorder, autosomal recessive 18, with or without epilepsy (OMIM:614249)ARAutosomal recessive inheritance (HP:0000007)Autosomal recessive inheritanceDefinitive",
+        "rect": {
+          "w": 390,
+          "h": 844
+        }
+      }
+    ],
+    "contextStripCount": 4,
+    "longPills": []
+  }
+]

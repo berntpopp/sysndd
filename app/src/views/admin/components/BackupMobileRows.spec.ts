@@ -19,9 +19,15 @@ describe('BackupMobileRows', () => {
     expect(wrapper.text()).toContain('2 KB');
     expect(wrapper.text()).toContain('manual');
 
-    await wrapper.get('button[aria-label="Download backup manual_2026-05-01.sql.gz"]').trigger('click');
-    await wrapper.get('button[aria-label="Restore backup manual_2026-05-01.sql.gz"]').trigger('click');
-    await wrapper.get('button[aria-label="Delete backup manual_2026-05-01.sql.gz"]').trigger('click');
+    await wrapper
+      .get('button[aria-label="Download backup manual_2026-05-01.sql.gz"]')
+      .trigger('click');
+    await wrapper
+      .get('button[aria-label="Restore backup manual_2026-05-01.sql.gz"]')
+      .trigger('click');
+    await wrapper
+      .get('button[aria-label="Delete backup manual_2026-05-01.sql.gz"]')
+      .trigger('click');
 
     expect(wrapper.emitted('download')).toEqual([[item]]);
     expect(wrapper.emitted('restore')).toEqual([[item]]);

@@ -1,0 +1,92 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "summaryHeight": 138,
+    "unitHeight": 64,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "summaryHeight": 102,
+    "unitHeight": 46,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "summaryHeight": 102,
+    "unitHeight": 46,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "summaryHeight": 103,
+    "unitHeight": 46,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "summaryHeight": 102,
+    "unitHeight": 46,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "summaryHeight": 259,
+    "unitHeight": 171,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "summaryHeight": 259,
+    "unitHeight": 171,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "summaryHeight": 259,
+    "unitHeight": 171,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "summaryHeight": 259,
+    "unitHeight": 171,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "summaryHeight": 259,
+    "unitHeight": 171,
+    "overflow": [],
+    "clipped": 0,
+    "modals": 0
+  }
+]

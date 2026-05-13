@@ -27,38 +27,7 @@
             class="ms-2"
           />
         </h4>
-        <div class="d-flex flex-wrap gap-2 small">
-          <span class="d-flex align-items-center">
-            <i class="bi bi-file-earmark-medical me-1" />
-            <strong>{{ entity?.symbol || 'N/A' }}</strong>
-          </span>
-          <span class="text-muted">|</span>
-          <span
-            class="d-flex align-items-center text-truncate"
-            style="max-width: 200px"
-            :title="entity?.disease_ontology_name"
-          >
-            <i class="bi bi-clipboard2-pulse me-1" />
-            {{ entity?.disease_ontology_name || 'N/A' }}
-          </span>
-          <span class="text-muted">|</span>
-          <span class="d-flex align-items-center">
-            <i class="bi bi-diagram-3 me-1" />
-            {{
-              entity?.hpo_mode_of_inheritance_term_name ||
-              entity?.hpo_mode_of_inheritance_term ||
-              'N/A'
-            }}
-          </span>
-          <span class="text-muted">|</span>
-          <BBadge
-            :variant="(stoplightsStyle[entity?.category] || 'secondary') as any"
-            class="d-inline-flex align-items-center"
-          >
-            <i class="bi bi-stoplights me-1" />
-            {{ entity?.category || 'N/A' }}
-          </BBadge>
-        </div>
+        <EntityContextStrip :entity="entity" />
       </div>
     </template>
 
@@ -108,11 +77,12 @@
 <script lang="ts">
 import { computed, defineComponent, type PropType } from 'vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
+import EntityContextStrip from './EntityContextStrip.vue';
 import type { StatusFormData } from '../composables/useStatusForm';
 
 export default defineComponent({
   name: 'StatusModifyModal',
-  components: { EntityBadge },
+  components: { EntityBadge, EntityContextStrip },
   props: {
     visible: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },

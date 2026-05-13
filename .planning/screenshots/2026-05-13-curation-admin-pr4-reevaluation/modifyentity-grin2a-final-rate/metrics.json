@@ -1,0 +1,112 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "summaryHeight": 99,
+    "identityHeight": 73,
+    "workflowHeight": 0,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "summaryHeight": 58,
+    "identityHeight": 32,
+    "workflowHeight": 218,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "summaryHeight": 58,
+    "identityHeight": 32,
+    "workflowHeight": 177,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "summaryHeight": 58,
+    "identityHeight": 32,
+    "workflowHeight": 838,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "summaryHeight": 58,
+    "identityHeight": 32,
+    "workflowHeight": 356,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "summaryHeight": 181,
+    "identityHeight": 155,
+    "workflowHeight": 0,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "summaryHeight": 181,
+    "identityHeight": 155,
+    "workflowHeight": 317,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "summaryHeight": 181,
+    "identityHeight": 155,
+    "workflowHeight": 316,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "summaryHeight": 181,
+    "identityHeight": 155,
+    "workflowHeight": 1407,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "summaryHeight": 181,
+    "identityHeight": 155,
+    "workflowHeight": 475,
+    "overflow": 0,
+    "clipped": 0,
+    "modals": 0,
+    "dups": []
+  }
+]
