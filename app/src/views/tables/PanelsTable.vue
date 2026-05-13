@@ -245,6 +245,7 @@ export default {
       isBusy: true,
       downloading: false,
       show_table: false,
+      panelRequestSerial: 0,
     };
   },
   watch: {
@@ -359,6 +360,8 @@ export default {
       }
     },
     async requestSelected() {
+      const requestSerial = this.panelRequestSerial + 1;
+      this.panelRequestSerial = requestSerial;
       this.isBusy = true;
 
       // Extract sort column and order from array-based sortBy (Bootstrap-Vue-Next format)
@@ -373,6 +376,10 @@ export default {
           page_after: this.currentItemID,
           page_size: String(this.perPage),
         });
+
+        if (!this.isCurrentPanelRequest(requestSerial)) {
+          return;
+        }
 
         this.items = data.data;
         this.fields = data.fields;
@@ -389,17 +396,22 @@ export default {
         this.nextItemID = data.meta[0].nextItemID;
         this.lastItemID = data.meta[0].lastItemID;
         this.executionTime = data.meta[0].executionTime;
-
-        this.isBusy = false;
       } catch (e) {
-        this.makeToast(e, 'Error', 'danger');
-        this.isBusy = false;
+        if (this.isCurrentPanelRequest(requestSerial)) {
+          this.makeToast(e, 'Error', 'danger');
+        }
+      } finally {
+        if (this.isCurrentPanelRequest(requestSerial)) {
+          const uiStore = useUiStore();
+          uiStore.requestScrollbarUpdate();
+
+          this.isBusy = false;
+          this.loading = false;
+        }
       }
-
-      const uiStore = useUiStore();
-      uiStore.requestScrollbarUpdate();
-
-      this.loading = false;
+    },
+    isCurrentPanelRequest(requestSerial) {
+      return requestSerial === this.panelRequestSerial;
     },
     async requestExcel() {
       this.downloading = true;

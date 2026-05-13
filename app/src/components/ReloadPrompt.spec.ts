@@ -1,4 +1,6 @@
 import { mount } from '@vue/test-utils';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { ref } from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,5 +96,14 @@ describe('ReloadPrompt', () => {
 
     expect(wrapper.get('[role="status"]').text()).toContain('New SysNDD version available');
     expect(wrapper.get('button.btn-primary').text()).toBe('Update');
+  });
+
+  it('offsets the fixed prompt above the fixed footer', () => {
+    const source = readFileSync(fileURLToPath(import.meta.url).replace(/\.spec\.ts$/, '.vue'), {
+      encoding: 'utf8',
+    });
+
+    expect(source).toContain('--app-footer-height');
+    expect(source).toMatch(/bottom:\s*calc\(var\(--app-footer-height,\s*48px\)\s*\+\s*1rem/);
   });
 });

@@ -146,16 +146,22 @@ export default {
         // Close mobile navbar on route change (fixes #94)
         this.navbarCollapsed = false;
       }
-      // Vue Router 4: onReady replaced with isReady()
-      this.$router.isReady().then(() => {
-        this.show_search = this.$route.name !== 'Home';
-      });
+      this.updateSearchVisibility();
     },
   },
   mounted() {
     this.isUserLoggedIn();
+    this.updateSearchVisibility();
   },
   methods: {
+    updateSearchVisibility() {
+      // Vue Router 4: onReady replaced with isReady(). Run this on mount too
+      // so direct non-home loads show the navbar search before any route change.
+      this.show_search = this.$route.name !== 'Home';
+      this.$router.isReady().then(() => {
+        this.show_search = this.$route.name !== 'Home';
+      });
+    },
     isUserLoggedIn() {
       // Phase E.E7: `isAuthenticated` covers both "token present" and
       // "user payload parsed cleanly" — the composable already refused a

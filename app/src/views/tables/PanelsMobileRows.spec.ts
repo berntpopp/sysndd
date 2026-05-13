@@ -37,7 +37,12 @@ describe('PanelsMobileRows', () => {
 
     await wrapper.get('button[aria-expanded="false"]').trigger('click');
 
-    expect(wrapper.get('button').attributes('aria-expanded')).toBe('true');
+    const detailsButton = wrapper.get('button');
+    const detailsId = detailsButton.attributes('aria-controls');
+
+    expect(detailsButton.attributes('aria-expanded')).toBe('true');
+    expect(detailsId).toBeTruthy();
+    expect(wrapper.find(`#${detailsId}`).exists()).toBe(true);
     expect(wrapper.text()).toContain('HGNC:18040');
     expect(wrapper.text()).toContain('57492');
   });

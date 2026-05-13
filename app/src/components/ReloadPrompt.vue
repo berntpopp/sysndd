@@ -52,7 +52,7 @@ function close() {
 .reload-prompt {
   position: fixed;
   right: 1rem;
-  bottom: calc(1rem + env(safe-area-inset-bottom));
+  bottom: calc(var(--app-footer-height, 48px) + 1rem + env(safe-area-inset-bottom));
   z-index: 1060;
   background: #fff;
   border: 1px solid rgba(33, 37, 41, 0.12);
@@ -115,7 +115,7 @@ function close() {
 @media (max-width: 575.98px) {
   .reload-prompt {
     right: 0.75rem;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    bottom: calc(var(--app-footer-height, 48px) + 0.75rem + env(safe-area-inset-bottom));
     align-items: flex-start;
   }
 

@@ -9,13 +9,16 @@ vi.mock('@/api/auth', () => ({
   signin: vi.fn(),
 }));
 
-const mountNavbar = async () => {
+const mountNavbar = async (initialPath = '/') => {
   const router = createRouter({
     history: createWebHistory(),
-    routes: [{ path: '/', name: 'Home', component: { template: '<div />' } }],
+    routes: [
+      { path: '/', name: 'Home', component: { template: '<div />' } },
+      { path: '/Genes/:symbol', name: 'GenesDetail', component: { template: '<div />' } },
+    ],
   });
 
-  await router.push('/');
+  await router.push(initialPath);
   await router.isReady();
 
   return mount(AppNavbar, {
@@ -88,6 +91,13 @@ describe('AppNavbar', () => {
     const toggle = wrapper.get('.navbar-toggler-stub');
     expect(toggle.attributes('aria-label')).toBe('Open navigation menu');
     expect(toggle.attributes('aria-expanded')).toBe('false');
+  });
+
+  it('shows navbar search on direct non-home route loads', async () => {
+    const wrapper = await mountNavbar('/Genes/ARID1B');
+
+    expect(wrapper.find('.app-navbar__search .search-combobox-stub').exists()).toBe(true);
+    expect(wrapper.find('.app-navbar__mobile-search .search-combobox-stub').exists()).toBe(true);
   });
 
   it('shows admin menus from the persisted auth payload while JWT validation is still pending', async () => {
