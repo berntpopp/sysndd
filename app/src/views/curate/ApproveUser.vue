@@ -6,516 +6,516 @@
     full-width
   >
     <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <BCard
-            header-tag="header"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="dark"
-            header-bg-variant="dark"
-            header-text-variant="light"
-          >
-            <template #header>
-              <BRow class="align-items-center">
-                <BCol>
-                  <div class="mb-0 text-start fw-bold">
-                    Approve User Applications
-                    <BBadge variant="primary" class="ms-2"> {{ totalRows }} pending </BBadge>
-                  </div>
-                </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    v-b-tooltip.hover.bottom
-                    variant="outline-light"
-                    size="sm"
-                    title="Refresh data"
-                    aria-label="Refresh table data"
-                    @click="loadUserTableData()"
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol md="12">
+            <TableShell title="Approve User Applications" :meta="`${totalRows} pending`">
+              <template #actions>
+                <BButton
+                  v-b-tooltip.hover.bottom
+                  variant="outline-secondary"
+                  size="sm"
+                  title="Refresh data"
+                  aria-label="Refresh table data"
+                  @click="loadUserTableData()"
+                >
+                  <i class="bi bi-arrow-clockwise" aria-hidden="true" />
+                </BButton>
+              </template>
+
+              <!-- Search and pagination row -->
+              <template #toolbar>
+                <BRow class="g-2 align-items-center">
+                  <BCol cols="12" md="5" class="mb-2 mb-md-0">
+                    <BInputGroup size="sm">
+                      <template #prepend>
+                        <BInputGroupText>
+                          <i class="bi bi-search" />
+                        </BInputGroupText>
+                      </template>
+                      <BFormInput
+                        id="filter-input"
+                        v-model="filter"
+                        type="search"
+                        placeholder="Search by name, email..."
+                        debounce="300"
+                      />
+                    </BInputGroup>
+                  </BCol>
+
+                  <BCol
+                    cols="12"
+                    md="7"
+                    class="d-flex justify-content-end align-items-center gap-2"
                   >
-                    <i class="bi bi-arrow-clockwise" aria-hidden="true" />
-                  </BButton>
-                </BCol>
-              </BRow>
-            </template>
+                    <BInputGroup size="sm" class="w-auto">
+                      <template #prepend>
+                        <BInputGroupText>Per page</BInputGroupText>
+                      </template>
+                      <BFormSelect
+                        id="per-page-select"
+                        v-model="perPage"
+                        :options="pageOptions"
+                        size="sm"
+                        style="width: 70px"
+                      />
+                    </BInputGroup>
 
-            <!-- Search and pagination row -->
-            <BRow class="px-3 py-2 align-items-center">
-              <BCol cols="12" md="5" class="mb-2 mb-md-0">
-                <BInputGroup size="sm">
-                  <template #prepend>
-                    <BInputGroupText>
-                      <i class="bi bi-search" />
-                    </BInputGroupText>
-                  </template>
-                  <BFormInput
-                    id="filter-input"
-                    v-model="filter"
-                    type="search"
-                    placeholder="Search by name, email..."
-                    debounce="300"
-                  />
-                </BInputGroup>
-              </BCol>
+                    <BPagination
+                      v-model="currentPage"
+                      :total-rows="totalRows"
+                      :per-page="perPage"
+                      size="sm"
+                      class="my-0"
+                      limit="3"
+                    />
+                  </BCol>
+                </BRow>
 
-              <BCol cols="12" md="7" class="d-flex justify-content-end align-items-center gap-2">
-                <BInputGroup size="sm" class="w-auto">
-                  <template #prepend>
-                    <BInputGroupText>Per page</BInputGroupText>
-                  </template>
-                  <BFormSelect
-                    id="per-page-select"
-                    v-model="perPage"
-                    :options="pageOptions"
-                    size="sm"
-                    style="width: 70px"
-                  />
-                </BInputGroup>
-
-                <BPagination
-                  v-model="currentPage"
-                  :total-rows="totalRows"
-                  :per-page="perPage"
-                  size="sm"
-                  class="my-0"
-                  limit="3"
-                />
-              </BCol>
-            </BRow>
-
-            <!-- Filter dropdowns -->
-            <BRow class="px-3 pb-2 align-items-center">
-              <BCol cols="6" md="3" class="mb-2 mb-md-0">
-                <BFormSelect
-                  v-model="roleFilter"
-                  size="sm"
-                  :options="roleFilterOptions"
-                  aria-label="Filter by role"
-                />
-              </BCol>
-              <BCol cols="6" md="9" class="d-flex align-items-center flex-wrap gap-1">
-                <!-- Active filter tags -->
-                <BBadge
-                  v-if="filter"
-                  variant="secondary"
-                  class="d-flex align-items-center gap-1"
-                  style="cursor: pointer"
-                  @click="filter = ''"
-                >
-                  Search: {{ filter }}
-                  <i class="bi bi-x" />
-                </BBadge>
-                <BBadge
-                  v-if="roleFilter"
-                  variant="secondary"
-                  class="d-flex align-items-center gap-1"
-                  style="cursor: pointer"
-                  @click="roleFilter = null"
-                >
-                  Role: {{ roleFilter }}
-                  <i class="bi bi-x" />
-                </BBadge>
-              </BCol>
-            </BRow>
-
-            <!-- Main table -->
-            <div class="position-relative">
-              <BSpinner
-                v-if="loadingUsersApprove"
-                class="position-absolute top-50 start-50 translate-middle"
-                variant="primary"
-              />
-              <div
-                v-if="!loadingUsersApprove && filteredItems.length === 0"
-                class="text-center py-5"
-              >
-                <i class="bi bi-person-check fs-1 text-success" />
-                <p class="text-muted mt-2">No pending user applications</p>
-              </div>
-              <BTable
-                v-else-if="!loadingUsersApprove"
-                :items="filteredItems"
-                :fields="fields"
-                :per-page="perPage"
-                :current-page="currentPage"
-                :class="{ 'opacity-50': loadingUsersApprove }"
-                stacked="md"
-                head-variant="light"
-                show-empty
-                small
-                striped
-                hover
-                sort-icon-left
-                empty-text="No pending applications found"
-              >
-                <template #cell(user_name)="data">
-                  <div class="d-flex align-items-center gap-2">
-                    <span
-                      class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
-                      style="width: 28px; height: 28px; font-size: 0.8rem"
+                <!-- Filter dropdowns -->
+                <BRow class="g-2 align-items-center mt-1">
+                  <BCol cols="6" md="3" class="mb-2 mb-md-0">
+                    <BFormSelect
+                      v-model="roleFilter"
+                      size="sm"
+                      :options="roleFilterOptions"
+                      aria-label="Filter by role"
+                    />
+                  </BCol>
+                  <BCol cols="6" md="9" class="d-flex align-items-center flex-wrap gap-1">
+                    <!-- Active filter tags -->
+                    <BBadge
+                      v-if="filter"
+                      variant="secondary"
+                      class="d-flex align-items-center gap-1"
+                      style="cursor: pointer"
+                      @click="filter = ''"
                     >
-                      <i class="bi bi-person-fill" />
-                    </span>
-                    <div>
-                      <strong>{{ data.item.user_name }}</strong>
-                      <div class="text-muted small">
-                        {{ data.item.first_name }} {{ data.item.family_name }}
+                      Search: {{ filter }}
+                      <i class="bi bi-x" />
+                    </BBadge>
+                    <BBadge
+                      v-if="roleFilter"
+                      variant="secondary"
+                      class="d-flex align-items-center gap-1"
+                      style="cursor: pointer"
+                      @click="roleFilter = null"
+                    >
+                      Role: {{ roleFilter }}
+                      <i class="bi bi-x" />
+                    </BBadge>
+                  </BCol>
+                </BRow>
+              </template>
+
+              <!-- Main table -->
+              <div class="position-relative">
+                <BSpinner
+                  v-if="loadingUsersApprove"
+                  class="position-absolute top-50 start-50 translate-middle"
+                  variant="primary"
+                />
+                <div
+                  v-if="!loadingUsersApprove && filteredItems.length === 0"
+                  class="text-center py-5"
+                >
+                  <i class="bi bi-person-check fs-1 text-success" />
+                  <p class="text-muted mt-2">No pending user applications</p>
+                </div>
+                <BTable
+                  v-else-if="!loadingUsersApprove"
+                  class="d-none d-md-table"
+                  :items="filteredItems"
+                  :fields="fields"
+                  :per-page="perPage"
+                  :current-page="currentPage"
+                  :class="{ 'opacity-50': loadingUsersApprove }"
+                  head-variant="light"
+                  show-empty
+                  small
+                  striped
+                  hover
+                  sort-icon-left
+                  empty-text="No pending applications found"
+                >
+                  <template #cell(user_name)="data">
+                    <div class="d-flex align-items-center gap-2">
+                      <span
+                        class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary"
+                        style="width: 28px; height: 28px; font-size: 0.8rem"
+                      >
+                        <i class="bi bi-person-fill" />
+                      </span>
+                      <div>
+                        <strong>{{ data.item.user_name }}</strong>
+                        <div class="text-muted small">
+                          {{ data.item.first_name }} {{ data.item.family_name }}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </template>
+                  </template>
 
-                <template #cell(email)="data">
-                  <div class="d-flex align-items-center">
-                    <i class="bi bi-envelope me-1 text-muted" />
-                    <span class="small">{{ data.item.email }}</span>
-                  </div>
-                </template>
+                  <template #cell(email)="data">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-envelope me-1 text-muted" />
+                      <span class="small">{{ data.item.email }}</span>
+                    </div>
+                  </template>
 
-                <template #cell(orcid)="data">
-                  <a
-                    v-if="data.item.orcid"
-                    :href="'https://orcid.org/' + data.item.orcid"
-                    target="_blank"
-                    class="text-decoration-none"
-                  >
-                    <i class="bi bi-link-45deg me-1" />
-                    {{ data.item.orcid }}
-                  </a>
-                  <span v-else class="text-muted">—</span>
-                </template>
-
-                <template #cell(user_role)="data">
-                  <BBadge
-                    :variant="getRoleBadgeVariant(data.item.user_role)"
-                    class="d-inline-flex align-items-center gap-1"
-                  >
-                    <i :class="getRoleIcon(data.item.user_role)" />
-                    {{ data.item.user_role }}
-                  </BBadge>
-                </template>
-
-                <template #cell(created_at)="data">
-                  <div class="d-flex align-items-center gap-1">
-                    <span
-                      v-b-tooltip.hover.top
-                      :title="data.item.created_at"
-                      class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
-                      style="width: 24px; height: 24px; font-size: 0.75rem"
+                  <template #cell(orcid)="data">
+                    <a
+                      v-if="data.item.orcid"
+                      :href="'https://orcid.org/' + data.item.orcid"
+                      target="_blank"
+                      class="text-decoration-none"
                     >
-                      <i class="bi bi-calendar3" />
-                    </span>
-                    <span class="small text-muted">
-                      {{ formatDate(data.item.created_at) }}
-                    </span>
-                  </div>
-                </template>
+                      <i class="bi bi-link-45deg me-1" />
+                      {{ data.item.orcid }}
+                    </a>
+                    <span v-else class="text-muted">—</span>
+                  </template>
 
-                <template #cell(comment)="data">
-                  <div
-                    v-if="data.item.comment"
-                    :id="'comment-user-' + data.item.user_id"
-                    class="text-truncate-multiline small text-popover-trigger"
-                    style="max-width: 150px"
-                  >
-                    {{ data.item.comment }}
-                  </div>
-                  <BPopover
-                    v-if="data.item.comment"
-                    :target="'comment-user-' + data.item.user_id"
-                    triggers="hover focus"
-                    placement="top"
-                    custom-class="wide-popover"
-                  >
-                    <template #title>
-                      <i class="bi bi-chat-left-text me-1" />
-                      Application Comment
-                    </template>
-                    <div class="popover-text-content">
+                  <template #cell(user_role)="data">
+                    <BBadge
+                      :variant="getRoleBadgeVariant(data.item.user_role)"
+                      class="d-inline-flex align-items-center gap-1"
+                    >
+                      <i :class="getRoleIcon(data.item.user_role)" />
+                      {{ data.item.user_role }}
+                    </BBadge>
+                  </template>
+
+                  <template #cell(created_at)="data">
+                    <div class="d-flex align-items-center gap-1">
+                      <span
+                        v-b-tooltip.hover.top
+                        :title="data.item.created_at"
+                        class="d-inline-flex align-items-center justify-content-center rounded-circle bg-secondary-subtle text-secondary"
+                        style="width: 24px; height: 24px; font-size: 0.75rem"
+                      >
+                        <i class="bi bi-calendar3" />
+                      </span>
+                      <span class="small text-muted">
+                        {{ formatDate(data.item.created_at) }}
+                      </span>
+                    </div>
+                  </template>
+
+                  <template #cell(comment)="data">
+                    <div
+                      v-if="data.item.comment"
+                      :id="'comment-user-' + data.item.user_id"
+                      class="text-truncate-multiline small text-popover-trigger"
+                      style="max-width: 150px"
+                    >
                       {{ data.item.comment }}
                     </div>
-                  </BPopover>
-                  <span v-else class="text-muted small">—</span>
-                </template>
+                    <BPopover
+                      v-if="data.item.comment"
+                      :target="'comment-user-' + data.item.user_id"
+                      triggers="hover focus"
+                      placement="top"
+                      custom-class="wide-popover"
+                    >
+                      <template #title>
+                        <i class="bi bi-chat-left-text me-1" />
+                        Application Comment
+                      </template>
+                      <div class="popover-text-content">
+                        {{ data.item.comment }}
+                      </div>
+                    </BPopover>
+                    <span v-else class="text-muted small">—</span>
+                  </template>
 
-                <template #cell(actions)="row">
-                  <div class="d-flex gap-1">
-                    <BButton
-                      v-b-tooltip.hover.top
-                      size="sm"
-                      class="btn-xs"
-                      variant="success"
-                      title="Approve user"
-                      :aria-label="`Approve user ${row.item.user_name}`"
-                      @click="approveUser(row.item)"
-                    >
-                      <i class="bi bi-check-lg" aria-hidden="true" />
-                    </BButton>
-                    <BButton
-                      v-b-tooltip.hover.top
-                      size="sm"
-                      class="btn-xs"
-                      variant="outline-secondary"
-                      title="Edit & review"
-                      :aria-label="`Review user ${row.item.user_name}`"
-                      @click="reviewUser(row.item)"
-                    >
-                      <i class="bi bi-pencil" aria-hidden="true" />
-                    </BButton>
-                    <BButton
-                      v-b-tooltip.hover.top
-                      size="sm"
-                      class="btn-xs"
-                      variant="outline-danger"
-                      title="Reject application"
-                      :aria-label="`Reject user ${row.item.user_name}`"
-                      @click="rejectUser(row.item)"
-                    >
-                      <i class="bi bi-x-lg" aria-hidden="true" />
-                    </BButton>
-                  </div>
-                </template>
-              </BTable>
+                  <template #cell(actions)="row">
+                    <div class="d-flex gap-1">
+                      <BButton
+                        v-b-tooltip.hover.top
+                        size="sm"
+                        class="btn-xs"
+                        variant="success"
+                        title="Approve user"
+                        :aria-label="`Approve user ${row.item.user_name}`"
+                        @click="approveUser(row.item)"
+                      >
+                        <i class="bi bi-check-lg" aria-hidden="true" />
+                      </BButton>
+                      <BButton
+                        v-b-tooltip.hover.top
+                        size="sm"
+                        class="btn-xs"
+                        variant="outline-secondary"
+                        title="Edit & review"
+                        :aria-label="`Review user ${row.item.user_name}`"
+                        @click="reviewUser(row.item)"
+                      >
+                        <i class="bi bi-pencil" aria-hidden="true" />
+                      </BButton>
+                      <BButton
+                        v-b-tooltip.hover.top
+                        size="sm"
+                        class="btn-xs"
+                        variant="outline-danger"
+                        title="Reject application"
+                        :aria-label="`Reject user ${row.item.user_name}`"
+                        @click="rejectUser(row.item)"
+                      >
+                        <i class="bi bi-x-lg" aria-hidden="true" />
+                      </BButton>
+                    </div>
+                  </template>
+                </BTable>
+                <UserApplicationMobileRows
+                  v-if="!loadingUsersApprove && filteredItems.length > 0"
+                  class="d-md-none"
+                  :items="paginatedItems"
+                  @review="reviewUser"
+                  @approve="approveUser"
+                  @reject="rejectUser"
+                />
+              </div>
+            </TableShell>
+          </BCol>
+        </BRow>
+
+        <!-- Review/Edit User Modal -->
+        <BModal
+          v-model="showReviewModal"
+          size="lg"
+          centered
+          ok-title="Save & Approve"
+          ok-variant="success"
+          cancel-title="Cancel"
+          cancel-variant="outline-secondary"
+          no-close-on-esc
+          no-close-on-backdrop
+          header-class="border-bottom-0 pb-0"
+          footer-class="border-top-0 pt-0"
+          header-close-label="Close"
+          @ok="handleApproveWithChanges"
+        >
+          <template #title>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-person-gear me-2 text-primary" />
+              <span class="fw-semibold">Review Application</span>
             </div>
-          </BCard>
-        </BCol>
-      </BRow>
+          </template>
 
-      <!-- Review/Edit User Modal -->
-      <BModal
-        v-model="showReviewModal"
-        size="lg"
-        centered
-        ok-title="Save & Approve"
-        ok-variant="success"
-        cancel-title="Cancel"
-        cancel-variant="outline-secondary"
-        no-close-on-esc
-        no-close-on-backdrop
-        header-class="border-bottom-0 pb-0"
-        footer-class="border-top-0 pt-0"
-        header-close-label="Close"
-        @ok="handleApproveWithChanges"
-      >
-        <template #title>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-person-gear me-2 text-primary" />
-            <span class="fw-semibold">Review Application</span>
-          </div>
-        </template>
-
-        <template #footer="{ ok, cancel }">
-          <div class="w-100 d-flex justify-content-between align-items-center">
-            <BButton variant="outline-danger" size="sm" @click="rejectFromModal">
-              <i class="bi bi-x-lg me-1" />
-              Reject
-            </BButton>
-            <div class="d-flex gap-2">
-              <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
-              <BButton variant="success" @click="ok()">
-                <i class="bi bi-check-lg me-1" />
-                Save & Approve
+          <template #footer="{ ok, cancel }">
+            <div class="w-100 d-flex justify-content-between align-items-center">
+              <BButton variant="outline-danger" size="sm" @click="rejectFromModal">
+                <i class="bi bi-x-lg me-1" />
+                Reject
               </BButton>
+              <div class="d-flex gap-2">
+                <BButton variant="outline-secondary" @click="cancel()"> Cancel </BButton>
+                <BButton variant="success" @click="ok()">
+                  <i class="bi bi-check-lg me-1" />
+                  Save & Approve
+                </BButton>
+              </div>
+            </div>
+          </template>
+
+          <!-- User Info Header -->
+          <div class="bg-light rounded-3 p-3 mb-4">
+            <div class="d-flex align-items-center gap-3">
+              <span
+                class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
+                style="width: 48px; height: 48px; font-size: 1.2rem"
+              >
+                <i class="bi bi-person-fill" />
+              </span>
+              <div>
+                <div class="mb-0 fw-semibold">
+                  {{ selectedUser.first_name }} {{ selectedUser.family_name }}
+                </div>
+                <div class="text-muted small">
+                  @{{ selectedUser.user_name }} · Applied {{ formatDate(selectedUser.created_at) }}
+                </div>
+              </div>
             </div>
           </div>
-        </template>
 
-        <!-- User Info Header -->
-        <div class="bg-light rounded-3 p-3 mb-4">
-          <div class="d-flex align-items-center gap-3">
+          <!-- Application Details Section -->
+          <div class="mb-4">
+            <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
+              <i class="bi bi-info-circle me-2" />
+              Application Details
+            </div>
+            <BRow>
+              <BCol md="6">
+                <div class="mb-3">
+                  <label class="form-label text-muted small">Email</label>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-envelope me-2 text-muted" />
+                    <span>{{ selectedUser.email }}</span>
+                  </div>
+                </div>
+              </BCol>
+              <BCol md="6">
+                <div class="mb-3">
+                  <label class="form-label text-muted small">ORCID</label>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-link-45deg me-2 text-muted" />
+                    <a
+                      v-if="selectedUser.orcid"
+                      :href="'https://orcid.org/' + selectedUser.orcid"
+                      target="_blank"
+                    >
+                      {{ selectedUser.orcid }}
+                    </a>
+                    <span v-else class="text-muted">Not provided</span>
+                  </div>
+                </div>
+              </BCol>
+            </BRow>
+            <BRow>
+              <BCol md="6">
+                <div class="mb-3">
+                  <label class="form-label text-muted small">Abbreviation</label>
+                  <div>{{ selectedUser.abbreviation || '—' }}</div>
+                </div>
+              </BCol>
+              <BCol md="6">
+                <div class="mb-3">
+                  <label class="form-label text-muted small">Terms Agreed</label>
+                  <BBadge :variant="selectedUser.terms_agreed ? 'success' : 'danger'">
+                    <i
+                      :class="selectedUser.terms_agreed ? 'bi bi-check-circle' : 'bi bi-x-circle'"
+                      class="me-1"
+                    />
+                    {{ selectedUser.terms_agreed ? 'Yes' : 'No' }}
+                  </BBadge>
+                </div>
+              </BCol>
+            </BRow>
+            <div v-if="selectedUser.comment">
+              <label class="form-label text-muted small">Application Comment</label>
+              <div class="bg-warning-subtle rounded p-2 small">
+                {{ selectedUser.comment }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Role Assignment Section -->
+          <div class="mb-3">
+            <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
+              <i class="bi bi-shield-check me-2" />
+              Role Assignment
+            </div>
+            <BFormGroup label="Assign Role" label-for="role-select">
+              <BFormSelect
+                id="role-select"
+                v-model="selectedUser.user_role"
+                :options="role_options"
+                size="sm"
+              >
+                <template #first>
+                  <BFormSelectOption :value="null"> Select a role... </BFormSelectOption>
+                </template>
+              </BFormSelect>
+              <small class="text-muted">
+                Choose the appropriate role for this user based on their application.
+              </small>
+            </BFormGroup>
+          </div>
+        </BModal>
+
+        <!-- Quick Approve Confirmation Modal -->
+        <BModal
+          v-model="showApproveModal"
+          centered
+          ok-title="Approve"
+          ok-variant="success"
+          cancel-title="Cancel"
+          cancel-variant="outline-secondary"
+          header-class="border-bottom-0 pb-0"
+          footer-class="border-top-0 pt-0"
+          header-close-label="Close"
+          @ok="confirmApprove"
+        >
+          <template #title>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-check-circle-fill me-2 text-success" />
+              <span class="fw-semibold">Approve User</span>
+            </div>
+          </template>
+
+          <div class="text-center py-3">
             <span
-              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white"
-              style="width: 48px; height: 48px; font-size: 1.2rem"
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success mb-3"
+              style="width: 64px; height: 64px; font-size: 1.5rem"
             >
-              <i class="bi bi-person-fill" />
+              <i class="bi bi-person-check" />
             </span>
-            <div>
-              <div class="mb-0 fw-semibold">
-                {{ selectedUser.first_name }} {{ selectedUser.family_name }}
-              </div>
-              <div class="text-muted small">
-                @{{ selectedUser.user_name }} · Applied {{ formatDate(selectedUser.created_at) }}
-              </div>
-            </div>
+            <p class="mb-2">
+              Approve user <strong>{{ selectedUser.user_name }}</strong
+              >?
+            </p>
+            <p class="text-muted small">
+              {{ selectedUser.first_name }} {{ selectedUser.family_name }} will be granted access
+              with
+              <BBadge :variant="getRoleBadgeVariant(selectedUser.user_role)">
+                {{ selectedUser.user_role }}
+              </BBadge>
+              role.
+            </p>
           </div>
-        </div>
+        </BModal>
 
-        <!-- Application Details Section -->
-        <div class="mb-4">
-          <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
-            <i class="bi bi-info-circle me-2" />
-            Application Details
-          </div>
-          <BRow>
-            <BCol md="6">
-              <div class="mb-3">
-                <label class="form-label text-muted small">Email</label>
-                <div class="d-flex align-items-center">
-                  <i class="bi bi-envelope me-2 text-muted" />
-                  <span>{{ selectedUser.email }}</span>
-                </div>
-              </div>
-            </BCol>
-            <BCol md="6">
-              <div class="mb-3">
-                <label class="form-label text-muted small">ORCID</label>
-                <div class="d-flex align-items-center">
-                  <i class="bi bi-link-45deg me-2 text-muted" />
-                  <a
-                    v-if="selectedUser.orcid"
-                    :href="'https://orcid.org/' + selectedUser.orcid"
-                    target="_blank"
-                  >
-                    {{ selectedUser.orcid }}
-                  </a>
-                  <span v-else class="text-muted">Not provided</span>
-                </div>
-              </div>
-            </BCol>
-          </BRow>
-          <BRow>
-            <BCol md="6">
-              <div class="mb-3">
-                <label class="form-label text-muted small">Abbreviation</label>
-                <div>{{ selectedUser.abbreviation || '—' }}</div>
-              </div>
-            </BCol>
-            <BCol md="6">
-              <div class="mb-3">
-                <label class="form-label text-muted small">Terms Agreed</label>
-                <BBadge :variant="selectedUser.terms_agreed ? 'success' : 'danger'">
-                  <i
-                    :class="selectedUser.terms_agreed ? 'bi bi-check-circle' : 'bi bi-x-circle'"
-                    class="me-1"
-                  />
-                  {{ selectedUser.terms_agreed ? 'Yes' : 'No' }}
-                </BBadge>
-              </div>
-            </BCol>
-          </BRow>
-          <div v-if="selectedUser.comment">
-            <label class="form-label text-muted small">Application Comment</label>
-            <div class="bg-warning-subtle rounded p-2 small">
-              {{ selectedUser.comment }}
+        <!-- Reject Confirmation Modal -->
+        <BModal
+          v-model="showRejectModal"
+          centered
+          ok-title="Reject Application"
+          ok-variant="danger"
+          cancel-title="Cancel"
+          cancel-variant="outline-secondary"
+          header-class="border-bottom-0 pb-0"
+          footer-class="border-top-0 pt-0"
+          header-close-label="Close"
+          @ok="confirmReject"
+        >
+          <template #title>
+            <div class="d-flex align-items-center">
+              <i class="bi bi-exclamation-triangle-fill me-2 text-danger" />
+              <span class="fw-semibold">Reject Application</span>
             </div>
-          </div>
-        </div>
+          </template>
 
-        <!-- Role Assignment Section -->
-        <div class="mb-3">
-          <div class="text-muted border-bottom pb-2 mb-3 fw-semibold">
-            <i class="bi bi-shield-check me-2" />
-            Role Assignment
-          </div>
-          <BFormGroup label="Assign Role" label-for="role-select">
-            <BFormSelect
-              id="role-select"
-              v-model="selectedUser.user_role"
-              :options="role_options"
-              size="sm"
+          <div class="text-center py-3">
+            <span
+              class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
+              style="width: 64px; height: 64px; font-size: 1.5rem"
             >
-              <template #first>
-                <BFormSelectOption :value="null"> Select a role... </BFormSelectOption>
-              </template>
-            </BFormSelect>
-            <small class="text-muted">
-              Choose the appropriate role for this user based on their application.
-            </small>
-          </BFormGroup>
-        </div>
-      </BModal>
-
-      <!-- Quick Approve Confirmation Modal -->
-      <BModal
-        v-model="showApproveModal"
-        centered
-        ok-title="Approve"
-        ok-variant="success"
-        cancel-title="Cancel"
-        cancel-variant="outline-secondary"
-        header-class="border-bottom-0 pb-0"
-        footer-class="border-top-0 pt-0"
-        header-close-label="Close"
-        @ok="confirmApprove"
-      >
-        <template #title>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-check-circle-fill me-2 text-success" />
-            <span class="fw-semibold">Approve User</span>
+              <i class="bi bi-person-x" />
+            </span>
+            <p class="mb-2">
+              Reject application from <strong>{{ selectedUser.user_name }}</strong
+              >?
+            </p>
+            <p class="text-muted small">
+              This will delete the user application. This action cannot be undone.
+            </p>
           </div>
-        </template>
+        </BModal>
 
-        <div class="text-center py-3">
-          <span
-            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success mb-3"
-            style="width: 64px; height: 64px; font-size: 1.5rem"
-          >
-            <i class="bi bi-person-check" />
-          </span>
-          <p class="mb-2">
-            Approve user <strong>{{ selectedUser.user_name }}</strong
-            >?
-          </p>
-          <p class="text-muted small">
-            {{ selectedUser.first_name }} {{ selectedUser.family_name }} will be granted access with
-            <BBadge :variant="getRoleBadgeVariant(selectedUser.user_role)">
-              {{ selectedUser.user_role }}
-            </BBadge>
-            role.
-          </p>
-        </div>
-      </BModal>
-
-      <!-- Reject Confirmation Modal -->
-      <BModal
-        v-model="showRejectModal"
-        centered
-        ok-title="Reject Application"
-        ok-variant="danger"
-        cancel-title="Cancel"
-        cancel-variant="outline-secondary"
-        header-class="border-bottom-0 pb-0"
-        footer-class="border-top-0 pt-0"
-        header-close-label="Close"
-        @ok="confirmReject"
-      >
-        <template #title>
-          <div class="d-flex align-items-center">
-            <i class="bi bi-exclamation-triangle-fill me-2 text-danger" />
-            <span class="fw-semibold">Reject Application</span>
-          </div>
-        </template>
-
-        <div class="text-center py-3">
-          <span
-            class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
-            style="width: 64px; height: 64px; font-size: 1.5rem"
-          >
-            <i class="bi bi-person-x" />
-          </span>
-          <p class="mb-2">
-            Reject application from <strong>{{ selectedUser.user_name }}</strong
-            >?
-          </p>
-          <p class="text-muted small">
-            This will delete the user application. This action cannot be undone.
-          </p>
-        </div>
-      </BModal>
-
-      <!-- ARIA live region for screen reader announcements -->
-      <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
-    </BContainer>
-  </div>
+        <!-- ARIA live region for screen reader announcements -->
+        <AriaLiveRegion :message="a11yMessage" :politeness="a11yPoliteness" />
+      </BContainer>
+    </div>
   </AuthenticatedPageShell>
 </template>
 
 <script>
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import TableShell from '@/components/table/TableShell.vue';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
 import { useUiStore } from '@/stores/ui';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
+import UserApplicationMobileRows from './components/UserApplicationMobileRows.vue';
 // v11.0 closeout F2b: apiClient replaces `this.axios` + manual Bearer
 // header construction. The request interceptor reads
 // `useAuth().token.value` and injects `Authorization: Bearer <token>`
@@ -526,7 +526,9 @@ export default {
   name: 'ApproveUser',
   components: {
     AuthenticatedPageShell,
+    TableShell,
     AriaLiveRegion,
+    UserApplicationMobileRows,
   },
   setup() {
     const { makeToast } = useToast();
@@ -637,6 +639,10 @@ export default {
       }
 
       return items;
+    },
+    paginatedItems() {
+      const start = Math.max(this.currentPage - 1, 0) * this.perPage;
+      return this.filteredItems.slice(start, start + this.perPage);
     },
   },
   watch: {

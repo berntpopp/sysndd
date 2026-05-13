@@ -294,6 +294,17 @@
           </div>
         </BCard>
       </template>
+      <template #mobile-rows="{ items }">
+        <ApprovalMobileRows
+          :items="items"
+          user-field="status_user_name"
+          role-field="status_user_role"
+          date-field="status_date"
+          @edit="$emit('edit-status', $event)"
+          @approve="$emit('approve-status', $event)"
+          @dismiss="$emit('dismiss-status', $event)"
+        />
+      </template>
     </ReviewTable>
 
     <!-- Approve status modal -->
@@ -437,6 +448,7 @@ import { computed, ref, watch, getCurrentInstance, type PropType } from 'vue';
 import type { TableField } from '@/types/components';
 
 import ReviewTable from '@/components/review/ReviewTable.vue';
+import ApprovalMobileRows from '@/views/curate/components/ApprovalMobileRows.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
