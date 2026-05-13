@@ -78,16 +78,27 @@ export default function useToast(): ToastMethods {
       body = String(message);
     }
 
-    // For error toasts (danger variant), disable auto-hide per medical app requirements
-    // This ensures users don't miss important error messages
-    const shouldAutoHide = variant === 'danger' ? false : autoHide;
+    // For error toasts (danger variant), disable auto-hide per medical app requirements.
+    // BootstrapVueNext shows persistent toasts with boolean true; negative numeric
+    // countdown values no longer render.
+    const isErrorToast = variant === 'danger';
+    const shouldAutoHide = isErrorToast ? false : autoHide;
+    const toastClass = ['app-toast', variant ? `app-toast--${variant}` : '']
+      .filter(Boolean)
+      .join(' ');
 
     toast.create({
       title,
       body,
       variant,
-      pos: 'top-end',
-      modelValue: shouldAutoHide ? autoHideDelay : -1, // Negative value disables auto-hide
+      position: 'top-end',
+      appendToast: true,
+      toastClass,
+      headerClass: 'app-toast__header',
+      bodyClass: 'app-toast__body',
+      isStatus: !isErrorToast,
+      noProgress: !shouldAutoHide,
+      modelValue: shouldAutoHide ? autoHideDelay : true,
     });
   };
 

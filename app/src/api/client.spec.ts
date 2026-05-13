@@ -117,6 +117,28 @@ describe('api/client — typed wrapper smoke tests', () => {
       expect(isApiError(caught)).toBe(false);
     });
 
+    it('preserves the original AxiosError when auth redirect handling is skipped', async () => {
+      let caught: unknown;
+      try {
+        await apiClient.post(
+          '/api/auth/authenticate',
+          {
+            user_name: ERROR_SENTINELS.WRONG_USER,
+            password: 'hunter2!',
+          },
+          { skipAuthRedirect: true }
+        );
+      } catch (err) {
+        caught = err;
+      }
+
+      expect(caught).toBeDefined();
+      expect(isApiError(caught)).toBe(true);
+      if (isApiError(caught)) {
+        expect(caught.response?.status).toBe(401);
+      }
+    });
+
     it('recognises an AxiosError thrown from a 400 body-validation response', async () => {
       let caught: unknown;
       try {

@@ -1,5 +1,11 @@
 import axios from 'axios';
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean;
+  }
+}
+
 // Configure axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL || '';
 
@@ -25,6 +31,11 @@ let isLoggingOut = false;
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
+    const skipAuthRedirect = error.config?.skipAuthRedirect === true;
+    if (error.response?.status === 401 && skipAuthRedirect) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !isLoggingOut) {
       isLoggingOut = true;
 

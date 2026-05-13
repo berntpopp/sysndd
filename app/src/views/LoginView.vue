@@ -236,7 +236,9 @@ export default {
       // The typed `authenticate()` helper unwraps the Plumber scalar-array
       // envelope before returning the bare token string.
       try {
-        const token = await authenticate(this.user_name, this.password);
+        const token = await authenticate(this.user_name, this.password, {
+          skipAuthRedirect: true,
+        });
         if (typeof token !== 'string' || !token) {
           this.makeToast(
             'Authentication failed: invalid token shape from server',
@@ -263,6 +265,7 @@ export default {
       // half-logged-in state other tabs/components could observe.
       try {
         const userPayload = await signin({
+          skipAuthRedirect: true,
           headers: {
             Authorization: `Bearer ${token}`, // closeout-exception-E1: bootstrap two-step handshake; useAuth.login() requires both token+user atomically (§3.4)
           },

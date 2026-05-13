@@ -120,6 +120,12 @@ export default {
 <style lang="scss">
 @use '@/assets/scss/custom.scss' as custom;
 
+:root {
+  --app-navbar-height: 60px;
+  --app-footer-height: 48px;
+  --app-toast-offset: 0.75rem;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -130,35 +136,157 @@ export default {
 }
 
 body {
-  padding-top: 60px;
-  padding-bottom: 48px;
+  padding-top: var(--app-navbar-height);
+  padding-bottom: var(--app-footer-height);
   overflow: hidden;
 }
 
+.orchestrator-container {
+  position: relative;
+  z-index: 1045;
+}
+
+.toast-container.position-fixed {
+  z-index: 1045;
+  max-height: calc(
+    100vh - var(--app-navbar-height) - var(--app-footer-height) -
+      (var(--app-toast-offset) * 2) - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 !important;
+  pointer-events: none;
+  scrollbar-gutter: stable;
+}
+
 .toast-container.top-0 {
-  top: 64px !important;
+  top: calc(
+    var(--app-navbar-height) + var(--app-toast-offset) + env(safe-area-inset-top)
+  ) !important;
+}
+
+.toast-container.bottom-0 {
+  bottom: calc(
+    var(--app-footer-height) + var(--app-toast-offset) + env(safe-area-inset-bottom)
+  ) !important;
+}
+
+.toast-container.end-0 {
+  right: max(1rem, env(safe-area-inset-right)) !important;
+}
+
+.toast-container.start-0 {
+  left: max(1rem, env(safe-area-inset-left)) !important;
+}
+
+.toast-container .app-toast {
+  width: min(var(--bs-toast-max-width, 360px), calc(100vw - 2rem));
+  max-width: 100%;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  color: #1f2933 !important;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid #d8e0ea;
+  border-left: 4px solid #607d8b;
+  border-radius: 8px;
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.16),
+    0 2px 8px rgba(15, 23, 42, 0.08);
+  pointer-events: auto;
+  backdrop-filter: blur(12px);
+}
+
+.toast-container .app-toast--success {
+  border-left-color: #2e7d32;
+}
+
+.toast-container .app-toast--danger {
+  border-left-color: #c62828;
+}
+
+.toast-container .app-toast--warning {
+  border-left-color: #b7791f;
+}
+
+.toast-container .app-toast--info,
+.toast-container .app-toast--primary {
+  border-left-color: #0d47a1;
+}
+
+.toast-container .app-toast--secondary {
+  border-left-color: #5f6b7a;
+}
+
+.toast-container .app-toast__header {
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem 0.2rem;
+  color: #1f2933;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.2;
+  background: transparent;
+  border-bottom: 0;
+}
+
+.toast-container .app-toast__body {
+  min-width: 0;
+  padding: 0.35rem 0.85rem 0.85rem;
+  color: #344054;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.toast-container .app-toast .btn-close {
+  flex: 0 0 auto;
+  margin-left: 0.75rem;
+  opacity: 0.58;
+}
+
+.toast-container .app-toast .btn-close:hover,
+.toast-container .app-toast .btn-close:focus-visible {
+  opacity: 0.86;
+}
+
+.toast-container .app-toast .progress {
+  height: 3px !important;
+  border-radius: 0;
+  opacity: 0.4;
 }
 
 @media (max-width: 575.98px) {
-  .toast-container.top-0 {
-    right: 0 !important;
-    left: 0 !important;
-    width: min(100vw - 1.5rem, 24rem);
-    margin-right: auto;
-    margin-left: auto;
-    padding-right: 0 !important;
-    padding-left: 0 !important;
+  .toast-container.position-fixed {
+    max-height: min(
+      45vh,
+      calc(
+        100vh - var(--app-navbar-height) - var(--app-footer-height) -
+          1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+      )
+    );
   }
 
-  .toast-container.top-0 .toast {
+  .toast-container.top-0 {
+    top: calc(var(--app-navbar-height) + 0.5rem + env(safe-area-inset-top)) !important;
+  }
+
+  .toast-container.top-0,
+  .toast-container.bottom-0 {
+    right: max(0.75rem, env(safe-area-inset-right)) !important;
+    left: max(0.75rem, env(safe-area-inset-left)) !important;
+    width: auto !important;
+    transform: none !important;
+  }
+
+  .toast-container .app-toast {
     width: 100%;
-    max-width: 100%;
+    margin-bottom: 0.5rem;
   }
 }
 
 // Native scrollbar styling
 .scrollable-content {
-  height: calc(100vh - 108px);
+  height: calc(100vh - var(--app-navbar-height) - var(--app-footer-height));
   overflow-y: auto;
   overflow-x: hidden;
 }
