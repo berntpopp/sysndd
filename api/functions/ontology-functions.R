@@ -224,7 +224,8 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #'
 #' @param hgnc_list A tibble containing non-alternative loci gene data (columns: hgnc_id, symbol).
 #' @param mode_of_inheritance_list A tibble containing mode of inheritance data.
-#' @param max_file_age Integer, maximum age of the file in months before regeneration.
+#' @param max_file_age Numeric, maximum age in months for OMIM mim2gene
+#'   deprecation cache reuse. Use 0 to force a fresh mim2gene download.
 #' @param output_path String, the path where the output CSV file will be stored.
 #' @param progress_callback Optional function for async progress reporting.
 #'   Called with (step, message, current, total) parameters.
@@ -240,7 +241,7 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #'   combined_ontology_data <- process_combine_ontology(
 #'     non_alt_loci_set, moi_list, 3, "data/",
 #'     progress_callback = function(step, message, current, total) {
-#'       message(sprintf("%s: %d/%d", message, current, total))
+#'       base::message(sprintf("%s: %d/%d", message, current, total))
 #'     }
 #'   )
 #' }
@@ -426,7 +427,8 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'
 #' @param hgnc_list A tibble of HGNC gene symbols and corresponding identifiers (columns: hgnc_id, symbol).
 #' @param moi_list A tibble of mode of inheritance terms for HPO mapping.
-#' @param max_file_age Integer, maximum age in days for the mim2gene deprecation cache (default: 3).
+#' @param max_file_age Numeric, maximum age in months for the mim2gene
+#'   deprecation cache (default: 3). Use 0 to force a fresh mim2gene download.
 #' @param progress_callback Optional function for async progress reporting.
 #'   Called with (step, message, current, total) parameters.
 #' @return A tibble containing processed data from the OMIM ontology.
@@ -448,7 +450,7 @@ process_mondo_ontology <- function(mondo_file = "data/mondo_terms/mondo_terms.tx
 #'   processed_omim_data <- process_omim_ontology(
 #'     hgnc_list, moi_list, 3,
 #'     progress_callback = function(step, message, current, total) {
-#'       message(sprintf("%s: %d/%d", message, current, total))
+#'       base::message(sprintf("%s: %d/%d", message, current, total))
 #'     }
 #'   )
 #' }
@@ -499,7 +501,8 @@ process_omim_ontology <- function(hgnc_list, moi_list, max_file_age = 3, progres
     )
   }
   tryCatch({
-    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_days = max_file_age)
+    mim2gene_max_age_days <- max(0, ceiling(max_file_age * 30))
+    mim2gene_file <- download_mim2gene("data/", force = FALSE, max_age_days = mim2gene_max_age_days)
     mim2gene_data <- parse_mim2gene(mim2gene_file)
     deprecated_mims <- get_deprecated_mim_numbers(mim2gene_data)
     if (length(deprecated_mims) > 0) {

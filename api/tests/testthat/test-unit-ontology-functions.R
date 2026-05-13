@@ -355,7 +355,7 @@ test_that("process_omim_ontology sends async progress messages", {
   expect_equal(vapply(progress_calls, `[[`, numeric(1), "total"), rep(4, 4))
 })
 
-test_that("process_omim_ontology forwards mim2gene cache age in days", {
+test_that("process_omim_ontology converts mim2gene cache age from months to days", {
   withr::local_dir(withr::local_tempdir())
   runtime <- load_ontology_runtime()
   mim2gene_args <- stub_omim_runtime(runtime)
@@ -370,7 +370,7 @@ test_that("process_omim_ontology forwards mim2gene cache age in days", {
     progress_callback = NULL
   ))
 
-  expect_equal(mim2gene_args$max_age_days, 7)
+  expect_equal(mim2gene_args$max_age_days, 210)
 })
 
 test_that("process_combine_ontology sends a message for MONDO SSSOM progress", {
