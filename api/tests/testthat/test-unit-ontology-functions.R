@@ -264,6 +264,210 @@ test_that("ontology ID format validation", {
 })
 
 # =============================================================================
+# process_omim_ontology() progress/deprecation plumbing
+# =============================================================================
+
+load_ontology_runtime <- function() {
+  runtime <- new.env(parent = globalenv())
+  suppressWarnings(
+    sys.source(file.path(api_dir, "functions", "file-functions.R"), envir = runtime)
+  )
+  suppressWarnings(
+    sys.source(file.path(api_dir, "functions", "ontology-functions.R"), envir = runtime)
+  )
+  runtime
+}
+
+stub_omim_runtime <- function(runtime, mim2gene_args = new.env(parent = emptyenv())) {
+  runtime$download_genemap2 <- function(output_path = "data/", force = FALSE, max_age_days = 1) {
+    "data/genemap2.test.txt"
+  }
+  runtime$parse_genemap2 <- function(genemap2_path) {
+    tibble(
+      Approved_Symbol = "GENE1",
+      disease_ontology_name = "Test disease",
+      disease_ontology_id = "OMIM:123456",
+      Mapping_key = "3",
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant inheritance"
+    )
+  }
+  runtime$build_omim_from_genemap2 <- function(genemap2_parsed, hgnc_list, moi_list) {
+    tibble(
+      disease_ontology_id_version = "OMIM:123456",
+      disease_ontology_id = "OMIM:123456",
+      disease_ontology_name = "Test disease",
+      disease_ontology_source = "mim2gene",
+      disease_ontology_date = "2026-05-13",
+      disease_ontology_is_specific = TRUE,
+      hgnc_id = "HGNC:1",
+      hpo_mode_of_inheritance_term = "HP:0000006"
+    )
+  }
+  runtime$download_mim2gene <- function(output_path = "data/", force = FALSE, max_age_days = 1) {
+    mim2gene_args$output_path <- output_path
+    mim2gene_args$force <- force
+    mim2gene_args$max_age_days <- max_age_days
+    "data/mim2gene.test.txt"
+  }
+  runtime$parse_mim2gene <- function(file_path) {
+    tibble(
+      mim_number = character(),
+      mim_entry_type = character(),
+      gene_symbol = character(),
+      is_deprecated = logical()
+    )
+  }
+  runtime$get_deprecated_mim_numbers <- function(mim2gene_data) character()
+  runtime$write_csv <- function(x, file, na = "NA") invisible(NULL)
+
+  mim2gene_args
+}
+
+test_that("process_omim_ontology sends async progress messages", {
+  withr::local_dir(withr::local_tempdir())
+  runtime <- load_ontology_runtime()
+  stub_omim_runtime(runtime)
+
+  progress_calls <- list()
+  progress <- function(step, message, current = NULL, total = NULL) {
+    progress_calls[[length(progress_calls) + 1L]] <<- list(
+      step = step,
+      message = message,
+      current = current,
+      total = total
+    )
+  }
+
+  expect_no_error(
+    runtime$process_omim_ontology(
+      hgnc_list = tibble(symbol = "GENE1", hgnc_id = "HGNC:1"),
+      moi_list = tibble(
+        hpo_mode_of_inheritance_term_name = "Autosomal dominant inheritance",
+        hpo_mode_of_inheritance_term = "HP:0000006"
+      ),
+      max_file_age = 7,
+      progress_callback = progress
+    )
+  )
+
+  expect_equal(length(progress_calls), 4L)
+  expect_true(all(nzchar(vapply(progress_calls, `[[`, character(1), "message"))))
+  expect_equal(vapply(progress_calls, `[[`, numeric(1), "total"), rep(4, 4))
+})
+
+test_that("process_omim_ontology converts mim2gene cache age from months to days", {
+  withr::local_dir(withr::local_tempdir())
+  runtime <- load_ontology_runtime()
+  mim2gene_args <- stub_omim_runtime(runtime)
+
+  suppressWarnings(runtime$process_omim_ontology(
+    hgnc_list = tibble(symbol = "GENE1", hgnc_id = "HGNC:1"),
+    moi_list = tibble(
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant inheritance",
+      hpo_mode_of_inheritance_term = "HP:0000006"
+    ),
+    max_file_age = 7,
+    progress_callback = NULL
+  ))
+
+  expect_equal(mim2gene_args$max_age_days, 210)
+})
+
+test_that("process_combine_ontology sends a message for MONDO SSSOM progress", {
+  withr::local_dir(withr::local_tempdir())
+  skip_if_not_installed("tidyr")
+  runtime <- load_ontology_runtime()
+  runtime$separate_rows <- tidyr::separate_rows
+  runtime$check_file_age <- function(file_basename, folder, months) FALSE
+  runtime$process_mondo_ontology <- function() {
+    tibble(
+      disease_ontology_id_version = "MONDO:0000001",
+      disease_ontology_id = "MONDO:0000001",
+      disease_ontology_name = "MONDO disease",
+      disease_ontology_source = "mondo",
+      disease_ontology_date = "2026-05-13",
+      disease_ontology_is_specific = FALSE,
+      hgnc_id = NA_character_,
+      hpo_mode_of_inheritance_term = NA_character_
+    )
+  }
+  runtime$process_omim_ontology <- function(
+    hgnc_list,
+    moi_list,
+    max_file_age,
+    progress_callback
+  ) {
+    tibble(
+      disease_ontology_id_version = "OMIM:123456",
+      disease_ontology_id = "OMIM:123456",
+      disease_ontology_name = "OMIM disease",
+      disease_ontology_source = "mim2gene",
+      disease_ontology_date = "2026-05-13",
+      disease_ontology_is_specific = TRUE,
+      hgnc_id = "HGNC:1",
+      hpo_mode_of_inheritance_term = "HP:0000006"
+    )
+  }
+  runtime$get_ontology_object <- function(
+    ontology_type,
+    config_vars,
+    tags = "everything",
+    max_age = 1
+  ) {
+    list()
+  }
+  runtime$get_mondo_mappings <- function(
+    mondo_ontology,
+    max_age = 1,
+    output_path = "data/",
+    columns_to_return = NULL
+  ) {
+    tibble(
+      OMIM = "OMIM:123456",
+      MONDO = "MONDO:0000001",
+      DOID = NA_character_,
+      Orphanet = NA_character_,
+      EFO = NA_character_
+    )
+  }
+  runtime$download_mondo_sssom <- function(output_path) {
+    "data/mondo-omim.test.sssom.tsv"
+  }
+  runtime$parse_mondo_sssom <- function(file_path) {
+    tibble(omim_id = "OMIM:123456", mondo_id = "MONDO:0000001")
+  }
+  runtime$add_mondo_mappings_to_ontology <- function(disease_ontology_set, mondo_mappings) {
+    disease_ontology_set
+  }
+  runtime$write_csv <- function(x, file, na = "NA") invisible(NULL)
+
+  progress_calls <- list()
+  progress <- function(step, message, current = NULL, total = NULL) {
+    progress_calls[[length(progress_calls) + 1L]] <<- list(
+      step = step,
+      message = message,
+      current = current,
+      total = total
+    )
+  }
+
+  result <- runtime$process_combine_ontology(
+    hgnc_list = tibble(symbol = "GENE1", hgnc_id = "HGNC:1"),
+    mode_of_inheritance_list = tibble(
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant inheritance",
+      hpo_mode_of_inheritance_term = "HP:0000006"
+    ),
+    max_file_age = 3,
+    output_path = "data/",
+    progress_callback = progress
+  )
+
+  expect_equal(nrow(result), 2L)
+  expect_true(any(vapply(progress_calls, `[[`, character(1), "message") ==
+    "Applying MONDO SSSOM mappings"))
+})
+
+# =============================================================================
 # Mode of inheritance term mapping tests
 # =============================================================================
 
