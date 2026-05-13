@@ -271,6 +271,88 @@ batch_preview <- function(criteria, batch_size = 20, pool) {
 }
 
 
+#' List entities available for manual re-review assignment
+#'
+#' Returns entities not currently connected to an active re-review batch. This
+#' is intentionally separate from batch_preview(): manual picking needs a
+#' searchable, paginated entity list, while preview is gene-atomic and
+#' batch-size limited.
+#'
+#' @param query Optional search string matching entity_id, symbol, disease,
+#'   status category, or review date.
+#' @param page Integer page number, one-based.
+#' @param page_size Integer page size.
+#' @param pool Database connection pool.
+#' @return List with status, data, and meta.
+#'
+#' @export
+available_entities <- function(query = NULL, page = 1L, page_size = 25L, pool) {
+  page <- max(1L, as.integer(page %||% 1L))
+  page_size <- min(100L, max(1L, as.integer(page_size %||% 25L)))
+  offset <- (page - 1L) * page_size
+
+  where_clause <- paste(
+    "e.entity_id NOT IN (
+       SELECT rec.entity_id FROM re_review_entity_connect rec
+       INNER JOIN re_review_assignment ra ON rec.re_review_batch = ra.re_review_batch
+       WHERE rec.re_review_approved = 0
+     )"
+  )
+  params <- list()
+
+  query <- trimws(query %||% "")
+  if (nzchar(query)) {
+    where_clause <- paste0(
+      where_clause,
+      " AND (
+        CAST(e.entity_id AS CHAR) LIKE ?
+        OR e.symbol LIKE ?
+        OR e.disease_ontology_name LIKE ?
+        OR COALESCE(c.category, '') LIKE ?
+        OR DATE_FORMAT(r.review_date, '%Y-%m-%d') LIKE ?
+      )"
+    )
+    like_query <- paste0("%", query, "%")
+    params <- rep(list(like_query), 5L)
+  }
+
+  count_sql <- paste0(
+    "SELECT COUNT(*) AS total
+     FROM ndd_entity_view e
+     LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
+     LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
+     LEFT JOIN ndd_entity_status_categories_list c ON s.category_id = c.category_id
+     WHERE ", where_clause
+  )
+  total_rows <- db_execute_query(count_sql, params, conn = pool)
+  total <- as.integer(total_rows$total[1] %||% 0L)
+
+  data_sql <- paste0(
+    "SELECT DISTINCT e.entity_id, e.hgnc_id, e.symbol AS gene_symbol,
+            e.disease_ontology_name, r.review_date, c.category AS status_name
+     FROM ndd_entity_view e
+     LEFT JOIN ndd_entity_review r ON e.entity_id = r.entity_id AND r.is_primary = 1
+     LEFT JOIN ndd_entity_status s ON e.entity_id = s.entity_id AND s.is_active = 1
+     LEFT JOIN ndd_entity_status_categories_list c ON s.category_id = c.category_id
+     WHERE ", where_clause, "
+     ORDER BY r.review_date ASC, e.entity_id ASC
+     LIMIT ? OFFSET ?"
+  )
+  rows <- db_execute_query(data_sql, c(params, list(page_size, offset)), conn = pool)
+
+  list(
+    status = 200,
+    data = rows,
+    meta = list(
+      page = page,
+      page_size = page_size,
+      total = total,
+      total_pages = ceiling(total / page_size)
+    )
+  )
+}
+
+
 #' Create a new re-review batch
 #'
 #' Creates a new batch with entities matching the provided criteria.

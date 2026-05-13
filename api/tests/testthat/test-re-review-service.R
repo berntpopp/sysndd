@@ -250,3 +250,54 @@ test_that("batch_preview atomicity: entity count must be gene-atomic (never spli
     info = paste("Expected 3 entities per gene; got", paste(per_gene, collapse = ","))
   )
 })
+
+test_that("available_entities searches and paginates manual-pick candidates", {
+  calls <- list()
+  mock_fn <- function(sql, params = list(), conn = NULL) {
+    calls[[length(calls) + 1L]] <<- list(sql = sql, params = params)
+    if (grepl("COUNT\\(\\*\\) AS total", sql)) {
+      return(tibble::tibble(total = 85L))
+    }
+    tibble::tibble(
+      entity_id = 1307L,
+      hgnc_id = "HGNC:12760",
+      gene_symbol = "BRWD1",
+      disease_ontology_name = "autism spectrum disorder",
+      review_date = "2014-03-04",
+      status_name = "Limited"
+    )
+  }
+
+  orig_deq <- if (exists("db_execute_query", envir = .GlobalEnv)) {
+    get("db_execute_query", envir = .GlobalEnv)
+  } else {
+    NULL
+  }
+  assign("db_execute_query", mock_fn, envir = .GlobalEnv)
+  on.exit({
+    if (is.null(orig_deq)) {
+      rm("db_execute_query", envir = .GlobalEnv)
+    } else {
+      assign("db_execute_query", orig_deq, envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+
+  result <- available_entities(
+    query = "autism",
+    page = 2L,
+    page_size = 5L,
+    pool = make_mock_conn()
+  )
+
+  expect_equal(result$status, 200L)
+  expect_equal(result$meta$total, 85L)
+  expect_equal(result$meta$page, 2L)
+  expect_equal(result$meta$page_size, 5L)
+  expect_equal(result$meta$total_pages, 17L)
+  expect_equal(result$data$entity_id, 1307L)
+  expect_equal(length(calls), 2L)
+  expect_match(calls[[1L]]$sql, "CAST\\(e.entity_id AS CHAR\\) LIKE")
+  expect_match(calls[[1L]]$sql, "re_review_entity_connect")
+  expect_equal(calls[[1L]]$params, rep(list("%autism%"), 5L))
+  expect_equal(tail(calls[[2L]]$params, 2L), list(5L, 5L))
+})

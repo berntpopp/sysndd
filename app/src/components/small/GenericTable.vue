@@ -225,6 +225,49 @@
       </slot>
     </template>
 
+    <!-- Re-review management columns -->
+    <template #cell(user_name)="data">
+      <slot name="cell-user_name" :row="data.item" :index="data.index">
+        {{ data.item.user_name }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_batch)="data">
+      <slot name="cell-re_review_batch" :row="data.item" :index="data.index">
+        {{ data.item.re_review_batch }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_review_saved)="data">
+      <slot name="cell-re_review_review_saved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_review_saved }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_status_saved)="data">
+      <slot name="cell-re_review_status_saved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_status_saved }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_submitted)="data">
+      <slot name="cell-re_review_submitted" :row="data.item" :index="data.index">
+        {{ data.item.re_review_submitted }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_approved)="data">
+      <slot name="cell-re_review_approved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_approved }}
+      </slot>
+    </template>
+
+    <template #cell(entity_count)="data">
+      <slot name="cell-entity_count" :row="data.item" :index="data.index">
+        {{ data.item.entity_count }}
+      </slot>
+    </template>
+
     <!-- Cluster number column (for combined cluster data) -->
     <template #cell(cluster_num)="data">
       <slot name="cell-cluster_num" :row="data.item" :index="data.index">

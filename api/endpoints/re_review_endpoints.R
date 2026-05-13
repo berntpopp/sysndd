@@ -620,6 +620,33 @@ function(req, res) {
 }
 
 
+#* List entities available for manual re-review assignment
+#*
+#* Returns a searchable, paginated list of entities not currently connected to
+#* an active re-review batch. Use this for manual pick UI; batch/preview remains
+#* gene-atomic and batch-size limited for dynamic batch creation.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @param q Optional search string.
+#* @param page One-based page number.
+#* @param page_size Number of entities per page, capped at 100.
+#*
+#* @get entities/available
+function(req, res, q = "", page = 1L, page_size = 25L) {
+  require_role(req, res, "Curator")
+
+  result <- available_entities(q, page, page_size, pool)
+
+  if (result$status != 200) {
+    res$status <- result$status
+  }
+
+  result
+}
+
+
 #* Reassign Re-Review Batch to different user
 #*
 #* Changes the assigned user for an existing batch.

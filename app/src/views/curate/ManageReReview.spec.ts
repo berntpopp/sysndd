@@ -34,7 +34,7 @@
  *   2. GET    /api/re_review/assignment_table         (loadReReviewTableData)
  *   3. PUT    /api/re_review/batch/assign             (handleNewBatchAssignment)
  *   4. DELETE /api/re_review/batch/unassign           (handleBatchUnAssignment)
- *   5. POST   /api/re_review/batch/preview            (loadAvailableEntities)
+ *   5. GET    /api/re_review/entities/available       (loadAvailableEntities)
  *   6. PUT    /api/re_review/entities/assign          (handleEntityAssignment)
  *   7. PUT    /api/re_review/batch/reassign           (handleBatchReassignment)
  *   8. PUT    /api/re_review/batch/recalculate        (handleBatchRecalculation)
@@ -122,7 +122,9 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
           template: '<div><slot /></div>',
         },
         BButton: { template: '<button><slot /></button>' },
+        BButtonGroup: { template: '<div><slot /></div>' },
         BBadge: { template: '<span><slot /></span>' },
+        BTooltip: { template: '' },
         BLink: { template: '<a><slot /></a>' },
         BSpinner: { template: '<div role="status" />' },
         BTable: {
@@ -219,7 +221,9 @@ function installDefaultHandlers(): void {
   server.use(
     http.get('*/api/user/list', () => HttpResponse.json([])),
     http.get('*/api/re_review/assignment_table', () => HttpResponse.json([])),
-    http.post('*/api/re_review/batch/preview', () => HttpResponse.json({ data: [] })),
+    http.get('*/api/re_review/entities/available', () =>
+      HttpResponse.json({ data: [], meta: { total: 0 } })
+    ),
     http.get('*/api/list/status', () => HttpResponse.json([]))
   );
 }
@@ -345,26 +349,33 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
   });
 
   // -------------------------------------------------------------------------
-  // 5/9 — POST /api/re_review/batch/preview (loadAvailableEntities)
+  // 5/9 — GET /api/re_review/entities/available (loadAvailableEntities)
   //       Fires automatically from mounted() → loadAvailableEntities().
   // -------------------------------------------------------------------------
-  it('5/9 POST /api/re_review/batch/preview carries Bearer', async () => {
+  it('5/9 GET /api/re_review/entities/available carries Bearer and loads total', async () => {
     const { token } = primeAuth();
     let sawCall = false;
     server.use(
-      http.post('*/api/re_review/batch/preview', async ({ request }) => {
+      http.get('*/api/re_review/entities/available', async ({ request }) => {
         expectBearerHeader(request, token);
         sawCall = true;
-        const body = (await request.json()) as { batch_size: number };
-        expect(body.batch_size).toBe(100);
-        return HttpResponse.json({ data: [] });
+        const url = new URL(request.url);
+        expect(url.searchParams.get('page')).toBe('1');
+        expect(url.searchParams.get('page_size')).toBe('100');
+        return HttpResponse.json({
+          data: [{ entity_id: 11, gene_symbol: 'GENE', disease_ontology_name: 'Disease' }],
+          meta: { total: 312 },
+        });
       })
     );
 
-    await mountManageReReview();
+    const wrapper = await mountManageReReview();
     await flushPromises();
 
     expect(sawCall).toBe(true);
+    expect((wrapper.vm as unknown as { availableEntityTotal: number }).availableEntityTotal).toBe(
+      312
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -512,7 +523,9 @@ describe('ManageReReview.vue — gene-atomic boundary-gene alert (issue #29)', (
           BCard: { template: '<div><slot name="header" /><slot /></div>' },
           BCollapse: { props: ['modelValue'], template: '<div><slot /></div>' },
           BButton: { template: '<button><slot /></button>' },
+          BButtonGroup: { template: '<div><slot /></div>' },
           BBadge: { template: '<span><slot /></span>' },
+          BTooltip: { template: '' },
           BLink: { template: '<a><slot /></a>' },
           BSpinner: { template: '<div role="status" />' },
           BTable: {
@@ -578,6 +591,7 @@ describe('ManageReReview.vue — gene-atomic boundary-gene alert (issue #29)', (
     installDefaultHandlers();
 
     const wrapper = await mountWithBoundaryData({
+      activeBatchMode: 'manual',
       previewBoundaryGene: null,
       previewGeneCount: 0,
       previewEntityCount: 0,
@@ -591,6 +605,7 @@ describe('ManageReReview.vue — gene-atomic boundary-gene alert (issue #29)', (
     installDefaultHandlers();
 
     const wrapper = await mountWithBoundaryData({
+      activeBatchMode: 'manual',
       previewBoundaryGene: 'HGNC:4585',
       previewGeneCount: 2,
       previewEntityCount: 6,
