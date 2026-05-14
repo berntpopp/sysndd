@@ -106,6 +106,6 @@ The Playwright spec also serves as the contract anchor: any future loosening of 
 - Audit script: `app/scripts/audit-csp-violations.mjs`
 - nginx directive: `app/docker/nginx/security-headers.conf`
 - Playwright regression spec: `app/tests/e2e/security-headers.spec.ts`
-- Plan: `.planning/superpowers/plans/2026-04-25-v11.1-wave-1a-w1-security.md`
-- Implementation spec: `.planning/superpowers/specs/2026-04-25-v11.1-finish-hardening-design.md` (W1)
+- Plan: `.planning/_archive/superpowers/plans/2026-04-25-v11.1-wave-1a-w1-security.md`
+- Implementation spec: `.planning/_archive/superpowers/specs/2026-04-25-v11.1-finish-hardening-design.md` (W1)
 - HSTS preload list: <https://hstspreload.org/>

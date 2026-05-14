@@ -179,5 +179,5 @@ the DB) to a new `test-integration-pagination.R` block:
 | `endpoint-functions.R::generate_variant_entities_list` | ⏸ deferred | Same shape as phenotype helper |
 
 Reference plans:
-- v11.3 work: `.planning/superpowers/plans/2026-04-26-v11.3-genes-entities-perf-ux-plan.md`
-- This work: `.planning/superpowers/plans/2026-04-29-filter-pushdown-followups-plan.md`
+- v11.3 work: `.planning/_archive/superpowers/plans/2026-04-26-v11.3-genes-entities-perf-ux-plan.md`
+- This work: `.planning/_archive/superpowers/plans/2026-04-29-filter-pushdown-followups-plan.md`

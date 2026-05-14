@@ -4,11 +4,11 @@
 
 ## Active Areas
 
-- `superpowers/specs/`: active Superpowers design specs
-- `superpowers/plans/`: active Superpowers implementation plans
+- `superpowers/specs/`: active Superpowers design specs, when present
+- `superpowers/plans/`: active Superpowers implementation plans, when present
 - `reviews/`: current review artifacts still relevant to active work
 - `todos/pending/`: active backlog items
-- `_archive/`: historical planning material, including archived GSD-era state files
+- `_archive/`: historical planning material, including archived GSD-era state files and completed Superpowers plans/specs
 
 ## Rule
 
