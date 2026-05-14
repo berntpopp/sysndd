@@ -100,5 +100,7 @@ When repository behavior changes, update the durable docs in the same change:
 
 - Start with `documentation/08-development.qmd` for human developer onboarding.
 - Use `documentation/09-deployment.qmd` for deployment and production operations.
+- Use `documentation/10-visual-design-guide.md` for SysNDD UI/UX visual standards before changing public tables, authenticated admin/curation pages, mobile table rows, or design tokens.
+- Cross-LLM visual-design enforcement lives in `.agents/skills/sysndd-visual-design/SKILL.md`, `.cursor/rules/sysndd-visual-design.mdc`, `.windsurf/rules/sysndd-visual-design.md`, and `GEMINI.md`; keep those pointers aligned with the visual guide.
 - See `db/migrations/README.md` for migration-specific details.
 - Planning, specs, reviews, and LLM workflow docs live under `.planning/`.

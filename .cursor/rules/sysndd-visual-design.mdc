@@ -1,0 +1,22 @@
+---
+description: SysNDD UI/UX visual standards for frontend design changes
+globs:
+  - "app/src/**/*.vue"
+  - "app/src/**/*.ts"
+  - "app/src/**/*.scss"
+  - "app/tests/e2e/**/*.ts"
+  - "documentation/10-visual-design-guide.md"
+alwaysApply: false
+---
+
+# SysNDD Visual Design
+
+Before changing SysNDD UI/UX, page layouts, tables, mobile rows, authenticated admin/curation surfaces, public data views, or design tokens, read `documentation/10-visual-design-guide.md`.
+
+Preserve the established visual direction: compact, clinical, table-first, quiet, token-based, shell-based, footer-safe, and mobile-row aware. Prefer existing `AuthenticatedPageShell`, `TableShell`, chip, form, and mobile-row patterns. Avoid nested card stacks, decorative gradients, marketing-style layouts, and one-off palette values.
+
+For authenticated admin/curation visual changes, run:
+
+```bash
+cd app && PLAYWRIGHT_BASE_URL=http://localhost:5173 npx playwright test tests/e2e/authenticated-admin-curation-design.spec.ts --project=chromium-desktop
+```
