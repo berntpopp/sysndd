@@ -49,6 +49,15 @@ if (!exists("generate_and_validate_with_judge", mode = "function")) {
   }
 }
 
+llm_cluster_progress_message <- function(cluster_num, current, total) {
+  sprintf(
+    "Cluster %s (%d/%d)",
+    as.character(cluster_num[[1]]),
+    as.integer(current),
+    as.integer(total)
+  )
+}
+
 
 #' Trigger LLM batch generation after clustering completion
 #'
@@ -331,7 +340,7 @@ llm_batch_executor <- function(params) {
     # Update progress
     reporter(
       step = "generation",
-      message = sprintf("Cluster %d (%d/%d)", cluster_num, i, total),
+      message = llm_cluster_progress_message(cluster_num, i, total),
       current = i,
       total = total
     )
