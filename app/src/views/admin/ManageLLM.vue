@@ -9,46 +9,20 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol col md="12">
-            <BCard
-              header-tag="header"
-              body-class="p-0"
-              header-class="p-2"
-              border-variant="dark"
-              class="mb-3 text-start"
+            <AdminOperationPanel
+              title="LLM Configuration"
+              :meta="config ? (config.gemini_configured ? config.current_model : 'Not configured') : null"
+              icon="bi-cpu"
             >
-              <template #header>
-                <BRow class="align-items-center">
-                  <BCol>
-                    <h5 class="mb-0 text-start fw-bold">
-                      LLM configuration
-                      <BBadge
-                        v-if="config && !config.gemini_configured"
-                        variant="warning"
-                        class="ms-2"
-                      >
-                        Not Configured
-                      </BBadge>
-                      <BBadge v-else-if="config" variant="success" class="ms-2">
-                        {{ config.current_model }}
-                      </BBadge>
-                    </h5>
-                  </BCol>
-                  <BCol class="text-end">
-                    <BButton
-                      variant="outline-primary"
-                      size="sm"
-                      :disabled="loading"
-                      @click="refreshAll"
-                    >
-                      <BSpinner v-if="loading" small class="me-1" />
-                      Refresh
-                    </BButton>
-                  </BCol>
-                </BRow>
+              <template #actions>
+                <BButton variant="outline-primary" size="sm" :disabled="loading" @click="refreshAll">
+                  <BSpinner v-if="loading" small class="me-1" />
+                  Refresh
+                </BButton>
               </template>
 
               <!-- Tab Navigation -->
-              <BTabs pills card nav-class="px-3 pt-2">
+              <BTabs pills nav-class="admin-tabs">
                 <!-- Overview Tab -->
                 <BTab title="Overview">
                   <BRow class="g-3 mb-4">
@@ -85,10 +59,7 @@
                   </BRow>
 
                   <!-- Quick Actions -->
-                  <BCard class="mb-4">
-                    <template #header>
-                      <h6 class="mb-0">Quick Actions</h6>
-                    </template>
+                  <AdminOperationPanel title="Quick Actions" heading-tag="h3" icon="bi-lightning">
                     <BRow class="g-2">
                       <BCol md="4">
                         <BButton
@@ -121,7 +92,7 @@
                         </BButton>
                       </BCol>
                     </BRow>
-                  </BCard>
+                  </AdminOperationPanel>
 
                   <!-- Active Job Progress -->
                   <BCard v-if="regenerationJob.isLoading.value" class="mb-4">
@@ -174,7 +145,7 @@
                   <LlmLogViewer />
                 </BTab>
               </BTabs>
-            </BCard>
+            </AdminOperationPanel>
           </BCol>
         </BRow>
 
@@ -205,6 +176,7 @@
 
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import { ref, onMounted } from 'vue';
 import { useLlmAdmin } from '@/composables/useLlmAdmin';
 import { useAsyncJob } from '@/composables/useAsyncJob';

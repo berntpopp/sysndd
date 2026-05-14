@@ -15,13 +15,11 @@ ManagePubtator */
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol md="10">
-            <BCard header-tag="header" border-variant="dark">
-              <template #header>
-                <h5 class="mb-0">
-                  <i class="bi bi-journal-medical me-2" />
-                  <strong>PubTator Cache Management</strong>
-                </h5>
-              </template>
+            <AdminOperationPanel
+              title="PubTator Cache Management"
+              description="Check query coverage, submit background fetches, backfill genes, and manage cache state."
+              icon="bi-journal-medical"
+            >
 
               <!-- Query Input Section -->
               <BRow class="mb-4">
@@ -117,12 +115,12 @@ ManagePubtator */
               </BCard>
 
               <!-- Fetch Controls -->
-              <BCard class="mb-4">
-                <h6><i class="bi bi-cloud-arrow-down me-1" /> Fetch Publications (Async)</h6>
-                <p class="text-muted small mb-3">
-                  Fetches run in the background. You can close this page and the job will continue.
-                </p>
-
+              <AdminOperationPanel
+                title="Fetch Publications"
+                description="Fetches run in the background. You can close this page and the job will continue."
+                icon="bi-cloud-arrow-down"
+                heading-tag="h3"
+              >
                 <BRow class="mb-3">
                   <BCol md="4">
                     <BFormGroup label="Pages to Fetch" label-for="max-pages">
@@ -224,15 +222,16 @@ ManagePubtator */
                   <i :class="feedbackIcon" class="me-1" />
                   {{ feedbackMessage }}
                 </BAlert>
-              </BCard>
+              </AdminOperationPanel>
 
               <!-- Clear Cache Section -->
-              <BCard border-variant="danger">
-                <h6 class="text-danger"><i class="bi bi-trash me-1" /> Clear Cache</h6>
-                <p class="text-muted small mb-3">
-                  Remove all cached publications and annotations. Use with caution.
-                </p>
-
+              <AdminOperationPanel
+                title="Clear Cache"
+                description="Remove all cached publications and annotations. Use with caution."
+                icon="bi-trash"
+                heading-tag="h3"
+                tone="danger"
+              >
                 <BButton
                   variant="danger"
                   :disabled="isJobLoading || isClearing"
@@ -241,8 +240,8 @@ ManagePubtator */
                   <BSpinner v-if="isClearing" small class="me-1" />
                   Clear ALL Cache
                 </BButton>
-              </BCard>
-            </BCard>
+              </AdminOperationPanel>
+            </AdminOperationPanel>
           </BCol>
         </BRow>
 
@@ -267,6 +266,7 @@ ManagePubtator */
 
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import { ref, computed } from 'vue';
 import {
   BContainer,

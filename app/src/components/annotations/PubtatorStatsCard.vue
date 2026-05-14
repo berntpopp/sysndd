@@ -1,30 +1,11 @@
 <!-- components/annotations/PubtatorStatsCard.vue -->
 <template>
-  <BCard
-    header-tag="header"
-    body-class="p-1"
-    header-class="p-1"
-    border-variant="dark"
-    class="mb-3 text-start"
+  <AdminOperationPanel
+    title="PubTator Cache Management"
+    :meta="metaItems"
+    icon="bi-journal-medical"
+    heading-tag="h2"
   >
-    <template #header>
-      <h5 class="mb-0 text-start font-weight-bold">
-        Pubtator Cache Management
-        <span v-if="stats.publication_count !== null" class="badge bg-info ms-2 fw-normal">
-          {{ stats.publication_count?.toLocaleString() }} publications
-        </span>
-        <span v-if="stats.gene_count !== null" class="badge bg-info ms-2 fw-normal">
-          {{ stats.gene_count?.toLocaleString() }} genes
-        </span>
-        <span
-          v-if="stats.novel_count !== null && stats.novel_count > 0"
-          class="badge bg-info ms-2 fw-normal"
-        >
-          {{ stats.novel_count?.toLocaleString() }} literature only
-        </span>
-      </h5>
-    </template>
-
     <div class="mb-2">
       <BButton variant="outline-secondary" size="sm" :disabled="loading" @click="$emit('refresh')">
         <BSpinner v-if="loading" small type="grow" class="me-1" />
@@ -59,17 +40,20 @@
       <router-link :to="{ name: 'ManagePubtator' }">Manage Cache</router-link>
       to fetch publications.
     </BAlert>
-  </BCard>
+  </AdminOperationPanel>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
+
 export interface PubtatorStats {
   publication_count: number | null;
   gene_count: number | null;
   novel_count: number | null;
 }
 
-defineProps<{
+const props = defineProps<{
   stats: PubtatorStats;
   loading: boolean;
 }>();
@@ -77,4 +61,16 @@ defineProps<{
 defineEmits<{
   (e: 'refresh'): void;
 }>();
+
+const metaItems = computed(() =>
+  [
+    props.stats.publication_count !== null
+      ? `${props.stats.publication_count.toLocaleString()} publications`
+      : null,
+    props.stats.gene_count !== null ? `${props.stats.gene_count.toLocaleString()} genes` : null,
+    props.stats.novel_count !== null && props.stats.novel_count > 0
+      ? `${props.stats.novel_count.toLocaleString()} literature only`
+      : null,
+  ].filter((item): item is string => Boolean(item))
+);
 </script>

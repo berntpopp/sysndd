@@ -1,33 +1,12 @@
 <!-- components/annotations/DeprecatedEntitiesCard.vue -->
 <template>
-  <BCard
-    header-tag="header"
-    body-class="p-2"
-    header-class="p-1"
-    border-variant="dark"
-    class="mb-3 text-start"
+  <AdminOperationPanel
+    title="Deprecated OMIM Entities"
+    :meta="metaItems"
+    icon="bi-exclamation-triangle"
+    heading-tag="h2"
+    :tone="data.affected_entity_count > 0 ? 'warning' : 'default'"
   >
-    <template #header>
-      <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-        Deprecated OMIM Entities
-        <span v-if="data.mim2gene_date" class="badge bg-secondary ms-2 fw-normal">
-          mim2gene: {{ data.mim2gene_date }}
-        </span>
-        <span
-          v-if="data.affected_entity_count > 0"
-          class="badge bg-warning text-dark ms-2 fw-normal"
-        >
-          {{ data.affected_entity_count }} entities need review
-        </span>
-        <span
-          v-else-if="!loading && data.deprecated_count !== null"
-          class="badge bg-success ms-2 fw-normal"
-        >
-          No affected entities
-        </span>
-      </h5>
-    </template>
-
     <div class="mb-3">
       <BButton variant="outline-secondary" size="sm" :disabled="loading" @click="$emit('check')">
         <BSpinner v-if="loading" small type="grow" class="me-1" />
@@ -138,10 +117,12 @@
         </template>
       </BTable>
     </div>
-  </BCard>
+  </AdminOperationPanel>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import {
   truncateText,
   categoryBadgeClass,
@@ -155,7 +136,7 @@ export interface DeprecatedData {
   message: string | null;
 }
 
-defineProps<{
+const props = defineProps<{
   data: DeprecatedData;
   loading: boolean;
 }>();
@@ -172,6 +153,18 @@ const tableFields = [
   { key: 'deprecation_reason', label: 'Reason', sortable: false },
   { key: 'category', label: 'Category', sortable: true },
 ];
+
+const metaItems = computed(() =>
+  [
+    props.data.mim2gene_date ? `mim2gene: ${props.data.mim2gene_date}` : null,
+    props.data.affected_entity_count > 0
+      ? `${props.data.affected_entity_count} entities need review`
+      : null,
+    !props.loading && props.data.deprecated_count !== null && props.data.affected_entity_count === 0
+      ? 'No affected entities'
+      : null,
+  ].filter((item): item is string => Boolean(item))
+);
 </script>
 
 <style scoped>

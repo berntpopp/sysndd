@@ -158,13 +158,12 @@
       <!-- Existing text stats (kept for reference) -->
       <BRow v-if="statistics" class="mb-3">
         <BCol md="6" class="mb-3">
-          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-            <template #header>
-              <h5 class="mb-0 text-start">
-                Updates Statistics
-                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-              </h5>
-            </template>
+          <AdminOperationPanel
+            title="Updates Statistics"
+            :meta="`${startDate} to ${endDate}`"
+            icon="bi-activity"
+            heading-tag="h3"
+          >
             <p class="mb-1">
               Total new entities:
               <span class="stats-number">{{ statistics.total_new_entities }}</span>
@@ -176,16 +175,15 @@
               Average per day:
               <span class="stats-number">{{ formatDecimal(statistics.average_per_day) }}</span>
             </p>
-          </BCard>
+          </AdminOperationPanel>
         </BCol>
         <BCol v-if="reReviewStatistics" md="6" class="mb-3">
-          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-            <template #header>
-              <h5 class="mb-0 text-start">
-                Re-review Statistics
-                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-              </h5>
-            </template>
+          <AdminOperationPanel
+            title="Re-review Statistics"
+            :meta="`${startDate} to ${endDate}`"
+            icon="bi-clipboard-check"
+            heading-tag="h3"
+          >
             <p class="mb-1">
               Total re-reviews:
               <span class="stats-number">{{ reReviewStatistics.total_rereviews }}</span>
@@ -202,39 +200,37 @@
                 formatDecimal(reReviewStatistics.average_per_day)
               }}</span>
             </p>
-          </BCard>
+          </AdminOperationPanel>
         </BCol>
       </BRow>
       <BRow v-if="updatedReviewsStatistics || updatedStatusesStatistics" class="mb-3">
         <BCol v-if="updatedReviewsStatistics" md="6" class="mb-3">
-          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-            <template #header>
-              <h5 class="mb-0 text-start">
-                Updated Reviews Statistics
-                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-              </h5>
-            </template>
+          <AdminOperationPanel
+            title="Updated Reviews Statistics"
+            :meta="`${startDate} to ${endDate}`"
+            icon="bi-card-checklist"
+            heading-tag="h3"
+          >
             <p class="mb-0">
               Total updated reviews:
               <span class="stats-number">{{ updatedReviewsStatistics.total_updated_reviews }}</span>
             </p>
-          </BCard>
+          </AdminOperationPanel>
         </BCol>
         <BCol v-if="updatedStatusesStatistics" md="6" class="mb-3">
-          <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-            <template #header>
-              <h5 class="mb-0 text-start">
-                Updated Statuses Statistics
-                <small class="text-muted">({{ startDate }} to {{ endDate }})</small>
-              </h5>
-            </template>
+          <AdminOperationPanel
+            title="Updated Statuses Statistics"
+            :meta="`${startDate} to ${endDate}`"
+            icon="bi-list-check"
+            heading-tag="h3"
+          >
             <p class="mb-0">
               Total updated statuses:
               <span class="stats-number">{{
                 updatedStatusesStatistics.total_updated_statuses
               }}</span>
             </p>
-          </BCard>
+          </AdminOperationPanel>
         </BCol>
       </BRow>
     </BContainer>
@@ -243,6 +239,7 @@
 
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import { ref, computed, onMounted, inject } from 'vue';
 import type { AxiosInstance } from 'axios';
 import {
