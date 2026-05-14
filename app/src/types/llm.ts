@@ -136,8 +136,18 @@ export interface RegenerationJobResponse {
   job_id: string;
   status: string;
   cluster_type: ClusterType | 'all';
+  cluster_types?: ClusterType[];
   force: boolean;
   status_url: string;
+  results?: Partial<Record<ClusterType, RegenerationChildJobResult>>;
+}
+
+export interface RegenerationChildJobResult {
+  job_id?: string;
+  status?: string;
+  status_url?: string;
+  skipped?: boolean;
+  reason?: string;
 }
 
 /**

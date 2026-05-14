@@ -15,7 +15,8 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import type { RouteLocationRaw } from 'vue-router';
 
 import { server } from '@/test-utils/mocks/server';
 import { primeAuth } from '@/test-utils/primeAuth';
@@ -36,6 +37,50 @@ afterEach(() => {
 });
 
 describe('ManageLLM — F2a Bearer-via-interceptor', () => {
+  const routerLinkStub = {
+    props: ['to'],
+    template: '<a :href="href"><slot /></a>',
+    computed: {
+      href(this: { to: RouteLocationRaw }): string {
+        const to = this.to as RouteLocationRaw;
+        if (typeof to === 'string') {
+          return to;
+        }
+        return `${to.path ?? ''}${to.hash ?? ''}`;
+      },
+    },
+  };
+
+  const mountManageLLM = () =>
+    mount(ManageLLM, {
+      global: {
+        stubs: {
+          BContainer: { template: '<div><slot /></div>' },
+          BRow: { template: '<div><slot /></div>' },
+          BCol: { template: '<div><slot /></div>' },
+          BCard: { template: '<div><slot name="header" /><slot /></div>' },
+          BButton: { template: '<button><slot /></button>' },
+          BBadge: { template: '<span><slot /></span>' },
+          BSpinner: { template: '<div role="status" />' },
+          BAlert: { template: '<div><slot /></div>' },
+          BTabs: { template: '<div><slot /></div>' },
+          BTab: { template: '<div><slot /></div>' },
+          BProgress: { template: '<div />' },
+          BProgressBar: { template: '<div><slot /></div>' },
+          BModal: { template: '<div />' },
+          BFormGroup: { template: '<div><slot /></div>' },
+          BFormRadioGroup: { template: '<div />' },
+          BNav: { template: '<nav><slot /></nav>' },
+          BNavItem: { template: '<span><slot /></span>' },
+          LlmConfigPanel: { template: '<div />' },
+          LlmPromptEditor: { template: '<div />' },
+          LlmCacheManager: { template: '<div />' },
+          LlmLogViewer: { template: '<div />' },
+          RouterLink: routerLinkStub,
+        },
+      },
+    });
+
   it('sends Bearer on every GET fired by refreshAll()', async () => {
     const { token } = primeAuth();
     const hits = { config: false, prompts: false, stats: false };
@@ -69,30 +114,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       })
     );
 
-    mount(ManageLLM, {
-      global: {
-        stubs: {
-          BContainer: { template: '<div><slot /></div>' },
-          BRow: { template: '<div><slot /></div>' },
-          BCol: { template: '<div><slot /></div>' },
-          BCard: { template: '<div><slot name="header" /><slot /></div>' },
-          BButton: { template: '<button><slot /></button>' },
-          BBadge: { template: '<span><slot /></span>' },
-          BSpinner: { template: '<div role="status" />' },
-          BTabs: { template: '<div><slot /></div>' },
-          BTab: { template: '<div><slot /></div>' },
-          BProgress: { template: '<div />' },
-          BModal: { template: '<div />' },
-          BFormGroup: { template: '<div><slot /></div>' },
-          BFormRadioGroup: { template: '<div />' },
-          LlmConfigPanel: { template: '<div />' },
-          LlmPromptEditor: { template: '<div />' },
-          LlmCacheManager: { template: '<div />' },
-          LlmLogViewer: { template: '<div />' },
-          'router-link': true,
-        },
-      },
-    });
+    mountManageLLM();
 
     // Allow the onMounted → Promise.all(3) → MSW path to resolve.
     await new Promise((r) => setTimeout(r, 0));
@@ -101,5 +123,111 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
     expect(hits.config).toBe(true);
     expect(hits.prompts).toBe(true);
     expect(hits.stats).toBe(true);
+  });
+
+  it('renders direct URLs for every management section', async () => {
+    primeAuth();
+
+    server.use(
+      http.get('*/api/llm/config', () =>
+        HttpResponse.json({
+          gemini_configured: [true],
+          current_model: ['gemini-1.5-flash'],
+        })
+      ),
+      http.get('*/api/llm/prompts', () =>
+        HttpResponse.json({
+          functional: { template: '', version: '1', description: '' },
+          phenotype: { template: '', version: '1', description: '' },
+        })
+      ),
+      http.get('*/api/llm/cache/stats', () =>
+        HttpResponse.json({
+          total_entries: 0,
+          by_type: {},
+          by_status: {},
+          estimated_cost_usd: 0,
+        })
+      )
+    );
+
+    const wrapper = mountManageLLM();
+
+    expect(wrapper.get('a[href="/ManageLLM#overview"]').text()).toBe('Overview');
+    expect(wrapper.get('a[href="/ManageLLM#configuration"]').text()).toBe('Configuration');
+    expect(wrapper.get('a[href="/ManageLLM#prompts"]').text()).toBe('Prompts');
+    expect(wrapper.get('a[href="/ManageLLM#cache"]').text()).toBe('Cache');
+    expect(wrapper.get('a[href="/ManageLLM#logs"]').text()).toBe('Logs');
+  });
+
+  it('tracks the real child job returned by functional regeneration', async () => {
+    const { token } = primeAuth();
+    let polledChildJob = false;
+
+    server.use(
+      http.get('*/api/llm/config', () =>
+        HttpResponse.json({
+          gemini_configured: [true],
+          current_model: ['gemini-1.5-flash'],
+        })
+      ),
+      http.get('*/api/llm/prompts', () =>
+        HttpResponse.json({
+          functional: { template: '', version: '1', description: '' },
+          phenotype: { template: '', version: '1', description: '' },
+        })
+      ),
+      http.get('*/api/llm/cache/stats', () =>
+        HttpResponse.json({
+          total_entries: 0,
+          by_type: {},
+          by_status: {},
+          estimated_cost_usd: 0,
+        })
+      ),
+      http.post('*/api/llm/regenerate', ({ request }) => {
+        expectBearerHeader(request, token);
+        return HttpResponse.json(
+          {
+            job_id: 'parent-job',
+            status: 'accepted',
+            status_url: '/api/jobs/parent-job',
+            cluster_types: ['functional'],
+            results: {
+              functional: {
+                job_id: 'functional-child-job',
+                status: 'accepted',
+                status_url: '/api/jobs/functional-child-job/status',
+              },
+            },
+          },
+          { status: 202 }
+        );
+      }),
+      http.get('*/api/jobs/functional-child-job/status', () => {
+        polledChildJob = true;
+        return HttpResponse.json({
+          status: ['running'],
+          step: ['Generating functional cluster summaries'],
+          progress: { current: [1], total: [8] },
+        });
+      }),
+      http.get('*/api/jobs/parent-job/status', () => {
+        throw new Error('ManageLLM should not poll the synthetic parent job');
+      })
+    );
+
+    vi.useFakeTimers();
+    const wrapper = mountManageLLM();
+    await vi.runOnlyPendingTimersAsync();
+    await wrapper.get('button[data-testid="llm-regenerate-functional"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Functional');
+    expect(wrapper.text()).toContain('functional-child-job');
+
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(polledChildJob).toBe(true);
+    vi.useRealTimers();
   });
 });
