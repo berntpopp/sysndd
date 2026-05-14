@@ -5,28 +5,49 @@
     full-width
   >
     <BContainer fluid class="py-3">
-      <!-- Header with date controls -->
-      <BRow class="mb-3 align-items-center">
-        <BCol md="6">
-          <small v-if="lastUpdated" class="text-muted">
+      <section class="admin-statistics-controls" data-testid="admin-statistics-controls">
+        <div class="admin-statistics-controls__status">
+          <span class="admin-statistics-controls__eyebrow">Reporting window</span>
+          <span v-if="lastUpdated" class="admin-statistics-controls__updated">
             Data as of {{ formatDateTime(lastUpdated) }}
-            <BButton size="sm" variant="link" class="p-0 ms-1" @click="refreshAll">
-              <i class="bi bi-arrow-clockwise"></i> Refresh
+          </span>
+        </div>
+        <BForm class="admin-statistics-controls__form" @submit.prevent="fetchStatistics">
+          <BFormGroup
+            label="From"
+            label-for="admin-statistics-start-date"
+            label-class="admin-statistics-controls__label"
+            class="admin-statistics-controls__field"
+          >
+            <BFormInput
+              id="admin-statistics-start-date"
+              v-model="startDate"
+              type="date"
+              size="sm"
+            />
+          </BFormGroup>
+          <BFormGroup
+            label="To"
+            label-for="admin-statistics-end-date"
+            label-class="admin-statistics-controls__label"
+            class="admin-statistics-controls__field"
+          >
+            <BFormInput id="admin-statistics-end-date" v-model="endDate" type="date" size="sm" />
+          </BFormGroup>
+          <div class="admin-statistics-controls__actions">
+            <BButton type="submit" variant="primary" size="sm">Apply</BButton>
+            <BButton
+              variant="outline-secondary"
+              size="sm"
+              :disabled="loading.trend || loading.leaderboard || loading.reReviewLeaderboard"
+              @click="refreshAll"
+            >
+              <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+              Refresh
             </BButton>
-          </small>
-        </BCol>
-        <BCol md="6">
-          <BForm inline class="justify-content-md-end" @submit.prevent="fetchStatistics">
-            <BFormGroup label="From" label-class="small" class="mb-0 me-2">
-              <BFormInput v-model="startDate" type="date" size="sm" />
-            </BFormGroup>
-            <BFormGroup label="To" label-class="small" class="mb-0 me-2">
-              <BFormInput v-model="endDate" type="date" size="sm" />
-            </BFormGroup>
-            <BButton type="submit" variant="primary" size="sm" class="mt-3"> Apply </BButton>
-          </BForm>
-        </BCol>
-      </BRow>
+          </div>
+        </BForm>
+      </section>
 
       <!-- KPI Cards Row -->
       <BRow class="mb-4">
@@ -45,18 +66,24 @@
         <BCol>
           <BCard>
             <template #header>
-              <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Entity Submissions Over Time</h5>
+              <div class="admin-chart-header">
+                <div>
+                  <h2 class="admin-chart-title">Entity Submissions Over Time</h2>
+                  <p class="admin-chart-description">
+                    {{ trendDescription }}
+                  </p>
+                </div>
                 <BFormRadioGroup
                   v-model="granularity"
                   :options="granularityOptions"
                   button-variant="outline-primary"
+                  class="admin-chart-control"
                   size="sm"
                   buttons
                 />
               </div>
-              <div class="d-flex justify-content-between align-items-center mt-2">
-                <div class="d-flex align-items-center gap-2">
+              <div class="admin-chart-toolbar">
+                <div class="admin-chart-toolbar__group">
                   <BFormRadioGroup
                     v-model="nddFilter"
                     :options="nddFilterOptions"
@@ -75,15 +102,13 @@
                 <BFormCheckboxGroup
                   v-model="selectedCategories"
                   :options="categoryFilterOptions"
+                  class="admin-chart-toolbar__categories"
                   size="sm"
                   buttons
                   button-variant="outline-secondary"
                 />
               </div>
             </template>
-            <p class="text-muted small mb-2">
-              {{ trendDescription }}
-            </p>
             <EntityTrendChart
               :entity-data="trendData"
               :category-data="categoryDisplay === 'by_category' ? trendCategoryData : undefined"
@@ -435,7 +460,136 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.admin-statistics-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #d7dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.admin-statistics-controls__status {
+  display: flex;
+  min-width: 13rem;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.admin-statistics-controls__eyebrow {
+  color: #24364b;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.admin-statistics-controls__updated {
+  color: #5c6f82;
+  font-size: 0.8125rem;
+}
+
+.admin-statistics-controls__form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: end;
+  justify-content: flex-end;
+}
+
+.admin-statistics-controls__field {
+  margin-bottom: 0;
+}
+
+.admin-statistics-controls__field :deep(input) {
+  min-width: 9.5rem;
+}
+
+.admin-statistics-controls__label {
+  margin-bottom: 0.25rem;
+  color: #41576f;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-statistics-controls__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-chart-header {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.admin-chart-title {
+  margin: 0;
+  color: #24364b;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.admin-chart-description {
+  max-width: 52rem;
+  margin: 0.25rem 0 0;
+  color: #5c6f82;
+  font-size: 0.8125rem;
+}
+
+.admin-chart-control {
+  flex-shrink: 0;
+}
+
+.admin-chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.875rem;
+}
+
+.admin-chart-toolbar__group,
+.admin-chart-toolbar__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .stats-number {
   font-weight: bold;
+}
+
+@media (max-width: 767.98px) {
+  .admin-statistics-controls,
+  .admin-statistics-controls__form,
+  .admin-statistics-controls__actions,
+  .admin-chart-header,
+  .admin-chart-toolbar {
+    align-items: stretch;
+  }
+
+  .admin-statistics-controls,
+  .admin-statistics-controls__form,
+  .admin-chart-header {
+    flex-direction: column;
+  }
+
+  .admin-statistics-controls__form,
+  .admin-statistics-controls__field,
+  .admin-statistics-controls__actions,
+  .admin-statistics-controls__actions :deep(.btn),
+  .admin-chart-control {
+    width: 100%;
+  }
+
+  .admin-statistics-controls__field :deep(input) {
+    width: 100%;
+  }
 }
 </style>
