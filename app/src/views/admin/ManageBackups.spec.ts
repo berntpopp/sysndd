@@ -208,4 +208,18 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     await (wrapper.vm as unknown as BackupsVm).triggerBackup();
     await flushPromises();
   });
+
+  it('keeps the manual backup operation inside the inventory table shell', () => {
+    primeAuth('layout-token');
+
+    server.use(
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({ data: [], meta: { total_count: 0, total_size_bytes: 0 } })
+      )
+    );
+
+    const wrapper = mountView();
+
+    expect(wrapper.find('[data-testid="backup-manual-operation"]').exists()).toBe(true);
+  });
 });

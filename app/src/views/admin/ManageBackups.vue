@@ -12,8 +12,21 @@
             <TableShell
               title="Backup inventory"
               :meta="`${meta.total_count} backups · ${formatFileSize(meta.total_size_bytes)} total`"
+              description="Download, restore, delete, or create database backups from one inventory surface."
             >
               <template #actions>
+                <BButton
+                  v-b-tooltip.hover
+                  variant="primary"
+                  size="sm"
+                  data-testid="backup-manual-operation"
+                  :disabled="backupJob.isLoading.value"
+                  title="Create an on-demand database backup"
+                  @click="triggerBackup"
+                >
+                  <BSpinner v-if="backupJob.isLoading.value" small type="grow" class="me-1" />
+                  {{ backupJob.isLoading.value ? 'Backing up...' : 'Backup now' }}
+                </BButton>
                 <BButton
                   v-b-tooltip.hover
                   size="sm"
@@ -40,17 +53,16 @@
               </template>
 
               <template #toolbar>
-                <!-- Quick filters row -->
-                <BRow class="g-2">
-                  <BCol>
-                    <div class="d-flex gap-2 align-items-center flex-wrap">
-                      <span class="text-muted small">Quick filters:</span>
+                <div class="backup-toolbar">
+                  <div class="backup-toolbar__filters" aria-label="Backup type quick filters">
+                    <span class="backup-toolbar__label">Type</span>
+                    <div class="backup-toolbar__chips">
                       <BButton
                         v-for="preset in quickFilters"
                         :key="preset.value"
                         size="sm"
                         :variant="typeFilter === preset.value ? 'primary' : 'outline-secondary'"
-                        class="py-0"
+                        class="backup-filter-chip"
                         @click="setTypeFilter(preset.value)"
                       >
                         {{ preset.label }}
@@ -59,99 +71,67 @@
                         </BBadge>
                       </BButton>
                     </div>
-                  </BCol>
-                </BRow>
+                  </div>
 
-                <!-- Search + Pagination row -->
-                <BRow class="g-2 mt-1">
-                  <BCol sm="6">
-                    <BInputGroup>
-                      <template #prepend>
-                        <BInputGroupText>
-                          <i class="bi bi-search" aria-hidden="true" />
-                        </BInputGroupText>
-                      </template>
+                  <div class="backup-toolbar__controls">
+                    <div class="backup-search">
+                      <i class="bi bi-search backup-search__icon" aria-hidden="true" />
                       <BFormInput
                         v-model="searchQuery"
                         placeholder="Search by filename..."
+                        class="backup-search__input"
                         debounce="300"
                         type="search"
                       />
-                    </BInputGroup>
-                  </BCol>
-                  <BCol sm="6">
-                    <div class="d-flex justify-content-end align-items-center gap-2">
-                      <BFormGroup label="Per page" label-class="small text-muted me-2" class="mb-0">
-                        <BFormSelect
-                          v-model="perPage"
-                          :options="pageOptions"
-                          size="sm"
-                          style="width: 80px"
-                        />
-                      </BFormGroup>
-                      <BPagination
-                        v-if="filteredBackups.length > perPage"
-                        v-model="currentPage"
-                        :total-rows="filteredBackups.length"
-                        :per-page="perPage"
-                        size="sm"
-                        class="mb-0"
-                        first-text="«"
-                        prev-text="‹"
-                        next-text="›"
-                        last-text="»"
-                      />
                     </div>
-                  </BCol>
-                </BRow>
 
-                <!-- Filters + count row -->
-                <BRow class="g-2 mt-1">
-                  <BCol sm="4">
-                    <BFormSelect v-model="typeFilter" size="sm">
-                      <BFormSelectOption :value="null">All Types</BFormSelectOption>
-                      <BFormSelectOption value="manual">Manual</BFormSelectOption>
-                      <BFormSelectOption value="auto">Automatic</BFormSelectOption>
-                      <BFormSelectOption value="pre-restore">Pre-Restore</BFormSelectOption>
-                    </BFormSelect>
-                  </BCol>
-                  <BCol sm="4">
-                    <BFormSelect v-model="compressionFilter" size="sm">
-                      <BFormSelectOption :value="null">All Formats</BFormSelectOption>
-                      <BFormSelectOption value="compressed">Compressed (.gz)</BFormSelectOption>
-                      <BFormSelectOption value="uncompressed"
-                        >Uncompressed (.sql)</BFormSelectOption
-                      >
-                    </BFormSelect>
-                  </BCol>
-                  <BCol sm="4" class="text-end">
-                    <span class="text-muted small">
+                    <label class="backup-select-label">
+                      <span>Format</span>
+                      <BFormSelect v-model="compressionFilter" size="sm">
+                        <BFormSelectOption :value="null">All</BFormSelectOption>
+                        <BFormSelectOption value="compressed">.gz</BFormSelectOption>
+                        <BFormSelectOption value="uncompressed">.sql</BFormSelectOption>
+                      </BFormSelect>
+                    </label>
+
+                    <label class="backup-select-label">
+                      <span>Per page</span>
+                      <BFormSelect v-model="perPage" :options="pageOptions" size="sm" />
+                    </label>
+                  </div>
+
+                  <div class="backup-toolbar__footer">
+                    <span class="backup-count">
                       Showing {{ paginationStart }}-{{ paginationEnd }} of
                       {{ filteredBackups.length }}
                     </span>
-                  </BCol>
-                </BRow>
+                    <BPagination
+                      v-if="filteredBackups.length > perPage"
+                      v-model="currentPage"
+                      :total-rows="filteredBackups.length"
+                      :per-page="perPage"
+                      size="sm"
+                      class="mb-0"
+                      first-text="«"
+                      prev-text="‹"
+                      next-text="›"
+                      last-text="»"
+                    />
+                  </div>
 
-                <BRow class="g-2 mt-1 d-md-none">
-                  <BCol>
-                    <BInputGroup prepend="Sort" size="sm">
-                      <BFormSelect
-                        v-model="mobileSortValue"
-                        :options="mobileSortOptions"
-                        size="sm"
-                      />
-                    </BInputGroup>
-                  </BCol>
-                </BRow>
+                  <label class="backup-select-label backup-select-label--mobile-sort d-md-none">
+                    <span>Sort</span>
+                    <BFormSelect v-model="mobileSortValue" :options="mobileSortOptions" size="sm" />
+                  </label>
+                </div>
               </template>
 
               <!-- Backup Table -->
               <BTable
-                class="d-none d-md-table"
+                class="backup-table d-none d-md-table"
                 :items="paginatedBackups"
                 :fields="backupFields"
                 :busy="loading"
-                striped
                 hover
                 small
                 responsive
@@ -244,124 +224,92 @@
                 class="text-center text-muted py-3"
               >
                 <template v-if="backups.length === 0">
-                  No backups available. Use "Backup Now" to create one.
+                  No backups available. Use "Backup now" to create one.
                 </template>
                 <template v-else>
                   No backups match the current filters.
                   <BButton size="sm" variant="link" @click="clearFilters">Clear filters</BButton>
                 </template>
               </div>
+
+              <div class="backup-job-stack">
+                <section
+                  v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'"
+                  class="backup-job-row"
+                  aria-label="Backup progress"
+                >
+                  <div class="backup-job-row__header">
+                    <strong>Backup progress</strong>
+                    <span class="badge" :class="backupJob.statusBadgeClass.value">
+                      {{ backupJob.status.value }}
+                    </span>
+                  </div>
+                  <p class="backup-job-row__step">{{ backupJob.step.value }}</p>
+
+                  <BProgress
+                    v-if="backupJob.isLoading.value"
+                    :value="
+                      backupJob.hasRealProgress.value
+                        ? (backupJob.progressPercent.value ?? 0)
+                        : 100
+                    "
+                    :max="100"
+                    :animated="!backupJob.hasRealProgress.value"
+                    :striped="!backupJob.hasRealProgress.value"
+                    :variant="backupJob.progressVariant.value"
+                    height="0.875rem"
+                  >
+                    <template #default>
+                      <span v-if="backupJob.hasRealProgress.value">
+                        {{ backupJob.progress.value.current }}/{{
+                          backupJob.progress.value.total
+                        }}
+                        ({{ backupJob.progressPercent.value }}%)
+                      </span>
+                      <span v-else>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
+                    </template>
+                  </BProgress>
+                </section>
+
+                <section
+                  v-if="restoreJob.isLoading.value || restoreJob.status.value !== 'idle'"
+                  class="backup-job-row"
+                  aria-label="Restore progress"
+                >
+                  <div class="backup-job-row__header">
+                    <strong>Restore progress</strong>
+                    <span class="badge" :class="restoreJob.statusBadgeClass.value">
+                      {{ restoreJob.status.value }}
+                    </span>
+                  </div>
+                  <p class="backup-job-row__step">{{ restoreJob.step.value }}</p>
+
+                  <BProgress
+                    v-if="restoreJob.isLoading.value"
+                    :value="
+                      restoreJob.hasRealProgress.value
+                        ? (restoreJob.progressPercent.value ?? 0)
+                        : 100
+                    "
+                    :max="100"
+                    :animated="!restoreJob.hasRealProgress.value"
+                    :striped="!restoreJob.hasRealProgress.value"
+                    :variant="restoreJob.progressVariant.value"
+                    height="0.875rem"
+                  >
+                    <template #default>
+                      <span v-if="restoreJob.hasRealProgress.value">
+                        {{ restoreJob.progress.value.current }}/{{
+                          restoreJob.progress.value.total
+                        }}
+                        ({{ restoreJob.progressPercent.value }}%)
+                      </span>
+                      <span v-else>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
+                    </template>
+                  </BProgress>
+                </section>
+              </div>
             </TableShell>
-
-            <!-- Backup Now Card -->
-            <BCard
-              header-tag="header"
-              body-class="p-2"
-              header-class="p-1"
-              border-variant="dark"
-              class="mt-3 text-start"
-            >
-              <template #header>
-                <h5 class="mb-0 text-start font-weight-bold">Create Manual Backup</h5>
-              </template>
-
-              <BButton
-                variant="primary"
-                :disabled="backupJob.isLoading.value"
-                @click="triggerBackup"
-              >
-                <BSpinner v-if="backupJob.isLoading.value" small type="grow" class="me-2" />
-                {{ backupJob.isLoading.value ? 'Backing up...' : 'Backup Now' }}
-              </BButton>
-
-              <!-- Backup Progress display -->
-              <div
-                v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'"
-                class="mt-3"
-              >
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge me-2" :class="backupJob.statusBadgeClass.value">
-                    {{ backupJob.status.value }}
-                  </span>
-                  <span class="text-muted">{{ backupJob.step.value }}</span>
-                </div>
-
-                <BProgress
-                  v-if="backupJob.isLoading.value"
-                  :value="
-                    backupJob.hasRealProgress.value ? (backupJob.progressPercent.value ?? 0) : 100
-                  "
-                  :max="100"
-                  :animated="!backupJob.hasRealProgress.value"
-                  :striped="!backupJob.hasRealProgress.value"
-                  :variant="backupJob.progressVariant.value"
-                  height="1.5rem"
-                >
-                  <template #default>
-                    <span v-if="backupJob.hasRealProgress.value">
-                      {{ backupJob.progress.value.current }}/{{
-                        backupJob.progress.value.total
-                      }}
-                      ({{ backupJob.progressPercent.value }}%)
-                    </span>
-                    <span v-else>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
-                  </template>
-                </BProgress>
-
-                <div v-if="backupJob.isLoading.value" class="small text-muted mt-1">
-                  Elapsed: {{ backupJob.elapsedTimeDisplay.value }}
-                </div>
-              </div>
-            </BCard>
-
-            <!-- Restore Progress Card (shown when restoring) -->
-            <BCard
-              v-if="restoreJob.isLoading.value || restoreJob.status.value !== 'idle'"
-              header-tag="header"
-              body-class="p-2"
-              header-class="p-1"
-              border-variant="dark"
-              class="mt-3 text-start"
-            >
-              <template #header>
-                <h5 class="mb-0 text-start font-weight-bold">Restore Progress</h5>
-              </template>
-
-              <div class="mt-1">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge me-2" :class="restoreJob.statusBadgeClass.value">
-                    {{ restoreJob.status.value }}
-                  </span>
-                  <span class="text-muted">{{ restoreJob.step.value }}</span>
-                </div>
-
-                <BProgress
-                  v-if="restoreJob.isLoading.value"
-                  :value="
-                    restoreJob.hasRealProgress.value ? (restoreJob.progressPercent.value ?? 0) : 100
-                  "
-                  :max="100"
-                  :animated="!restoreJob.hasRealProgress.value"
-                  :striped="!restoreJob.hasRealProgress.value"
-                  :variant="restoreJob.progressVariant.value"
-                  height="1.5rem"
-                >
-                  <template #default>
-                    <span v-if="restoreJob.hasRealProgress.value">
-                      {{ restoreJob.progress.value.current }}/{{
-                        restoreJob.progress.value.total
-                      }}
-                      ({{ restoreJob.progressPercent.value }}%)
-                    </span>
-                    <span v-else>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
-                  </template>
-                </BProgress>
-
-                <div v-if="restoreJob.isLoading.value" class="small text-muted mt-1">
-                  Elapsed: {{ restoreJob.elapsedTimeDisplay.value }}
-                </div>
-              </div>
-            </BCard>
           </BCol>
         </BRow>
 
@@ -966,6 +914,126 @@ onMounted(() => {
     'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
+.backup-toolbar {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.backup-toolbar__filters,
+.backup-toolbar__controls,
+.backup-toolbar__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.backup-toolbar__controls {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(7rem, 9rem) minmax(7rem, 8rem);
+}
+
+.backup-toolbar__footer {
+  justify-content: space-between;
+}
+
+.backup-toolbar__footer :deep(.pagination) {
+  flex-wrap: nowrap;
+}
+
+.backup-toolbar__footer :deep(.page-link) {
+  min-width: 2rem;
+  padding: 0.25rem 0.45rem;
+}
+
+.backup-toolbar__label,
+.backup-select-label span,
+.backup-count {
+  color: var(--neutral-600, #757575);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.backup-toolbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.backup-filter-chip {
+  min-height: 1.75rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  border-radius: 999px;
+}
+
+.backup-search {
+  position: relative;
+  min-width: 0;
+}
+
+.backup-search__icon {
+  position: absolute;
+  top: 50%;
+  left: 0.65rem;
+  z-index: 2;
+  color: var(--neutral-600, #757575);
+  transform: translateY(-50%);
+}
+
+.backup-search__input {
+  padding-left: 2rem;
+}
+
+.backup-select-label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.backup-table {
+  margin-bottom: 0;
+}
+
+.backup-table :deep(thead th) {
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.backup-table :deep(td),
+.backup-table :deep(th) {
+  vertical-align: middle;
+}
+
+.backup-job-row__step {
+  margin: 0.2rem 0 0;
+  color: var(--neutral-600, #757575);
+  font-size: 0.875rem;
+}
+
+.backup-job-stack {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.backup-job-row {
+  padding: 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.5rem;
+  background: #f8fafc;
+}
+
+.backup-job-row__header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
 .backup-danger-panel {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1029,5 +1097,21 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 0.5rem;
   width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .backup-toolbar__controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .backup-search {
+    grid-column: 1 / -1;
+  }
+
+  .backup-toolbar__footer {
+    display: flex;
+    align-items: center;
+  }
 }
 </style>
