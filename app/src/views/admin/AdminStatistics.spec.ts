@@ -41,6 +41,18 @@ afterEach(() => {
 });
 
 describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
+  function stubStatisticsEndpoints() {
+    server.use(
+      http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/updates', () => HttpResponse.json({})),
+      http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_reviews', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
+    );
+  }
+
   function mountView() {
     return mount(AdminStatistics, {
       global: {
@@ -105,6 +117,8 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
   });
 
   it('renders a compact date range control panel', () => {
+    stubStatisticsEndpoints();
+
     const wrapper = mountView();
 
     const controlPanel = wrapper.get('[data-testid="admin-statistics-controls"]');

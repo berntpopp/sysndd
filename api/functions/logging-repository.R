@@ -387,7 +387,11 @@ build_logging_order_clause <- function(
   # Validate direction
   direction <- validate_sort_direction(sort_direction)
 
-  paste("ORDER BY", sort_column, direction)
+  if (sort_column == "id") {
+    paste("ORDER BY id", direction)
+  } else {
+    paste0("ORDER BY ", sort_column, " ", direction, ", id ", direction)
+  }
 }
 
 #------------------------------------------------------------------------------
@@ -459,8 +463,9 @@ get_logs_filtered <- function(
   where_clause <- where_result$clause
   params <- where_result$params
 
-  # Build ORDER BY clause
-  order_clause <- paste("ORDER BY", sort_column, sort_direction)
+  # Build ORDER BY clause. Non-unique sort columns need id as a stable
+  # tiebreaker so cursor IDs point to the same row across page requests.
+  order_clause <- build_logging_order_clause(sort_column, sort_direction)
 
   # Execute query with LIMIT for safety (LOG-01)
   # The LIMIT prevents memory issues even with very broad filters
@@ -502,20 +507,13 @@ get_logs_first_page <- function(
 
   validate_logging_column(sort_column, LOGGING_ALLOWED_SORT_COLUMNS, "sort")
   sort_direction <- validate_sort_direction(sort_direction)
-  page_size <- suppressWarnings(as.integer(page_size))
-  if (is.na(page_size) || page_size < 1L) {
-    page_size <- 10L
-  }
-  page_size <- min(page_size, 500L)
+  page_size_all <- identical(tolower(as.character(page_size)), "all")
+  requested_page_size <- suppressWarnings(as.integer(page_size))
 
   where_result <- build_logging_where_clause(filters)
   where_clause <- where_result$clause
   params <- where_result$params
-  order_clause <- if (sort_column == "id") {
-    paste("ORDER BY id", sort_direction)
-  } else {
-    paste("ORDER BY", sort_column, sort_direction, ", id", sort_direction)
-  }
+  order_clause <- build_logging_order_clause(sort_column, sort_direction)
 
   count_sql <- paste(
     "SELECT COUNT(*) AS total",
@@ -523,6 +521,13 @@ get_logs_first_page <- function(
   )
   count_result <- db_execute_query(count_sql, params)
   total_items <- as.integer(count_result$total[[1]] %||% 0L)
+  page_size <- if (page_size_all) {
+    total_items
+  } else if (is.na(requested_page_size) || requested_page_size < 1L) {
+    10L
+  } else {
+    min(requested_page_size, 500L)
+  }
   total_pages <- if (total_items == 0L) 0L else ceiling(total_items / page_size)
 
   data_sql <- paste(
@@ -532,15 +537,33 @@ get_logs_first_page <- function(
     order_clause,
     "LIMIT ?"
   )
-  lookahead_limit <- page_size + 1L
+  lookahead_limit <- if (page_size_all) page_size else page_size + 1L
   data_result <- tibble::as_tibble(db_execute_query(data_sql, append(params, list(lookahead_limit))))
-  has_next <- nrow(data_result) > page_size
+  has_next <- !page_size_all && nrow(data_result) > page_size
   page_data <- utils::head(data_result, page_size)
 
   current_page_last_id <- if (nrow(page_data) > 0L) {
     page_data$id[[nrow(page_data)]]
   } else {
     "null"
+  }
+
+  last_cursor_id <- "null"
+  if (!page_size_all && total_pages > 1L) {
+    last_cursor_offset <- as.integer(page_size * (total_pages - 1L) - 1L)
+    last_cursor_sql <- paste(
+      "SELECT id",
+      "FROM logging WHERE", where_clause,
+      order_clause,
+      "LIMIT 1 OFFSET ?"
+    )
+    last_cursor_result <- db_execute_query(
+      last_cursor_sql,
+      append(params, list(last_cursor_offset))
+    )
+    if (nrow(last_cursor_result) > 0L) {
+      last_cursor_id <- last_cursor_result$id[[1]]
+    }
   }
 
   links <- tibble::as_tibble(list(
@@ -551,7 +574,11 @@ get_logs_first_page <- function(
     } else {
       "null"
     },
-    "last" = "null"
+    "last" = if (identical(last_cursor_id, "null")) {
+      "null"
+    } else {
+      paste0("&page_after=", last_cursor_id, "&page_size=", page_size)
+    }
   ))
 
   meta <- tibble::as_tibble(list(
@@ -561,7 +588,7 @@ get_logs_first_page <- function(
     "prevItemID" = "null",
     "currentItemID" = 0L,
     "nextItemID" = if (has_next) current_page_last_id else "null",
-    "lastItemID" = "null",
+    "lastItemID" = last_cursor_id,
     "totalItems" = total_items
   ))
 
