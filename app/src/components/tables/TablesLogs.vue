@@ -1,8 +1,7 @@
 <!-- src/components/tables/TablesLogs.vue -->
 <template>
-  <div class="container-fluid">
-    <BSpinner v-if="loading" label="Loading..." class="float-center m-5" />
-    <BContainer v-else fluid>
+  <div class="container-fluid logs-table">
+    <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol col md="12">
           <!-- User Interface controls -->
@@ -234,8 +233,13 @@
             </template>
             <!-- User Interface controls -->
 
+            <div v-if="isBusy" data-testid="logs-loading-state" class="logs-loading-state">
+              <BSpinner small class="me-2" />
+              Loading logs...
+            </div>
+
             <!-- Empty state when no logs match filters -->
-            <div v-if="!isBusy && items.length === 0" class="text-center py-4">
+            <div v-else-if="items.length === 0" class="text-center py-4">
               <i class="bi bi-journal-x fs-1 text-muted" />
               <p class="text-muted mt-2">No logs match your filters</p>
               <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
@@ -245,7 +249,7 @@
 
             <!-- Main table element -->
             <GenericTable
-              v-else
+              v-else-if="items.length > 0"
               class="d-none d-md-table"
               :items="items"
               :fields="fields"
@@ -390,10 +394,6 @@
                 </BButton>
               </template>
             </GenericTable>
-            <div v-if="isBusy" class="d-md-none text-center text-muted py-3">
-              <BSpinner small class="me-2" />
-              Loading logs...
-            </div>
             <LogMobileRows
               v-if="!isBusy && items.length > 0"
               class="d-md-none"
@@ -417,6 +417,7 @@
 
       <!-- Delete Logs Confirmation Modal -->
       <BModal
+        v-if="showDeleteModal"
         v-model="showDeleteModal"
         title="Delete Logs"
         header-bg-variant="danger"
@@ -824,9 +825,7 @@ export default {
       });
     });
 
-    setTimeout(() => {
-      this.loading = false;
-    }, 500);
+    this.loading = false;
   },
   methods: {
     // Handle row click to open detail drawer
@@ -1230,6 +1229,10 @@ export default {
   margin-top: 0.5rem;
 }
 
+.logs-table {
+  padding-bottom: max(1rem, var(--app-footer-height, 48px));
+}
+
 .log-mobile-filters summary {
   display: inline-flex;
   align-items: center;
@@ -1246,6 +1249,19 @@ export default {
   grid-template-columns: 1fr;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.log-mobile-filters:not([open]) .log-mobile-filters__grid {
+  display: none;
+}
+
+.logs-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 14rem;
+  color: #526070;
+  font-size: 0.875rem;
 }
 
 /* Input group styles */

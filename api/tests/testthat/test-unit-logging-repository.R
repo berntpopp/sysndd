@@ -641,3 +641,60 @@ describe("parse_logging_filter", {
     expect_equal(result$path_contains, "/api/")
   })
 })
+
+describe("get_logs_first_page", {
+  it("uses SQL COUNT and page-size LIMIT instead of fetching the safety cap", {
+    calls <- list()
+    original_db_execute_query <- if (exists("db_execute_query", envir = .GlobalEnv)) {
+      get("db_execute_query", envir = .GlobalEnv)
+    } else {
+      NULL
+    }
+
+    assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+      calls[[length(calls) + 1]] <<- list(sql = sql, params = params)
+      if (grepl("COUNT\\(\\*\\)", sql)) {
+        return(data.frame(total = 123L))
+      }
+      data.frame(
+        id = c(123L, 122L, 121L),
+        timestamp = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00")),
+        address = "127.0.0.1",
+        agent = "agent",
+        host = "localhost",
+        request_method = "GET",
+        path = "/api/logs/",
+        query = "",
+        post = "",
+        status = 200L,
+        duration = 1,
+        file = "",
+        modified = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00"))
+      )
+    }, envir = .GlobalEnv)
+
+    on.exit({
+      if (is.null(original_db_execute_query)) {
+        rm("db_execute_query", envir = .GlobalEnv)
+      } else {
+        assign("db_execute_query", original_db_execute_query, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+
+    result <- get_logs_first_page(
+      filters = list(),
+      sort_column = "id",
+      sort_direction = "DESC",
+      page_size = 2
+    )
+
+    expect_equal(length(calls), 2)
+    expect_match(calls[[1]]$sql, "SELECT COUNT\\(\\*\\) AS total")
+    expect_match(calls[[2]]$sql, "LIMIT \\?")
+    expect_equal(calls[[2]]$params[[1]], 3L)
+    expect_equal(nrow(result$data), 2)
+    expect_equal(result$meta$totalItems[[1]], 123L)
+    expect_equal(result$meta$nextItemID[[1]], 122L)
+    expect_false(any(vapply(calls[[2]]$params, identical, logical(1), 100000L)))
+  })
+})

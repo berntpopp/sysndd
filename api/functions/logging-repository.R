@@ -480,6 +480,94 @@ get_logs_filtered <- function(
   tibble::as_tibble(data_result)
 }
 
+#' Get the first logs page using SQL count and limit
+#'
+#' Fetches only the requested first page plus one lookahead row. This avoids
+#' loading the repository safety cap into R before pagination.
+#'
+#' @param filters Named list of filter criteria
+#' @param sort_column Character, column to sort by. Default: "id"
+#' @param sort_direction Character, ASC or DESC. Default: "DESC"
+#' @param page_size Integer, number of rows to return
+#'
+#' @return Cursor pagination list with links, meta, and data
+#' @export
+get_logs_first_page <- function(
+  filters = list(),
+  sort_column = "id",
+  sort_direction = "DESC",
+  page_size = 10L
+) {
+  log_info("Fetching first logs page: sort={sort_column} {sort_direction}, page_size={page_size}")
+
+  validate_logging_column(sort_column, LOGGING_ALLOWED_SORT_COLUMNS, "sort")
+  sort_direction <- validate_sort_direction(sort_direction)
+  page_size <- suppressWarnings(as.integer(page_size))
+  if (is.na(page_size) || page_size < 1L) {
+    page_size <- 10L
+  }
+  page_size <- min(page_size, 500L)
+
+  where_result <- build_logging_where_clause(filters)
+  where_clause <- where_result$clause
+  params <- where_result$params
+  order_clause <- if (sort_column == "id") {
+    paste("ORDER BY id", sort_direction)
+  } else {
+    paste("ORDER BY", sort_column, sort_direction, ", id", sort_direction)
+  }
+
+  count_sql <- paste(
+    "SELECT COUNT(*) AS total",
+    "FROM logging WHERE", where_clause
+  )
+  count_result <- db_execute_query(count_sql, params)
+  total_items <- as.integer(count_result$total[[1]] %||% 0L)
+  total_pages <- if (total_items == 0L) 0L else ceiling(total_items / page_size)
+
+  data_sql <- paste(
+    "SELECT id, timestamp, address, agent, host, request_method, path,",
+    "query, post, status, duration, file, modified",
+    "FROM logging WHERE", where_clause,
+    order_clause,
+    "LIMIT ?"
+  )
+  lookahead_limit <- page_size + 1L
+  data_result <- tibble::as_tibble(db_execute_query(data_sql, append(params, list(lookahead_limit))))
+  has_next <- nrow(data_result) > page_size
+  page_data <- utils::head(data_result, page_size)
+
+  current_page_last_id <- if (nrow(page_data) > 0L) {
+    page_data$id[[nrow(page_data)]]
+  } else {
+    "null"
+  }
+
+  links <- tibble::as_tibble(list(
+    "prev" = "null",
+    "self" = paste0("&page_after=0&page_size=", page_size),
+    "next" = if (has_next) {
+      paste0("&page_after=", current_page_last_id, "&page_size=", page_size)
+    } else {
+      "null"
+    },
+    "last" = "null"
+  ))
+
+  meta <- tibble::as_tibble(list(
+    "perPage" = page_size,
+    "currentPage" = 1L,
+    "totalPages" = total_pages,
+    "prevItemID" = "null",
+    "currentItemID" = 0L,
+    "nextItemID" = if (has_next) current_page_last_id else "null",
+    "lastItemID" = "null",
+    "totalItems" = total_items
+  ))
+
+  list(links = links, meta = meta, data = page_data)
+}
+
 #' Parse filter string to filter list
 #'
 #' Converts the filter string from the endpoint into a list
