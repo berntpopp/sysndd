@@ -10,306 +10,326 @@ limit the styles to this component only. * - Defines styles for small buttons an
 component. */
 
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <h5 class="mb-1 text-start">
-                    <strong>Manage Variation Ontology</strong>
-                    <BBadge variant="secondary" class="ms-2"> {{ totalRows }} terms </BBadge>
+  <AuthenticatedPageShell
+    title="Manage Ontology"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol md="12">
+            <TableShell title="Variation Terms" :meta="`${totalRows} terms`">
+              <template #actions>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  class="me-1"
+                  :variant="isExporting ? 'secondary' : 'outline-primary'"
+                  :disabled="isExporting"
+                  title="Export to Excel"
+                  @click="handleExport"
+                >
+                  <BSpinner v-if="isExporting" small />
+                  <i v-else class="bi bi-file-earmark-excel" />
+                </BButton>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  :variant="removeFiltersButtonVariant"
+                  :title="removeFiltersButtonTitle"
+                  @click="removeFilters"
+                >
+                  <i class="bi bi-funnel" />
+                </BButton>
+              </template>
+
+              <template #toolbar>
+                <!-- Search and Pagination Row -->
+                <BRow class="g-2">
+                  <BCol sm="8">
+                    <BInputGroup>
+                      <template #prepend>
+                        <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
+                      </template>
+                      <BFormInput
+                        v-model="filter.any.content"
+                        placeholder="Search by ID, name, or definition..."
+                        debounce="300"
+                        type="search"
+                        @update:model-value="filtered()"
+                      />
+                    </BInputGroup>
+                  </BCol>
+                  <BCol sm="4">
+                    <BContainer v-if="totalRows > perPage">
+                      <TablePaginationControls
+                        :total-rows="totalRows"
+                        :initial-per-page="perPage"
+                        :page-options="pageOptions"
+                        :current-page="currentPage"
+                        @page-change="handlePageChange"
+                        @per-page-change="handlePerPageChange"
+                      />
+                    </BContainer>
+                  </BCol>
+                </BRow>
+
+                <!-- Filter Row -->
+                <BRow class="g-2 mt-1">
+                  <BCol sm="3">
+                    <BFormSelect
+                      v-model="filter.is_active.content"
+                      :options="activeFilterOptions"
+                      size="sm"
+                      @update:model-value="filtered()"
+                    >
+                      <template #first>
+                        <BFormSelectOption :value="null"> All Status </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
+                  </BCol>
+                  <BCol sm="3">
+                    <BFormSelect
+                      v-model="filter.obsolete.content"
+                      :options="obsoleteFilterOptions"
+                      size="sm"
+                      @update:model-value="filtered()"
+                    >
+                      <template #first>
+                        <BFormSelectOption :value="null"> All Terms </BFormSelectOption>
+                      </template>
+                    </BFormSelect>
+                  </BCol>
+                  <BCol sm="6" class="text-end">
+                    <span class="text-muted small">
+                      Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{
+                        Math.min(currentPage * perPage, totalRows)
+                      }}
+                      of {{ totalRows }}
+                    </span>
+                  </BCol>
+                </BRow>
+
+                <BRow class="g-2 mt-1 d-md-none">
+                  <BCol>
+                    <BInputGroup prepend="Sort" size="sm">
+                      <BFormSelect
+                        v-model="mobileSortValue"
+                        :options="mobileSortOptions"
+                        size="sm"
+                      />
+                    </BInputGroup>
+                  </BCol>
+                </BRow>
+
+                <!-- Active Filter Pills -->
+                <BRow v-if="hasActiveFilters" class="g-2 mt-1">
+                  <BCol>
+                    <BBadge
+                      v-for="(activeFilter, index) in activeFilters"
+                      :key="index"
+                      variant="secondary"
+                      class="me-2 mb-1"
+                    >
+                      {{ activeFilter.label }}: {{ activeFilter.value }}
+                      <BButton
+                        size="sm"
+                        variant="link"
+                        class="p-0 ms-1 text-light"
+                        @click="clearFilter(activeFilter.key)"
+                      >
+                        <i class="bi bi-x" />
+                      </BButton>
+                    </BBadge>
+                    <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
+                      Clear all
+                    </BButton>
+                  </BCol>
+                </BRow>
+              </template>
+
+              <!-- Table with loading overlay -->
+              <div class="position-relative">
+                <BSpinner
+                  v-if="isBusy"
+                  class="position-absolute top-50 start-50 translate-middle"
+                  variant="primary"
+                  style="z-index: 10"
+                />
+
+                <!-- Empty state -->
+                <div v-if="!isBusy && ontologies.length === 0" class="text-center py-4">
+                  <i class="bi bi-journal-text fs-1 text-muted" />
+                  <p class="text-muted mt-2">No ontology terms found matching your filters</p>
+                  <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
+                    Clear filters
+                  </BButton>
+                </div>
+
+                <GenericTable
+                  v-else
+                  class="d-none d-md-table"
+                  :items="ontologies"
+                  :fields="fields"
+                  :sort-by="sortBy"
+                  :class="{ 'opacity-50': isBusy }"
+                  @update:sort-by="handleSortUpdate"
+                >
+                  <!-- Custom slot for the 'actions' column -->
+                  <template #cell-actions="{ row }">
+                    <div>
+                      <BButton
+                        v-b-tooltip.hover.top
+                        size="sm"
+                        class="me-1 btn-xs"
+                        variant="outline-primary"
+                        title="Edit ontology"
+                        @click="editOntology(row)"
+                      >
+                        <i class="bi bi-pencil-square" />
+                      </BButton>
+                    </div>
+                  </template>
+
+                  <!-- Format obsolete as badge -->
+                  <template #cell-obsolete="{ row }">
+                    <BBadge :variant="row.obsolete ? 'warning' : 'success'">
+                      {{ row.obsolete ? 'Yes' : 'No' }}
+                    </BBadge>
+                  </template>
+
+                  <!-- Format is_active as badge -->
+                  <template #cell-is_active="{ row }">
+                    <BBadge :variant="row.is_active ? 'success' : 'secondary'">
+                      {{ row.is_active ? 'Active' : 'Inactive' }}
+                    </BBadge>
+                  </template>
+                </GenericTable>
+                <OntologyMobileRows
+                  v-if="!isBusy && ontologies.length > 0"
+                  class="d-md-none"
+                  :items="ontologies"
+                  @edit="editOntology"
+                />
+              </div>
+            </TableShell>
+          </BCol>
+        </BRow>
+
+        <!-- Update Ontology Modal - Modern Design with v-model -->
+        <BModal
+          v-model="showEditModal"
+          size="lg"
+          centered
+          header-class="border-bottom-0 pb-0"
+          footer-class="border-top-0 pt-0"
+          body-class="pt-2"
+          @hidden="ontologyToEdit = {}"
+        >
+          <template #header>
+            <div class="w-100">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h5 class="mb-1">
+                    <i class="bi bi-journal-text text-primary me-2" />
+                    Edit Ontology Term
                   </h5>
+                  <p class="text-muted small mb-0">
+                    Modify the properties of this variation ontology entry
+                  </p>
+                </div>
+                <BButton variant="link" class="p-0 text-muted" @click="showEditModal = false">
+                  <i class="bi bi-x-lg" />
+                </BButton>
+              </div>
+            </div>
+          </template>
+
+          <BForm @submit.prevent="updateOntologyData">
+            <!-- Read-only info card -->
+            <BCard class="mb-3 bg-light border-0">
+              <BRow>
+                <BCol sm="6">
+                  <small class="text-muted d-block">Vario ID</small>
+                  <strong class="text-primary">{{ ontologyToEdit.vario_id }}</strong>
                 </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    class="me-1"
-                    :variant="isExporting ? 'secondary' : 'outline-primary'"
-                    :disabled="isExporting"
-                    title="Export to Excel"
-                    @click="handleExport"
-                  >
-                    <BSpinner v-if="isExporting" small />
-                    <i v-else class="bi bi-file-earmark-excel" />
-                  </BButton>
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    :variant="removeFiltersButtonVariant"
-                    :title="removeFiltersButtonTitle"
-                    @click="removeFilters"
-                  >
-                    <i class="bi bi-funnel" />
-                  </BButton>
+                <BCol sm="6">
+                  <small class="text-muted d-block">Last Updated</small>
+                  <strong>{{ ontologyToEdit.update_date || 'Never' }}</strong>
                 </BCol>
               </BRow>
-            </template>
+            </BCard>
 
-            <!-- Search and Pagination Row -->
-            <BRow class="px-2 py-2">
-              <BCol sm="8">
-                <BInputGroup>
-                  <template #prepend>
-                    <BInputGroupText><i class="bi bi-search" /></BInputGroupText>
-                  </template>
-                  <BFormInput
-                    v-model="filter.any.content"
-                    placeholder="Search by ID, name, or definition..."
-                    debounce="300"
-                    type="search"
-                    @update:model-value="filtered()"
-                  />
-                </BInputGroup>
-              </BCol>
-              <BCol sm="4">
-                <BContainer v-if="totalRows > perPage">
-                  <TablePaginationControls
-                    :total-rows="totalRows"
-                    :initial-per-page="perPage"
-                    :page-options="pageOptions"
-                    :current-page="currentPage"
-                    @page-change="handlePageChange"
-                    @per-page-change="handlePerPageChange"
-                  />
-                </BContainer>
-              </BCol>
-            </BRow>
-
-            <!-- Filter Row -->
-            <BRow class="px-2 pb-2">
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.is_active.content"
-                  :options="activeFilterOptions"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null"> All Status </BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="3">
-                <BFormSelect
-                  v-model="filter.obsolete.content"
-                  :options="obsoleteFilterOptions"
-                  size="sm"
-                  @update:model-value="filtered()"
-                >
-                  <template #first>
-                    <BFormSelectOption :value="null"> All Terms </BFormSelectOption>
-                  </template>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="6" class="text-end">
-                <span class="text-muted small">
-                  Showing {{ totalRows > 0 ? (currentPage - 1) * perPage + 1 : 0 }}-{{
-                    Math.min(currentPage * perPage, totalRows)
-                  }}
-                  of {{ totalRows }}
-                </span>
-              </BCol>
-            </BRow>
-
-            <!-- Active Filter Pills -->
-            <BRow v-if="hasActiveFilters" class="px-2 pb-2">
-              <BCol>
-                <BBadge
-                  v-for="(activeFilter, index) in activeFilters"
-                  :key="index"
-                  variant="secondary"
-                  class="me-2 mb-1"
-                >
-                  {{ activeFilter.label }}: {{ activeFilter.value }}
-                  <BButton
-                    size="sm"
-                    variant="link"
-                    class="p-0 ms-1 text-light"
-                    @click="clearFilter(activeFilter.key)"
-                  >
-                    <i class="bi bi-x" />
-                  </BButton>
-                </BBadge>
-                <BButton size="sm" variant="link" class="p-0" @click="removeFilters">
-                  Clear all
-                </BButton>
-              </BCol>
-            </BRow>
-
-            <!-- Table with loading overlay -->
-            <div class="position-relative">
-              <BSpinner
-                v-if="isBusy"
-                class="position-absolute top-50 start-50 translate-middle"
-                variant="primary"
-                style="z-index: 10"
+            <!-- Editable fields with improved styling -->
+            <BFormGroup
+              v-for="field in editableFields"
+              :key="field.key"
+              :label-for="'input-' + field.key"
+              class="mb-3"
+            >
+              <template #label>
+                <span class="fw-semibold">{{ field.label }}</span>
+              </template>
+              <!-- Use textarea for definition field -->
+              <BFormTextarea
+                v-if="field.key === 'definition'"
+                :id="'input-' + field.key"
+                v-model="ontologyToEdit[field.key]"
+                rows="3"
+                placeholder="Enter definition..."
               />
-
-              <!-- Empty state -->
-              <div v-if="!isBusy && ontologies.length === 0" class="text-center py-4">
-                <i class="bi bi-journal-text fs-1 text-muted" />
-                <p class="text-muted mt-2">No ontology terms found matching your filters</p>
-                <BButton v-if="hasActiveFilters" variant="link" @click="removeFilters">
-                  Clear filters
-                </BButton>
-              </div>
-
-              <GenericTable
-                v-else
-                :items="ontologies"
-                :fields="fields"
-                :sort-by="sortBy"
-                :class="{ 'opacity-50': isBusy }"
-                @update:sort-by="handleSortUpdate"
+              <!-- Use select for boolean fields -->
+              <BFormSelect
+                v-else-if="field.key === 'obsolete' || field.key === 'is_active'"
+                :id="'input-' + field.key"
+                v-model="ontologyToEdit[field.key]"
               >
-                <!-- Custom slot for the 'actions' column -->
-                <template #cell-actions="{ row }">
-                  <div>
-                    <BButton
-                      v-b-tooltip.hover.top
-                      size="sm"
-                      class="me-1 btn-xs"
-                      variant="outline-primary"
-                      title="Edit ontology"
-                      @click="editOntology(row)"
-                    >
-                      <i class="bi bi-pencil-square" />
-                    </BButton>
-                  </div>
-                </template>
+                <BFormSelectOption :value="1">
+                  {{ field.key === 'is_active' ? 'Active' : 'Yes (Obsolete)' }}
+                </BFormSelectOption>
+                <BFormSelectOption :value="0">
+                  {{ field.key === 'is_active' ? 'Inactive' : 'No (Current)' }}
+                </BFormSelectOption>
+              </BFormSelect>
+              <!-- Use number input for sort -->
+              <BFormInput
+                v-else-if="field.key === 'sort'"
+                :id="'input-' + field.key"
+                v-model="ontologyToEdit[field.key]"
+                type="number"
+                min="0"
+              />
+              <!-- Default text input -->
+              <BFormInput v-else :id="'input-' + field.key" v-model="ontologyToEdit[field.key]" />
+            </BFormGroup>
+          </BForm>
 
-                <!-- Format obsolete as badge -->
-                <template #cell-obsolete="{ row }">
-                  <BBadge :variant="row.obsolete ? 'warning' : 'success'">
-                    {{ row.obsolete ? 'Yes' : 'No' }}
-                  </BBadge>
-                </template>
-
-                <!-- Format is_active as badge -->
-                <template #cell-is_active="{ row }">
-                  <BBadge :variant="row.is_active ? 'success' : 'secondary'">
-                    {{ row.is_active ? 'Active' : 'Inactive' }}
-                  </BBadge>
-                </template>
-              </GenericTable>
-            </div>
-          </BCard>
-        </BCol>
-      </BRow>
-
-      <!-- Update Ontology Modal - Modern Design with v-model -->
-      <BModal
-        v-model="showEditModal"
-        size="lg"
-        centered
-        header-class="border-bottom-0 pb-0"
-        footer-class="border-top-0 pt-0"
-        body-class="pt-2"
-        @hidden="ontologyToEdit = {}"
-      >
-        <template #header>
-          <div class="w-100">
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <h5 class="mb-1">
-                  <i class="bi bi-journal-text text-primary me-2" />
-                  Edit Ontology Term
-                </h5>
-                <p class="text-muted small mb-0">
-                  Modify the properties of this variation ontology entry
-                </p>
-              </div>
-              <BButton variant="link" class="p-0 text-muted" @click="showEditModal = false">
-                <i class="bi bi-x-lg" />
+          <template #footer>
+            <div class="d-flex justify-content-end gap-2 w-100">
+              <BButton variant="outline-secondary" @click="showEditModal = false">
+                <i class="bi bi-x-circle me-1" />
+                Cancel
+              </BButton>
+              <BButton variant="primary" @click="updateOntologyData">
+                <i class="bi bi-check-circle me-1" />
+                Save Changes
               </BButton>
             </div>
-          </div>
-        </template>
-
-        <BForm @submit.prevent="updateOntologyData">
-          <!-- Read-only info card -->
-          <BCard class="mb-3 bg-light border-0">
-            <BRow>
-              <BCol sm="6">
-                <small class="text-muted d-block">Vario ID</small>
-                <strong class="text-primary">{{ ontologyToEdit.vario_id }}</strong>
-              </BCol>
-              <BCol sm="6">
-                <small class="text-muted d-block">Last Updated</small>
-                <strong>{{ ontologyToEdit.update_date || 'Never' }}</strong>
-              </BCol>
-            </BRow>
-          </BCard>
-
-          <!-- Editable fields with improved styling -->
-          <BFormGroup
-            v-for="field in editableFields"
-            :key="field.key"
-            :label-for="'input-' + field.key"
-            class="mb-3"
-          >
-            <template #label>
-              <span class="fw-semibold">{{ field.label }}</span>
-            </template>
-            <!-- Use textarea for definition field -->
-            <BFormTextarea
-              v-if="field.key === 'definition'"
-              :id="'input-' + field.key"
-              v-model="ontologyToEdit[field.key]"
-              rows="3"
-              placeholder="Enter definition..."
-            />
-            <!-- Use select for boolean fields -->
-            <BFormSelect
-              v-else-if="field.key === 'obsolete' || field.key === 'is_active'"
-              :id="'input-' + field.key"
-              v-model="ontologyToEdit[field.key]"
-            >
-              <BFormSelectOption :value="1">
-                {{ field.key === 'is_active' ? 'Active' : 'Yes (Obsolete)' }}
-              </BFormSelectOption>
-              <BFormSelectOption :value="0">
-                {{ field.key === 'is_active' ? 'Inactive' : 'No (Current)' }}
-              </BFormSelectOption>
-            </BFormSelect>
-            <!-- Use number input for sort -->
-            <BFormInput
-              v-else-if="field.key === 'sort'"
-              :id="'input-' + field.key"
-              v-model="ontologyToEdit[field.key]"
-              type="number"
-              min="0"
-            />
-            <!-- Default text input -->
-            <BFormInput v-else :id="'input-' + field.key" v-model="ontologyToEdit[field.key]" />
-          </BFormGroup>
-        </BForm>
-
-        <template #footer>
-          <div class="d-flex justify-content-end gap-2 w-100">
-            <BButton variant="outline-secondary" @click="showEditModal = false">
-              <i class="bi bi-x-circle me-1" />
-              Cancel
-            </BButton>
-            <BButton variant="primary" @click="updateOntologyData">
-              <i class="bi bi-check-circle me-1" />
-              Save Changes
-            </BButton>
-          </div>
-        </template>
-      </BModal>
-    </BContainer>
-  </div>
+          </template>
+        </BModal>
+      </BContainer>
+    </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import TableShell from '@/components/table/TableShell.vue';
 import { ref, inject } from 'vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import OntologyMobileRows from './components/OntologyMobileRows.vue';
 import useToast from '@/composables/useToast';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
 // v11.0 closeout F2b: reach for `apiClient` instead of the raw axios
@@ -330,8 +350,11 @@ let moduleLastApiResponse = null; // Cache last API response for remounted compo
 export default {
   name: 'ManageOntology',
   components: {
+    AuthenticatedPageShell,
+    TableShell,
     GenericTable,
     TablePaginationControls,
+    OntologyMobileRows,
   },
   setup() {
     const { makeToast } = useToast();
@@ -438,9 +461,29 @@ export default {
           class: 'text-center',
         },
       ],
+      mobileSortOptions: [
+        { value: '+vario_id', text: 'ID ascending' },
+        { value: '-vario_id', text: 'ID descending' },
+        { value: '+vario_name', text: 'Name ascending' },
+        { value: '-vario_name', text: 'Name descending' },
+        { value: '+update_date', text: 'Updated ascending' },
+        { value: '-update_date', text: 'Updated descending' },
+      ],
     };
   },
   computed: {
+    mobileSortValue: {
+      get() {
+        return this.sort || '+vario_id';
+      },
+      set(value) {
+        const sort_object = this.sortStringToVariables(value);
+        this.sortBy = sort_object.sortBy;
+        this.sort = value;
+        this.currentItemID = 0;
+        this.filtered();
+      },
+    },
     /**
      * Computed property to filter out non-editable fields
      *

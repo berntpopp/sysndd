@@ -1,9 +1,5 @@
 <template>
   <div class="step-core-entity">
-    <p class="text-muted mb-4">
-      Enter the core information for this gene-disease entity. All fields are required.
-    </p>
-
     <!-- Gene Selection -->
     <BFormGroup
       label="Gene"
@@ -33,9 +29,6 @@
         @search="searchGene"
         @blur="touchField('geneId')"
       />
-      <small id="gene-help" class="text-muted">
-        Select HGNC gene symbol associated with this disease
-      </small>
     </BFormGroup>
 
     <!-- Disease Selection -->
@@ -66,7 +59,6 @@
         @search="searchDisease"
         @blur="touchField('diseaseId')"
       />
-      <small id="disease-help" class="text-muted"> Select OMIM or Mondo disease identifier </small>
     </BFormGroup>
 
     <!-- Inheritance Selection -->
@@ -94,9 +86,6 @@
           <BFormSelectOption :value="null"> Select inheritance pattern... </BFormSelectOption>
         </template>
       </BFormSelect>
-      <small id="inheritance-help" class="text-muted">
-        Select the mode of inheritance for this gene-disease relationship
-      </small>
     </BFormGroup>
 
     <!-- NDD Phenotype Selection -->
@@ -109,24 +98,17 @@
       <template #label>
         <span class="fw-bold">NDD Phenotype <span class="text-danger">*</span></span>
       </template>
-      <div class="mt-2">
-        <BFormRadioGroup
-          v-model="formData.nddPhenotype"
-          :state="getFieldState('nddPhenotype')"
-          stacked
-          @change="touchField('nddPhenotype')"
+      <div class="ndd-switch">
+        <BFormCheckbox
+          :model-value="formData.nddPhenotype === true"
+          switch
+          size="sm"
+          @update:model-value="setNddPhenotype(Boolean($event))"
         >
-          <BFormRadio :value="true" class="mb-2">
-            <span class="fw-medium">Yes</span>
-            <small class="text-muted d-block">
-              This is a neurodevelopmental disorder phenotype
-            </small>
-          </BFormRadio>
-          <BFormRadio :value="false">
-            <span class="fw-medium">No</span>
-            <small class="text-muted d-block"> This is not a neurodevelopmental phenotype </small>
-          </BFormRadio>
-        </BFormRadioGroup>
+          <span class="ndd-switch__value">
+            {{ formData.nddPhenotype === true ? 'Yes' : 'No' }}
+          </span>
+        </BFormCheckbox>
       </div>
     </BFormGroup>
   </div>
@@ -134,13 +116,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, inject } from 'vue';
-import {
-  BFormGroup,
-  BFormSelect,
-  BFormSelectOption,
-  BFormRadioGroup,
-  BFormRadio,
-} from 'bootstrap-vue-next';
+import { BFormGroup, BFormSelect, BFormSelectOption, BFormCheckbox } from 'bootstrap-vue-next';
 import AutocompleteInput from '@/components/forms/AutocompleteInput.vue';
 import type { EntityFormData, SelectOption } from '@/composables/useEntityForm';
 
@@ -151,8 +127,7 @@ export default defineComponent({
     BFormGroup,
     BFormSelect,
     BFormSelectOption,
-    BFormRadioGroup,
-    BFormRadio,
+    BFormCheckbox,
     AutocompleteInput,
   },
 
@@ -195,6 +170,11 @@ export default defineComponent({
       });
     };
 
+    const setNddPhenotype = (value: boolean) => {
+      formData.nddPhenotype = value;
+      touchField('nddPhenotype');
+    };
+
     return {
       formData,
       getFieldError,
@@ -206,6 +186,7 @@ export default defineComponent({
       diseaseLoading,
       searchGene,
       searchDisease,
+      setNddPhenotype,
     };
   },
 });
@@ -213,6 +194,51 @@ export default defineComponent({
 
 <style scoped>
 .step-core-entity {
-  max-width: 600px;
+  max-width: none;
+  text-align: left;
+}
+
+.step-core-entity :deep(.form-label),
+.step-core-entity :deep(legend) {
+  margin-bottom: 0.4rem;
+  color: #172033;
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.step-core-entity :deep(small.text-muted) {
+  display: block;
+  margin-top: 0.3rem;
+  text-align: left;
+}
+
+.ndd-switch {
+  display: flex;
+  align-items: center;
+  min-height: 2.35rem;
+  padding: 0 0.15rem;
+}
+
+.ndd-switch :deep(.form-check) {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  margin: 0;
+  padding-left: 2.45rem;
+}
+
+.ndd-switch :deep(.form-check-input) {
+  width: 2.05rem;
+  height: 1.08rem;
+  margin-left: -2.45rem;
+}
+
+.ndd-switch__value {
+  color: #172033;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.2;
 }
 </style>

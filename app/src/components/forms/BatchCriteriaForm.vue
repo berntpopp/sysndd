@@ -8,12 +8,18 @@
   - Accessible form controls with proper ARIA attributes
 -->
 <template>
-  <BForm @submit.prevent="onSubmit">
-    <BRow>
-      <!-- Left Column: Selection Criteria -->
-      <BCol lg="7" class="pe-lg-4">
+  <BForm class="batch-criteria-form" @submit.prevent="onSubmit">
+    <div class="batch-form-grid batch-form-grid--top">
+      <section
+        class="batch-form-panel batch-form-panel--wide"
+        aria-labelledby="batch-entities-title"
+      >
+        <div class="batch-form-panel__header">
+          <h3 id="batch-entities-title">Scope</h3>
+          <p>Add exact entities, or define a criteria-based batch.</p>
+        </div>
         <!-- Entity Search Section -->
-        <div class="mb-3">
+        <div class="batch-field">
           <div class="d-flex align-items-center mb-1">
             <label for="entity-search" class="small fw-semibold mb-0"> Search Entities </label>
             <i id="help-search-entities" class="bi bi-question-circle text-muted ms-1" />
@@ -87,18 +93,97 @@
               </BTooltip>
             </span>
           </div>
-          <small v-if="formData.entity_list.length > 0" class="text-success">
+          <small v-if="formData.entity_list.length > 0" class="batch-field-hint is-success">
             <i class="bi bi-check-circle me-1" />{{ formData.entity_list.length }} entities selected
           </small>
         </div>
+      </section>
 
-        <!-- Divider with OR -->
-        <div class="divider-or mb-3">
-          <span class="text-muted small bg-body px-2">OR filter by criteria</span>
+      <section class="batch-form-panel" aria-labelledby="batch-settings-title">
+        <div class="batch-form-panel__header">
+          <h3 id="batch-settings-title">Batch details</h3>
+          <p>Name, size, assignment, and final confirmation.</p>
         </div>
+        <div class="batch-details-grid">
+          <BFormGroup class="batch-field">
+            <template #label>
+              <div class="d-flex align-items-center">
+                <span class="small fw-semibold">Batch Name</span>
+                <i id="help-batch-name" class="bi bi-question-circle text-muted ms-1" />
+                <BTooltip target="help-batch-name" placement="right" triggers="hover">
+                  Optional name for this batch. If left empty, a name will be auto-generated based
+                  on criteria.
+                </BTooltip>
+              </div>
+            </template>
+            <BFormInput
+              id="batch-name"
+              v-model="formData.batch_name"
+              size="sm"
+              placeholder="Auto-generated if empty"
+              :disabled="isLoading"
+            />
+          </BFormGroup>
 
+          <BFormGroup class="batch-field">
+            <template #label>
+              <div class="d-flex align-items-center">
+                <span class="small fw-semibold">Size</span>
+                <i id="help-batch-size" class="bi bi-question-circle text-muted ms-1" />
+                <BTooltip target="help-batch-size" placement="right" triggers="hover">
+                  Maximum entities per batch (1-100). Use to limit workload per assignment.
+                </BTooltip>
+              </div>
+            </template>
+            <BFormInput
+              id="batch-size"
+              v-model.number="formData.batch_size"
+              type="number"
+              min="1"
+              max="100"
+              size="sm"
+              :disabled="isLoading"
+            />
+          </BFormGroup>
+
+          <BFormGroup class="batch-field">
+            <template #label>
+              <div class="d-flex align-items-center">
+                <span class="small fw-semibold">Assign to</span>
+                <i id="help-assign-to" class="bi bi-question-circle text-muted ms-1" />
+                <BTooltip target="help-assign-to" placement="right" triggers="hover">
+                  Select a curator to assign this batch to immediately. Choose 'Later' to assign
+                  after creation.
+                </BTooltip>
+              </div>
+            </template>
+            <BFormSelect
+              id="user-select"
+              v-model="formData.assigned_user_id"
+              :options="userOptions"
+              size="sm"
+              :disabled="isLoading"
+            >
+              <template #first>
+                <option :value="null">Assign later</option>
+              </template>
+            </BFormSelect>
+          </BFormGroup>
+        </div>
+      </section>
+    </div>
+
+    <section
+      class="batch-form-panel batch-form-panel--filters"
+      aria-labelledby="batch-filters-title"
+    >
+      <div class="batch-form-panel__header">
+        <h3 id="batch-filters-title">Criteria filters</h3>
+        <p>Use one or more filters. Exact entities can also be added above.</p>
+      </div>
+      <div class="batch-filters-grid">
         <!-- Date Range -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Date Range</span>
@@ -130,7 +215,7 @@
         </BFormGroup>
 
         <!-- Gene Filter (Alternative to Entity Search) -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Gene Filter</span>
@@ -141,27 +226,49 @@
               </BTooltip>
             </div>
           </template>
-          <BFormSelect
-            id="gene-select"
-            v-model="formData.gene_list"
-            :options="geneOptions"
-            multiple
-            :select-size="3"
-            size="sm"
-            :disabled="isLoading"
-            aria-label="Select genes"
-          >
-            <template #first>
-              <option :value="null" disabled>-- Select genes --</option>
-            </template>
-          </BFormSelect>
+          <div class="gene-picker">
+            <BFormInput
+              id="gene-select"
+              v-model="geneSearchQuery"
+              size="sm"
+              type="search"
+              placeholder="Search genes"
+              :disabled="isLoading"
+              autocomplete="off"
+              aria-label="Search genes"
+            />
+            <div v-if="filteredGeneOptions.length > 0" class="gene-picker__results">
+              <button
+                v-for="gene in filteredGeneOptions"
+                :key="gene.value"
+                type="button"
+                class="gene-picker__option"
+                @click="addGene(gene.value)"
+              >
+                {{ gene.text }}
+              </button>
+            </div>
+          </div>
+          <div v-if="selectedGeneOptions.length > 0" class="batch-chip-list">
+            <BButton
+              v-for="gene in selectedGeneOptions"
+              :key="gene.value"
+              size="sm"
+              variant="outline-primary"
+              class="batch-chip"
+              @click="removeGene(gene.value)"
+            >
+              {{ gene.text }}
+              <i class="bi bi-x ms-1" aria-hidden="true" />
+            </BButton>
+          </div>
           <small v-if="formData.gene_list.length > 0" class="text-muted">
-            {{ formData.gene_list.length }} gene(s) → all related entities
+            {{ formData.gene_list.length }} gene(s) selected.
           </small>
         </BFormGroup>
 
         <!-- Status Filter -->
-        <BFormGroup class="mb-2">
+        <BFormGroup class="batch-field">
           <template #label>
             <div class="d-flex align-items-center">
               <span class="small fw-semibold">Status</span>
@@ -183,91 +290,23 @@
             </template>
           </BFormSelect>
         </BFormGroup>
-      </BCol>
+      </div>
+    </section>
 
-      <!-- Right Column: Batch Settings -->
-      <BCol lg="5" class="ps-lg-4 border-start-lg">
-        <!-- Batch Name -->
-        <BFormGroup class="mb-2">
-          <template #label>
-            <div class="d-flex align-items-center">
-              <span class="small fw-semibold">Batch Name</span>
-              <i id="help-batch-name" class="bi bi-question-circle text-muted ms-1" />
-              <BTooltip target="help-batch-name" placement="right" triggers="hover">
-                Optional name for this batch. If left empty, a name will be auto-generated based on
-                criteria.
-              </BTooltip>
-            </div>
-          </template>
-          <BFormInput
-            id="batch-name"
-            v-model="formData.batch_name"
-            size="sm"
-            placeholder="Auto-generated if empty"
-            :disabled="isLoading"
-          />
-        </BFormGroup>
-
-        <!-- Batch Size & User Row -->
-        <BRow class="mb-2">
-          <BCol cols="5">
-            <BFormGroup>
-              <template #label>
-                <div class="d-flex align-items-center">
-                  <span class="small fw-semibold">Size</span>
-                  <i id="help-batch-size" class="bi bi-question-circle text-muted ms-1" />
-                  <BTooltip target="help-batch-size" placement="right" triggers="hover">
-                    Maximum entities per batch (1-100). Use to limit workload per assignment.
-                  </BTooltip>
-                </div>
-              </template>
-              <BFormInput
-                id="batch-size"
-                v-model.number="formData.batch_size"
-                type="number"
-                min="1"
-                max="100"
-                size="sm"
-                :disabled="isLoading"
-              />
-            </BFormGroup>
-          </BCol>
-          <BCol cols="7">
-            <BFormGroup>
-              <template #label>
-                <div class="d-flex align-items-center">
-                  <span class="small fw-semibold">Assign to</span>
-                  <i id="help-assign-to" class="bi bi-question-circle text-muted ms-1" />
-                  <BTooltip target="help-assign-to" placement="right" triggers="hover">
-                    Select a curator to assign this batch to immediately. Choose 'Later' to assign
-                    after creation.
-                  </BTooltip>
-                </div>
-              </template>
-              <BFormSelect
-                id="user-select"
-                v-model="formData.assigned_user_id"
-                :options="userOptions"
-                size="sm"
-                :disabled="isLoading"
-              >
-                <template #first>
-                  <option :value="null">Assign later</option>
-                </template>
-              </BFormSelect>
-            </BFormGroup>
-          </BCol>
-        </BRow>
-
+    <section
+      class="batch-form-panel batch-form-panel--actions"
+      aria-label="Batch review and actions"
+    >
+      <div class="batch-action-grid">
         <!-- Validation Message -->
-        <BAlert v-if="!isFormValid" variant="warning" class="py-2 px-3 mb-2">
+        <BAlert v-if="!isFormValid" variant="warning" class="py-2 px-3 mb-2 batch-form-alert">
           <i class="bi bi-exclamation-triangle me-1" />
           <small>Select entities, set date range, or choose a gene/status filter</small>
         </BAlert>
 
         <!-- Summary -->
-        <div v-if="isFormValid" class="bg-light rounded p-2 mb-2">
-          <small class="text-muted d-block fw-semibold mb-1">Batch Summary:</small>
+        <div v-if="isFormValid" class="batch-summary">
+          <small>Batch summary</small>
           <ul class="mb-0 ps-3 small">
             <li v-if="formData.entity_list.length > 0">
               {{ formData.entity_list.length }} specific entities
@@ -289,7 +328,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="d-flex gap-2">
+        <div class="batch-actions">
           <BButton
             size="sm"
             variant="outline-primary"
@@ -315,8 +354,8 @@
             <i class="bi bi-x-circle" />
           </BButton>
         </div>
-      </BCol>
-    </BRow>
+      </div>
+    </section>
 
     <!-- Preview Modal -->
     <BModal
@@ -366,7 +405,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useBatchForm } from '@/composables/useBatchForm';
 
 const emit = defineEmits<{
@@ -402,6 +441,34 @@ const {
   handleSubmit,
   resetForm,
 } = useBatchForm();
+
+const geneSearchQuery = ref('');
+
+const selectedGeneOptions = computed(() =>
+  geneOptions.value.filter((gene) => formData.gene_list.includes(gene.value))
+);
+
+const filteredGeneOptions = computed(() => {
+  const query = geneSearchQuery.value.trim().toLowerCase();
+  if (query.length < 1) return [];
+
+  return geneOptions.value
+    .filter(
+      (gene) => !formData.gene_list.includes(gene.value) && gene.text.toLowerCase().includes(query)
+    )
+    .slice(0, 8);
+});
+
+const addGene = (geneId: number) => {
+  if (!formData.gene_list.includes(geneId)) {
+    formData.gene_list.push(geneId);
+  }
+  geneSearchQuery.value = '';
+};
+
+const removeGene = (geneId: number) => {
+  formData.gene_list = formData.gene_list.filter((id) => id !== geneId);
+};
 
 onMounted(() => {
   loadOptions();
@@ -441,11 +508,193 @@ const onReset = () => {
 </script>
 
 <style scoped>
-/* Responsive border for column separation */
-@media (min-width: 992px) {
-  .border-start-lg {
-    border-left: 1px solid #dee2e6 !important;
-  }
+.batch-criteria-form {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.batch-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.85fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.batch-form-panel {
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.batch-form-panel--filters,
+.batch-form-panel--actions {
+  background: #f8fafc;
+}
+
+.batch-form-panel__header {
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e6ebf2;
+}
+
+.batch-form-panel__header h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.batch-form-panel__header p {
+  margin: 0.15rem 0 0;
+  color: #526070;
+  font-size: 0.78rem;
+}
+
+.batch-field {
+  margin-bottom: 0;
+}
+
+.batch-field-hint {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+}
+
+.batch-field-hint.is-success {
+  color: #16734c;
+}
+
+.batch-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(5rem, 0.35fr);
+  gap: 0.65rem;
+}
+
+.batch-details-grid > :first-child,
+.batch-details-grid > :last-child {
+  grid-column: 1 / -1;
+}
+
+.batch-filters-grid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1.1fr) minmax(14rem, 1fr) minmax(12rem, 0.8fr);
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.gene-picker {
+  position: relative;
+}
+
+.gene-picker__results {
+  position: absolute;
+  z-index: 1060;
+  top: calc(100% + 0.2rem);
+  right: 0;
+  left: 0;
+  overflow: auto;
+  max-height: 14rem;
+  border: 1px solid #cfd7e3;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.gene-picker__option {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid #edf1f6;
+  background: #fff;
+  color: #172033;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.gene-picker__option:hover,
+.gene-picker__option:focus-visible {
+  background: #eef6ff;
+  outline: 0;
+}
+
+.batch-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.batch-chip {
+  border-radius: 999px;
+}
+
+.batch-form-alert {
+  margin-bottom: 0 !important;
+  border-radius: 8px;
+}
+
+.batch-summary {
+  margin-bottom: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.batch-summary small {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #526070;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.batch-action-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.batch-criteria-form :deep(.form-label),
+.batch-criteria-form :deep(label) {
+  color: #172033;
+}
+
+.batch-criteria-form :deep(.form-control),
+.batch-criteria-form :deep(.form-select),
+.batch-criteria-form :deep(.input-group-text) {
+  border-color: #cfd7e3;
+  border-radius: 6px;
+}
+
+.batch-criteria-form :deep(.input-group .form-control),
+.batch-criteria-form :deep(.input-group .form-select),
+.batch-criteria-form :deep(.input-group .input-group-text) {
+  border-radius: 0;
+}
+
+.batch-criteria-form :deep(.input-group > :first-child) {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.batch-criteria-form :deep(.input-group > :last-child) {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
 }
 
 /* Entity search results dropdown */
@@ -454,31 +703,9 @@ const onReset = () => {
   max-height: 200px;
   overflow-y: auto;
   width: 100%;
-  border: 1px solid #dee2e6;
+  border: 1px solid #cfd7e3;
   border-top: none;
-  border-radius: 0 0 0.375rem 0.375rem;
-}
-
-/* Divider with centered text */
-.divider-or {
-  display: flex;
-  align-items: center;
-  text-align: center;
-}
-
-.divider-or::before,
-.divider-or::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px solid #dee2e6;
-}
-
-.divider-or::before {
-  margin-right: 0.5rem;
-}
-
-.divider-or::after {
-  margin-left: 0.5rem;
+  border-radius: 0 0 8px 8px;
 }
 
 /* Compact table styling */
@@ -495,5 +722,26 @@ const onReset = () => {
 .bi-question-circle {
   font-size: 0.75rem;
   cursor: help;
+}
+
+@media (max-width: 991.98px) {
+  .batch-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-details-grid,
+  .batch-filters-grid,
+  .batch-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-details-grid > :first-child,
+  .batch-details-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .batch-actions {
+    justify-content: flex-start;
+  }
 }
 </style>

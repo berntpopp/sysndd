@@ -1,30 +1,34 @@
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <!-- Include TablesLogs Component Here -->
-          <TablesLogs
-            :sort-input="sort"
-            :filter-input="filter"
-            :fields-input="fields"
-            :page-after-input="pageAfter"
-            :page-size-input="pageSize"
-            :fspec-input="fspec"
-          />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+  <AuthenticatedPageShell title="View Logs" content-class="authenticated-route-content" full-width>
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <!-- Include TablesLogs Component Here -->
+            <TablesLogs
+              :sort-input="sort"
+              :filter-input="filter"
+              :fields-input="fields"
+              :page-after-input="pageAfter"
+              :page-size-input="pageSize"
+              :fspec-input="fspec"
+            />
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script>
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { useHead } from '@unhead/vue';
 import TablesLogs from '@/components/tables/TablesLogs.vue';
 
 export default {
   name: 'ViewLogs',
   components: {
+    AuthenticatedPageShell,
     TablesLogs,
   },
   props: {

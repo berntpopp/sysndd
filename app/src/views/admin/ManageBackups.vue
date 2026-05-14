@@ -1,394 +1,501 @@
 <!-- views/admin/ManageBackups.vue -->
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol md="12">
-          <BCard header-tag="header" body-class="p-0" header-class="p-1" border-variant="dark">
-            <template #header>
-              <BRow>
-                <BCol>
-                  <h5 class="mb-1 text-start">
-                    <strong>Manage Backups</strong>
-                    <BBadge variant="secondary" class="ms-2">
-                      {{ meta.total_count }} backups
-                    </BBadge>
-                    <BBadge variant="info" class="ms-2">
-                      {{ formatFileSize(meta.total_size_bytes) }} total
-                    </BBadge>
-                  </h5>
-                </BCol>
-                <BCol class="text-end">
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    variant="outline-primary"
-                    class="me-1"
-                    :disabled="loading"
-                    title="Refresh backup list"
-                    aria-label="Refresh backup list"
-                    @click="fetchBackupList"
-                  >
-                    <BSpinner v-if="loading" small />
-                    <i v-else class="bi bi-arrow-clockwise" aria-hidden="true" />
-                  </BButton>
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    :variant="hasActiveFilters ? 'primary' : 'outline-secondary'"
-                    :title="hasActiveFilters ? 'Clear filters' : 'No active filters'"
-                    :aria-label="hasActiveFilters ? 'Clear filters' : 'Filter backups'"
-                    @click="clearFilters"
-                  >
-                    <i class="bi bi-funnel" aria-hidden="true" />
-                  </BButton>
-                </BCol>
-              </BRow>
-            </template>
+  <AuthenticatedPageShell
+    title="Manage Backups"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol md="12">
+            <TableShell
+              title="Backup inventory"
+              :meta="`${meta.total_count} backups · ${formatFileSize(meta.total_size_bytes)} total`"
+            >
+              <template #actions>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-primary"
+                  class="me-1"
+                  :disabled="loading"
+                  title="Refresh backup list"
+                  aria-label="Refresh backup list"
+                  @click="fetchBackupList"
+                >
+                  <BSpinner v-if="loading" small />
+                  <i v-else class="bi bi-arrow-clockwise" aria-hidden="true" />
+                </BButton>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  :variant="hasActiveFilters ? 'primary' : 'outline-secondary'"
+                  :title="hasActiveFilters ? 'Clear filters' : 'No active filters'"
+                  :aria-label="hasActiveFilters ? 'Clear filters' : 'Filter backups'"
+                  @click="clearFilters"
+                >
+                  <i class="bi bi-funnel" aria-hidden="true" />
+                </BButton>
+              </template>
 
-            <!-- Quick filters row -->
-            <BRow class="px-2 pt-2">
-              <BCol>
-                <div class="d-flex gap-2 align-items-center flex-wrap">
-                  <span class="text-muted small">Quick filters:</span>
-                  <BButton
-                    v-for="preset in quickFilters"
-                    :key="preset.value"
-                    size="sm"
-                    :variant="typeFilter === preset.value ? 'primary' : 'outline-secondary'"
-                    class="py-0"
-                    @click="setTypeFilter(preset.value)"
-                  >
-                    {{ preset.label }}
-                    <BBadge v-if="preset.count > 0" variant="light" class="ms-1">
-                      {{ preset.count }}
-                    </BBadge>
-                  </BButton>
-                </div>
-              </BCol>
-            </BRow>
+              <template #toolbar>
+                <!-- Quick filters row -->
+                <BRow class="g-2">
+                  <BCol>
+                    <div class="d-flex gap-2 align-items-center flex-wrap">
+                      <span class="text-muted small">Quick filters:</span>
+                      <BButton
+                        v-for="preset in quickFilters"
+                        :key="preset.value"
+                        size="sm"
+                        :variant="typeFilter === preset.value ? 'primary' : 'outline-secondary'"
+                        class="py-0"
+                        @click="setTypeFilter(preset.value)"
+                      >
+                        {{ preset.label }}
+                        <BBadge v-if="preset.count > 0" variant="light" class="ms-1">
+                          {{ preset.count }}
+                        </BBadge>
+                      </BButton>
+                    </div>
+                  </BCol>
+                </BRow>
 
-            <!-- Search + Pagination row -->
-            <BRow class="px-2 py-2">
-              <BCol sm="6">
-                <BInputGroup>
-                  <template #prepend>
-                    <BInputGroupText><i class="bi bi-search" aria-hidden="true" /></BInputGroupText>
-                  </template>
-                  <BFormInput
-                    v-model="searchQuery"
-                    placeholder="Search by filename..."
-                    debounce="300"
-                    type="search"
-                  />
-                </BInputGroup>
-              </BCol>
-              <BCol sm="6">
-                <div class="d-flex justify-content-end align-items-center gap-2">
-                  <BFormGroup label="Per page" label-class="small text-muted me-2" class="mb-0">
-                    <BFormSelect
-                      v-model="perPage"
-                      :options="pageOptions"
+                <!-- Search + Pagination row -->
+                <BRow class="g-2 mt-1">
+                  <BCol sm="6">
+                    <BInputGroup>
+                      <template #prepend>
+                        <BInputGroupText>
+                          <i class="bi bi-search" aria-hidden="true" />
+                        </BInputGroupText>
+                      </template>
+                      <BFormInput
+                        v-model="searchQuery"
+                        placeholder="Search by filename..."
+                        debounce="300"
+                        type="search"
+                      />
+                    </BInputGroup>
+                  </BCol>
+                  <BCol sm="6">
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                      <BFormGroup label="Per page" label-class="small text-muted me-2" class="mb-0">
+                        <BFormSelect
+                          v-model="perPage"
+                          :options="pageOptions"
+                          size="sm"
+                          style="width: 80px"
+                        />
+                      </BFormGroup>
+                      <BPagination
+                        v-if="filteredBackups.length > perPage"
+                        v-model="currentPage"
+                        :total-rows="filteredBackups.length"
+                        :per-page="perPage"
+                        size="sm"
+                        class="mb-0"
+                        first-text="«"
+                        prev-text="‹"
+                        next-text="›"
+                        last-text="»"
+                      />
+                    </div>
+                  </BCol>
+                </BRow>
+
+                <!-- Filters + count row -->
+                <BRow class="g-2 mt-1">
+                  <BCol sm="4">
+                    <BFormSelect v-model="typeFilter" size="sm">
+                      <BFormSelectOption :value="null">All Types</BFormSelectOption>
+                      <BFormSelectOption value="manual">Manual</BFormSelectOption>
+                      <BFormSelectOption value="auto">Automatic</BFormSelectOption>
+                      <BFormSelectOption value="pre-restore">Pre-Restore</BFormSelectOption>
+                    </BFormSelect>
+                  </BCol>
+                  <BCol sm="4">
+                    <BFormSelect v-model="compressionFilter" size="sm">
+                      <BFormSelectOption :value="null">All Formats</BFormSelectOption>
+                      <BFormSelectOption value="compressed">Compressed (.gz)</BFormSelectOption>
+                      <BFormSelectOption value="uncompressed"
+                        >Uncompressed (.sql)</BFormSelectOption
+                      >
+                    </BFormSelect>
+                  </BCol>
+                  <BCol sm="4" class="text-end">
+                    <span class="text-muted small">
+                      Showing {{ paginationStart }}-{{ paginationEnd }} of
+                      {{ filteredBackups.length }}
+                    </span>
+                  </BCol>
+                </BRow>
+
+                <BRow class="g-2 mt-1 d-md-none">
+                  <BCol>
+                    <BInputGroup prepend="Sort" size="sm">
+                      <BFormSelect
+                        v-model="mobileSortValue"
+                        :options="mobileSortOptions"
+                        size="sm"
+                      />
+                    </BInputGroup>
+                  </BCol>
+                </BRow>
+              </template>
+
+              <!-- Backup Table -->
+              <BTable
+                class="d-none d-md-table"
+                :items="paginatedBackups"
+                :fields="backupFields"
+                :busy="loading"
+                striped
+                hover
+                small
+                responsive
+                :sort-by="sortBy"
+                @sort-changed="onSortChanged"
+              >
+                <template #table-busy>
+                  <div class="text-center my-2">
+                    <BSpinner class="align-middle" />
+                    <strong class="ms-2">Loading backups...</strong>
+                  </div>
+                </template>
+
+                <template #cell(filename)="data">
+                  <div class="d-flex align-items-center">
+                    <span class="font-monospace small text-start">{{ data.value }}</span>
+                    <BBadge
+                      v-if="getBackupType(String(data.value))"
+                      :variant="getBackupTypeBadgeVariant(String(data.value))"
+                      class="ms-2 flex-shrink-0"
+                    >
+                      {{ getBackupType(String(data.value)) }}
+                    </BBadge>
+                  </div>
+                </template>
+
+                <template #cell(size_bytes)="data">
+                  {{ formatFileSize(data.value as number) }}
+                </template>
+
+                <template #cell(created_at)="data">
+                  {{ formatDate(data.value as string) }}
+                </template>
+
+                <template #cell(actions)="data">
+                  <div class="d-flex justify-content-end">
+                    <BButton
+                      v-b-tooltip.hover
                       size="sm"
-                      style="width: 80px"
-                    />
-                  </BFormGroup>
-                  <BPagination
-                    v-if="filteredBackups.length > perPage"
-                    v-model="currentPage"
-                    :total-rows="filteredBackups.length"
-                    :per-page="perPage"
-                    size="sm"
-                    class="mb-0"
-                    first-text="«"
-                    prev-text="‹"
-                    next-text="›"
-                    last-text="»"
-                  />
-                </div>
-              </BCol>
-            </BRow>
-
-            <!-- Filters + count row -->
-            <BRow class="px-2 pb-2">
-              <BCol sm="4">
-                <BFormSelect v-model="typeFilter" size="sm">
-                  <BFormSelectOption :value="null">All Types</BFormSelectOption>
-                  <BFormSelectOption value="manual">Manual</BFormSelectOption>
-                  <BFormSelectOption value="auto">Automatic</BFormSelectOption>
-                  <BFormSelectOption value="pre-restore">Pre-Restore</BFormSelectOption>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="4">
-                <BFormSelect v-model="compressionFilter" size="sm">
-                  <BFormSelectOption :value="null">All Formats</BFormSelectOption>
-                  <BFormSelectOption value="compressed">Compressed (.gz)</BFormSelectOption>
-                  <BFormSelectOption value="uncompressed">Uncompressed (.sql)</BFormSelectOption>
-                </BFormSelect>
-              </BCol>
-              <BCol sm="4" class="text-end">
-                <span class="text-muted small">
-                  Showing {{ paginationStart }}-{{ paginationEnd }} of {{ filteredBackups.length }}
-                </span>
-              </BCol>
-            </BRow>
-
-            <!-- Backup Table -->
-            <BTable
-              :items="paginatedBackups"
-              :fields="backupFields"
-              :busy="loading"
-              striped
-              hover
-              small
-              responsive
-              :sort-by="sortBy"
-              @sort-changed="onSortChanged"
-            >
-              <template #table-busy>
-                <div class="text-center my-2">
-                  <BSpinner class="align-middle" />
-                  <strong class="ms-2">Loading backups...</strong>
-                </div>
-              </template>
-
-              <template #cell(filename)="data">
-                <div class="d-flex align-items-center">
-                  <span class="font-monospace small text-start">{{ data.value }}</span>
-                  <BBadge
-                    v-if="getBackupType(String(data.value))"
-                    :variant="getBackupTypeBadgeVariant(String(data.value))"
-                    class="ms-2 flex-shrink-0"
-                  >
-                    {{ getBackupType(String(data.value)) }}
-                  </BBadge>
-                </div>
-              </template>
-
-              <template #cell(size_bytes)="data">
-                {{ formatFileSize(data.value as number) }}
-              </template>
-
-              <template #cell(created_at)="data">
-                {{ formatDate(data.value as string) }}
-              </template>
-
-              <template #cell(actions)="data">
-                <div class="d-flex justify-content-end">
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    variant="link"
-                    class="me-1 p-1 text-primary"
-                    title="Download backup"
-                    aria-label="Download backup"
-                    @click="downloadBackup(data.item.filename)"
-                  >
-                    <i class="bi bi-download" aria-hidden="true" />
-                  </BButton>
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    variant="link"
-                    class="me-1 p-1 text-warning"
-                    title="Restore from this backup"
-                    aria-label="Restore from this backup"
-                    @click="promptRestore(data.item)"
-                  >
-                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true" />
-                  </BButton>
-                  <BButton
-                    v-b-tooltip.hover
-                    size="sm"
-                    variant="link"
-                    class="p-1 text-danger"
-                    title="Delete backup"
-                    aria-label="Delete backup"
-                    @click="promptDelete(data.item)"
-                  >
-                    <i class="bi bi-trash" aria-hidden="true" />
-                  </BButton>
-                </div>
-              </template>
-            </BTable>
-
-            <div
-              v-if="!loading && filteredBackups.length === 0"
-              class="text-center text-muted py-3"
-            >
-              <template v-if="backups.length === 0">
-                No backups available. Use "Backup Now" to create one.
-              </template>
-              <template v-else>
-                No backups match the current filters.
-                <BButton size="sm" variant="link" @click="clearFilters">Clear filters</BButton>
-              </template>
-            </div>
-          </BCard>
-
-          <!-- Backup Now Card -->
-          <BCard
-            header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
-            border-variant="dark"
-            class="mt-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">Create Manual Backup</h5>
-            </template>
-
-            <BButton variant="primary" :disabled="backupJob.isLoading.value" @click="triggerBackup">
-              <BSpinner v-if="backupJob.isLoading.value" small type="grow" class="me-2" />
-              {{ backupJob.isLoading.value ? 'Backing up...' : 'Backup Now' }}
-            </BButton>
-
-            <!-- Backup Progress display -->
-            <div v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'" class="mt-3">
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="backupJob.statusBadgeClass.value">
-                  {{ backupJob.status.value }}
-                </span>
-                <span class="text-muted">{{ backupJob.step.value }}</span>
-              </div>
-
-              <BProgress
-                v-if="backupJob.isLoading.value"
-                :value="
-                  backupJob.hasRealProgress.value ? (backupJob.progressPercent.value ?? 0) : 100
-                "
-                :max="100"
-                :animated="!backupJob.hasRealProgress.value"
-                :striped="!backupJob.hasRealProgress.value"
-                :variant="backupJob.progressVariant.value"
-                height="1.5rem"
-              >
-                <template #default>
-                  <span v-if="backupJob.hasRealProgress.value">
-                    {{ backupJob.progress.value.current }}/{{ backupJob.progress.value.total }} ({{
-                      backupJob.progressPercent.value
-                    }}%)
-                  </span>
-                  <span v-else>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
+                      variant="link"
+                      class="me-1 p-1 text-primary"
+                      title="Download backup"
+                      aria-label="Download backup"
+                      @click="downloadBackup(data.item.filename)"
+                    >
+                      <i class="bi bi-download" aria-hidden="true" />
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="link"
+                      class="me-1 p-1 text-warning"
+                      title="Restore from this backup"
+                      aria-label="Restore from this backup"
+                      @click="promptRestore(data.item)"
+                    >
+                      <i class="bi bi-arrow-counterclockwise" aria-hidden="true" />
+                    </BButton>
+                    <BButton
+                      v-b-tooltip.hover
+                      size="sm"
+                      variant="link"
+                      class="p-1 text-danger"
+                      title="Delete backup"
+                      aria-label="Delete backup"
+                      @click="promptDelete(data.item)"
+                    >
+                      <i class="bi bi-trash" aria-hidden="true" />
+                    </BButton>
+                  </div>
                 </template>
-              </BProgress>
+              </BTable>
 
-              <div v-if="backupJob.isLoading.value" class="small text-muted mt-1">
-                Elapsed: {{ backupJob.elapsedTimeDisplay.value }}
-              </div>
-            </div>
-          </BCard>
-
-          <!-- Restore Progress Card (shown when restoring) -->
-          <BCard
-            v-if="restoreJob.isLoading.value || restoreJob.status.value !== 'idle'"
-            header-tag="header"
-            body-class="p-2"
-            header-class="p-1"
-            border-variant="dark"
-            class="mt-3 text-start"
-          >
-            <template #header>
-              <h5 class="mb-0 text-start font-weight-bold">Restore Progress</h5>
-            </template>
-
-            <div class="mt-1">
-              <div class="d-flex align-items-center mb-2">
-                <span class="badge me-2" :class="restoreJob.statusBadgeClass.value">
-                  {{ restoreJob.status.value }}
-                </span>
-                <span class="text-muted">{{ restoreJob.step.value }}</span>
+              <div v-if="loading" class="d-md-none text-center text-muted py-3">
+                <BSpinner small class="me-2" />
+                Loading backups...
               </div>
 
-              <BProgress
-                v-if="restoreJob.isLoading.value"
-                :value="
-                  restoreJob.hasRealProgress.value ? (restoreJob.progressPercent.value ?? 0) : 100
-                "
-                :max="100"
-                :animated="!restoreJob.hasRealProgress.value"
-                :striped="!restoreJob.hasRealProgress.value"
-                :variant="restoreJob.progressVariant.value"
-                height="1.5rem"
+              <BackupMobileRows
+                v-if="!loading && paginatedBackups.length > 0"
+                class="d-md-none"
+                :items="paginatedBackups"
+                @download="(backup) => downloadBackup(backup.filename)"
+                @restore="promptRestore"
+                @delete="promptDelete"
+              />
+
+              <div
+                v-if="!loading && filteredBackups.length === 0"
+                class="text-center text-muted py-3"
               >
-                <template #default>
-                  <span v-if="restoreJob.hasRealProgress.value">
-                    {{ restoreJob.progress.value.current }}/{{
-                      restoreJob.progress.value.total
-                    }}
-                    ({{ restoreJob.progressPercent.value }}%)
-                  </span>
-                  <span v-else>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
+                <template v-if="backups.length === 0">
+                  No backups available. Use "Backup Now" to create one.
                 </template>
-              </BProgress>
-
-              <div v-if="restoreJob.isLoading.value" class="small text-muted mt-1">
-                Elapsed: {{ restoreJob.elapsedTimeDisplay.value }}
+                <template v-else>
+                  No backups match the current filters.
+                  <BButton size="sm" variant="link" @click="clearFilters">Clear filters</BButton>
+                </template>
               </div>
+            </TableShell>
+
+            <!-- Backup Now Card -->
+            <BCard
+              header-tag="header"
+              body-class="p-2"
+              header-class="p-1"
+              border-variant="dark"
+              class="mt-3 text-start"
+            >
+              <template #header>
+                <h5 class="mb-0 text-start font-weight-bold">Create Manual Backup</h5>
+              </template>
+
+              <BButton
+                variant="primary"
+                :disabled="backupJob.isLoading.value"
+                @click="triggerBackup"
+              >
+                <BSpinner v-if="backupJob.isLoading.value" small type="grow" class="me-2" />
+                {{ backupJob.isLoading.value ? 'Backing up...' : 'Backup Now' }}
+              </BButton>
+
+              <!-- Backup Progress display -->
+              <div
+                v-if="backupJob.isLoading.value || backupJob.status.value !== 'idle'"
+                class="mt-3"
+              >
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge me-2" :class="backupJob.statusBadgeClass.value">
+                    {{ backupJob.status.value }}
+                  </span>
+                  <span class="text-muted">{{ backupJob.step.value }}</span>
+                </div>
+
+                <BProgress
+                  v-if="backupJob.isLoading.value"
+                  :value="
+                    backupJob.hasRealProgress.value ? (backupJob.progressPercent.value ?? 0) : 100
+                  "
+                  :max="100"
+                  :animated="!backupJob.hasRealProgress.value"
+                  :striped="!backupJob.hasRealProgress.value"
+                  :variant="backupJob.progressVariant.value"
+                  height="1.5rem"
+                >
+                  <template #default>
+                    <span v-if="backupJob.hasRealProgress.value">
+                      {{ backupJob.progress.value.current }}/{{
+                        backupJob.progress.value.total
+                      }}
+                      ({{ backupJob.progressPercent.value }}%)
+                    </span>
+                    <span v-else>Backing up... ({{ backupJob.elapsedTimeDisplay.value }})</span>
+                  </template>
+                </BProgress>
+
+                <div v-if="backupJob.isLoading.value" class="small text-muted mt-1">
+                  Elapsed: {{ backupJob.elapsedTimeDisplay.value }}
+                </div>
+              </div>
+            </BCard>
+
+            <!-- Restore Progress Card (shown when restoring) -->
+            <BCard
+              v-if="restoreJob.isLoading.value || restoreJob.status.value !== 'idle'"
+              header-tag="header"
+              body-class="p-2"
+              header-class="p-1"
+              border-variant="dark"
+              class="mt-3 text-start"
+            >
+              <template #header>
+                <h5 class="mb-0 text-start font-weight-bold">Restore Progress</h5>
+              </template>
+
+              <div class="mt-1">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge me-2" :class="restoreJob.statusBadgeClass.value">
+                    {{ restoreJob.status.value }}
+                  </span>
+                  <span class="text-muted">{{ restoreJob.step.value }}</span>
+                </div>
+
+                <BProgress
+                  v-if="restoreJob.isLoading.value"
+                  :value="
+                    restoreJob.hasRealProgress.value ? (restoreJob.progressPercent.value ?? 0) : 100
+                  "
+                  :max="100"
+                  :animated="!restoreJob.hasRealProgress.value"
+                  :striped="!restoreJob.hasRealProgress.value"
+                  :variant="restoreJob.progressVariant.value"
+                  height="1.5rem"
+                >
+                  <template #default>
+                    <span v-if="restoreJob.hasRealProgress.value">
+                      {{ restoreJob.progress.value.current }}/{{
+                        restoreJob.progress.value.total
+                      }}
+                      ({{ restoreJob.progressPercent.value }}%)
+                    </span>
+                    <span v-else>Restoring... ({{ restoreJob.elapsedTimeDisplay.value }})</span>
+                  </template>
+                </BProgress>
+
+                <div v-if="restoreJob.isLoading.value" class="small text-muted mt-1">
+                  Elapsed: {{ restoreJob.elapsedTimeDisplay.value }}
+                </div>
+              </div>
+            </BCard>
+          </BCol>
+        </BRow>
+
+        <!-- Restore Confirmation Modal -->
+        <BModal
+          v-model="showRestoreModal"
+          title="Restore Database"
+          centered
+          header-bg-variant="danger"
+          header-text-variant="light"
+          @hidden="restoreConfirmText = ''"
+        >
+          <div class="backup-danger-panel">
+            <i class="bi bi-exclamation-triangle-fill backup-danger-panel__icon" />
+            <div>
+              <h3 class="backup-danger-panel__title">Restore will overwrite current data</h3>
+              <p class="backup-danger-panel__copy">
+                The current database will be replaced with the selected backup. This action starts a
+                restore job and should only be used after confirming the backup file.
+              </p>
             </div>
-          </BCard>
-        </BCol>
-      </BRow>
+          </div>
+          <dl v-if="selectedBackup" class="backup-confirm-details">
+            <div>
+              <dt>Backup</dt>
+              <dd>
+                <code>{{ selectedBackup.filename }}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Size</dt>
+              <dd>{{ formatFileSize(selectedBackup.size_bytes) }}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ formatDate(selectedBackup.created_at) }}</dd>
+            </div>
+          </dl>
+          <label class="form-label fw-bold" for="restore-confirm-input">
+            Type <code>RESTORE</code> to confirm
+          </label>
+          <BFormInput
+            id="restore-confirm-input"
+            v-model="restoreConfirmText"
+            placeholder="RESTORE"
+            autocomplete="off"
+          />
+          <template #footer>
+            <div class="backup-confirm-footer">
+              <BButton variant="outline-secondary" @click="showRestoreModal = false">
+                Cancel
+              </BButton>
+              <BButton
+                variant="danger"
+                :disabled="restoreConfirmText !== 'RESTORE'"
+                @click="confirmRestore"
+              >
+                Restore Database
+              </BButton>
+            </div>
+          </template>
+        </BModal>
 
-      <!-- Restore Confirmation Modal -->
-      <BModal
-        v-model="showRestoreModal"
-        title="Restore Database"
-        ok-variant="danger"
-        ok-title="Restore"
-        :ok-disabled="restoreConfirmText !== 'RESTORE'"
-        @ok="confirmRestore"
-        @hidden="restoreConfirmText = ''"
-      >
-        <BAlert variant="danger" :model-value="true">
-          <i class="bi bi-exclamation-triangle-fill me-2" />
-          <strong>Warning:</strong> This will overwrite the current database with the backup data.
-        </BAlert>
-        <p v-if="selectedBackup" class="mb-3">
-          Restoring from: <code class="bg-light p-1">{{ selectedBackup.filename }}</code>
-          <br />
-          <small class="text-muted">
-            Size: {{ formatFileSize(selectedBackup.size_bytes) }} | Created:
-            {{ formatDate(selectedBackup.created_at) }}
-          </small>
-        </p>
-        <p class="fw-bold">Type <code>RESTORE</code> to confirm:</p>
-        <BFormInput v-model="restoreConfirmText" placeholder="RESTORE" autocomplete="off" />
-      </BModal>
-
-      <!-- Delete Confirmation Modal -->
-      <BModal
-        v-model="showDeleteModal"
-        title="Delete Backup"
-        ok-variant="danger"
-        ok-title="Delete"
-        :ok-disabled="deleteConfirmText !== 'DELETE'"
-        @ok="confirmDelete"
-        @hidden="deleteConfirmText = ''"
-      >
-        <BAlert variant="warning" :model-value="true">
-          <i class="bi bi-exclamation-triangle-fill me-2" />
-          <strong>Warning:</strong> This action cannot be undone.
-        </BAlert>
-        <p v-if="selectedBackup" class="mb-3">
-          Deleting: <code class="bg-light p-1">{{ selectedBackup.filename }}</code>
-          <br />
-          <small class="text-muted">
-            Size: {{ formatFileSize(selectedBackup.size_bytes) }} | Created:
-            {{ formatDate(selectedBackup.created_at) }}
-          </small>
-        </p>
-        <p class="fw-bold">Type <code>DELETE</code> to confirm:</p>
-        <BFormInput v-model="deleteConfirmText" placeholder="DELETE" autocomplete="off" />
-      </BModal>
-    </BContainer>
-  </div>
+        <!-- Delete Confirmation Modal -->
+        <BModal
+          v-model="showDeleteModal"
+          title="Delete Backup"
+          centered
+          header-bg-variant="danger"
+          header-text-variant="light"
+          @hidden="deleteConfirmText = ''"
+        >
+          <div class="backup-danger-panel backup-danger-panel--delete">
+            <i class="bi bi-exclamation-triangle-fill backup-danger-panel__icon" />
+            <div>
+              <h3 class="backup-danger-panel__title">Delete this backup permanently</h3>
+              <p class="backup-danger-panel__copy">
+                The selected backup file will be removed and cannot be restored from this inventory
+                after deletion.
+              </p>
+            </div>
+          </div>
+          <dl v-if="selectedBackup" class="backup-confirm-details">
+            <div>
+              <dt>Backup</dt>
+              <dd>
+                <code>{{ selectedBackup.filename }}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Size</dt>
+              <dd>{{ formatFileSize(selectedBackup.size_bytes) }}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ formatDate(selectedBackup.created_at) }}</dd>
+            </div>
+          </dl>
+          <label class="form-label fw-bold" for="delete-confirm-input">
+            Type <code>DELETE</code> to confirm
+          </label>
+          <BFormInput
+            id="delete-confirm-input"
+            v-model="deleteConfirmText"
+            placeholder="DELETE"
+            autocomplete="off"
+          />
+          <template #footer>
+            <div class="backup-confirm-footer">
+              <BButton variant="outline-secondary" @click="showDeleteModal = false">
+                Cancel
+              </BButton>
+              <BButton
+                variant="danger"
+                :disabled="deleteConfirmText !== 'DELETE'"
+                @click="confirmDelete"
+              >
+                Delete Backup
+              </BButton>
+            </div>
+          </template>
+        </BModal>
+      </BContainer>
+    </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import TableShell from '@/components/table/TableShell.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
+import BackupMobileRows from './components/BackupMobileRows.vue';
 // v11.0 closeout F2b: every authed call now flows through the shared
 // apiClient so the request interceptor injects the Bearer from
 // `useAuth().token.value` — no direct localStorage reads.
@@ -440,6 +547,14 @@ const pageOptions = [10, 25, 50, 100];
 const sortBy = ref<Array<{ key: string; order: 'asc' | 'desc' }>>([
   { key: 'created_at', order: 'desc' },
 ]);
+const mobileSortOptions = [
+  { value: '-created_at', text: 'Newest first' },
+  { value: '+created_at', text: 'Oldest first' },
+  { value: '+filename', text: 'Filename ascending' },
+  { value: '-filename', text: 'Filename descending' },
+  { value: '-size_bytes', text: 'Largest first' },
+  { value: '+size_bytes', text: 'Smallest first' },
+];
 
 // Table fields
 const backupFields = [
@@ -513,11 +628,40 @@ const filteredBackups = computed(() => {
   return result;
 });
 
+const mobileSortValue = computed({
+  get() {
+    const current = sortBy.value[0] || { key: 'created_at', order: 'desc' as const };
+    return `${current.order === 'desc' ? '-' : '+'}${current.key}`;
+  },
+  set(value: string) {
+    sortBy.value = [
+      {
+        key: value.slice(1),
+        order: value.startsWith('-') ? 'desc' : 'asc',
+      },
+    ];
+    currentPage.value = 1;
+  },
+});
+
+const sortedBackups = computed(() => {
+  const current = sortBy.value[0] || { key: 'created_at', order: 'desc' as const };
+  const multiplier = current.order === 'desc' ? -1 : 1;
+  return [...filteredBackups.value].sort((left, right) => {
+    const leftValue = left[current.key as keyof BackupItem];
+    const rightValue = right[current.key as keyof BackupItem];
+    if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+      return (leftValue - rightValue) * multiplier;
+    }
+    return String(leftValue ?? '').localeCompare(String(rightValue ?? '')) * multiplier;
+  });
+});
+
 // Computed: Paginated backups
 const paginatedBackups = computed(() => {
   const start = (currentPage.value - 1) * perPage.value;
   const end = start + perPage.value;
-  return filteredBackups.value.slice(start, end);
+  return sortedBackups.value.slice(start, end);
 });
 
 // Computed: Pagination display
@@ -820,5 +964,70 @@ onMounted(() => {
 .font-monospace {
   font-family:
     'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.backup-danger-panel {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.875rem;
+  border: 1px solid rgba(220, 53, 69, 0.28);
+  border-radius: 0.5rem;
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.backup-danger-panel--delete {
+  background: rgba(255, 193, 7, 0.12);
+}
+
+.backup-danger-panel__icon {
+  color: #dc3545;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.backup-danger-panel__title {
+  margin: 0;
+  color: #842029;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.backup-danger-panel__copy {
+  margin: 0.25rem 0 0;
+  color: #495057;
+  font-size: 0.875rem;
+}
+
+.backup-confirm-details {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.backup-confirm-details div {
+  display: grid;
+  grid-template-columns: 5rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.backup-confirm-details dt {
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.backup-confirm-details dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.backup-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
 }
 </style>

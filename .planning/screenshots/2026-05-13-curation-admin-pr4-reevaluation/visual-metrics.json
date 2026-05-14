@@ -1,0 +1,691 @@
+[
+  {
+    "route": "/ApproveReview",
+    "viewport": "desktop",
+    "url": "/",
+    "title": "Home | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "SysNDD"
+      },
+      {
+        "tag": "H2",
+        "text": "Database statistics"
+      },
+      {
+        "tag": "H3",
+        "text": "Entities"
+      },
+      {
+        "tag": "H3",
+        "text": "Genes"
+      },
+      {
+        "tag": "H2",
+        "text": "New entities"
+      },
+      {
+        "tag": "H2",
+        "text": "How SysNDD is organized"
+      },
+      {
+        "tag": "H3",
+        "text": "Neurodevelopmental disorders"
+      },
+      {
+        "tag": "H3",
+        "text": "Classification"
+      },
+      {
+        "tag": "H3",
+        "text": "What you can do"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "home-stats-table",
+        "width": 445,
+        "scrollWidth": 445,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-stats-table",
+        "width": 445,
+        "scrollWidth": 445,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-news-table",
+        "width": 906,
+        "scrollWidth": 906,
+        "headers": [
+          "Entity",
+          "Gene",
+          "Disease",
+          "Inh.",
+          "Class",
+          "NDD"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/ApproveStatus",
+    "viewport": "desktop",
+    "url": "/",
+    "title": "Home | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "SysNDD"
+      },
+      {
+        "tag": "H2",
+        "text": "Database statistics"
+      },
+      {
+        "tag": "H3",
+        "text": "Entities"
+      },
+      {
+        "tag": "H3",
+        "text": "Genes"
+      },
+      {
+        "tag": "H2",
+        "text": "New entities"
+      },
+      {
+        "tag": "H2",
+        "text": "How SysNDD is organized"
+      },
+      {
+        "tag": "H3",
+        "text": "Neurodevelopmental disorders"
+      },
+      {
+        "tag": "H3",
+        "text": "Classification"
+      },
+      {
+        "tag": "H3",
+        "text": "What you can do"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "home-stats-table",
+        "width": 445,
+        "scrollWidth": 445,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-stats-table",
+        "width": 445,
+        "scrollWidth": 445,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-news-table",
+        "width": 906,
+        "scrollWidth": 906,
+        "headers": [
+          "Entity",
+          "Gene",
+          "Disease",
+          "Inh.",
+          "Class",
+          "NDD"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/CreateEntity",
+    "viewport": "desktop",
+    "url": "/CreateEntity",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Create Entity"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  },
+  {
+    "route": "/ModifyEntity",
+    "viewport": "desktop",
+    "url": "/ModifyEntity",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Modify Entity"
+      },
+      {
+        "tag": "H2",
+        "text": "Search & Results"
+      },
+      {
+        "tag": "H2",
+        "text": "Search"
+      },
+      {
+        "tag": "H2",
+        "text": "Selected Entity"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  },
+  {
+    "route": "/ManageReReview",
+    "viewport": "desktop",
+    "url": "/ManageReReview",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Manage Re-review"
+      },
+      {
+        "tag": "H2",
+        "text": "Batch Setup"
+      },
+      {
+        "tag": "H2",
+        "text": "Assignment"
+      },
+      {
+        "tag": "H2",
+        "text": "Submissions Management"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 1,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "b-table-selectable table b-table table-hover table-striped table-sm",
+        "width": 0,
+        "scrollWidth": 0,
+        "headers": [
+          "ID Click to sort ascending",
+          "Gene Click to sort ascending",
+          "Disease Click to sort ascending",
+          "Last Review Click to sort ascending",
+          "Status Click to sort ascending"
+        ]
+      },
+      {
+        "cls": "table b-table table-hover table-striped table-sm",
+        "width": 1372,
+        "scrollWidth": 1372,
+        "headers": [
+          "User Click to sort ascending",
+          "Batch Click to sort ascending",
+          "Saved Click to sort ascending",
+          "Status Click to sort ascending",
+          "Submitted Click to sort ascending",
+          "Approved Click to sort ascending",
+          "Total Click to sort ascending",
+          "Actions"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/EntriesOverTime",
+    "viewport": "desktop",
+    "url": "/EntriesOverTime",
+    "title": "Entries over time | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "NDD entities and genes over time"
+      },
+      {
+        "tag": "H2",
+        "text": "Curated Counts Timeline"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  },
+  {
+    "route": "/ApproveReview",
+    "viewport": "mobile",
+    "url": "/",
+    "title": "Home | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "SysNDD"
+      },
+      {
+        "tag": "H2",
+        "text": "Database statistics"
+      },
+      {
+        "tag": "H3",
+        "text": "Entities"
+      },
+      {
+        "tag": "H3",
+        "text": "Genes"
+      },
+      {
+        "tag": "H2",
+        "text": "New entities"
+      },
+      {
+        "tag": "H2",
+        "text": "How SysNDD is organized"
+      },
+      {
+        "tag": "H3",
+        "text": "Neurodevelopmental disorders"
+      },
+      {
+        "tag": "H3",
+        "text": "Classification"
+      },
+      {
+        "tag": "H3",
+        "text": "What you can do"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "home-stats-table",
+        "width": 340,
+        "scrollWidth": 340,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-stats-table",
+        "width": 340,
+        "scrollWidth": 340,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-news-table",
+        "width": 0,
+        "scrollWidth": 0,
+        "headers": [
+          "Entity",
+          "Gene",
+          "Disease",
+          "Inh.",
+          "Class",
+          "NDD"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/ApproveStatus",
+    "viewport": "mobile",
+    "url": "/",
+    "title": "Home | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "SysNDD"
+      },
+      {
+        "tag": "H2",
+        "text": "Database statistics"
+      },
+      {
+        "tag": "H3",
+        "text": "Entities"
+      },
+      {
+        "tag": "H3",
+        "text": "Genes"
+      },
+      {
+        "tag": "H2",
+        "text": "New entities"
+      },
+      {
+        "tag": "H2",
+        "text": "How SysNDD is organized"
+      },
+      {
+        "tag": "H3",
+        "text": "Neurodevelopmental disorders"
+      },
+      {
+        "tag": "H3",
+        "text": "Classification"
+      },
+      {
+        "tag": "H3",
+        "text": "What you can do"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "home-stats-table",
+        "width": 340,
+        "scrollWidth": 340,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-stats-table",
+        "width": 340,
+        "scrollWidth": 340,
+        "headers": [
+          "Category",
+          "Count",
+          "Details"
+        ]
+      },
+      {
+        "cls": "home-news-table",
+        "width": 0,
+        "scrollWidth": 0,
+        "headers": [
+          "Entity",
+          "Gene",
+          "Disease",
+          "Inh.",
+          "Class",
+          "NDD"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/CreateEntity",
+    "viewport": "mobile",
+    "url": "/CreateEntity",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Create Entity"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  },
+  {
+    "route": "/ModifyEntity",
+    "viewport": "mobile",
+    "url": "/ModifyEntity",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Modify Entity"
+      },
+      {
+        "tag": "H2",
+        "text": "Search & Results"
+      },
+      {
+        "tag": "H2",
+        "text": "Search"
+      },
+      {
+        "tag": "H2",
+        "text": "Selected Entity"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  },
+  {
+    "route": "/ManageReReview",
+    "viewport": "mobile",
+    "url": "/ManageReReview",
+    "title": "SysNDD | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "Manage Re-review"
+      },
+      {
+        "tag": "H2",
+        "text": "Batch Setup"
+      },
+      {
+        "tag": "H2",
+        "text": "Assignment"
+      },
+      {
+        "tag": "H2",
+        "text": "Submissions Management"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [
+      {
+        "tag": "TABLE",
+        "cls": "table b-table table-hover table-striped table-sm",
+        "text": "User Click to sort ascendingBatch Click to sort ascendingSaved Click to sort asc",
+        "right": 809,
+        "width": 783
+      },
+      {
+        "tag": "THEAD",
+        "cls": "table-light",
+        "text": "User Click to sort ascendingBatch Click to sort ascendingSaved Click to sort asc",
+        "right": 809,
+        "width": 783
+      },
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "User Click to sort ascendingBatch Click to sort ascendingSaved Click to sort asc",
+        "right": 809,
+        "width": 783
+      },
+      {
+        "tag": "TH",
+        "cls": "text-center b-table-sort-icon-left b-table-sortable-column",
+        "text": "Status Click to sort ascending",
+        "right": 412,
+        "width": 92
+      },
+      {
+        "tag": "TH",
+        "cls": "text-center b-table-sort-icon-left b-table-sortable-column",
+        "text": "Submitted Click to sort ascending",
+        "right": 529,
+        "width": 117
+      },
+      {
+        "tag": "SPAN",
+        "cls": "visually-hidden",
+        "text": "Click to sort ascending",
+        "right": 505,
+        "width": 1
+      },
+      {
+        "tag": "TH",
+        "cls": "text-center b-table-sort-icon-left b-table-sortable-column",
+        "text": "Approved Click to sort ascending",
+        "right": 644,
+        "width": 114
+      },
+      {
+        "tag": "SPAN",
+        "cls": "visually-hidden",
+        "text": "Click to sort ascending",
+        "right": 620,
+        "width": 1
+      },
+      {
+        "tag": "TH",
+        "cls": "text-center b-table-sort-icon-left b-table-sortable-column",
+        "text": "Total Click to sort ascending",
+        "right": 725,
+        "width": 81
+      },
+      {
+        "tag": "SPAN",
+        "cls": "visually-hidden",
+        "text": "Click to sort ascending",
+        "right": 701,
+        "width": 1
+      },
+      {
+        "tag": "TH",
+        "cls": "text-center",
+        "text": "Actions",
+        "right": 809,
+        "width": 84
+      },
+      {
+        "tag": "TBODY",
+        "cls": "",
+        "text": "Bernt #1110028 Reassign to different user Unassign this batch Christiane #233302",
+        "right": 809,
+        "width": 783
+      }
+    ],
+    "clippedButtons": 50,
+    "hasAuthenticatedShell": true,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": [
+      {
+        "cls": "b-table-selectable table b-table table-hover table-striped table-sm",
+        "width": 0,
+        "scrollWidth": 0,
+        "headers": [
+          "ID Click to sort ascending",
+          "Gene Click to sort ascending",
+          "Disease Click to sort ascending",
+          "Last Review Click to sort ascending",
+          "Status Click to sort ascending"
+        ]
+      },
+      {
+        "cls": "table b-table table-hover table-striped table-sm",
+        "width": 783,
+        "scrollWidth": 783,
+        "headers": [
+          "User Click to sort ascending",
+          "Batch Click to sort ascending",
+          "Saved Click to sort ascending",
+          "Status Click to sort ascending",
+          "Submitted Click to sort ascending",
+          "Approved Click to sort ascending",
+          "Total Click to sort ascending",
+          "Actions"
+        ]
+      }
+    ]
+  },
+  {
+    "route": "/EntriesOverTime",
+    "viewport": "mobile",
+    "url": "/EntriesOverTime",
+    "title": "Entries over time | SysNDD - The expert curated database of gene disease relationships in neurodevelopmental disorders",
+    "headings": [
+      {
+        "tag": "H1",
+        "text": "NDD entities and genes over time"
+      },
+      {
+        "tag": "H2",
+        "text": "Curated Counts Timeline"
+      }
+    ],
+    "duplicateHeadings": [],
+    "overflowEls": [],
+    "clippedButtons": 0,
+    "hasAuthenticatedShell": false,
+    "hasTableShell": false,
+    "hasGenericTable": false,
+    "tables": []
+  }
+]

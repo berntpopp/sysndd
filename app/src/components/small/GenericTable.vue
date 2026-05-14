@@ -84,8 +84,57 @@
 
     <!-- Actions column -->
     <template #cell(actions)="data">
-      <slot name="cell-actions" :row="data.item" :index="data.index">
+      <slot
+        name="cell-actions"
+        :row="data.item"
+        :index="data.index"
+        :toggle-expansion="data.toggleDetails || data.toggleExpansion"
+        :expansion-showing="data.detailsShowing || data.expansionShowing"
+      >
         {{ data.item.actions }}
+      </slot>
+    </template>
+
+    <!-- Approval/review related columns -->
+    <template #cell(synopsis)="data">
+      <slot name="cell-synopsis" :row="data.item" :index="data.index">
+        {{ data.item.synopsis }}
+      </slot>
+    </template>
+
+    <template #cell(comment)="data">
+      <slot name="cell-comment" :row="data.item" :index="data.index">
+        {{ data.item.comment }}
+      </slot>
+    </template>
+
+    <template #cell(review_date)="data">
+      <slot name="cell-review_date" :row="data.item" :index="data.index">
+        {{ data.item.review_date }}
+      </slot>
+    </template>
+
+    <template #cell(review_user_name)="data">
+      <slot name="cell-review_user_name" :row="data.item" :index="data.index">
+        {{ data.item.review_user_name }}
+      </slot>
+    </template>
+
+    <template #cell(status_date)="data">
+      <slot name="cell-status_date" :row="data.item" :index="data.index">
+        {{ data.item.status_date }}
+      </slot>
+    </template>
+
+    <template #cell(status_user_name)="data">
+      <slot name="cell-status_user_name" :row="data.item" :index="data.index">
+        {{ data.item.status_user_name }}
+      </slot>
+    </template>
+
+    <template #cell(problematic)="data">
+      <slot name="cell-problematic" :row="data.item" :index="data.index">
+        {{ data.item.problematic }}
       </slot>
     </template>
 
@@ -173,6 +222,49 @@
     <template #cell(user_role)="data">
       <slot name="cell-user_role" :row="data.item" :index="data.index">
         {{ data.item.user_role }}
+      </slot>
+    </template>
+
+    <!-- Re-review management columns -->
+    <template #cell(user_name)="data">
+      <slot name="cell-user_name" :row="data.item" :index="data.index">
+        {{ data.item.user_name }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_batch)="data">
+      <slot name="cell-re_review_batch" :row="data.item" :index="data.index">
+        {{ data.item.re_review_batch }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_review_saved)="data">
+      <slot name="cell-re_review_review_saved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_review_saved }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_status_saved)="data">
+      <slot name="cell-re_review_status_saved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_status_saved }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_submitted)="data">
+      <slot name="cell-re_review_submitted" :row="data.item" :index="data.index">
+        {{ data.item.re_review_submitted }}
+      </slot>
+    </template>
+
+    <template #cell(re_review_approved)="data">
+      <slot name="cell-re_review_approved" :row="data.item" :index="data.index">
+        {{ data.item.re_review_approved }}
+      </slot>
+    </template>
+
+    <template #cell(entity_count)="data">
+      <slot name="cell-entity_count" :row="data.item" :index="data.index">
+        {{ data.item.entity_count }}
       </slot>
     </template>
 

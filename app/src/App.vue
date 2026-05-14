@@ -287,8 +287,10 @@ body {
 // Native scrollbar styling
 .scrollable-content {
   height: calc(100vh - var(--app-navbar-height) - var(--app-footer-height));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
   overflow-y: auto;
   overflow-x: hidden;
+  scroll-padding-bottom: calc(var(--app-footer-height) + 1rem);
 }
 
 // Optional: Custom scrollbar styling for webkit browsers

@@ -1,9 +1,5 @@
 <template>
-  <div class="step-classification">
-    <p class="text-muted mb-4">
-      Classify this gene-disease entity based on available evidence. Status is required.
-    </p>
-
+  <div class="step-classification step-classification__grid">
     <!-- Status Selection -->
     <BFormGroup
       label="Status"
@@ -32,22 +28,14 @@
       <small id="status-help" class="text-muted d-block mt-1">
         Evidence strength classification for this gene-disease relationship
       </small>
-
-      <!-- Status explanation -->
-      <BAlert variant="light" :model-value="true" class="mt-3 status-guide">
-        <div class="fw-bold mb-2">Classification Guide:</div>
-        <ul class="mb-0 ps-3">
-          <li><strong>Definitive:</strong> 3+ unrelated cases with consistent phenotype</li>
-          <li><strong>Strong:</strong> 2-3 unrelated cases or functional evidence</li>
-          <li><strong>Moderate:</strong> 2 cases from single report or limited evidence</li>
-          <li><strong>Limited:</strong> 1 case or circumstantial evidence</li>
-          <li><strong>Refuted:</strong> Evidence does not support association</li>
-        </ul>
-      </BAlert>
     </BFormGroup>
 
     <!-- Comment -->
-    <BFormGroup label="Comment" label-for="comment-textarea" class="mb-3">
+    <BFormGroup
+      label="Comment"
+      label-for="comment-textarea"
+      class="mb-3 step-classification__comment"
+    >
       <template #label>
         <span class="fw-bold">Comment</span>
         <span class="text-muted fw-normal ms-1">(optional)</span>
@@ -69,13 +57,7 @@
 
 <script lang="ts">
 import { defineComponent, inject, type PropType } from 'vue';
-import {
-  BFormGroup,
-  BFormSelect,
-  BFormSelectOption,
-  BFormTextarea,
-  BAlert,
-} from 'bootstrap-vue-next';
+import { BFormGroup, BFormSelect, BFormSelectOption, BFormTextarea } from 'bootstrap-vue-next';
 import type { EntityFormData, SelectOption } from '@/composables/useEntityForm';
 
 export default defineComponent({
@@ -86,7 +68,6 @@ export default defineComponent({
     BFormSelect,
     BFormSelectOption,
     BFormTextarea,
-    BAlert,
   },
 
   props: {
@@ -115,20 +96,30 @@ export default defineComponent({
 
 <style scoped>
 .step-classification {
-  max-width: 700px;
+  max-width: none;
+  align-items: start;
+  text-align: left;
 }
 
-.status-guide {
-  font-size: 0.875rem;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+.step-classification :deep(.form-label),
+.step-classification :deep(legend) {
+  margin-bottom: 0.4rem;
+  color: #172033;
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: left;
 }
 
-.status-guide ul li {
-  margin-bottom: 0.25rem;
+.step-classification :deep(small.text-muted) {
+  display: block;
+  margin-top: 0.3rem;
+  color: #64748b !important;
+  font-size: 0.76rem;
+  text-align: left;
 }
 
-.status-guide ul li:last-child {
-  margin-bottom: 0;
+.step-classification__comment {
+  min-width: 0;
 }
 </style>

@@ -1,8 +1,8 @@
 <!-- src/components/analyses/AnalysesTimePlot.vue -->
 <template>
   <AnalysisPanel
-    title="NDD entities and genes over time"
-    description="Interactive timeline of curated entities and genes by aggregation and grouping."
+    title="Curated Counts Timeline"
+    description="Interactive timeline by aggregation and grouping."
   >
     <template #actions>
       <InlineHelpBadge

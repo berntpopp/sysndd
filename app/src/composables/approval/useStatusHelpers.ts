@@ -68,14 +68,14 @@ export const statusTableFields = [
   },
   {
     key: 'problematic',
-    label: 'Problematic',
+    label: 'Flag',
     sortable: true,
     filterable: true,
     class: 'text-start',
   },
   {
     key: 'status_date',
-    label: 'Status date',
+    label: 'Date',
     sortable: true,
     filterable: true,
     class: 'text-start',

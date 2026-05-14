@@ -1,0 +1,200 @@
+[
+  {
+    "viewport": "desktop",
+    "state": "empty",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "loaded",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "rename",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "deactivate",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "review",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 8,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "desktop",
+    "state": "status",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "empty",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "loaded",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "rename",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Rename Disease"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "deactivate",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Deactivate Entity"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "review",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Review"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 8,
+    "visibleModalCount": 0,
+    "longBadges": []
+  },
+  {
+    "viewport": "mobile",
+    "state": "status",
+    "url": "/ModifyEntity",
+    "headings": [
+      "Modify Entity",
+      "Find Entity",
+      "Current Selection",
+      "Edit Workflow",
+      "Modify Status"
+    ],
+    "duplicateHeadings": [],
+    "overflow": [],
+    "clippedButtons": 0,
+    "visibleModalCount": 0,
+    "longBadges": []
+  }
+]

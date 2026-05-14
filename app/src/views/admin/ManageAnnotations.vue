@@ -1,116 +1,121 @@
 <!-- views/admin/ManageAnnotations.vue -->
 <template>
-  <div class="container-fluid">
-    <BContainer fluid>
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <h3>Manage Annotations</h3>
+  <AuthenticatedPageShell
+    title="Manage Annotations"
+    content-class="authenticated-route-content"
+    full-width
+  >
+    <div class="container-fluid">
+      <BContainer fluid>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <OntologyAnnotationsCard
+              :ontology-job="ontologyJob"
+              :force-apply-job="forceApplyJob"
+              :blocked="ontologyBlocked"
+              :last-updated="annotationDates.omim_update"
+              :user-options="forceApplyUserOptions"
+              :loading-users="loadingForceApplyUsers"
+              @start-ontology="onStartOntology"
+              @force-apply="onForceApply"
+              @dismiss-blocked="dismissBlockedOntology"
+            />
+          </BCol>
+        </BRow>
 
-          <OntologyAnnotationsCard
-            :ontology-job="ontologyJob"
-            :force-apply-job="forceApplyJob"
-            :blocked="ontologyBlocked"
-            :last-updated="annotationDates.omim_update"
-            :user-options="forceApplyUserOptions"
-            :loading-users="loadingForceApplyUsers"
-            @start-ontology="onStartOntology"
-            @force-apply="onForceApply"
-            @dismiss-blocked="dismissBlockedOntology"
-          />
-        </BCol>
-      </BRow>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <HgncAnnotationsCard
+              :hgnc-job="hgncJob"
+              :last-updated="annotationDates.hgnc_update"
+              @start-hgnc="onStartHgnc"
+            />
+          </BCol>
+        </BRow>
 
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <HgncAnnotationsCard
-            :hgnc-job="hgncJob"
-            :last-updated="annotationDates.hgnc_update"
-            @start-hgnc="onStartHgnc"
-          />
-        </BCol>
-      </BRow>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <PubtatorStatsCard
+              :stats="pubtatorStats"
+              :loading="loadingPubtatorStats"
+              @refresh="loadPubtatorStats"
+            />
+          </BCol>
+        </BRow>
 
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <PubtatorStatsCard
-            :stats="pubtatorStats"
-            :loading="loadingPubtatorStats"
-            @refresh="loadPubtatorStats"
-          />
-        </BCol>
-      </BRow>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <ComparisonsRefreshCard
+              :job="comparisonsJob"
+              :metadata="comparisonsMetadata"
+              :loading-metadata="loadingComparisonsMetadata"
+              @refresh-metadata="loadComparisonsMetadata"
+              @start-refresh="onStartComparisons"
+            />
+          </BCol>
+        </BRow>
 
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <ComparisonsRefreshCard
-            :job="comparisonsJob"
-            :metadata="comparisonsMetadata"
-            :loading-metadata="loadingComparisonsMetadata"
-            @refresh-metadata="loadComparisonsMetadata"
-            @start-refresh="onStartComparisons"
-          />
-        </BCol>
-      </BRow>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <PublicationRefreshCard
+              :job="publicationRefreshJob"
+              :stats="publicationStats"
+              :loading-stats="loadingPublicationStats"
+              :preset="selectedPreset"
+              :custom-date="customDate"
+              :today-date="todayDate"
+              :filtered-count="filteredCount"
+              :loading-filtered-count="loadingFilteredCount"
+              @update:preset="setPreset"
+              @update:custom-date="(value: string) => (customDate = value)"
+              @refresh-stats="loadPublicationStats"
+              @refresh-filtered="onRefreshFilteredPublications"
+              @refresh-all="onRefreshAllPublications"
+            />
+          </BCol>
+        </BRow>
 
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <PublicationRefreshCard
-            :job="publicationRefreshJob"
-            :stats="publicationStats"
-            :loading-stats="loadingPublicationStats"
-            :preset="selectedPreset"
-            :custom-date="customDate"
-            :today-date="todayDate"
-            :filtered-count="filteredCount"
-            :loading-filtered-count="loadingFilteredCount"
-            @update:preset="setPreset"
-            @update:custom-date="(value: string) => (customDate = value)"
-            @refresh-stats="loadPublicationStats"
-            @refresh-filtered="onRefreshFilteredPublications"
-            @refresh-all="onRefreshAllPublications"
-          />
-        </BCol>
-      </BRow>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <DeprecatedEntitiesCard
+              :data="deprecatedData"
+              :loading="loadingDeprecated"
+              @check="onCheckDeprecated"
+            />
+          </BCol>
+        </BRow>
 
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <DeprecatedEntitiesCard
-            :data="deprecatedData"
-            :loading="loadingDeprecated"
-            @check="onCheckDeprecated"
-          />
-        </BCol>
-      </BRow>
-
-      <BRow class="justify-content-md-center py-2">
-        <BCol col md="12">
-          <JobHistoryCard
-            :filtered-job-history="filteredJobHistory"
-            :paginated-job-history="paginatedJobHistory"
-            :loading="jobHistoryLoading"
-            :current-page="currentPage"
-            :page-size="pageSize"
-            :page-size-options="pageSizeOptions"
-            :sort-by="sortBy"
-            :search-filter="searchFilter"
-            :job-history-fields="jobHistoryFields"
-            @refresh="loadJobHistory"
-            @download="downloadJobHistory"
-            @copy-link="copyPageLink"
-            @clear-filters="clearAllFilters"
-            @clear-search="clearSearch"
-            @update:search-filter="handleSearchChange"
-            @page-change="handlePageChange"
-            @per-page-change="handlePageSizeChange"
-            @update-sort="handleSortUpdate"
-          />
-        </BCol>
-      </BRow>
-    </BContainer>
-  </div>
+        <BRow class="justify-content-md-center py-2">
+          <BCol col md="12">
+            <JobHistoryCard
+              :filtered-job-history="filteredJobHistory"
+              :paginated-job-history="paginatedJobHistory"
+              :loading="jobHistoryLoading"
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-size-options="pageSizeOptions"
+              :sort-by="sortBy"
+              :search-filter="searchFilter"
+              :job-history-fields="jobHistoryFields"
+              @refresh="loadJobHistory"
+              @download="downloadJobHistory"
+              @copy-link="copyPageLink"
+              @clear-filters="clearAllFilters"
+              @clear-search="clearSearch"
+              @update:search-filter="handleSearchChange"
+              @page-change="handlePageChange"
+              @per-page-change="handlePageSizeChange"
+              @update-sort="handleSortUpdate"
+            />
+          </BCol>
+        </BRow>
+      </BContainer>
+    </div>
+  </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
+import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import useToast from '@/composables/useToast';
