@@ -271,6 +271,9 @@ services:
       retries: 3
       start_period: 10s
     networks:
+      # Backend is internal-only; worker also needs proxy egress for external
+      # provider APIs such as Gemini, PubMed, and PubTator.
+      - proxy
       - backend
     develop:
       watch:
