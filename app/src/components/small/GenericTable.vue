@@ -6,9 +6,9 @@
     :busy="isBusy"
     :sort-by="localSortBy"
     :stacked="stackedMode"
+    :fixed="fixedLayout"
     head-variant="light"
     show-empty
-    fixed
     hover
     sort-icon-left
     no-local-sorting
@@ -483,6 +483,10 @@ export default {
       type: [String, Boolean],
       default: 'md',
     },
+    fixedLayout: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['update-sort', 'update:sort-by', 'head-clicked', 'sorted'],
   computed: {
@@ -623,7 +627,7 @@ export default {
   font-weight: 600;
   font-size: 0.8125rem;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0;
   color: #495057;
   background-color: #f8f9fa;
   border-bottom: 2px solid #dee2e6;
