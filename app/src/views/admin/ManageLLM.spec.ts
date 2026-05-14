@@ -34,6 +34,8 @@ import ManageLLM from './ManageLLM.vue';
 
 afterEach(() => {
   useAuth().logout();
+  window.sessionStorage.clear();
+  vi.useRealTimers();
 });
 
 describe('ManageLLM — F2a Bearer-via-interceptor', () => {
@@ -219,15 +221,74 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
 
     vi.useFakeTimers();
     const wrapper = mountManageLLM();
-    await vi.runOnlyPendingTimersAsync();
-    await wrapper.get('button[data-testid="llm-regenerate-functional"]').trigger('click');
-    await flushPromises();
+    try {
+      await vi.runOnlyPendingTimersAsync();
+      await wrapper.get('button[data-testid="llm-regenerate-functional"]').trigger('click');
+      await flushPromises();
 
-    expect(wrapper.text()).toContain('Functional');
-    expect(wrapper.text()).toContain('functional-child-job');
+      expect(wrapper.text()).toContain('Functional');
+      expect(wrapper.text()).toContain('functional-child-job');
 
-    await vi.advanceTimersByTimeAsync(3000);
-    expect(polledChildJob).toBe(true);
-    vi.useRealTimers();
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(polledChildJob).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('resumes a visible regeneration job after returning to the view', async () => {
+    primeAuth();
+    let polledChildJob = false;
+
+    window.sessionStorage.setItem(
+      'sysndd.llm.activeRegenerationJobs.v1',
+      JSON.stringify({ functional: 'functional-child-job' })
+    );
+
+    server.use(
+      http.get('*/api/llm/config', () =>
+        HttpResponse.json({
+          gemini_configured: [true],
+          current_model: ['gemini-1.5-flash'],
+        })
+      ),
+      http.get('*/api/llm/prompts', () =>
+        HttpResponse.json({
+          functional: { template: '', version: '1', description: '' },
+          phenotype: { template: '', version: '1', description: '' },
+        })
+      ),
+      http.get('*/api/llm/cache/stats', () =>
+        HttpResponse.json({
+          total_entries: 0,
+          by_type: {},
+          by_status: {},
+          estimated_cost_usd: 0,
+        })
+      ),
+      http.get('*/api/jobs/functional-child-job/status', () => {
+        polledChildJob = true;
+        return HttpResponse.json({
+          status: ['running'],
+          step: ['Generating functional cluster summaries'],
+          progress: { current: [2], total: [8] },
+        });
+      })
+    );
+
+    vi.useFakeTimers();
+    const wrapper = mountManageLLM();
+    try {
+      await flushPromises();
+
+      expect(wrapper.get('[data-testid="llm-regeneration-job-functional"]').text()).toContain(
+        'functional-child-job'
+      );
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(polledChildJob).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

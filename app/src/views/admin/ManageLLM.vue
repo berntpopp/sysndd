@@ -287,6 +287,9 @@ const regenerationJobLabels: Record<ClusterType, string> = {
   phenotype: 'Phenotype regeneration',
 };
 
+const regenerationStorageKey = 'sysndd.llm.activeRegenerationJobs.v1';
+type StoredRegenerationJobs = Partial<Record<ClusterType, string>>;
+
 // Local state
 const showClearModal = ref(false);
 const clearType = ref<ClusterType | 'all'>('all');
@@ -355,6 +358,76 @@ function unwrapValue<T>(val: T | T[]): T {
   return Array.isArray(val) && val.length === 1 ? val[0] : (val as T);
 }
 
+function getSessionStorage(): Storage | null {
+  return typeof window === 'undefined' ? null : window.sessionStorage;
+}
+
+function readStoredRegenerationJobs(): StoredRegenerationJobs {
+  const storage = getSessionStorage();
+  if (!storage) return {};
+
+  try {
+    const parsed = JSON.parse(storage.getItem(regenerationStorageKey) || '{}') as unknown;
+    if (!parsed || typeof parsed !== 'object') return {};
+
+    return (['functional', 'phenotype'] as ClusterType[]).reduce<StoredRegenerationJobs>(
+      (jobs, type) => {
+        const jobId = (parsed as Record<string, unknown>)[type];
+        if (typeof jobId === 'string' && jobId.length > 0) {
+          jobs[type] = jobId;
+        }
+        return jobs;
+      },
+      {}
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeStoredRegenerationJobs(jobs: StoredRegenerationJobs) {
+  const storage = getSessionStorage();
+  if (!storage) return;
+
+  if (Object.keys(jobs).length === 0) {
+    storage.removeItem(regenerationStorageKey);
+    return;
+  }
+
+  storage.setItem(regenerationStorageKey, JSON.stringify(jobs));
+}
+
+function persistRegenerationJob(type: ClusterType, jobId: string) {
+  writeStoredRegenerationJobs({
+    ...readStoredRegenerationJobs(),
+    [type]: jobId,
+  });
+}
+
+function clearPersistedRegenerationJob(type: ClusterType) {
+  const jobs = readStoredRegenerationJobs();
+  delete jobs[type];
+  writeStoredRegenerationJobs(jobs);
+}
+
+function rehydrateRegenerationJobs() {
+  const storedJobs = readStoredRegenerationJobs();
+  const resumed = (Object.keys(regenerationJobs) as ClusterType[]).filter((type) => {
+    const jobId = storedJobs[type];
+    if (!jobId || regenerationJobs[type].jobId.value) return false;
+
+    regenerationJobs[type].startJob(jobId);
+    return true;
+  });
+
+  if (resumed.length) {
+    regenerationFeedback.value = `Resumed tracking ${resumed
+      .map((type) => regenerationJobLabels[type].toLowerCase())
+      .join(' and ')} from this browser session.`;
+    regenerationFeedbackVariant.value = 'info';
+  }
+}
+
 function requestedClusterTypes(type: ClusterType | 'all'): ClusterType[] {
   return type === 'all' ? ['functional', 'phenotype'] : [type];
 }
@@ -375,8 +448,10 @@ function startRegenerationTrackers(
     const jobId = jobIdFromRegenerationResult(result, type);
 
     if (jobId) {
+      const unwrappedJobId = unwrapValue(jobId);
       regenerationJobs[type].reset();
-      regenerationJobs[type].startJob(unwrapValue(jobId));
+      regenerationJobs[type].startJob(unwrappedJobId);
+      persistRegenerationJob(type, unwrappedJobId);
       started.push(type);
       return;
     }
@@ -407,6 +482,7 @@ function startRegenerationTrackers(
 // Lifecycle
 onMounted(async () => {
   syncActiveTabFromLocation();
+  rehydrateRegenerationJobs();
   window.addEventListener('hashchange', syncActiveTabFromLocation);
   window.addEventListener('popstate', syncActiveTabFromLocation);
   await refreshAll();
@@ -494,11 +570,13 @@ watch(
   () => functionalRegenerationJob.status.value,
   async (newStatus) => {
     if (newStatus === 'completed') {
+      clearPersistedRegenerationJob('functional');
       regenerationFeedback.value = 'Functional regeneration completed. Cache statistics refreshed.';
       regenerationFeedbackVariant.value = 'success';
       makeToast('Functional regeneration completed', 'Success', 'success');
       await fetchCacheStats();
     } else if (newStatus === 'failed') {
+      clearPersistedRegenerationJob('functional');
       regenerationFeedback.value =
         functionalRegenerationJob.error.value || 'Functional regeneration failed.';
       regenerationFeedbackVariant.value = 'danger';
@@ -511,11 +589,13 @@ watch(
   () => phenotypeRegenerationJob.status.value,
   async (newStatus) => {
     if (newStatus === 'completed') {
+      clearPersistedRegenerationJob('phenotype');
       regenerationFeedback.value = 'Phenotype regeneration completed. Cache statistics refreshed.';
       regenerationFeedbackVariant.value = 'success';
       makeToast('Phenotype regeneration completed', 'Success', 'success');
       await fetchCacheStats();
     } else if (newStatus === 'failed') {
+      clearPersistedRegenerationJob('phenotype');
       regenerationFeedback.value =
         phenotypeRegenerationJob.error.value || 'Phenotype regeneration failed.';
       regenerationFeedbackVariant.value = 'danger';
