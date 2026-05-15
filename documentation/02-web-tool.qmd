@@ -6,12 +6,12 @@ title: "Web tool"
 
 The SysNDD web tool is available from [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/) on a server hosted at the Department for BioMedical Research ([DBMR](https://www.dbmr.unibe.ch/)) (University of Bern) and the web address [https://sysndd.org/](https://sysndd.org/) redirects to this server.
 
-The web tool uses the [Vue.js](https://vuejs.org/) (v2.6) JavaScript framework with BootstrapVue to generate a Bootstrap v4 website frontend.
+The web tool is a Vue 3 single-page application written in TypeScript and built with Vite. It uses Bootstrap 5 and Bootstrap-Vue-Next for the component layer.
 
 
 ## Landing page
 
-The landing page is designed as simple Bootstrap v4 website with:
+The landing page provides:
 
 1) a navigation menu at the top,
 2) the main site content, which changes with navigation to other routes, and
@@ -277,7 +277,7 @@ The *Entries over time* view displays the changes in NDD entity numbers since cu
 
 ### NDD Publications
 
-*-content coming soon-*
+The *NDD Publications* view summarizes publications relevant to neurodevelopmental disorder gene curation. It provides a searchable publication table and companion analysis tabs for publication activity over time and source statistics. The view helps curators and users inspect how publication evidence is distributed across the SysNDD literature corpus.
 
 ### Functional clusters
 
@@ -388,7 +388,7 @@ Upon submission the e-mail account will receive a message with a one-time link a
 
 ## Mobile website
 
-The Vue.js framework enables native cross platform development. Together with the Bootstrap CSS library, this enables the SysNDD web app to integrate seamlessly on smaller mobile screens.
+The Vue 3 application uses responsive layouts so SysNDD remains usable on smaller screens. Navigation and footer controls collapse at mobile widths, and table-heavy views use compact mobile rows or reduced controls where the current view supports them.
 
 ::: {style="max-width:400px;"}
 ![Mobile site](./static/img/02_23-mobile-site.png)
@@ -406,13 +406,13 @@ The layout breaks to mobile view at 768 pixels width and minimizes the navigatio
 :::
 
 
-All tables in mobile views break to a stacked view (column names become the first column in a cell and values the second column) to best use display space:
+Where supported, table-heavy views use compact mobile rows that keep field labels next to their values on narrow screens:
 
 ::: {style="max-width:400px;"}
 ![Stacked table](./static/img/02_26-mobile-stacked-table.png)
 :::
 
-The table controls and search inputs are further displayed at the top in this view.
+Table controls and search inputs remain available at the top of these views.
 
 
 The *Analyses* pages on mobile are best viewed in landscape mode:
@@ -425,7 +425,7 @@ The *Analyses* pages on mobile are best viewed in landscape mode:
 ## Progressive Web App (PWA)
 
 The SysNDD web app can also be installed on mobile devices using the Progressive Web App ([PWA](https://en.wikipedia.org/wiki/Progressive_web_application)) technology.
-This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, maxOS and Android). Additionally new Safari versions on iOS show some support for PWA.
+This is supported in all Chromium-based modern browsers (Chrome, Edge, Opera, etc.) on all common operating systems (Windows, Linux, macOS and Android). Additionally new Safari versions on iOS show some support for PWA.
 
 PWAs are faster because they cache files. They offer more screen space for the app. Future integrations of this feature in SysNDD will enable offline use.
 
@@ -469,11 +469,11 @@ To install the PWA on Android devices follow these steps:
 
 ## Performance
 
-Modern Javascript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower than server side rendered pages.
+Modern JavaScript frameworks like Vue.js, which we use for the SysNDD website, offer rich user experience. The generated single-page applications can be slower than server side rendered pages.
 
 With SysNDD we are engaged to provide a fast user experience by reducing component and request sizes and applying techniques like lazy loading and code splitting in the frontend with parallelisation in the api.
 
-A quick overview on the current website performance can be obtained on PageSpeed Insights (or "Lighthouse" in the chrome development console):
+A quick overview on the current website performance can be obtained on PageSpeed Insights (or "Lighthouse" in the Chrome development console):
 
 [https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F](https://pagespeed.web.dev/report?url=https%3A%2F%2Fsysndd.dbmr.unibe.ch%2F&form_factor=desktop)
 
