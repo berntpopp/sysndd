@@ -14,8 +14,8 @@ We created Reviewer status accounts for participating scientists.
 ### Login
 You can log into your account by pointing your browser to https://sysndd.dbmr.unibe.ch/ and then clicking the "Login" link on the right side of the menu:
 
-::: {style="max-width:800px;"}
-![Login menu](./static/img/sysndd_login.png)
+::: {.doc-screenshot}
+![Navigation bar with the Login link highlighted.](./static/img/generated/reviewer-login-link.png)
 :::
 
 <br/>
@@ -29,8 +29,8 @@ On the Login page enter your credentials and press the Login button:
 <br/>
 After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:
 
-::: {style="max-width:300px;"}
-![Login token menu](./static/img/sysndd_refresh_token.png)
+::: {.doc-screenshot}
+![Authenticated reviewer navigation with the token menu highlighted.](./static/img/generated/reviewer-authenticated-navigation.png)
 :::
 
 Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.
@@ -41,8 +41,8 @@ Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will
 
 Click the "Review" link to your personal "Re-Review" site:
 
-::: {style="max-width:1000px;"}
-![Review page menu](./static/img/sysndd_review_page_menu.png)
+::: {.doc-screenshot}
+![Reviewer navigation menu with the Re-Review link highlighted.](./static/img/generated/reviewer-review-link-menu.png)
 :::
 
 <br/>
@@ -64,13 +64,7 @@ The page shows:
 
 
 <br/>
-By clicking the action buttons, you can open three different windows to change the entity review:
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entity review (![Edit review menu](./static/img/edit_review_button.png){width="50px"})
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){width="50px"})
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (![Submit re-review status menu](./static/img/submit_re-review_button.png){width="50px"})
+The action buttons open three different windows for the assigned entity: **(1)** edit the entity review, **(2)** edit the status proposal, and **(3)** submit the finished re-review for curator approval.
 
 
 
@@ -152,13 +146,13 @@ If no chapter-specific PMID can be found, note this in the review comment instea
 
 In this window you can propose
 
-- to change the entities association confidence category **(1)**,
+- to change the entity's association confidence category **(1)**,
 - suggest its overall removal **(2)**,
 - add a comment for your change suggestions for the curators to better understand the proposal **(3)** and
 - save your work **(4)**:
 
-::: {style="max-width:800px;"}
-![Submit re-review modal](./static/img/modal_modify_status.png)
+::: {.doc-screenshot}
+![Status edit modal with category, removal, comment, and save controls highlighted.](./static/img/generated/reviewer-modify-status-modal.png)
 :::
 
 
@@ -167,11 +161,15 @@ In this window you can propose
 
 The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:
 
-::: {style="max-width:600px;"}
-![Submit re-review modal](./static/img/modal_submit_re-review.png)
+::: {.doc-screenshot}
+![Submit re-review confirmation modal with the submit button highlighted.](./static/img/generated/reviewer-submit-review-modal.png)
 :::
 
-After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.
+After clicking this button, the entity disappears from your list. You can then proceed with the remaining entries until no entity is left in your list.
+
+::: {.doc-screenshot}
+![Re-review queue after submission with the updated queue state highlighted.](./static/img/generated/reviewer-after-submit-page.png)
+:::
 
 <br/>
 <br/>

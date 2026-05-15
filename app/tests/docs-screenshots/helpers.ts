@@ -381,8 +381,17 @@ export const setupHelpers: Record<string, SetupHelper> = {
 
   async openUserMenu({ page }) {
     await page
-      .locator('.app-navbar__account')
-      .getByText(/pw_admin|admin/i)
+      .locator('.app-navbar__account .dropdown-toggle')
+      .filter({ hasText: /pw_/i })
+      .last()
+      .click();
+    await page.locator('.dropdown-menu.show').first().waitFor({ timeout: 10_000 });
+  },
+
+  async openReviewMenu({ page }) {
+    await page
+      .locator('.app-navbar__account .dropdown-toggle')
+      .filter({ hasText: /^Review$/ })
       .first()
       .click();
     await page.locator('.dropdown-menu.show').first().waitFor({ timeout: 10_000 });
@@ -495,6 +504,12 @@ export const setupHelpers: Record<string, SetupHelper> = {
 
   async reviewerReviewPage({ page }) {
     await page.getByRole('heading', { name: /Re-review table/i }).waitFor({ timeout: 30_000 });
+    await page
+      .getByRole('button', { name: /edit review for/i })
+      .first()
+      .waitFor({
+        timeout: 30_000,
+      });
   },
 
   async geneDetailPage({ page }) {
@@ -543,6 +558,54 @@ export const actionHelpers: Record<
     await editButton.waitFor({ timeout: 20_000 });
     await editButton.click();
     await page.waitForSelector('.modal.show', { timeout: 10_000 });
+    await page.locator('#review-textarea-comment').waitFor({ timeout: 20_000 });
+    await page
+      .locator('.modal.show')
+      .getByRole('button', { name: /Save Review/i })
+      .waitFor({ timeout: 20_000 });
+    await page
+      .locator('.modal.show')
+      .getByText(/Saving|Loading/i)
+      .waitFor({ state: 'hidden', timeout: 20_000 });
+  },
+
+  async openFirstStatusEditModal(page) {
+    const editButton = page.getByRole('button', { name: /edit status for/i }).first();
+    await editButton.waitFor({ timeout: 20_000 });
+    await editButton.click();
+    await page.waitForSelector('.modal.show', { timeout: 10_000 });
+    await page.getByRole('heading', { name: /Edit Status/i }).waitFor({ timeout: 10_000 });
+    await page.locator('#status-textarea-comment').waitFor({ timeout: 20_000 });
+    await page
+      .locator('.modal.show')
+      .getByText(/Saving|Loading/i)
+      .waitFor({ state: 'hidden', timeout: 20_000 })
+      .catch(() => undefined);
+  },
+
+  async openFirstSubmitReviewModal(page) {
+    const submitButton = page.getByRole('button', { name: /submit review for/i }).first();
+    await submitButton.waitFor({ timeout: 20_000 });
+    await submitButton.click();
+    await page.waitForSelector('.modal.show', { timeout: 10_000 });
+    await page.getByRole('heading', { name: /Submit Review/i }).waitFor({ timeout: 10_000 });
+  },
+
+  async submitFirstReview(page) {
+    await actionHelpers.openFirstSubmitReviewModal(page);
+    const modal = page.locator('.modal.show').first();
+    await modal.getByRole('button', { name: /^Submit Review$/ }).click();
+    await modal.waitFor({ state: 'hidden', timeout: 20_000 }).catch(() => undefined);
+    await page
+      .getByText(/^0 entities$/)
+      .first()
+      .waitFor({ timeout: 30_000 });
+    await page
+      .getByText(/New batch|There are no records matching your request/i)
+      .first()
+      .waitFor({
+        timeout: 30_000,
+      });
   },
 };
 

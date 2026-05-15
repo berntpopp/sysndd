@@ -20,6 +20,8 @@ export async function addAnnotations(
       if (!target) return;
       const rect = target.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) return;
+      const offsetX = item.offsetX ?? 0;
+      const offsetY = item.offsetY ?? 0;
       const marker = document.createElement('div');
       marker.className = 'sysndd-docs-screenshot-annotation';
       marker.setAttribute('data-mode', item.mode);
@@ -49,8 +51,11 @@ export async function addAnnotations(
           tag.className = 'sysndd-docs-screenshot-annotation-label';
           tag.textContent = label;
           tag.style.position = 'fixed';
-          tag.style.top = `${Math.max(8, rect.top - 30)}px`;
-          tag.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 220))}px`;
+          tag.style.top = `${Math.max(8, rect.top - 30 + offsetY)}px`;
+          tag.style.left = `${Math.max(
+            8,
+            Math.min(rect.left + offsetX, window.innerWidth - 220)
+          )}px`;
           tag.style.maxWidth = '220px';
           tag.style.padding = '4px 8px';
           tag.style.borderRadius = '999px';
@@ -64,8 +69,11 @@ export async function addAnnotations(
           document.body.appendChild(tag);
         }
       } else if (item.mode === 'callout') {
-        marker.style.top = `${Math.max(8, rect.top - 14)}px`;
-        marker.style.left = `${Math.max(8, Math.min(rect.left + 8, window.innerWidth - 260))}px`;
+        marker.style.top = `${Math.max(8, rect.top - 14 + offsetY)}px`;
+        marker.style.left = `${Math.max(
+          8,
+          Math.min(rect.left + 8 + offsetX, window.innerWidth - 260)
+        )}px`;
         marker.style.maxWidth = '252px';
         marker.style.minHeight = '28px';
         marker.style.display = 'inline-flex';
@@ -81,8 +89,8 @@ export async function addAnnotations(
         marker.style.boxShadow = '0 0 0 2px #ffffff, 0 8px 20px rgba(13, 71, 161, 0.24)';
         marker.textContent = label || (item.number ? String(item.number) : '');
       } else {
-        marker.style.top = `${rect.top - 10}px`;
-        marker.style.left = `${rect.right - 10}px`;
+        marker.style.top = `${rect.top - 10 + offsetY}px`;
+        marker.style.left = `${rect.right - 10 + offsetX}px`;
         marker.style.width = '24px';
         marker.style.height = '24px';
         marker.style.borderRadius = '999px';
