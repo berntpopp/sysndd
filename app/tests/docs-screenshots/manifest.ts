@@ -66,6 +66,7 @@ export const docsScreenshots: DocsScreenshot[] = [
     docRefs: ['documentation/02-web-tool.qmd#gene-page'],
     route: '/Genes/CHD8',
     viewport: { width: 1440, height: 900 },
+    setup: 'geneDetailPage',
     waitFor: 'main',
     fullPage: true,
   },

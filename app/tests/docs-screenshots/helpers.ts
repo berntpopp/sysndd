@@ -13,6 +13,19 @@ export const setupHelpers: Record<string, SetupHelper> = {
     await page.getByRole('heading', { name: /Re-review table/i }).waitFor({ timeout: 30_000 });
   },
 
+  async geneDetailPage({ page }) {
+    await page.getByRole('heading', { name: /CHD8/i }).first().waitFor({ timeout: 30_000 });
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll(
+          '[data-testid="entities-skeleton"], [data-testid="section-card-skeleton"], .spinner-border',
+        ).length === 0,
+      undefined,
+      { timeout: 30_000 },
+    );
+    await page.getByRole('table').first().waitFor({ timeout: 30_000 });
+  },
+
   async swaggerAuthScreen({ page }) {
     await page.waitForSelector('#swagger-ui', { timeout: 30_000 });
     await page.waitForSelector('.swagger-ui', { timeout: 30_000 }).catch(() => undefined);
