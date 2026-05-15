@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '../e2e/fixtures/auth';
 import { docsScreenshots } from './manifest';
-import { runAction, setupHelpers, targetUrl } from './helpers';
+import { preSetupHelpers, runAction, setupHelpers, targetUrl } from './helpers';
 import { addAnnotations, clearAnnotations, hideVolatileElements } from './overlays';
 import { ProvenanceWriter } from './provenance';
 
@@ -14,11 +14,29 @@ test.describe.configure({ mode: 'serial' });
 
 for (const entry of docsScreenshots) {
   test(`docs screenshot: ${entry.slug}`, async ({ page, browser, loggedInAs }, testInfo) => {
+    test.setTimeout(90_000);
+
     const activePage = entry.authRole ? await loggedInAs(entry.authRole) : page;
     const baseURL = String(testInfo.project.use.baseURL ?? 'http://localhost');
     const resolvedUrl = targetUrl(entry, baseURL);
 
     await activePage.setViewportSize(entry.viewport);
+
+    if (!entry.authRole) {
+      await activePage.addInitScript(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      });
+    }
+
+    if (entry.preSetup) {
+      const preSetup = preSetupHelpers[entry.preSetup];
+      if (!preSetup) {
+        throw new Error(`Unknown docs screenshot pre-setup helper: ${entry.preSetup}`);
+      }
+      await preSetup({ page: activePage, entry });
+    }
+
     await activePage.goto(resolvedUrl, { waitUntil: 'domcontentloaded' });
     await activePage.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
 
@@ -57,6 +75,10 @@ for (const entry of docsScreenshots) {
 
     await provenance.add(entry, resolvedUrl, browser);
     await clearAnnotations(activePage);
+
+    if (entry.authRole) {
+      await activePage.context().close();
+    }
   });
 }
 
