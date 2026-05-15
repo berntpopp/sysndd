@@ -406,6 +406,9 @@ const {
     // Emit for potential table sync
     emit('cluster-selected', nodeId);
   },
+  onClusterClick: (clusterId: number) => {
+    selectSingleCluster(clusterId);
+  },
 });
 
 // Network highlight composable for bidirectional hover
@@ -896,6 +899,7 @@ defineExpose({
   clearHighlights,
   searchMatchCount,
   selectCluster,
+  selectSingleCluster,
 });
 </script>
 
