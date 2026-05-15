@@ -314,13 +314,31 @@ On each page of SysNDD, a smiley face button (in blue, bottom right) points user
 
 If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.
 
-When reporting bugs and problems please describe in detail on which page you encountered the issue and what input you gave. Provide screenshots including the error message (upper right corner).
+When reporting a technical problem, include a minimal problem report:
+
+- page URL or route;
+- date, time, and browser;
+- logged-in role, if the problem happened after login;
+- exact steps that reproduce the problem;
+- expected result;
+- observed result;
+- visible error message, if present;
+- console errors or a saved console log, if available;
+- whether the problem repeats after reloading the page.
+
+Avoid sending passwords, authentication tokens, personal identifiers, unpublished patient-level details, or other sensitive material in screenshots or console logs.
 
 ::: {style="max-width:1000px;"}
 ![Error message](./static/img/02_33-error-message.png)
 :::
 
-You can also save the console logs to aid us in identifying the problem and send the log file in your mail:
+For Chromium-based browsers such as Chrome or Edge:
+
+1. Open Developer Tools with `F12`, `Ctrl+Shift+J`, or the browser menu.
+2. Select the Console tab.
+3. Reproduce the problem.
+4. Right-click in the Console and save or copy the console output.
+5. Send the saved log with the minimal problem report.
 
 ::: {style="max-width:1000px;"}
 ![Save console logs](./static/img/02_34-save-console-logs.png)

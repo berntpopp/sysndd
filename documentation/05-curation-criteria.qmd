@@ -166,4 +166,14 @@ Examples:
 
 
 ### Special case: non-NDD entities
-Some genes are associated with multiple entities. Among these entities there might be some without ID as a clinical feature. These non-NDD entities will be included in SysNDD but they will not be classified to any of the categories. Instead, they are tagged with "n.a." (not applicable).
+Some genes are associated with multiple entities. Among these entities, some may be well-established disorders without intellectual disability or another neurodevelopmental disorder as a clinical feature. These non-NDD entities can be retained in SysNDD for gene context, but they are outside the SysNDD NDD classification scope. They are not classified into Category 1, 2, or 3. Instead, they are tagged with `n.a.` (not applicable).
+
+`n.a.` is not a lower evidence category and is not equivalent to "Limited" or "Refuted". Category 1, 2, and 3 ask how strong the evidence is for an NDD entity. `n.a.` says that the retained entity itself is outside the NDD classification scope. "Refuted" says that evidence argues against retaining the proposed association.
+
+Examples:
+
+- A gene has one entity with early-onset developmental delay or intellectual disability and another well-established entity without cognitive impairment. The non-NDD entity may be retained for gene context and tagged `n.a.`.
+- A disorder is mainly adult-onset or organ-specific and the literature does not show intellectual disability or neurodevelopmental disorder in a significant fraction. If retained as a separate entity, it may be tagged `n.a.`.
+- A disorder includes motor delay only, with no evidence for cognitive impairment or early neurodevelopmental disorder. The issue may be scope rather than weak NDD evidence.
+- Do not use `n.a.` when there is weak but plausible NDD evidence. Apply Category 2 or Category 3 according to the existing criteria.
+- Do not use `n.a.` when newer evidence contradicts the old association. Consider "Refuted" according to the existing criteria.

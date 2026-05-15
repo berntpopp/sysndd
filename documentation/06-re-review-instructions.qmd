@@ -106,6 +106,27 @@ These help instructions are:
 
 > bi-allelic truncating variants in 7 individuals from 3 families: severe ID, microcephaly, seizures in 3/7, MRI anomalies
 
+#### Variant ontology curation
+
+This variant ontology curation guidance standardizes the molecular consequence or mechanism already supported by the source text so that variants can be compared across entities and analyses.
+
+Use a source-based workflow:
+
+- read the publication, GeneReviews chapter, OMIM entry, or other accepted source text;
+- identify the variant class or mechanism explicitly supported by that source;
+- select the closest existing SysNDD variation ontology term;
+- prefer a more specific existing term only when the source is explicit;
+- use broader wording or a curator comment when sources are heterogeneous or ambiguous;
+- do not infer a mechanism beyond the source text.
+
+Examples:
+
+- recurrent missense variants with an explicitly reported gain-of-function mechanism can be captured with the matching existing mechanism or effect term if present;
+- truncating variants reported as causing loss of function can be captured with the matching existing loss-of-function or truncating concept if present;
+- mixed missense and truncating reports without a proven common mechanism should be described conservatively in the synopsis or comment rather than forced into an over-specific ontology assignment.
+
+The authoritative term list is the existing SysNDD variation ontology list, with VariO and OLS as external references. This documentation does not add or rename terms.
+
 
 **Phenotypes**: Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected individuals should be included. Please also include information on severity of ID where available and applicable.
 
@@ -114,6 +135,17 @@ These help instructions are:
 
 
 **GeneReviews**: Please add PMID for GeneReview article if available for this entity.
+
+#### Finding the PMID for a GeneReviews article
+
+GeneReviews chapters are hosted in NCBI Bookshelf and may have chapter-specific PubMed records. Use the chapter-specific PMID when one exists. Do not substitute the general GeneReviews collection PMID for a chapter-specific citation.
+
+Two practical lookup workflows are available:
+
+1. From GeneReviews or NCBI Bookshelf, open the chapter and check the citation or metadata area near the chapter title or footer. Record the PubMed PMID when it is shown.
+2. From PubMed, search the condition name plus `GeneReviews`, open the matching chapter record, and copy the PMID from that PubMed record.
+
+If no chapter-specific PMID can be found, note this in the review comment instead of forcing an unrelated PMID.
 
 
 **Comment**: Additionally add information about your review potentially helpful to the curator approving the entity later.

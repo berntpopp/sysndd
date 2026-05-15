@@ -35,6 +35,8 @@ The complete list of variation ontology terms can be accessed via:
 - The [Variation Ontology (VariO)](https://variationontology.org/) website
 - The [EBI OLS Vario terms](https://www.ebi.ac.uk/ols/ontologies/vario)
 
+Reviewer-facing guidance for choosing among existing variation ontology terms is described in the re-review instructions.
+
 
 ## Mode of Inheritance ontology
 
