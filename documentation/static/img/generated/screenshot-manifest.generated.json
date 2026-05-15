@@ -14,12 +14,12 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:02:56.129Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:50.809Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "241da8336fe359655de161b9109a52555676b29b0b10d96476e8388df527c1d6",
-      "bytes": 195177
+      "sha256": "ad405f42d0b402d991f96be44f86b8be1b2f7ef9588a83aea63b3354b97c0180",
+      "bytes": 195180
     },
     {
       "slug": "nav-tables-dropdown",
@@ -49,8 +49,8 @@
           "label": "Table views"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:02:57.145Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:51.823Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "ad9003658010d0fea3729265cd2736ae7cd1af9e5ecaddb04e1dc6c6d264ac2e",
@@ -84,8 +84,8 @@
           "label": "Analysis routes"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:02:58.150Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:52.826Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "459e875e5d9bb56c4ef7c19dda7c7c7b464e17f56a855fbb53d754e6b33e91c5",
@@ -119,8 +119,8 @@
           "label": "About and docs"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:02:59.162Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:53.823Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "a43ee8d81c5240dadad77111d7558be65a8b1970b58d9aa9ca1bcd03b3937941",
@@ -160,8 +160,8 @@
           "label": "Login link"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:00.191Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:54.837Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "28815ae70391456f1a378c970ae0854e06864ff3d3cdb6040834d3947d1eadb4",
@@ -196,12 +196,12 @@
           "label": "User menu"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:01.962Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:56.373Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "9fbf76f4df532009e2b491188bb3147e4e31b9057a96275229590a5f20d5aa8e",
-      "bytes": 57829
+      "sha256": "289c23bc245fd0040a1de347ed64ab3068c6a8623683338ce372743be8503038",
+      "bytes": 50202
     },
     {
       "slug": "footer-desktop",
@@ -231,8 +231,8 @@
           "label": "API"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:03.102Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:57.450Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "4fb08d6d96dad83ae53514a0c7a60faa486521eacf978a283171817fe6972e3a",
@@ -253,8 +253,8 @@
       "setup": "tablePage",
       "waitFor": "table",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:04.019Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:58.348Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "f8ca5e78757c1cccc3bcd4da75672c94b37240ef79c462449caf6a769ed828f8",
@@ -275,8 +275,8 @@
       "setup": "tablePage",
       "waitFor": "table",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:04.988Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:59.330Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "30870e7a85ea27037dcbea68a221d0a6e2c0a71dda9dcb014a546c48f1751722",
@@ -311,8 +311,8 @@
           "label": "AND/OR logic"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:06.011Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:00.337Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "14ff13e047e2c2648d0ee890a99ddc5e69e0e1141ef24c63b4719d5c26dcd143",
@@ -352,8 +352,8 @@
           "label": "Clear filters"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:06.911Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:01.241Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "4ca75a2f359830834bd0aa7482b2b61c595b2a184eaed8144fb5a4bf43d8abb1",
@@ -388,8 +388,8 @@
           "label": "Download"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:07.919Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:02.266Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "e966624de189475d681f2ee4d26916489c2ff5de764c0f6c65acfa19497e0da0",
@@ -430,8 +430,8 @@
           "label": "Ontology page"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:08.808Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:03.171Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "41ca734f99815f653712e6792a806e3ab165f522543997cb35aa12def03b5690",
@@ -452,8 +452,8 @@
       "setup": "geneDetailPage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:27.647Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:07.827Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "6aa59435e08fb2805ff8330b1d5bdc1be2a0b591ce6da5bc10e9dd000b7aaef4",
@@ -473,8 +473,8 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:28.753Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:08.934Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "85908448026ac2a17f0b6f2f228446bb448faf4f87dccb202a3ab2ae74dd6fa5",
@@ -495,8 +495,8 @@
       "setup": "ontologyDetail",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:29.838Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:10.038Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "e804c2c1cf25abf76f8cbc8b3d1f736f6453d5bdae3c46a4e2e5344cc773e218",
@@ -517,8 +517,8 @@
       "setup": "curationComparison",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:03:30.710Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:10.903Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "8669a78d826b706055b358c1db47b07411b351656fca92a76724ee8754e1817c",
@@ -539,8 +539,8 @@
       "setup": "curationSimilarity",
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:01.592Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:41.773Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "a269db79dae1d251a5039d42e00aef7f7c7dd9b554e6cdaf2b3849417d4aaf8e",
@@ -561,8 +561,8 @@
       "setup": "tablePage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:02.473Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:42.634Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "808699a7573264faf100375173d20ec881ebc3f87c548483a5a0f62e92e1dab7",
@@ -583,8 +583,8 @@
       "setup": "phenotypeCorrelogram",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:03.285Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:43.449Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "d48ec858ab251a53779acc5357c265195667c4c0e894605c604b6f5cbd60c8fc",
@@ -605,8 +605,8 @@
       "setup": "phenotypeCounts",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:04.102Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:44.264Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "894b6c58e2bd63a91e13a28432d53ff010928ab490b73d6e1ff5ff51887c4dc6",
@@ -627,12 +627,12 @@
       "setup": "phenotypeClusters",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:04.971Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:45.134Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "e261ac6d7404aee91ff70fea914512c621ec374ae8227a30fb51c4aa07e4bb1a",
-      "bytes": 112079
+      "sha256": "1caa09e103469936973acb08d615e2143a6464eafd9aba77d9680b00f1b7f87f",
+      "bytes": 110628
     },
     {
       "slug": "entries-over-time",
@@ -649,8 +649,8 @@
       "setup": "entriesOverTime",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:05.805Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:45.967Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "3a3df61bac0eab5953b886ffc7a74a096a4f1be1f7c004d83a78a603ffdf56b6",
@@ -670,8 +670,8 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:06.668Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:46.831Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "87f09d256b9474c74f8c9397a2f6d9587b2b8bb8efbb9d60cad2000024c512c0",
@@ -692,12 +692,12 @@
       "setup": "functionalClusters",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:07.691Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:47.873Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "28a4c1ee591c7516c3593f00fffd9acafecd5b9c009a46a4ab8542a18b803c5c",
-      "bytes": 145420
+      "sha256": "1cdf04be8ff73656bb5413938f13594acc044bfad5e5257791cd38e57dcaac91",
+      "bytes": 145280
     },
     {
       "slug": "helper-feedback-menu",
@@ -726,8 +726,8 @@
           "label": "Feedback actions"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:09.236Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:49.383Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "df67f22e3b16defdf4af571444b107fcc0f4e755acee957cd84c779bd0f80f52",
@@ -748,12 +748,77 @@
       },
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:09.952Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:50.081Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "00c4078bf7ca2f71c97a0e79efa066c18cdda0b59f79de15e352cf36c1cb9576",
       "bytes": 101017
+    },
+    {
+      "slug": "reviewer-login-link",
+      "output": "documentation/static/img/generated/reviewer-login-link.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#login"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__login",
+          "mode": "callout",
+          "number": 1,
+          "label": "Login"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:50.970Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "58af119e341b84dc93460726bc0304522c6dbe45f19fe1c5680276c79a26756f",
+      "bytes": 36189
+    },
+    {
+      "slug": "reviewer-authenticated-navigation",
+      "output": "documentation/static/img/generated/reviewer-authenticated-navigation.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#login"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "authRole": "reviewer",
+      "setup": "openUserMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__account",
+          "mode": "box",
+          "label": "Reviewer navigation"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "Token menu"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:52.141Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "8e70c1391912c44a01cb36c309836d9faacedb7a3ac604e60492dc58b88c5af4",
+      "bytes": 66263
     },
     {
       "slug": "login-auth-error-toast",
@@ -777,8 +842,8 @@
           "label": "Visible error"
         }
       ],
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:11.293Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:53.652Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "a10924e164c92d4e4e080bf7ade57dc22895edb7a8c2f1bf316371c1bcc19fa7",
@@ -798,8 +863,8 @@
       },
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:11.999Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:54.347Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "91b91eb219e9107a00bbd178c88c81ce6afb640e850055446f252061d26955cc",
@@ -820,8 +885,8 @@
       "setup": "passwordResetPage",
       "waitFor": "form",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:12.713Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:55.063Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "22cc35f92f79ddc275862d290693be4db3e858ce40d568c7f5850f768d2bbc86",
@@ -841,12 +906,12 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:13.591Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:55.955Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "df3c8c986500e2f36dcf92e6ad42db23d1fbe44282ccb7d05399bbb747c0c161",
-      "bytes": 67291
+      "sha256": "4aef24b3ce30697b028d58505f2a6325ae4a5249fb8c245b952c41c507a7129d",
+      "bytes": 67332
     },
     {
       "slug": "mobile-navbar-open",
@@ -863,12 +928,12 @@
       "setup": "openMobileNavbar",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:14.523Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:56.888Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "341496e0376d7dd9b499f1ef9a58813165aed4e48c30533846f9e8b3f453c422",
-      "bytes": 69080
+      "sha256": "288944cecffe854e4f6bdab78f23c5d95d3ef1fef41d16afeea60913b078e56c",
+      "bytes": 69129
     },
     {
       "slug": "mobile-footer-open",
@@ -885,8 +950,8 @@
       "setup": "openMobileFooter",
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:15.902Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:58.283Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "f61d468d582c0cd175d4ae22be21562111d83cbdb1d5e3093814ca5afa2dd9fd",
@@ -907,8 +972,8 @@
       "setup": "mobileTablePage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:16.790Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:59.153Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "37aab7823fa041cbb8eedf24355a72105190ca973835cbc0c9374eca0e23dc50",
@@ -929,8 +994,8 @@
       "setup": "phenotypeCorrelogram",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:17.591Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:59.954Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "03e1081c5e07d279a98510f4326f9e94fc749bef13bfd2661c9cd3c66baf48d6",
@@ -950,12 +1015,48 @@
       },
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:18.472Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:00.837Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "b004bf0693fe159288b891f0bb95015b1c6c80593459c4983432779cc4cb7aa2",
-      "bytes": 67303
+      "sha256": "1ced361a961e8eba49b6f67fd9adfe403057c8aed93662a4a07b42f0c10f7f91",
+      "bytes": 67204
+    },
+    {
+      "slug": "reviewer-review-link-menu",
+      "output": "documentation/static/img/generated/reviewer-review-link-menu.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#review-page"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "authRole": "reviewer",
+      "setup": "openReviewMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Review menu"
+        },
+        {
+          "selector": "a.dropdown-item[href=\"/Review\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Re-Review"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:01.975Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f7e40270774749c0b2b46ba3322cab3a8e3e87ba0886e5725a4afbeceaafafb6",
+      "bytes": 66433
     },
     {
       "slug": "reviewer-review-page",
@@ -973,18 +1074,111 @@
       "setup": "reviewerReviewPage",
       "waitFor": "main",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:19.688Z",
+      "annotations": [
+        {
+          "selector": "button[aria-label^=\"Edit review\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Edit review",
+          "offsetX": -180,
+          "offsetY": -40
+        },
+        {
+          "selector": "button[aria-label^=\"Edit status\"]",
+          "mode": "callout",
+          "number": 2,
+          "label": "Edit status",
+          "offsetX": -100,
+          "offsetY": 6
+        },
+        {
+          "selector": "button[aria-label^=\"Submit review\"]",
+          "mode": "callout",
+          "number": 3,
+          "label": "Submit",
+          "offsetX": -24,
+          "offsetY": -40
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:03.371Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "ef8cf0ae5f6704b5c22caf18e57cc96c95585035425f067fea73b30b3805c36e",
-      "bytes": 115387
+      "sha256": "831f327d77889aebd92b9a01d8c6587b9b1c533636b6f9202aa18d10c0d6f092",
+      "bytes": 127106
     },
     {
       "slug": "reviewer-modify-review-modal",
       "output": "documentation/static/img/generated/reviewer-modify-review-modal.png",
       "docRefs": [
         "documentation/06-re-review-instructions.qmd#new-review-edit"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 1180
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "openFirstReviewEditModal"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": "#review-textarea-synopsis",
+          "mode": "callout",
+          "number": 1,
+          "label": "Synopsis"
+        },
+        {
+          "selector": "#review-phenotype-select",
+          "mode": "callout",
+          "number": 2,
+          "label": "Phenotypes"
+        },
+        {
+          "selector": "#review-literature-select",
+          "mode": "callout",
+          "number": 3,
+          "label": "PMIDs"
+        },
+        {
+          "selector": "#review-genereviews-select",
+          "mode": "callout",
+          "number": 4,
+          "label": "GeneReviews"
+        },
+        {
+          "selector": "#review-textarea-comment",
+          "mode": "callout",
+          "number": 5,
+          "label": "Comment"
+        },
+        {
+          "selector": ".modal.show .modal-footer .btn-primary",
+          "mode": "callout",
+          "number": 6,
+          "label": "Save"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:07.483Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "a40eff5d6ce43dfb8c5acd031f1975c3ee8206112ca656549526b1f09e94dc1e",
+      "bytes": 107038
+    },
+    {
+      "slug": "reviewer-modify-status-modal",
+      "output": "documentation/static/img/generated/reviewer-modify-status-modal.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#new-status-edit"
       ],
       "route": "/Review",
       "url": "http://localhost:8088/Review",
@@ -997,17 +1191,128 @@
       "actions": [
         {
           "type": "callHelper",
-          "name": "openFirstReviewEditModal"
+          "name": "openFirstStatusEditModal"
         }
       ],
       "waitFor": "main",
       "captureMode": "locator",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:21.953Z",
+      "annotations": [
+        {
+          "selector": "#status-select",
+          "mode": "callout",
+          "number": 1,
+          "label": "Category"
+        },
+        {
+          "selector": "#removeSwitch",
+          "mode": "callout",
+          "number": 2,
+          "label": "Removal"
+        },
+        {
+          "selector": "#status-textarea-comment",
+          "mode": "callout",
+          "number": 3,
+          "label": "Comment"
+        },
+        {
+          "selector": ".modal.show .btn-primary",
+          "mode": "callout",
+          "number": 4,
+          "label": "Save"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:11.525Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
-      "sha256": "8056af2a1c0b76011c8ee8184a55aa2c017b60bbee43630e61fcbf6451707e5f",
-      "bytes": 112644
+      "sha256": "6ae29e9a3f9264b399166cb2c1fa75b15563ec0d0bebb975b0320148fb09366d",
+      "bytes": 68018
+    },
+    {
+      "slug": "reviewer-submit-review-modal",
+      "output": "documentation/static/img/generated/reviewer-submit-review-modal.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#submit-re-review"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "openFirstSubmitReviewModal"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": ".modal.show .modal-body",
+          "mode": "box",
+          "label": "Confirmation"
+        },
+        {
+          "selector": ".modal.show .btn-success",
+          "mode": "callout",
+          "number": 1,
+          "label": "Submit Review"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:13.300Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "800af49b5abecdb604819fa5a0f4bdba38922eb5ad9ba14a0fd66fd72cec480b",
+      "bytes": 27197
+    },
+    {
+      "slug": "reviewer-after-submit-page",
+      "output": "documentation/static/img/generated/reviewer-after-submit-page.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#submit-re-review"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "submitFirstReview"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".b-table-empty-row, tbody tr",
+          "mode": "callout",
+          "number": 1,
+          "label": "Queue updated"
+        },
+        {
+          "selector": ".review-toolbar__filters .badge",
+          "mode": "callout",
+          "number": 2,
+          "label": "New batch"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:15.368Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f64ba3ee99d5f2dbcf731655ab28b9860c658e001f904fe3f9243c0f9e429c1e",
+      "bytes": 109750
     },
     {
       "slug": "api-swagger-overview",
@@ -1024,8 +1329,8 @@
       "setup": "swaggerOverview",
       "waitFor": ".swagger-ui",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:23.302Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:16.730Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "2ea94bc82ca9ba9a35f030c3b931aa8def22f53abd61dd502f1cee2476c53e3c",
@@ -1046,8 +1351,8 @@
       "setup": "swaggerAuthScreen",
       "waitFor": ".swagger-ui",
       "captureMode": "page",
-      "gitSha": "6b571a0197b552f822f024cffb3d0d12f37468a9",
-      "capturedAt": "2026-05-15T10:04:24.504Z",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:17.969Z",
       "browserName": "chromium",
       "browserVersion": "148.0.7778.96",
       "sha256": "86d738b4900cbe4affb1cdc5cdfc870fbc5ab392f60aedcee93d1de0db1377da",
