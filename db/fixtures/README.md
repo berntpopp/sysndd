@@ -14,6 +14,9 @@ any production migration references this fixture.
   suite. Plaintext passwords for these accounts are committed in
   `app/tests/e2e/fixtures/test-users.ts` because the accounts only exist in
   the isolated `playwright` compose project.
+- `playwright_docs_screenshots.sql` — provisions a small synthetic CHD8
+  entity/review/status/re-review assignment used only by the documentation
+  screenshot lane.
 
 ## When this fixture is applied
 
@@ -22,3 +25,6 @@ its migrations. The `user` table is created during API startup (by
 `db/migrations/000_initialize_base_schema.sql`), not at MySQL init time, so
 seeding via `/docker-entrypoint-initdb.d/` is too early. The Makefile target
 waits for `/api/health/ready` to return 200, then runs `mysql < playwright_users.sql`.
+
+The documentation screenshot fixture is sourced by `make docs-screenshots`
+after `playwright_users.sql`. It is not part of the general E2E baseline.

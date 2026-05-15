@@ -129,6 +129,9 @@ export default [
       // v11.3 W4 perf bench specs follow the same pattern as e2e tests:
       // type-checked via ad-hoc tsc and not in the main tsconfig project.
       'tests/perf/**',
+      // Documentation screenshots are a dedicated local Playwright lane and
+      // are intentionally outside the main app tsconfig project.
+      'tests/docs-screenshots/**',
       'playwright-report/**',
     ],
   },

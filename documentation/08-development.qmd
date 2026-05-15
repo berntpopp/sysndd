@@ -94,11 +94,26 @@ The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity
 
 ```bash
 make playwright-stack          # bring up traefik + api + db + app on the playwright project
-cd app && npx playwright test  # run all specs
+cd app && PLAYWRIGHT_BASE_URL=http://localhost:8088 npx playwright test  # run all specs
 make playwright-stack-down     # tear down + remove volumes
 ```
 
 The Playwright stack provisions four deterministic test users (`pw_admin`, `pw_curator`, `pw_reviewer`, `pw_user`) from `db/fixtures/playwright_users.sql`. Plaintext passwords for these accounts are committed in `app/tests/e2e/fixtures/test-users.ts` because the accounts exist only in the isolated `playwright` compose project.
+
+### Documentation screenshots
+
+Documentation screenshots use a dedicated Playwright config and manifest under `app/tests/docs-screenshots/`. They are generated documentation assets, separate from E2E failure screenshots and visual-regression baselines, and are written under `documentation/static/img/generated/` with a generated provenance manifest.
+
+UI and documentation design review guidance lives in `documentation/10-visual-design-guide.md` and `documentation/11-admin-visual-review.md`. These files are developer-facing references unless they are intentionally added to the Quarto navigation.
+
+Recommended local sequence:
+
+```bash
+make docs-screenshots
+make docs-screenshots-down
+```
+
+The `make docs-screenshots` target runs the stack, seeds the screenshot fixture data, runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack`, then `make _playwright-seed-docs-data`, then the `npm run docs:screenshots` command shown in `Makefile`, then `node scripts/documentation/verify-doc-screenshots.mjs`, and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
 
 ### Authoring a new spec
 

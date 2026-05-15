@@ -2,9 +2,7 @@
 title: "Re-review instructions"
 ---
 
----
-
-The goal of the SysNDD "Re-Review" effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
+The goal of the SysNDD "Re-Review" effort is to update and standardize the SysID entities collected during the past years to enable better integration with, and interoperability across, international gene curation efforts.
 
 
 
@@ -16,23 +14,23 @@ We created Reviewer status accounts for participating scientists.
 ### Login
 You can log into your account by pointing your browser to https://sysndd.dbmr.unibe.ch/ and then clicking the "Login" link on the right side of the menu:
 
-::: {style="max-width:800px;"}
-![Login menu](./static/img/sysndd_login.png)
+::: {.doc-screenshot}
+![Navigation bar with the Login link highlighted.](./static/img/generated/reviewer-login-link.png)
 :::
 
 <br/>
 On the Login page enter your credentials and press the Login button:
 
-::: {style="max-width:400px;"}
-![Login page](./static/img/sysndd_login_page.png)
+::: {.doc-screenshot}
+![Login page with username and password fields.](./static/img/generated/login-page.png)
 :::
 
 
 <br/>
 After successful login, you will be redirected to the start page and the navigation bar will show new links depending on your account privileges:
 
-::: {style="max-width:300px;"}
-![Login token menu](./static/img/sysndd_refresh_token.png)
+::: {.doc-screenshot}
+![Authenticated reviewer navigation with the token menu highlighted.](./static/img/generated/reviewer-authenticated-navigation.png)
 :::
 
 Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will be logged out. You can however always refresh the time by clicking the link in the user menu. The website will warn you at 5, 3 and 1 minutes before log out.
@@ -43,68 +41,81 @@ Your login token (JWT; JSON Web Token) is valid for 1 hour, after which you will
 
 Click the "Review" link to your personal "Re-Review" site:
 
-::: {style="max-width:1000px;"}
-![Review page menu](./static/img/sysndd_review_page_menu.png)
+::: {.doc-screenshot}
+![Reviewer navigation menu with the Re-Review link highlighted.](./static/img/generated/reviewer-review-link-menu.png)
 :::
 
 <br/>
 The "Re-Review" page is structured as a table enriched with information and controls.
 
-::: {style="max-width:1000px;"}
-![Review page](./static/img/sysndd_review_page.png)
+::: {.doc-screenshot}
+![Reviewer re-review page with the assigned entity table and action controls.](./static/img/generated/reviewer-review-page.png)
 :::
 
 
 <br/>
-These show you the number of entities assigned to your account
+The page shows:
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** your account information status specific controls (e.g. switching to "Curator" mode, applying for a new batch of entities)
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** menu items to filter/ navigate the table
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and finally, the table with the entity information and
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(4)** controls to review and change the information:
+- the number of entities assigned to your account;
+- account-specific controls, such as switching to Curator mode or applying for a new batch of entities;
+- table filters and navigation controls;
+- the assigned entity table; and
+- action controls to review and change entity information.
 
 
 <br/>
-By clicking the action buttons, you can open 3 different windows to change the entities review:
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (![Edit review menu](./static/img/edit_review_button.png){width="50px"})
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){width="50px"})
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and to submit your work (![Submit re-review status menu](./static/img/submit_re-review_button.png){width="50px"})
+The action buttons open three different windows for the assigned entity: **(1)** edit the entity review, **(2)** edit the status proposal, and **(3)** submit the finished re-review for curator approval.
 
 
 
 ### New Review edit
 
-In this window you have:
+In this window you can:
 
-- the possibility to change/adapt or completely rewrite the current synopsis **(1)**,
-- add, or remove phenotype associations **(2)**,
-- add or remove publications from the review by PMID **(3)**
-- and add/ edit fitting GeneReviews articles by PMID **(4)**.
-- Finally, you can add a comment to your review for the Curator later approving this entities changes **(5)** and
+- change, adapt, or completely rewrite the current synopsis **(1)**;
+- add or remove phenotype associations **(2)**;
+- add or remove publications from the review by PMID **(3)**;
+- add or edit fitting GeneReviews articles by PMID **(4)**;
+- add a comment for the curator who will later approve the entity changes **(5)**; and
 - save your review **(6)**.
 
 By clicking on the little question marks you can show help messages for each item:
 
-::: {style="max-width:1000px;"}
-![Review page](./static/img/modal_modify_review.png)
+::: {.doc-screenshot}
+![Review edit modal for updating synopsis, phenotypes, publications, GeneReviews, and curator comments.](./static/img/generated/reviewer-modify-review-modal.png)
 :::
 
 <br/>
 These help instructions are:
 
-**Synopsis**: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, b) severity of intellectual disability, c) further phenotypic aspects (if possible with frequencies) d) any valuable further information (e.g. genotype-phenotype correlations).
+**Synopsis**: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, c) severity of intellectual disability, d) further phenotypic aspects (if possible with frequencies), and e) any valuable further information (e.g. genotype-phenotype correlations).
 
 &nbsp;&nbsp;&nbsp;&nbsp; Examples:
 
 > *de novo* truncating or missense variants in > 20 individuals: variable ID (mild to severe), 50% short stature and microcephaly, 30% seizures, non-specific facial dysmorphism, variable cardiac and renal anomalies in some
 
 > bi-allelic truncating variants in 7 individuals from 3 families: severe ID, microcephaly, seizures in 3/7, MRI anomalies
+
+#### Variant ontology curation
+
+This variant ontology curation guidance standardizes the molecular consequence or mechanism already supported by the source text so that variants can be compared across entities and analyses.
+
+Use a source-based workflow:
+
+- read the publication, GeneReviews chapter, OMIM entry, or other accepted source text;
+- identify the variant class or mechanism explicitly supported by that source;
+- select the closest existing SysNDD variation ontology term;
+- prefer a more specific existing term only when the source is explicit;
+- use broader wording or a curator comment when sources are heterogeneous or ambiguous;
+- do not infer a mechanism beyond the source text.
+
+Examples:
+
+- recurrent missense variants with an explicitly reported gain-of-function mechanism can be captured with the matching existing mechanism or effect term if present;
+- truncating variants reported as causing loss of function can be captured with the matching existing loss-of-function or truncating concept if present;
+- mixed missense and truncating reports without a proven common mechanism should be described conservatively in the synopsis or comment rather than forced into an over-specific ontology assignment.
+
+The authoritative term list is the existing SysNDD variation ontology list, with VariO and OLS as external references. This documentation does not add or rename terms.
 
 
 **Phenotypes**: Add or remove associated phenotypes. Only phenotypes that occur in 20% or more of affected individuals should be included. Please also include information on severity of ID where available and applicable.
@@ -115,6 +126,17 @@ These help instructions are:
 
 **GeneReviews**: Please add PMID for GeneReview article if available for this entity.
 
+#### Finding the PMID for a GeneReviews article
+
+GeneReviews chapters are hosted in NCBI Bookshelf and may have chapter-specific PubMed records. Use the chapter-specific PMID when one exists. Do not substitute the general GeneReviews collection PMID for a chapter-specific citation.
+
+Two practical lookup workflows are available:
+
+1. From GeneReviews or NCBI Bookshelf, open the chapter and check the citation or metadata area near the chapter title or footer. Record the PubMed PMID when it is shown.
+2. From PubMed, search the condition name plus `GeneReviews`, open the matching chapter record, and copy the PMID from that PubMed record.
+
+If no chapter-specific PMID can be found, note this in the review comment instead of forcing an unrelated PMID.
+
 
 **Comment**: Additionally add information about your review potentially helpful to the curator approving the entity later.
 
@@ -124,13 +146,13 @@ These help instructions are:
 
 In this window you can propose
 
-- to change the entities association confidence category **(1)**,
+- to change the entity's association confidence category **(1)**,
 - suggest its overall removal **(2)**,
 - add a comment for your change suggestions for the curators to better understand the proposal **(3)** and
 - save your work **(4)**:
 
-::: {style="max-width:800px;"}
-![Submit re-review modal](./static/img/modal_modify_status.png)
+::: {.doc-screenshot}
+![Status edit modal with category, removal, comment, and save controls highlighted.](./static/img/generated/reviewer-modify-status-modal.png)
 :::
 
 
@@ -139,11 +161,15 @@ In this window you can propose
 
 The last action window is just to confirm that you are satisfied with your work and would like to submit it for curation:
 
-::: {style="max-width:600px;"}
-![Submit re-review modal](./static/img/modal_submit_re-review.png)
+::: {.doc-screenshot}
+![Submit re-review confirmation modal with the submit button highlighted.](./static/img/generated/reviewer-submit-review-modal.png)
 :::
 
-After clicking this button, the entity will disappear from your list. And you can proceed with the remaining entries until no entity is left in your list.
+After clicking this button, the entity disappears from your list. You can then proceed with the remaining entries until no entity is left in your list.
+
+::: {.doc-screenshot}
+![Re-review queue after submission with the updated queue state highlighted.](./static/img/generated/reviewer-after-submit-page.png)
+:::
 
 <br/>
 <br/>

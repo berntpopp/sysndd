@@ -1,0 +1,1362 @@
+{
+  "screenshots": [
+    {
+      "slug": "home",
+      "output": "documentation/static/img/generated/home.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#landing-page"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:50.809Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "ad405f42d0b402d991f96be44f86b8be1b2f7ef9588a83aea63b3354b97c0180",
+      "bytes": 195180
+    },
+    {
+      "slug": "nav-tables-dropdown",
+      "output": "documentation/static/img/generated/nav-tables-dropdown.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#main-navigation-menu"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "setup": "openTablesMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Tables"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "Table views"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:51.823Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "ad9003658010d0fea3729265cd2736ae7cd1af9e5ecaddb04e1dc6c6d264ac2e",
+      "bytes": 66312
+    },
+    {
+      "slug": "nav-analyses-dropdown",
+      "output": "documentation/static/img/generated/nav-analyses-dropdown.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#main-navigation-menu"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 560
+      },
+      "setup": "openAnalysesMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Analyses"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "Analysis routes"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:52.826Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "459e875e5d9bb56c4ef7c19dda7c7c7b464e17f56a855fbb53d754e6b33e91c5",
+      "bytes": 84083
+    },
+    {
+      "slug": "nav-help-dropdown",
+      "output": "documentation/static/img/generated/nav-help-dropdown.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#main-navigation-menu"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "setup": "openHelpMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Help"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "About and docs"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:53.823Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "a43ee8d81c5240dadad77111d7558be65a8b1970b58d9aa9ca1bcd03b3937941",
+      "bytes": 64526
+    },
+    {
+      "slug": "nav-search-non-home",
+      "output": "documentation/static/img/generated/nav-search-non-home.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#main-navigation-menu"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "setup": "tablePage",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__search",
+          "mode": "box",
+          "label": "Search"
+        },
+        {
+          "selector": ".app-navbar__search",
+          "mode": "callout",
+          "number": 1,
+          "label": "Navbar search"
+        },
+        {
+          "selector": ".app-navbar__login",
+          "mode": "callout",
+          "number": 2,
+          "label": "Login link"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:54.837Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "28815ae70391456f1a378c970ae0854e06864ff3d3cdb6040834d3947d1eadb4",
+      "bytes": 35726
+    },
+    {
+      "slug": "nav-authenticated-admin",
+      "output": "documentation/static/img/generated/nav-authenticated-admin.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#main-navigation-menu"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "authRole": "admin",
+      "setup": "openUserMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__account",
+          "mode": "box",
+          "label": "Authenticated navigation"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "User menu"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:56.373Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "289c23bc245fd0040a1de347ed64ab3068c6a8623683338ce372743be8503038",
+      "bytes": 50202
+    },
+    {
+      "slug": "footer-desktop",
+      "output": "documentation/static/img/generated/footer-desktop.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#footer-navigation-menu"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": ".disclaimer-indicator__btn",
+          "mode": "callout",
+          "number": 1,
+          "label": "Policy"
+        },
+        {
+          "selector": "[aria-label=\"api-link\"]",
+          "mode": "callout",
+          "number": 2,
+          "label": "API"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:57.450Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "4fb08d6d96dad83ae53514a0c7a60faa486521eacf978a283171817fe6972e3a",
+      "bytes": 18467
+    },
+    {
+      "slug": "entities-table",
+      "output": "documentation/static/img/generated/entities-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#entities-table"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "tablePage",
+      "waitFor": "table",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:58.348Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f8ca5e78757c1cccc3bcd4da75672c94b37240ef79c462449caf6a769ed828f8",
+      "bytes": 83744
+    },
+    {
+      "slug": "genes-table",
+      "output": "documentation/static/img/generated/genes-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#genes-table"
+      ],
+      "route": "/Genes",
+      "url": "http://localhost:8088/Genes",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "tablePage",
+      "waitFor": "table",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:13:59.330Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "30870e7a85ea27037dcbea68a221d0a6e2c0a71dda9dcb014a546c48f1751722",
+      "bytes": 76068
+    },
+    {
+      "slug": "phenotypes-table",
+      "output": "documentation/static/img/generated/phenotypes-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#phenotypes-table"
+      ],
+      "route": "/Phenotypes?sort=entity_id&filter=all%28modifier_phenotype_id%2CHP%3A0001263%29&page_size=10",
+      "url": "http://localhost:8088/Phenotypes?sort=entity_id&filter=all%28modifier_phenotype_id%2CHP%3A0001263%29&page_size=10",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "phenotypesTable",
+      "waitFor": "table",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".phenotype-select-control",
+          "mode": "callout",
+          "number": 1,
+          "label": "Phenotype filter"
+        },
+        {
+          "selector": ".logic-toggle",
+          "mode": "callout",
+          "number": 2,
+          "label": "AND/OR logic"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:00.337Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "14ff13e047e2c2648d0ee890a99ddc5e69e0e1141ef24c63b4719d5c26dcd143",
+      "bytes": 98249
+    },
+    {
+      "slug": "table-toolbar-actions",
+      "output": "documentation/static/img/generated/table-toolbar-actions.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#phenotypes-table"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 680
+      },
+      "setup": "tablePage",
+      "waitFor": "table",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".download-buttons",
+          "mode": "box",
+          "label": "Toolbar actions"
+        },
+        {
+          "selector": ".download-buttons button[aria-label=\"Copy link to this page\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Copy link"
+        },
+        {
+          "selector": ".download-buttons button[aria-label*=\"remove all filters\" i]",
+          "mode": "callout",
+          "number": 2,
+          "label": "Clear filters"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:01.241Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "4ca75a2f359830834bd0aa7482b2b61c595b2a184eaed8144fb5a4bf43d8abb1",
+      "bytes": 53979
+    },
+    {
+      "slug": "panels-table",
+      "output": "documentation/static/img/generated/panels-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#panels-table"
+      ],
+      "route": "/Panels/All/All",
+      "url": "http://localhost:8088/Panels/All/All",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "tablePage",
+      "waitFor": "table",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".panels-table__toolbar-row",
+          "mode": "callout",
+          "number": 1,
+          "label": "Panel controls"
+        },
+        {
+          "selector": ".table-shell__actions",
+          "mode": "callout",
+          "number": 2,
+          "label": "Download"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:02.266Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "e966624de189475d681f2ee4d26916489c2ff5de764c0f6c65acfa19497e0da0",
+      "bytes": 80575
+    },
+    {
+      "slug": "table-entry-badges",
+      "output": "documentation/static/img/generated/table-entry-badges.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#single-entry-pages"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 680
+      },
+      "setup": "tablePage",
+      "waitFor": "table",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": "a[href=\"/Entities/123\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Entity page"
+        },
+        {
+          "selector": "a[href=\"/Genes/HGNC:20153\"]",
+          "mode": "callout",
+          "number": 2,
+          "label": "Gene page"
+        },
+        {
+          "selector": "a[href=\"/Ontology/MONDO:0100038\"]",
+          "mode": "callout",
+          "number": 3,
+          "label": "Ontology page"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:03.171Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "41ca734f99815f653712e6792a806e3ab165f522543997cb35aa12def03b5690",
+      "bytes": 45117
+    },
+    {
+      "slug": "gene-detail-chd8",
+      "output": "documentation/static/img/generated/gene-detail-chd8.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#gene-page"
+      ],
+      "route": "/Genes/CHD8",
+      "url": "http://localhost:8088/Genes/CHD8",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "geneDetailPage",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:07.827Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "6aa59435e08fb2805ff8330b1d5bdc1be2a0b591ce6da5bc10e9dd000b7aaef4",
+      "bytes": 192486
+    },
+    {
+      "slug": "entity-detail-123",
+      "output": "documentation/static/img/generated/entity-detail-123.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#entity-page"
+      ],
+      "route": "/Entities/123",
+      "url": "http://localhost:8088/Entities/123",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:08.934Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "85908448026ac2a17f0b6f2f228446bb448faf4f87dccb202a3ab2ae74dd6fa5",
+      "bytes": 105735
+    },
+    {
+      "slug": "ontology-detail",
+      "output": "documentation/static/img/generated/ontology-detail.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#disease-ontology"
+      ],
+      "route": "/Ontology/MONDO:0100038",
+      "url": "http://localhost:8088/Ontology/MONDO:0100038",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "ontologyDetail",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:10.038Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "e804c2c1cf25abf76f8cbc8b3d1f736f6453d5bdae3c46a4e2e5344cc773e218",
+      "bytes": 115405
+    },
+    {
+      "slug": "curation-comparisons-overview",
+      "output": "documentation/static/img/generated/curation-comparisons-overview.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#compare-curations"
+      ],
+      "route": "/CurationComparisons",
+      "url": "http://localhost:8088/CurationComparisons",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "curationComparison",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:10.903Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "8669a78d826b706055b358c1db47b07411b351656fca92a76724ee8754e1817c",
+      "bytes": 120293
+    },
+    {
+      "slug": "curation-comparisons-similarity",
+      "output": "documentation/static/img/generated/curation-comparisons-similarity.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#compare-curations"
+      ],
+      "route": "/CurationComparisons/Similarity",
+      "url": "http://localhost:8088/CurationComparisons/Similarity",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "curationSimilarity",
+      "waitFor": "main",
+      "captureMode": "locator",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:41.773Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "a269db79dae1d251a5039d42e00aef7f7c7dd9b554e6cdaf2b3849417d4aaf8e",
+      "bytes": 29082
+    },
+    {
+      "slug": "curation-comparisons-table",
+      "output": "documentation/static/img/generated/curation-comparisons-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#compare-curations"
+      ],
+      "route": "/CurationComparisons/Table",
+      "url": "http://localhost:8088/CurationComparisons/Table",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "tablePage",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:42.634Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "808699a7573264faf100375173d20ec881ebc3f87c548483a5a0f62e92e1dab7",
+      "bytes": 99557
+    },
+    {
+      "slug": "phenotype-correlations-correlogram",
+      "output": "documentation/static/img/generated/phenotype-correlations-correlogram.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#correlate-phenotypes"
+      ],
+      "route": "/PhenotypeCorrelations",
+      "url": "http://localhost:8088/PhenotypeCorrelations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "phenotypeCorrelogram",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:43.449Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "d48ec858ab251a53779acc5357c265195667c4c0e894605c604b6f5cbd60c8fc",
+      "bytes": 75202
+    },
+    {
+      "slug": "phenotype-correlations-counts",
+      "output": "documentation/static/img/generated/phenotype-correlations-counts.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#correlate-phenotypes"
+      ],
+      "route": "/PhenotypeCorrelations/PhenotypeCounts",
+      "url": "http://localhost:8088/PhenotypeCorrelations/PhenotypeCounts",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "phenotypeCounts",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:44.264Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "894b6c58e2bd63a91e13a28432d53ff010928ab490b73d6e1ff5ff51887c4dc6",
+      "bytes": 80303
+    },
+    {
+      "slug": "phenotype-correlations-clusters",
+      "output": "documentation/static/img/generated/phenotype-correlations-clusters.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#correlate-phenotypes"
+      ],
+      "route": "/PhenotypeCorrelations/PhenotypeClusters",
+      "url": "http://localhost:8088/PhenotypeCorrelations/PhenotypeClusters",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "phenotypeClusters",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:45.134Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "1caa09e103469936973acb08d615e2143a6464eafd9aba77d9680b00f1b7f87f",
+      "bytes": 110628
+    },
+    {
+      "slug": "entries-over-time",
+      "output": "documentation/static/img/generated/entries-over-time.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#entries-over-time"
+      ],
+      "route": "/EntriesOverTime",
+      "url": "http://localhost:8088/EntriesOverTime",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "entriesOverTime",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:45.967Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "3a3df61bac0eab5953b886ffc7a74a096a4f1be1f7c004d83a78a603ffdf56b6",
+      "bytes": 87428
+    },
+    {
+      "slug": "publications-ndd",
+      "output": "documentation/static/img/generated/publications-ndd.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#ndd-publications"
+      ],
+      "route": "/PublicationsNDD",
+      "url": "http://localhost:8088/PublicationsNDD",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:46.831Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "87f09d256b9474c74f8c9397a2f6d9587b2b8bb8efbb9d60cad2000024c512c0",
+      "bytes": 87190
+    },
+    {
+      "slug": "functional-clusters",
+      "output": "documentation/static/img/generated/functional-clusters.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#functional-clusters"
+      ],
+      "route": "/GeneNetworks",
+      "url": "http://localhost:8088/GeneNetworks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "functionalClusters",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:47.873Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "1cdf04be8ff73656bb5413938f13594acc044bfad5e5257791cd38e57dcaac91",
+      "bytes": 145280
+    },
+    {
+      "slug": "helper-feedback-menu",
+      "output": "documentation/static/img/generated/helper-feedback-menu.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#help-feedback"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "openHelperBadge",
+      "waitFor": "main",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".float",
+          "mode": "box",
+          "label": "Help menu"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Feedback actions"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:49.383Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "df67f22e3b16defdf4af571444b107fcc0f4e755acee957cd84c779bd0f80f52",
+      "bytes": 102953
+    },
+    {
+      "slug": "login-page",
+      "output": "documentation/static/img/generated/login-page.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#login-page",
+        "documentation/06-re-review-instructions.qmd#login"
+      ],
+      "route": "/Login",
+      "url": "http://localhost:8088/Login",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "waitFor": "form",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:50.081Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "00c4078bf7ca2f71c97a0e79efa066c18cdda0b59f79de15e352cf36c1cb9576",
+      "bytes": 101017
+    },
+    {
+      "slug": "reviewer-login-link",
+      "output": "documentation/static/img/generated/reviewer-login-link.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#login"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__login",
+          "mode": "callout",
+          "number": 1,
+          "label": "Login"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:50.970Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "58af119e341b84dc93460726bc0304522c6dbe45f19fe1c5680276c79a26756f",
+      "bytes": 36189
+    },
+    {
+      "slug": "reviewer-authenticated-navigation",
+      "output": "documentation/static/img/generated/reviewer-authenticated-navigation.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#login"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "authRole": "reviewer",
+      "setup": "openUserMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".app-navbar__account",
+          "mode": "box",
+          "label": "Reviewer navigation"
+        },
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "callout",
+          "number": 1,
+          "label": "Token menu"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:52.141Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "8e70c1391912c44a01cb36c309836d9faacedb7a3ac604e60492dc58b88c5af4",
+      "bytes": 66263
+    },
+    {
+      "slug": "login-auth-error-toast",
+      "output": "documentation/static/img/generated/login-auth-error-toast.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#reporting-bugs-problems-and-making-feature-requests"
+      ],
+      "route": "/Login",
+      "url": "http://localhost:8088/Login",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "setup": "loginAuthError",
+      "waitFor": "form",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".toast, [role=\"alert\"]",
+          "mode": "box",
+          "label": "Visible error"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:53.652Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "a10924e164c92d4e4e080bf7ade57dc22895edb7a8c2f1bf316371c1bcc19fa7",
+      "bytes": 113822
+    },
+    {
+      "slug": "register-page",
+      "output": "documentation/static/img/generated/register-page.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#register-user-page"
+      ],
+      "route": "/Register",
+      "url": "http://localhost:8088/Register",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "waitFor": "form",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:54.347Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "91b91eb219e9107a00bbd178c88c81ce6afb640e850055446f252061d26955cc",
+      "bytes": 78863
+    },
+    {
+      "slug": "password-reset-page",
+      "output": "documentation/static/img/generated/password-reset-page.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#reset-password-page"
+      ],
+      "route": "/PasswordReset",
+      "url": "http://localhost:8088/PasswordReset",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "setup": "passwordResetPage",
+      "waitFor": "form",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:55.063Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "22cc35f92f79ddc275862d290693be4db3e858ce40d568c7f5850f768d2bbc86",
+      "bytes": 44823
+    },
+    {
+      "slug": "mobile-home",
+      "output": "documentation/static/img/generated/mobile-home.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#mobile-website"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:55.955Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "4aef24b3ce30697b028d58505f2a6325ae4a5249fb8c245b952c41c507a7129d",
+      "bytes": 67332
+    },
+    {
+      "slug": "mobile-navbar-open",
+      "output": "documentation/static/img/generated/mobile-navbar-open.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#mobile-website"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "setup": "openMobileNavbar",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:56.888Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "288944cecffe854e4f6bdab78f23c5d95d3ef1fef41d16afeea60913b078e56c",
+      "bytes": 69129
+    },
+    {
+      "slug": "mobile-footer-open",
+      "output": "documentation/static/img/generated/mobile-footer-open.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#mobile-website"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "setup": "openMobileFooter",
+      "waitFor": "main",
+      "captureMode": "locator",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:58.283Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f61d468d582c0cd175d4ae22be21562111d83cbdb1d5e3093814ca5afa2dd9fd",
+      "bytes": 17300
+    },
+    {
+      "slug": "mobile-entities-table",
+      "output": "documentation/static/img/generated/mobile-entities-table.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#mobile-website"
+      ],
+      "route": "/Entities",
+      "url": "http://localhost:8088/Entities",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "setup": "mobileTablePage",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:59.153Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "37aab7823fa041cbb8eedf24355a72105190ca973835cbc0c9374eca0e23dc50",
+      "bytes": 50272
+    },
+    {
+      "slug": "mobile-landscape-analysis",
+      "output": "documentation/static/img/generated/mobile-landscape-analysis.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#mobile-website"
+      ],
+      "route": "/PhenotypeCorrelations",
+      "url": "http://localhost:8088/PhenotypeCorrelations",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "setup": "phenotypeCorrelogram",
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:14:59.954Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "03e1081c5e07d279a98510f4326f9e94fc749bef13bfd2661c9cd3c66baf48d6",
+      "bytes": 56298
+    },
+    {
+      "slug": "pwa-mobile-shell",
+      "output": "documentation/static/img/generated/pwa-mobile-shell.png",
+      "docRefs": [
+        "documentation/02-web-tool.qmd#progressive-web-app-pwa"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "waitFor": "main",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:00.837Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "1ced361a961e8eba49b6f67fd9adfe403057c8aed93662a4a07b42f0c10f7f91",
+      "bytes": 67204
+    },
+    {
+      "slug": "reviewer-review-link-menu",
+      "output": "documentation/static/img/generated/reviewer-review-link-menu.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#review-page"
+      ],
+      "route": "/",
+      "url": "http://localhost:8088/",
+      "viewport": {
+        "width": 1440,
+        "height": 520
+      },
+      "authRole": "reviewer",
+      "setup": "openReviewMenu",
+      "waitFor": "main",
+      "captureMode": "clip",
+      "annotations": [
+        {
+          "selector": ".dropdown-menu.show",
+          "mode": "box",
+          "label": "Review menu"
+        },
+        {
+          "selector": "a.dropdown-item[href=\"/Review\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Re-Review"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:01.975Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f7e40270774749c0b2b46ba3322cab3a8e3e87ba0886e5725a4afbeceaafafb6",
+      "bytes": 66433
+    },
+    {
+      "slug": "reviewer-review-page",
+      "output": "documentation/static/img/generated/reviewer-review-page.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#review-page"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "waitFor": "main",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": "button[aria-label^=\"Edit review\"]",
+          "mode": "callout",
+          "number": 1,
+          "label": "Edit review",
+          "offsetX": -180,
+          "offsetY": -40
+        },
+        {
+          "selector": "button[aria-label^=\"Edit status\"]",
+          "mode": "callout",
+          "number": 2,
+          "label": "Edit status",
+          "offsetX": -100,
+          "offsetY": 6
+        },
+        {
+          "selector": "button[aria-label^=\"Submit review\"]",
+          "mode": "callout",
+          "number": 3,
+          "label": "Submit",
+          "offsetX": -24,
+          "offsetY": -40
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:03.371Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "831f327d77889aebd92b9a01d8c6587b9b1c533636b6f9202aa18d10c0d6f092",
+      "bytes": 127106
+    },
+    {
+      "slug": "reviewer-modify-review-modal",
+      "output": "documentation/static/img/generated/reviewer-modify-review-modal.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#new-review-edit"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 1180
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "openFirstReviewEditModal"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": "#review-textarea-synopsis",
+          "mode": "callout",
+          "number": 1,
+          "label": "Synopsis"
+        },
+        {
+          "selector": "#review-phenotype-select",
+          "mode": "callout",
+          "number": 2,
+          "label": "Phenotypes"
+        },
+        {
+          "selector": "#review-literature-select",
+          "mode": "callout",
+          "number": 3,
+          "label": "PMIDs"
+        },
+        {
+          "selector": "#review-genereviews-select",
+          "mode": "callout",
+          "number": 4,
+          "label": "GeneReviews"
+        },
+        {
+          "selector": "#review-textarea-comment",
+          "mode": "callout",
+          "number": 5,
+          "label": "Comment"
+        },
+        {
+          "selector": ".modal.show .modal-footer .btn-primary",
+          "mode": "callout",
+          "number": 6,
+          "label": "Save"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:07.483Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "a40eff5d6ce43dfb8c5acd031f1975c3ee8206112ca656549526b1f09e94dc1e",
+      "bytes": 107038
+    },
+    {
+      "slug": "reviewer-modify-status-modal",
+      "output": "documentation/static/img/generated/reviewer-modify-status-modal.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#new-status-edit"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "openFirstStatusEditModal"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": "#status-select",
+          "mode": "callout",
+          "number": 1,
+          "label": "Category"
+        },
+        {
+          "selector": "#removeSwitch",
+          "mode": "callout",
+          "number": 2,
+          "label": "Removal"
+        },
+        {
+          "selector": "#status-textarea-comment",
+          "mode": "callout",
+          "number": 3,
+          "label": "Comment"
+        },
+        {
+          "selector": ".modal.show .btn-primary",
+          "mode": "callout",
+          "number": 4,
+          "label": "Save"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:11.525Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "6ae29e9a3f9264b399166cb2c1fa75b15563ec0d0bebb975b0320148fb09366d",
+      "bytes": 68018
+    },
+    {
+      "slug": "reviewer-submit-review-modal",
+      "output": "documentation/static/img/generated/reviewer-submit-review-modal.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#submit-re-review"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "openFirstSubmitReviewModal"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "locator",
+      "annotations": [
+        {
+          "selector": ".modal.show .modal-body",
+          "mode": "box",
+          "label": "Confirmation"
+        },
+        {
+          "selector": ".modal.show .btn-success",
+          "mode": "callout",
+          "number": 1,
+          "label": "Submit Review"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:13.300Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "800af49b5abecdb604819fa5a0f4bdba38922eb5ad9ba14a0fd66fd72cec480b",
+      "bytes": 27197
+    },
+    {
+      "slug": "reviewer-after-submit-page",
+      "output": "documentation/static/img/generated/reviewer-after-submit-page.png",
+      "docRefs": [
+        "documentation/06-re-review-instructions.qmd#submit-re-review"
+      ],
+      "route": "/Review",
+      "url": "http://localhost:8088/Review",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "authRole": "reviewer",
+      "setup": "reviewerReviewPage",
+      "actions": [
+        {
+          "type": "callHelper",
+          "name": "submitFirstReview"
+        }
+      ],
+      "waitFor": "main",
+      "captureMode": "page",
+      "annotations": [
+        {
+          "selector": ".b-table-empty-row, tbody tr",
+          "mode": "callout",
+          "number": 1,
+          "label": "Queue updated"
+        },
+        {
+          "selector": ".review-toolbar__filters .badge",
+          "mode": "callout",
+          "number": 2,
+          "label": "New batch"
+        }
+      ],
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:15.368Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "f64ba3ee99d5f2dbcf731655ab28b9860c658e001f904fe3f9243c0f9e429c1e",
+      "bytes": 109750
+    },
+    {
+      "slug": "api-swagger-overview",
+      "output": "documentation/static/img/generated/api-swagger-overview.png",
+      "docRefs": [
+        "documentation/03-api.qmd#endpoints"
+      ],
+      "url": "http://localhost:8088/API",
+      "baseURL": "app",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "swaggerOverview",
+      "waitFor": ".swagger-ui",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:16.730Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "2ea94bc82ca9ba9a35f030c3b931aa8def22f53abd61dd502f1cee2476c53e3c",
+      "bytes": 75858
+    },
+    {
+      "slug": "api-swagger-auth",
+      "output": "documentation/static/img/generated/api-swagger-auth.png",
+      "docRefs": [
+        "documentation/03-api.qmd#authentication-and-authorization"
+      ],
+      "url": "http://localhost:8088/API",
+      "baseURL": "app",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "setup": "swaggerAuthScreen",
+      "waitFor": ".swagger-ui",
+      "captureMode": "page",
+      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
+      "capturedAt": "2026-05-15T11:15:17.969Z",
+      "browserName": "chromium",
+      "browserVersion": "148.0.7778.96",
+      "sha256": "86d738b4900cbe4affb1cdc5cdfc870fbc5ab392f60aedcee93d1de0db1377da",
+      "bytes": 75254
+    }
+  ]
+}
