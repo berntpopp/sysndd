@@ -53,6 +53,8 @@ Service functions must keep their `svc_` or `service_` prefixes. If a service fu
 
 Async jobs are durable and MySQL-backed. The web API submits jobs and serves status/history; the separate worker service claims and executes them. Worker-executed code is sourced once when the worker starts. If you change worker-executed code, restart the worker container before assuming the change is live.
 
+The worker must have outbound network egress for external providers used inside jobs, including Gemini, PubMed, and PubTator. Keep it attached to both the internal `backend` network for database access and the egress-capable `proxy` network; attaching it only to `backend` breaks DNS/API calls because `backend` is `internal: true`.
+
 ### Migrations
 
 `db/migrations/*.sql` are applied at API startup by the migration runner using MySQL advisory locks. Migration failures are supposed to crash startup. Do not work around a failing migration by weakening startup checks.
@@ -100,5 +102,7 @@ When repository behavior changes, update the durable docs in the same change:
 
 - Start with `documentation/08-development.qmd` for human developer onboarding.
 - Use `documentation/09-deployment.qmd` for deployment and production operations.
+- Use `documentation/10-visual-design-guide.md` for SysNDD UI/UX visual standards before changing public tables, authenticated admin/curation pages, mobile table rows, or design tokens.
+- Cross-LLM visual-design enforcement lives in `.agents/skills/sysndd-visual-design/SKILL.md`, `.cursor/rules/sysndd-visual-design.mdc`, `.windsurf/rules/sysndd-visual-design.md`, and `GEMINI.md`; keep those pointers aligned with the visual guide.
 - See `db/migrations/README.md` for migration-specific details.
 - Planning, specs, reviews, and LLM workflow docs live under `.planning/`.

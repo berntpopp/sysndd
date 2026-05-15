@@ -73,6 +73,7 @@ interface LogsVm {
   deleteMode: string;
   totalRows: number;
   user_options: unknown[];
+  isBusy: boolean;
 }
 
 function makeRouter() {
@@ -180,6 +181,23 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     const wrapper = await mountTable();
     await (wrapper.vm as unknown as LogsVm).doLoadData();
     await flushPromises();
+  });
+
+  it('shows an inline loading state while logs are loading', async () => {
+    primeAuth('logs-loading-token');
+
+    server.use(
+      http.get('/api/user/list', () => HttpResponse.json([])),
+      http.get('/api/logs/', () =>
+        HttpResponse.json({ data: [], meta: [{ totalItems: 0, currentPage: 1, totalPages: 1 }] })
+      )
+    );
+
+    const wrapper = await mountTable();
+    (wrapper.vm as unknown as LogsVm).isBusy = true;
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="logs-loading-state"]').text()).toContain('Loading logs');
   });
 
   it('requestExcel issues GET /api/logs/?format=xlsx with the Bearer header', async () => {

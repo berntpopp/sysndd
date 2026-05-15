@@ -1,30 +1,11 @@
 <!-- components/annotations/PublicationRefreshCard.vue -->
 <template>
-  <BCard
-    header-tag="header"
-    body-class="p-2"
-    header-class="p-1"
-    border-variant="dark"
-    class="mb-3 text-start"
+  <AdminOperationPanel
+    title="Publication Metadata Refresh"
+    :meta="metaItems"
+    icon="bi-file-earmark-medical"
+    heading-tag="h2"
   >
-    <template #header>
-      <h5 class="mb-0 text-start font-weight-bold d-flex align-items-center">
-        Publication Metadata Refresh
-        <span v-if="stats.total !== null" class="badge bg-info ms-2 fw-normal">
-          {{ stats.total?.toLocaleString() }} publications
-        </span>
-        <span v-if="stats.oldest_update" class="badge bg-warning text-dark ms-2 fw-normal">
-          Oldest: {{ formatDate(stats.oldest_update) }}
-        </span>
-        <span
-          v-if="stats.outdated_count && stats.outdated_count > 0"
-          class="badge bg-danger ms-2 fw-normal"
-        >
-          {{ stats.outdated_count.toLocaleString() }} outdated
-        </span>
-      </h5>
-    </template>
-
     <div class="mb-3">
       <p class="text-muted small mb-2">
         Refresh publication metadata from PubMed. Publications are updated in place (no deletions).
@@ -160,12 +141,14 @@
         {{ job.error.value || 'Refresh failed. Check job history for details.' }}
       </BAlert>
     </div>
-  </BCard>
+  </AdminOperationPanel>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { UseAsyncJobReturn } from '@/composables/useAsyncJob';
 import { formatDate } from '@/composables/annotations/useAnnotationFormatters';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 
 export type FilterPreset = 'all' | '1year' | '6months' | '3months' | 'custom';
 
@@ -175,7 +158,7 @@ export interface PublicationStats {
   outdated_count: number | null;
 }
 
-defineProps<{
+const props = defineProps<{
   job: UseAsyncJobReturn;
   stats: PublicationStats;
   loadingStats: boolean;
@@ -198,4 +181,14 @@ function onCustomDateInput(event: Event): void {
   const target = event.target as HTMLInputElement;
   emit('update:customDate', target.value);
 }
+
+const metaItems = computed(() =>
+  [
+    props.stats.total !== null ? `${props.stats.total.toLocaleString()} publications` : null,
+    props.stats.oldest_update ? `Oldest: ${formatDate(props.stats.oldest_update)}` : null,
+    props.stats.outdated_count && props.stats.outdated_count > 0
+      ? `${props.stats.outdated_count.toLocaleString()} outdated`
+      : null,
+  ].filter((item): item is string => Boolean(item))
+);
 </script>

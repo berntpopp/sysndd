@@ -25,33 +25,33 @@
 
             <template v-if="!loading" #toolbar>
               <!-- User Interface controls -->
-              <BRow v-if="showSearchInput || totalRows > perPage || showPaginationControls">
-                <BCol v-if="showSearchInput" class="my-1" sm="8">
+              <div
+                v-if="showSearchInput || totalRows > perPage || showPaginationControls"
+                class="entities-toolbar"
+              >
+                <div v-if="showSearchInput" class="entities-toolbar__search">
                   <TableSearchInput
                     v-model="filter['any'].content"
                     :placeholder="'Search any field by typing here'"
                     :debounce-time="500"
                     @update:model-value="filtered"
                   />
-                </BCol>
+                </div>
 
-                <BCol
+                <div
                   v-if="totalRows > perPage || showPaginationControls"
-                  class="my-1"
-                  :sm="showSearchInput ? 4 : 12"
+                  class="entities-toolbar__pagination"
                 >
-                  <BContainer>
-                    <TablePaginationControls
-                      :total-rows="totalRows"
-                      :initial-per-page="perPage"
-                      :page-options="pageOptions"
-                      :current-page="currentPage"
-                      @page-change="handlePageChange"
-                      @per-page-change="handlePerPageChange"
-                    />
-                  </BContainer>
-                </BCol>
-              </BRow>
+                  <TablePaginationControls
+                    :total-rows="totalRows"
+                    :initial-per-page="perPage"
+                    :page-options="pageOptions"
+                    :current-page="currentPage"
+                    @page-change="handlePageChange"
+                    @per-page-change="handlePerPageChange"
+                  />
+                </div>
+              </div>
               <!-- User Interface controls -->
             </template>
 
@@ -66,6 +66,7 @@
                 :fields="fields"
                 :field-details="fields_details"
                 :sort-by="sortBy"
+                :fixed-layout="false"
                 :stacked-mode="false"
                 @update-sort="handleSortUpdate"
               >
@@ -764,6 +765,75 @@ export default {
   line-height: 0.5;
   border-radius: 0.2rem;
 }
+
+.entities-toolbar {
+  display: grid;
+  grid-template-columns: minmax(18rem, 1fr) minmax(17rem, 24rem);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.entities-toolbar__search,
+.entities-toolbar__pagination {
+  min-width: 0;
+}
+
+.entities-toolbar__pagination {
+  justify-self: end;
+  width: 100%;
+}
+
+.entities-toolbar__pagination :deep(.input-group) {
+  max-width: 10rem;
+  margin-left: auto;
+}
+
+.entities-toolbar__pagination :deep(.pagination) {
+  justify-content: flex-end;
+}
+
+:deep(.search-input) {
+  margin-bottom: 0 !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+:deep(.entities-table) {
+  table-layout: auto;
+}
+
+:deep(.entities-table th),
+:deep(.entities-table td) {
+  white-space: normal;
+}
+
+:deep(.entities-table th:nth-child(1)),
+:deep(.entities-table td:nth-child(1)),
+:deep(.entities-table th:nth-child(2)),
+:deep(.entities-table td:nth-child(2)),
+:deep(.entities-table th:nth-child(5)),
+:deep(.entities-table td:nth-child(5)),
+:deep(.entities-table th:nth-child(6)),
+:deep(.entities-table td:nth-child(6)),
+:deep(.entities-table th:nth-child(7)),
+:deep(.entities-table td:nth-child(7)) {
+  width: 1%;
+  white-space: nowrap;
+}
+
+:deep(.entities-table th:nth-child(3)),
+:deep(.entities-table td:nth-child(3)) {
+  min-width: 18rem;
+}
+
+:deep(.entities-table th:nth-child(4)),
+:deep(.entities-table td:nth-child(4)) {
+  min-width: 14rem;
+}
+
+:deep(.entities-table thead th) {
+  letter-spacing: 0;
+}
+
 .input-group > .input-group-prepend {
   flex: 0 0 35%;
 }
@@ -832,6 +902,25 @@ export default {
 @media (prefers-reduced-motion: reduce) {
   .entities-skeleton-line {
     animation: none;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .entities-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .entities-toolbar__pagination {
+    justify-self: stretch;
+  }
+
+  .entities-toolbar__pagination :deep(.input-group) {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .entities-toolbar__pagination :deep(.pagination) {
+    justify-content: stretch;
   }
 }
 </style>

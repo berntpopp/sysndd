@@ -55,6 +55,7 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 - `make cache-clear` removes nested `.rds` cache files under `/app/cache`, including external proxy caches.
 - Run the worker service alongside the API service; `mirai` daemons live in the worker service and jobs are executed by the worker entrypoint, not the web process.
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
+- The worker service needs both internal database access and outbound provider access. In Compose it should stay on `backend` for MySQL/API internals and on the egress-capable `proxy` network for Gemini, PubMed, PubTator, and other external calls. Do not attach it only to the internal `backend` network.
 - Use HTTPS in production.
 
 ## SEO Prerender Operations

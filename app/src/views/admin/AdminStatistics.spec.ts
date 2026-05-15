@@ -41,6 +41,51 @@ afterEach(() => {
 });
 
 describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
+  function stubStatisticsEndpoints() {
+    server.use(
+      http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/updates', () => HttpResponse.json({})),
+      http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_reviews', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
+    );
+  }
+
+  function mountView() {
+    return mount(AdminStatistics, {
+      global: {
+        provide: {
+          axios,
+        },
+        stubs: {
+          BContainer: { template: '<div><slot /></div>' },
+          BRow: { template: '<div><slot /></div>' },
+          BCol: { template: '<div><slot /></div>' },
+          BCard: { template: '<div><slot name="header" /><slot /></div>' },
+          BButton: { template: '<button><slot /></button>' },
+          BForm: { template: '<form><slot /></form>' },
+          BFormGroup: {
+            props: ['label'],
+            template: '<label><span>{{ label }}</span><slot /></label>',
+          },
+          BFormInput: {
+            props: ['type', 'modelValue'],
+            template: '<input :type="type" :value="modelValue" />',
+          },
+          BFormRadioGroup: { template: '<div />' },
+          BFormCheckboxGroup: { template: '<div />' },
+          EntityTrendChart: { template: '<div />' },
+          ContributorBarChart: { template: '<div />' },
+          ReReviewBarChart: { template: '<div />' },
+          StatCard: { template: '<div />' },
+          'router-link': true,
+        },
+      },
+    });
+  }
+
   it('sends Bearer on GET /api/statistics/entities_over_time', async () => {
     const { token } = primeAuth();
     let sawRequest = false;
@@ -62,35 +107,23 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
       http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
     );
 
-    mount(AdminStatistics, {
-      global: {
-        provide: {
-          axios,
-        },
-        stubs: {
-          BContainer: { template: '<div><slot /></div>' },
-          BRow: { template: '<div><slot /></div>' },
-          BCol: { template: '<div><slot /></div>' },
-          BCard: { template: '<div><slot name="header" /><slot /></div>' },
-          BButton: { template: '<button><slot /></button>' },
-          BForm: { template: '<form><slot /></form>' },
-          BFormGroup: { template: '<div><slot /></div>' },
-          BFormInput: { template: '<input />' },
-          BFormRadioGroup: { template: '<div />' },
-          BFormCheckboxGroup: { template: '<div />' },
-          EntityTrendChart: { template: '<div />' },
-          ContributorBarChart: { template: '<div />' },
-          ReReviewBarChart: { template: '<div />' },
-          StatCard: { template: '<div />' },
-          'router-link': true,
-        },
-      },
-    });
+    mountView();
 
     // Allow the mount → fetchStatistics → axios → MSW path to complete.
     await new Promise((r) => setTimeout(r, 0));
     await new Promise((r) => setTimeout(r, 0));
 
     expect(sawRequest).toBe(true);
+  });
+
+  it('renders a compact date range control panel', () => {
+    stubStatisticsEndpoints();
+
+    const wrapper = mountView();
+
+    const controlPanel = wrapper.get('[data-testid="admin-statistics-controls"]');
+    expect(controlPanel.text()).toContain('Reporting window');
+    expect(controlPanel.findAll('input[type="date"]')).toHaveLength(2);
+    expect(controlPanel.find('button').text()).toContain('Apply');
   });
 });

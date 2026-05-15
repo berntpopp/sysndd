@@ -94,27 +94,42 @@ function(req,
       # Parse filter string to filter list for repository
       filter_list <- parse_logging_filter(filter)
 
-      # Use repository for database-side filtering (fixes #152 - no collect())
-      logs_raw <- get_logs_filtered(
-        filters = filter_list,
-        sort_column = sort_column,
-        sort_direction = sort_direction
-      )
+      page_after_int <- suppressWarnings(as.integer(page_after))
+      use_first_page_fast_path <- format != "xlsx" && !is.na(page_after_int) && page_after_int == 0L
+
+      if (use_first_page_fast_path) {
+        log_pagination_info <- get_logs_first_page(
+          filters = filter_list,
+          sort_column = sort_column,
+          sort_direction = sort_direction,
+          page_size = page_size
+        )
+        logs_raw <- log_pagination_info$data
+      } else {
+        # Use repository for database-side filtering (fixes #152 - no collect())
+        logs_raw <- get_logs_filtered(
+          filters = filter_list,
+          sort_column = sort_column,
+          sort_direction = sort_direction
+        )
+
+        # Pagination
+        log_pagination_info <- generate_cursor_pag_inf(
+          logs_raw,
+          page_size,
+          page_after,
+          "id"
+        )
+      }
 
       # Select fields if specified
       if (fields != "") {
         selected_fields <- unlist(strsplit(fields, ","))
         logs_raw <- logs_raw %>%
           dplyr::select(all_of(selected_fields))
+        log_pagination_info$data <- log_pagination_info$data %>%
+          dplyr::select(all_of(selected_fields))
       }
-
-      # Pagination
-      log_pagination_info <- generate_cursor_pag_inf(
-        logs_raw,
-        page_size,
-        page_after,
-        "id"
-      )
 
       # Field specs
       logs_raw_fspec <- NULL

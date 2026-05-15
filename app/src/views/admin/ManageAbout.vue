@@ -9,62 +9,46 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol md="12" lg="11">
-            <BCard header-tag="header" body-class="p-3" header-class="p-2" border-variant="dark">
-              <template #header>
-                <BRow>
-                  <BCol>
-                    <div class="mb-1 text-start fw-semibold">
-                      <span>Publication status</span>
-                      <BBadge :variant="isDraft ? 'warning' : 'success'" class="ms-2">
-                        {{ isDraft ? 'Draft' : 'Published' }}
-                      </BBadge>
-                      <BBadge v-if="currentVersion" variant="secondary" class="ms-2">
-                        v{{ currentVersion }}
-                      </BBadge>
-                      <BBadge variant="info" class="ms-2">
-                        {{ sections.length }} section{{ sections.length !== 1 ? 's' : '' }}
-                      </BBadge>
-                    </div>
-                  </BCol>
-                  <BCol class="text-end">
-                    <BButton
-                      v-b-tooltip.hover
-                      size="sm"
-                      variant="outline-secondary"
-                      class="me-1"
-                      title="Save as draft"
-                      :disabled="isSaving || isPublishing || sections.length === 0"
-                      @click="handleSaveDraft"
-                    >
-                      <BSpinner v-if="isSaving" small />
-                      <i v-else class="bi bi-save" />
-                      Save Draft
-                    </BButton>
-                    <BButton
-                      v-b-tooltip.hover
-                      size="sm"
-                      variant="success"
-                      class="me-1"
-                      title="Publish content"
-                      :disabled="isSaving || isPublishing || sections.length === 0"
-                      @click="handlePublish"
-                    >
-                      <BSpinner v-if="isPublishing" small />
-                      <i v-else class="bi bi-globe" />
-                      Publish
-                    </BButton>
-                    <BButton
-                      v-b-tooltip.hover
-                      size="sm"
-                      variant="outline-primary"
-                      title="View live About page"
-                      :href="'/About'"
-                      target="_blank"
-                    >
-                      <i class="bi bi-eye" />
-                    </BButton>
-                  </BCol>
-                </BRow>
+            <AdminOperationPanel
+              title="Publication Status"
+              :meta="statusMeta"
+              icon="bi-file-earmark-richtext"
+            >
+              <template #actions>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-secondary"
+                  title="Save as draft"
+                  :disabled="isSaving || isPublishing || sections.length === 0"
+                  @click="handleSaveDraft"
+                >
+                  <BSpinner v-if="isSaving" small />
+                  <i v-else class="bi bi-save" />
+                  Save Draft
+                </BButton>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="success"
+                  title="Publish content"
+                  :disabled="isSaving || isPublishing || sections.length === 0"
+                  @click="handlePublish"
+                >
+                  <BSpinner v-if="isPublishing" small />
+                  <i v-else class="bi bi-globe" />
+                  Publish
+                </BButton>
+                <BButton
+                  v-b-tooltip.hover
+                  size="sm"
+                  variant="outline-primary"
+                  title="View live About page"
+                  :href="'/About'"
+                  target="_blank"
+                >
+                  <i class="bi bi-eye" />
+                </BButton>
               </template>
 
               <!-- Status Messages -->
@@ -132,18 +116,18 @@
                   </BButton>
                 </div>
               </template>
-            </BCard>
+            </AdminOperationPanel>
 
             <!-- Help Card -->
-            <BCard class="mt-3" body-class="p-2" border-variant="light">
-              <div class="d-flex align-items-center">
+            <aside class="cms-editor-tip mt-3">
+              <div class="d-flex align-items-center gap-2">
                 <i class="bi bi-lightbulb text-warning me-2" />
                 <span class="text-muted small">
                   <strong>Tips:</strong> Use markdown for formatting. Drag sections to reorder.
                   Changes auto-save as drafts.
                 </span>
               </div>
-            </BCard>
+            </aside>
           </BCol>
         </BRow>
 
@@ -169,7 +153,8 @@
 
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useCmsContent } from '@/composables';
 import type { AboutSection } from '@/types';
 import SectionList from '@/components/cms/SectionList.vue';
@@ -193,6 +178,13 @@ const {
 
 const showPublishModal = ref(false);
 const successMessage = ref<string | null>(null);
+const statusMeta = computed(() =>
+  [
+    isDraft.value ? 'Draft' : 'Published',
+    currentVersion.value ? `v${currentVersion.value}` : null,
+    `${sections.value.length} section${sections.value.length !== 1 ? 's' : ''}`,
+  ].filter((item): item is string => Boolean(item))
+);
 
 // Default sections matching the current About page content
 const defaultSections: AboutSection[] = [
@@ -375,5 +367,10 @@ function addInitialSection() {
 </script>
 
 <style scoped>
-/* Match other admin views styling */
+.cms-editor-tip {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-lg, 0.5rem);
+  background: #fff;
+  padding: 0.75rem 1rem;
+}
 </style>

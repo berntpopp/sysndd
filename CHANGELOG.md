@@ -8,6 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.19.0] — 2026-05-14
+
+Minor bump for PR #338's admin visual-design pass, log-table performance work, LLM regeneration feedback fixes, and worker egress correction.
+
+### Added
+
+- **Canonical SysNDD visual guide.** Added `documentation/10-visual-design-guide.md`, admin visual ratings, and cross-agent/editor pointers for future UI work.
+- **Shared admin operation surface.** Added `AdminOperationPanel` and migrated multiple admin/annotation views away from dark Bootstrap card chrome.
+
+### Changed
+
+- **Admin operation pages are more consistent.** Refined ManageLLM, ManagePubtator, ManageBackups, AdminStatistics, ViewLogs, and Entities table layouts toward the compact table-first visual guide.
+- **Worker egress is explicit.** The async worker remains on the internal backend network and is also attached to the egress-capable proxy network for Gemini, PubMed, PubTator, and similar provider calls.
+
+### Fixed
+
+- **Logs first page loads faster without breaking cursor semantics.** The first-page SQL fast path preserves `page_size=all`, returns a last-page cursor, and uses stable `id` tie-breaking for non-unique sort columns.
+- **LLM regeneration tracking is visible and durable across page navigation.** ManageLLM now tracks child jobs per cluster type and restores active browser-session job cards after returning to the page.
+- **Character phenotype cluster IDs no longer break LLM progress messages.** Cluster progress formatting now accepts descriptive cluster labels.
+
 ## [0.16.5] — 2026-05-09
 
 Fix bump for entity detail clipboard resiliency after PR #328 feedback.

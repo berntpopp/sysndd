@@ -438,7 +438,7 @@ describe("build_logging_order_clause", {
 
   it("accepts valid sort column", {
     result <- build_logging_order_clause(sort_column = "timestamp")
-    expect_equal(result, "ORDER BY timestamp DESC")
+    expect_equal(result, "ORDER BY timestamp DESC, id DESC")
   })
 
   it("accepts valid sort direction", {
@@ -451,7 +451,7 @@ describe("build_logging_order_clause", {
       sort_column = "status",
       sort_direction = "ASC"
     )
-    expect_equal(result, "ORDER BY status ASC")
+    expect_equal(result, "ORDER BY status ASC, id ASC")
   })
 
   it("normalizes direction to uppercase", {
@@ -465,7 +465,12 @@ describe("build_logging_order_clause", {
   it("accepts all valid sort columns", {
     for (col in LOGGING_ALLOWED_SORT_COLUMNS) {
       result <- build_logging_order_clause(sort_column = col)
-      expect_equal(result, paste("ORDER BY", col, "DESC"))
+      expected <- if (col == "id") {
+        "ORDER BY id DESC"
+      } else {
+        paste("ORDER BY", col, "DESC, id DESC")
+      }
+      expect_equal(result, expected)
     }
   })
 
@@ -639,5 +644,122 @@ describe("parse_logging_filter", {
     # URL-encoded version of "contains(path,/api/)"
     result <- parse_logging_filter("contains(path,%2Fapi%2F)")
     expect_equal(result$path_contains, "/api/")
+  })
+})
+
+describe("get_logs_first_page", {
+  it("uses SQL COUNT and page-size LIMIT instead of fetching the safety cap", {
+    calls <- list()
+    original_db_execute_query <- if (exists("db_execute_query", envir = .GlobalEnv)) {
+      get("db_execute_query", envir = .GlobalEnv)
+    } else {
+      NULL
+    }
+
+    assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+      calls[[length(calls) + 1]] <<- list(sql = sql, params = params)
+      if (grepl("COUNT\\(\\*\\)", sql)) {
+        return(data.frame(total = 123L))
+      }
+      if (grepl("OFFSET", sql)) {
+        return(data.frame(id = 2L))
+      }
+      data.frame(
+        id = c(123L, 122L, 121L),
+        timestamp = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00")),
+        address = "127.0.0.1",
+        agent = "agent",
+        host = "localhost",
+        request_method = "GET",
+        path = "/api/logs/",
+        query = "",
+        post = "",
+        status = 200L,
+        duration = 1,
+        file = "",
+        modified = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00"))
+      )
+    }, envir = .GlobalEnv)
+
+    on.exit({
+      if (is.null(original_db_execute_query)) {
+        rm("db_execute_query", envir = .GlobalEnv)
+      } else {
+        assign("db_execute_query", original_db_execute_query, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+
+    result <- get_logs_first_page(
+      filters = list(),
+      sort_column = "id",
+      sort_direction = "DESC",
+      page_size = 2
+    )
+
+    expect_equal(length(calls), 3)
+    expect_match(calls[[1]]$sql, "SELECT COUNT\\(\\*\\) AS total")
+    expect_match(calls[[2]]$sql, "LIMIT \\?")
+    expect_equal(calls[[2]]$params[[1]], 3L)
+    expect_match(calls[[3]]$sql, "LIMIT 1 OFFSET \\?")
+    expect_equal(calls[[3]]$params[[1]], 121L)
+    expect_equal(nrow(result$data), 2)
+    expect_equal(result$meta$totalItems[[1]], 123L)
+    expect_equal(result$meta$nextItemID[[1]], 122L)
+    expect_equal(result$meta$lastItemID[[1]], 2L)
+    expect_false(any(vapply(calls[[2]]$params, identical, logical(1), 100000L)))
+  })
+
+  it("preserves page_size all semantics in the first-page path", {
+    calls <- list()
+    original_db_execute_query <- if (exists("db_execute_query", envir = .GlobalEnv)) {
+      get("db_execute_query", envir = .GlobalEnv)
+    } else {
+      NULL
+    }
+
+    assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+      calls[[length(calls) + 1]] <<- list(sql = sql, params = params)
+      if (grepl("COUNT\\(\\*\\)", sql)) {
+        return(data.frame(total = 3L))
+      }
+      data.frame(
+        id = c(3L, 2L, 1L),
+        timestamp = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00")),
+        address = "127.0.0.1",
+        agent = "agent",
+        host = "localhost",
+        request_method = "GET",
+        path = "/api/logs/",
+        query = "",
+        post = "",
+        status = 200L,
+        duration = 1,
+        file = "",
+        modified = as.POSIXct(c("2026-05-14 10:00:00", "2026-05-14 09:00:00", "2026-05-14 08:00:00"))
+      )
+    }, envir = .GlobalEnv)
+
+    on.exit({
+      if (is.null(original_db_execute_query)) {
+        rm("db_execute_query", envir = .GlobalEnv)
+      } else {
+        assign("db_execute_query", original_db_execute_query, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+
+    result <- get_logs_first_page(
+      filters = list(),
+      sort_column = "id",
+      sort_direction = "DESC",
+      page_size = "all"
+    )
+
+    expect_equal(length(calls), 2)
+    expect_equal(calls[[2]]$params[[1]], 3L)
+    expect_equal(nrow(result$data), 3)
+    expect_equal(result$meta$perPage[[1]], 3L)
+    expect_equal(result$meta$totalPages[[1]], 1L)
+    expect_equal(result$meta$nextItemID[[1]], "null")
+    expect_equal(result$meta$lastItemID[[1]], "null")
   })
 })

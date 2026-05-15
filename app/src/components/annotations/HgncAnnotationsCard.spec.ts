@@ -22,6 +22,13 @@ function mountCard() {
       hgncJob: idleJob,
       lastUpdated: null,
     },
+    global: {
+      stubs: {
+        AdminOperationPanel: {
+          template: '<section><slot /><slot name="actions" /></section>',
+        },
+      },
+    },
   });
 }
 

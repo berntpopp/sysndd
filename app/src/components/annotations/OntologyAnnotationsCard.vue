@@ -1,21 +1,11 @@
 <!-- components/annotations/OntologyAnnotationsCard.vue -->
 <template>
-  <BCard
-    header-tag="header"
-    body-class="p-1"
-    header-class="p-1"
-    border-variant="dark"
-    class="mb-3 text-start"
+  <AdminOperationPanel
+    title="Updating Ontology Annotations"
+    :meta="lastUpdated ? `Last: ${formatDate(lastUpdated)}` : null"
+    icon="bi-diagram-3"
+    heading-tag="h2"
   >
-    <template #header>
-      <h5 class="mb-0 text-start font-weight-bold">
-        Updating Ontology Annotations
-        <span v-if="lastUpdated" class="badge bg-secondary ms-2 fw-normal">
-          Last: {{ formatDate(lastUpdated) }}
-        </span>
-      </h5>
-    </template>
-
     <BButton
       variant="primary"
       :disabled="ontologyJob.isLoading.value"
@@ -123,13 +113,14 @@
         </BProgress>
       </div>
     </BAlert>
-  </BCard>
+  </AdminOperationPanel>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { UseAsyncJobReturn } from '@/composables/useAsyncJob';
 import { formatDate } from '@/composables/annotations/useAnnotationFormatters';
+import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import JobProgressDisplay from './JobProgressDisplay.vue';
 
 export interface OntologyBlockedState {
