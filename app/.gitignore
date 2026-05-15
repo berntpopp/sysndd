@@ -27,4 +27,5 @@ pnpm-debug.log*
 # Playwright (Wave 0 of v11.1)
 tests/e2e/screenshots/
 tests/e2e/.playwright-output/
+tests/docs-screenshots/.playwright-output/
 playwright-report/

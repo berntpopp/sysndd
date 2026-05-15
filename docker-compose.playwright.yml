@@ -20,11 +20,13 @@
 #     Playwright suite — they are not required for the deep-flow specs and
 #     adding them only increases startup time. If a future spec needs the
 #     async worker, add a `worker:` block to this overlay.
-#   - Volumes are remapped to `sysndd_playwright_*` names so the stack does
-#     not collide with the developer's `make dev` data.
+#   - Container names, networks, ports, and volumes are remapped to
+#     `sysndd_playwright_*` names so the stack does not collide with a
+#     developer's running `make dev` stack.
 
 services:
   traefik:
+    container_name: sysndd_playwright_traefik
     # Lower log noise during Playwright runs.
     command:
       - "--api=true"
@@ -32,20 +34,25 @@ services:
       - "--api.dashboard=false"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=sysndd_proxy"
+      - "--providers.docker.constraints=Label(`sysndd.playwright`,`true`)"
+      - "--providers.docker.network=sysndd_playwright_proxy"
       - "--entryPoints.web.address=:80"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedBackSlash=true"
       - "--entryPoints.web.http.encodedCharacters.allowEncodedPercent=true"
       - "--ping=true"
       - "--log.level=WARN"
+    ports: !override
+      - "127.0.0.1:${PLAYWRIGHT_HOST_PORT:-8088}:80"
 
   mysql:
+    container_name: sysndd_playwright_mysql
     # Healthcheck in base compose interpolates ${MYSQL_USER} / ${MYSQL_PASSWORD}
     # so they MUST be set in the parent shell when bringing the stack up.
     # `make playwright-stack` exports them.
 
   api:
+    container_name: sysndd_playwright_api
     environment:
       ENVIRONMENT: production
       LOG_LEVEL: WARN
@@ -57,22 +64,29 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    labels:
+    labels: !override
+      - "sysndd.playwright=true"
       - "traefik.enable=true"
-      # Allow localhost in addition to production host for Playwright access
-      - "traefik.http.routers.api.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/api`)"
-      - "traefik.http.routers.api.entrypoints=web"
-      - "traefik.http.routers.api.priority=100"
-      - "traefik.http.services.api.loadbalancer.server.port=7777"
+      - "traefik.docker.network=sysndd_playwright_proxy"
+      - "traefik.http.routers.playwright-api.rule=PathPrefix(`/api`) || PathPrefix(`/__docs__`) || PathPrefix(`/__swagger__`)"
+      - "traefik.http.routers.playwright-api.entrypoints=web"
+      - "traefik.http.routers.playwright-api.priority=100"
+      - "traefik.http.services.playwright-api.loadbalancer.server.port=7777"
+      - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie.name=sysndd_playwright_api_sticky"
+      - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie.httponly=true"
+      - "traefik.http.services.playwright-api.loadbalancer.sticky.cookie.samesite=lax"
 
   app:
-    labels:
+    container_name: sysndd_playwright_app
+    labels: !override
+      - "sysndd.playwright=true"
       - "traefik.enable=true"
-      # Allow localhost in addition to production host for Playwright access
-      - "traefik.http.routers.app.rule=(Host(`sysndd.dbmr.unibe.ch`) || Host(`localhost`) || Host(`127.0.0.1`)) && PathPrefix(`/`)"
-      - "traefik.http.routers.app.entrypoints=web"
-      - "traefik.http.services.app.loadbalancer.server.port=8080"
-      - "traefik.http.routers.app.priority=1"
+      - "traefik.docker.network=sysndd_playwright_proxy"
+      - "traefik.http.routers.playwright-app.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.playwright-app.entrypoints=web"
+      - "traefik.http.routers.playwright-app.priority=1"
+      - "traefik.http.services.playwright-app.loadbalancer.server.port=8080"
 
   # Mailpit fakes the SMTP destination so signup / password-reset flows that
   # call send_noreply_email don't fail with "Could not resolve host: mailpit".
@@ -80,6 +94,7 @@ services:
   # network alias so it does not conflict with `make dev`.
   mailpit:
     image: axllent/mailpit:v1.29.7
+    container_name: sysndd_playwright_mailpit
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -95,6 +110,15 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
+
+networks:
+  proxy:
+    name: sysndd_playwright_proxy
+    driver: bridge
+  backend:
+    name: sysndd_playwright_backend
+    driver: bridge
+    internal: true
 
 # Remap base-compose named volumes to Playwright-specific names so
 # `docker compose ... down -v` only removes Playwright data.

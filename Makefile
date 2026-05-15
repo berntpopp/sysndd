@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs _playwright-seed-templates _playwright-seed-users
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -449,13 +449,17 @@ PLAYWRIGHT_DB_PASSWORD ?= playwright_pw
 PLAYWRIGHT_DB_ROOT_PASSWORD ?= playwright_root_pw
 PLAYWRIGHT_DB_NAME ?= sysndd_db
 PLAYWRIGHT_API_PASSWORD ?= playwright_api_password
+PLAYWRIGHT_HOST_PORT ?= 8088
+PLAYWRIGHT_BASE_URL ?= http://localhost:$(PLAYWRIGHT_HOST_PORT)
+PLAYWRIGHT_API_BASE_URL ?= $(PLAYWRIGHT_BASE_URL)
 PLAYWRIGHT_HEALTH_TIMEOUT ?= 240
-PLAYWRIGHT_HEALTH_ENDPOINT ?= http://localhost/api/health/ready
+PLAYWRIGHT_HEALTH_ENDPOINT ?= $(PLAYWRIGHT_API_BASE_URL)/api/health/ready
 
 # Env vars exported to the compose invocations. The base compose file
 # interpolates these at parse time, so they MUST be set before any
 # `docker compose -f docker-compose.yml ...` invocation.
 PLAYWRIGHT_ENV := \
+	PLAYWRIGHT_HOST_PORT=$(PLAYWRIGHT_HOST_PORT) \
 	MYSQL_DATABASE=$(PLAYWRIGHT_DB_NAME) \
 	MYSQL_USER=$(PLAYWRIGHT_DB_USER) \
 	MYSQL_PASSWORD=$(PLAYWRIGHT_DB_PASSWORD) \
@@ -463,12 +467,12 @@ PLAYWRIGHT_ENV := \
 	PASSWORD=$(PLAYWRIGHT_API_PASSWORD) \
 	SMTP_PASSWORD=playwright_smtp \
 	OMIM_DOWNLOAD_KEY=playwright_omim \
-	CORS_ALLOWED_ORIGINS=http://localhost \
+	CORS_ALLOWED_ORIGINS=$(PLAYWRIGHT_BASE_URL) \
 	CACHE_VERSION=2
 
 _playwright-seed-templates:
 	@# Seed .env from template if missing — needed because docker-compose.yml
-	@# interpolates ${MYSQL_*}, ${PASSWORD}, ${OMIM_DOWNLOAD_KEY} at parse time.
+	@# interpolates MYSQL_*, PASSWORD, and OMIM_DOWNLOAD_KEY at parse time.
 	@# The PLAYWRIGHT_ENV exports below also set these inline, so the .env file
 	@# only matters as a fallback for compose's own variable substitution.
 	@if [ ! -f $(ROOT_DIR)/.env ]; then \
@@ -496,9 +500,17 @@ _playwright-seed-users:
 		printf "$(GREEN)✓ Test users seeded$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to seed test users$(RESET)\n" && exit 1)
 
+_playwright-seed-docs-data:
+	@printf "$(CYAN)==> Seeding Playwright documentation screenshot data...$(RESET)\n"
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) exec -T mysql \
+		mysql -u root -p$(PLAYWRIGHT_DB_ROOT_PASSWORD) $(PLAYWRIGHT_DB_NAME) \
+		< $(ROOT_DIR)/db/fixtures/playwright_docs_screenshots.sql && \
+		printf "$(GREEN)✓ Documentation screenshot data seeded$(RESET)\n" || \
+		(printf "$(RED)✗ Failed to seed documentation screenshot data$(RESET)\n" && exit 1)
+
 playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Playwright E2E stack (CI-only fixtures)
 	@printf "$(CYAN)==> Bringing up Playwright E2E stack...$(RESET)\n"
-	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) up -d --wait \
+	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) up -d --build --wait \
 		traefik mysql mailpit api app && \
 		printf "$(GREEN)✓ Playwright stack started$(RESET)\n" || \
 		(printf "$(RED)✗ playwright-stack up failed$(RESET)\n" && exit 1)
@@ -523,8 +535,8 @@ playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Pla
 		printf "$(YELLOW)⚠ db/fixtures/playwright_users.sql missing — skipping user seed$(RESET)\n"; \
 	fi
 	@printf "\n$(CYAN)Playwright stack ready:$(RESET)\n"
-	@printf "  App + API: http://localhost\n"
-	@printf "  API direct: http://localhost/api\n"
+	@printf "  App + API: $(PLAYWRIGHT_BASE_URL)\n"
+	@printf "  API direct: $(PLAYWRIGHT_API_BASE_URL)/api\n"
 	@printf "  Run tests: cd app && npx playwright test\n"
 	@printf "  Tear down: make playwright-stack-down\n"
 
@@ -542,6 +554,25 @@ playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and
 
 playwright-stack-logs: check-docker ## [test] Tail Playwright E2E stack logs
 	@cd $(ROOT_DIR) && $(PLAYWRIGHT_ENV) $(COMPOSE_PLAYWRIGHT) logs -f --tail=50
+
+docs-screenshots: playwright-stack _playwright-seed-docs-data ## [docs] Generate documentation screenshots and provenance
+	@printf "$(CYAN)==> Generating documentation screenshots...$(RESET)\n"
+	@(cd $(ROOT_DIR)/app && \
+		PLAYWRIGHT_BASE_URL=$(PLAYWRIGHT_BASE_URL) PLAYWRIGHT_API_BASE_URL=$(PLAYWRIGHT_API_BASE_URL) \
+		npm run docs:screenshots && \
+		printf "$(GREEN)✓ Documentation screenshots generated$(RESET)\n") || \
+		(printf "$(RED)✗ docs screenshot generation failed$(RESET)\n" && exit 1)
+	@$(MAKE) verify-doc-screenshots
+	@printf "\n$(CYAN)Documentation screenshots written to:$(RESET) documentation/static/img/generated/\n"
+	@printf "$(YELLOW)Tear down the Playwright stack with: make docs-screenshots-down$(RESET)\n"
+
+docs-screenshots-down: playwright-stack-down ## [docs] Tear down the docs screenshot Playwright stack
+
+verify-doc-screenshots: ## [docs] Verify documentation screenshot references and provenance
+	@printf "$(CYAN)==> Verifying documentation screenshots...$(RESET)\n"
+	@cd $(ROOT_DIR) && node scripts/documentation/verify-doc-screenshots.mjs && \
+		printf "$(GREEN)✓ Documentation screenshot verification complete$(RESET)\n" || \
+		(printf "$(RED)✗ Documentation screenshot verification failed$(RESET)\n" && exit 1)
 
 # =============================================================================
 # Developer Environment (Phase A7)

@@ -14,6 +14,7 @@ const testMatch = process.env.PLAYWRIGHT_INCLUDE_PERF
 export default defineConfig({
   testDir: './tests',
   testMatch,
+  testIgnore: ['docs-screenshots/**'],
   fullyParallel: true,
   globalSetup: './tests/e2e/global-setup.ts',
   forbidOnly: !!process.env.CI,

@@ -8,6 +8,22 @@ Build it from this directory:
 quarto render
 ```
 
+From the repository root, the equivalent render and screenshot checks are:
+
+```bash
+quarto render documentation
+node scripts/documentation/verify-doc-screenshots.mjs
+```
+
+Regenerate the Playwright-backed documentation screenshots from the repository root:
+
+```bash
+make docs-screenshots
+make docs-screenshots-down
+```
+
+The screenshot stack serves the app/API through `http://localhost:8088` by default; set `PLAYWRIGHT_HOST_PORT=<port>` when that port is already in use.
+
 Key source files:
 
 - `index.qmd` and the numbered `.qmd` chapters for published content
