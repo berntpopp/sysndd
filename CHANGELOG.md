@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _Nothing yet._
 
+## [0.19.1] — 2026-05-15
+
+Patch bump for the GeneNetworks cluster-selection UX.
+
+### Added
+
+- **Functional cluster parent nodes are selectable.** Clicking a Cytoscape compound cluster parent filters the graph and table to that cluster while gene-node clicks continue to open the gene page.
+- **All-clusters summary cue.** The GeneNetworks table shows a compact AI-summary cue in all-clusters mode with a direct action to focus the first available cluster.
+
+### Fixed
+
+- **Cluster selection can be cleared from the graph.** Clicking the empty network background returns the graph and table to the all-clusters view.
+- **Stale AI summary requests no longer replace the active cluster summary.** Rapid cluster changes now ignore older summary responses once a newer cluster selection is active.
+
 ## [0.19.0] — 2026-05-14
 
 Minor bump for PR #338's admin visual-design pass, log-table performance work, LLM regeneration feedback fixes, and worker egress correction.

@@ -68,6 +68,22 @@
             <BSpinner small class="me-2" />
             <span class="text-muted">Loading AI summary...</span>
           </div>
+          <div v-else-if="showAllClustersSummaryCue" class="cluster-summary-cue" role="status">
+            <div class="cluster-summary-cue__text">
+              <i class="bi bi-stars" aria-hidden="true" />
+              <span>Select one cluster to view its AI summary and focused enrichment table.</span>
+            </div>
+            <BButton
+              v-if="firstAvailableCluster !== null"
+              size="sm"
+              variant="outline-primary"
+              class="cluster-summary-cue__action"
+              :aria-label="`View cluster ${firstAvailableCluster} summary`"
+              @click="selectDefaultClusterForSummary"
+            >
+              View cluster {{ firstAvailableCluster }}
+            </BButton>
+          </div>
           <!-- No placeholder when summary doesn't exist -->
 
           <BCard
@@ -494,6 +510,7 @@ export default {
       // LLM Summary data
       currentSummary: null,
       summaryLoading: false,
+      summaryRequestId: 0,
     };
   },
   computed: {
@@ -515,6 +532,15 @@ export default {
      */
     isShowingCombinedData() {
       return this.showAllClustersInTable || this.displayedClusters.length > 1;
+    },
+
+    firstAvailableCluster() {
+      const firstCluster = this.itemsCluster?.[0]?.cluster;
+      return firstCluster == null ? null : Number(firstCluster);
+    },
+
+    showAllClustersSummaryCue() {
+      return !this.loading && this.itemsCluster.length > 0 && this.showAllClustersInTable;
     },
 
     /**
@@ -1075,6 +1101,11 @@ export default {
       console.log('Gene selected from network:', hgncId);
     },
 
+    selectDefaultClusterForSummary() {
+      if (this.firstAvailableCluster === null) return;
+      this.$refs.networkVisualization?.selectSingleCluster?.(this.firstAvailableCluster);
+    },
+
     /**
      * Handle network node hover - highlight corresponding table row
      * Part of bidirectional hover highlighting (NAVL-05)
@@ -1116,18 +1147,21 @@ export default {
      */
     async fetchClusterSummary(clusterHash, clusterNumber) {
       if (!clusterHash) {
-        this.currentSummary = null;
+        this.clearClusterSummary();
         return;
       }
 
+      const requestId = ++this.summaryRequestId;
       this.summaryLoading = true;
       try {
         const data = await getFunctionalClusterSummary({
           cluster_hash: clusterHash,
           cluster_number: String(clusterNumber),
         });
+        if (requestId !== this.summaryRequestId) return;
         this.currentSummary = data;
       } catch (error) {
+        if (requestId !== this.summaryRequestId) return;
         // 404 is expected when summary doesn't exist yet - treat as no summary
         if (isApiError(error) && error.response && error.response.status === 404) {
           this.currentSummary = null;
@@ -1141,8 +1175,16 @@ export default {
         );
         this.currentSummary = null;
       } finally {
-        this.summaryLoading = false;
+        if (requestId === this.summaryRequestId) {
+          this.summaryLoading = false;
+        }
       }
+    },
+
+    clearClusterSummary() {
+      this.summaryRequestId += 1;
+      this.currentSummary = null;
+      this.summaryLoading = false;
     },
 
     /**
@@ -1160,7 +1202,7 @@ export default {
         // Show combined data from all clusters
         this.selectedCluster = this.combineClusterData(this.itemsCluster);
         // Clear summary when showing all clusters
-        this.currentSummary = null;
+        this.clearClusterSummary();
       } else if (clusters.length === 1) {
         // Single cluster selected - show that cluster's data
         this.activeParentCluster = clusters[0];
@@ -1170,7 +1212,7 @@ export default {
         if (clusterData?.hash_filter) {
           this.fetchClusterSummary(clusterData.hash_filter, clusters[0]);
         } else {
-          this.currentSummary = null;
+          this.clearClusterSummary();
         }
       } else {
         // Multiple clusters selected - combine their data
@@ -1179,7 +1221,7 @@ export default {
         );
         this.selectedCluster = this.combineClusterData(selectedClusterData);
         // Clear summary when showing multiple clusters
-        this.currentSummary = null;
+        this.clearClusterSummary();
       }
 
       // Update pagination
@@ -1312,6 +1354,42 @@ mark {
   padding: 12px;
   height: 100%;
   overflow: auto;
+}
+
+.cluster-summary-cue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #495057;
+  font-size: 0.875rem;
+}
+
+.cluster-summary-cue__text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.cluster-summary-cue__text .bi {
+  color: #0d47a1;
+}
+
+.cluster-summary-cue__action {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 767.98px) {
+  .cluster-summary-cue {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 /* Override splitpanes default theme for better visibility */
