@@ -1,7 +1,7 @@
 // app/playwright.config.ts
 import { defineConfig, devices } from '@playwright/test';
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:80';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:8088';
 
 // Default e2e suite excludes perf benches — they have aspirational hard
 // thresholds and would fail standard `npm run test:e2e` runs. Run perf

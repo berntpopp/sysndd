@@ -106,17 +106,14 @@ Documentation screenshots use a dedicated Playwright config and manifest under `
 
 UI and documentation design review guidance lives in `documentation/10-visual-design-guide.md` and `documentation/11-admin-visual-review.md`. These files are developer-facing references unless they are intentionally added to the Quarto navigation.
 
-Local sequence:
+Recommended local sequence:
 
 ```bash
-make playwright-stack
-cd app && PLAYWRIGHT_BASE_URL=http://localhost:8088 PLAYWRIGHT_API_BASE_URL=http://localhost:8088 npm run docs:screenshots
-cd ..
-node scripts/documentation/verify-doc-screenshots.mjs
-make playwright-stack-down
+make docs-screenshots
+make docs-screenshots-down
 ```
 
-The convenience target `make docs-screenshots` runs the stack, screenshot command, and verifier, then prints the teardown command. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
+The `make docs-screenshots` target runs the stack, seeds the screenshot fixture data, runs the dedicated screenshot command, and verifies generated assets. For step-by-step debugging, run `make playwright-stack`, then `make _playwright-seed-docs-data`, then the `npm run docs:screenshots` command shown in `Makefile`, then `node scripts/documentation/verify-doc-screenshots.mjs`, and finally `make playwright-stack-down`. The Playwright stack uses `http://localhost:8088` by default; override `PLAYWRIGHT_HOST_PORT` if that port is already in use. Always run `make docs-screenshots-down` or `make playwright-stack-down` before handing off.
 
 ### Authoring a new spec
 

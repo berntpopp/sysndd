@@ -20,7 +20,7 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - Frontend strict-scope type-check: `cd app && npm run type-check:strict`
 - Frontend unit tests: `cd app && npm run test:unit`
 - Frontend SEO prerender gate: `make verify-seo-app`
-- Frontend E2E (Playwright, **local-only**): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`. There is no Playwright CI workflow — the spec files in `app/tests/e2e/` exist for ad-hoc local regression checks. The official lane (lint, type-check, vitest, R API, smoke) is the automated coverage.
+- Frontend E2E (Playwright, **local-only**): `make playwright-stack && cd app && npx playwright test && cd .. && make playwright-stack-down`. The isolated stack serves the app/API at `http://localhost:8088` by default, and `app/playwright.config.ts` uses that default when `PLAYWRIGHT_BASE_URL` is unset. There is no Playwright CI workflow — the spec files in `app/tests/e2e/` exist for ad-hoc local regression checks. The official lane (lint, type-check, vitest, R API, smoke) is the automated coverage.
 
 Single-test shortcuts:
 

@@ -59,7 +59,7 @@ export class ProvenanceWriter {
       output: entry.output,
       docRefs: entry.docRefs,
       route: entry.route,
-      url: entry.url ?? resolvedUrl,
+      url: resolvedUrl,
       baseURL: typeof entry.baseURL === 'string' ? entry.baseURL : undefined,
       viewport: entry.viewport,
       authRole: entry.authRole,

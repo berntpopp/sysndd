@@ -537,7 +537,7 @@ playwright-stack: check-docker _playwright-seed-templates ## [test] Bring up Pla
 	@printf "\n$(CYAN)Playwright stack ready:$(RESET)\n"
 	@printf "  App + API: $(PLAYWRIGHT_BASE_URL)\n"
 	@printf "  API direct: $(PLAYWRIGHT_API_BASE_URL)/api\n"
-	@printf "  Run tests: cd app && npx playwright test\n"
+	@printf "  Run tests: cd app && PLAYWRIGHT_BASE_URL=$(PLAYWRIGHT_BASE_URL) npx playwright test\n"
 	@printf "  Tear down: make playwright-stack-down\n"
 
 playwright-stack-down: check-docker ## [test] Tear down Playwright E2E stack and remove volumes

@@ -22,7 +22,7 @@ make docs-screenshots
 make docs-screenshots-down
 ```
 
-The screenshot stack serves the app/API through `http://localhost:8088` by default; set `PLAYWRIGHT_HOST_PORT=<port>` when that port is already in use.
+The screenshot target seeds its own documentation fixture data. The stack serves the app/API through `http://localhost:8088` by default; set `PLAYWRIGHT_HOST_PORT=<port>` when that port is already in use.
 
 Key source files:
 
