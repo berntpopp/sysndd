@@ -9,6 +9,9 @@
 </template>
 
 <script>
+import SwaggerUIBundle from 'swagger-ui-dist/swagger-ui-es-bundle.js';
+import 'swagger-ui-dist/swagger-ui.css';
+
 export default {
   name: 'ApiView',
   data() {
@@ -18,31 +21,13 @@ export default {
     };
   },
   mounted() {
-    this.loadSwaggerUI();
+    this.initSwagger();
   },
   methods: {
-    loadSwaggerUI() {
-      // Load Swagger UI CSS
-      const cssLink = document.createElement('link');
-      cssLink.rel = 'stylesheet';
-      cssLink.href = 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui.css';
-      document.head.appendChild(cssLink);
-
-      // Load Swagger UI Bundle
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/swagger-ui-dist@5.31.0/swagger-ui-bundle.js';
-      script.onload = () => {
-        this.initSwagger();
-      };
-      script.onerror = () => {
-        this.error = 'Failed to load API documentation. Please try refreshing the page.';
-        this.loading = false;
-      };
-      document.head.appendChild(script);
-    },
     initSwagger() {
       try {
-        const apiURL = `${import.meta.env.VITE_API_URL}/api/admin/openapi.json`;
+        const apiBaseUrl = import.meta.env.VITE_API_URL ?? '';
+        const apiURL = `${apiBaseUrl}/api/admin/openapi.json`;
 
         SwaggerUIBundle({
           dom_id: '#swagger-ui',
