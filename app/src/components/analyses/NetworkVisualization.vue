@@ -409,6 +409,9 @@ const {
   onClusterClick: (clusterId: number) => {
     selectSingleCluster(clusterId);
   },
+  onBackgroundClick: () => {
+    setShowAllClusters(true);
+  },
 });
 
 // Network highlight composable for bidirectional hover

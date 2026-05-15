@@ -136,4 +136,31 @@ describe('NetworkVisualization', () => {
       params: { id: 'HGNC:1234' },
     });
   });
+
+  it('returns to all clusters when the Cytoscape background is clicked', async () => {
+    const wrapper = mount(NetworkVisualization, {
+      global: { stubs: globalStubs },
+    });
+
+    const onClusterClick = mocks.capturedCytoscapeOptions?.onClusterClick as
+      | ((clusterId: number) => void)
+      | undefined;
+    const onBackgroundClick = mocks.capturedCytoscapeOptions?.onBackgroundClick as
+      | (() => void)
+      | undefined;
+
+    expect(onClusterClick).toBeTypeOf('function');
+    expect(onBackgroundClick).toBeTypeOf('function');
+
+    onClusterClick?.(1);
+    await wrapper.vm.$nextTick();
+
+    onBackgroundClick?.();
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('clusters-changed')).toEqual([
+      [[1], false],
+      [[], true],
+    ]);
+  });
 });

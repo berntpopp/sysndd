@@ -83,6 +83,8 @@ export interface CytoscapeOptions {
   onNodeClick?: (nodeId: string, nodeData: Record<string, unknown>) => void;
   /** Callback when a compound cluster parent node is clicked */
   onClusterClick?: (clusterId: number, nodeData: Record<string, unknown>) => void;
+  /** Callback when the graph background is clicked */
+  onBackgroundClick?: () => void;
 }
 
 /**
@@ -410,6 +412,15 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
         }
 
         options.onNodeClick?.(nodeId, nodeData);
+      });
+    }
+
+    // Event handlers - graph background click
+    if (options.onBackgroundClick) {
+      cy.on('tap', (event) => {
+        if (event.target === cy) {
+          options.onBackgroundClick?.();
+        }
       });
     }
 
