@@ -24,7 +24,7 @@ You can log into your account by pointing your browser to https://sysndd.dbmr.un
 On the Login page enter your credentials and press the Login button:
 
 ::: {style="max-width:400px;"}
-![Login page](./static/img/sysndd_login_page.png)
+![Login page with username and password fields.](./static/img/generated/login-page.png)
 :::
 
 
@@ -51,7 +51,7 @@ Click the "Review" link to your personal "Re-Review" site:
 The "Re-Review" page is structured as a table enriched with information and controls.
 
 ::: {style="max-width:1000px;"}
-![Review page](./static/img/sysndd_review_page.png)
+![Reviewer re-review page with the assigned entity table and action controls.](./static/img/generated/reviewer-review-page.png)
 :::
 
 
@@ -92,7 +92,7 @@ In this window you have:
 By clicking on the little question marks you can show help messages for each item:
 
 ::: {style="max-width:1000px;"}
-![Review page](./static/img/modal_modify_review.png)
+![Review edit modal for updating synopsis, phenotypes, publications, GeneReviews, and curator comments.](./static/img/generated/reviewer-modify-review-modal.png)
 :::
 
 <br/>

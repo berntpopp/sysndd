@@ -58,40 +58,11 @@ The SysNDD API uses JSON Web Tokens ([JWT](https://jwt.io/)) to implement statel
 The API user can manually (test purposes) request a token by entering their login credentials in the input form provided at the "api/auth/authenticate" endpoint:
 
 ::: {style="max-width:1000px;"}
-![Authenticate endpoint](./static/img/03_01-api-authenticate.png)
+![Swagger authorization screen with the Authorize control open.](./static/img/generated/api-swagger-auth.png)
 :::
 
 
 This endpoint will generate and respond with and JWT token:
-
-::: {style="max-width:1000px;"}
-![JWT token](./static/img/03_02-JWT-token.png)
-:::
-
-
-This Bearer token can then be copied and entered in the OpenAPI/Swagger authorize modal, which opens after clicking the "Authorize" modal button at the upper right corner:
-
-::: {style="max-width:1000px;"}
-![Authorize button](./static/img/03_03-api-authorize-a.png)
-:::
-
-
-::: {style="max-width:1000px;"}
-![Authorize modal prompt](./static/img/03_04-api-authorize-b.png)
-:::
-
-
-After entering the token in the respective field (1) and clicking the "Authorize" submission button the modal will change and show the login status. This field can be closed now:
-
-::: {style="max-width:1000px;"}
-![Authorize modal logged in](./static/img/03_05-api-authorize-c.png)
-:::
-
-
-The user is now fully authenticated and can access the endpoints requiring user rights:
-
-::: {style="max-width:1000px;"}
-![API logged in](./static/img/03_06-api-authorize-d.png)
-:::
+This Bearer token can then be copied into the OpenAPI/Swagger authorization modal, which opens after clicking the "Authorize" button in the API documentation interface. After authorization, the user can access endpoints requiring user rights until the token expires.
 
 The token is valid for 60 minutes. It can be refreshed using the endpoint "api/auth/refresh".
