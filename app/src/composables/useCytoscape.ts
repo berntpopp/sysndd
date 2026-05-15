@@ -79,8 +79,10 @@ export interface CytoscapeOptions {
   container: Ref<HTMLElement | null>;
   /** Initial elements to render */
   elements?: ElementDefinition[];
-  /** Callback when a node is clicked */
+  /** Callback when a regular gene node is clicked */
   onNodeClick?: (nodeId: string, nodeData: Record<string, unknown>) => void;
+  /** Callback when a compound cluster parent node is clicked */
+  onClusterClick?: (clusterId: number, nodeData: Record<string, unknown>) => void;
 }
 
 /**
@@ -109,6 +111,22 @@ export interface CytoscapeState {
   exportPNG: () => string;
   /** Export graph as SVG string */
   exportSVG: () => string;
+}
+
+/**
+ * Parse a compound cluster parent node ID from Cytoscape node data.
+ */
+function parseClusterParentId(nodeId: string, nodeData: Record<string, unknown>): number | null {
+  const rawClusterId =
+    typeof nodeData.cluster === 'number' || typeof nodeData.cluster === 'string'
+      ? nodeData.cluster
+      : typeof nodeData.label === 'string'
+        ? nodeData.label.replace(/^Cluster\s+/i, '')
+        : nodeId.replace(/^cluster-/, '');
+
+  const clusterId = Number.parseInt(String(rawClusterId).split('.')[0], 10);
+
+  return Number.isFinite(clusterId) ? clusterId : null;
 }
 
 /**
@@ -168,7 +186,7 @@ function getCytoscapeStyle(): CytoscapeStylesheet {
     {
       selector: 'node:selected',
       style: {
-        'border-color': '#e74c3c',
+        'border-color': '#0d47a1',
         'border-width': 4,
         'font-size': '12px',
         'font-weight': 'bold',
@@ -377,12 +395,21 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     console.log(`[useCytoscape] Initialized in ${elapsed.toFixed(0)}ms`);
 
     // Event handlers - node click
-    if (options.onNodeClick) {
+    if (options.onNodeClick || options.onClusterClick) {
       cy.on('tap', 'node', (event) => {
         const node = event.target;
         const nodeId = node.id();
         const nodeData = node.data();
-        options.onNodeClick!(nodeId, nodeData);
+
+        if (nodeData.isClusterParent === true) {
+          const clusterId = parseClusterParentId(nodeId, nodeData);
+          if (clusterId !== null) {
+            options.onClusterClick?.(clusterId, nodeData);
+          }
+          return;
+        }
+
+        options.onNodeClick?.(nodeId, nodeData);
       });
     }
 
