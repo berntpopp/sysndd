@@ -1,8 +1,9 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyseGeneClusters from './AnalyseGeneClusters.vue';
 
 const mocks = vi.hoisted(() => ({
+  getFunctionalClusterSummary: vi.fn(),
   networkSelectSingleCluster: vi.fn(),
 }));
 
@@ -30,7 +31,7 @@ vi.mock('@/api/jobs', () => ({
 
 vi.mock('@/api/analysis', () => ({
   getFunctionalClustering: vi.fn(),
-  getFunctionalClusterSummary: vi.fn(),
+  getFunctionalClusterSummary: mocks.getFunctionalClusterSummary,
 }));
 
 const globalStubs = {
@@ -83,6 +84,7 @@ function mountComponent() {
 
 describe('AnalyseGeneClusters', () => {
   beforeEach(() => {
+    mocks.getFunctionalClusterSummary.mockReset();
     mocks.networkSelectSingleCluster.mockClear();
   });
 
@@ -191,5 +193,69 @@ describe('AnalyseGeneClusters', () => {
     await wrapper.get('button[aria-label="View cluster 0 summary"]').trigger('click');
 
     expect(mocks.networkSelectSingleCluster).toHaveBeenCalledWith(0);
+  });
+
+  it('keeps stale AI summary responses from replacing the active cluster summary', async () => {
+    let resolveClusterOne: (value: unknown) => void = () => {};
+    let resolveClusterTwo: (value: unknown) => void = () => {};
+    const clusterOneSummary = {
+      summary_json: { summary: 'Cluster 1 stale summary' },
+      model_name: 'gemini-test',
+      created_at: '2026-05-15T00:00:00Z',
+      validation_status: 'approved',
+    };
+    const clusterTwoSummary = {
+      summary_json: { summary: 'Cluster 2 active summary' },
+      model_name: 'gemini-test',
+      created_at: '2026-05-15T00:00:00Z',
+      validation_status: 'approved',
+    };
+
+    mocks.getFunctionalClusterSummary
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveClusterOne = resolve;
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveClusterTwo = resolve;
+          })
+      );
+
+    const wrapper = mountComponent();
+    wrapper.vm.loading = false;
+    wrapper.vm.itemsCluster = [
+      {
+        cluster: 1,
+        cluster_size: 10,
+        hash_filter: 'equals(hash,one)',
+        term_enrichment: [],
+        identifiers: [],
+      },
+      {
+        cluster: 2,
+        cluster_size: 8,
+        hash_filter: 'equals(hash,two)',
+        term_enrichment: [],
+        identifiers: [],
+      },
+    ];
+
+    wrapper.vm.handleClustersChanged([1], false);
+    wrapper.vm.handleClustersChanged([2], false);
+
+    resolveClusterTwo(clusterTwoSummary);
+    await flushPromises();
+
+    expect(wrapper.vm.currentSummary).toEqual(clusterTwoSummary);
+    expect(wrapper.vm.summaryLoading).toBe(false);
+
+    resolveClusterOne(clusterOneSummary);
+    await flushPromises();
+
+    expect(wrapper.vm.currentSummary).toEqual(clusterTwoSummary);
   });
 });

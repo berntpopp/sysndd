@@ -510,6 +510,7 @@ export default {
       // LLM Summary data
       currentSummary: null,
       summaryLoading: false,
+      summaryRequestId: 0,
     };
   },
   computed: {
@@ -1146,18 +1147,21 @@ export default {
      */
     async fetchClusterSummary(clusterHash, clusterNumber) {
       if (!clusterHash) {
-        this.currentSummary = null;
+        this.clearClusterSummary();
         return;
       }
 
+      const requestId = ++this.summaryRequestId;
       this.summaryLoading = true;
       try {
         const data = await getFunctionalClusterSummary({
           cluster_hash: clusterHash,
           cluster_number: String(clusterNumber),
         });
+        if (requestId !== this.summaryRequestId) return;
         this.currentSummary = data;
       } catch (error) {
+        if (requestId !== this.summaryRequestId) return;
         // 404 is expected when summary doesn't exist yet - treat as no summary
         if (isApiError(error) && error.response && error.response.status === 404) {
           this.currentSummary = null;
@@ -1171,8 +1175,16 @@ export default {
         );
         this.currentSummary = null;
       } finally {
-        this.summaryLoading = false;
+        if (requestId === this.summaryRequestId) {
+          this.summaryLoading = false;
+        }
       }
+    },
+
+    clearClusterSummary() {
+      this.summaryRequestId += 1;
+      this.currentSummary = null;
+      this.summaryLoading = false;
     },
 
     /**
@@ -1190,7 +1202,7 @@ export default {
         // Show combined data from all clusters
         this.selectedCluster = this.combineClusterData(this.itemsCluster);
         // Clear summary when showing all clusters
-        this.currentSummary = null;
+        this.clearClusterSummary();
       } else if (clusters.length === 1) {
         // Single cluster selected - show that cluster's data
         this.activeParentCluster = clusters[0];
@@ -1200,7 +1212,7 @@ export default {
         if (clusterData?.hash_filter) {
           this.fetchClusterSummary(clusterData.hash_filter, clusters[0]);
         } else {
-          this.currentSummary = null;
+          this.clearClusterSummary();
         }
       } else {
         // Multiple clusters selected - combine their data
@@ -1209,7 +1221,7 @@ export default {
         );
         this.selectedCluster = this.combineClusterData(selectedClusterData);
         // Clear summary when showing multiple clusters
-        this.currentSummary = null;
+        this.clearClusterSummary();
       }
 
       // Update pagination
