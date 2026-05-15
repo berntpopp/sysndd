@@ -30,6 +30,10 @@ Mounted endpoint groups include:
 The endpoints are documented and can be tested using the Swagger/OpenAPI user interface at [https://sysndd.dbmr.unibe.ch/API](https://sysndd.dbmr.unibe.ch/API).
 Here one can generate cURL requests to use in external software.
 
+::: {.doc-screenshot}
+![Swagger/OpenAPI endpoint overview for the SysNDD API.](./static/img/generated/api-swagger-overview.png)
+:::
+
 
 ## Usage policy
 

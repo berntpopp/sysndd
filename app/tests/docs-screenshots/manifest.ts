@@ -140,6 +140,17 @@ export const docsScreenshots: DocsScreenshot[] = [
     locator: '.modal.show',
   },
   {
+    slug: 'api-swagger-overview',
+    output: 'documentation/static/img/generated/api-swagger-overview.png',
+    docRefs: ['documentation/03-api.qmd#endpoints'],
+    baseURL: 'app',
+    url: '/API',
+    viewport: { width: 1440, height: 900 },
+    setup: 'swaggerOverview',
+    waitFor: '.swagger-ui',
+    fullPage: true,
+  },
+  {
     slug: 'api-swagger-auth',
     output: 'documentation/static/img/generated/api-swagger-auth.png',
     docRefs: ['documentation/03-api.qmd#authentication-and-authorization'],

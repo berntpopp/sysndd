@@ -26,6 +26,14 @@ export const setupHelpers: Record<string, SetupHelper> = {
     await page.getByRole('table').first().waitFor({ timeout: 30_000 });
   },
 
+  async swaggerOverview({ page }) {
+    await page.waitForSelector('#swagger-ui', { timeout: 30_000 });
+    await page.waitForSelector('.swagger-ui', { timeout: 30_000 });
+    await page.getByRole('heading', { name: /SysNDD API/i }).waitFor({ timeout: 30_000 });
+    await page.getByText(/\/api\/admin\/openapi\.json/i).waitFor({ timeout: 30_000 });
+    await page.getByRole('button', { name: /authorize/i }).first().waitFor({ timeout: 30_000 });
+  },
+
   async swaggerAuthScreen({ page }) {
     await page.waitForSelector('#swagger-ui', { timeout: 30_000 });
     await page.waitForSelector('.swagger-ui', { timeout: 30_000 }).catch(() => undefined);
