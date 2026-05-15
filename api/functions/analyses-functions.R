@@ -40,6 +40,22 @@ get_string_db <- function(score_threshold = 400L) {
 # Analysis Functions
 ## -------------------------------------------------------------------##
 
+#' Select the highest-priority category for a network gene
+#'
+#' @param categories Character vector of category values for one HGNC ID
+#' @return One category value, or NA_character_ if no known category is present
+#' @export
+select_network_gene_category <- function(categories) {
+  category_priority <- c("Definitive", "Moderate", "Limited", "Refuted")
+  category_ranks <- match(categories, category_priority)
+
+  if (all(is.na(category_ranks))) {
+    return(NA_character_)
+  }
+
+  categories[which.min(category_ranks)]
+}
+
 #' A recursive function generating a functional gene cluster with string-db
 #'
 #' @param hgnc_list A comma separated list as concatenated text
@@ -413,10 +429,8 @@ gen_network_edges <- function(
     collect() %>%
     group_by(hgnc_id) %>%
     summarise(
-      category = category[which.min(match(
-        category,
-        c("Definitive", "Moderate", "Limited", "Refuted")
-      ))]
+      category = select_network_gene_category(category),
+      .groups = "drop"
     ) %>%
     ungroup()
 

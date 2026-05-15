@@ -14,6 +14,22 @@
 
 # Source helper functions into global environment for test access
 source_api_file("functions/helper-functions.R", local = FALSE, envir = globalenv())
+source_api_file("functions/analyses-functions.R", local = FALSE, envir = globalenv())
+
+# =============================================================================
+# Category Selection Tests
+# =============================================================================
+
+test_that("network category selection prefers the highest evidence category", {
+  expect_equal(select_network_gene_category(c("Limited", "Definitive", "Moderate")), "Definitive")
+  expect_equal(select_network_gene_category(c("Limited", "Moderate")), "Moderate")
+})
+
+test_that("network category selection tolerates missing and unknown categories", {
+  expect_equal(select_network_gene_category(c(NA_character_, "Limited")), "Limited")
+  expect_equal(select_network_gene_category(c(NA_character_)), NA_character_)
+  expect_equal(select_network_gene_category(c("No assertion criteria")), NA_character_)
+})
 
 # =============================================================================
 # Response Structure Tests
