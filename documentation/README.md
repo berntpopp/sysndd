@@ -30,4 +30,6 @@ Key source files:
 - `08-development.qmd` for concise developer onboarding
 - `09-deployment.qmd` for concise deployment guidance
 
+Design guidance for UI and documentation review lives in `10-visual-design-guide.md` and `11-admin-visual-review.md`; these files are maintained as developer-facing references unless they are intentionally added to Quarto navigation.
+
 Planning and LLM-oriented documentation does not belong here. Keep that material under `.planning/`.

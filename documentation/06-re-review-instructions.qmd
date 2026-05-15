@@ -2,9 +2,7 @@
 title: "Re-review instructions"
 ---
 
----
-
-The goal of the SysNDD "Re-Review" effort is to update and standardize the SysID entities collected during the past years to enable better integration into and interoperability international with gene curations.
+The goal of the SysNDD "Re-Review" effort is to update and standardize the SysID entities collected during the past years to enable better integration with, and interoperability across, international gene curation efforts.
 
 
 
@@ -23,7 +21,7 @@ You can log into your account by pointing your browser to https://sysndd.dbmr.un
 <br/>
 On the Login page enter your credentials and press the Login button:
 
-::: {style="max-width:400px;"}
+::: {.doc-screenshot}
 ![Login page with username and password fields.](./static/img/generated/login-page.png)
 :::
 
@@ -50,27 +48,25 @@ Click the "Review" link to your personal "Re-Review" site:
 <br/>
 The "Re-Review" page is structured as a table enriched with information and controls.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Reviewer re-review page with the assigned entity table and action controls.](./static/img/generated/reviewer-review-page.png)
 :::
 
 
 <br/>
-These show you the number of entities assigned to your account
+The page shows:
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** your account information status specific controls (e.g. switching to "Curator" mode, applying for a new batch of entities)
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(2)** menu items to filter/ navigate the table
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(3)** and finally, the table with the entity information and
-
-&nbsp;&nbsp;&nbsp;&nbsp; **(4)** controls to review and change the information:
+- the number of entities assigned to your account;
+- account-specific controls, such as switching to Curator mode or applying for a new batch of entities;
+- table filters and navigation controls;
+- the assigned entity table; and
+- action controls to review and change entity information.
 
 
 <br/>
-By clicking the action buttons, you can open 3 different windows to change the entities review:
+By clicking the action buttons, you can open three different windows to change the entity review:
 
-&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entities review (![Edit review menu](./static/img/edit_review_button.png){width="50px"})
+&nbsp;&nbsp;&nbsp;&nbsp; **(1)** entity review (![Edit review menu](./static/img/edit_review_button.png){width="50px"})
 
 &nbsp;&nbsp;&nbsp;&nbsp; **(2)** the status (![Edit status menu](./static/img/edit_status_button.png){width="50px"})
 
@@ -80,25 +76,25 @@ By clicking the action buttons, you can open 3 different windows to change the e
 
 ### New Review edit
 
-In this window you have:
+In this window you can:
 
-- the possibility to change/adapt or completely rewrite the current synopsis **(1)**,
-- add, or remove phenotype associations **(2)**,
-- add or remove publications from the review by PMID **(3)**
-- and add/ edit fitting GeneReviews articles by PMID **(4)**.
-- Finally, you can add a comment to your review for the Curator later approving this entities changes **(5)** and
+- change, adapt, or completely rewrite the current synopsis **(1)**;
+- add or remove phenotype associations **(2)**;
+- add or remove publications from the review by PMID **(3)**;
+- add or edit fitting GeneReviews articles by PMID **(4)**;
+- add a comment for the curator who will later approve the entity changes **(5)**; and
 - save your review **(6)**.
 
 By clicking on the little question marks you can show help messages for each item:
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Review edit modal for updating synopsis, phenotypes, publications, GeneReviews, and curator comments.](./static/img/generated/reviewer-modify-review-modal.png)
 :::
 
 <br/>
 These help instructions are:
 
-**Synopsis**: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, b) severity of intellectual disability, c) further phenotypic aspects (if possible with frequencies) d) any valuable further information (e.g. genotype-phenotype correlations).
+**Synopsis**: Short summary for this disease entity. Please include information on: a) approximate number of patients described in literature, b) nature of reported variants, c) severity of intellectual disability, d) further phenotypic aspects (if possible with frequencies), and e) any valuable further information (e.g. genotype-phenotype correlations).
 
 &nbsp;&nbsp;&nbsp;&nbsp; Examples:
 

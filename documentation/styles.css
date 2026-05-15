@@ -1,60 +1,69 @@
 /* SysNDD Documentation Styles */
 
-/* Match SysNDD primary color scheme */
 :root {
-  --bs-primary: #0d6efd;
-  --sysndd-header-bg: #343a40;
+  --sysndd-doc-text: #24323a;
+  --sysndd-doc-muted: #63717a;
+  --sysndd-doc-border: #d8e0e5;
+  --sysndd-doc-surface: #f7fafb;
+  --sysndd-doc-primary: #1f6f8b;
+  --sysndd-doc-primary-dark: #164f64;
+  --sysndd-doc-accent: #7a5c26;
+  --bs-primary: var(--sysndd-doc-primary);
 }
 
-/* Logo sizing in navbar */
+body {
+  color: var(--sysndd-doc-text);
+}
+
+a {
+  color: var(--sysndd-doc-primary-dark);
+}
+
 .navbar-brand img {
   height: 40px;
   width: auto;
 }
 
-/* Sidebar styling */
 .sidebar {
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid var(--sysndd-doc-border);
 }
 
-/* Footer styling */
 .page-footer {
-  background-color: var(--sysndd-header-bg);
-  color: white;
+  background-color: #24323a;
+  color: #ffffff;
   padding: 1rem;
 }
 
 .page-footer a {
-  color: #adb5bd;
+  color: #d9edf3;
 }
 
-/* Code block styling */
 pre {
-  background-color: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background-color: var(--sysndd-doc-surface);
+  border: 1px solid var(--sysndd-doc-border);
   border-radius: 0.25rem;
 }
 
-/* Table styling */
 table {
   width: 100%;
   margin-bottom: 1rem;
   border-collapse: collapse;
 }
 
-table th, table td {
+table th,
+table td {
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--sysndd-doc-border);
 }
 
 table th {
-  background-color: #f8f9fa;
+  background-color: var(--sysndd-doc-surface);
 }
 
-/* Caption styling (from original style.css) */
-p.caption {
-  color: #777;
-  margin-top: 10px;
+p.caption,
+.figure-caption {
+  color: var(--sysndd-doc-muted);
+  margin-top: 0.5rem;
 }
 
 p code {
@@ -65,16 +74,25 @@ pre code {
   white-space: inherit;
 }
 
-/* Highlight mark styling (from original style.css) */
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #EAADBA;
+.doc-screenshot {
+  max-width: 100%;
+  margin: 1rem 0 1.5rem;
 }
 
-/* Image container styling */
+.doc-screenshot img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--sysndd-doc-border);
+}
+
+mark {
+  display: inline-block;
+  line-height: 1;
+  padding: 0.1em 0.25em;
+  font-weight: 700;
+  background-color: #f2d78c;
+}
+
 div[style*="max-width"] img {
   max-width: 100%;
   height: auto;

@@ -104,6 +104,8 @@ The Playwright stack provisions four deterministic test users (`pw_admin`, `pw_c
 
 Documentation screenshots use a dedicated Playwright config and manifest under `app/tests/docs-screenshots/`. They are generated documentation assets, separate from E2E failure screenshots and visual-regression baselines, and are written under `documentation/static/img/generated/` with a generated provenance manifest.
 
+UI and documentation design review guidance lives in `documentation/10-visual-design-guide.md` and `documentation/11-admin-visual-review.md`. These files are developer-facing references unless they are intentionally added to the Quarto navigation.
+
 Local sequence:
 
 ```bash

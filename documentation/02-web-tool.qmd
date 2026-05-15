@@ -2,8 +2,6 @@
 title: "Web tool"
 ---
 
----
-
 The SysNDD web tool is available from [https://sysndd.dbmr.unibe.ch/](https://sysndd.dbmr.unibe.ch/) on a server hosted at the Department for BioMedical Research ([DBMR](https://www.dbmr.unibe.ch/)) (University of Bern) and the web address [https://sysndd.org/](https://sysndd.org/) redirects to this server.
 
 The web tool is a Vue 3 single-page application written in TypeScript and built with Vite. It uses Bootstrap 5 and Bootstrap-Vue-Next for the component layer.
@@ -17,9 +15,9 @@ The landing page provides:
 2) the main site content, which changes with navigation to other routes, and
 3) a footer navigation bar at the bottom
 
-Screenshot of the landing page with elements marked:
+Screenshot of the landing page:
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Landing page with the main navigation, summary content, and footer navigation.](./static/img/generated/home.png)
 :::
 
@@ -28,7 +26,7 @@ The landing page content includes the following elements to provide a quick over
 - a centered search input at the top,
 - a box (left side top) with current gene statistics divided by association category and inheritance patterns (*Details*),
 - a box (left side bottom) showing a table of the five last entities entered into the database,
-- an explanatory text  on the right.
+- explanatory text on the right.
 
 
 ## Main navigation menu
@@ -117,7 +115,7 @@ We provide tabular representations with search, filtering, sorting and paginatio
 
 The *Entities* table is intended to provide an overview centered on the entity concept.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Entities table with search, filters, sorting, and pagination controls.](./static/img/generated/entities-table.png)
 :::
 
@@ -126,7 +124,7 @@ The *Entities* table is intended to provide an overview centered on the entity c
 
 The *Genes* table is intended to provide a gene-centered overview.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Genes table with gene-centered search, filters, and pagination.](./static/img/generated/genes-table.png)
 :::
 
@@ -176,7 +174,7 @@ Single entry pages refer to the directed pages associated with each entity, gene
 
 The *Entity* page aims to provide information on the gene, disease (with the OMIM link), inheritance pattern and NDD status associated with a particular entity. The synopsis and phenotypes of the disease as well as the relevant links to publications (including GeneReviews if available) are also provided.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Entity detail page showing the curated gene-disease association and supporting sections.](./static/img/generated/entity-detail-123.png)
 :::
 
@@ -185,7 +183,7 @@ The *Entity* page aims to provide information on the gene, disease (with the OMI
 
 The *Gene* page aims to provide further information on 1) the gene of interest with links to other platforms such as Entrez, Ensembl, UCSC, CCDS, UniProt, OMIM gene, MGI, RGD and STRING,  and 2) the entities associated with the gene in a table format.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Gene detail page showing CHD8-associated entity information and source cards.](./static/img/generated/gene-detail-chd8.png)
 :::
 
@@ -213,7 +211,7 @@ The *Compare curations* view is composed of three tabs:
 
 The *Overlap* tab includes an upset plot (alternative for venn diagrams, please compare: [upset.app](https://upset.app/)) to show the overlap between SysNDD and other selected NDD curation efforts.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Compare curations overview with analysis tabs and comparison content.](./static/img/generated/curation-comparisons-overview.png)
 :::
 
@@ -279,7 +277,7 @@ The *Entries over time* view displays the changes in NDD entity numbers since cu
 
 The *NDD Publications* view summarizes publications relevant to neurodevelopmental disorder gene curation. It provides a searchable publication table and companion analysis tabs for publication activity over time and source statistics. The view helps curators and users inspect how publication evidence is distributed across the SysNDD literature corpus.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![NDD Publications view with the searchable literature table and analysis tabs.](./static/img/generated/publications-ndd.png)
 :::
 
@@ -289,7 +287,7 @@ The *Functional clusters* view displays gene clusters of functionally enriched i
 Users can focus the functional cluster view by selecting a cluster directly in the network visualization, from the cluster legend, or from the cluster dropdown. A single-cluster selection filters the enrichment and gene tables to that cluster and displays the AI-generated cluster summary when an approved summary is available. Clicking the empty network background or choosing *All Clusters* returns to the broad all-clusters comparison view.
 The right-hand panel displays a table with either (1) the *Term enrichment* including the ontology annotations, the number of enriched genes, the FDR-corrected p-value, and a link to the corresponding ontology term or (2) the gene *Identifiers* with links to the respective single entry page and to the [STRING](https://string-db.org/) website of the protein.
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Functional clusters view with network controls and enrichment tables.](./static/img/generated/functional-clusters.png)
 :::
 
@@ -303,7 +301,7 @@ The website's About page provides general information about the project, such as
 
 On each page of SysNDD, a smiley face button (in blue, bottom right) points users to the following help and feedback features:
 
-- Button **1** allows the user to cite the page (quotation mark icon), copies the recommended citation text to the clipboard and automatically creates a snapshot of teh website in the internet archive for reproducibility ([Wayback Machine - Internet Archive](https://archive.org/web/))
+- Button **1** allows the user to cite the page (quotation mark icon), copies the recommended citation text to the clipboard and automatically creates a snapshot of the website in the internet archive for reproducibility ([Wayback Machine - Internet Archive](https://archive.org/web/))
 - Button **2** directs the user to a form for positive feedback (thumbs up icon)
 - Button **3** directs the user to a form for improvement suggestions (thumbs down icon)
 - Button **4** directs the user to the SysNDD documentation (book icon)
@@ -353,7 +351,7 @@ For Chromium-based browsers such as Chrome or Edge:
 
 The Login page shows a simple form with inputs for the **(1)**  user name and their **(2)**  password,  **(3)** buttons to reset the form and  **(4)** links to registration and password reset.
 
-::: {style="max-width:600px;"}
+::: {.doc-screenshot}
 ![Login page with username and password fields, reset controls, and account links.](./static/img/generated/login-page.png)
 :::
 

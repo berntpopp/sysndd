@@ -2,8 +2,6 @@
 title: "API"
 ---
 
----
-
 The SysNDD API documentation interface is available from [https://sysndd.dbmr.unibe.ch/API](https://sysndd.dbmr.unibe.ch/API). API endpoints are served under the `/api` path.
 
 The API is written in R using the [plumber package](https://www.rplumber.io/) and runs in Docker from the repository API image based on `rocker/r-ver`. In the current Compose deployment, Traefik routes web traffic to the API service under `/api`.
@@ -55,14 +53,13 @@ Updates and disclaimer:
 
 The SysNDD API uses JSON Web Tokens ([JWT](https://jwt.io/)) to implement stateless authentication and authorization.
 
-The API user can manually (test purposes) request a token by entering their login credentials in the input form provided at the "api/auth/authenticate" endpoint:
+For testing, an API user can manually request a token by entering login credentials at the `api/auth/authenticate` endpoint:
 
-::: {style="max-width:1000px;"}
+::: {.doc-screenshot}
 ![Swagger authorization screen with the Authorize control open.](./static/img/generated/api-swagger-auth.png)
 :::
 
 
-This endpoint will generate and respond with and JWT token:
-This Bearer token can then be copied into the OpenAPI/Swagger authorization modal, which opens after clicking the "Authorize" button in the API documentation interface. After authorization, the user can access endpoints requiring user rights until the token expires.
+The endpoint returns a JWT. Copy the Bearer token into the OpenAPI/Swagger authorization modal, which opens after clicking the "Authorize" button in the API documentation interface. After authorization, the user can access endpoints requiring user rights until the token expires.
 
 The token is valid for 60 minutes. It can be refreshed using the endpoint "api/auth/refresh".

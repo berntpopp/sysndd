@@ -2,8 +2,6 @@
 title: "Curation criteria"
 ---
 
----
-
 ## Definitions
 
 Intellectual disability (ID) and neurodevelopmental disorders (NDDs) are defined in the scope of SysNDD as follows:

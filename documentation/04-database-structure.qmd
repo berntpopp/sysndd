@@ -2,8 +2,6 @@
 title: "Database and data sources"
 ---
 
----
-
 ## Database software
 
 SysNDD currently uses the open-source [MySQL](https://dev.mysql.com/doc/) relational database management system. The repository Compose stack uses the official MySQL Docker image, currently `mysql:8.4.9`.
