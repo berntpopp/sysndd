@@ -282,7 +282,7 @@ The *Entries over time* view displays the changes in NDD entity numbers since cu
 ### Functional clusters
 
 The *Functional clusters* view displays gene clusters of functionally enriched interacting proteins, along with their corresponding ontology annotations. Using the "get_clusters" function from the [STRINGdb](https://rdrr.io/bioc/STRINGdb) R package and the "walktrap" clustering algorithm from the [igraph](https://igraph.org/) R package, we perform clustering.
-By clicking on the different colored bubbles on the panel to the left, the user can select the respective main- or sub-clusters. When clicking a cluster the gene count is displayed in the upper part along the cluster name. The link in this panel's lower section leads to a view of the Gene table that is restricted to the genes in the selected cluster.
+Users can focus the functional cluster view by selecting a cluster directly in the network visualization, from the cluster legend, or from the cluster dropdown. A single-cluster selection filters the enrichment and gene tables to that cluster and displays the AI-generated cluster summary when an approved summary is available. The all-clusters view remains available for broad comparison across clusters.
 The right-hand panel displays a table with either (1) the *Term enrichment* including the ontology annotations, the number of enriched genes, the FDR-corrected p-value, and a link to the corresponding ontology term or (2) the gene *Identifiers* with links to the respective single entry page and to the [STRING](https://string-db.org/) website of the protein.
 
 ::: {style="max-width:1000px;"}
