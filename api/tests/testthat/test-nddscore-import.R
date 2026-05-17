@@ -121,3 +121,19 @@ describe("nddscore_download_archive", {
     expect_gt(file.size(dest), 0)
   })
 })
+
+describe("nddscore_extract_and_verify", {
+  it("extracts and verifies the inner checksums.sha256", {
+    rel_dir <- nddscore_extract_and_verify(fixture_archive())
+    expect_true(dir.exists(rel_dir))
+    expect_true(file.exists(file.path(rel_dir, "nddscore_release.json")))
+    expect_true(file.exists(file.path(rel_dir, "nddscore_gene_predictions.tsv")))
+  })
+
+  it("stops when a bundled sha256 does not match", {
+    expect_error(
+      nddscore_extract_and_verify(fixture_archive("nddscore_fixture_corrupt_sha256.tar.gz")),
+      "sha256|checksum"
+    )
+  })
+})

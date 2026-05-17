@@ -110,3 +110,47 @@ nddscore_download_archive <- function(
   }
   dest
 }
+
+#' Extract the release archive and verify the bundled inner checksums.sha256.
+#'
+#' @param archive_path Path to the .tar.gz.
+#' @param exdir Optional extraction directory (defaults to a fresh temp dir).
+#' @return Path to the `sysndd_prediction_release` directory inside the extraction.
+nddscore_extract_and_verify <- function(archive_path, exdir = NULL) {
+  if (is.null(exdir)) {
+    exdir <- file.path(tempdir(), paste0("ndd_extract_", as.integer(runif(1, 1, 1e9))))
+  }
+  dir.create(exdir, recursive = TRUE, showWarnings = FALSE)
+  utils::untar(archive_path, exdir = exdir)
+
+  rel_candidates <- list.files(exdir, pattern = "^sysndd_prediction_release$",
+                               recursive = TRUE, include.dirs = TRUE,
+                               full.names = TRUE)
+  if (length(rel_candidates) == 0) {
+    stop("Archive does not contain a sysndd_prediction_release directory", call. = FALSE)
+  }
+  rel_dir <- rel_candidates[[1]]
+
+  sha_file <- file.path(rel_dir, "checksums.sha256")
+  if (!file.exists(sha_file)) {
+    stop("Archive release directory has no bundled checksums.sha256", call. = FALSE)
+  }
+  sha_lines <- readLines(sha_file, warn = FALSE)
+  sha_lines <- sha_lines[nzchar(trimws(sha_lines))]
+  for (line in sha_lines) {
+    parts <- strsplit(trimws(line), "\\s+")[[1]]
+    expected_sha <- parts[[1]]
+    rel_name <- parts[[length(parts)]]
+    target <- file.path(rel_dir, rel_name)
+    if (!file.exists(target)) {
+      stop(sprintf("checksums.sha256 references missing file '%s'", rel_name),
+           call. = FALSE)
+    }
+    actual_sha <- digest::digest(file = target, algo = "sha256")
+    if (!identical(tolower(actual_sha), tolower(expected_sha))) {
+      stop(sprintf("Bundled sha256 mismatch for release file '%s'", rel_name),
+           call. = FALSE)
+    }
+  }
+  rel_dir
+}
