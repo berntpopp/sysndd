@@ -368,11 +368,11 @@
   )
   progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
 
-  if (!exists("pool", envir = .GlobalEnv, inherits = FALSE)) {
+  if (!base::exists("pool", envir = .GlobalEnv, inherits = FALSE)) {
     stop("NDDScore import requires the global database pool", call. = FALSE)
   }
 
-  db_pool <- get("pool", envir = .GlobalEnv, inherits = FALSE)
+  db_pool <- base::get("pool", envir = .GlobalEnv, inherits = FALSE)
   conn <- pool::poolCheckout(db_pool)
   conn_checked_out <- TRUE
   lock_acquired <- FALSE
