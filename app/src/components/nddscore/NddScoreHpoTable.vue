@@ -128,11 +128,11 @@ const pageSize = ref(25);
 const loading = ref(false);
 const search = ref('');
 const phenotypeId = ref('');
-const passesThreshold = ref<string | null>(null);
+const passesThreshold = ref('');
 let requestSerial = 0;
 
 const passesThresholdOptions = [
-  { value: null, text: 'Any threshold status' },
+  { value: '', text: 'Any threshold status' },
   { value: 'true', text: 'Passes threshold' },
   { value: 'false', text: 'Below threshold' },
 ];

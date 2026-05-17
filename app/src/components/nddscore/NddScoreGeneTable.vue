@@ -157,28 +157,29 @@ const page = ref(1);
 const pageSize = ref(25);
 const loading = ref(false);
 const search = ref('');
-const riskTier = ref<string | null>(null);
-const confidenceTier = ref<string | null>(null);
-const knownSysnddGene = ref<string | null>(null);
+const riskTier = ref('');
+const confidenceTier = ref('');
+const knownSysnddGene = ref('');
 let requestSerial = 0;
 
 const riskTierOptions = [
-  { value: null, text: 'Any risk tier' },
+  { value: '', text: 'Any risk tier' },
   { value: 'Very High', text: 'Very High' },
   { value: 'High', text: 'High' },
   { value: 'Moderate', text: 'Moderate' },
   { value: 'Low', text: 'Low' },
+  { value: 'Very Low', text: 'Very Low' },
 ];
 
 const confidenceTierOptions = [
-  { value: null, text: 'Any confidence' },
+  { value: '', text: 'Any confidence' },
   { value: 'High', text: 'High' },
-  { value: 'Moderate', text: 'Moderate' },
+  { value: 'Medium', text: 'Medium' },
   { value: 'Low', text: 'Low' },
 ];
 
 const knownSysnddOptions = [
-  { value: null, text: 'Any SysNDD status' },
+  { value: '', text: 'Any SysNDD status' },
   { value: 'true', text: 'Known SysNDD gene' },
   { value: 'false', text: 'Not known in SysNDD' },
 ];

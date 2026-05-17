@@ -1,18 +1,41 @@
 <template>
   <section class="ndd-gene-detail" aria-labelledby="ndd-gene-detail-title">
     <header class="ndd-gene-detail__header">
-      <div>
+      <div class="ndd-gene-detail__identity">
         <p class="ndd-gene-detail__eyebrow">NDDScore gene prediction</p>
         <h2 id="ndd-gene-detail-title" class="ndd-gene-detail__title">
           {{ geneSymbol }}
         </h2>
-        <p v-if="hgncId" class="ndd-gene-detail__meta">{{ hgncId }}</p>
+        <div class="ndd-gene-detail__meta-row">
+          <span v-if="hgncId" class="ndd-gene-detail__meta-chip">{{ hgncId }}</span>
+          <span v-if="ensemblId" class="ndd-gene-detail__meta-chip">{{ ensemblId }}</span>
+          <span v-if="modelSplit" class="ndd-gene-detail__meta-chip">
+            {{ modelSplit }} split
+          </span>
+        </div>
       </div>
 
-      <BBadge class="ndd-gene-detail__prediction-badge" variant="info">
-        <i class="bi bi-cpu" aria-hidden="true"></i>
-        <span>ML prediction</span>
-      </BBadge>
+      <div class="ndd-gene-detail__actions">
+        <RouterLink class="ndd-gene-detail__back-link" to="/NDDScore">
+          Back to predictions
+        </RouterLink>
+        <RouterLink
+          v-if="knownSysnddGene && hgncId"
+          class="ndd-gene-detail__status-link"
+          :to="`/Genes/${hgncId}`"
+        >
+          <BBadge class="ndd-gene-detail__status-badge" variant="info">
+            Known SysNDD gene
+          </BBadge>
+        </RouterLink>
+        <BBadge v-else class="ndd-gene-detail__status-badge" variant="light">
+          New candidate
+        </BBadge>
+        <BBadge class="ndd-gene-detail__prediction-badge" variant="info">
+          <i class="bi bi-cpu" aria-hidden="true"></i>
+          <span>ML prediction</span>
+        </BBadge>
+      </div>
     </header>
 
     <p v-if="!loaded" class="ndd-gene-detail__fallback">Loading gene prediction.</p>
@@ -30,6 +53,14 @@
           <div class="ndd-gene-detail__metric">
             <dt>Rank</dt>
             <dd>{{ displayValue(readField(gene, 'rank', 'gene_rank')) }}</dd>
+          </div>
+          <div class="ndd-gene-detail__metric">
+            <dt>Percentile</dt>
+            <dd>{{ formatPercentile(readField(gene, 'percentile')) }}</dd>
+          </div>
+          <div class="ndd-gene-detail__metric">
+            <dt>Bag agreement</dt>
+            <dd>{{ formatProbability(readField(gene, 'bag_agreement')) }}</dd>
           </div>
           <div class="ndd-gene-detail__metric">
             <dt>Risk tier</dt>
@@ -90,19 +121,8 @@
         <p v-else class="ndd-gene-detail__fallback">No SHAP group contributions available.</p>
       </section>
 
-      <section class="ndd-gene-detail__curated" aria-labelledby="ndd-gene-detail-curated">
-        <div>
-          <h3 id="ndd-gene-detail-curated" class="ndd-gene-detail__section-title">
-            Curated SysNDD evidence
-          </h3>
-          <p>
-            The curated SysNDD record is separate from the NDDScore prediction and should be read as
-            a distinct evidence source.
-          </p>
-        </div>
-        <RouterLink v-if="hgncId" class="ndd-gene-detail__curated-link" :to="`/Genes/${hgncId}`">
-          Open SysNDD gene page
-        </RouterLink>
+      <section v-if="predictionNote" class="ndd-gene-detail__note" aria-label="Prediction note">
+        {{ predictionNote }}
       </section>
     </template>
 
@@ -150,6 +170,23 @@ const hgncId = computed(() => {
   return value == null || value === '' ? '' : String(value);
 });
 
+const ensemblId = computed(() => {
+  const value = readField(gene.value, 'ensembl_gene_id');
+  return value == null || value === '' ? '' : String(value);
+});
+
+const modelSplit = computed(() => {
+  const value = readField(gene.value, 'model_split');
+  return value == null || value === '' ? '' : String(value);
+});
+
+const predictionNote = computed(() => {
+  const value = readField(gene.value, 'prediction_note');
+  return value == null || value === '' ? '' : String(value);
+});
+
+const knownSysnddGene = computed(() => booleanValue(readField(gene.value, 'known_sysndd_gene')));
+
 const inheritance = computed(() =>
   parseObject(readField(gene.value, 'inheritance_probabilities_json', 'inheritance_probabilities'))
 );
@@ -163,7 +200,7 @@ const inheritanceModes = computed(() =>
 );
 
 const hpoPredictions = computed<HpoPrediction[]>(() =>
-  parseArray(readField(gene.value, 'top_hpo_predictions_json', 'hpo_predictions'))
+  parseArray(readField(gene.value, 'hpo_predictions', 'top_hpo_predictions_json'))
     .slice(0, 8)
     .map((entry, index) => {
       const id = displayValue(readField(entry, 'phenotype_id', 'hpo_id', 'term_id'));
@@ -289,12 +326,21 @@ function formatProbability(value: unknown): string {
   return numberValue == null ? 'NA' : `${(numberValue * 100).toFixed(1)}%`;
 }
 
+function formatPercentile(value: unknown): string {
+  const numberValue = numericValue(value);
+  return numberValue == null ? 'NA' : `${numberValue.toFixed(1)}%`;
+}
+
 function formatSigned(value: unknown): string {
   const numberValue = numericValue(value);
   if (numberValue == null) {
     return 'NA';
   }
   return `${numberValue >= 0 ? '+' : ''}${numberValue.toFixed(3)}`;
+}
+
+function booleanValue(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true';
 }
 
 function riskVariant(value: unknown): ColorVariant {
@@ -314,7 +360,7 @@ function confidenceVariant(value: unknown): ColorVariant {
   switch (String(value).toLowerCase()) {
     case 'high':
       return 'success';
-    case 'moderate':
+    case 'medium':
       return 'info';
     default:
       return 'light';
@@ -342,7 +388,7 @@ watch(
 
 .ndd-gene-detail__header,
 .ndd-gene-detail__panel,
-.ndd-gene-detail__curated {
+.ndd-gene-detail__note {
   padding: 0.875rem;
   border: 1px solid #d7dee8;
   border-radius: var(--radius-lg, 8px);
@@ -358,14 +404,49 @@ watch(
   gap: 0.75rem;
 }
 
+.ndd-gene-detail__identity {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.ndd-gene-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 .ndd-gene-detail__eyebrow,
-.ndd-gene-detail__meta,
 .ndd-gene-detail__fallback,
-.ndd-gene-detail__curated p {
+.ndd-gene-detail__note {
   margin: 0;
   color: var(--neutral-600, #757575);
   font-size: 0.875rem;
   line-height: 1.45;
+}
+
+.ndd-gene-detail__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ndd-gene-detail__meta-chip {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 0.15rem 0.45rem;
+  overflow: hidden;
+  color: var(--neutral-900, #212121);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid #d7dee8;
+  border-radius: var(--radius-full, 999px);
+  background: #f8fafc;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .ndd-gene-detail__eyebrow {
@@ -470,21 +551,25 @@ watch(
   font-size: 0.8125rem;
 }
 
-.ndd-gene-detail__curated {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border-color: #b8d7d2;
-  background: #f6fbfa;
+.ndd-gene-detail__note {
+  border-color: #d7dee8;
+  background: #f8fafc;
 }
 
-.ndd-gene-detail__curated-link {
+.ndd-gene-detail__back-link,
+.ndd-gene-detail__status-link {
   color: var(--medical-blue-700, #0d47a1);
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+
+.ndd-gene-detail__status-link {
+  text-decoration: none;
+}
+
+.ndd-gene-detail__status-badge {
+  border-radius: var(--radius-full, 999px);
 }
 </style>

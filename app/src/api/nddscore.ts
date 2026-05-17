@@ -58,6 +58,16 @@ export function unwrapRecord<T extends Record<string, unknown>>(row: T): T {
   ) as T;
 }
 
+function unwrapRecords<T extends Record<string, unknown>>(rows: T[] | undefined): T[] {
+  return (rows ?? []).map((row) => unwrapRecord(row));
+}
+
+function pickNumber(row: Record<string, unknown>, key: string): number | undefined {
+  const value = unwrapScalar(row[key] as never);
+  const numberValue = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : undefined;
+}
+
 export async function fetchCurrentRelease(): Promise<NddScoreReleaseRaw> {
   const envelope = await apiClient.get<NddScoreEnvelope<NddScoreReleaseRaw[]>>(
     '/api/nddscore/release/current'
@@ -69,7 +79,7 @@ export async function fetchCurrentRelease(): Promise<NddScoreReleaseRaw> {
 function normalizePage<T>(envelope: NddScoreEnvelope<T[]>): NddScorePage<T> {
   const meta = envelope.meta ?? {};
   return {
-    data: envelope.data ?? [],
+    data: unwrapRecords((envelope.data ?? []) as Array<Record<string, unknown>>) as T[],
     total: Number(unwrapScalar(meta.total as never)) || 0,
     page: Number(unwrapScalar(meta.page as never)) || 1,
     page_size: Number(unwrapScalar(meta.page_size as never)) || 25,
@@ -97,9 +107,52 @@ export async function fetchGenePredictions(
 }
 
 export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreGeneDetail> {
-  return apiClient.get<NddScoreGeneDetail>(
+  const envelope = await apiClient.get<
+    NddScoreEnvelope<{
+      gene?: NddScoreGeneDetail[] | NddScoreGeneDetail | null;
+      hpo_predictions?: NddScoreHpoPrediction[];
+    }>
+  >(
     `/api/nddscore/genes/${encodeURIComponent(hgncIdOrSymbol)}`
   );
+  const geneRaw = Array.isArray(envelope.data?.gene)
+    ? envelope.data?.gene[0]
+    : envelope.data?.gene;
+  if (!geneRaw) {
+    return {};
+  }
+
+  const gene = unwrapRecord(geneRaw);
+  const hpoPredictions = unwrapRecords(
+    envelope.data?.hpo_predictions as Array<Record<string, unknown>> | undefined
+  );
+  const shapGroupContributions = Object.fromEntries(
+    [
+      ['clinical', 'shap_clinical'],
+      ['constraint', 'shap_constraint'],
+      ['expression', 'shap_expression'],
+      ['network', 'shap_network'],
+      ['conservation', 'shap_conservation'],
+      ['other', 'shap_other'],
+    ]
+      .map(([label, key]) => [label, pickNumber(gene, key)])
+      .filter((entry): entry is [string, number] => entry[1] != null)
+  );
+  const inheritanceProbabilities = {
+    AD: pickNumber(gene, 'inheritance_ad_probability'),
+    AR: pickNumber(gene, 'inheritance_ar_probability'),
+    XLD: pickNumber(gene, 'inheritance_xld_probability'),
+    XLR: pickNumber(gene, 'inheritance_xlr_probability'),
+  };
+
+  return {
+    ...gene,
+    hpo_predictions: hpoPredictions,
+    top_hpo_predictions_json: gene.top_hpo_predictions_json ?? hpoPredictions,
+    shap_group_contributions_json: gene.shap_group_contributions_json ?? shapGroupContributions,
+    inheritance_probabilities_json:
+      gene.inheritance_probabilities_json ?? inheritanceProbabilities,
+  };
 }
 
 export async function fetchHpoPredictions(
@@ -122,10 +175,13 @@ export async function fetchHpoPredictions(
 }
 
 export async function fetchHpoTerms(): Promise<NddScoreHpoTerm[]> {
-  return apiClient.get<NddScoreHpoTerm[]>('/api/nddscore/terms');
+  const envelope = await apiClient.get<NddScoreEnvelope<NddScoreHpoTerm[]>>('/api/nddscore/terms');
+  return unwrapRecords((envelope.data ?? []) as Array<Record<string, unknown>>) as NddScoreHpoTerm[];
 }
 
 export async function fetchDownloadInfo(): Promise<NddScoreDownloadInfo> {
-  const info = await apiClient.get<NddScoreDownloadInfo>('/api/nddscore/download/info');
-  return unwrapRecord(info);
+  const envelope = await apiClient.get<NddScoreEnvelope<NddScoreDownloadInfo>>(
+    '/api/nddscore/download/info'
+  );
+  return envelope.data ? unwrapRecord(envelope.data) : {};
 }

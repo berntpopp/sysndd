@@ -10,6 +10,7 @@ vi.mock('@/api/nddscore', () => ({
     rank: 12,
     risk_tier: 'Very High',
     confidence_tier: 'High',
+    known_sysndd_gene: 1,
     inheritance_probabilities_json: JSON.stringify({
       AD: 0.12,
       AR: 0.05,
@@ -31,7 +32,7 @@ vi.mock('@/api/nddscore', () => ({
 }));
 
 describe('NddScoreGeneDetail', () => {
-  it('renders prediction details with a distinct curated SysNDD block', async () => {
+  it('renders prediction details without the old curated-evidence explainer block', async () => {
     const wrapper = mount(NddScoreGeneDetail, {
       props: { hgncIdOrSymbol: 'CLCN4' },
       global: {
@@ -49,6 +50,9 @@ describe('NddScoreGeneDetail', () => {
     expect(wrapper.text()).toContain('CLCN4');
     expect(wrapper.text()).toContain('Very High');
     expect(wrapper.text()).toContain('Intellectual disability');
-    expect(wrapper.find('.ndd-gene-detail__curated').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Known SysNDD gene');
+    expect(wrapper.find('a[href="/Genes/HGNC:2024"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain('Curated SysNDD evidence');
+    expect(wrapper.text()).not.toContain('read as a distinct evidence source');
   });
 });

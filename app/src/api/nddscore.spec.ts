@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test-utils/mocks/server';
-import { fetchCurrentRelease, fetchGenePredictions } from './nddscore';
+import { fetchCurrentRelease, fetchGeneDetail, fetchGenePredictions } from './nddscore';
 
 describe('nddscore api client', () => {
   afterEach(() => server.resetHandlers());
@@ -32,5 +32,53 @@ describe('nddscore api client', () => {
     expect(result.total).toBe(42);
     expect(result.page).toBe(2);
     expect(result.page_size).toBe(10);
+  });
+
+  it('normalizes the gene detail envelope into a renderable gene record', async () => {
+    server.use(
+      http.get('/api/nddscore/genes/HGNC%3A3230', () =>
+        HttpResponse.json({
+          meta: { notice: ['read only'] },
+          data: {
+            gene: [
+              {
+                hgnc_id: ['HGNC:3230'],
+                gene_symbol: ['CELSR3'],
+                ndd_score: [0.9751],
+                rank: [157],
+                risk_tier: ['Very High'],
+                confidence_tier: ['High'],
+                shap_expression: [0.82],
+                shap_network: [-0.13],
+              },
+            ],
+            hpo_predictions: [
+              {
+                phenotype_id: ['HP:0001249'],
+                phenotype_name: ['Intellectual disability'],
+                probability: [0.91],
+              },
+            ],
+          },
+        })
+      )
+    );
+
+    const detail = await fetchGeneDetail('HGNC:3230');
+
+    expect(detail.gene_symbol).toBe('CELSR3');
+    expect(detail.hgnc_id).toBe('HGNC:3230');
+    expect(detail.ndd_score).toBe(0.9751);
+    expect(detail.hpo_predictions).toEqual([
+      {
+        phenotype_id: 'HP:0001249',
+        phenotype_name: 'Intellectual disability',
+        probability: 0.91,
+      },
+    ]);
+    expect(detail.shap_group_contributions_json).toEqual({
+      expression: 0.82,
+      network: -0.13,
+    });
   });
 });

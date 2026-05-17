@@ -114,7 +114,19 @@
   if (is.logical(value)) {
     return(as.integer(isTRUE(value)))
   }
-  as.integer(value)
+  if (is.numeric(value)) {
+    return(as.integer(value[[1]] != 0))
+  }
+
+  value <- tolower(trimws(as.character(value[[1]])))
+  if (value %in% c("true", "t", "yes", "y", "1")) {
+    return(1L)
+  }
+  if (value %in% c("false", "f", "no", "n", "0")) {
+    return(0L)
+  }
+
+  suppressWarnings(as.integer(value))
 }
 
 .nddscore_empty <- function(result) {

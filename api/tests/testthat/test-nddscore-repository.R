@@ -67,6 +67,14 @@ test_that("nddscore_repo_genes paginates, filters, searches, and validates sort"
     expect_equal(high$total, 1L)
     expect_equal(high$data$gene_symbol, "STXBP1")
 
+    known <- nddscore_repo_genes(filters = list(known_sysndd_gene = "true"))
+    expect_equal(known$total, 2L)
+    expect_equal(known$data$gene_symbol, c("CLCN4", "STXBP1"))
+
+    novel <- nddscore_repo_genes(filters = list(known_sysndd_gene = "false"))
+    expect_equal(novel$total, 1L)
+    expect_equal(novel$data$gene_symbol, "FIXNOVEL")
+
     clcn <- nddscore_repo_genes(filters = list(search = "clc"))
     expect_equal(clcn$total, 1L)
     expect_equal(clcn$data$hgnc_id, "HGNC:2022")
@@ -105,6 +113,10 @@ test_that("nddscore_repo_hpo, nddscore_repo_terms, and nddscore_repo_download_in
     seizure <- nddscore_repo_hpo(filters = list(phenotype_id = "HP:0001250"))
     expect_equal(seizure$total, 2L)
     expect_true(all(seizure$data$phenotype_name == "Seizure"))
+
+    passing <- nddscore_repo_hpo(filters = list(passes_default_threshold = "true"))
+    expect_equal(passing$total, 4L)
+    expect_true(all(passing$data$passes_default_threshold == 1L))
 
     terms <- nddscore_repo_terms()
     expect_equal(nrow(terms), 2L)
