@@ -136,6 +136,40 @@ test_that("publication context includes citation, availability, and date semanti
   expect_match(result$recommended_citation, "Am J Med Genet A")
   expect_match(result$recommended_citation, "PMID:37130971")
   expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
+  expect_false(result$pubmed_publication_date_matches_curation_date)
+  expect_equal(result$pubmed_publication_date_confidence, "publication_table")
+})
+
+test_that("publication context flags dates that mirror curation dates", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_publication <- mcp_repo_get_publication_context
+  assign("mcp_repo_get_publication_context", function(publication_id) {
+    tibble::tibble(
+      publication_id = publication_id,
+      Title = "Paper",
+      Abstract = "Abstract",
+      Journal = "Journal",
+      Publication_date = as.Date("2023-04-12"),
+      Lastname = "Smith",
+      Firstname = "A",
+      Keywords = "",
+      entity_id = 451L,
+      symbol = "NAA10",
+      hgnc_id = "18704",
+      disease_ontology_name = "NAA10-related syndrome",
+      category = "Definitive",
+      curation_review_date = as.Date("2023-04-12")
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
+
+  result <- mcp_get_publication_context("PMID:1")
+
+  expect_true(result$pubmed_publication_date_matches_curation_date)
+  expect_equal(result$pubmed_publication_date_confidence, "low")
+  expect_match(result$date_notes$pubmed_publication_date, "matches", fixed = TRUE)
 })
 
 test_that("batch publication context preserves request order and returns per-PMID errors", {
@@ -186,6 +220,40 @@ test_that("find_entities_by_phenotype rejects invalid category instead of return
 
   expect_equal(err$error$code, "invalid_input")
   expect_equal(err$error$argument, "category")
+})
+
+test_that("find_entities_by_phenotype reports true pagination totals", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_find <- mcp_repo_find_entities_by_phenotype
+  old_count <- mcp_repo_count_entities_by_phenotype
+  assign("mcp_repo_find_entities_by_phenotype", function(...) {
+    tibble::tibble(
+      entity_id = c(10L, 11L),
+      symbol = c("A", "B"),
+      hgnc_id = c("1", "2"),
+      disease_ontology_id_version = c("MONDO:1", "MONDO:2"),
+      disease_ontology_name = c("Disease A", "Disease B"),
+      hpo_mode_of_inheritance_term_name = c("Autosomal dominant", "Autosomal recessive"),
+      category = c("Definitive", "Definitive"),
+      ndd_phenotype_word = c("yes", "yes"),
+      phenotype_id = c("HP:0000252", "HP:0000252"),
+      HPO_term = c("Microcephaly", "Microcephaly"),
+      modifier_name = c("present", "present")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_count_entities_by_phenotype", function(...) 42L, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_find_entities_by_phenotype", old_find, envir = .GlobalEnv)
+    assign("mcp_repo_count_entities_by_phenotype", old_count, envir = .GlobalEnv)
+  })
+
+  result <- mcp_find_entities_by_phenotype("HP:0000252", limit = 2L)
+
+  expect_equal(result$meta$total, 42L)
+  expect_equal(result$meta$returned, 2L)
+  expect_true(result$meta$has_more)
 })
 
 test_that("list and find entity rows include resource URIs and suggested tools", {

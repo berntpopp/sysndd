@@ -80,9 +80,13 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
 
   batch_entities <- metadata[[which(tool_names == "get_entities_context")]]
   expect_true(nzchar(batch_entities$inputSchema$properties$entity_ids$description))
+
+  gene <- metadata[[which(tool_names == "get_gene_context")]]
+  expect_match(gene$description, "Example:", fixed = TRUE)
+  expect_match(gene$inputSchema$properties$query$description, "alias", ignore.case = TRUE)
 })
 
-test_that("MCP static resource handlers list and read schema resources", {
+test_that("MCP static resource handlers list and read distinct schema resources", {
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
@@ -94,11 +98,19 @@ test_that("MCP static resource handlers list and read schema resources", {
   read <- mcp_handle_resources_read(2L, "sysndd://schema/tool-guide")
   expect_match(read$result$contents[[1]]$text, "tool-guide", fixed = TRUE)
 
+  overview <- mcp_handle_resources_read(4L, "sysndd://schema/overview")
+  overview_text <- overview$result$contents[[1]]$text
+  tool_guide_text <- read$result$contents[[1]]$text
+  expect_match(overview_text, "schema/overview", fixed = TRUE)
+  expect_no_match(overview_text, "schema/tool-guide", fixed = TRUE)
+  expect_no_match(tool_guide_text, "schema/overview", fixed = TRUE)
+  expect_false(identical(overview_text, tool_guide_text))
+
   missing <- mcp_handle_resources_read(3L, "sysndd://schema/missing")
   expect_equal(missing$error$code, -32002)
 })
 
-test_that("MCP tool wrappers accept symbol alias and reject unknown parameters visibly", {
+test_that("MCP tool wrappers accept common gene aliases and reject unknown parameters visibly", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
@@ -118,12 +130,20 @@ test_that("MCP tool wrappers accept symbol alias and reject unknown parameters v
   })
 
   registry <- mcp_build_tool_registry(output_mode = "json_text")
-  tool <- registry$tool_functions$get_gene_context
+  tool <- registry$tools[[which(vapply(registry$tools, function(x) x@name, character(1)) == "get_gene_context")]]
 
   parsed <- jsonlite::fromJSON(tool(symbol = "NAA10"), simplifyVector = FALSE)
   expect_equal(parsed$gene$symbol, "NAA10")
 
-  err <- jsonlite::fromJSON(tool(foo = "NAA10"), simplifyVector = FALSE)
-  expect_equal(err$error$code, "invalid_input")
-  expect_equal(err$error$argument, "foo")
+  parsed_query <- jsonlite::fromJSON(tool(query = "NAA10"), simplifyVector = FALSE)
+  expect_equal(parsed_query$gene$symbol, "NAA10")
+
+  err <- mcp_tool_call_arg_error(
+    list(method = "tools/call", params = list(name = "get_gene_context", arguments = list(foo = "NAA10"))),
+    registry$tools
+  )
+  err_payload <- unclass(err)
+  expect_equal(err_payload$error$code, "invalid_input")
+  expect_equal(err_payload$error$argument, "foo")
+  expect_equal(err_payload$error$hint, "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers.")
 })

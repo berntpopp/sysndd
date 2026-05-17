@@ -82,6 +82,13 @@ entity_batch_schema <- tool_by_name("get_entities_context")$inputSchema
 if (!nzchar(entity_batch_schema$properties$entity_ids$description %||% "")) {
   stop("get_entities_context entity_ids array description is blank")
 }
+gene_tool <- tool_by_name("get_gene_context")
+if (!grepl("Example:", gene_tool$description %||% "", fixed = TRUE)) {
+  stop("get_gene_context description is missing an example")
+}
+if (is.null(gene_tool$inputSchema$properties$query)) {
+  stop("get_gene_context schema is missing query alias")
+}
 
 resources <- rpc("resources/list", id = 3L)
 if (!is.null(resources$error)) stop("MCP resources/list failed: ", resources$error$message)
@@ -93,6 +100,13 @@ tool_guide <- rpc("resources/read", list(uri = "sysndd://schema/tool-guide"), id
 if (!is.null(tool_guide$error)) stop("MCP resources/read failed: ", tool_guide$error$message)
 if (!grepl("tool-guide", tool_guide$result$contents[[1]]$text %||% "", fixed = TRUE)) {
   stop("MCP resources/read returned unexpected tool-guide text")
+}
+overview <- rpc("resources/read", list(uri = "sysndd://schema/overview"), id = 41L)
+if (!is.null(overview$error)) stop("MCP overview resource read failed: ", overview$error$message)
+overview_text <- overview$result$contents[[1]]$text %||% ""
+tool_guide_text <- tool_guide$result$contents[[1]]$text %||% ""
+if (identical(overview_text, tool_guide_text) || grepl("schema/tool-guide", overview_text, fixed = TRUE)) {
+  stop("MCP schema resources are not distinct")
 }
 
 call_tool <- function(name, arguments, id) {
@@ -124,6 +138,21 @@ if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ",
 symbol_payload <- jsonlite::fromJSON(symbol_alias$result$content[[1]]$text, simplifyVector = FALSE)
 if (!identical(symbol_payload$gene$symbol, "NAA10")) {
   stop("get_gene_context symbol alias did not resolve NAA10")
+}
+
+query_alias <- call_tool("get_gene_context", list(query = "NAA10", entity_limit = 1L), id = 8L)
+if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", query_alias$error$message)
+query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(query_payload$gene$symbol, "NAA10")) {
+  stop("get_gene_context query alias did not resolve NAA10")
+}
+
+bad_gene_arg <- call_tool("get_gene_context", list(foo = "NAA10"), id = 9L)
+if (!is.null(bad_gene_arg$error)) stop("Unknown gene arg returned JSON-RPC error: ", bad_gene_arg$error$message)
+if (!isTRUE(bad_gene_arg$result$isError)) stop("Unknown gene arg did not return a tool error result")
+bad_gene_payload <- jsonlite::fromJSON(bad_gene_arg$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(bad_gene_payload$error$code, "invalid_input") || !identical(bad_gene_payload$error$argument, "foo")) {
+  stop("Unknown gene arg did not return invalid_input for foo")
 }
 
 cat("MCP smoke OK: ", paste(sort(tool_names), collapse = ", "), "\n", sep = "")

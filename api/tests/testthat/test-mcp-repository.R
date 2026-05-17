@@ -40,6 +40,7 @@ test_that("MCP repository search and lookup helpers use bounded SELECT queries",
 
   mcp_repo_search("MEC", c("gene", "disease"), 5L)
   mcp_repo_find_entities_by_phenotype("HP:0001250", "present", "Definitive", 5L, 0L)
+  mcp_repo_count_entities_by_phenotype("HP:0001250", "present", "Definitive")
   mcp_repo_find_entities_by_disease("Rett", 5L, 0L)
   mcp_repo_get_stats()
 

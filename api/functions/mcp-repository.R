@@ -346,6 +346,33 @@ mcp_repo_find_entities_by_phenotype <- function(phenotype,
   )
 }
 
+mcp_repo_count_entities_by_phenotype <- function(phenotype,
+                                                 modifier = "present",
+                                                 category = "Definitive") {
+  like <- paste0("%", phenotype, "%")
+  result <- db_execute_query(
+    "
+      SELECT COUNT(*) AS total
+      FROM ndd_entity_view ev
+      JOIN ndd_entity_review er
+        ON er.entity_id = ev.entity_id
+       AND er.is_primary = 1
+       AND er.review_approved = 1
+      JOIN ndd_review_phenotype_connect pc
+        ON pc.review_id = er.review_id
+       AND pc.entity_id = ev.entity_id
+       AND pc.is_active = 1
+      JOIN phenotype_list pl ON pl.phenotype_id = pc.phenotype_id
+      LEFT JOIN modifier_list ml ON ml.modifier_id = pc.modifier_id
+      WHERE (UPPER(pc.phenotype_id) = UPPER(?) OR UPPER(pl.HPO_term) LIKE UPPER(?))
+        AND (? IS NULL OR ev.category = ?)
+        AND (? IS NULL OR UPPER(ml.modifier_name) = UPPER(?))",
+    list(phenotype, like, category, category, modifier, modifier)
+  )
+  if (!"total" %in% names(result) || nrow(result) == 0L) return(0L)
+  as.integer(result$total[[1]] %||% 0L)
+}
+
 mcp_repo_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
   like <- paste0("%", disease, "%")
   db_execute_query(

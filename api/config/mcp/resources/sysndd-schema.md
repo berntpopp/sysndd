@@ -8,9 +8,9 @@ MCP v1 is read-only. It uses active records from `ndd_entity_view` and review-de
 
 Use `search_sysndd` for routing user intent to genes, entities, diseases, phenotypes, and variation terms.
 
-Use `get_gene_context` for compact gene summaries, `list_gene_entities` when only entity rows are needed, and `get_entity_context` for a curated gene-inheritance-disease entity. Use `get_entities_context` for 1-20 entity IDs when a gene or find tool returns multiple entities that need detail in one call.
+Use `get_gene_context` for compact gene summaries, `list_gene_entities` when only entity rows are needed, and `get_entity_context` for a curated gene-inheritance-disease entity. `get_gene_context` examples: `{"gene":"PNKP","include_entities":true,"include_comparisons":false}` for a cheap summary, or `{"query":"PNKP"}` as a deprecated compatibility alias. Use `get_entities_context` for 1-20 entity IDs when a gene or find tool returns multiple entities that need detail in one call.
 
-Use `get_publication_context` for one PMID and `get_publications_context` for 2-20 PMIDs. Publication outputs include `recommended_citation`, `pubmed_publication_date`, `abstract_available`, `abstract_excerpt`, and `abstract_truncated`. Linked entity review dates are exposed as `sysndd_curation_date`.
+Use `get_publication_context` for one PMID and `get_publications_context` for 1-20 PMIDs. Publication outputs include `recommended_citation`, `pubmed_publication_date`, `pubmed_publication_date_confidence`, `pubmed_publication_date_matches_curation_date`, `abstract_available`, `abstract_excerpt`, and `abstract_truncated`. Linked entity review dates are exposed as `sysndd_curation_date`.
 
 `resources/list` advertises `sysndd://schema/overview` and `sysndd://schema/tool-guide`; `resources/read` returns those static documentation resources. Payload `sysndd://gene`, `sysndd://entity`, and `sysndd://publication` URIs are stable identifiers for returned records. In v1, use tools for record retrieval; parameterized resource templates are not exposed.
 

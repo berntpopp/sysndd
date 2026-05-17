@@ -179,6 +179,26 @@ mcp_recommended_citation <- function(pub) {
   paste(pieces, collapse = ". ")
 }
 
+mcp_publication_date_quality <- function(publication_date, curation_dates = NULL) {
+  pub_date <- if (is.null(publication_date) || length(publication_date) == 0L || is.na(publication_date[1])) {
+    ""
+  } else {
+    as.character(publication_date[1])
+  }
+  curation <- as.character(curation_dates)
+  curation <- curation[!is.na(curation) & nzchar(curation)]
+  matches_curation <- nzchar(pub_date) && any(pub_date == curation)
+  list(
+    matches_curation_date = matches_curation,
+    confidence = if (matches_curation) "low" else "publication_table",
+    note = if (matches_curation) {
+      "Publication date comes from the local publication table and matches a linked SysNDD curation date; treat it as low-confidence until independently confirmed."
+    } else {
+      "Publication date from the local PubMed-derived publication table."
+    }
+  )
+}
+
 mcp_cache_key <- function(name, args) {
   paste(name, jsonlite::toJSON(args, auto_unbox = TRUE, null = "null"), sep = ":")
 }
@@ -311,11 +331,14 @@ mcp_get_entity_context <- function(entity_id,
     pubs <- if (isTRUE(include_publications)) mcp_repo_get_entity_publications(entity_id, publication_limit) else tibble::tibble()
     pub_records <- lapply(mcp_rows_to_records(pubs), function(item) {
       abstract <- mcp_truncate_text(item$Abstract %||% "", 1000L)
+      date_quality <- mcp_publication_date_quality(item$Publication_date, item$curation_review_date)
       list(
         publication_id = item$publication_id,
         title = item$Title,
         journal = item$Journal,
         pubmed_publication_date = item$Publication_date,
+        pubmed_publication_date_matches_curation_date = date_quality$matches_curation_date,
+        pubmed_publication_date_confidence = date_quality$confidence,
         sysndd_curation_date = item$curation_review_date,
         first_author = item$Lastname,
         publication_type = item$publication_type,
@@ -418,6 +441,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
     pub <- mcp_row_to_list(first)
     abstract_available <- mcp_has_text(pub$Abstract)
     abstract <- mcp_truncate_text(pub$Abstract %||% "", abstract_max_chars)
+    date_quality <- mcp_publication_date_quality(pub$Publication_date, rows$curation_review_date)
     linked_cols <- intersect(
       c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category", "curation_review_date"),
       names(rows)
@@ -434,6 +458,8 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
       title = pub$Title,
       journal = pub$Journal,
       pubmed_publication_date = pub$Publication_date,
+      pubmed_publication_date_matches_curation_date = date_quality$matches_curation_date,
+      pubmed_publication_date_confidence = date_quality$confidence,
       first_author = pub$Lastname,
       keywords = pub$Keywords,
       recommended_citation = mcp_recommended_citation(pub),
@@ -442,7 +468,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
       abstract_truncated = abstract$truncated,
       linked_entities = linked_records,
       date_notes = list(
-        pubmed_publication_date = "Publication date from the local PubMed-derived publication table.",
+        pubmed_publication_date = date_quality$note,
         sysndd_curation_date = "Primary approved SysNDD review date on linked entities."
       )
     )
@@ -502,7 +528,14 @@ mcp_find_entities_by_phenotype <- function(phenotype,
   limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
   offset <- mcp_validate_offset(offset)
   rows <- mcp_repo_find_entities_by_phenotype(phenotype, modifier, category, limit, offset)
-  list(schema_version = MCP_SCHEMA_VERSION, phenotype = phenotype, resolved_phenotypes = unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")])), entities = mcp_decorate_entity_records(rows), meta = list(limit = limit, offset = offset, total = nrow(rows), has_more = nrow(rows) == limit))
+  total <- mcp_repo_count_entities_by_phenotype(phenotype, modifier, category)
+  list(
+    schema_version = MCP_SCHEMA_VERSION,
+    phenotype = phenotype,
+    resolved_phenotypes = unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")])),
+    entities = mcp_decorate_entity_records(rows),
+    meta = list(limit = limit, offset = offset, returned = nrow(rows), total = total, has_more = offset + nrow(rows) < total)
+  )
 }
 
 mcp_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
