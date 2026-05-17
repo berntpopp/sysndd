@@ -192,16 +192,18 @@ if (!identical(category_payload$error$code, "invalid_input") || !identical(categ
 
 symbol_alias <- call_tool("get_gene_context", list(symbol = "NAA10", entity_limit = 1L), id = 7L)
 if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ", symbol_alias$error$message)
+if (!isTRUE(symbol_alias$result$isError)) stop("symbol alias did not return a tool error result")
 symbol_payload <- jsonlite::fromJSON(symbol_alias$result$content[[1]]$text, simplifyVector = FALSE)
-if (!identical(symbol_payload$gene$symbol, "NAA10")) {
-  stop("get_gene_context symbol alias did not resolve NAA10")
+if (!identical(symbol_payload$error$code, "invalid_input") || !identical(symbol_payload$error$argument, "symbol")) {
+  stop("symbol alias did not return invalid_input for symbol")
 }
 
 query_alias <- call_tool("get_gene_context", list(query = "NAA10", entity_limit = 1L), id = 8L)
 if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", query_alias$error$message)
+if (!isTRUE(query_alias$result$isError)) stop("query alias did not return a tool error result")
 query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
-if (!identical(query_payload$gene$symbol, "NAA10")) {
-  stop("get_gene_context query alias did not resolve NAA10")
+if (!identical(query_payload$error$code, "invalid_input") || !identical(query_payload$error$argument, "query")) {
+  stop("query alias did not return invalid_input for query")
 }
 
 gene_batch <- call_tool("get_genes_context", list(genes = list("PNKP")), id = 80L)
