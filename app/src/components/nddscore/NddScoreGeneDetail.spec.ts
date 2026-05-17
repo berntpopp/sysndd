@@ -40,11 +40,13 @@ vi.mock('@/api/nddscore', () => ({
       constraint: 0.42,
       network: 0.31,
     }),
+    prediction_note:
+      'CLCN4 is predicted as a candidate NDD gene (score 0.98). Note: SHAP attributions reflect statistical associations.',
   }),
 }));
 
 describe('NddScoreGeneDetail', () => {
-  it('uses returnTo for the predictions back link', async () => {
+  it('does not render the predictions back link', async () => {
     routeState.query = {
       returnTo:
         '/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10',
@@ -56,9 +58,8 @@ describe('NddScoreGeneDetail', () => {
 
     await flushPromises();
 
-    expect(wrapper.get('.ndd-gene-detail__back-link').attributes('href')).toBe(
-      '/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10'
-    );
+    expect(wrapper.find('.ndd-gene-detail__back-link').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('Back to predictions');
   });
 
   it('renders prediction details without the old curated-evidence explainer block', async () => {
@@ -69,6 +70,7 @@ describe('NddScoreGeneDetail', () => {
 
     await flushPromises();
 
+    expect(wrapper.get('.ndd-gene-detail__title').text()).toBe('NDDScore gene prediction');
     expect(wrapper.text()).toContain('CLCN4');
     expect(wrapper.text()).toContain('Very High');
     expect(wrapper.text()).toContain('Intellectual disability');
@@ -78,5 +80,7 @@ describe('NddScoreGeneDetail', () => {
     expect(wrapper.find('[title*="Open the curated SysNDD gene page"]').exists()).toBe(true);
     expect(wrapper.text()).not.toContain('Curated SysNDD evidence');
     expect(wrapper.text()).not.toContain('read as a distinct evidence source');
+    expect(wrapper.text()).not.toContain('predicted as a candidate NDD gene');
+    expect(wrapper.text()).not.toContain('SHAP attributions reflect statistical associations');
   });
 });

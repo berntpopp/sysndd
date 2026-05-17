@@ -6,16 +6,12 @@
           <section class="ndd-gene-detail__hero" aria-labelledby="ndd-gene-detail-title">
             <div class="ndd-gene-detail__hero-head">
               <div class="ndd-gene-detail__identity">
-                <p class="ndd-gene-detail__eyebrow">NDDScore gene prediction</p>
                 <h1 id="ndd-gene-detail-title" class="ndd-gene-detail__title">
-                  {{ geneSymbol }}
+                  NDDScore gene prediction
                 </h1>
               </div>
 
               <div class="ndd-gene-detail__actions">
-                <RouterLink class="ndd-gene-detail__back-link" :to="backToPredictions">
-                  Back to predictions
-                </RouterLink>
                 <BBadge class="ndd-gene-detail__prediction-badge" variant="info">
                   <i class="bi bi-cpu" aria-hidden="true"></i>
                   <span>ML prediction</span>
@@ -203,14 +199,6 @@
               </ul>
               <p v-else class="ndd-gene-detail__fallback">No HPO predictions available.</p>
             </section>
-
-            <section
-              v-if="predictionNote"
-              class="ndd-gene-detail__note"
-              aria-label="Prediction note"
-            >
-              {{ predictionNote }}
-            </section>
           </BCol>
         </BRow>
       </template>
@@ -222,12 +210,11 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink } from 'vue-router';
 import { BBadge, BCol, BContainer, BRow } from 'bootstrap-vue-next';
 import type { ColorVariant } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import { fetchGeneDetail, type NddScoreGeneDetail } from '@/api/nddscore';
-import { returnToFromRoute } from '@/utils/returnNavigation';
 
 defineOptions({
   name: 'NddScoreGeneDetail',
@@ -236,8 +223,6 @@ defineOptions({
 const props = defineProps<{
   hgncIdOrSymbol: string;
 }>();
-
-const route = useRoute();
 
 type GeneDetailRow = NddScoreGeneDetail & {
   hgnc_id?: string | number;
@@ -254,8 +239,6 @@ type HpoPrediction = {
 const gene = ref<GeneDetailRow | null>(null);
 const loaded = ref(false);
 let requestSerial = 0;
-
-const backToPredictions = computed(() => returnToFromRoute(route, '/NDDScore'));
 
 const geneSymbol = computed(() =>
   displayValue(readField(gene.value, 'gene_symbol', 'symbol') ?? props.hgncIdOrSymbol)
@@ -291,11 +274,6 @@ const modelSplitTooltip = computed(() => {
     default:
       return 'Dataset split used by the NDDScore model release.';
   }
-});
-
-const predictionNote = computed(() => {
-  const value = readField(gene.value, 'prediction_note');
-  return value == null || value === '' ? '' : String(value);
 });
 
 const knownSysnddGene = computed(() => booleanValue(readField(gene.value, 'known_sysndd_gene')));
@@ -523,8 +501,7 @@ watch(
 }
 
 .ndd-gene-detail__hero,
-.ndd-gene-detail__panel,
-.ndd-gene-detail__note {
+.ndd-gene-detail__panel {
   padding: 0.875rem;
   border: 1px solid #d7dee8;
   border-radius: var(--radius-lg, 8px);
@@ -595,8 +572,7 @@ watch(
 }
 
 .ndd-gene-detail__eyebrow,
-.ndd-gene-detail__fallback,
-.ndd-gene-detail__note {
+.ndd-gene-detail__fallback {
   margin: 0;
   color: var(--neutral-600, #757575);
   font-size: 0.875rem;
@@ -742,12 +718,6 @@ watch(
   font-size: 0.8125rem;
 }
 
-.ndd-gene-detail__note {
-  border-color: #d7dee8;
-  background: #f8fafc;
-}
-
-.ndd-gene-detail__back-link,
 .ndd-gene-detail__status-link {
   color: var(--medical-blue-700, #0d47a1);
   font-size: 0.875rem;
