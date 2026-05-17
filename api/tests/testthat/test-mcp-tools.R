@@ -1,4 +1,6 @@
 test_that("MCP registry exposes only approved SysNDD tools", {
+  skip_if_not_installed("ellmer")
+
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
@@ -41,6 +43,8 @@ test_that("MCP server instructions describe workflow, resources, errors, and con
 })
 
 test_that("MCP initialize capabilities use SysNDD-specific instructions", {
+  skip_if_not_installed("mcptools")
+
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
@@ -62,9 +66,20 @@ test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
 
   expect_equal(parsed$schema_version, "1.0")
   expect_equal(parsed$error$code, "invalid_input")
+
+  wrapped_condition <- mcp_tool_safe(function() {
+    stop(mcp_error("temporarily_unavailable", "Bad input", list(cause = simpleError("raw R error"))))
+  }, output_mode = "json_text")
+  parsed_condition <- jsonlite::fromJSON(wrapped_condition(), simplifyVector = FALSE)
+
+  expect_equal(parsed_condition$error$code, "temporarily_unavailable")
+  expect_false(inherits(parsed_condition$error$cause, "condition"))
 })
 
 test_that("MCP registry exposes rich tool metadata for LLM clients", {
+  skip_if_not_installed("ellmer")
+  skip_if_not_installed("mcptools")
+
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
@@ -156,21 +171,26 @@ test_that("MCP static resource handlers list and read distinct schema resources"
 })
 
 test_that("MCP tool wrappers accept common gene aliases and reject unknown parameters visibly", {
+  skip_if_not_installed("ellmer")
+
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
   old_resolve <- mcp_repo_resolve_gene
   old_entities <- mcp_repo_get_gene_entities
+  old_count <- mcp_repo_count_gene_entities
   old_comparisons <- mcp_repo_get_gene_comparisons
   assign("mcp_repo_resolve_gene", function(normalized_gene) {
     tibble::tibble(hgnc_id = "HGNC:18704", symbol = "NAA10", name = "NAA10")
   }, envir = .GlobalEnv)
   assign("mcp_repo_get_gene_entities", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_count_gene_entities", function(...) 0L, envir = .GlobalEnv)
   assign("mcp_repo_get_gene_comparisons", function(...) tibble::tibble(), envir = .GlobalEnv)
   withr::defer({
     assign("mcp_repo_resolve_gene", old_resolve, envir = .GlobalEnv)
     assign("mcp_repo_get_gene_entities", old_entities, envir = .GlobalEnv)
+    assign("mcp_repo_count_gene_entities", old_count, envir = .GlobalEnv)
     assign("mcp_repo_get_gene_comparisons", old_comparisons, envir = .GlobalEnv)
   })
 

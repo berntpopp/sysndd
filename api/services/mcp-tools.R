@@ -2,7 +2,6 @@
 #
 # MCP tool and static resource registry for the read-only SysNDD sidecar.
 
-library(ellmer)
 library(jsonlite)
 
 mcp_serialize_result <- function(value, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
@@ -22,7 +21,7 @@ mcp_tool_safe <- function(fn, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_
     tryCatch(
       mcp_serialize_result(fn(...), output_mode = output_mode),
       mcp_tool_error = function(e) {
-        res <- mcp_serialize_result(unclass(e), output_mode = output_mode)
+        res <- mcp_serialize_result(mcp_error_payload(e), output_mode = output_mode)
         attr(res, "sysndd_mcp_is_error") <- TRUE
         res
       },

@@ -32,6 +32,23 @@ mcp_error <- function(code, message, fields = list()) {
   )
 }
 
+mcp_json_safe_value <- function(value) {
+  if (inherits(value, "condition")) {
+    return(list(message = conditionMessage(value), class = class(value)[[1]]))
+  }
+  if (is.list(value)) {
+    return(lapply(value, mcp_json_safe_value))
+  }
+  if (is.environment(value) || is.function(value) || is.call(value) || is.name(value)) {
+    return(as.character(value)[[1]])
+  }
+  value
+}
+
+mcp_error_payload <- function(error) {
+  mcp_json_safe_value(unclass(error))
+}
+
 mcp_validate_no_raw_control <- function(value, argument) {
   if (grepl("(;|--|/\\*|\\*/|\\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CALL|EXEC)\\b)", value, ignore.case = TRUE)) {
     stop(mcp_error("invalid_input", sprintf("%s contains unsupported control syntax", argument), list(argument = argument)))

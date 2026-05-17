@@ -104,6 +104,23 @@ test_that("gene identifier normalization keeps the stored HGNC prefix", {
   expect_equal(symbol, list(kind = "symbol", value = "NAA10"))
 })
 
+test_that("MCP error payloads are JSON-serializable without condition internals", {
+  source("../../services/mcp-service.R")
+
+  err <- mcp_error(
+    "temporarily_unavailable",
+    "Wrapped failure",
+    fields = list(cause = simpleError("database unavailable"))
+  )
+
+  payload <- mcp_error_payload(err)
+
+  expect_equal(payload$schema_version, "1.0")
+  expect_equal(payload$error$code, "temporarily_unavailable")
+  expect_false(inherits(payload$error$cause, "condition"))
+  expect_no_error(jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null"))
+})
+
 test_that("entity context respects include flags and caps publication limits", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
