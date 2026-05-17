@@ -577,7 +577,7 @@ export default {
 
     // Initialize pagination from URL if provided
     if (this.pageAfterInput && this.pageAfterInput !== '0' && this.pageAfterInput !== '') {
-      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+      this.currentItemID = this.pageAfterInput;
     }
 
     // Transform input filter string to object and load data

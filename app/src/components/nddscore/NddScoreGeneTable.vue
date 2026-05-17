@@ -24,8 +24,8 @@
               </template>
 
               <template #toolbar>
-                <div class="nddscore-gene-toolbar">
-                  <div class="nddscore-gene-toolbar__search">
+                <BRow>
+                  <BCol class="my-1" sm="8">
                     <TableSearchInput
                       v-model="search"
                       placeholder="Search gene symbol or HGNC ID"
@@ -34,19 +34,21 @@
                       @update:model-value="handleSearchChange"
                       @clear="handleSearchChange"
                     />
-                  </div>
+                  </BCol>
 
-                  <div class="nddscore-gene-toolbar__pagination">
-                    <TablePaginationControls
-                      :total-rows="total"
-                      :initial-per-page="pageSize"
-                      :current-page="page"
-                      :page-options="[10, 25, 50, 100]"
-                      @page-change="handlePageChange"
-                      @per-page-change="handlePageSizeChange"
-                    />
-                  </div>
-                </div>
+                  <BCol class="my-1" sm="4">
+                    <BContainer>
+                      <TablePaginationControls
+                        :total-rows="total"
+                        :initial-per-page="pageSize"
+                        :current-page="page"
+                        :page-options="[10, 25, 50, 100]"
+                        @page-change="handlePageChange"
+                        @per-page-change="handlePageSizeChange"
+                      />
+                    </BContainer>
+                  </BCol>
+                </BRow>
               </template>
 
               <GenericTable
@@ -1058,24 +1060,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.nddscore-gene-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.nddscore-gene-toolbar__search {
-  flex: 1 1 18rem;
-  min-width: min(100%, 16rem);
-}
-
-.nddscore-gene-toolbar__pagination {
-  flex: 0 1 18rem;
-  min-width: min(100%, 15rem);
-  margin-left: auto;
-}
-
 .nddscore-gene-table__id-link,
 .nddscore-gene-table__gene-link {
   text-decoration: none;
@@ -1190,9 +1174,4 @@ onMounted(() => {
   min-width: 7.5rem;
 }
 
-@media (max-width: 767.98px) {
-  .nddscore-gene-toolbar__pagination {
-    margin-left: 0;
-  }
-}
 </style>

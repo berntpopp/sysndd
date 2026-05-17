@@ -29,7 +29,7 @@ interface TableDataState {
   items: Ref<unknown[]>;
   totalRows: Ref<number>;
   currentPage: Ref<number>;
-  currentItemID: Ref<number>;
+  currentItemID: Ref<number | string>;
   prevItemID: Ref<number | null>;
   nextItemID: Ref<number | null>;
   lastItemID: Ref<number | null>;
@@ -54,7 +54,8 @@ export default function useTableData(options: TableDataOptions = {}): TableDataS
   const items = ref<unknown[]>([]);
   const totalRows = ref<number>(0);
   const currentPage = ref<number>(1);
-  const currentItemID = ref<number>(Number(options.pageAfterInput) || 0);
+  const initialPageAfter = normalizePageAfterInput(options.pageAfterInput);
+  const currentItemID = ref<number | string>(initialPageAfter);
   const prevItemID = ref<number | null>(null);
   const nextItemID = ref<number | null>(null);
   const lastItemID = ref<number | null>(null);
@@ -146,6 +147,15 @@ export default function useTableData(options: TableDataOptions = {}): TableDataS
     removeFiltersButtonVariant,
     removeFiltersButtonTitle,
   };
+}
+
+function normalizePageAfterInput(value: TableDataOptions['pageAfterInput']): number | string {
+  if (value === undefined || value === null || value === '' || value === 0 || value === '0') {
+    return 0;
+  }
+
+  const numericValue = Number(value);
+  return Number.isNaN(numericValue) ? String(value) : numericValue;
 }
 
 // Export TableDataState type for use in components
