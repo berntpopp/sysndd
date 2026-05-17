@@ -190,7 +190,7 @@ mcp_fill_array_descriptions <- function(input_schema) {
 }
 
 mcp_tool_metadata <- function(tools) {
-  tool_as_json <- get("tool_as_json", envir = asNamespace("mcptools"))
+  tool_as_json <- base::get("tool_as_json", envir = asNamespace("mcptools"))
   lapply(tools, function(tool) {
     item <- tool_as_json(tool)
     item$inputSchema <- mcp_fill_array_descriptions(item$inputSchema)

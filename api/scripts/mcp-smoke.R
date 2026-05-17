@@ -42,14 +42,88 @@ if (is.null(init$result)) stop("MCP initialize failed")
 if (!grepl("SysNDD", init$result$instructions %||% "", fixed = TRUE)) {
   stop("MCP initialize did not return SysNDD-specific instructions")
 }
+if (!grepl("research", init$result$instructions %||% "", ignore.case = TRUE)) {
+  stop("MCP initialize did not return research-use guidance")
+}
 
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_publication_context", "get_publications_context")
+required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context")
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))
+}
+
+for (tool in tools) {
+  if (!isTRUE(tool$annotations$readOnlyHint)) {
+    stop("MCP tool missing readOnlyHint annotation: ", tool$name %||% "<unknown>")
+  }
+  if (is.null(tool$outputSchema)) {
+    stop("MCP tool missing outputSchema: ", tool$name %||% "<unknown>")
+  }
+}
+
+tool_by_name <- function(name) {
+  matches <- tools[vapply(tools, function(tool) identical(tool$name, name), logical(1))]
+  if (length(matches) != 1L) stop("Could not find tool metadata for ", name)
+  matches[[1]]
+}
+
+search_schema <- tool_by_name("search_sysndd")$inputSchema
+if (!nzchar(search_schema$properties$types$description %||% "")) {
+  stop("search_sysndd types array description is blank")
+}
+pub_batch_schema <- tool_by_name("get_publications_context")$inputSchema
+if (!nzchar(pub_batch_schema$properties$pmids$description %||% "")) {
+  stop("get_publications_context pmids array description is blank")
+}
+entity_batch_schema <- tool_by_name("get_entities_context")$inputSchema
+if (!nzchar(entity_batch_schema$properties$entity_ids$description %||% "")) {
+  stop("get_entities_context entity_ids array description is blank")
+}
+
+resources <- rpc("resources/list", id = 3L)
+if (!is.null(resources$error)) stop("MCP resources/list failed: ", resources$error$message)
+resource_uris <- vapply(resources$result$resources %||% list(), function(x) x$uri %||% "", character(1))
+if (!"sysndd://schema/tool-guide" %in% resource_uris) {
+  stop("MCP resources/list missing sysndd://schema/tool-guide")
+}
+tool_guide <- rpc("resources/read", list(uri = "sysndd://schema/tool-guide"), id = 4L)
+if (!is.null(tool_guide$error)) stop("MCP resources/read failed: ", tool_guide$error$message)
+if (!grepl("tool-guide", tool_guide$result$contents[[1]]$text %||% "", fixed = TRUE)) {
+  stop("MCP resources/read returned unexpected tool-guide text")
+}
+
+call_tool <- function(name, arguments, id) {
+  rpc("tools/call", list(name = name, arguments = arguments), id = id)
+}
+
+malformed_pmid <- call_tool("get_publication_context", list(pmid = "notapmid"), id = 5L)
+if (!is.null(malformed_pmid$error)) stop("Malformed PMID returned JSON-RPC error: ", malformed_pmid$error$message)
+if (!isTRUE(malformed_pmid$result$isError)) stop("Malformed PMID did not return a tool error result")
+pmid_payload <- jsonlite::fromJSON(malformed_pmid$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(pmid_payload$error$code, "invalid_input") || !identical(pmid_payload$error$argument, "pmid")) {
+  stop("Malformed PMID did not return invalid_input for pmid")
+}
+
+bad_category <- call_tool(
+  "find_entities_by_phenotype",
+  list(phenotype = "HP:0001250", category = "BogusCategory"),
+  id = 6L
+)
+if (!is.null(bad_category$error)) stop("Invalid phenotype category returned JSON-RPC error: ", bad_category$error$message)
+if (!isTRUE(bad_category$result$isError)) stop("Invalid phenotype category did not return a tool error result")
+category_payload <- jsonlite::fromJSON(bad_category$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(category_payload$error$code, "invalid_input") || !identical(category_payload$error$argument, "category")) {
+  stop("Invalid phenotype category did not return invalid_input for category")
+}
+
+symbol_alias <- call_tool("get_gene_context", list(symbol = "NAA10", entity_limit = 1L), id = 7L)
+if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ", symbol_alias$error$message)
+symbol_payload <- jsonlite::fromJSON(symbol_alias$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(symbol_payload$gene$symbol, "NAA10")) {
+  stop("get_gene_context symbol alias did not resolve NAA10")
 }
 
 cat("MCP smoke OK: ", paste(sort(tool_names), collapse = ", "), "\n", sep = "")

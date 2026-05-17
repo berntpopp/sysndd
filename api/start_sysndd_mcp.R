@@ -42,7 +42,7 @@ pool <- bootstrap_create_pool(dw)
 globals <- bootstrap_init_globals()
 
 registry <- mcp_build_tool_registry(output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text"))
-mcp_patch_mcptools_instructions()
+mcp_patch_mcptools_protocol(registry = registry, instructions = mcp_server_instructions())
 
 mcptools::mcp_server(
   tools = registry$tools,
