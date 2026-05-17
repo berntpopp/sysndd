@@ -30,11 +30,13 @@ vi.mock('@/api/nddscore', () => ({
 }));
 
 function selectWithOption(wrapper: ReturnType<typeof mount>, value: string) {
-  const select = wrapper.findAll('select').find((candidate) =>
-    Array.from((candidate.element as HTMLSelectElement).options).some(
-      (option) => option.value === value
-    )
-  );
+  const select = wrapper
+    .findAll('select')
+    .find((candidate) =>
+      Array.from((candidate.element as HTMLSelectElement).options).some(
+        (option) => option.value === value
+      )
+    );
 
   if (!select) {
     throw new Error(`No select found with option ${value}`);
@@ -45,6 +47,7 @@ function selectWithOption(wrapper: ReturnType<typeof mount>, value: string) {
 
 describe('NddScoreGeneTable', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/NDDScore');
     mocks.push.mockClear();
     mocks.fetchGenePredictions.mockClear();
     mocks.fetchHpoTerms.mockClear();
@@ -80,19 +83,24 @@ describe('NddScoreGeneTable', () => {
     );
   });
 
-  it('sends text and split column filters to the API', async () => {
+  it('sends gene text and split column filters to the API', async () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();
 
-    const hgncInput = wrapper.find('input[placeholder=".. HGNC ID .."]');
-    await hgncInput.setValue('HGNC:6512');
+    expect(wrapper.text()).not.toContain('HGNC ID');
+
+    const geneInput = wrapper.find('input[placeholder=".. Gene .."]');
+    await geneInput.setValue('KMT2A');
     await flushPromises();
 
     expect(mocks.fetchGenePredictions).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        hgncId: 'HGNC:6512',
+        geneSymbol: 'KMT2A',
         page: 1,
       })
+    );
+    expect(decodeURIComponent(window.location.search)).toContain(
+      'filter=equals(gene_symbol,KMT2A)'
     );
 
     const splitSelect = selectWithOption(wrapper, 'unseen');
@@ -101,11 +109,12 @@ describe('NddScoreGeneTable', () => {
 
     expect(mocks.fetchGenePredictions).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        hgncId: 'HGNC:6512',
+        geneSymbol: 'KMT2A',
         modelSplit: 'unseen',
         page: 1,
       })
     );
+    expect(decodeURIComponent(window.location.search)).toContain('equals(model_split,unseen)');
   });
 
   it('sends typed numeric, inheritance, and HPO filters to the API', async () => {
@@ -113,8 +122,13 @@ describe('NddScoreGeneTable', () => {
     await flushPromises();
 
     expect(mocks.fetchHpoTerms).toHaveBeenCalledTimes(1);
+    mocks.fetchGenePredictions.mockClear();
 
-    await wrapper.find('input[aria-label="Rank maximum"]').setValue('200');
+    await wrapper.find('select[aria-label="Rank filter operator"]').setValue('lte');
+    await flushPromises();
+    expect(mocks.fetchGenePredictions).not.toHaveBeenCalled();
+
+    await wrapper.find('input[aria-label="Rank filter value"]').setValue('200');
     await flushPromises();
 
     expect(mocks.fetchGenePredictions).toHaveBeenLastCalledWith(
@@ -126,7 +140,8 @@ describe('NddScoreGeneTable', () => {
       })
     );
 
-    await wrapper.find('input[aria-label="Percentile minimum"]').setValue('95');
+    await wrapper.find('select[aria-label="Percentile filter operator"]').setValue('gte');
+    await wrapper.find('input[aria-label="Percentile filter value"]').setValue('95');
     await selectWithOption(wrapper, 'AD').setValue('AD');
     await flushPromises();
 
@@ -138,8 +153,14 @@ describe('NddScoreGeneTable', () => {
       })
     );
 
-    const hpoSelect = selectWithOption(wrapper, 'HP:0001249');
-    await hpoSelect.setValue(['HP:0001249', 'HP:0001250']);
+    expect(wrapper.find('select[multiple]').exists()).toBe(false);
+    const hpoFilter = wrapper.get('[data-testid="nddscore-hpo-filter"]');
+    await hpoFilter.get('[data-testid="nddscore-hpo-option-HP:0001249"]').trigger('click');
+    await flushPromises();
+    await wrapper
+      .get('[data-testid="nddscore-hpo-filter"]')
+      .get('[data-testid="nddscore-hpo-option-HP:0001250"]')
+      .trigger('click');
     await flushPromises();
 
     expect(mocks.fetchGenePredictions).toHaveBeenLastCalledWith(
