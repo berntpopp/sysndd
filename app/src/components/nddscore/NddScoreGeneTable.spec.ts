@@ -53,6 +53,16 @@ describe('NddScoreGeneTable', () => {
     mocks.fetchHpoTerms.mockClear();
   });
 
+  it('marks the table as machine-learning predictions rather than curated evidence', async () => {
+    const wrapper = mount(NddScoreGeneTable);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Machine learning, not manual curation');
+    expect(wrapper.find('.ndd-score-card--ml-disclosure').exists()).toBe(true);
+    expect(wrapper.find('.bi-stars').exists()).toBe(true);
+    expect(wrapper.text()).toContain('not manually curated SysNDD classifications');
+  });
+
   it('offers live NDDScore values as column filters', async () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();

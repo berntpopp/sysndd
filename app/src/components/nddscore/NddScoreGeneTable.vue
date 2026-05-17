@@ -4,10 +4,11 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol col md="12">
+            <NddScorePredictionCard class="mb-3" />
             <TableShell
               title="Gene predictions"
               :meta="totalLabel"
-              description="Current-release NDDScore gene association predictions."
+              description="Machine-learning NDDScore gene association predictions from the active release; these are not manually curated SysNDD classifications."
               :loading="tableShellLoading"
             >
               <template #actions>
@@ -332,6 +333,7 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
+import NddScorePredictionCard from '@/components/nddscore/NddScorePredictionCard.vue';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { withReturnTo } from '@/utils/returnNavigation';
 

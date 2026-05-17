@@ -88,6 +88,10 @@ describe('NddScoreGeneDetail', () => {
     await flushPromises();
 
     expect(wrapper.get('.ndd-gene-detail__title').text()).toBe('NDDScore gene prediction');
+    expect(wrapper.find('.ndd-gene-detail__hero--ml-disclosure').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Machine learning, not manual curation');
+    expect(wrapper.find('.bi-stars').exists()).toBe(true);
+    expect(wrapper.find('.ndd-gene-detail__unit-value--center').exists()).toBe(true);
     expect(wrapper.text()).toContain('CLCN4');
     expect(wrapper.text()).toContain('Very High');
     expect(wrapper.text()).toContain('Intellectual disability');
@@ -129,5 +133,24 @@ describe('NddScoreGeneDetail', () => {
     expect(restoredVisit.text()).toContain('MAU2');
     expect(restoredVisit.text()).not.toContain('Loading gene prediction.');
     expect(nddScoreApi.fetchGeneDetail).toHaveBeenCalledTimes(1);
+  });
+
+  it('describes non-SysNDD ML predictions without curation candidate wording', async () => {
+    nddScoreApi.fetchGeneDetail.mockResolvedValueOnce(
+      prediction({
+        hgnc_id: 'HGNC:16783',
+        gene_symbol: 'UNC13B',
+        known_sysndd_gene: 0,
+      })
+    );
+
+    const wrapper = mount(NddScoreGeneDetail, {
+      props: { hgncIdOrSymbol: 'HGNC:16783' },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Not a curated SysNDD gene');
+    expect(wrapper.text()).not.toContain('New candidate');
   });
 });

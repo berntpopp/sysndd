@@ -2,7 +2,7 @@
   <AnalysisShell title="NDDScore" :subtitle="subtitle" nav-label="NDDScore views" :tabs="tabs">
     <template #meta>
       <span class="nddscore-meta-badge">
-        <i class="bi bi-cpu" aria-hidden="true"></i>
+        <i class="bi bi-stars" aria-hidden="true"></i>
         <span>ML prediction layer</span>
       </span>
     </template>
@@ -97,15 +97,15 @@ onMounted(async () => {
   padding: 0.2rem 0.55rem;
   border: 1px solid #bdc7d4;
   border-radius: var(--radius-full, 999px);
-  background: #eef2f7;
-  color: #223044;
+  background: #ffe1b8;
+  color: #7a3400;
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .nddscore-meta-badge .bi {
-  color: var(--medical-teal-600, #00897b);
+  color: #b84d00;
 }
 
 .nddscore-shell {

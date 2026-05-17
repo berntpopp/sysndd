@@ -1,11 +1,12 @@
 <template>
-  <BCard class="ndd-score-card" no-body>
+  <BCard class="ndd-score-card ndd-score-card--ml-disclosure" no-body>
     <template #header>
       <div class="ndd-score-card__header">
         <span class="ndd-score-card__label">
-          <i class="bi bi-cpu" aria-hidden="true"></i>
+          <i class="bi bi-stars" aria-hidden="true"></i>
           <span>ML prediction</span>
         </span>
+        <span class="ndd-score-card__disclosure">Machine learning, not manual curation</span>
         <BBadge v-if="releaseId" class="ndd-score-card__release" variant="light">
           {{ releaseId }}
         </BBadge>
@@ -73,32 +74,51 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
   box-shadow: 0 1px 2px rgb(33 37 41 / 6%);
 }
 
+.ndd-score-card--ml-disclosure {
+  border-left: 5px solid #d95f00;
+  background: linear-gradient(to bottom, #fff0db 0%, #ffffff 100%);
+}
+
 .ndd-score-card :deep(.card-header) {
   padding: 0.5rem 0.75rem;
-  background: var(--bs-light, #f8f9fa);
-  border-bottom-color: var(--bs-border-color);
+  background: transparent;
+  border-bottom-color: var(--bs-border-color-translucent, var(--bs-border-color));
 }
 
 .ndd-score-card__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.5rem;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .ndd-score-card__label {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  background: #ffe1b8;
+  color: #7a3400;
   font-size: 0.875rem;
   font-weight: 600;
 }
 
 .ndd-score-card__label .bi {
-  color: var(--medical-teal-600, #00897b);
+  color: #b84d00;
+}
+
+.ndd-score-card__disclosure {
+  color: var(--neutral-900, #212121);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .ndd-score-card__release {
+  margin-left: auto;
   max-width: 16rem;
   overflow: hidden;
   color: var(--neutral-600, #757575);
@@ -171,5 +191,11 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
   color: var(--medical-blue-700, #0d47a1);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+}
+
+@media (max-width: 575.98px) {
+  .ndd-score-card__release {
+    margin-left: 0;
+  }
 }
 </style>

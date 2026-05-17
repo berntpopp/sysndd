@@ -10,10 +10,12 @@ describe('NddScorePredictionCard', () => {
     brierSkillScore: 0.4438,
   };
 
-  it('renders the ML prediction indicator, not an AI label', () => {
+  it('renders a warning-toned ML prediction disclosure, not an AI label', () => {
     const wrapper = mount(NddScorePredictionCard, { props });
     expect(wrapper.text()).toContain('ML prediction');
-    expect(wrapper.find('.bi-cpu').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Machine learning, not manual curation');
+    expect(wrapper.find('.bi-stars').exists()).toBe(true);
+    expect(wrapper.classes()).toContain('ndd-score-card--ml-disclosure');
     expect(wrapper.text()).not.toContain('AI');
   });
 

@@ -3,19 +3,24 @@
     <BContainer fluid>
       <BRow class="justify-content-md-center py-2">
         <BCol cols="12">
-          <section class="ndd-gene-detail__hero" aria-labelledby="ndd-gene-detail-title">
+          <section
+            class="ndd-gene-detail__hero ndd-gene-detail__hero--ml-disclosure"
+            aria-labelledby="ndd-gene-detail-title"
+          >
             <div class="ndd-gene-detail__hero-head">
               <div class="ndd-gene-detail__identity">
-                <h1 id="ndd-gene-detail-title" class="ndd-gene-detail__title">
-                  NDDScore gene prediction
-                </h1>
-              </div>
-
-              <div class="ndd-gene-detail__actions">
-                <BBadge class="ndd-gene-detail__prediction-badge" variant="info">
-                  <i class="bi bi-cpu" aria-hidden="true"></i>
-                  <span>ML prediction</span>
-                </BBadge>
+                <div class="ndd-gene-detail__title-row">
+                  <h1 id="ndd-gene-detail-title" class="ndd-gene-detail__title">
+                    NDDScore gene prediction
+                  </h1>
+                  <span class="ndd-gene-detail__prediction-badge">
+                    <i class="bi bi-stars" aria-hidden="true"></i>
+                    <span>ML prediction</span>
+                  </span>
+                  <span class="ndd-gene-detail__disclosure">
+                    Machine learning, not manual curation
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -31,7 +36,7 @@
               </div>
               <div class="ndd-gene-detail__unit-cell">
                 <div class="ndd-gene-detail__unit-label">Prediction</div>
-                <div class="ndd-gene-detail__unit-value">
+                <div class="ndd-gene-detail__unit-value ndd-gene-detail__unit-value--center">
                   {{ formatScore(readField(gene, 'ndd_score', 'score')) }}
                   <BBadge :variant="riskVariant(readField(gene, 'risk_tier'))">
                     {{ displayValue(readField(gene, 'risk_tier')) }}
@@ -52,7 +57,7 @@
                   </BBadge>
                 </RouterLink>
                 <BBadge v-else class="ndd-gene-detail__status-badge" variant="light">
-                  New candidate
+                  Not a curated SysNDD gene
                 </BBadge>
               </div>
             </div>
@@ -493,11 +498,16 @@ function confidenceVariant(value: unknown): ColorVariant {
   gap: 0.65rem;
 }
 
+.ndd-gene-detail__hero--ml-disclosure {
+  border-left: 5px solid #d95f00;
+  background: linear-gradient(to bottom, #fff0db 0%, #ffffff 100%);
+}
+
 .ndd-gene-detail__hero-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
   gap: 0.75rem;
 }
 
@@ -507,11 +517,10 @@ function confidenceVariant(value: unknown): ColorVariant {
   min-width: 0;
 }
 
-.ndd-gene-detail__actions {
+.ndd-gene-detail__title-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.5rem;
 }
 
@@ -548,6 +557,11 @@ function confidenceVariant(value: unknown): ColorVariant {
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 1rem;
   font-weight: 800;
+}
+
+.ndd-gene-detail__unit-value--center {
+  justify-content: center;
+  text-align: center;
 }
 
 .ndd-gene-detail__eyebrow,
@@ -599,7 +613,6 @@ function confidenceVariant(value: unknown): ColorVariant {
 .ndd-gene-detail__title {
   margin: 0.1rem 0 0;
   color: var(--neutral-900, #212121);
-  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 1.35rem;
   font-weight: 700;
   line-height: 1.25;
@@ -609,11 +622,23 @@ function confidenceVariant(value: unknown): ColorVariant {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: var(--radius-full, 999px);
+  border: 0;
+  border-radius: var(--radius-sm, 4px);
+  background: #ffe1b8;
+  color: #7a3400;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .ndd-gene-detail__prediction-badge .bi {
-  color: currentcolor;
+  color: #b84d00;
+}
+
+.ndd-gene-detail__disclosure {
+  color: var(--neutral-900, #212121);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
 .ndd-gene-detail__panel {
