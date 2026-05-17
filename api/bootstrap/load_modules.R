@@ -67,6 +67,7 @@ bootstrap_load_modules <- function() {
     "functions/publication-repository.R",
     "functions/phenotype-repository.R",
     "functions/ontology-repository.R",
+    "functions/mcp-repository.R",
     "functions/user-repository.R",
     "functions/hash-repository.R",
     "functions/category-normalization.R",
@@ -133,7 +134,9 @@ bootstrap_load_modules <- function() {
     "services/review-service.R",
     "services/approval-service.R",
     "services/re-review-service.R",
-    "services/seo-service.R"
+    "services/seo-service.R",
+    "services/mcp-service.R",
+    "services/mcp-tools.R"
   )
 
   for (path in function_files) .bootstrap_source(path)
