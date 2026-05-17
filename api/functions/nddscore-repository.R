@@ -309,7 +309,11 @@ nddscore_repo_hpo <- function(
   if (!is.null(filters$search) && nzchar(filters$search)) {
     where <- c(
       where,
-      "(`hgnc_id` = ? OR `phenotype_id` = ? OR UPPER(`gene_symbol`) LIKE UPPER(?) OR UPPER(`phenotype_name`) LIKE UPPER(?))"
+      paste(
+        "(`hgnc_id` = ? OR `phenotype_id` = ?",
+        "OR UPPER(`gene_symbol`) LIKE UPPER(?)",
+        "OR UPPER(`phenotype_name`) LIKE UPPER(?))"
+      )
     )
     params <- c(
       params,
