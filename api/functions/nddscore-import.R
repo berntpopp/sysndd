@@ -375,3 +375,284 @@ nddscore_validate <- function(release, frames) {
 
   list(ok = length(messages) == 0, messages = messages)
 }
+
+# NDDScore DB-write helpers -------------------------------------------------
+
+.NDDSCORE_IMPORT_LOCK <- "nddscore_import"
+
+.nddscore_scalar <- function(x, default = NA) {
+  if (is.null(x) || length(x) == 0) {
+    return(default)
+  }
+  x[[1]]
+}
+
+.nddscore_datetime <- function(x) {
+  x <- .nddscore_scalar(x)
+  if (is.null(x) || is.na(x) || !nzchar(as.character(x))) {
+    return(NA)
+  }
+  sub("T", " ", as.character(x), fixed = TRUE)
+}
+
+.nddscore_bind_execute <- function(conn, sql, params = list()) {
+  DBI::dbExecute(conn, sql, params = unname(params))
+}
+
+nddscore_try_acquire_import_lock <- function(conn) {
+  result <- DBI::dbGetQuery(
+    conn,
+    "SELECT GET_LOCK(?, 0) AS acquired",
+    params = unname(list(.NDDSCORE_IMPORT_LOCK))
+  )
+  identical(as.integer(result$acquired[[1]]), 1L)
+}
+
+nddscore_acquire_import_lock <- function(conn) {
+  result <- DBI::dbGetQuery(
+    conn,
+    "SELECT GET_LOCK(?, 30) AS acquired",
+    params = unname(list(.NDDSCORE_IMPORT_LOCK))
+  )
+  if (!identical(as.integer(result$acquired[[1]]), 1L)) {
+    stop("Could not acquire NDDScore import lock", call. = FALSE)
+  }
+  TRUE
+}
+
+nddscore_release_import_lock <- function(conn) {
+  result <- DBI::dbGetQuery(
+    conn,
+    "SELECT RELEASE_LOCK(?) AS released",
+    params = unname(list(.NDDSCORE_IMPORT_LOCK))
+  )
+  identical(as.integer(result$released[[1]]), 1L)
+}
+
+nddscore_release_exists <- function(conn, release_id) {
+  row <- DBI::dbGetQuery(
+    conn,
+    paste(
+      "SELECT release_id, is_active, import_status",
+      "FROM nddscore_release",
+      "WHERE release_id = ?",
+      sep = " "
+    ),
+    params = unname(list(release_id))
+  )
+  if (nrow(row) == 0) {
+    return(list(exists = FALSE, is_active = FALSE, import_status = NULL))
+  }
+  list(
+    exists = TRUE,
+    is_active = identical(as.integer(row$is_active[[1]]), 1L),
+    import_status = as.character(row$import_status[[1]])
+  )
+}
+
+nddscore_upsert_release_row <- function(
+    conn,
+    release,
+    import_job_id,
+    imported_by = NULL,
+    source = list(),
+    import_status = "importing") {
+  sql <- paste(
+    "INSERT INTO nddscore_release (",
+    "release_id, score_schema_version, version, release_created_at,",
+    "n_genes, n_hpo_predictions, n_hpo_terms, n_features, hpo_threshold,",
+    "calibration_method, ndd_model_created_at, phenotype_model_created_at,",
+    "inheritance_model_created_at, ndd_performance_json,",
+    "phenotype_performance_json, inheritance_performance_json,",
+    "data_versions_json, artifact_hashes_json, zenodo_record_url,",
+    "version_doi, concept_doi, source_record_id, source_archive_name,",
+    "source_archive_checksum, source_archive_bytes, is_active, import_status,",
+    "imported_by, import_job_id, import_started_at, last_error_message",
+    ") VALUES (",
+    paste(rep("?", 31), collapse = ", "),
+    ") ON DUPLICATE KEY UPDATE",
+    "score_schema_version = VALUES(score_schema_version),",
+    "version = VALUES(version),",
+    "release_created_at = VALUES(release_created_at),",
+    "n_genes = VALUES(n_genes),",
+    "n_hpo_predictions = VALUES(n_hpo_predictions),",
+    "n_hpo_terms = VALUES(n_hpo_terms),",
+    "n_features = VALUES(n_features),",
+    "hpo_threshold = VALUES(hpo_threshold),",
+    "calibration_method = VALUES(calibration_method),",
+    "ndd_model_created_at = VALUES(ndd_model_created_at),",
+    "phenotype_model_created_at = VALUES(phenotype_model_created_at),",
+    "inheritance_model_created_at = VALUES(inheritance_model_created_at),",
+    "ndd_performance_json = VALUES(ndd_performance_json),",
+    "phenotype_performance_json = VALUES(phenotype_performance_json),",
+    "inheritance_performance_json = VALUES(inheritance_performance_json),",
+    "data_versions_json = VALUES(data_versions_json),",
+    "artifact_hashes_json = VALUES(artifact_hashes_json),",
+    "zenodo_record_url = VALUES(zenodo_record_url),",
+    "version_doi = VALUES(version_doi),",
+    "concept_doi = VALUES(concept_doi),",
+    "source_record_id = VALUES(source_record_id),",
+    "source_archive_name = VALUES(source_archive_name),",
+    "source_archive_checksum = VALUES(source_archive_checksum),",
+    "source_archive_bytes = VALUES(source_archive_bytes),",
+    "is_active = 0,",
+    "import_status = VALUES(import_status),",
+    "imported_by = VALUES(imported_by),",
+    "import_job_id = VALUES(import_job_id),",
+    "import_started_at = VALUES(import_started_at),",
+    "import_completed_at = NULL,",
+    "activated_at = NULL,",
+    "last_error_message = NULL",
+    sep = " "
+  )
+
+  params <- list(
+    .nddscore_scalar(release$release_id),
+    .nddscore_scalar(release$score_schema_version),
+    .nddscore_scalar(release$version),
+    .nddscore_datetime(release$release_created_at %||% release$created_at),
+    as.integer(.nddscore_scalar(release$n_genes)),
+    as.integer(.nddscore_scalar(release$n_hpo_predictions)),
+    as.integer(.nddscore_scalar(release$n_hpo_terms)),
+    as.integer(.nddscore_scalar(release$n_features)),
+    as.numeric(.nddscore_scalar(release$hpo_threshold)),
+    .nddscore_scalar(release$calibration_method),
+    .nddscore_scalar(release$ndd_model_created_at),
+    .nddscore_scalar(release$phenotype_model_created_at),
+    .nddscore_scalar(release$inheritance_model_created_at),
+    .nddscore_scalar(release$ndd_performance_json),
+    .nddscore_scalar(release$phenotype_performance_json),
+    .nddscore_scalar(release$inheritance_performance_json),
+    .nddscore_scalar(release$data_versions_json),
+    .nddscore_scalar(release$artifact_hashes_json),
+    .nddscore_scalar(source$record_url),
+    .nddscore_scalar(source$version_doi),
+    .nddscore_scalar(source$concept_doi),
+    .nddscore_scalar(source$record_id),
+    .nddscore_scalar(source$archive_name),
+    .nddscore_scalar(source$archive_md5),
+    as.numeric(.nddscore_scalar(source$archive_bytes)),
+    0L,
+    import_status,
+    imported_by %||% NA,
+    import_job_id,
+    format(Sys.time(), "%Y-%m-%d %H:%M:%OS6"),
+    NA
+  )
+  .nddscore_bind_execute(conn, sql, params)
+  invisible(TRUE)
+}
+
+nddscore_insert_predictions <- function(conn, release_id, frames) {
+  .nddscore_bind_execute(
+    conn,
+    "DELETE FROM nddscore_hpo_prediction WHERE release_id = ?",
+    list(release_id)
+  )
+  .nddscore_bind_execute(
+    conn,
+    "DELETE FROM nddscore_gene_prediction WHERE release_id = ?",
+    list(release_id)
+  )
+  .nddscore_bind_execute(
+    conn,
+    "DELETE FROM nddscore_hpo_term WHERE release_id = ?",
+    list(release_id)
+  )
+
+  DBI::dbAppendTable(
+    conn,
+    "nddscore_gene_prediction",
+    as.data.frame(frames$gene[.nddscore_required_columns$gene])
+  )
+  DBI::dbAppendTable(
+    conn,
+    "nddscore_hpo_term",
+    as.data.frame(frames$term[.nddscore_required_columns$term])
+  )
+  DBI::dbAppendTable(
+    conn,
+    "nddscore_hpo_prediction",
+    as.data.frame(frames$hpo[.nddscore_required_columns$hpo])
+  )
+  invisible(TRUE)
+}
+
+nddscore_count_release_rows <- function(conn, release_id) {
+  count_one <- function(table) {
+    sql <- sprintf("SELECT COUNT(*) AS n FROM %s WHERE release_id = ?", table)
+    result <- DBI::dbGetQuery(conn, sql, params = unname(list(release_id)))
+    as.integer(result$n[[1]])
+  }
+  list(
+    gene = count_one("nddscore_gene_prediction"),
+    hpo = count_one("nddscore_hpo_prediction"),
+    term = count_one("nddscore_hpo_term")
+  )
+}
+
+nddscore_mark_release_validated <- function(conn, release_id) {
+  .nddscore_bind_execute(
+    conn,
+    paste(
+      "UPDATE nddscore_release",
+      "SET import_status = 'validated',",
+      "import_completed_at = CURRENT_TIMESTAMP(6),",
+      "last_error_message = NULL",
+      "WHERE release_id = ?"
+    ),
+    list(release_id)
+  )
+  invisible(TRUE)
+}
+
+nddscore_activate_release <- function(conn, release_id) {
+  DBI::dbWithTransaction(conn, {
+    .nddscore_bind_execute(
+      conn,
+      paste(
+        "UPDATE nddscore_release",
+        "SET is_active = 0, import_status = 'superseded'",
+        "WHERE is_active = 1 AND release_id <> ?"
+      ),
+      list(release_id)
+    )
+    .nddscore_bind_execute(
+      conn,
+      paste(
+        "UPDATE nddscore_release",
+        "SET is_active = 1, import_status = 'active',",
+        "activated_at = CURRENT_TIMESTAMP(6),",
+        "import_completed_at = COALESCE(import_completed_at, CURRENT_TIMESTAMP(6)),",
+        "last_error_message = NULL",
+        "WHERE release_id = ?"
+      ),
+      list(release_id)
+    )
+  })
+  invisible(TRUE)
+}
+
+nddscore_mark_release_failed <- function(conn, release_id, message) {
+  .nddscore_bind_execute(
+    conn,
+    paste(
+      "UPDATE nddscore_release",
+      "SET is_active = 0, import_status = 'failed',",
+      "import_completed_at = CURRENT_TIMESTAMP(6),",
+      "last_error_message = ?",
+      "WHERE release_id = ?"
+    ),
+    list(message, release_id)
+  )
+  invisible(TRUE)
+}
+
+nddscore_delete_inactive_release <- function(conn, release_id) {
+  .nddscore_bind_execute(
+    conn,
+    "DELETE FROM nddscore_release WHERE release_id = ? AND is_active = 0",
+    list(release_id)
+  )
+  invisible(TRUE)
+}
