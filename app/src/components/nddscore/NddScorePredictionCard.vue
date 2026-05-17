@@ -15,7 +15,7 @@
     <div class="ndd-score-card__body">
       <p class="ndd-score-card__disclaimer">
         NDDScore is a model-derived prediction layer. It is not curated SysNDD evidence, not a
-        manual review, and not an evidence-tier assignment.
+        SysNDD curation decision, and not part of curated classification.
       </p>
 
       <dl v-if="metrics.length" class="ndd-score-card__metrics">

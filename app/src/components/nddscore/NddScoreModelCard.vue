@@ -73,7 +73,7 @@
       <p class="nddscore-model-card__intended-use">
         NDDScore is a prioritization signal for model-derived review and discovery workflows. A high
         score is not proof of causality, is separate from curated SysNDD evidence, and is not an
-        evidence tier.
+        curated classification.
       </p>
     </template>
   </section>

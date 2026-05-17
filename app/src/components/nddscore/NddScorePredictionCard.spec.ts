@@ -22,7 +22,7 @@ describe('NddScorePredictionCard', () => {
     const text = wrapper.text();
     expect(text).toContain('model-derived prediction layer');
     expect(text).toContain('not curated SysNDD evidence');
-    expect(text).toContain('not an evidence-tier assignment');
+    expect(text).toContain('not part of curated classification');
   });
 
   it('renders the performance strip and release identity', () => {
