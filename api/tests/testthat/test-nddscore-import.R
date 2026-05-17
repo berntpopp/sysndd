@@ -167,3 +167,50 @@ describe("nddscore_load_tsvs", {
     expect_true("probability" %in% names(frames$hpo))
   })
 })
+
+describe("nddscore_validate", {
+  load_fixture <- function() {
+    rel_dir <- nddscore_extract_and_verify(fixture_archive())
+    list(release = nddscore_parse_release_json(rel_dir),
+         frames = nddscore_load_tsvs(rel_dir))
+  }
+
+  it("passes for the valid fixture", {
+    fx <- load_fixture()
+    result <- nddscore_validate(fx$release, fx$frames)
+    expect_true(result$ok)
+    expect_length(result$messages, 0)
+  })
+
+  it("fails when a gene row count disagrees with n_genes", {
+    fx <- load_fixture()
+    fx$frames$gene <- fx$frames$gene[1, ]
+    result <- nddscore_validate(fx$release, fx$frames)
+    expect_false(result$ok)
+    expect_true(any(grepl("n_genes|gene row count", result$messages)))
+  })
+
+  it("fails when a required column is missing", {
+    fx <- load_fixture()
+    fx$frames$gene$ndd_score <- NULL
+    result <- nddscore_validate(fx$release, fx$frames)
+    expect_false(result$ok)
+    expect_true(any(grepl("ndd_score", result$messages)))
+  })
+
+  it("fails on an orphan HPO prediction row", {
+    fx <- load_fixture()
+    fx$frames$hpo$hgnc_id[1] <- "HGNC:0000000"
+    result <- nddscore_validate(fx$release, fx$frames)
+    expect_false(result$ok)
+    expect_true(any(grepl("orphan|HGNC:0000000", result$messages)))
+  })
+
+  it("fails on invalid JSON in a JSON column", {
+    fx <- load_fixture()
+    fx$frames$gene$called_inheritance_modes[1] <- "{not json"
+    result <- nddscore_validate(fx$release, fx$frames)
+    expect_false(result$ok)
+    expect_true(any(grepl("JSON|called_inheritance_modes", result$messages)))
+  })
+})

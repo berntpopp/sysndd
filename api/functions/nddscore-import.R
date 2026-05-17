@@ -208,3 +208,170 @@ nddscore_load_tsvs <- function(dir) {
     )
   )
 }
+
+.nddscore_required_columns <- list(
+  gene = c(
+    "release_id", "hgnc_id", "gene_symbol", "ensembl_gene_id", "ndd_score",
+    "ndd_score_std", "ndd_score_iqr", "bag_agreement", "rank", "percentile",
+    "risk_tier", "confidence_tier", "known_sysndd_gene", "model_split",
+    "inheritance_ad_probability", "inheritance_ar_probability",
+    "inheritance_xld_probability", "inheritance_xlr_probability",
+    "top_inheritance_mode", "called_inheritance_modes", "n_predicted_hpo",
+    "top_hpo_predictions_json", "shap_clinical", "shap_constraint",
+    "shap_expression", "shap_network", "shap_conservation", "shap_other",
+    "dominant_shap_group", "top_features_json", "prediction_note"
+  ),
+  hpo = c(
+    "release_id", "hgnc_id", "gene_symbol", "phenotype_id",
+    "phenotype_name", "probability", "rank_for_gene",
+    "passes_default_threshold", "term_auc_roc", "term_auc_pr",
+    "term_training_support"
+  ),
+  term = c(
+    "release_id", "phenotype_id", "phenotype_name", "term_auc_roc",
+    "term_auc_pr", "term_training_support"
+  )
+)
+
+.nddscore_frame_json_columns <- list(
+  gene = c(
+    "called_inheritance_modes", "top_hpo_predictions_json",
+    "top_features_json"
+  )
+)
+
+.nddscore_release_json_columns <- c(
+  "ndd_performance_json", "phenotype_performance_json",
+  "inheritance_performance_json", "data_versions_json",
+  "artifact_hashes_json"
+)
+
+#' Validate NDDScore release metadata and loaded TSV frames.
+#'
+#' @return list(ok = TRUE/FALSE, messages = character()) without stopping.
+nddscore_validate <- function(release, frames) {
+  messages <- character(0)
+
+  add_message <- function(message) {
+    messages <<- c(messages, message)
+  }
+
+  frame_names <- names(.nddscore_required_columns)
+  for (frame_name in frame_names) {
+    frame <- frames[[frame_name]]
+    if (is.null(frame) || !is.data.frame(frame)) {
+      add_message(sprintf("Missing %s frame", frame_name))
+      next
+    }
+
+    missing_columns <- setdiff(
+      .nddscore_required_columns[[frame_name]],
+      names(frame)
+    )
+    if (length(missing_columns) > 0) {
+      add_message(sprintf(
+        "%s frame is missing required columns: %s",
+        frame_name,
+        paste(missing_columns, collapse = ", ")
+      ))
+    }
+  }
+
+  row_count_checks <- list(
+    gene = "n_genes",
+    hpo = "n_hpo_predictions",
+    term = "n_hpo_terms"
+  )
+  for (frame_name in names(row_count_checks)) {
+    count_field <- row_count_checks[[frame_name]]
+    frame <- frames[[frame_name]]
+    expected <- release[[count_field]]
+    if (is.null(frame) || !is.data.frame(frame)) {
+      next
+    }
+    if (is.null(expected)) {
+      add_message(sprintf("Release metadata is missing %s", count_field))
+      next
+    }
+
+    expected <- suppressWarnings(as.integer(expected[[1]]))
+    actual <- nrow(frame)
+    if (is.na(expected) || !identical(actual, expected)) {
+      add_message(sprintf(
+        "%s row count %s does not match %s %s",
+        frame_name,
+        actual,
+        count_field,
+        as.character(release[[count_field]][[1]])
+      ))
+    }
+  }
+
+  for (column in .nddscore_release_json_columns) {
+    if (is.null(release[[column]])) {
+      next
+    }
+
+    values <- as.character(release[[column]])
+    invalid <- !vapply(values, jsonlite::validate, logical(1))
+    if (any(invalid)) {
+      add_message(sprintf("Release JSON column %s contains invalid JSON", column))
+    }
+  }
+
+  for (frame_name in names(.nddscore_frame_json_columns)) {
+    frame <- frames[[frame_name]]
+    if (is.null(frame) || !is.data.frame(frame)) {
+      next
+    }
+
+    for (column in .nddscore_frame_json_columns[[frame_name]]) {
+      if (!column %in% names(frame)) {
+        next
+      }
+
+      values <- as.character(frame[[column]])
+      invalid <- !vapply(values, jsonlite::validate, logical(1))
+      if (any(invalid)) {
+        add_message(sprintf(
+          "%s JSON column %s contains invalid JSON",
+          frame_name,
+          column
+        ))
+      }
+    }
+  }
+
+  gene <- frames$gene
+  hpo <- frames$hpo
+  term <- frames$term
+  if (is.data.frame(gene) && is.data.frame(hpo) &&
+      all(c("hgnc_id") %in% names(gene)) &&
+      all(c("hgnc_id") %in% names(hpo))) {
+    orphan_hgnc <- unique(hpo$hgnc_id[!hpo$hgnc_id %in% gene$hgnc_id])
+    orphan_hgnc <- orphan_hgnc[!is.na(orphan_hgnc)]
+    if (length(orphan_hgnc) > 0) {
+      add_message(sprintf(
+        "HPO prediction orphan hgnc_id values not present in gene frame: %s",
+        paste(orphan_hgnc, collapse = ", ")
+      ))
+    }
+  }
+
+  if (is.data.frame(term) && is.data.frame(hpo) &&
+      all(c("phenotype_id") %in% names(term)) &&
+      all(c("phenotype_id") %in% names(hpo))) {
+    orphan_terms <- unique(
+      hpo$phenotype_id[!hpo$phenotype_id %in% term$phenotype_id]
+    )
+    orphan_terms <- orphan_terms[!is.na(orphan_terms)]
+    if (length(orphan_terms) > 0) {
+      add_message(sprintf(
+        "HPO prediction orphan phenotype_id values not present in term frame: %s",
+        paste(orphan_terms, collapse = ", ")
+      ))
+    }
+  }
+
+  list(ok = length(messages) == 0, messages = messages)
+}
