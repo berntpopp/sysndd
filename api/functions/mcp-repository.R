@@ -271,7 +271,8 @@ mcp_repo_get_entity_publications <- function(entity_id, limit = 10L) {
   db_execute_query(
     "
       SELECT rpj.entity_id, p.publication_id, p.Title, p.Journal,
-             p.Publication_date, p.Lastname, p.Firstname, p.Abstract,
+             p.Publication_date, p.publication_date_source, p.Lastname,
+             p.Firstname, p.Abstract,
              rpj.publication_type, er.review_date AS curation_review_date
       FROM ndd_entity_view ev
       JOIN ndd_entity_review er
@@ -294,7 +295,7 @@ mcp_repo_get_publication_context <- function(publication_id) {
   db_execute_query(
     "
       SELECT p.publication_id, p.Title, p.Abstract, p.Journal, p.Publication_date,
-             p.Lastname, p.Firstname, p.Keywords,
+             p.publication_date_source, p.Lastname, p.Firstname, p.Keywords,
              ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_name,
              ev.category, er.review_date AS curation_review_date
       FROM publication p

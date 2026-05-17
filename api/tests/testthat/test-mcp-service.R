@@ -33,7 +33,7 @@ test_that("get_gene_context shapes compact public gene payloads", {
 
   result <- mcp_get_gene_context("MECP2")
 
-  expect_equal(result$schema_version, "1.0")
+  expect_equal(result$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(result$gene$symbol, "MECP2")
   expect_true(result$entities[[1]]$synopsis_truncated)
   expect_lte(nchar(result$entities[[1]]$synopsis_excerpt), 1500)
@@ -115,7 +115,7 @@ test_that("MCP error payloads are JSON-serializable without condition internals"
 
   payload <- mcp_error_payload(err)
 
-  expect_equal(payload$schema_version, "1.0")
+  expect_equal(payload$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(payload$error$code, "temporarily_unavailable")
   expect_false(inherits(payload$error$cause, "condition"))
   expect_no_error(jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null"))
@@ -202,6 +202,7 @@ test_that("publication context includes citation, availability, and date semanti
       Abstract = NA_character_,
       Journal = "Am J Med Genet A",
       Publication_date = as.Date("2021-08-01"),
+      publication_date_source = "pubmed",
       Lastname = "Gogoll",
       Firstname = "L",
       Keywords = "NAA10",
@@ -217,16 +218,15 @@ test_that("publication context includes citation, availability, and date semanti
 
   result <- mcp_get_publication_context("37130971")
 
-  expect_equal(result$pubmed_publication_date, "2021-08-01")
+  expect_equal(result$publication_date_sysndd_record, "2021-08-01")
   expect_null(result$publication_date)
   expect_false(result$abstract_available)
-  expect_equal(result$abstract_excerpt, "")
+  expect_null(result$abstract_excerpt)
   expect_match(result$recommended_citation, "Gogoll")
   expect_match(result$recommended_citation, "Am J Med Genet A")
   expect_match(result$recommended_citation, "PMID:37130971")
   expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
-  expect_false(result$pubmed_publication_date_matches_curation_date)
-  expect_equal(result$pubmed_publication_date_confidence, "publication_table")
+  expect_equal(result$publication_date_confidence, "pubmed_verified")
 
   metadata <- mcp_get_publication_context("37130971", abstract_mode = "metadata")
   expect_false(metadata$abstract_available)
@@ -394,39 +394,7 @@ test_that("get_gene_context expand respects the batch detail cap instead of erro
   expect_equal(result$entity_details$meta$requested, 20L)
 })
 
-test_that("publication context flags dates that mirror curation dates", {
-  source("../../functions/mcp-repository.R")
-  source("../../services/mcp-service.R")
-
-  old_publication <- mcp_repo_get_publication_context
-  assign("mcp_repo_get_publication_context", function(publication_id) {
-    tibble::tibble(
-      publication_id = publication_id,
-      Title = "Paper",
-      Abstract = "Abstract",
-      Journal = "Journal",
-      Publication_date = as.Date("2023-04-12"),
-      Lastname = "Smith",
-      Firstname = "A",
-      Keywords = "",
-      entity_id = 451L,
-      symbol = "NAA10",
-      hgnc_id = "18704",
-      disease_ontology_name = "NAA10-related syndrome",
-      category = "Definitive",
-      curation_review_date = as.Date("2023-04-12")
-    )
-  }, envir = .GlobalEnv)
-  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
-
-  result <- mcp_get_publication_context("PMID:1")
-
-  expect_true(result$pubmed_publication_date_matches_curation_date)
-  expect_equal(result$pubmed_publication_date_confidence, "low")
-  expect_match(result$date_notes$pubmed_publication_date, "matches", fixed = TRUE)
-})
-
-test_that("publication context date confidence considers all linked curation dates", {
+test_that("publication context treats missing PubMed provenance as unverified", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
 
@@ -438,6 +406,7 @@ test_that("publication context date confidence considers all linked curation dat
       Abstract = "Abstract",
       Journal = "Journal",
       Publication_date = as.Date("2024-02-01"),
+      publication_date_source = NA_character_,
       Lastname = "Smith",
       Firstname = "A",
       Keywords = "",
@@ -453,8 +422,8 @@ test_that("publication context date confidence considers all linked curation dat
 
   result <- mcp_get_publication_context("PMID:1")
 
-  expect_true(result$pubmed_publication_date_matches_curation_date)
-  expect_equal(result$pubmed_publication_date_confidence, "low")
+  expect_equal(result$publication_date_confidence, "unverified")
+  expect_match(result$date_notes$publication_date_sysndd_record, "provenance not yet verified", fixed = TRUE)
 })
 
 test_that("batch publication context preserves request order and returns per-PMID errors", {
@@ -487,7 +456,7 @@ test_that("batch publication context preserves request order and returns per-PMI
 
   result <- mcp_get_publications_context(c("PMID:123", "999", "PMID:123"))
 
-  expect_equal(result$schema_version, "1.0")
+  expect_equal(result$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(result$meta$requested, 3L)
   expect_equal(result$meta$returned, 2L)
   expect_equal(result$publications[[1]]$publication_id, "PMID:123")
@@ -727,7 +696,7 @@ test_that("SysNDD MCP capabilities summarize workflows, modes, limits, errors, r
 
   result <- mcp_get_sysndd_capabilities()
 
-  expect_equal(result$schema_version, "1.0")
+  expect_equal(result$schema_version, MCP_SCHEMA_VERSION)
   expect_true("search_sysndd" %in% result$canonical_workflows$gene_summary)
   expect_true("compact" %in% result$payload_modes$response_mode)
   expect_true("none" %in% result$payload_modes$abstract_mode)
@@ -739,4 +708,78 @@ test_that("SysNDD MCP capabilities summarize workflows, modes, limits, errors, r
   expect_true("invalid_input" %in% result$error_codes)
   expect_match(result$resources$static[[1]], "sysndd://schema", fixed = TRUE)
   expect_match(result$safety$scope, "read-only", ignore.case = TRUE)
+})
+
+test_that("mcp_publication_date_quality uses the stored provenance column", {
+  verified <- mcp_publication_date_quality("2013-06-08", curation_dates = NULL,
+                                           date_source = "pubmed")
+  expect_equal(verified$confidence, "pubmed_verified")
+
+  partial <- mcp_publication_date_quality("2017-01-01", curation_dates = NULL,
+                                          date_source = "pubmed_partial")
+  expect_equal(partial$confidence, "pubmed_partial")
+
+  no_source <- mcp_publication_date_quality("2024-12-08",
+                                            curation_dates = "2024-12-08",
+                                            date_source = NULL)
+  expect_equal(no_source$confidence, "unverified")
+
+  fallback <- mcp_publication_date_quality("2019-05-01", curation_dates = NULL,
+                                           date_source = NULL)
+  expect_equal(fallback$confidence, "unverified")
+})
+
+test_that("mcp_publication_record renames the date field and guards the citation", {
+  pub <- list(
+    publication_id = "PMID:1", Title = "T", Journal = "J",
+    Publication_date = "2024-12-08", curation_review_date = "2024-12-08",
+    Lastname = "Doe", publication_type = "original",
+    publication_date_source = NA, Abstract = "A"
+  )
+  rec <- mcp_publication_record(pub, abstract_mode = "metadata")
+  expect_true("publication_date_sysndd_record" %in% names(rec))
+  expect_false("pubmed_publication_date" %in% names(rec))
+  expect_equal(rec$publication_date_confidence, "unverified")
+  expect_match(rec$recommended_citation, "publication date unverified")
+})
+
+test_that("mcp_get_genes_context batches genes with per-gene errors", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_resolve <- mcp_repo_resolve_gene
+  old_entities <- mcp_repo_get_gene_entities
+  old_count <- mcp_repo_count_gene_entities
+  old_comparisons <- mcp_repo_get_gene_comparisons
+  assign("mcp_repo_resolve_gene", function(normalized_gene) {
+    if (identical(normalized_gene$value, "DEFINITELY-NOT-A-GENE")) {
+      return(tibble::tibble())
+    }
+    tibble::tibble(hgnc_id = "HGNC:9154", symbol = "PNKP", name = "PNKP")
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_entities", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_count_gene_entities", function(...) 0L, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_comparisons", function(...) tibble::tibble(), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_resolve_gene", old_resolve, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_entities", old_entities, envir = .GlobalEnv)
+    assign("mcp_repo_count_gene_entities", old_count, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_comparisons", old_comparisons, envir = .GlobalEnv)
+  })
+
+  res <- mcp_get_genes_context(genes = list("PNKP", "definitely-not-a-gene"))
+  expect_equal(res$schema_version, MCP_SCHEMA_VERSION)
+  expect_length(res$genes, 2L)
+  expect_equal(res$meta$requested, 2L)
+  expect_equal(res$meta$returned, 1L)
+  expect_equal(res$meta$errors, 1L)
+  expect_null(res$genes[[1]]$error)
+  expect_false(is.null(res$genes[[2]]$error))
+})
+
+test_that("mcp_get_genes_context rejects an over-cap batch", {
+  source("../../services/mcp-service.R")
+
+  too_many <- as.list(sprintf("GENE%d", seq_len(11)))
+  expect_error(mcp_get_genes_context(genes = too_many), class = "mcp_tool_error")
 })

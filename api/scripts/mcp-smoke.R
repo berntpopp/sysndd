@@ -52,7 +52,7 @@ if (is.null(init$result$capabilities$resources)) {
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
+required_tools <- c("search_sysndd", "get_gene_context", "get_genes_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))
@@ -104,6 +104,10 @@ if (is.null(gene_tool$inputSchema$properties$expand)) {
 if (!grepl("default true", gene_tool$inputSchema$properties$include_entities$description %||% "", ignore.case = TRUE)) {
   stop("get_gene_context include_entities description is missing default")
 }
+gene_batch_tool <- tool_by_name("get_genes_context")
+if (is.null(gene_batch_tool$inputSchema$properties$genes)) {
+  stop("get_genes_context schema is missing genes")
+}
 entity_batch_tool <- tool_by_name("get_entities_context")
 if (is.null(entity_batch_tool$inputSchema$properties$dedupe_publications)) {
   stop("get_entities_context schema is missing dedupe_publications")
@@ -135,13 +139,18 @@ if (identical(overview_text, tool_guide_text) || grepl("schema/tool-guide", over
 prompts <- rpc("prompts/list", id = 42L)
 if (!is.null(prompts$error)) stop("MCP prompts/list failed: ", prompts$error$message)
 prompt_names <- vapply(prompts$result$prompts %||% list(), function(x) x$name %||% "", character(1))
-if (!"sysndd_gene_evidence_summary" %in% prompt_names) {
-  stop("MCP prompts/list missing sysndd_gene_evidence_summary")
-}
-prompt <- rpc("prompts/get", list(name = "sysndd_gene_evidence_summary", arguments = list(gene = "NAA10")), id = 43L)
-if (!is.null(prompt$error)) stop("MCP prompts/get failed: ", prompt$error$message)
-if (!grepl("recommended_citation", prompt$result$messages[[1]]$content$text %||% "", fixed = TRUE)) {
-  stop("MCP prompt did not include citation guidance")
+prompts_enabled <- tolower(Sys.getenv("MCP_ENABLE_PROMPTS", "false")) %in% c("1", "true", "yes", "on")
+if (prompts_enabled) {
+  if (!"sysndd_gene_evidence_summary" %in% prompt_names) {
+    stop("MCP prompts/list missing sysndd_gene_evidence_summary")
+  }
+  prompt <- rpc("prompts/get", list(name = "sysndd_gene_evidence_summary", arguments = list(gene = "NAA10")), id = 43L)
+  if (!is.null(prompt$error)) stop("MCP prompts/get failed: ", prompt$error$message)
+  if (!grepl("recommended_citation", prompt$result$messages[[1]]$content$text %||% "", fixed = TRUE)) {
+    stop("MCP prompt did not include citation guidance")
+  }
+} else if (length(prompt_names) > 0L) {
+  stop("MCP prompts are disabled by default but prompts/list returned prompts")
 }
 
 call_tool <- function(name, arguments, id) {
@@ -183,16 +192,25 @@ if (!identical(category_payload$error$code, "invalid_input") || !identical(categ
 
 symbol_alias <- call_tool("get_gene_context", list(symbol = "NAA10", entity_limit = 1L), id = 7L)
 if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ", symbol_alias$error$message)
+if (!isTRUE(symbol_alias$result$isError)) stop("symbol alias did not return a tool error result")
 symbol_payload <- jsonlite::fromJSON(symbol_alias$result$content[[1]]$text, simplifyVector = FALSE)
-if (!identical(symbol_payload$gene$symbol, "NAA10")) {
-  stop("get_gene_context symbol alias did not resolve NAA10")
+if (!identical(symbol_payload$error$code, "invalid_input") || !identical(symbol_payload$error$argument, "symbol")) {
+  stop("symbol alias did not return invalid_input for symbol")
 }
 
 query_alias <- call_tool("get_gene_context", list(query = "NAA10", entity_limit = 1L), id = 8L)
 if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", query_alias$error$message)
+if (!isTRUE(query_alias$result$isError)) stop("query alias did not return a tool error result")
 query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
-if (!identical(query_payload$gene$symbol, "NAA10")) {
-  stop("get_gene_context query alias did not resolve NAA10")
+if (!identical(query_payload$error$code, "invalid_input") || !identical(query_payload$error$argument, "query")) {
+  stop("query alias did not return invalid_input for query")
+}
+
+gene_batch <- call_tool("get_genes_context", list(genes = list("PNKP")), id = 80L)
+if (!is.null(gene_batch$error)) stop("get_genes_context returned JSON-RPC error: ", gene_batch$error$message)
+gene_batch_payload <- jsonlite::fromJSON(gene_batch$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(gene_batch_payload$meta$requested, 1L)) {
+  stop("get_genes_context did not report the requested gene count")
 }
 
 cheap_gene <- call_tool(

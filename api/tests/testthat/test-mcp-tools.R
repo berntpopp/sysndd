@@ -10,6 +10,7 @@ test_that("MCP registry exposes only approved SysNDD tools", {
   expect_setequal(tool_names, c(
     "search_sysndd",
     "get_gene_context",
+    "get_genes_context",
     "get_entity_context",
     "get_entities_context",
     "list_gene_entities",
@@ -23,6 +24,18 @@ test_that("MCP registry exposes only approved SysNDD tools", {
   expect_false(any(grepl("session|code|sql|admin|review|job|log|user", tool_names, ignore.case = TRUE)))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/overview"), logical(1))))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/tool-guide"), logical(1))))
+})
+
+test_that("get_genes_context is registered in the tool registry", {
+  skip_if_not_installed("ellmer")
+
+  source("../../services/mcp-service.R")
+  source("../../services/mcp-tools.R")
+
+  registry <- mcp_build_tool_registry()
+  tool_names <- vapply(registry$tools, function(t) t@name, character(1))
+  expect_true("get_genes_context" %in% tool_names)
+  expect_true("get_genes_context" %in% names(registry$tool_functions))
 })
 
 test_that("MCP server instructions describe workflow, resources, errors, and constraints", {
@@ -53,8 +66,20 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
 
   expect_equal(capabilities$serverInfo$name, "SysNDD read-only MCP")
   expect_equal(capabilities$instructions, "SysNDD custom instructions")
-  expect_false(is.null(capabilities$capabilities$prompts))
+  expect_true(is.null(capabilities$capabilities$prompts))
   expect_false(is.null(capabilities$capabilities$resources))
+
+  old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
+  on.exit({
+    if (is.na(old_prompts)) {
+      Sys.unsetenv("MCP_ENABLE_PROMPTS")
+    } else {
+      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+    }
+  }, add = TRUE)
+  Sys.setenv(MCP_ENABLE_PROMPTS = "true")
+  capabilities <- get("capabilities", envir = asNamespace("mcptools"))()
+  expect_false(is.null(capabilities$capabilities$prompts))
 })
 
 test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
@@ -64,7 +89,7 @@ test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
   wrapped <- mcp_tool_safe(function() stop(mcp_error("invalid_input", "Bad input")), output_mode = "json_text")
   parsed <- jsonlite::fromJSON(wrapped(), simplifyVector = FALSE)
 
-  expect_equal(parsed$schema_version, "1.0")
+  expect_equal(parsed$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(parsed$error$code, "invalid_input")
 
   wrapped_condition <- mcp_tool_safe(function() {
@@ -170,7 +195,7 @@ test_that("MCP static resource handlers list and read distinct schema resources"
   expect_equal(missing$error$code, -32002)
 })
 
-test_that("MCP tool wrappers accept common gene aliases and reject unknown parameters visibly", {
+test_that("MCP tool wrappers reject unknown gene aliases visibly", {
   skip_if_not_installed("ellmer")
 
   source("../../functions/mcp-repository.R")
@@ -197,17 +222,17 @@ test_that("MCP tool wrappers accept common gene aliases and reject unknown param
   registry <- mcp_build_tool_registry(output_mode = "json_text")
   tool <- registry$tools[[which(vapply(registry$tools, function(x) x@name, character(1)) == "get_gene_context")]]
 
-  parsed <- jsonlite::fromJSON(tool(symbol = "NAA10"), simplifyVector = FALSE)
+  parsed <- jsonlite::fromJSON(tool(gene = "NAA10"), simplifyVector = FALSE)
   expect_equal(parsed$gene$symbol, "NAA10")
+  expect_false(is.null(parsed$meta$elapsed_ms))
 
-  parsed_query <- jsonlite::fromJSON(tool(query = "NAA10"), simplifyVector = FALSE)
-  expect_equal(parsed_query$gene$symbol, "NAA10")
-
-  hidden_alias_ok <- mcp_tool_call_arg_error(
+  alias_err <- mcp_tool_call_arg_error(
     list(method = "tools/call", params = list(name = "get_gene_context", arguments = list(query = "NAA10"))),
     registry$tools
   )
-  expect_null(hidden_alias_ok)
+  alias_payload <- unclass(alias_err)
+  expect_equal(alias_payload$error$code, "invalid_input")
+  expect_equal(alias_payload$error$argument, "query")
 
   err <- mcp_tool_call_arg_error(
     list(method = "tools/call", params = list(name = "get_gene_context", arguments = list(foo = "NAA10"))),
@@ -218,13 +243,26 @@ test_that("MCP tool wrappers accept common gene aliases and reject unknown param
   expect_equal(err_payload$error$argument, "foo")
   expect_false("symbol" %in% err_payload$error$expected_arguments)
   expect_false("query" %in% err_payload$error$expected_arguments)
-  expect_equal(err_payload$error$hint, "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers.")
 })
 
 test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
   source("../../services/mcp-service.R")
   source("../../services/mcp-tools.R")
 
+  old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
+  on.exit({
+    if (is.na(old_prompts)) {
+      Sys.unsetenv("MCP_ENABLE_PROMPTS")
+    } else {
+      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+    }
+  }, add = TRUE)
+
+  Sys.unsetenv("MCP_ENABLE_PROMPTS")
+  disabled <- mcp_handle_prompts_list(0L)
+  expect_length(disabled$result$prompts, 0L)
+
+  Sys.setenv(MCP_ENABLE_PROMPTS = "true")
   listed <- mcp_handle_prompts_list(1L)
   prompt_names <- vapply(listed$result$prompts, `[[`, character(1), "name")
 
@@ -255,4 +293,29 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
   missing_arg <- mcp_handle_prompts_get(4L, "sysndd_gene_evidence_summary", list())
   expect_equal(missing_arg$error$code, -32602)
   expect_equal(missing_arg$error$data$argument, "gene")
+})
+
+test_that("capabilities expose error examples, performance, prompts, categories", {
+  source("../../services/mcp-service.R")
+
+  caps <- mcp_get_sysndd_capabilities()
+  expect_true(!is.null(caps$error_examples$ambiguous_query$error$choices))
+  expect_true(!is.null(caps$performance$get_publication_context$cache_ttl_seconds))
+  expect_true(!is.null(caps$performance$get_publication_context$cost_tier))
+  expect_true(!is.null(caps$mode_resolution))
+  expect_true("not applicable" %in% caps$entity_categories$returned_values)
+  expect_match(caps$canonical_workflows$deferred_tool_hint, "deferred", ignore.case = TRUE)
+  expect_true(!is.null(caps$prompts$note))
+  expect_false(caps$prompts$enabled_by_default)
+  expect_equal(caps$prompts$enable_with, "MCP_ENABLE_PROMPTS=true")
+  expect_true(!is.null(caps$prompts$available_when_enabled[[1]]$arguments))
+  expect_equal(caps$payload_modes$gene_expand_example$response_mode, "minimal")
+})
+
+test_that("capabilities reference get_genes_context", {
+  source("../../services/mcp-service.R")
+
+  caps <- mcp_get_sysndd_capabilities()
+  expect_false(is.null(caps$canonical_workflows$gene_comparison))
+  expect_false(is.null(caps$limits$get_genes_context))
 })

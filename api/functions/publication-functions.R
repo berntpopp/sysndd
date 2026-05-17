@@ -118,6 +118,7 @@ empty_pubmed_article_tibble <- function() {
     year = character(),
     month = character(),
     day = character(),
+    date_source = character(),
     lastname = character(),
     firstname = character(),
     address = character()
@@ -247,6 +248,58 @@ new_publication <- function(publications_received) {
 #'
 #' @return tibble with article information columns
 #' @export
+resolve_pubmed_date <- function(year, month, day, medline_date = NA_character_) {
+  blank <- function(x) {
+    is.null(x) || length(x) == 0L || is.na(x) ||
+      !nzchar(trimws(as.character(x)[1]))
+  }
+  month_to_num <- function(m) {
+    if (blank(m)) return(NA_character_)
+    m <- trimws(as.character(m)[1])
+    if (grepl("^[0-9]{1,2}$", m)) {
+      return(stringr::str_pad(m, 2, "left", pad = "0"))
+    }
+    idx <- match(tolower(substr(m, 1, 3)), tolower(month.abb))
+    if (is.na(idx)) NA_character_ else sprintf("%02d", idx)
+  }
+
+  if (blank(year) && !blank(medline_date)) {
+    yr <- regmatches(medline_date, regexpr("[0-9]{4}", medline_date))
+    if (length(yr) == 1L) {
+      mon_tok <- regmatches(medline_date, regexpr("[A-Za-z]{3,}", medline_date))
+      mon <- if (length(mon_tok) == 1L) month_to_num(mon_tok) else NA_character_
+      return(list(
+        year = yr,
+        month = if (is.na(mon)) "01" else mon,
+        day = "01",
+        date_source = "medline_date"
+      ))
+    }
+  }
+
+  if (blank(year)) {
+    return(list(
+      year = NA_character_, month = NA_character_,
+      day = NA_character_, date_source = "unknown"
+    ))
+  }
+
+  month_norm <- month_to_num(month)
+  day_norm <- if (blank(day) ||
+                  !grepl("^[0-9]{1,2}$", trimws(as.character(day)[1]))) {
+    NA_character_
+  } else {
+    stringr::str_pad(trimws(as.character(day)[1]), 2, "left", pad = "0")
+  }
+  is_partial <- is.na(month_norm) || is.na(day_norm)
+  list(
+    year = trimws(as.character(year)[1]),
+    month = if (is.na(month_norm)) "01" else month_norm,
+    day = if (is.na(day_norm)) "01" else day_norm,
+    date_source = if (is_partial) "pubmed_partial" else "pubmed"
+  )
+}
+
 table_articles_from_xml <- function(pubmed_xml_data) {
   pmid_xml <- read_xml(pubmed_xml_data)
   articles <- xml_find_all(pmid_xml, "//PubmedArticle")
@@ -306,14 +359,20 @@ table_articles_from_xml <- function(pubmed_xml_data) {
       firstname <- collective
     }
 
-    year <- date_part(article, "Year")
-    month <- date_part(article, "Month")
-    day <- date_part(article, "Day")
-    if (is.na(year) || is.na(month) || is.na(day)) {
-      year <- format(Sys.time(), "%Y")
-      month <- format(Sys.time(), "%m")
-      day <- format(Sys.time(), "%d")
-    }
+    medline_date <- text_first(
+      article, ".//Article/Journal/JournalIssue/PubDate/MedlineDate",
+      default = NA_character_
+    )
+    pub_date <- resolve_pubmed_date(
+      date_part(article, "Year"),
+      date_part(article, "Month"),
+      date_part(article, "Day"),
+      medline_date = medline_date
+    )
+    year <- pub_date$year
+    month <- pub_date$month
+    day <- pub_date$day
+    date_source <- pub_date$date_source
 
     mesh <- text_all(article, ".//DescriptorName")
     keyword <- text_all(article, ".//Keyword")
@@ -327,8 +386,9 @@ table_articles_from_xml <- function(pubmed_xml_data) {
       journal = text_first(article, ".//Article/Journal/Title"),
       keywords = str_c(unique(str_squish(c(mesh, keyword))), collapse = "; "),
       year = year,
-      month = str_pad(month, 2, "left", pad = "0"),
-      day = str_pad(day, 2, "left", pad = "0"),
+      month = month,
+      day = day,
+      date_source = date_source,
       lastname = lastname,
       firstname = firstname,
       address = str_c(text_all(article, ".//AuthorList/Author[1]/AffiliationInfo"),
@@ -366,6 +426,7 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
       Title = character(),
       Abstract = character(),
       Publication_date = character(),
+      publication_date_source = character(),
       Journal_abbreviation = character(),
       Journal = character(),
       Keywords = character(),
@@ -387,13 +448,19 @@ info_from_pmid <- function(pmid_value, request_max = 200) {
   input_tibble_request <- parsed_articles %>%
     mutate(publication_id = as.character(pmid)) %>%
     mutate(other_publication_id = paste0("DOI:", doi)) %>%
-    mutate(Publication_date = paste0(year, "-", month, "-", day)) %>%
+    mutate(publication_date_source = date_source) %>%
+    mutate(Publication_date = dplyr::if_else(
+      date_source == "unknown",
+      NA_character_,
+      paste0(year, "-", month, "-", day)
+    )) %>%
     dplyr::select(
       publication_id = pmid,
       other_publication_id,
       Title = title,
       Abstract = abstract,
       Publication_date,
+      publication_date_source,
       Journal_abbreviation = jabbrv,
       Journal = journal,
       Keywords = keywords,

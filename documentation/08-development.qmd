@@ -165,4 +165,8 @@ The bench requires `@axe-core/playwright` (a dev dep). If `npm install` complain
 - On Conda/miniforge R installs, `Makefile` derives `HOST_R_LD_LIBRARY_PATH` from `R RHOME` and prepends the sibling `mariadb/` runtime directory so `RMariaDB` can load. Override `HOST_R_LD_LIBRARY_PATH` when the MariaDB client runtime lives elsewhere.
 - External proxy cache tests should use `memoise_external_success_only()` when adding new cached source fetchers. It keeps successes cached but evicts transient `error = TRUE` payloads immediately so one upstream timeout does not affect local development for days.
 
+### Publication-date provenance
+
+`publication.publication_date_source` records how each `Publication_date` was derived (`pubmed`, `pubmed_partial`, `medline_date`, `unknown`). New ingestions set it automatically. To correct historical rows ingested before this fix, run the one-off backfill: `Rscript db/updates/backfill_publication_dates.R --dry-run --limit=25` for a small rehearsal, `--dry-run` to preview the full run, then `--apply`. It re-fetches PubMed metadata, so it needs network egress. The script is dry-run by default, uses an advisory lock, limits PubMed fallback requests with `NCBI_REQUEST_DELAY_SECONDS`, and commits DB writes in batches controlled by `BACKFILL_UPDATE_BATCH_SIZE`.
+
 For repository-specific agent guidance and deeper runtime quirks, see the root `AGENTS.md`.

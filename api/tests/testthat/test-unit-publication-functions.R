@@ -284,7 +284,7 @@ test_that("table_articles_from_xml pads single-digit month/day", {
   expect_equal(result$day[1], "05")    # Padded to 2 digits
 })
 
-test_that("table_articles_from_xml uses current date when date missing", {
+test_that("table_articles_from_xml reports unknown when date missing", {
   # Create XML without date info but with required author
   xml <- '<?xml version="1.0" encoding="UTF-8"?>
 <PubmedArticleSet>
@@ -318,9 +318,10 @@ test_that("table_articles_from_xml uses current date when date missing", {
 
   result <- table_articles_from_xml(xml)
 
-  # Should use current date
-  current_year <- format(Sys.time(), "%Y")
-  expect_equal(result$year[1], current_year)
+  expect_true(is.na(result$year[1]))
+  expect_true(is.na(result$month[1]))
+  expect_true(is.na(result$day[1]))
+  expect_equal(result$date_source[1], "unknown")
 })
 
 # ============================================================================
@@ -774,6 +775,7 @@ test_that("info_from_pmid reports explicit input PMID when parsed response has N
     year = "2024",
     month = "01",
     day = "01",
+    date_source = "pubmed",
     lastname = "A",
     firstname = "B",
     address = ""
@@ -812,4 +814,37 @@ test_that("info_from_pmid leaves Publication_date as NA when value is NA in the 
   expect_true(is.na(result$Publication_date))
   expect_equal(result$Title, "")
   expect_equal(result$Journal, "")
+})
+
+test_that("resolve_pubmed_date defaults missing day and month, not the year", {
+  full <- resolve_pubmed_date("2013", "06", "08")
+  expect_equal(full$year, "2013")
+  expect_equal(full$month, "06")
+  expect_equal(full$day, "08")
+  expect_equal(full$date_source, "pubmed")
+
+  no_day <- resolve_pubmed_date("2013", "Jun", NA_character_)
+  expect_equal(no_day$year, "2013")
+  expect_equal(no_day$month, "06")
+  expect_equal(no_day$day, "01")
+  expect_equal(no_day$date_source, "pubmed_partial")
+
+  no_month <- resolve_pubmed_date("2017", NA_character_, NA_character_)
+  expect_equal(no_month$year, "2017")
+  expect_equal(no_month$month, "01")
+  expect_equal(no_month$day, "01")
+  expect_equal(no_month$date_source, "pubmed_partial")
+})
+
+test_that("resolve_pubmed_date parses MedlineDate and reports unknown", {
+  medline <- resolve_pubmed_date(NA_character_, NA_character_, NA_character_,
+                                 medline_date = "2013 Jun-Jul")
+  expect_equal(medline$year, "2013")
+  expect_equal(medline$month, "06")
+  expect_equal(medline$day, "01")
+  expect_equal(medline$date_source, "medline_date")
+
+  unknown <- resolve_pubmed_date(NA_character_, NA_character_, NA_character_)
+  expect_true(is.na(unknown$year))
+  expect_equal(unknown$date_source, "unknown")
 })
