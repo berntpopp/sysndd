@@ -767,12 +767,6 @@ export default {
   border-bottom: 1px solid #e9ecef;
 }
 
-:deep(.entities-table thead tr:first-child input),
-:deep(.entities-table thead tr:first-child select) {
-  font-size: 0.75rem;
-  border-radius: 0.25rem;
-}
-
 /* Stacked mode improvements for mobile */
 @media (max-width: 767px) {
   :deep(.entities-table.b-table-stacked-md > tbody > tr) {

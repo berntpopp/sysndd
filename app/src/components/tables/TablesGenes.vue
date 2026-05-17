@@ -68,6 +68,7 @@
                 small
                 fixed
                 hover
+                class="public-data-table"
                 sort-icon-left
                 no-local-sorting
                 @update:sort-by="handleSortByUpdate"
