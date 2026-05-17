@@ -130,6 +130,8 @@ schedule_cleanup(3600)
 # 9) Mount endpoints + filters onto the root router.
 ## -------------------------------------------------------------------##
 root <- bootstrap_mount_endpoints(api_spec, pool, logging_temp_file)
+root <- root %>%
+  plumber::pr_mount("/api/nddscore", plumber::pr("endpoints/nddscore_endpoints.R"))
 
 ## -------------------------------------------------------------------##
 # 10) Run the API.
