@@ -1,6 +1,6 @@
 // src/router/routes.ts
 
-import type { RouteRecordRaw, RouteLocationNormalized } from 'vue-router';
+import type { RouteRecordRaw, RouteLocationNormalized, RouteComponent } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 
 /**
@@ -39,7 +39,13 @@ const adminViews = import.meta.glob('../views/admin/*.vue');
 const lazyRouteComponent = (
   modules: Record<string, () => Promise<unknown>>,
   path: string
-): RouteRecordRaw['component'] => modules[path] as RouteRecordRaw['component'];
+): (() => Promise<RouteComponent>) => {
+  const component = modules[path];
+  if (!component) {
+    throw new Error(`Route component not found: ${path}`);
+  }
+  return component as () => Promise<RouteComponent>;
+};
 
 export const routes: RouteRecordRaw[] = [
   {
