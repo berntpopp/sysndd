@@ -34,7 +34,59 @@ test_that("get_gene_context shapes compact public gene payloads", {
   expect_equal(result$gene$symbol, "MECP2")
   expect_true(result$entities[[1]]$synopsis_truncated)
   expect_lte(nchar(result$entities[[1]]$synopsis_excerpt), 1500)
+  expect_equal(result$comparison_sources, list())
   expect_equal(result$resource_links[[1]]$uri, "sysndd://gene/MECP2")
+})
+
+test_that("MCP payload mode helpers shape abstracts and synopses predictably", {
+  source("../../services/mcp-service.R")
+
+  expect_equal(mcp_validate_mode(NULL, c("compact", "standard"), "response_mode", "compact"), "compact")
+  expect_equal(mcp_validate_mode("standard", c("compact", "standard"), "response_mode", "compact"), "standard")
+  err <- tryCatch(
+    mcp_validate_mode("verbose", c("compact", "standard"), "response_mode", "compact"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+  expect_equal(err$error$code, "invalid_input")
+  expect_equal(err$error$argument, "response_mode")
+
+  pub <- list(
+    publication_id = "PMID:1",
+    Title = "A title",
+    Abstract = paste(rep("Abstract", 300), collapse = " "),
+    Journal = "Journal",
+    Publication_date = as.Date("2020-01-01"),
+    Lastname = "Smith",
+    publication_type = "Journal Article",
+    curation_review_date = as.Date("2021-01-01")
+  )
+
+  no_abstract <- mcp_publication_record(pub, abstract_mode = "none")
+  expect_null(no_abstract$abstract_available)
+  expect_null(no_abstract$abstract_excerpt)
+
+  metadata <- mcp_publication_record(pub, abstract_mode = "metadata")
+  expect_true(metadata$abstract_available)
+  expect_equal(metadata$abstract_excerpt, "")
+  expect_false(metadata$abstract_truncated)
+
+  excerpt <- mcp_publication_record(pub, abstract_mode = "excerpt", abstract_max_chars = 40L)
+  expect_true(excerpt$abstract_available)
+  expect_lte(nchar(excerpt$abstract_excerpt), 40L)
+  expect_true(excerpt$abstract_truncated)
+
+  entity <- list(entity_id = 10L, synopsis = paste(rep("Long public synopsis", 20), collapse = " "), review_date = as.Date("2025-01-01"))
+  none <- mcp_apply_synopsis_mode(entity, "none", 10L)
+  expect_null(none$entity$synopsis)
+  expect_equal(none$review$review_date, "2025-01-01")
+
+  excerpt_synopsis <- mcp_apply_synopsis_mode(entity, "excerpt", 40L)
+  expect_lte(nchar(excerpt_synopsis$review$synopsis), 40L)
+  expect_true(excerpt_synopsis$review$synopsis_truncated)
+
+  full <- mcp_apply_synopsis_mode(entity, "full", 40L)
+  expect_equal(full$review$synopsis, entity$synopsis)
+  expect_false(full$review$synopsis_truncated)
 })
 
 test_that("entity context respects include flags and caps publication limits", {
@@ -138,6 +190,14 @@ test_that("publication context includes citation, availability, and date semanti
   expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
   expect_false(result$pubmed_publication_date_matches_curation_date)
   expect_equal(result$pubmed_publication_date_confidence, "publication_table")
+
+  metadata <- mcp_get_publication_context("37130971", abstract_mode = "metadata")
+  expect_false(metadata$abstract_available)
+  expect_equal(metadata$abstract_excerpt, "")
+
+  no_abstract <- mcp_get_publication_context("37130971", abstract_mode = "none")
+  expect_null(no_abstract$abstract_available)
+  expect_null(no_abstract$abstract_excerpt)
 })
 
 test_that("publication context flags dates that mirror curation dates", {
@@ -172,13 +232,46 @@ test_that("publication context flags dates that mirror curation dates", {
   expect_match(result$date_notes$pubmed_publication_date, "matches", fixed = TRUE)
 })
 
+test_that("publication context date confidence considers all linked curation dates", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_publication <- mcp_repo_get_publication_context
+  assign("mcp_repo_get_publication_context", function(publication_id) {
+    tibble::tibble(
+      publication_id = publication_id,
+      Title = "Shared paper",
+      Abstract = "Abstract",
+      Journal = "Journal",
+      Publication_date = as.Date("2024-02-01"),
+      Lastname = "Smith",
+      Firstname = "A",
+      Keywords = "",
+      entity_id = c(451L, 452L),
+      symbol = c("NAA10", "NAA15"),
+      hgnc_id = c("18704", "30782"),
+      disease_ontology_name = c("NAA10-related syndrome", "NAA15-related syndrome"),
+      category = c("Definitive", "Moderate"),
+      curation_review_date = as.Date(c("2023-04-12", "2024-02-01"))
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
+
+  result <- mcp_get_publication_context("PMID:1")
+
+  expect_true(result$pubmed_publication_date_matches_curation_date)
+  expect_equal(result$pubmed_publication_date_confidence, "low")
+})
+
 test_that("batch publication context preserves request order and returns per-PMID errors", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
 
   old_publication <- mcp_repo_get_publication_context
   assign("mcp_repo_get_publication_context", function(publication_id) {
-    if (identical(publication_id, "PMID:999")) return(tibble::tibble())
+    if (identical(publication_id, "PMID:999")) {
+      return(tibble::tibble())
+    }
     tibble::tibble(
       publication_id = publication_id,
       Title = paste("Title", publication_id),
@@ -301,6 +394,8 @@ test_that("search_sysndd reports returned count and has_more metadata", {
   expect_equal(result$meta$returned, 2L)
   expect_equal(result$meta$total, 3L)
   expect_true(result$meta$has_more)
+  expect_equal(result$matches[[1]]$rank_reason, "exact_identifier")
+  expect_true(nzchar(result$matches[[1]]$matched_field))
 })
 
 test_that("batch entity context preserves order and returns per-entity errors", {
@@ -312,7 +407,9 @@ test_that("batch entity context preserves order and returns per-entity errors", 
   old_variation <- mcp_repo_get_entity_variation
   old_publications <- mcp_repo_get_entity_publications
   assign("mcp_repo_get_entity_context", function(entity_id) {
-    if (identical(entity_id, 999L)) return(tibble::tibble())
+    if (identical(entity_id, 999L)) {
+      return(tibble::tibble())
+    }
     tibble::tibble(
       entity_id = entity_id,
       symbol = "SCN1A",
@@ -341,4 +438,73 @@ test_that("batch entity context preserves order and returns per-entity errors", 
   expect_equal(result$entities[[2]]$entity_id, 999L)
   expect_equal(result$entities[[2]]$error$code, "not_found")
   expect_equal(result$entities[[3]]$entity$entity_id, 11L)
+})
+
+test_that("batch entity context deduplicates shared publications by default", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_context <- mcp_repo_get_entity_context
+  old_phenotypes <- mcp_repo_get_entity_phenotypes
+  old_variation <- mcp_repo_get_entity_variation
+  old_publications <- mcp_repo_get_entity_publications
+  assign("mcp_repo_get_entity_context", function(entity_id) {
+    tibble::tibble(
+      entity_id = entity_id,
+      symbol = "MECP2",
+      hgnc_id = "HGNC:6990",
+      category = "Definitive",
+      synopsis = paste("Public synopsis", entity_id),
+      review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_phenotypes", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_variation", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_publications", function(entity_id, limit) {
+    tibble::tibble(
+      publication_id = c("PMID:20301670", paste0("PMID:", entity_id)),
+      Title = c("Shared GeneReviews", paste("Entity paper", entity_id)),
+      Abstract = c("Shared abstract", paste("Entity abstract", entity_id)),
+      Journal = "Journal",
+      Publication_date = as.Date("2020-01-01"),
+      Lastname = "Smith",
+      Firstname = "A",
+      publication_type = "Journal Article",
+      curation_review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_get_entity_context", old_context, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_phenotypes", old_phenotypes, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_variation", old_variation, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_publications", old_publications, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_entities_context(c(10L, 11L), publication_limit = 2L)
+
+  expect_equal(result$meta$dedupe_publications, TRUE)
+  expect_equal(result$meta$publication_shape, "top_level_deduplicated")
+  expect_equal(length(result$publications), 3L)
+  expect_equal(
+    sort(vapply(result$publications, `[[`, character(1), "publication_id")),
+    sort(c("PMID:20301670", "PMID:10", "PMID:11"))
+  )
+  expect_null(result$entities[[1]]$publications)
+  expect_equal(result$entities[[1]]$publication_refs[[1]]$publication_id, "PMID:20301670")
+  expect_equal(result$entities[[2]]$publication_refs[[1]]$publication_id, "PMID:20301670")
+})
+
+test_that("SysNDD MCP capabilities summarize workflows, modes, limits, errors, resources, and safety", {
+  source("../../services/mcp-service.R")
+
+  result <- mcp_get_sysndd_capabilities()
+
+  expect_equal(result$schema_version, "1.0")
+  expect_true("search_sysndd" %in% result$canonical_workflows$gene_summary)
+  expect_true("compact" %in% result$payload_modes$response_mode)
+  expect_true("none" %in% result$payload_modes$abstract_mode)
+  expect_equal(result$limits$get_entities_context$max_entity_ids, 20L)
+  expect_true("invalid_input" %in% result$error_codes)
+  expect_match(result$resources$static[[1]], "sysndd://schema", fixed = TRUE)
+  expect_match(result$safety$scope, "read-only", ignore.case = TRUE)
 })

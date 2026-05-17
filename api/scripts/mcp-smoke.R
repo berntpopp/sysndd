@@ -49,7 +49,7 @@ if (!grepl("research", init$result$instructions %||% "", ignore.case = TRUE)) {
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context")
+required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))
@@ -89,6 +89,20 @@ if (!grepl("Example:", gene_tool$description %||% "", fixed = TRUE)) {
 if (is.null(gene_tool$inputSchema$properties$query)) {
   stop("get_gene_context schema is missing query alias")
 }
+if (is.null(gene_tool$inputSchema$properties$response_mode)) {
+  stop("get_gene_context schema is missing response_mode")
+}
+if (is.null(gene_tool$inputSchema$properties$synopsis_mode)) {
+  stop("get_gene_context schema is missing synopsis_mode")
+}
+entity_batch_tool <- tool_by_name("get_entities_context")
+if (is.null(entity_batch_tool$inputSchema$properties$dedupe_publications)) {
+  stop("get_entities_context schema is missing dedupe_publications")
+}
+pub_tool <- tool_by_name("get_publications_context")
+if (is.null(pub_tool$inputSchema$properties$abstract_mode)) {
+  stop("get_publications_context schema is missing abstract_mode")
+}
 
 resources <- rpc("resources/list", id = 3L)
 if (!is.null(resources$error)) stop("MCP resources/list failed: ", resources$error$message)
@@ -109,8 +123,30 @@ if (identical(overview_text, tool_guide_text) || grepl("schema/tool-guide", over
   stop("MCP schema resources are not distinct")
 }
 
+prompts <- rpc("prompts/list", id = 42L)
+if (!is.null(prompts$error)) stop("MCP prompts/list failed: ", prompts$error$message)
+prompt_names <- vapply(prompts$result$prompts %||% list(), function(x) x$name %||% "", character(1))
+if (!"sysndd_gene_evidence_summary" %in% prompt_names) {
+  stop("MCP prompts/list missing sysndd_gene_evidence_summary")
+}
+prompt <- rpc("prompts/get", list(name = "sysndd_gene_evidence_summary", arguments = list(gene = "NAA10")), id = 43L)
+if (!is.null(prompt$error)) stop("MCP prompts/get failed: ", prompt$error$message)
+if (!grepl("recommended_citation", prompt$result$messages[[1]]$content$text %||% "", fixed = TRUE)) {
+  stop("MCP prompt did not include citation guidance")
+}
+
 call_tool <- function(name, arguments, id) {
   rpc("tools/call", list(name = name, arguments = arguments), id = id)
+}
+
+capabilities <- call_tool("get_sysndd_capabilities", list(), id = 44L)
+if (!is.null(capabilities$error)) stop("Capabilities returned JSON-RPC error: ", capabilities$error$message)
+capabilities_payload <- jsonlite::fromJSON(capabilities$result$content[[1]]$text, simplifyVector = FALSE)
+if (!"compact" %in% capabilities_payload$payload_modes$response_mode) {
+  stop("Capabilities payload missing response_mode guidance")
+}
+if (!identical(capabilities_payload$limits$get_entities_context$max_entity_ids, 20L)) {
+  stop("Capabilities payload missing get_entities_context max")
 }
 
 malformed_pmid <- call_tool("get_publication_context", list(pmid = "notapmid"), id = 5L)
@@ -145,6 +181,33 @@ if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", q
 query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
 if (!identical(query_payload$gene$symbol, "NAA10")) {
   stop("get_gene_context query alias did not resolve NAA10")
+}
+
+cheap_gene <- call_tool(
+  "get_gene_context",
+  list(gene = "NAA10", include_comparisons = FALSE, entity_limit = 2L, response_mode = "compact"),
+  id = 81L
+)
+if (!is.null(cheap_gene$error)) stop("cheap get_gene_context returned JSON-RPC error: ", cheap_gene$error$message)
+cheap_gene_payload <- jsonlite::fromJSON(cheap_gene$result$content[[1]]$text, simplifyVector = FALSE)
+if (length(cheap_gene_payload$comparison_sources %||% list()) != 0L) {
+  stop("cheap get_gene_context returned comparison_sources")
+}
+entity_ids <- vapply(cheap_gene_payload$entities %||% list(), function(x) as.integer(x$entity_id), integer(1))
+if (length(entity_ids) > 0L) {
+  batch <- call_tool(
+    "get_entities_context",
+    list(entity_ids = as.list(entity_ids), publication_limit = 2L, abstract_mode = "metadata", dedupe_publications = TRUE),
+    id = 82L
+  )
+  if (!is.null(batch$error)) stop("deduped get_entities_context returned JSON-RPC error: ", batch$error$message)
+  batch_payload <- jsonlite::fromJSON(batch$result$content[[1]]$text, simplifyVector = FALSE)
+  if (!isTRUE(batch_payload$meta$dedupe_publications)) {
+    stop("get_entities_context did not report dedupe_publications")
+  }
+  if (length(batch_payload$entities) > 0L && !is.null(batch_payload$entities[[1]]$publications)) {
+    stop("deduped get_entities_context kept nested publications")
+  }
 }
 
 bad_gene_arg <- call_tool("get_gene_context", list(foo = "NAA10"), id = 9L)

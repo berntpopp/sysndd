@@ -52,14 +52,21 @@ Available MCP tools:
 - `find_entities_by_phenotype`
 - `find_entities_by_disease`
 - `get_sysndd_stats`
+- `get_sysndd_capabilities`
 
-The intended LLM retrieval path is `search_sysndd` -> `get_gene_context` -> `get_entity_context` -> `get_publication_context` or `get_publications_context`. Use `get_entities_context` for 1-20 entity IDs when a gene, disease, or phenotype lookup returns several entities that need detail in one call. SysNDD entities are gene-disease-inheritance curation records, so one gene can have multiple entities. `get_gene_context` accepts `gene` plus deprecated `symbol` and `query` aliases, and tool descriptions include short example calls. Publication outputs include `recommended_citation`, `pubmed_publication_date`, `pubmed_publication_date_confidence`, `abstract_available`, `abstract_excerpt`, and `abstract_truncated`; linked entity review dates are reported separately as `sysndd_curation_date`.
+The intended LLM retrieval path is `search_sysndd` -> `get_gene_context` -> `get_entities_context` -> `get_publications_context`. `get_sysndd_capabilities` returns in-band guidance for workflows, limits, payload modes, citations, resources, errors, prompts, and safety scope. Use `get_entities_context` for 1-20 entity IDs when a gene, disease, or phenotype lookup returns several entities that need detail in one call. SysNDD entities are gene-disease-inheritance curation records, so one gene can have multiple entities. `get_gene_context` accepts `gene` plus deprecated `symbol` and `query` aliases, and tool descriptions include short example calls.
+
+Payload controls are part of the MCP contract: `response_mode` is `compact`, `standard`, or `full`; `abstract_mode` is `none`, `metadata`, or `excerpt`; and `synopsis_mode` is `none`, `excerpt`, or `full`. `get_gene_context` defaults `include_comparisons` to false for the cheap path. `get_entities_context` defaults `dedupe_publications` to true, moving shared publication objects to a top-level `publications` list and leaving per-entity `publication_refs`.
+
+Publication outputs include `recommended_citation`, `pubmed_publication_date`, `pubmed_publication_date_confidence`, and optional abstract fields controlled by `abstract_mode`; linked entity review dates are reported separately as `sysndd_curation_date`.
+
+MCP prompts are exposed for user-controlled workflows when the client supports prompts: `sysndd_gene_evidence_summary`, `sysndd_entity_evidence_brief`, `sysndd_publication_citation_pack`, and `sysndd_phenotype_entity_discovery`. Prompts provide workflow instructions only; they do not perform generation, writes, or external calls.
 
 The static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources are available through `resources/list` and `resources/read` and document schema and tool usage as distinct resources. Record-level `sysndd://gene`, `sysndd://entity`, and `sysndd://publication` URIs in tool payloads are stable identifiers; v1 retrieval remains tool-based rather than parameterized resource templates.
 
 The MCP service exposes only approved public data: active records represented by `ndd_entity_view` and review-derived evidence from primary approved reviews (`is_primary = 1` and `review_approved = 1`). It must not expose draft reviews, re-review assignments, admin/user/log/job data, raw SQL/R execution, external provider calls, or Gemini-backed generation.
 
-The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore keeps stable JSON text with `schema_version` as the compatibility contract. The sidecar patches `mcptools` initialize metadata, static resources, read-only tool annotations, output schemas, and recoverable tool errors so clients receive SysNDD-specific workflow instructions and can self-correct invalid inputs. Known tool validation errors return a JSON payload with `error.code` and `isError = true`, not JSON-RPC `-32603`.
+The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore keeps stable JSON text with `schema_version` as the compatibility contract. The sidecar patches `mcptools` initialize metadata, static resources, prompts, read-only tool annotations, output schemas, and recoverable tool errors so clients receive SysNDD-specific workflow instructions and can self-correct invalid inputs. Known tool validation errors return a JSON payload with `error.code` and `isError = true`, not JSON-RPC `-32603`.
 
 
 ## Usage policy

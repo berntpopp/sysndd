@@ -62,7 +62,9 @@ mcp_validate_enum <- function(value, allowed, argument) {
 }
 
 mcp_validate_category <- function(category, argument = "category") {
-  if (is.null(category) || !nzchar(trimws(as.character(category)[1]))) return(NULL)
+  if (is.null(category) || !nzchar(trimws(as.character(category)[1]))) {
+    return(NULL)
+  }
   value <- as.character(category)[1]
   if (!value %in% MCP_ALLOWED_ENTITY_CATEGORIES) {
     stop(mcp_error(
@@ -72,6 +74,13 @@ mcp_validate_category <- function(category, argument = "category") {
     ))
   }
   value
+}
+
+mcp_validate_mode <- function(value, allowed, argument, default) {
+  if (is.null(value) || !nzchar(trimws(as.character(value)[1]))) {
+    return(default)
+  }
+  mcp_validate_enum(value, allowed, argument)
 }
 
 mcp_validate_limit <- function(limit, default = 25L, max = 50L, name = "limit") {
@@ -94,7 +103,9 @@ mcp_validate_offset <- function(offset) {
 mcp_normalize_gene_input <- function(gene) {
   gene <- mcp_validate_query(gene, min_chars = 1L, max_chars = 100L, argument = "gene")
   hgnc <- sub("^HGNC:", "", toupper(gene))
-  if (grepl("^[0-9]+$", hgnc)) return(list(kind = "hgnc_id", value = hgnc))
+  if (grepl("^[0-9]+$", hgnc)) {
+    return(list(kind = "hgnc_id", value = hgnc))
+  }
   list(kind = "symbol", value = toupper(gene))
 }
 
@@ -119,6 +130,11 @@ mcp_has_text <- function(text) {
   !is.null(text) && length(text) > 0L && !is.na(text[1]) && nzchar(trimws(as.character(text[1])))
 }
 
+mcp_full_text <- function(text) {
+  text <- if (is.null(text) || length(text) == 0L || is.na(text[1])) "" else as.character(text[1])
+  list(text = text, truncated = FALSE, max_chars = nchar(text))
+}
+
 mcp_first_row <- function(rows, not_found_message) {
   if (is.null(rows) || nrow(rows) == 0L) {
     stop(mcp_error("not_found", not_found_message))
@@ -127,23 +143,30 @@ mcp_first_row <- function(rows, not_found_message) {
 }
 
 mcp_row_to_list <- function(row) {
-  if (is.null(row) || nrow(row) == 0L) return(list())
+  if (is.null(row) || nrow(row) == 0L) {
+    return(list())
+  }
   values <- as.list(row[1, , drop = TRUE])
   lapply(values, function(value) {
-    if (inherits(value, "Date") || inherits(value, "POSIXt")) return(as.character(value))
-    if (length(value) == 0L || is.na(value)) return(NULL)
+    if (inherits(value, "Date") || inherits(value, "POSIXt")) {
+      return(as.character(value))
+    }
+    if (length(value) == 0L || is.na(value)) {
+      return(NULL)
+    }
     value
   })
 }
 
 mcp_rows_to_records <- function(rows) {
-  if (is.null(rows) || nrow(rows) == 0L) return(list())
+  if (is.null(rows) || nrow(rows) == 0L) {
+    return(list())
+  }
   unname(lapply(seq_len(nrow(rows)), function(i) mcp_row_to_list(rows[i, , drop = FALSE])))
 }
 
 mcp_score_for_tier <- function(tier) {
-  switch(
-    tier,
+  switch(tier,
     exact_identifier = 1.0,
     exact_label = 0.95,
     prefix = 0.8,
@@ -199,6 +222,71 @@ mcp_publication_date_quality <- function(publication_date, curation_dates = NULL
   )
 }
 
+mcp_publication_record <- function(pub,
+                                   abstract_mode = "excerpt",
+                                   abstract_max_chars = 1000L,
+                                   include_keywords = FALSE,
+                                   date_quality = NULL) {
+  abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", "excerpt")
+  date_quality <- date_quality %||% mcp_publication_date_quality(pub$Publication_date, pub$curation_review_date)
+  record <- list(
+    publication_id = pub$publication_id,
+    title = pub$Title,
+    journal = pub$Journal,
+    pubmed_publication_date = pub$Publication_date,
+    pubmed_publication_date_matches_curation_date = date_quality$matches_curation_date,
+    pubmed_publication_date_confidence = date_quality$confidence,
+    sysndd_curation_date = pub$curation_review_date,
+    first_author = pub$Lastname,
+    publication_type = pub$publication_type,
+    recommended_citation = mcp_recommended_citation(pub),
+    resource_uri = mcp_resource_uri("publication", pub$publication_id)
+  )
+  if (isTRUE(include_keywords)) record$keywords <- pub$Keywords
+
+  if (!identical(abstract_mode, "none")) {
+    record$abstract_available <- mcp_has_text(pub$Abstract)
+    if (identical(abstract_mode, "excerpt")) {
+      abstract <- mcp_truncate_text(pub$Abstract %||% "", abstract_max_chars)
+      record$abstract_excerpt <- abstract$text
+      record$abstract_truncated <- abstract$truncated
+    } else {
+      record$abstract_excerpt <- ""
+      record$abstract_truncated <- FALSE
+    }
+  }
+
+  record
+}
+
+mcp_apply_synopsis_mode <- function(entity, synopsis_mode = "excerpt", max_chars = 2500L) {
+  synopsis_mode <- mcp_validate_mode(synopsis_mode, c("none", "excerpt", "full"), "synopsis_mode", "excerpt")
+  review_date <- entity$review_date
+  if (inherits(review_date, "Date") || inherits(review_date, "POSIXt")) review_date <- as.character(review_date)
+  review <- list(review_date = review_date)
+  if (!identical(synopsis_mode, "none")) {
+    synopsis <- if (identical(synopsis_mode, "full")) {
+      mcp_full_text(entity$synopsis)
+    } else {
+      mcp_truncate_text(entity$synopsis %||% "", max_chars)
+    }
+    review$synopsis <- synopsis$text
+    review$synopsis_truncated <- synopsis$truncated
+  }
+  entity$synopsis <- NULL
+  entity$review_date <- NULL
+  list(entity = entity, review = review)
+}
+
+mcp_publication_ref <- function(pub) {
+  list(
+    publication_id = pub$publication_id,
+    title = pub$title,
+    recommended_citation = pub$recommended_citation,
+    resource_uri = pub$resource_uri
+  )
+}
+
 mcp_cache_key <- function(name, args) {
   paste(name, jsonlite::toJSON(args, auto_unbox = TRUE, null = "null"), sep = ":")
 }
@@ -207,7 +295,9 @@ mcp_cached <- function(name, args, ttl, fn) {
   key <- mcp_cache_key(name, args)
   cached <- .mcp_cache[[key]]
   now <- as.numeric(Sys.time())
-  if (!is.null(cached) && cached$expires_at > now) return(cached$value)
+  if (!is.null(cached) && cached$expires_at > now) {
+    return(cached$value)
+  }
 
   value <- fn()
   if (!inherits(value, "mcp_tool_error")) {
@@ -234,6 +324,15 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
         item[c("type", "id", "label", "description")],
         list(
           score = mcp_score_for_tier(item$match_tier %||% "contains"),
+          rank_reason = item$match_tier %||% "contains",
+          matched_field = switch(type,
+            gene = "symbol_or_hgnc_id",
+            entity = "entity_id_symbol_or_disease",
+            disease = "disease_id_or_name",
+            phenotype = "hpo_id_or_term",
+            variant = "variation_id_or_name",
+            "label_or_identifier"
+          ),
           resource_uri = mcp_resource_uri(type, id),
           suggested_tools = switch(type,
             gene = list("get_gene_context", "list_gene_entities"),
@@ -272,22 +371,33 @@ mcp_resolve_gene_one <- function(gene) {
 
 mcp_get_gene_context <- function(gene,
                                  include_entities = TRUE,
-                                 include_comparisons = TRUE,
-                                 entity_limit = 10L) {
+                                 include_comparisons = FALSE,
+                                 entity_limit = 10L,
+                                 response_mode = "compact",
+                                 synopsis_mode = NULL) {
   entity_limit <- mcp_validate_limit(entity_limit, default = 10L, max = 25L, name = "entity_limit")
-  mcp_cached("get_gene_context", list(gene = gene, include_entities = include_entities, include_comparisons = include_comparisons, entity_limit = entity_limit), MCP_CACHE_TTLS$get_gene_context, function() {
+  response_mode <- mcp_validate_mode(response_mode, c("compact", "standard", "full"), "response_mode", "compact")
+  synopsis_mode <- mcp_validate_mode(synopsis_mode, c("none", "excerpt", "full"), "synopsis_mode", if (identical(response_mode, "compact")) "excerpt" else "full")
+  mcp_cached("get_gene_context", list(gene = gene, include_entities = include_entities, include_comparisons = include_comparisons, entity_limit = entity_limit, response_mode = response_mode, synopsis_mode = synopsis_mode), MCP_CACHE_TTLS$get_gene_context, function() {
     gene_row <- mcp_resolve_gene_one(gene)
     gene_obj <- mcp_row_to_list(gene_row)
 
     entities <- if (isTRUE(include_entities)) mcp_repo_get_gene_entities(gene_obj$hgnc_id, limit = entity_limit, offset = 0L) else tibble::tibble()
     entity_records <- lapply(mcp_rows_to_records(entities), function(item) {
-      synopsis <- mcp_truncate_text(item$synopsis %||% "", 1500L)
+      synopsis <- if (identical(synopsis_mode, "none")) {
+        NULL
+      } else if (identical(synopsis_mode, "full")) {
+        mcp_full_text(item$synopsis)
+      } else {
+        mcp_truncate_text(item$synopsis %||% "", 1500L)
+      }
       item$synopsis <- NULL
-      c(item, list(
-        synopsis_excerpt = synopsis$text,
-        synopsis_truncated = synopsis$truncated,
-        resource_uri = mcp_resource_uri("entity", item$entity_id)
-      ))
+      record <- c(item, list(resource_uri = mcp_resource_uri("entity", item$entity_id)))
+      if (!is.null(synopsis)) {
+        record$synopsis_excerpt <- synopsis$text
+        record$synopsis_truncated <- synopsis$truncated
+      }
+      record
     })
 
     comparisons <- if (isTRUE(include_comparisons)) mcp_repo_get_gene_comparisons(gene_obj$hgnc_id, limit = 25L) else tibble::tibble()
@@ -315,39 +425,27 @@ mcp_get_entity_context <- function(entity_id,
                                    include_publications = TRUE,
                                    include_phenotypes = TRUE,
                                    include_variants = TRUE,
-                                   publication_limit = 10L) {
+                                   publication_limit = 10L,
+                                   response_mode = "standard",
+                                   abstract_mode = NULL,
+                                   synopsis_mode = NULL) {
   entity_id <- suppressWarnings(as.integer(entity_id))
   if (is.na(entity_id) || entity_id < 1L) stop(mcp_error("invalid_input", "entity_id must be a positive integer", list(argument = "entity_id")))
   publication_limit <- mcp_validate_limit(publication_limit, default = 10L, max = 25L, name = "publication_limit")
+  response_mode <- mcp_validate_mode(response_mode, c("compact", "standard", "full"), "response_mode", "standard")
+  abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", if (identical(response_mode, "compact")) "metadata" else "excerpt")
+  synopsis_mode <- mcp_validate_mode(synopsis_mode, c("none", "excerpt", "full"), "synopsis_mode", if (identical(response_mode, "compact")) "excerpt" else "full")
 
-  mcp_cached("get_entity_context", list(entity_id = entity_id, include_publications = include_publications, include_phenotypes = include_phenotypes, include_variants = include_variants, publication_limit = publication_limit), MCP_CACHE_TTLS$get_entity_context, function() {
+  mcp_cached("get_entity_context", list(entity_id = entity_id, include_publications = include_publications, include_phenotypes = include_phenotypes, include_variants = include_variants, publication_limit = publication_limit, response_mode = response_mode, abstract_mode = abstract_mode, synopsis_mode = synopsis_mode), MCP_CACHE_TTLS$get_entity_context, function() {
     row <- mcp_first_row(mcp_repo_get_entity_context(entity_id), "Entity not found")
     entity <- mcp_row_to_list(row)
-    synopsis <- mcp_truncate_text(entity$synopsis %||% "", 2500L)
-    review <- list(synopsis = synopsis$text, synopsis_truncated = synopsis$truncated, review_date = entity$review_date)
-    entity$synopsis <- NULL
-    entity$review_date <- NULL
+    synopsis_parts <- mcp_apply_synopsis_mode(entity, synopsis_mode, 2500L)
+    entity <- synopsis_parts$entity
+    review <- synopsis_parts$review
 
     pubs <- if (isTRUE(include_publications)) mcp_repo_get_entity_publications(entity_id, publication_limit) else tibble::tibble()
     pub_records <- lapply(mcp_rows_to_records(pubs), function(item) {
-      abstract <- mcp_truncate_text(item$Abstract %||% "", 1000L)
-      date_quality <- mcp_publication_date_quality(item$Publication_date, item$curation_review_date)
-      list(
-        publication_id = item$publication_id,
-        title = item$Title,
-        journal = item$Journal,
-        pubmed_publication_date = item$Publication_date,
-        pubmed_publication_date_matches_curation_date = date_quality$matches_curation_date,
-        pubmed_publication_date_confidence = date_quality$confidence,
-        sysndd_curation_date = item$curation_review_date,
-        first_author = item$Lastname,
-        publication_type = item$publication_type,
-        recommended_citation = mcp_recommended_citation(item),
-        abstract_available = mcp_has_text(item$Abstract),
-        abstract_excerpt = abstract$text,
-        abstract_truncated = abstract$truncated,
-        resource_uri = mcp_resource_uri("publication", item$publication_id)
-      )
+      mcp_publication_record(item, abstract_mode = abstract_mode, abstract_max_chars = 1000L)
     })
 
     list(
@@ -367,7 +465,11 @@ mcp_get_entities_context <- function(entity_ids,
                                      include_publications = TRUE,
                                      include_phenotypes = TRUE,
                                      include_variants = TRUE,
-                                     publication_limit = 10L) {
+                                     publication_limit = 10L,
+                                     response_mode = "compact",
+                                     abstract_mode = NULL,
+                                     synopsis_mode = NULL,
+                                     dedupe_publications = TRUE) {
   if (is.null(entity_ids)) {
     stop(mcp_error("invalid_input", "entity_ids must contain at least one entity ID", list(argument = "entity_ids")))
   }
@@ -379,6 +481,9 @@ mcp_get_entities_context <- function(entity_ids,
     stop(mcp_error("invalid_input", "entity_ids supports at most 20 IDs per call", list(argument = "entity_ids", max = 20L)))
   }
   publication_limit <- mcp_validate_limit(publication_limit, default = 10L, max = 25L, name = "publication_limit")
+  response_mode <- mcp_validate_mode(response_mode, c("compact", "standard", "full"), "response_mode", "compact")
+  abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", if (identical(response_mode, "compact")) "metadata" else "excerpt")
+  synopsis_mode <- mcp_validate_mode(synopsis_mode, c("none", "excerpt", "full"), "synopsis_mode", if (identical(response_mode, "compact")) "excerpt" else "full")
 
   entities <- lapply(raw_ids, function(raw_id) {
     entity_id <- suppressWarnings(as.integer(raw_id))
@@ -393,7 +498,10 @@ mcp_get_entities_context <- function(entity_ids,
         include_publications = include_publications,
         include_phenotypes = include_phenotypes,
         include_variants = include_variants,
-        publication_limit = publication_limit
+        publication_limit = publication_limit,
+        response_mode = response_mode,
+        abstract_mode = abstract_mode,
+        synopsis_mode = synopsis_mode
       ),
       mcp_tool_error = function(e) {
         list(entity_id = entity_id, error = unclass(e)$error)
@@ -401,15 +509,40 @@ mcp_get_entities_context <- function(entity_ids,
     )
   })
 
+  publications <- list()
+  if (isTRUE(dedupe_publications) && isTRUE(include_publications)) {
+    seen <- new.env(parent = emptyenv())
+    entities <- lapply(entities, function(item) {
+      if (!is.null(item$error) || is.null(item$publications)) {
+        return(item)
+      }
+      refs <- lapply(item$publications, function(pub) {
+        key <- pub$publication_id %||% ""
+        if (nzchar(key) && is.null(seen[[key]])) {
+          seen[[key]] <- TRUE
+          publications[[length(publications) + 1L]] <<- pub
+        }
+        mcp_publication_ref(pub)
+      })
+      item$publication_refs <- refs
+      item$publications <- NULL
+      item
+    })
+  }
+
   returned <- sum(vapply(entities, function(item) is.null(item$error), logical(1)))
   list(
     schema_version = MCP_SCHEMA_VERSION,
     entities = entities,
+    publications = publications,
     meta = list(
       requested = length(raw_ids),
       returned = returned,
       errors = length(raw_ids) - returned,
-      max_entity_ids = 20L
+      max_entity_ids = 20L,
+      dedupe_publications = isTRUE(dedupe_publications),
+      publication_shape = if (isTRUE(dedupe_publications) && isTRUE(include_publications)) "top_level_deduplicated" else "nested_per_entity",
+      publication_count = length(publications)
     )
   )
 }
@@ -432,15 +565,14 @@ mcp_list_gene_entities <- function(gene, category = NULL, ndd_phenotype = "any",
   )
 }
 
-mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
+mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstract_mode = "excerpt") {
   publication_id <- mcp_normalize_pmid(pmid)
   abstract_max_chars <- mcp_validate_limit(abstract_max_chars, default = 2000L, max = 4000L, name = "abstract_max_chars")
-  mcp_cached("get_publication_context", list(pmid = publication_id, abstract_max_chars = abstract_max_chars), MCP_CACHE_TTLS$get_publication_context, function() {
+  abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", "excerpt")
+  mcp_cached("get_publication_context", list(pmid = publication_id, abstract_max_chars = abstract_max_chars, abstract_mode = abstract_mode), MCP_CACHE_TTLS$get_publication_context, function() {
     rows <- mcp_repo_get_publication_context(publication_id)
     first <- mcp_first_row(rows, "Publication not found")
     pub <- mcp_row_to_list(first)
-    abstract_available <- mcp_has_text(pub$Abstract)
-    abstract <- mcp_truncate_text(pub$Abstract %||% "", abstract_max_chars)
     date_quality <- mcp_publication_date_quality(pub$Publication_date, rows$curation_review_date)
     linked_cols <- intersect(
       c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category", "curation_review_date"),
@@ -452,30 +584,21 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
       item$curation_review_date <- NULL
       item
     })
-    list(
-      schema_version = MCP_SCHEMA_VERSION,
-      publication_id = pub$publication_id,
-      title = pub$Title,
-      journal = pub$Journal,
-      pubmed_publication_date = pub$Publication_date,
-      pubmed_publication_date_matches_curation_date = date_quality$matches_curation_date,
-      pubmed_publication_date_confidence = date_quality$confidence,
-      first_author = pub$Lastname,
-      keywords = pub$Keywords,
-      recommended_citation = mcp_recommended_citation(pub),
-      abstract_available = abstract_available,
-      abstract_excerpt = abstract$text,
-      abstract_truncated = abstract$truncated,
-      linked_entities = linked_records,
-      date_notes = list(
-        pubmed_publication_date = date_quality$note,
-        sysndd_curation_date = "Primary approved SysNDD review date on linked entities."
+    c(
+      list(schema_version = MCP_SCHEMA_VERSION),
+      mcp_publication_record(pub, abstract_mode = abstract_mode, abstract_max_chars = abstract_max_chars, include_keywords = TRUE, date_quality = date_quality),
+      list(
+        linked_entities = linked_records,
+        date_notes = list(
+          pubmed_publication_date = date_quality$note,
+          sysndd_curation_date = "Primary approved SysNDD review date on linked entities."
+        )
       )
     )
   })
 }
 
-mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L) {
+mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L, abstract_mode = "excerpt") {
   if (is.null(pmids)) {
     stop(mcp_error("invalid_input", "pmids must contain at least one PubMed identifier", list(argument = "pmids")))
   }
@@ -488,6 +611,7 @@ mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L) {
     stop(mcp_error("invalid_input", "pmids supports at most 20 identifiers per call", list(argument = "pmids", max = 20L)))
   }
   abstract_max_chars <- mcp_validate_limit(abstract_max_chars, default = 2000L, max = 4000L, name = "abstract_max_chars")
+  abstract_mode <- mcp_validate_mode(abstract_mode, c("none", "metadata", "excerpt"), "abstract_mode", "excerpt")
 
   publications <- lapply(pmids, function(pmid) {
     normalized <- tryCatch(mcp_normalize_pmid(pmid), mcp_tool_error = function(e) NA_character_)
@@ -496,7 +620,7 @@ mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L) {
     }
 
     tryCatch(
-      mcp_get_publication_context(normalized, abstract_max_chars = abstract_max_chars),
+      mcp_get_publication_context(normalized, abstract_max_chars = abstract_max_chars, abstract_mode = abstract_mode),
       mcp_tool_error = function(e) {
         list(publication_id = normalized, error = unclass(e)$error)
       }
@@ -512,7 +636,8 @@ mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L) {
       returned = returned,
       errors = length(pmids) - returned,
       max_pmids = 20L,
-      abstract_max_chars = abstract_max_chars
+      abstract_max_chars = abstract_max_chars,
+      abstract_mode = abstract_mode
     )
   )
 }
@@ -552,4 +677,55 @@ mcp_get_sysndd_stats <- function() {
     values <- stats::setNames(as.list(rows$value), rows$metric)
     list(schema_version = MCP_SCHEMA_VERSION, counts = values, generated_at = as.character(Sys.time()))
   })
+}
+
+mcp_get_sysndd_capabilities <- function() {
+  list(
+    schema_version = MCP_SCHEMA_VERSION,
+    server = list(name = "SysNDD read-only MCP", schema_version = MCP_SCHEMA_VERSION),
+    canonical_workflows = list(
+      gene_summary = list("search_sysndd", "get_gene_context", "get_entities_context", "get_publications_context"),
+      entity_detail = list("get_entity_context", "get_publications_context"),
+      phenotype_discovery = list("find_entities_by_phenotype", "get_entities_context"),
+      disease_discovery = list("find_entities_by_disease", "get_entities_context"),
+      citation_pack = list("get_publications_context")
+    ),
+    payload_modes = list(
+      response_mode = c("compact", "standard", "full"),
+      abstract_mode = c("none", "metadata", "excerpt"),
+      synopsis_mode = c("none", "excerpt", "full"),
+      cheap_gene_example = list(gene = "PNKP", include_entities = TRUE, include_comparisons = FALSE, response_mode = "compact"),
+      publication_metadata_example = list(pmids = list("PMID:37130971"), abstract_mode = "metadata")
+    ),
+    limits = list(
+      search_sysndd = list(default_limit = 10L, max_limit = 25L),
+      list_gene_entities = list(default_limit = 25L, max_limit = 50L),
+      get_entity_context = list(default_publication_limit = 10L, max_publication_limit = 25L),
+      get_entities_context = list(max_entity_ids = 20L, default_dedupe_publications = TRUE),
+      get_publications_context = list(max_pmids = 20L, max_abstract_chars = 4000L)
+    ),
+    citation_contract = list(
+      use_recommended_citation_verbatim = TRUE,
+      date_fields = list("pubmed_publication_date", "sysndd_curation_date"),
+      confidence_fields = list("pubmed_publication_date_confidence", "pubmed_publication_date_matches_curation_date"),
+      abstract_fields = list("abstract_available", "abstract_excerpt", "abstract_truncated")
+    ),
+    resources = list(
+      static = c("sysndd://schema/overview", "sysndd://schema/tool-guide"),
+      record_uris_are_stable_identifiers = TRUE,
+      parameterized_resource_templates = FALSE,
+      retrieval_path = "Use tools for record retrieval in v1."
+    ),
+    prompts = c(
+      "sysndd_gene_evidence_summary",
+      "sysndd_entity_evidence_brief",
+      "sysndd_publication_citation_pack",
+      "sysndd_phenotype_entity_discovery"
+    ),
+    error_codes = c("invalid_input", "not_found", "ambiguous_query", "temporarily_unavailable"),
+    safety = list(
+      scope = "Read-only approved public SysNDD evidence for research review; not clinical decision support.",
+      exclusions = c("draft reviews", "admin/user/job/log data", "raw SQL", "raw R", "Gemini", "external provider calls", "database writes")
+    )
+  )
 }

@@ -15,7 +15,8 @@ test_that("MCP registry exposes only approved SysNDD tools", {
     "get_publications_context",
     "find_entities_by_phenotype",
     "find_entities_by_disease",
-    "get_sysndd_stats"
+    "get_sysndd_stats",
+    "get_sysndd_capabilities"
   ))
   expect_false(any(grepl("session|code|sql|admin|review|job|log|user", tool_names, ignore.case = TRUE)))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/overview"), logical(1))))
@@ -32,6 +33,7 @@ test_that("MCP server instructions describe workflow, resources, errors, and con
   expect_match(instructions, "entities are gene-disease-inheritance", ignore.case = TRUE)
   expect_match(instructions, "get_entities_context", fixed = TRUE)
   expect_match(instructions, "get_publications_context", fixed = TRUE)
+  expect_match(instructions, "get_sysndd_capabilities", fixed = TRUE)
   expect_match(instructions, "sysndd://schema/tool-guide", fixed = TRUE)
   expect_match(instructions, "not_found", fixed = TRUE)
   expect_match(instructions, "read-only", ignore.case = TRUE)
@@ -47,6 +49,7 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
 
   expect_equal(capabilities$serverInfo$name, "SysNDD read-only MCP")
   expect_equal(capabilities$instructions, "SysNDD custom instructions")
+  expect_false(is.null(capabilities$capabilities$prompts))
 })
 
 test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
@@ -83,7 +86,12 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
 
   gene <- metadata[[which(tool_names == "get_gene_context")]]
   expect_match(gene$description, "Example:", fixed = TRUE)
+  expect_match(gene$description, "include_comparisons", fixed = TRUE)
   expect_match(gene$inputSchema$properties$query$description, "alias", ignore.case = TRUE)
+  expect_false(is.null(gene$inputSchema$properties$response_mode))
+
+  capabilities <- metadata[[which(tool_names == "get_sysndd_capabilities")]]
+  expect_match(capabilities$description, "capabilities", ignore.case = TRUE)
 })
 
 test_that("MCP static resource handlers list and read distinct schema resources", {
@@ -146,4 +154,40 @@ test_that("MCP tool wrappers accept common gene aliases and reject unknown param
   expect_equal(err_payload$error$code, "invalid_input")
   expect_equal(err_payload$error$argument, "foo")
   expect_equal(err_payload$error$hint, "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers.")
+})
+
+test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
+  source("../../services/mcp-service.R")
+  source("../../services/mcp-tools.R")
+
+  listed <- mcp_handle_prompts_list(1L)
+  prompt_names <- vapply(listed$result$prompts, `[[`, character(1), "name")
+
+  expect_setequal(prompt_names, c(
+    "sysndd_gene_evidence_summary",
+    "sysndd_entity_evidence_brief",
+    "sysndd_publication_citation_pack",
+    "sysndd_phenotype_entity_discovery"
+  ))
+  expect_true(any(vapply(listed$result$prompts, function(x) length(x$arguments) > 0L, logical(1))))
+
+  rendered <- mcp_handle_prompts_get(
+    2L,
+    "sysndd_gene_evidence_summary",
+    list(gene = "PNKP", depth = "compact")
+  )
+
+  expect_equal(rendered$result$description, "Summarize approved public SysNDD gene evidence.")
+  text <- rendered$result$messages[[1]]$content$text
+  expect_match(text, "PNKP", fixed = TRUE)
+  expect_match(text, "get_gene_context", fixed = TRUE)
+  expect_match(text, "recommended_citation", fixed = TRUE)
+  expect_match(text, "not clinical decision support", ignore.case = TRUE)
+
+  missing <- mcp_handle_prompts_get(3L, "missing_prompt", list())
+  expect_equal(missing$error$code, -32602)
+
+  missing_arg <- mcp_handle_prompts_get(4L, "sysndd_gene_evidence_summary", list())
+  expect_equal(missing_arg$error$code, -32602)
+  expect_equal(missing_arg$error$data$argument, "gene")
 })

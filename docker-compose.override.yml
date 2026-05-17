@@ -72,6 +72,11 @@ services:
   # Local-only MCP access for development. Production compose does not expose
   # MCP through Traefik or host ports by default.
   mcp:
+    # Keep the backend DB path, and also attach to the non-internal dev network
+    # so Docker can publish the localhost-only MCP port without a manual bridge.
+    networks:
+      - backend
+      - proxy
     ports:
       - "127.0.0.1:8787:8787"
     environment:
