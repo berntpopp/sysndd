@@ -46,7 +46,7 @@ Read `AGENTS.md` before starting. Key invariants this plan depends on:
 ## File Structure
 
 **Created — API:**
-- `db/migrations/021_add_nddscore_prediction_release.sql` — additive schema migration.
+- `db/migrations/023_add_nddscore_prediction_release.sql` — additive schema migration.
 - `api/functions/nddscore-import.R` — pure, unit-testable importer functions (fetch / download / verify / extract / parse / load / validate).
 - `api/functions/nddscore-repository.R` — read-only parametrized query functions for the public API.
 - `api/endpoints/nddscore_endpoints.R` — public NDDScore REST endpoints.
@@ -88,19 +88,19 @@ Read `AGENTS.md` before starting. Key invariants this plan depends on:
 
 # Phase 1 — Database schema + test fixture
 
-### Task 1: Migration `021_add_nddscore_prediction_release.sql`
+### Task 1: Migration `023_add_nddscore_prediction_release.sql`
 
 **Files:**
-- Create: `db/migrations/021_add_nddscore_prediction_release.sql`
+- Create: `db/migrations/023_add_nddscore_prediction_release.sql`
 
 The DDL is adapted from the dataset's shipped `nddscore_schema.sql` with two deliberate deviations (spec §4): collation forced to `utf8mb4_unicode_ci`, and `nddscore_release` extended into a superset with SysNDD provenance + operational columns. `nddscore_gene_prediction`, `nddscore_hpo_prediction`, `nddscore_hpo_term` keep the dataset's columns verbatim; indexes follow spec §4.5; all three `*_current` views are added.
 
 - [ ] **Step 1: Write the migration file**
 
-Create `db/migrations/021_add_nddscore_prediction_release.sql` with exactly this content:
+Create `db/migrations/023_add_nddscore_prediction_release.sql` with exactly this content:
 
 ```sql
--- Migration: 021_add_nddscore_prediction_release
+-- Migration: 023_add_nddscore_prediction_release
 -- Description: Adds the NDDScore machine-learning prediction layer: release metadata,
 --              per-gene predictions, per-gene-HPO predictions, and per-HPO-term metadata,
 --              plus *_current views resolving the single active release.
@@ -256,12 +256,12 @@ WHERE r.`is_active` = 1;
 - [ ] **Step 2: Verify migration prefix uniqueness**
 
 Run: `bash scripts/check-migration-prefixes.sh`
-Expected: exit 0, no duplicate-prefix error (021 is new).
+Expected: exit 0, no duplicate-prefix error (023 is new).
 
 - [ ] **Step 3: Apply the migration against a dev DB and confirm it runs**
 
-Run: `make docker-dev-db` (or `make dev`), then check the API/worker startup log for the migration runner applying `021_add_nddscore_prediction_release`.
-Expected: startup completes; `schema_version` table has a row for `021_add_nddscore_prediction_release.sql` with `success = TRUE`. If startup crashes, the migration is malformed — fix the SQL, do not weaken the runner.
+Run: `make docker-dev-db` (or `make dev`), then check the API/worker startup log for the migration runner applying `023_add_nddscore_prediction_release`.
+Expected: startup completes; `schema_version` table has a row for `023_add_nddscore_prediction_release.sql` with `success = TRUE`. If startup crashes, the migration is malformed — fix the SQL, do not weaken the runner.
 
 Verify the four tables and three views exist:
 Run: `docker exec sysndd-db-1 mysql -uroot -p"$MYSQL_ROOT_PASSWORD" sysndd_db_dev -e "SHOW TABLES LIKE 'nddscore%'; SHOW FULL TABLES LIKE 'nddscore%current';"`
@@ -270,8 +270,8 @@ Expected: `nddscore_release`, `nddscore_gene_prediction`, `nddscore_hpo_predicti
 - [ ] **Step 4: Commit**
 
 ```bash
-git add db/migrations/021_add_nddscore_prediction_release.sql
-git commit -m "feat(db): add NDDScore prediction-layer migration 021"
+git add db/migrations/023_add_nddscore_prediction_release.sql
+git commit -m "feat(db): add NDDScore prediction-layer migration 023"
 ```
 
 ---
@@ -352,7 +352,7 @@ build_one <- function(out_name, corrupt_sha = FALSE) {
     '  "artifact_hashes_json": {"nddscore_schema.sql": "fixture"}\n',
     '}\n'
   )
-  schema_sql <- "-- fixture schema placeholder; real DDL ships in db/migrations/021\n"
+  schema_sql <- "-- fixture schema placeholder; real DDL ships in db/migrations/023\n"
 
   writeLines(gene_tsv, file.path(rel_dir, "nddscore_gene_predictions.tsv"))
   writeLines(hpo_pred_tsv, file.path(rel_dir, "nddscore_hpo_predictions.tsv"))
@@ -521,7 +521,7 @@ Create `api/functions/nddscore-import.R`:
 ```r
 # NDDScore importer — pure, unit-testable functions.
 # Fetch / download / verify / extract / parse / load / validate a Zenodo release.
-# No DB writes here; no secrets are logged. See db/migrations/021 for the target schema.
+# No DB writes here; no secrets are logged. See db/migrations/023 for the target schema.
 
 #' Default HTTP JSON GET used by nddscore_fetch_zenodo_metadata.
 #' Separated out so tests inject a stub instead.
@@ -968,7 +968,7 @@ describe("nddscore_validate", {
 - [ ] **Step 3: Implement** — append to `nddscore-import.R`:
 
 ```r
-# Required columns per frame — the schema contract (matches db/migrations/021).
+# Required columns per frame — the schema contract (matches db/migrations/023).
 .nddscore_required_columns <- list(
   gene = c("release_id", "hgnc_id", "gene_symbol", "ndd_score", "rank",
            "percentile", "risk_tier", "confidence_tier", "n_predicted_hpo"),
@@ -1059,7 +1059,7 @@ git commit -m "feat(api): NDDScore release validation (TDD)"
 
 # Phase 3 — Backend DB write layer, async job, repository, endpoints
 
-Phase 3 tasks that touch the DB use a real test database. Tests start with `skip_if_no_test_db()` and assume migration 021 has been applied to the test DB (the migration runner does this on startup; `make test-api` provisions it). DB-write tests clean the `nddscore_*` tables themselves (FK `ON DELETE CASCADE` from `nddscore_release` clears children) rather than relying on transaction rollback, because the activation step uses its own explicit transaction.
+Phase 3 tasks that touch the DB use a real test database. Tests start with `skip_if_no_test_db()` and assume migration 023 has been applied to the test DB (the migration runner does this on startup; `make test-api` provisions it). DB-write tests clean the `nddscore_*` tables themselves (FK `ON DELETE CASCADE` from `nddscore_release` clears children) rather than relying on transaction rollback, because the activation step uses its own explicit transaction.
 
 ### Task 8: NDDScore DB write helpers + test helper
 
@@ -3686,7 +3686,7 @@ git commit -m "feat(app): ManageNDDScore admin page"
 - Modify: `db/migrations/README.md`
 
 - [ ] **Step 1: Update `AGENTS.md`.** Add an "NDDScore prediction layer" subsection under the architecture invariants. Content to include:
-  - The four `nddscore_*` tables and three `*_current` views (migration 021).
+  - The four `nddscore_*` tables and three `*_current` views (migration 023).
   - The **ML-vs-curated invariant**: NDDScore is a model-derived prediction layer, never an evidence tier / curation status / manual review; copy rules per spec §7; curated SysNDD evidence is never reclassified by NDDScore.
   - The durable `nddscore_import` async job (System B, registered in `async_job_handler_registry`), runs in the worker (needs egress for Zenodo), serialized by the `nddscore_import` MySQL advisory lock, atomic active-release switch via the `active_release_slot` generated-column unique key, active-release re-import guard.
   - `is_active` is SysNDD-controlled; the upstream `nddscore_release.json` `is_active` is ignored.
@@ -3695,7 +3695,7 @@ git commit -m "feat(app): ManageNDDScore admin page"
 
 - [ ] **Step 3: Update `documentation/09-deployment.qmd`.** Add operator guidance: running NDDScore updates in production via the admin UI (Check Zenodo → Download & validate → Import & activate), the worker egress requirement (Zenodo), that the previous active release keeps serving until activation succeeds, all releases retained (history; no auto-pruning), and reading `import_status` / `last_error_message` on failure.
 
-- [ ] **Step 4: Update `db/migrations/README.md`.** Add migration 021 to any migration list/table the README maintains, following the convention used for migration 020.
+- [ ] **Step 4: Update `db/migrations/README.md`.** Add migration 023 to any migration list/table the README maintains, following the convention used for migration 020.
 
 - [ ] **Step 5: Commit**
 

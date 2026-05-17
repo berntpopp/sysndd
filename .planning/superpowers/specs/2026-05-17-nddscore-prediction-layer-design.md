@@ -61,7 +61,7 @@ The TSV files are used for import (small; normal `readr`/DBI import). Parquet
 files are ignored. The private NDDScore source-code repository is never
 referenced; no local/private paths, tokens, or `.env` content enter SysNDD.
 
-## 4. Database — migration `021_add_nddscore_prediction_release.sql`
+## 4. Database — migration `023_add_nddscore_prediction_release.sql`
 
 Four tables, additive migration applied at API startup by the existing migration
 runner. DDL is based on the dataset's shipped `nddscore_schema.sql` with two
@@ -409,7 +409,7 @@ Per the repo Documentation Contract, update in the same change:
 - `documentation/08-development.qmd` — local workflow for the import job.
 - `documentation/09-deployment.qmd` — operator guidance for running NDDScore
   updates in production (admin UI flow, worker egress requirement).
-- `db/migrations/README.md` — note migration 021 if conventions require it.
+- `db/migrations/README.md` — note migration 023 if conventions require it.
 
 ## 10. Verification
 
