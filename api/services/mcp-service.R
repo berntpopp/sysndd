@@ -204,8 +204,9 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
   invisible(lapply(types, mcp_validate_enum, allowed = MCP_ALLOWED_SEARCH_TYPES, argument = "types"))
 
   mcp_cached("search_sysndd", list(query = query, types = types, limit = limit), MCP_CACHE_TTLS$search_sysndd, function() {
-    rows <- mcp_repo_search(query, types, limit)
-    rows <- rows[seq_len(min(nrow(rows), limit)), , drop = FALSE]
+    rows_all <- mcp_repo_search(query, types, limit + 1L)
+    total <- nrow(rows_all)
+    rows <- rows_all[seq_len(min(total, limit)), , drop = FALSE]
     records <- lapply(mcp_rows_to_records(rows), function(item) {
       type <- item$type
       id <- item$id
@@ -225,7 +226,18 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
         )
       )
     })
-    list(schema_version = MCP_SCHEMA_VERSION, query = query, matches = records, meta = list(limit = limit, total = length(records)))
+    list(
+      schema_version = MCP_SCHEMA_VERSION,
+      query = query,
+      matches = records,
+      meta = list(
+        limit = limit,
+        offset = 0L,
+        returned = length(records),
+        total = total,
+        has_more = total > limit
+      )
+    )
   })
 }
 
@@ -326,6 +338,57 @@ mcp_get_entity_context <- function(entity_id,
       suggested_followups = list("get_publication_context", "search_sysndd")
     )
   })
+}
+
+mcp_get_entities_context <- function(entity_ids,
+                                     include_publications = TRUE,
+                                     include_phenotypes = TRUE,
+                                     include_variants = TRUE,
+                                     publication_limit = 10L) {
+  if (is.null(entity_ids)) {
+    stop(mcp_error("invalid_input", "entity_ids must contain at least one entity ID", list(argument = "entity_ids")))
+  }
+  raw_ids <- unlist(entity_ids, use.names = FALSE)
+  if (length(raw_ids) == 0L) {
+    stop(mcp_error("invalid_input", "entity_ids must contain at least one entity ID", list(argument = "entity_ids")))
+  }
+  if (length(raw_ids) > 20L) {
+    stop(mcp_error("invalid_input", "entity_ids supports at most 20 IDs per call", list(argument = "entity_ids", max = 20L)))
+  }
+  publication_limit <- mcp_validate_limit(publication_limit, default = 10L, max = 25L, name = "publication_limit")
+
+  entities <- lapply(raw_ids, function(raw_id) {
+    entity_id <- suppressWarnings(as.integer(raw_id))
+    if (is.na(entity_id) || entity_id < 1L) {
+      err <- unclass(mcp_error("invalid_input", "entity_id must be a positive integer", list(argument = "entity_id")))$error
+      return(list(entity_id = as.character(raw_id), error = err))
+    }
+
+    tryCatch(
+      mcp_get_entity_context(
+        entity_id = entity_id,
+        include_publications = include_publications,
+        include_phenotypes = include_phenotypes,
+        include_variants = include_variants,
+        publication_limit = publication_limit
+      ),
+      mcp_tool_error = function(e) {
+        list(entity_id = entity_id, error = unclass(e)$error)
+      }
+    )
+  })
+
+  returned <- sum(vapply(entities, function(item) is.null(item$error), logical(1)))
+  list(
+    schema_version = MCP_SCHEMA_VERSION,
+    entities = entities,
+    meta = list(
+      requested = length(raw_ids),
+      returned = returned,
+      errors = length(raw_ids) - returned,
+      max_entity_ids = 20L
+    )
+  )
 }
 
 mcp_list_gene_entities <- function(gene, category = NULL, ndd_phenotype = "any", limit = 25L, offset = 0L) {

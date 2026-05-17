@@ -208,3 +208,69 @@ test_that("list and find entity rows include resource URIs and suggested tools",
   expect_equal(decorated[[1]]$resource_uri, "sysndd://entity/10")
   expect_equal(decorated[[1]]$suggested_tools, list("get_entity_context", "get_entities_context"))
 })
+
+test_that("search_sysndd reports returned count and has_more metadata", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_search <- mcp_repo_search
+  assign("mcp_repo_search", function(query, types, limit) {
+    tibble::tibble(
+      type = rep("gene", 3),
+      id = c("SCN1A", "SCN1B", "SCN2A"),
+      label = c("SCN1A", "SCN1B", "SCN2A"),
+      description = c("one", "two", "three"),
+      match_tier = c("exact_identifier", "contains", "contains")
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_repo_search", old_search, envir = .GlobalEnv))
+
+  result <- mcp_search_sysndd("SCN", types = c("gene"), limit = 2L)
+
+  expect_equal(length(result$matches), 2L)
+  expect_equal(result$meta$limit, 2L)
+  expect_equal(result$meta$offset, 0L)
+  expect_equal(result$meta$returned, 2L)
+  expect_equal(result$meta$total, 3L)
+  expect_true(result$meta$has_more)
+})
+
+test_that("batch entity context preserves order and returns per-entity errors", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_context <- mcp_repo_get_entity_context
+  old_phenotypes <- mcp_repo_get_entity_phenotypes
+  old_variation <- mcp_repo_get_entity_variation
+  old_publications <- mcp_repo_get_entity_publications
+  assign("mcp_repo_get_entity_context", function(entity_id) {
+    if (identical(entity_id, 999L)) return(tibble::tibble())
+    tibble::tibble(
+      entity_id = entity_id,
+      symbol = "SCN1A",
+      hgnc_id = "HGNC:10585",
+      category = "Definitive",
+      synopsis = "Public synopsis",
+      review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_phenotypes", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_variation", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_publications", function(...) tibble::tibble(), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_get_entity_context", old_context, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_phenotypes", old_phenotypes, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_variation", old_variation, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_publications", old_publications, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_entities_context(c(10L, 999L, 11L), include_publications = FALSE)
+
+  expect_equal(result$meta$requested, 3L)
+  expect_equal(result$meta$returned, 2L)
+  expect_equal(result$meta$errors, 1L)
+  expect_equal(result$entities[[1]]$entity$entity_id, 10L)
+  expect_equal(result$entities[[2]]$entity_id, 999L)
+  expect_equal(result$entities[[2]]$error$code, "not_found")
+  expect_equal(result$entities[[3]]$entity$entity_id, 11L)
+})
