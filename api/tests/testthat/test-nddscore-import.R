@@ -8,7 +8,9 @@ fixture_archive <- function(name = "nddscore_fixture_release.tar.gz") {
   archive <- file.path(fixture_dir, name)
   if (!file.exists(archive)) {
     generator <- file.path(fixture_dir, "make-fixture-archive.R")
-    source(generator, local = TRUE)
+    withr::with_dir(dirname(get_api_dir()), {
+      source(generator, local = TRUE)
+    })
   }
   archive
 }
