@@ -2,6 +2,18 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import NddScoreGeneDetail from './NddScoreGeneDetail.vue';
 
+const routeState = vi.hoisted(() => ({
+  query: {} as Record<string, string>,
+}));
+
+vi.mock('vue-router', () => ({
+  RouterLink: {
+    props: ['to'],
+    template: '<a :href="to"><slot /></a>',
+  },
+  useRoute: () => ({ query: routeState.query }),
+}));
+
 vi.mock('@/api/nddscore', () => ({
   fetchGeneDetail: vi.fn().mockResolvedValue({
     hgnc_id: 'HGNC:2024',
@@ -32,17 +44,27 @@ vi.mock('@/api/nddscore', () => ({
 }));
 
 describe('NddScoreGeneDetail', () => {
-  it('renders prediction details without the old curated-evidence explainer block', async () => {
+  it('uses returnTo for the predictions back link', async () => {
+    routeState.query = {
+      returnTo:
+        '/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10',
+    };
+
     const wrapper = mount(NddScoreGeneDetail, {
       props: { hgncIdOrSymbol: 'CLCN4' },
-      global: {
-        stubs: {
-          RouterLink: {
-            props: ['to'],
-            template: '<a :href="to"><slot /></a>',
-          },
-        },
-      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.get('.ndd-gene-detail__back-link').attributes('href')).toBe(
+      '/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10'
+    );
+  });
+
+  it('renders prediction details without the old curated-evidence explainer block', async () => {
+    routeState.query = {};
+    const wrapper = mount(NddScoreGeneDetail, {
+      props: { hgncIdOrSymbol: 'CLCN4' },
     });
 
     await flushPromises();

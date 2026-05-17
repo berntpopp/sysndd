@@ -164,7 +164,7 @@
                 <template #cell-entity_id="{ row }">
                   <EntityBadge
                     :entity-id="row.entity_id"
-                    :link-to="'/Entities/' + row.entity_id"
+                    :link-to="withCurrentReturnTo('/Entities/' + row.entity_id)"
                     size="sm"
                   />
                 </template>
@@ -173,7 +173,7 @@
                   <GeneBadge
                     :symbol="row.symbol"
                     :hgnc-id="row.hgnc_id"
-                    :link-to="'/Genes/' + row.hgnc_id"
+                    :link-to="withCurrentReturnTo('/Genes/' + row.hgnc_id)"
                     size="sm"
                   />
                 </template>
@@ -277,6 +277,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import { withReturnTo } from '@/utils/returnNavigation';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -538,6 +539,9 @@ export default {
     // "There are no records to show" flash when the fetch took longer than 500 ms.
   },
   methods: {
+    withCurrentReturnTo(path) {
+      return withReturnTo(path);
+    },
     // Update browser URL with current table state
     // Uses history.replaceState instead of router.replace to prevent component remount
     updateBrowserUrl() {

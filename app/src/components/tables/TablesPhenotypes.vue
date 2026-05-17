@@ -304,7 +304,7 @@
           <template #cell(entity_id)="data">
             <EntityBadge
               :entity-id="data.item.entity_id"
-              :link-to="'/Entities/' + data.item.entity_id"
+              :link-to="withCurrentReturnTo('/Entities/' + data.item.entity_id)"
               size="sm"
             />
           </template>
@@ -313,7 +313,7 @@
             <GeneBadge
               :symbol="data.item.symbol"
               :hgnc-id="data.item.hgnc_id"
-              :link-to="'/Genes/' + data.item.hgnc_id"
+              :link-to="withCurrentReturnTo('/Genes/' + data.item.hgnc_id)"
               size="sm"
             />
           </template>
@@ -373,6 +373,7 @@ import NddIcon from '@/components/ui/NddIcon.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import { withReturnTo } from '@/utils/returnNavigation';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 
 // Import table components
@@ -632,6 +633,9 @@ export default {
     });
   },
   methods: {
+    withCurrentReturnTo(path) {
+      return withReturnTo(path);
+    },
     // Update browser URL with current table state
     // Uses history.replaceState instead of router.replace to prevent component remount
     updateBrowserUrl() {

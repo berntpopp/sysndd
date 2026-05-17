@@ -331,6 +331,7 @@ import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import { useExcelExport } from '@/composables/useExcelExport';
+import { withReturnTo } from '@/utils/returnNavigation';
 
 defineOptions({
   name: 'NddScoreGeneTable',
@@ -944,7 +945,7 @@ function removeSearch() {
 }
 
 function detailPath(row: GenePredictionRow): string {
-  return `/NDDScore/Gene/${encodeURIComponent(displayValue(row.hgnc_id))}`;
+  return withReturnTo(`/NDDScore/Gene/${encodeURIComponent(displayValue(row.hgnc_id))}`);
 }
 
 function displayValue(value: unknown): string {

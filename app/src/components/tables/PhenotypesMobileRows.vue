@@ -6,7 +6,7 @@
           <EntityBadge
             v-if="getText(item, 'entity_id')"
             :entity-id="getText(item, 'entity_id')"
-            :link-to="`/Entities/${getText(item, 'entity_id')}`"
+            :link-to="returnLink(`/Entities/${getText(item, 'entity_id')}`)"
             size="sm"
           />
           <GeneBadge
@@ -99,6 +99,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
+import { withReturnTo } from '@/utils/returnNavigation';
 
 type PhenotypeEntityRow = Record<string, unknown>;
 
@@ -131,7 +132,11 @@ function rowKey(item: PhenotypeEntityRow): string {
 
 function geneLink(item: PhenotypeEntityRow): string | undefined {
   const hgncId = getText(item, 'hgnc_id');
-  return hgncId ? `/Genes/${hgncId}` : undefined;
+  return hgncId ? returnLink(`/Genes/${hgncId}`) : undefined;
+}
+
+function returnLink(path: string): string {
+  return withReturnTo(path);
 }
 
 function diseaseLink(item: PhenotypeEntityRow): string | undefined {

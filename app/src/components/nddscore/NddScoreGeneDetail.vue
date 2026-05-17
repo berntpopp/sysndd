@@ -13,7 +13,7 @@
               </div>
 
               <div class="ndd-gene-detail__actions">
-                <RouterLink class="ndd-gene-detail__back-link" to="/NDDScore">
+                <RouterLink class="ndd-gene-detail__back-link" :to="backToPredictions">
                   Back to predictions
                 </RouterLink>
                 <BBadge class="ndd-gene-detail__prediction-badge" variant="info">
@@ -169,7 +169,11 @@
                 SHAP group contributions
               </h2>
               <dl v-if="shapGroups.length" class="ndd-gene-detail__compact-grid">
-                <div v-for="group in shapGroups" :key="group.label" class="ndd-gene-detail__compact">
+                <div
+                  v-for="group in shapGroups"
+                  :key="group.label"
+                  class="ndd-gene-detail__compact"
+                >
                   <dt v-b-tooltip.hover.top :title="shapHelp">{{ group.label }}</dt>
                   <dd>{{ formatSigned(group.value) }}</dd>
                 </div>
@@ -200,7 +204,11 @@
               <p v-else class="ndd-gene-detail__fallback">No HPO predictions available.</p>
             </section>
 
-            <section v-if="predictionNote" class="ndd-gene-detail__note" aria-label="Prediction note">
+            <section
+              v-if="predictionNote"
+              class="ndd-gene-detail__note"
+              aria-label="Prediction note"
+            >
               {{ predictionNote }}
             </section>
           </BCol>
@@ -214,11 +222,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRoute } from 'vue-router';
 import { BBadge, BCol, BContainer, BRow } from 'bootstrap-vue-next';
 import type { ColorVariant } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import { fetchGeneDetail, type NddScoreGeneDetail } from '@/api/nddscore';
+import { returnToFromRoute } from '@/utils/returnNavigation';
 
 defineOptions({
   name: 'NddScoreGeneDetail',
@@ -227,6 +236,8 @@ defineOptions({
 const props = defineProps<{
   hgncIdOrSymbol: string;
 }>();
+
+const route = useRoute();
 
 type GeneDetailRow = NddScoreGeneDetail & {
   hgnc_id?: string | number;
@@ -243,6 +254,8 @@ type HpoPrediction = {
 const gene = ref<GeneDetailRow | null>(null);
 const loaded = ref(false);
 let requestSerial = 0;
+
+const backToPredictions = computed(() => returnToFromRoute(route, '/NDDScore'));
 
 const geneSymbol = computed(() =>
   displayValue(readField(gene.value, 'gene_symbol', 'symbol') ?? props.hgncIdOrSymbol)
@@ -336,7 +349,8 @@ const metricHelp = {
   nddScore:
     'Model probability-like score for neurodevelopmental disorder gene candidacy; higher scores indicate stronger model support.',
   rank: 'Position of this gene in the active NDDScore release after sorting by NDD score.',
-  percentile: 'Relative position among all genes in the active release; higher percentile means stronger model rank.',
+  percentile:
+    'Relative position among all genes in the active release; higher percentile means stronger model rank.',
   bagAgreement:
     'Share of model bags that support this prediction tier. Higher agreement means the ensemble was more consistent.',
   riskTier: 'Bucketed interpretation of the NDD score in the active model release.',

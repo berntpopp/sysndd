@@ -117,6 +117,36 @@ describe('NddScoreGeneTable', () => {
     expect(decodeURIComponent(window.location.search)).toContain('equals(model_split,unseen)');
   });
 
+  it('carries the current table URL when linking to a gene detail page', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10'
+    );
+    mocks.fetchGenePredictions.mockResolvedValueOnce({
+      data: [
+        {
+          hgnc_id: 'HGNC:6512',
+          gene_symbol: 'KMT2A',
+          ndd_score: 0.98,
+          rank: 42,
+          percentile: 99,
+        },
+      ],
+      total: 50,
+      page: 3,
+      page_size: 10,
+    });
+
+    const wrapper = mount(NddScoreGeneTable);
+    await flushPromises();
+
+    const href = wrapper.get('[to^="/NDDScore/Gene/HGNC%3A6512"]').attributes('to');
+    expect(decodeURIComponent(href)).toContain(
+      'returnTo=/NDDScore?sort=%2Brank&filter=equals%28model_split%2Cunseen%29&page=3&page_size=10'
+    );
+  });
+
   it('sends typed numeric, inheritance, and HPO filters to the API', async () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();
