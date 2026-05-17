@@ -4,6 +4,7 @@
 
 MCP_SCHEMA_VERSION <- "1.0"
 MCP_ALLOWED_SEARCH_TYPES <- c("gene", "entity", "disease", "phenotype", "variant")
+MCP_ALLOWED_ENTITY_CATEGORIES <- c("Definitive", "Moderate", "Limited", "Refuted")
 MCP_CACHE_TTLS <- list(
   get_sysndd_stats = 300L,
   search_sysndd = 60L,
@@ -60,6 +61,19 @@ mcp_validate_enum <- function(value, allowed, argument) {
   value
 }
 
+mcp_validate_category <- function(category, argument = "category") {
+  if (is.null(category) || !nzchar(trimws(as.character(category)[1]))) return(NULL)
+  value <- as.character(category)[1]
+  if (!value %in% MCP_ALLOWED_ENTITY_CATEGORIES) {
+    stop(mcp_error(
+      "invalid_input",
+      sprintf("%s must be one of: %s", argument, paste(MCP_ALLOWED_ENTITY_CATEGORIES, collapse = ", ")),
+      list(argument = argument, allowed_values = MCP_ALLOWED_ENTITY_CATEGORIES)
+    ))
+  }
+  value
+}
+
 mcp_validate_limit <- function(limit, default = 25L, max = 50L, name = "limit") {
   if (is.null(limit)) limit <- default
   limit <- suppressWarnings(as.integer(limit))
@@ -86,10 +100,11 @@ mcp_normalize_gene_input <- function(gene) {
 
 mcp_normalize_pmid <- function(pmid) {
   value <- mcp_validate_query(pmid, min_chars = 1L, max_chars = 200L, argument = "pmid")
-  match <- regmatches(value, regexpr("[0-9]{1,9}", value))
-  if (!nzchar(match)) {
+  match_pos <- regexpr("[0-9]{1,9}", value, perl = TRUE)
+  if (identical(as.integer(match_pos[[1]]), -1L)) {
     stop(mcp_error("invalid_input", "pmid must contain a PubMed identifier", list(argument = "pmid")))
   }
+  match <- regmatches(value, match_pos)
   paste0("PMID:", match)
 }
 
@@ -139,6 +154,15 @@ mcp_score_for_tier <- function(tier) {
 
 mcp_resource_uri <- function(type, id) {
   sprintf("sysndd://%s/%s", type, id)
+}
+
+mcp_decorate_entity_records <- function(rows) {
+  lapply(mcp_rows_to_records(rows), function(item) {
+    c(item, list(
+      resource_uri = mcp_resource_uri("entity", item$entity_id),
+      suggested_tools = list("get_entity_context", "get_entities_context")
+    ))
+  })
 }
 
 mcp_recommended_citation <- function(pub) {
@@ -305,6 +329,7 @@ mcp_get_entity_context <- function(entity_id,
 }
 
 mcp_list_gene_entities <- function(gene, category = NULL, ndd_phenotype = "any", limit = 25L, offset = 0L) {
+  category <- mcp_validate_category(category)
   ndd_phenotype <- mcp_validate_enum(ndd_phenotype, c("yes", "no", "any"), "ndd_phenotype")
   limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
   offset <- mcp_validate_offset(offset)
@@ -316,7 +341,7 @@ mcp_list_gene_entities <- function(gene, category = NULL, ndd_phenotype = "any",
   list(
     schema_version = MCP_SCHEMA_VERSION,
     gene = gene_obj,
-    data = mcp_rows_to_records(rows),
+    data = mcp_decorate_entity_records(rows),
     meta = list(total = total, limit = limit, offset = offset, has_more = offset + nrow(rows) < total)
   )
 }
@@ -410,10 +435,11 @@ mcp_find_entities_by_phenotype <- function(phenotype,
                                            offset = 0L) {
   phenotype <- mcp_validate_query(phenotype, min_chars = 2L, max_chars = 100L, argument = "phenotype")
   modifier <- mcp_validate_query(modifier, min_chars = 2L, max_chars = 30L, argument = "modifier")
+  category <- mcp_validate_category(category)
   limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
   offset <- mcp_validate_offset(offset)
   rows <- mcp_repo_find_entities_by_phenotype(phenotype, modifier, category, limit, offset)
-  list(schema_version = MCP_SCHEMA_VERSION, phenotype = phenotype, resolved_phenotypes = unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")])), entities = mcp_rows_to_records(rows), meta = list(limit = limit, offset = offset, total = nrow(rows), has_more = nrow(rows) == limit))
+  list(schema_version = MCP_SCHEMA_VERSION, phenotype = phenotype, resolved_phenotypes = unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")])), entities = mcp_decorate_entity_records(rows), meta = list(limit = limit, offset = offset, total = nrow(rows), has_more = nrow(rows) == limit))
 }
 
 mcp_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
@@ -421,7 +447,7 @@ mcp_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
   limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
   offset <- mcp_validate_offset(offset)
   rows <- mcp_repo_find_entities_by_disease(disease, limit, offset)
-  list(schema_version = MCP_SCHEMA_VERSION, resolved_diseases = unique(mcp_rows_to_records(rows[c("disease_ontology_id_version", "disease_ontology_name")])), entities = mcp_rows_to_records(rows), meta = list(limit = limit, offset = offset, total = nrow(rows), has_more = nrow(rows) == limit))
+  list(schema_version = MCP_SCHEMA_VERSION, resolved_diseases = unique(mcp_rows_to_records(rows[c("disease_ontology_id_version", "disease_ontology_name")])), entities = mcp_decorate_entity_records(rows), meta = list(limit = limit, offset = offset, total = nrow(rows), has_more = nrow(rows) == limit))
 }
 
 mcp_get_sysndd_stats <- function() {

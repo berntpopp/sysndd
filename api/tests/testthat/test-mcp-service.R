@@ -174,3 +174,37 @@ test_that("batch publication context preserves request order and returns per-PMI
   expect_equal(result$publications[[2]]$error$code, "not_found")
   expect_equal(result$publications[[3]]$publication_id, "PMID:123")
 })
+
+test_that("find_entities_by_phenotype rejects invalid category instead of returning a false negative", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  err <- tryCatch(
+    mcp_find_entities_by_phenotype("HP:0001250", category = "BogusCategory"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+
+  expect_equal(err$error$code, "invalid_input")
+  expect_equal(err$error$argument, "category")
+})
+
+test_that("list and find entity rows include resource URIs and suggested tools", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  rows <- tibble::tibble(
+    entity_id = 10L,
+    symbol = "MECP2",
+    hgnc_id = "HGNC:6990",
+    disease_ontology_id_version = "MONDO:1",
+    disease_ontology_name = "Rett syndrome",
+    hpo_mode_of_inheritance_term_name = "X-linked dominant",
+    category = "Definitive",
+    ndd_phenotype_word = "Yes"
+  )
+
+  decorated <- mcp_decorate_entity_records(rows)
+
+  expect_equal(decorated[[1]]$resource_uri, "sysndd://entity/10")
+  expect_equal(decorated[[1]]$suggested_tools, list("get_entity_context", "get_entities_context"))
+})

@@ -30,3 +30,32 @@ test_that("MCP input validators reject raw SQL-like and overbroad input", {
   expect_error(mcp_validate_query("MECP2; DROP TABLE ndd_entity"), class = "mcp_tool_error")
   expect_error(mcp_validate_enum("maybe", c("yes", "no", "any"), "ndd_phenotype"), class = "mcp_tool_error")
 })
+
+test_that("PMID normalization rejects malformed identifiers with a stable MCP error", {
+  source("../../services/mcp-service.R")
+
+  expect_equal(mcp_normalize_pmid("12345678"), "PMID:12345678")
+  expect_equal(mcp_normalize_pmid("PMID:12345678"), "PMID:12345678")
+  expect_equal(mcp_normalize_pmid("https://pubmed.ncbi.nlm.nih.gov/12345678/"), "PMID:12345678")
+
+  expect_error(
+    mcp_normalize_pmid("notapmid"),
+    class = "mcp_tool_error"
+  )
+
+  err <- tryCatch(mcp_normalize_pmid("notapmid"), mcp_tool_error = function(e) unclass(e))
+  expect_equal(err$error$code, "invalid_input")
+  expect_equal(err$error$argument, "pmid")
+})
+
+test_that("MCP category validation rejects unsupported public categories", {
+  source("../../services/mcp-service.R")
+
+  expect_equal(mcp_validate_category(NULL), NULL)
+  expect_equal(mcp_validate_category("Definitive"), "Definitive")
+
+  err <- tryCatch(mcp_validate_category("BogusCategory"), mcp_tool_error = function(e) unclass(e))
+  expect_equal(err$error$code, "invalid_input")
+  expect_equal(err$error$argument, "category")
+  expect_true("Definitive" %in% err$error$allowed_values)
+})
