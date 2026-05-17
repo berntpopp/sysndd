@@ -154,3 +154,57 @@ nddscore_extract_and_verify <- function(archive_path, exdir = NULL) {
   }
   rel_dir
 }
+
+#' Parse NDDScore release metadata from nddscore_release.json.
+#'
+#' @param dir Path to the extracted sysndd_prediction_release directory.
+#' @return One-row metadata list with nested metric/version objects serialized
+#'   as compact JSON strings.
+nddscore_parse_release_json <- function(dir) {
+  path <- file.path(dir, "nddscore_release.json")
+  if (!file.exists(path)) {
+    stop("NDDScore release metadata file not found", call. = FALSE)
+  }
+
+  release <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+  json_fields <- grep("_json$", names(release), value = TRUE)
+  for (field in json_fields) {
+    release[[field]] <- jsonlite::toJSON(
+      release[[field]],
+      auto_unbox = TRUE,
+      null = "null",
+      digits = NA
+    )
+  }
+
+  integer_fields <- c("n_genes", "n_hpo_predictions", "n_hpo_terms", "n_features")
+  for (field in intersect(integer_fields, names(release))) {
+    release[[field]] <- as.integer(release[[field]])
+  }
+
+  release
+}
+
+#' Load NDDScore release TSV files.
+#'
+#' @param dir Path to the extracted sysndd_prediction_release directory.
+#' @return Named list of tibbles: gene, hpo, and term.
+nddscore_load_tsvs <- function(dir) {
+  list(
+    gene = readr::read_tsv(
+      file.path(dir, "nddscore_gene_predictions.tsv"),
+      show_col_types = FALSE,
+      progress = FALSE
+    ),
+    hpo = readr::read_tsv(
+      file.path(dir, "nddscore_hpo_predictions.tsv"),
+      show_col_types = FALSE,
+      progress = FALSE
+    ),
+    term = readr::read_tsv(
+      file.path(dir, "nddscore_hpo_terms.tsv"),
+      show_col_types = FALSE,
+      progress = FALSE
+    )
+  )
+}

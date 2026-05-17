@@ -137,3 +137,33 @@ describe("nddscore_extract_and_verify", {
     )
   })
 })
+
+describe("nddscore_parse_release_json", {
+  it("parses release metadata from the fixture", {
+    rel_dir <- nddscore_extract_and_verify(fixture_archive())
+    meta <- nddscore_parse_release_json(rel_dir)
+
+    expect_equal(meta$release_id, "ndd_fixture_release")
+    expect_equal(meta$score_schema_version, "1.0.0")
+    expect_equal(meta$n_genes, 3L)
+    expect_equal(meta$n_hpo_predictions, 4L)
+    expect_equal(meta$n_hpo_terms, 2L)
+    expect_equal(meta$hpo_threshold, 0.5)
+    expect_type(meta$ndd_performance_json, "character")
+    expect_match(meta$ndd_performance_json, "auc_roc")
+  })
+})
+
+describe("nddscore_load_tsvs", {
+  it("loads the three TSVs into tibbles", {
+    rel_dir <- nddscore_extract_and_verify(fixture_archive())
+    frames <- nddscore_load_tsvs(rel_dir)
+
+    expect_named(frames, c("gene", "hpo", "term"), ignore.order = TRUE)
+    expect_equal(nrow(frames$gene), 3L)
+    expect_equal(nrow(frames$hpo), 4L)
+    expect_equal(nrow(frames$term), 2L)
+    expect_true("ndd_score" %in% names(frames$gene))
+    expect_true("probability" %in% names(frames$hpo))
+  })
+})
