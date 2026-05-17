@@ -125,7 +125,7 @@ mcp_server_instructions <- function() {
     "Canonical workflow: search_sysndd to resolve user text, get_gene_context for a gene overview, get_entities_context for entity detail, then get_publications_context for PMID evidence.",
     "Entity model: entities are gene-disease-inheritance curation records; one gene can have many entities with different diseases, inheritance modes, categories, and NDD phenotype flags.",
     "Call get_sysndd_capabilities for workflows, limits, payload modes, citation rules, resources, errors, and v1 exclusions.",
-    "Use response_mode, abstract_mode, synopsis_mode, include_* flags, and dedupe_publications to control token cost.",
+    "Use response_mode, abstract_mode, synopsis_mode, include_* flags, expand=entities, and dedupe_publications to control token cost and round trips.",
     "Publication outputs include recommended_citation and publication-date confidence flags; paste recommended_citation verbatim.",
     "Static docs are sysndd://schema/overview and sysndd://schema/tool-guide; payload sysndd://gene/entity/publication URIs are stable identifiers and tools are the v1 record retrieval path.",
     "Tool errors use JSON envelopes with error.code values such as invalid_input, not_found, ambiguous_query, and temporarily_unavailable.",
@@ -152,6 +152,7 @@ mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructio
     res$serverInfo$name <- "SysNDD read-only MCP"
     res$instructions <- instructions
     res$capabilities$prompts <- list(listChanged = FALSE)
+    res$capabilities$resources <- list(subscribe = FALSE, listChanged = FALSE)
     res
   }
   environment(patched) <- environment()
@@ -208,11 +209,36 @@ mcp_fill_array_descriptions <- function(input_schema) {
   input_schema
 }
 
+mcp_hidden_aliases <- function(tool_name) {
+  switch(tool_name,
+    get_gene_context = c("symbol", "query"),
+    list_gene_entities = c("symbol", "query"),
+    character()
+  )
+}
+
+mcp_visible_expected_arguments <- function(tool_name, expected) {
+  setdiff(expected, mcp_hidden_aliases(tool_name))
+}
+
+mcp_hide_deprecated_aliases <- function(item) {
+  hidden <- mcp_hidden_aliases(item$name %||% "")
+  if (length(hidden) == 0L || is.null(item$inputSchema$properties)) {
+    return(item)
+  }
+  item$inputSchema$properties[hidden] <- NULL
+  if (!is.null(item$inputSchema$required)) {
+    item$inputSchema$required <- setdiff(item$inputSchema$required, hidden)
+  }
+  item
+}
+
 mcp_tool_metadata <- function(tools) {
   tool_as_json <- base::get("tool_as_json", envir = asNamespace("mcptools"))
   lapply(tools, function(tool) {
     item <- tool_as_json(tool)
     item$inputSchema <- mcp_fill_array_descriptions(item$inputSchema)
+    item <- mcp_hide_deprecated_aliases(item)
     item$annotations <- mcp_tool_annotations(title = item$name)
     item$outputSchema <- mcp_output_schema(item$name)
     item
@@ -269,7 +295,7 @@ mcp_prompt_definitions <- function() {
       title = "SysNDD gene evidence summary",
       description = "Summarize approved public SysNDD gene evidence.",
       arguments = list(
-        list(name = "gene", description = "Gene symbol, HGNC:1234, or HGNC ID.", required = TRUE),
+        list(name = "gene", description = "Gene identifier such as PNKP, HGNC:1234, or HGNC ID.", required = TRUE),
         list(name = "depth", description = "compact, standard, or full.", required = FALSE)
       )
     ),
@@ -320,7 +346,8 @@ mcp_prompt_text <- function(name, arguments = list()) {
       common,
       sprintf("Gene: %s. Depth: %s.", arg("gene"), arg("depth", "compact")),
       "Call get_gene_context with include_comparisons=false first.",
-      "If multiple entities are returned and detail is needed, call get_entities_context with dedupe_publications=true.",
+      "For one-call gene detail, call get_gene_context with expand=entities.",
+      "Otherwise call get_entities_context with dedupe_publications=true for returned entity IDs.",
       "Use abstract_mode=metadata unless the user asks for abstract text."
     ),
     sysndd_entity_evidence_brief = paste(
@@ -383,11 +410,9 @@ mcp_handle_prompts_get <- function(id, name, arguments = list()) {
 mcp_tool_result_response <- function(id, payload, is_error = FALSE, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
   body <- list(
     content = list(list(type = "text", text = jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null"))),
-    isError = isTRUE(is_error)
+    isError = isTRUE(is_error),
+    structuredContent = payload
   )
-  if (identical(output_mode, "structuredContent")) {
-    body$structuredContent <- payload
-  }
   mcp_jsonrpc_response(id, body)
 }
 
@@ -416,13 +441,16 @@ mcp_tool_call_arg_error <- function(data, tools) {
   if (is.null(names(args))) names(args) <- rep("", length(args))
 
   expected <- mcp_tool_property_names(tool)
+  hidden_aliases <- mcp_hidden_aliases(tool_name)
+  allowed <- union(expected, hidden_aliases)
+  visible_expected <- mcp_visible_expected_arguments(tool_name, expected)
   provided <- names(args)[nzchar(names(args))]
-  unknown <- setdiff(provided, expected)
+  unknown <- setdiff(provided, allowed)
   gene_hint <- "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers."
   if (length(unknown) > 0L) {
-    fields <- list(argument = unknown[[1]], expected_arguments = expected)
+    fields <- list(argument = unknown[[1]], expected_arguments = visible_expected)
     if (tool_name %in% c("get_gene_context", "list_gene_entities")) fields$hint <- gene_hint
-    return(mcp_error("invalid_input", sprintf("Unknown parameter '%s'. Expected: %s", unknown[[1]], paste(expected, collapse = ", ")), fields))
+    return(mcp_error("invalid_input", sprintf("Unknown parameter '%s'. Expected: %s", unknown[[1]], paste(visible_expected, collapse = ", ")), fields))
   }
 
   missing <- setdiff(mcp_tool_required_properties(tool), provided)
@@ -514,12 +542,26 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       mcp_search_sysndd(query = query, types = types, limit = limit)
     }, output_mode)()
   }
-  get_gene_context_fun <- function(gene = NULL, symbol = NULL, query = NULL, include_entities = TRUE, include_comparisons = FALSE, entity_limit = NULL, response_mode = NULL, synopsis_mode = NULL) {
+  get_gene_context_fun <- function(gene = NULL,
+                                   symbol = NULL,
+                                   query = NULL,
+                                   include_entities = TRUE,
+                                   include_comparisons = FALSE,
+                                   entity_limit = NULL,
+                                   response_mode = NULL,
+                                   synopsis_mode = NULL,
+                                   expand = NULL,
+                                   include_publications = TRUE,
+                                   include_phenotypes = TRUE,
+                                   include_variants = TRUE,
+                                   publication_limit = NULL,
+                                   abstract_mode = NULL,
+                                   dedupe_publications = TRUE) {
     if (is.null(gene) && !is.null(symbol)) gene <- symbol
     if (is.null(gene) && !is.null(query)) gene <- query
     mcp_tool_safe(function() {
       if (is.null(gene)) {
-        stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene", expected_arguments = c("gene", "symbol", "query", "include_entities", "include_comparisons", "entity_limit", "response_mode", "synopsis_mode"), hint = gene_arg_hint)))
+        stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene", expected_arguments = c("gene", "include_entities", "include_comparisons", "entity_limit", "response_mode", "synopsis_mode", "expand", "include_publications", "include_phenotypes", "include_variants", "publication_limit", "abstract_mode", "dedupe_publications"), hint = gene_arg_hint)))
       }
       mcp_get_gene_context(
         gene = gene,
@@ -527,7 +569,14 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
         include_comparisons = include_comparisons,
         entity_limit = entity_limit,
         response_mode = response_mode,
-        synopsis_mode = synopsis_mode
+        synopsis_mode = synopsis_mode,
+        expand = expand,
+        include_publications = include_publications,
+        include_phenotypes = include_phenotypes,
+        include_variants = include_variants,
+        publication_limit = publication_limit,
+        abstract_mode = abstract_mode,
+        dedupe_publications = dedupe_publications
       )
     }, output_mode)()
   }
@@ -638,23 +687,30 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       "Search approved public SysNDD genes, entities, diseases, phenotypes, and variants. Example: search_sysndd({\"query\":\"PNKP\",\"types\":[\"gene\"],\"limit\":5}).",
       arguments = list(
         query = ellmer::type_string("Search query, 2-100 characters."),
-        types = ellmer::type_array(ellmer::type_string("Optional type: gene, entity, disease, phenotype, or variant."), description = "Optional array of result types to search.", required = FALSE),
+        types = ellmer::type_array(ellmer::type_string("Optional type: gene, entity, disease, phenotype, or variant."), description = "Optional array of result types to search; default all supported types.", required = FALSE),
         limit = ellmer::type_integer("Maximum matches, default 10, max 25.", required = FALSE)
       ),
       name = "search_sysndd"
     ),
     ellmer::tool(
       get_gene_context_fun,
-      "Get compact approved public context for a SysNDD gene. Example: get_gene_context({\"gene\":\"PNKP\",\"include_entities\":true,\"include_comparisons\":false,\"response_mode\":\"compact\"}) for the cheap path.",
+      "Get compact approved public context for a SysNDD gene. Example: get_gene_context({\"gene\":\"PNKP\",\"include_entities\":true,\"include_comparisons\":false,\"response_mode\":\"compact\"}) for the cheap path, or add \"expand\":\"entities\" for one-call entity detail.",
       arguments = list(
-        gene = ellmer::type_string("Gene symbol, HGNC:1234, or bare HGNC ID. Required unless symbol or query alias is provided.", required = FALSE),
-        include_entities = ellmer::type_boolean("Include compact entity rows.", required = FALSE),
-        symbol = ellmer::type_string("Deprecated alias for gene.", required = FALSE),
-        query = ellmer::type_string("Deprecated alias for gene; accepted to recover from search-style calls.", required = FALSE),
+        gene = ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID.", required = FALSE),
+        include_entities = ellmer::type_boolean("Include compact entity rows; default true.", required = FALSE),
+        symbol = ellmer::type_string("Deprecated hidden alias for gene.", required = FALSE),
+        query = ellmer::type_string("Deprecated hidden alias for gene; accepted to recover from search-style calls.", required = FALSE),
         include_comparisons = ellmer::type_boolean("Include comparison-source rows; default false for the cheap path.", required = FALSE),
-        entity_limit = ellmer::type_integer("Entity cap, default 10, max 25.", required = FALSE),
+        entity_limit = ellmer::type_integer("Entity cap, default 10, max 25; expand=entities detail fetches at most 20 IDs per call.", required = FALSE),
         response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
-        synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE)
+        synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE),
+        expand = ellmer::type_string("none or entities; default none. Use entities for one-call gene plus entity detail.", required = FALSE),
+        include_publications = ellmer::type_boolean("When expand=entities, include linked publications; default true.", required = FALSE),
+        include_phenotypes = ellmer::type_boolean("When expand=entities, include HPO phenotype terms; default true.", required = FALSE),
+        include_variants = ellmer::type_boolean("When expand=entities, include variation ontology terms; default true.", required = FALSE),
+        publication_limit = ellmer::type_integer("When expand=entities, publication cap per entity, default 10, max 25.", required = FALSE),
+        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        dedupe_publications = ellmer::type_boolean("When expand=entities, deduplicate shared publications into top-level publications; default true.", required = FALSE)
       ),
       name = "get_gene_context"
     ),
@@ -663,9 +719,9 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       "Get compact approved public context for one SysNDD entity; use abstract_mode/synopsis_mode to control token cost. Example: get_entity_context({\"entity_id\":451,\"publication_limit\":5,\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         entity_id = ellmer::type_integer("SysNDD entity ID."),
-        include_publications = ellmer::type_boolean("Include linked publications.", required = FALSE),
-        include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms.", required = FALSE),
-        include_variants = ellmer::type_boolean("Include variation ontology terms.", required = FALSE),
+        include_publications = ellmer::type_boolean("Include linked publications; default true.", required = FALSE),
+        include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms; default true.", required = FALSE),
+        include_variants = ellmer::type_boolean("Include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("Publication cap, default 10, max 25.", required = FALSE),
         response_mode = ellmer::type_string("compact, standard, or full; default standard.", required = FALSE),
         abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode.", required = FALSE),
@@ -678,9 +734,9 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       "Batch get compact approved public context for 1-20 SysNDD entity IDs, preserving order with per-ID errors and deduped publications. Example: get_entities_context({\"entity_ids\":[451,1317,1755],\"publication_limit\":3,\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         entity_ids = ellmer::type_array(ellmer::type_integer("SysNDD entity ID."), description = "Array of 1-20 SysNDD entity IDs."),
-        include_publications = ellmer::type_boolean("Include linked publications.", required = FALSE),
-        include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms.", required = FALSE),
-        include_variants = ellmer::type_boolean("Include variation ontology terms.", required = FALSE),
+        include_publications = ellmer::type_boolean("Include linked publications; default true.", required = FALSE),
+        include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms; default true.", required = FALSE),
+        include_variants = ellmer::type_boolean("Include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("Publication cap per entity, default 10, max 25.", required = FALSE),
         response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
         abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode.", required = FALSE),
@@ -693,13 +749,13 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       list_gene_entities_fun,
       "List approved public SysNDD entities for one gene; pass returned entity_id values to get_entity_context or get_entities_context. Example: list_gene_entities({\"gene\":\"PNKP\",\"limit\":10}).",
       arguments = list(
-        gene = ellmer::type_string("Gene symbol, HGNC:1234, or bare HGNC ID. Required unless symbol or query alias is provided.", required = FALSE),
-        symbol = ellmer::type_string("Deprecated alias for gene.", required = FALSE),
-        query = ellmer::type_string("Deprecated alias for gene; accepted to recover from search-style calls.", required = FALSE),
-        category = ellmer::type_string("Optional approved category filter.", required = FALSE),
-        ndd_phenotype = ellmer::type_string("yes, no, or any.", required = FALSE),
+        gene = ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID.", required = FALSE),
+        symbol = ellmer::type_string("Deprecated hidden alias for gene.", required = FALSE),
+        query = ellmer::type_string("Deprecated hidden alias for gene; accepted to recover from search-style calls.", required = FALSE),
+        category = ellmer::type_string("Optional approved category filter; no category filter by default.", required = FALSE),
+        ndd_phenotype = ellmer::type_string("yes, no, or any; default any.", required = FALSE),
         limit = ellmer::type_integer("Row cap, default 25, max 50.", required = FALSE),
-        offset = ellmer::type_integer("Zero-based offset.", required = FALSE)
+        offset = ellmer::type_integer("Zero-based offset; default 0.", required = FALSE)
       ),
       name = "list_gene_entities"
     ),
@@ -728,10 +784,10 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       "Find approved public entities by HPO ID or phenotype text; pass returned entity_id values to get_entity_context or get_entities_context. Example: find_entities_by_phenotype({\"phenotype\":\"HP:0000252\",\"limit\":10}).",
       arguments = list(
         phenotype = ellmer::type_string("HPO ID or phenotype text."),
-        modifier = ellmer::type_string("Modifier text such as present or excluded.", required = FALSE),
-        category = ellmer::type_string("Approved category filter.", required = FALSE),
+        modifier = ellmer::type_string("Modifier text such as present or excluded; default present.", required = FALSE),
+        category = ellmer::type_string("Approved category filter; default Definitive.", required = FALSE),
         limit = ellmer::type_integer("Row cap, default 25, max 50.", required = FALSE),
-        offset = ellmer::type_integer("Zero-based offset.", required = FALSE)
+        offset = ellmer::type_integer("Zero-based offset; default 0.", required = FALSE)
       ),
       name = "find_entities_by_phenotype"
     ),
@@ -741,7 +797,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       arguments = list(
         disease = ellmer::type_string("Disease ontology ID or disease name."),
         limit = ellmer::type_integer("Row cap, default 25, max 50.", required = FALSE),
-        offset = ellmer::type_integer("Zero-based offset.", required = FALSE)
+        offset = ellmer::type_integer("Zero-based offset; default 0.", required = FALSE)
       ),
       name = "find_entities_by_disease"
     ),

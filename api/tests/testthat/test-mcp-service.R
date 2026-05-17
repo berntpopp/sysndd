@@ -4,6 +4,7 @@ test_that("get_gene_context shapes compact public gene payloads", {
 
   old_resolve <- mcp_repo_resolve_gene
   old_entities <- mcp_repo_get_gene_entities
+  old_count <- mcp_repo_count_gene_entities
   old_comparisons <- mcp_repo_get_gene_comparisons
   assign("mcp_repo_resolve_gene", function(normalized_gene) {
     tibble::tibble(hgnc_id = "1", symbol = "MECP2", name = "methyl-CpG binding protein 2")
@@ -21,10 +22,12 @@ test_that("get_gene_context shapes compact public gene payloads", {
       synopsis = paste(rep("A", 2000), collapse = "")
     )
   }, envir = .GlobalEnv)
+  assign("mcp_repo_count_gene_entities", function(...) 1L, envir = .GlobalEnv)
   assign("mcp_repo_get_gene_comparisons", function(...) tibble::tibble(list = "OMIM", category = "Definitive"), envir = .GlobalEnv)
   withr::defer({
     assign("mcp_repo_resolve_gene", old_resolve, envir = .GlobalEnv)
     assign("mcp_repo_get_gene_entities", old_entities, envir = .GlobalEnv)
+    assign("mcp_repo_count_gene_entities", old_count, envir = .GlobalEnv)
     assign("mcp_repo_get_gene_comparisons", old_comparisons, envir = .GlobalEnv)
   })
 
@@ -67,8 +70,8 @@ test_that("MCP payload mode helpers shape abstracts and synopses predictably", {
 
   metadata <- mcp_publication_record(pub, abstract_mode = "metadata")
   expect_true(metadata$abstract_available)
-  expect_equal(metadata$abstract_excerpt, "")
-  expect_false(metadata$abstract_truncated)
+  expect_null(metadata$abstract_excerpt)
+  expect_null(metadata$abstract_truncated)
 
   excerpt <- mcp_publication_record(pub, abstract_mode = "excerpt", abstract_max_chars = 40L)
   expect_true(excerpt$abstract_available)
@@ -87,6 +90,18 @@ test_that("MCP payload mode helpers shape abstracts and synopses predictably", {
   full <- mcp_apply_synopsis_mode(entity, "full", 40L)
   expect_equal(full$review$synopsis, entity$synopsis)
   expect_false(full$review$synopsis_truncated)
+})
+
+test_that("gene identifier normalization keeps the stored HGNC prefix", {
+  source("../../services/mcp-service.R")
+
+  prefixed <- mcp_normalize_gene_input("HGNC:18704")
+  bare <- mcp_normalize_gene_input("18704")
+  symbol <- mcp_normalize_gene_input("NAA10")
+
+  expect_equal(prefixed, list(kind = "hgnc_id", value = "HGNC:18704"))
+  expect_equal(bare, list(kind = "hgnc_id", value = "HGNC:18704"))
+  expect_equal(symbol, list(kind = "symbol", value = "NAA10"))
 })
 
 test_that("entity context respects include flags and caps publication limits", {
@@ -122,6 +137,11 @@ test_that("entity context respects include flags and caps publication limits", {
   expect_equal(result$entity$entity_id, 10L)
   expect_equal(result$phenotypes, list())
   expect_equal(result$publications[[1]]$publication_id, "PMID:1")
+  expect_equal(result$meta$publication_limit, 25L)
+  expect_equal(result$meta$phenotype_cap, 100L)
+  expect_equal(result$meta$variation_cap, 100L)
+  expect_true(result$meta$include_publications)
+  expect_false(result$meta$include_phenotypes)
 })
 
 test_that("search and list tools return capped metadata envelopes", {
@@ -193,11 +213,168 @@ test_that("publication context includes citation, availability, and date semanti
 
   metadata <- mcp_get_publication_context("37130971", abstract_mode = "metadata")
   expect_false(metadata$abstract_available)
-  expect_equal(metadata$abstract_excerpt, "")
+  expect_null(metadata$abstract_excerpt)
+  expect_null(metadata$abstract_truncated)
 
   no_abstract <- mcp_get_publication_context("37130971", abstract_mode = "none")
   expect_null(no_abstract$abstract_available)
   expect_null(no_abstract$abstract_excerpt)
+})
+
+test_that("get_gene_context reports entity pagination and can expand entity details in one call", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_resolve <- mcp_repo_resolve_gene
+  old_entities <- mcp_repo_get_gene_entities
+  old_count <- mcp_repo_count_gene_entities
+  old_comparisons <- mcp_repo_get_gene_comparisons
+  old_context <- mcp_repo_get_entity_context
+  old_phenotypes <- mcp_repo_get_entity_phenotypes
+  old_variation <- mcp_repo_get_entity_variation
+  old_publications <- mcp_repo_get_entity_publications
+  assign("mcp_repo_resolve_gene", function(normalized_gene) {
+    tibble::tibble(hgnc_id = "HGNC:2903", symbol = "GRIN2A", name = "glutamate ionotropic receptor NMDA type subunit 2A")
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_entities", function(...) {
+    tibble::tibble(
+      entity_id = c(303L, 304L),
+      symbol = "GRIN2A",
+      hgnc_id = "HGNC:2903",
+      disease_ontology_id_version = c("MONDO:1", "MONDO:2"),
+      disease_ontology_name = c("Disease A", "Disease B"),
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant",
+      category = "Definitive",
+      ndd_phenotype_word = "yes",
+      synopsis = "Public synopsis"
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_count_gene_entities", function(...) 7L, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_comparisons", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_context", function(entity_id) {
+    tibble::tibble(
+      entity_id = entity_id,
+      hgnc_id = "HGNC:2903",
+      symbol = "GRIN2A",
+      disease_ontology_id_version = paste0("MONDO:", entity_id),
+      disease_ontology_name = paste("Disease", entity_id),
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant",
+      category = "Definitive",
+      category_id = 1L,
+      ndd_phenotype_word = "yes",
+      synopsis = "Detailed public synopsis",
+      review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_phenotypes", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_variation", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_publications", function(entity_id, limit) {
+    tibble::tibble(
+      publication_id = "PMID:20890276",
+      Title = "Shared NMDA paper",
+      Abstract = "Abstract text",
+      Journal = "Journal",
+      Publication_date = as.Date("2010-01-01"),
+      Lastname = "Smith",
+      Firstname = "A",
+      publication_type = "Journal Article",
+      curation_review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_resolve_gene", old_resolve, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_entities", old_entities, envir = .GlobalEnv)
+    assign("mcp_repo_count_gene_entities", old_count, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_comparisons", old_comparisons, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_context", old_context, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_phenotypes", old_phenotypes, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_variation", old_variation, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_publications", old_publications, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_gene_context(
+    "GRIN2A",
+    entity_limit = 2L,
+    expand = "entities",
+    abstract_mode = "metadata"
+  )
+
+  expect_equal(result$meta$entity_total, 7L)
+  expect_equal(result$meta$entity_returned, 2L)
+  expect_true(result$meta$entity_has_more)
+  expect_equal(result$meta$next_entity_offset, 2L)
+  expect_equal(result$meta$expand, "entities")
+  expect_equal(result$entity_details$meta$publication_shape, "top_level_deduplicated")
+  expect_equal(length(result$entity_details$publications), 1L)
+  expect_null(result$entity_details$publications[[1]]$abstract_excerpt)
+})
+
+test_that("get_gene_context expand respects the batch detail cap instead of erroring", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_resolve <- mcp_repo_resolve_gene
+  old_entities <- mcp_repo_get_gene_entities
+  old_count <- mcp_repo_count_gene_entities
+  old_comparisons <- mcp_repo_get_gene_comparisons
+  old_context <- mcp_repo_get_entity_context
+  old_phenotypes <- mcp_repo_get_entity_phenotypes
+  old_variation <- mcp_repo_get_entity_variation
+  old_publications <- mcp_repo_get_entity_publications
+  assign("mcp_repo_resolve_gene", function(normalized_gene) {
+    tibble::tibble(hgnc_id = "HGNC:1", symbol = "BIGGENE", name = "large entity gene")
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_entities", function(hgnc_id, limit, offset, ...) {
+    tibble::tibble(
+      entity_id = seq_len(limit),
+      symbol = "BIGGENE",
+      hgnc_id = "HGNC:1",
+      disease_ontology_id_version = paste0("MONDO:", seq_len(limit)),
+      disease_ontology_name = paste("Disease", seq_len(limit)),
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant",
+      category = "Definitive",
+      ndd_phenotype_word = "yes",
+      synopsis = "Public synopsis"
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_count_gene_entities", function(...) 25L, envir = .GlobalEnv)
+  assign("mcp_repo_get_gene_comparisons", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_context", function(entity_id) {
+    tibble::tibble(
+      entity_id = entity_id,
+      hgnc_id = "HGNC:1",
+      symbol = "BIGGENE",
+      disease_ontology_id_version = paste0("MONDO:", entity_id),
+      disease_ontology_name = paste("Disease", entity_id),
+      hpo_mode_of_inheritance_term_name = "Autosomal dominant",
+      category = "Definitive",
+      category_id = 1L,
+      ndd_phenotype_word = "yes",
+      synopsis = "Detailed public synopsis",
+      review_date = as.Date("2025-01-01")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_phenotypes", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_variation", function(...) tibble::tibble(), envir = .GlobalEnv)
+  assign("mcp_repo_get_entity_publications", function(...) tibble::tibble(), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_resolve_gene", old_resolve, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_entities", old_entities, envir = .GlobalEnv)
+    assign("mcp_repo_count_gene_entities", old_count, envir = .GlobalEnv)
+    assign("mcp_repo_get_gene_comparisons", old_comparisons, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_context", old_context, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_phenotypes", old_phenotypes, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_variation", old_variation, envir = .GlobalEnv)
+    assign("mcp_repo_get_entity_publications", old_publications, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_gene_context("BIGGENE", entity_limit = 25L, expand = "entities")
+
+  expect_equal(result$meta$entity_limit, 25L)
+  expect_equal(result$meta$entity_returned, 20L)
+  expect_equal(result$meta$entity_detail_limit, 20L)
+  expect_true(result$meta$entity_detail_truncated_by_batch_cap)
+  expect_equal(result$entity_details$meta$requested, 20L)
 })
 
 test_that("publication context flags dates that mirror curation dates", {
@@ -349,6 +526,37 @@ test_that("find_entities_by_phenotype reports true pagination totals", {
   expect_true(result$meta$has_more)
 })
 
+test_that("find_entities_by_disease reports true pagination totals", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_find <- mcp_repo_find_entities_by_disease
+  old_count <- mcp_repo_count_entities_by_disease
+  assign("mcp_repo_find_entities_by_disease", function(...) {
+    tibble::tibble(
+      entity_id = c(10L, 11L),
+      symbol = c("MECP2", "MECP2"),
+      hgnc_id = c("HGNC:6990", "HGNC:6990"),
+      disease_ontology_id_version = c("MONDO:1", "MONDO:2"),
+      disease_ontology_name = c("Rett syndrome", "Congenital Rett syndrome"),
+      hpo_mode_of_inheritance_term_name = c("X-linked dominant", "X-linked dominant"),
+      category = c("Definitive", "Definitive"),
+      ndd_phenotype_word = c("yes", "yes")
+    )
+  }, envir = .GlobalEnv)
+  assign("mcp_repo_count_entities_by_disease", function(...) 5L, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_repo_find_entities_by_disease", old_find, envir = .GlobalEnv)
+    assign("mcp_repo_count_entities_by_disease", old_count, envir = .GlobalEnv)
+  })
+
+  result <- mcp_find_entities_by_disease("Rett syndrome", limit = 2L)
+
+  expect_equal(result$meta$total, 5L)
+  expect_equal(result$meta$returned, 2L)
+  expect_true(result$meta$has_more)
+})
+
 test_that("list and find entity rows include resource URIs and suggested tools", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
@@ -485,6 +693,9 @@ test_that("batch entity context deduplicates shared publications by default", {
   expect_equal(result$meta$dedupe_publications, TRUE)
   expect_equal(result$meta$publication_shape, "top_level_deduplicated")
   expect_equal(length(result$publications), 3L)
+  expect_equal(result$meta$publication_limit, 2L)
+  expect_equal(result$meta$abstract_mode, "metadata")
+  expect_equal(result$meta$synopsis_mode, "excerpt")
   expect_equal(
     sort(vapply(result$publications, `[[`, character(1), "publication_id")),
     sort(c("PMID:20301670", "PMID:10", "PMID:11"))
@@ -503,6 +714,10 @@ test_that("SysNDD MCP capabilities summarize workflows, modes, limits, errors, r
   expect_true("search_sysndd" %in% result$canonical_workflows$gene_summary)
   expect_true("compact" %in% result$payload_modes$response_mode)
   expect_true("none" %in% result$payload_modes$abstract_mode)
+  expect_equal(result$payload_modes$gene_expand_example$expand, "entities")
+  expect_equal(result$payload_modes$metadata_mode_abstract_fields$includes, "abstract_available")
+  expect_true("abstract_excerpt" %in% result$payload_modes$metadata_mode_abstract_fields$omits)
+  expect_equal(result$limits$get_gene_context$max_entity_detail_expand_ids, 20L)
   expect_equal(result$limits$get_entities_context$max_entity_ids, 20L)
   expect_true("invalid_input" %in% result$error_codes)
   expect_match(result$resources$static[[1]], "sysndd://schema", fixed = TRUE)

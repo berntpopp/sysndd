@@ -42,11 +42,13 @@ test_that("MCP repository search and lookup helpers use bounded SELECT queries",
   mcp_repo_find_entities_by_phenotype("HP:0001250", "present", "Definitive", 5L, 0L)
   mcp_repo_count_entities_by_phenotype("HP:0001250", "present", "Definitive")
   mcp_repo_find_entities_by_disease("Rett", 5L, 0L)
+  mcp_repo_count_entities_by_disease("Rett")
   mcp_repo_get_stats()
 
   sql <- paste(vapply(captured, `[[`, character(1), "sql"), collapse = "\n")
 
   expect_match(sql, "LIMIT")
+  expect_match(sql, "COUNT\\(\\*\\) AS total")
   expect_match(sql, "ndd_entity_view")
   expect_false(grepl("SELECT \\*", sql, ignore.case = TRUE))
 })

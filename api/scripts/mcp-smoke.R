@@ -45,6 +45,9 @@ if (!grepl("SysNDD", init$result$instructions %||% "", fixed = TRUE)) {
 if (!grepl("research", init$result$instructions %||% "", ignore.case = TRUE)) {
   stop("MCP initialize did not return research-use guidance")
 }
+if (is.null(init$result$capabilities$resources)) {
+  stop("MCP initialize did not advertise resources capability")
+}
 
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
@@ -86,14 +89,20 @@ gene_tool <- tool_by_name("get_gene_context")
 if (!grepl("Example:", gene_tool$description %||% "", fixed = TRUE)) {
   stop("get_gene_context description is missing an example")
 }
-if (is.null(gene_tool$inputSchema$properties$query)) {
-  stop("get_gene_context schema is missing query alias")
+if (!is.null(gene_tool$inputSchema$properties$query) || !is.null(gene_tool$inputSchema$properties$symbol)) {
+  stop("get_gene_context schema exposes deprecated gene aliases")
 }
 if (is.null(gene_tool$inputSchema$properties$response_mode)) {
   stop("get_gene_context schema is missing response_mode")
 }
 if (is.null(gene_tool$inputSchema$properties$synopsis_mode)) {
   stop("get_gene_context schema is missing synopsis_mode")
+}
+if (is.null(gene_tool$inputSchema$properties$expand)) {
+  stop("get_gene_context schema is missing expand")
+}
+if (!grepl("default true", gene_tool$inputSchema$properties$include_entities$description %||% "", ignore.case = TRUE)) {
+  stop("get_gene_context include_entities description is missing default")
 }
 entity_batch_tool <- tool_by_name("get_entities_context")
 if (is.null(entity_batch_tool$inputSchema$properties$dedupe_publications)) {
@@ -141,6 +150,9 @@ call_tool <- function(name, arguments, id) {
 
 capabilities <- call_tool("get_sysndd_capabilities", list(), id = 44L)
 if (!is.null(capabilities$error)) stop("Capabilities returned JSON-RPC error: ", capabilities$error$message)
+if (is.null(capabilities$result$structuredContent)) {
+  stop("Capabilities response missing structuredContent despite outputSchema")
+}
 capabilities_payload <- jsonlite::fromJSON(capabilities$result$content[[1]]$text, simplifyVector = FALSE)
 if (!"compact" %in% capabilities_payload$payload_modes$response_mode) {
   stop("Capabilities payload missing response_mode guidance")
@@ -193,6 +205,12 @@ cheap_gene_payload <- jsonlite::fromJSON(cheap_gene$result$content[[1]]$text, si
 if (length(cheap_gene_payload$comparison_sources %||% list()) != 0L) {
   stop("cheap get_gene_context returned comparison_sources")
 }
+if (is.null(cheap_gene_payload$meta$entity_total) || is.null(cheap_gene_payload$meta$entity_has_more)) {
+  stop("get_gene_context did not report entity pagination metadata")
+}
+if (is.null(cheap_gene$result$structuredContent)) {
+  stop("get_gene_context response missing structuredContent despite outputSchema")
+}
 entity_ids <- vapply(cheap_gene_payload$entities %||% list(), function(x) as.integer(x$entity_id), integer(1))
 if (length(entity_ids) > 0L) {
   batch <- call_tool(
@@ -207,6 +225,30 @@ if (length(entity_ids) > 0L) {
   }
   if (length(batch_payload$entities) > 0L && !is.null(batch_payload$entities[[1]]$publications)) {
     stop("deduped get_entities_context kept nested publications")
+  }
+  if (length(batch_payload$publications) > 0L && !is.null(batch_payload$publications[[1]]$abstract_excerpt)) {
+    stop("abstract_mode=metadata returned abstract_excerpt in batch payload")
+  }
+  expanded_gene <- call_tool(
+    "get_gene_context",
+    list(
+      gene = "NAA10",
+      entity_limit = 2L,
+      response_mode = "compact",
+      expand = "entities",
+      abstract_mode = "metadata",
+      publication_limit = 2L
+    ),
+    id = 83L
+  )
+  if (!is.null(expanded_gene$error)) stop("expanded get_gene_context returned JSON-RPC error: ", expanded_gene$error$message)
+  expanded_payload <- jsonlite::fromJSON(expanded_gene$result$content[[1]]$text, simplifyVector = FALSE)
+  if (!identical(expanded_payload$meta$expand, "entities") || is.null(expanded_payload$entity_details)) {
+    stop("get_gene_context expand=entities did not return entity_details")
+  }
+  if (length(expanded_payload$entity_details$publications) > 0L &&
+    !is.null(expanded_payload$entity_details$publications[[1]]$abstract_excerpt)) {
+    stop("expanded get_gene_context metadata mode returned abstract_excerpt")
   }
 }
 

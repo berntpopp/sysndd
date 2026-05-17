@@ -1,8 +1,8 @@
 test_that("MCP identifier helpers normalize supported gene and PMID inputs", {
   source("../../services/mcp-service.R")
 
-  expect_equal(mcp_normalize_gene_input("HGNC:1234"), list(kind = "hgnc_id", value = "1234"))
-  expect_equal(mcp_normalize_gene_input("1234"), list(kind = "hgnc_id", value = "1234"))
+  expect_equal(mcp_normalize_gene_input("HGNC:1234"), list(kind = "hgnc_id", value = "HGNC:1234"))
+  expect_equal(mcp_normalize_gene_input("1234"), list(kind = "hgnc_id", value = "HGNC:1234"))
   expect_equal(mcp_normalize_gene_input("MECP2"), list(kind = "symbol", value = "MECP2"))
   expect_equal(mcp_normalize_pmid("https://pubmed.ncbi.nlm.nih.gov/12345678/"), "PMID:12345678")
   expect_error(mcp_validate_limit(51, max = 50), class = "mcp_tool_error")

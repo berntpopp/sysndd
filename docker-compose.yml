@@ -135,6 +135,9 @@ services:
       options:
         max-size: "50m"
         max-file: "5"
+    depends_on:
+      mysql:
+        condition: service_healthy
     # Run from /app where packages are installed, with selective mounts for dev
     volumes:
       - ./api/endpoints:/app/endpoints
@@ -333,7 +336,7 @@ services:
       # Operators may add a protected /mcp proxy route explicitly later.
       - backend
     healthcheck:
-      test: ["CMD", "Rscript", "scripts/mcp-smoke.R"]
+      test: ["CMD", "Rscript", "scripts/mcp-healthcheck.R"]
       interval: 30s
       timeout: 10s
       retries: 3

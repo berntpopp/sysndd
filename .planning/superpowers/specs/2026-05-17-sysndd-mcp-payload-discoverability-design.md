@@ -69,7 +69,8 @@ not unlimited exports.
 Abstract modes use a stable shape:
 
 - `none`: no abstract text, `abstract_available` omitted.
-- `metadata`: `abstract_available` is present, `abstract_excerpt` is empty.
+- `metadata`: `abstract_available` is present, while `abstract_excerpt` and
+  `abstract_truncated` are omitted.
 - `excerpt`: includes `abstract_available`, `abstract_excerpt`, and
   `abstract_truncated`.
 
@@ -81,6 +82,14 @@ Synopsis modes use a stable shape:
 
 For compatibility, existing include flags remain supported. The default for
 `get_gene_context` changes to `include_comparisons = false`.
+
+`get_gene_context` also exposes `expand = "none" | "entities"`. The default
+`none` keeps the cheap first-page gene summary. `entities` reuses
+`get_entities_context` internally to return an `entity_details` block with the
+same publication dedupe behavior as the batch tool, so common "tell me about gene
+X" tasks can complete in one round trip when the caller opts into the extra
+payload. Because the batch detail path accepts 20 IDs per call, expanded gene
+detail clamps the detail fetch to 20 entities and reports that cap in `meta`.
 
 ### Batch Publication Deduplication
 

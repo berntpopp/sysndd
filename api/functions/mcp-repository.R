@@ -369,7 +369,9 @@ mcp_repo_count_entities_by_phenotype <- function(phenotype,
         AND (? IS NULL OR UPPER(ml.modifier_name) = UPPER(?))",
     list(phenotype, like, category, category, modifier, modifier)
   )
-  if (!"total" %in% names(result) || nrow(result) == 0L) return(0L)
+  if (!"total" %in% names(result) || nrow(result) == 0L) {
+    return(0L)
+  }
   as.integer(result$total[[1]] %||% 0L)
 }
 
@@ -381,12 +383,36 @@ mcp_repo_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L)
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term_name,
              ev.category, ev.ndd_phenotype_word
       FROM ndd_entity_view ev
+      JOIN ndd_entity_review er
+        ON er.entity_id = ev.entity_id
+       AND er.is_primary = 1
+       AND er.review_approved = 1
       WHERE UPPER(ev.disease_ontology_id_version) = UPPER(?)
          OR UPPER(ev.disease_ontology_name) LIKE UPPER(?)
       ORDER BY ev.symbol, ev.entity_id
       LIMIT ? OFFSET ?",
     list(disease, like, limit, offset)
   )
+}
+
+mcp_repo_count_entities_by_disease <- function(disease) {
+  like <- paste0("%", disease, "%")
+  result <- db_execute_query(
+    "
+      SELECT COUNT(*) AS total
+      FROM ndd_entity_view ev
+      JOIN ndd_entity_review er
+        ON er.entity_id = ev.entity_id
+       AND er.is_primary = 1
+       AND er.review_approved = 1
+      WHERE UPPER(ev.disease_ontology_id_version) = UPPER(?)
+         OR UPPER(ev.disease_ontology_name) LIKE UPPER(?)",
+    list(disease, like)
+  )
+  if (!"total" %in% names(result) || nrow(result) == 0L) {
+    return(0L)
+  }
+  as.integer(result$total[[1]] %||% 0L)
 }
 
 mcp_repo_get_stats <- function() {

@@ -50,6 +50,7 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   expect_equal(capabilities$serverInfo$name, "SysNDD read-only MCP")
   expect_equal(capabilities$instructions, "SysNDD custom instructions")
   expect_false(is.null(capabilities$capabilities$prompts))
+  expect_false(is.null(capabilities$capabilities$resources))
 })
 
 test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
@@ -87,11 +88,47 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
   gene <- metadata[[which(tool_names == "get_gene_context")]]
   expect_match(gene$description, "Example:", fixed = TRUE)
   expect_match(gene$description, "include_comparisons", fixed = TRUE)
-  expect_match(gene$inputSchema$properties$query$description, "alias", ignore.case = TRUE)
+  expect_no_match(gene$description, "symbol", ignore.case = TRUE)
+  expect_no_match(gene$description, "query", ignore.case = TRUE)
+  expect_null(gene$inputSchema$properties$symbol)
+  expect_null(gene$inputSchema$properties$query)
+  expect_no_match(gene$inputSchema$properties$gene$description, "symbol/query", fixed = TRUE)
   expect_false(is.null(gene$inputSchema$properties$response_mode))
+  expect_match(gene$inputSchema$properties$include_entities$description, "default true", ignore.case = TRUE)
+  expect_match(gene$inputSchema$properties$include_comparisons$description, "default false", ignore.case = TRUE)
+  expect_match(gene$inputSchema$properties$expand$description, "none", fixed = TRUE)
+  expect_match(gene$inputSchema$properties$expand$description, "entities", fixed = TRUE)
+  expect_match(gene$inputSchema$properties$entity_limit$description, "detail fetches at most 20", ignore.case = TRUE)
+
+  entity <- metadata[[which(tool_names == "get_entity_context")]]
+  expect_match(entity$inputSchema$properties$include_publications$description, "default true", ignore.case = TRUE)
+  expect_match(entity$inputSchema$properties$include_phenotypes$description, "default true", ignore.case = TRUE)
+
+  list_gene <- metadata[[which(tool_names == "list_gene_entities")]]
+  expect_null(list_gene$inputSchema$properties$symbol)
+  expect_null(list_gene$inputSchema$properties$query)
+  expect_no_match(list_gene$inputSchema$properties$gene$description, "symbol", ignore.case = TRUE)
+
+  search <- metadata[[which(tool_names == "search_sysndd")]]
+  expect_match(search$inputSchema$properties$types$description, "default all", ignore.case = TRUE)
+
+  phenotype <- metadata[[which(tool_names == "find_entities_by_phenotype")]]
+  expect_match(phenotype$inputSchema$properties$modifier$description, "default present", ignore.case = TRUE)
+  expect_match(phenotype$inputSchema$properties$category$description, "default Definitive", fixed = TRUE)
 
   capabilities <- metadata[[which(tool_names == "get_sysndd_capabilities")]]
   expect_match(capabilities$description, "capabilities", ignore.case = TRUE)
+})
+
+test_that("MCP tool responses include structuredContent when output schemas are advertised", {
+  source("../../services/mcp-service.R")
+  source("../../services/mcp-tools.R")
+
+  payload <- list(schema_version = "1.0", value = "ok")
+  response <- mcp_tool_result_response(1L, payload, output_mode = "json_text")
+
+  expect_equal(response$result$structuredContent, payload)
+  expect_match(response$result$content[[1]]$text, "\"schema_version\"", fixed = TRUE)
 })
 
 test_that("MCP static resource handlers list and read distinct schema resources", {
@@ -146,6 +183,12 @@ test_that("MCP tool wrappers accept common gene aliases and reject unknown param
   parsed_query <- jsonlite::fromJSON(tool(query = "NAA10"), simplifyVector = FALSE)
   expect_equal(parsed_query$gene$symbol, "NAA10")
 
+  hidden_alias_ok <- mcp_tool_call_arg_error(
+    list(method = "tools/call", params = list(name = "get_gene_context", arguments = list(query = "NAA10"))),
+    registry$tools
+  )
+  expect_null(hidden_alias_ok)
+
   err <- mcp_tool_call_arg_error(
     list(method = "tools/call", params = list(name = "get_gene_context", arguments = list(foo = "NAA10"))),
     registry$tools
@@ -153,6 +196,8 @@ test_that("MCP tool wrappers accept common gene aliases and reject unknown param
   err_payload <- unclass(err)
   expect_equal(err_payload$error$code, "invalid_input")
   expect_equal(err_payload$error$argument, "foo")
+  expect_false("symbol" %in% err_payload$error$expected_arguments)
+  expect_false("query" %in% err_payload$error$expected_arguments)
   expect_equal(err_payload$error$hint, "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers.")
 })
 
