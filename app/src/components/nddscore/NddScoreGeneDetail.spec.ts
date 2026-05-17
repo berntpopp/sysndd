@@ -52,6 +52,8 @@ describe('NddScoreGeneDetail', () => {
     expect(wrapper.text()).toContain('Intellectual disability');
     expect(wrapper.text()).toContain('Known SysNDD gene');
     expect(wrapper.find('a[href="/Genes/HGNC:2024"]').exists()).toBe(true);
+    expect(wrapper.find('[title*="Model probability-like score"]').exists()).toBe(true);
+    expect(wrapper.find('[title*="Open the curated SysNDD gene page"]').exists()).toBe(true);
     expect(wrapper.text()).not.toContain('Curated SysNDD evidence');
     expect(wrapper.text()).not.toContain('read as a distinct evidence source');
   });
