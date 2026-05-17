@@ -34,6 +34,30 @@ describe('nddscore api client', () => {
     expect(result.page_size).toBe(10);
   });
 
+  it('passes typed NDDScore gene table filters to the genes endpoint', async () => {
+    let seen: URL | null = null;
+    server.use(
+      http.get('/api/nddscore/genes', ({ request }) => {
+        seen = new URL(request.url);
+        return HttpResponse.json({ data: [], meta: { total: [0], page: [1], page_size: [25] } });
+      })
+    );
+
+    await fetchGenePredictions({
+      nddScoreMin: 0.9,
+      rankMax: 200,
+      percentileMin: 95,
+      topInheritanceMode: 'AD',
+      hpoTerms: ['HP:0001249', 'HP:0001250'],
+    });
+
+    expect(seen!.searchParams.get('ndd_score_min')).toBe('0.9');
+    expect(seen!.searchParams.get('rank_max')).toBe('200');
+    expect(seen!.searchParams.get('percentile_min')).toBe('95');
+    expect(seen!.searchParams.get('top_inheritance_mode')).toBe('AD');
+    expect(seen!.searchParams.get('hpo_terms')).toBe('HP:0001249,HP:0001250');
+  });
+
   it('normalizes the gene detail envelope into a renderable gene record', async () => {
     server.use(
       http.get('/api/nddscore/genes/HGNC%3A3230', () =>

@@ -54,6 +54,67 @@
       </slot>
     </template>
 
+    <!-- Gene prediction columns -->
+    <template #cell(gene_symbol)="data">
+      <slot name="cell-gene_symbol" :row="data.item" :index="data.index">
+        {{ data.item.gene_symbol }}
+      </slot>
+    </template>
+
+    <template #cell(hgnc_id)="data">
+      <slot name="cell-hgnc_id" :row="data.item" :index="data.index">
+        {{ data.item.hgnc_id }}
+      </slot>
+    </template>
+
+    <template #cell(ndd_score)="data">
+      <slot name="cell-ndd_score" :row="data.item" :index="data.index">
+        {{ data.item.ndd_score }}
+      </slot>
+    </template>
+
+    <template #cell(percentile)="data">
+      <slot name="cell-percentile" :row="data.item" :index="data.index">
+        {{ data.item.percentile }}
+      </slot>
+    </template>
+
+    <template #cell(risk_tier)="data">
+      <slot name="cell-risk_tier" :row="data.item" :index="data.index">
+        {{ data.item.risk_tier }}
+      </slot>
+    </template>
+
+    <template #cell(confidence_tier)="data">
+      <slot name="cell-confidence_tier" :row="data.item" :index="data.index">
+        {{ data.item.confidence_tier }}
+      </slot>
+    </template>
+
+    <template #cell(known_sysndd_gene)="data">
+      <slot name="cell-known_sysndd_gene" :row="data.item" :index="data.index">
+        {{ data.item.known_sysndd_gene }}
+      </slot>
+    </template>
+
+    <template #cell(model_split)="data">
+      <slot name="cell-model_split" :row="data.item" :index="data.index">
+        {{ data.item.model_split }}
+      </slot>
+    </template>
+
+    <template #cell(top_inheritance_mode)="data">
+      <slot name="cell-top_inheritance_mode" :row="data.item" :index="data.index">
+        {{ data.item.top_inheritance_mode }}
+      </slot>
+    </template>
+
+    <template #cell(top_hpo_predictions_json)="data">
+      <slot name="cell-top_hpo_predictions_json" :row="data.item" :index="data.index">
+        {{ data.item.top_hpo_predictions_json }}
+      </slot>
+    </template>
+
     <!-- Disease ontology name column -->
     <template #cell(disease_ontology_name)="data">
       <slot name="cell-disease_ontology_name" :row="data.item" :index="data.index">

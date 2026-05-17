@@ -75,11 +75,6 @@ const MAIN_NAV = {
       align: 'left',
       items: [
         { text: 'Gene predictions', path: '/NDDScore', icons: ['cpu', 'list-ol'] },
-        {
-          text: 'Phenotype predictions',
-          path: '/NDDScore/PhenotypePredictions',
-          icons: ['cpu', 'diagram-3'],
-        },
         { text: 'Model card', path: '/NDDScore/ModelCard', icons: ['cpu', 'card-text'] },
       ],
     },

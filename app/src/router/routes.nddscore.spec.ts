@@ -28,7 +28,7 @@ describe('NDDScore navigation + routes', () => {
     expect(score?.beforeEnter).toBeUndefined();
     const childPaths = (score?.children ?? []).map((c) => c.path);
     expect(childPaths).toContain('');
-    expect(childPaths).toContain('PhenotypePredictions');
+    expect(childPaths).not.toContain('PhenotypePredictions');
     expect(childPaths).toContain('ModelCard');
     expect(childPaths).toContain('Gene/:hgncIdOrSymbol');
   });

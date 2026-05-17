@@ -34,7 +34,6 @@ const subtitle =
 
 const tabs = [
   { label: 'Gene predictions', to: { name: 'NDDScore' } },
-  { label: 'Phenotype predictions', to: { name: 'NDDScorePhenotypePredictions' } },
   { label: 'Model card', to: { name: 'NDDScoreModelCard' } },
 ];
 

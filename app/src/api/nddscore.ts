@@ -16,9 +16,20 @@ export interface NddScoreReleaseRaw {
 export interface NddScoreGeneQuery {
   sort?: string;
   search?: string;
+  hgncId?: string;
+  geneSymbol?: string;
+  nddScoreMin?: number;
+  nddScoreMax?: number;
+  rankMin?: number;
+  rankMax?: number;
+  percentileMin?: number;
+  percentileMax?: number;
   riskTier?: string;
   confidenceTier?: string;
   knownSysnddGene?: boolean | string | number;
+  modelSplit?: string;
+  topInheritanceMode?: string;
+  hpoTerms?: string[];
   page?: number;
   pageSize?: number;
 }
@@ -95,9 +106,20 @@ export async function fetchGenePredictions(
       params: {
         sort: query.sort,
         search: query.search,
+        hgnc_id: query.hgncId,
+        gene_symbol: query.geneSymbol,
+        ndd_score_min: query.nddScoreMin,
+        ndd_score_max: query.nddScoreMax,
+        rank_min: query.rankMin,
+        rank_max: query.rankMax,
+        percentile_min: query.percentileMin,
+        percentile_max: query.percentileMax,
         risk_tier: query.riskTier,
         confidence_tier: query.confidenceTier,
         known_sysndd_gene: query.knownSysnddGene,
+        model_split: query.modelSplit,
+        top_inheritance_mode: query.topInheritanceMode,
+        hpo_terms: query.hpoTerms?.join(','),
         page: query.page,
         page_size: query.pageSize,
       },

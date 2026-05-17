@@ -79,6 +79,22 @@ test_that("nddscore_repo_genes paginates, filters, searches, and validates sort"
     expect_equal(clcn$total, 1L)
     expect_equal(clcn$data$hgnc_id, "HGNC:2022")
 
+    high_rank <- nddscore_repo_genes(filters = list(rank_max = 2L))
+    expect_equal(high_rank$total, 2L)
+    expect_equal(high_rank$data$gene_symbol, c("CLCN4", "STXBP1"))
+
+    high_percentile <- nddscore_repo_genes(filters = list(percentile_min = 98))
+    expect_true(high_percentile$total >= 1L)
+    expect_true(all(high_percentile$data$percentile >= 98))
+
+    top_ad <- nddscore_repo_genes(filters = list(top_inheritance_mode = "AD"))
+    expect_true(top_ad$total >= 1L)
+    expect_true(all(top_ad$data$top_inheritance_mode == "AD"))
+
+    hpo_filtered <- nddscore_repo_genes(filters = list(hpo_terms = c("HP:0001249", "HP:0001250")))
+    expect_true(hpo_filtered$total >= 1L)
+    expect_true(any(hpo_filtered$data$gene_symbol == "CLCN4"))
+
     expect_error(
       nddscore_repo_genes(sort = "release_id; DROP TABLE nddscore_release"),
       "Invalid sort column"

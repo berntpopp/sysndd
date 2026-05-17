@@ -41,7 +41,9 @@
 
 .nddscore_gene_filter_cols <- c(
   "hgnc_id", "gene_symbol", "risk_tier", "confidence_tier",
-  "known_sysndd_gene", "model_split", "search"
+  "known_sysndd_gene", "model_split", "top_inheritance_mode",
+  "ndd_score_min", "ndd_score_max", "rank_min", "rank_max",
+  "percentile_min", "percentile_max", "hpo_terms", "search"
 )
 
 .nddscore_hpo_filter_cols <- c(
@@ -129,6 +131,33 @@
   suppressWarnings(as.integer(value))
 }
 
+.nddscore_scalar_number <- function(value) {
+  number <- suppressWarnings(as.numeric(value[[1]]))
+  if (is.na(number) || !is.finite(number)) {
+    return(NULL)
+  }
+  number
+}
+
+.nddscore_scalar_integer <- function(value) {
+  number <- suppressWarnings(as.integer(value[[1]]))
+  if (is.na(number)) {
+    return(NULL)
+  }
+  number
+}
+
+.nddscore_vector_values <- function(value) {
+  if (is.null(value)) {
+    return(character(0))
+  }
+  if (length(value) == 1L && is.character(value) && grepl(",", value, fixed = TRUE)) {
+    value <- unlist(strsplit(value, ",", fixed = TRUE), use.names = FALSE)
+  }
+  value <- trimws(as.character(value))
+  value[nzchar(value)]
+}
+
 .nddscore_empty <- function(result) {
   is.null(result) || nrow(result) == 0L
 }
@@ -181,6 +210,52 @@ nddscore_repo_genes <- function(
     where <- c(where, "`model_split` = ?")
     params <- c(params, list(filters$model_split))
   }
+  if (!is.null(filters$top_inheritance_mode) && nzchar(filters$top_inheritance_mode)) {
+    where <- c(where, "`top_inheritance_mode` = ?")
+    params <- c(params, list(filters$top_inheritance_mode))
+  }
+  if (!is.null(filters$ndd_score_min)) {
+    ndd_score_min <- .nddscore_scalar_number(filters$ndd_score_min)
+    if (!is.null(ndd_score_min)) {
+      where <- c(where, "`ndd_score` >= ?")
+      params <- c(params, list(ndd_score_min))
+    }
+  }
+  if (!is.null(filters$ndd_score_max)) {
+    ndd_score_max <- .nddscore_scalar_number(filters$ndd_score_max)
+    if (!is.null(ndd_score_max)) {
+      where <- c(where, "`ndd_score` <= ?")
+      params <- c(params, list(ndd_score_max))
+    }
+  }
+  if (!is.null(filters$rank_min)) {
+    rank_min <- .nddscore_scalar_integer(filters$rank_min)
+    if (!is.null(rank_min)) {
+      where <- c(where, "`rank` >= ?")
+      params <- c(params, list(rank_min))
+    }
+  }
+  if (!is.null(filters$rank_max)) {
+    rank_max <- .nddscore_scalar_integer(filters$rank_max)
+    if (!is.null(rank_max)) {
+      where <- c(where, "`rank` <= ?")
+      params <- c(params, list(rank_max))
+    }
+  }
+  if (!is.null(filters$percentile_min)) {
+    percentile_min <- .nddscore_scalar_number(filters$percentile_min)
+    if (!is.null(percentile_min)) {
+      where <- c(where, "`percentile` >= ?")
+      params <- c(params, list(percentile_min))
+    }
+  }
+  if (!is.null(filters$percentile_max)) {
+    percentile_max <- .nddscore_scalar_number(filters$percentile_max)
+    if (!is.null(percentile_max)) {
+      where <- c(where, "`percentile` <= ?")
+      params <- c(params, list(percentile_max))
+    }
+  }
   if (!is.null(filters$hgnc_id) && nzchar(filters$hgnc_id)) {
     where <- c(where, "`hgnc_id` = ?")
     params <- c(params, list(filters$hgnc_id))
@@ -192,6 +267,12 @@ nddscore_repo_genes <- function(
   if (!is.null(filters$search) && nzchar(filters$search)) {
     where <- c(where, "(`hgnc_id` = ? OR UPPER(`gene_symbol`) LIKE UPPER(?))")
     params <- c(params, list(filters$search, paste0("%", filters$search, "%")))
+  }
+  hpo_terms <- .nddscore_vector_values(filters$hpo_terms)
+  if (length(hpo_terms) > 0L) {
+    hpo_clause <- paste(rep("JSON_SEARCH(`top_hpo_predictions_json`, 'one', ?) IS NOT NULL", length(hpo_terms)), collapse = " OR ")
+    where <- c(where, paste0("(", hpo_clause, ")"))
+    params <- c(params, as.list(hpo_terms))
   }
 
   where_sql <- if (length(where) > 0L) {

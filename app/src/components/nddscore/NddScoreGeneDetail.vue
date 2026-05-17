@@ -46,9 +46,10 @@
                 <div class="ndd-gene-detail__unit-label">SysNDD status</div>
                 <RouterLink
                   v-if="knownSysnddGene && hgncId"
+                  v-b-tooltip.hover.top
                   class="ndd-gene-detail__status-link"
                   :to="`/Genes/${hgncId}`"
-                  title="Open the curated SysNDD gene page for this HGNC identifier."
+                  :title="identifierHelp.hgnc"
                 >
                   <BBadge class="ndd-gene-detail__status-badge" variant="info">
                     Known SysNDD gene
@@ -63,23 +64,30 @@
             <div class="ndd-gene-detail__meta-row">
               <RouterLink
                 v-if="hgncId"
+                v-b-tooltip.hover.bottom
                 class="ndd-gene-detail__meta-chip ndd-gene-detail__meta-chip--link"
                 :to="`/Genes/${hgncId}`"
-                title="Open the curated SysNDD gene page for this HGNC identifier."
+                :title="identifierHelp.hgnc"
               >
                 {{ hgncId }}
               </RouterLink>
               <a
                 v-if="ensemblId"
+                v-b-tooltip.hover.bottom
                 class="ndd-gene-detail__meta-chip ndd-gene-detail__meta-chip--link"
                 :href="ensemblUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                title="Open the Ensembl gene record in a new tab."
+                :title="identifierHelp.ensembl"
               >
                 {{ ensemblId }}
               </a>
-              <span v-if="modelSplit" class="ndd-gene-detail__meta-chip" :title="modelSplitTooltip">
+              <span
+                v-if="modelSplit"
+                v-b-tooltip.hover.bottom
+                class="ndd-gene-detail__meta-chip"
+                :title="modelSplitTooltip"
+              >
                 {{ modelSplit }} split
               </span>
             </div>
@@ -98,25 +106,26 @@
               </h2>
               <dl class="ndd-gene-detail__metrics">
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.nddScore">NDD score</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.nddScore">NDD score</dt>
                   <dd>{{ formatScore(readField(gene, 'ndd_score', 'score')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.rank">Rank</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.rank">Rank</dt>
                   <dd>{{ displayValue(readField(gene, 'rank', 'gene_rank')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.percentile">Percentile</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.percentile">Percentile</dt>
                   <dd>{{ formatPercentile(readField(gene, 'percentile')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.bagAgreement">Bag agreement</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.bagAgreement">Bag agreement</dt>
                   <dd>{{ formatProbability(readField(gene, 'bag_agreement')) }}</dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.riskTier">Risk tier</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.riskTier">Risk tier</dt>
                   <dd>
                     <BBadge
+                      v-b-tooltip.hover.top
                       :variant="riskVariant(readField(gene, 'risk_tier'))"
                       :title="metricHelp.riskTier"
                     >
@@ -125,9 +134,10 @@
                   </dd>
                 </div>
                 <div class="ndd-gene-detail__metric">
-                  <dt :title="metricHelp.confidence">Confidence</dt>
+                  <dt v-b-tooltip.hover.top :title="metricHelp.confidence">Confidence</dt>
                   <dd>
                     <BBadge
+                      v-b-tooltip.hover.top
                       :variant="confidenceVariant(readField(gene, 'confidence_tier'))"
                       :title="metricHelp.confidence"
                     >
@@ -148,7 +158,7 @@
                   :key="mode.key"
                   class="ndd-gene-detail__compact"
                 >
-                  <dt :title="inheritanceHelp">{{ mode.label }}</dt>
+                  <dt v-b-tooltip.hover.top :title="inheritanceHelp">{{ mode.label }}</dt>
                   <dd>{{ formatProbability(mode.value) }}</dd>
                 </div>
               </dl>
@@ -160,7 +170,7 @@
               </h2>
               <dl v-if="shapGroups.length" class="ndd-gene-detail__compact-grid">
                 <div v-for="group in shapGroups" :key="group.label" class="ndd-gene-detail__compact">
-                  <dt :title="shapHelp">{{ group.label }}</dt>
+                  <dt v-b-tooltip.hover.top :title="shapHelp">{{ group.label }}</dt>
                   <dd>{{ formatSigned(group.value) }}</dd>
                 </div>
               </dl>
@@ -177,6 +187,7 @@
                 <li
                   v-for="term in hpoPredictions"
                   :key="term.key"
+                  v-b-tooltip.hover.top
                   class="ndd-gene-detail__list-row"
                   :title="hpoHelp"
                 >
@@ -331,6 +342,10 @@ const metricHelp = {
   riskTier: 'Bucketed interpretation of the NDD score in the active model release.',
   confidence:
     'Model confidence tier derived from ensemble consistency and score stability; this is not curated SysNDD evidence.',
+};
+const identifierHelp = {
+  hgnc: 'Open the curated SysNDD gene page for this HGNC identifier.',
+  ensembl: 'Open the Ensembl gene record in a new tab.',
 };
 const inheritanceHelp =
   'Model-estimated probability for each inheritance mode. These are prediction outputs, not curated inheritance assignments.';

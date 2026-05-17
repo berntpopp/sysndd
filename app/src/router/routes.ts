@@ -312,14 +312,6 @@ export const routes: RouteRecordRaw[] = [
         ),
       },
       {
-        path: 'PhenotypePredictions',
-        name: 'NDDScorePhenotypePredictions',
-        component: lazyRouteComponent(
-          nddScoreComponents,
-          '../components/nddscore/NddScoreHpoTable.vue'
-        ),
-      },
-      {
         path: 'ModelCard',
         name: 'NDDScoreModelCard',
         component: lazyRouteComponent(
