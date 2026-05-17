@@ -9,7 +9,7 @@ describe('nddscore api client', () => {
   it('fetches the current release', async () => {
     server.use(
       http.get('/api/nddscore/release/current', () =>
-        HttpResponse.json({ release_id: ['ndd_fixture_release'], n_genes: [3] })
+        HttpResponse.json({ data: [{ release_id: ['ndd_fixture_release'], n_genes: [3] }] })
       )
     );
     const release = await fetchCurrentRelease();
@@ -22,12 +22,15 @@ describe('nddscore api client', () => {
     server.use(
       http.get('/api/nddscore/genes', ({ request }) => {
         seen = new URL(request.url);
-        return HttpResponse.json({ data: [], total: 0, page: 2, page_size: 10 });
+        return HttpResponse.json({ data: [], meta: { total: [42], page: [2], page_size: [10] } });
       })
     );
-    await fetchGenePredictions({ page: 2, pageSize: 10, riskTier: 'Low' });
+    const result = await fetchGenePredictions({ page: 2, pageSize: 10, riskTier: 'Low' });
     expect(seen!.searchParams.get('page')).toBe('2');
     expect(seen!.searchParams.get('page_size')).toBe('10');
     expect(seen!.searchParams.get('risk_tier')).toBe('Low');
+    expect(result.total).toBe(42);
+    expect(result.page).toBe(2);
+    expect(result.page_size).toBe(10);
   });
 });

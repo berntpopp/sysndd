@@ -31,6 +31,12 @@ export interface NddScorePage<T> {
   [key: string]: unknown;
 }
 
+interface NddScoreEnvelope<T> {
+  data?: T;
+  meta?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export interface NddScoreHpoQuery {
   sort?: string;
   search?: string;
@@ -53,24 +59,41 @@ export function unwrapRecord<T extends Record<string, unknown>>(row: T): T {
 }
 
 export async function fetchCurrentRelease(): Promise<NddScoreReleaseRaw> {
-  const release = await apiClient.get<NddScoreReleaseRaw>('/api/nddscore/release/current');
-  return unwrapRecord(release);
+  const envelope = await apiClient.get<NddScoreEnvelope<NddScoreReleaseRaw[]>>(
+    '/api/nddscore/release/current'
+  );
+  const release = envelope.data?.[0];
+  return release ? unwrapRecord(release) : ({} as NddScoreReleaseRaw);
+}
+
+function normalizePage<T>(envelope: NddScoreEnvelope<T[]>): NddScorePage<T> {
+  const meta = envelope.meta ?? {};
+  return {
+    data: envelope.data ?? [],
+    total: Number(unwrapScalar(meta.total as never)) || 0,
+    page: Number(unwrapScalar(meta.page as never)) || 1,
+    page_size: Number(unwrapScalar(meta.page_size as never)) || 25,
+  };
 }
 
 export async function fetchGenePredictions(
   query: NddScoreGeneQuery = {}
 ): Promise<NddScorePage<NddScoreGenePrediction>> {
-  return apiClient.get<NddScorePage<NddScoreGenePrediction>>('/api/nddscore/genes', {
-    params: {
-      sort: query.sort,
-      search: query.search,
-      risk_tier: query.riskTier,
-      confidence_tier: query.confidenceTier,
-      known_sysndd_gene: query.knownSysnddGene,
-      page: query.page,
-      page_size: query.pageSize,
-    },
-  });
+  const envelope = await apiClient.get<NddScoreEnvelope<NddScoreGenePrediction[]>>(
+    '/api/nddscore/genes',
+    {
+      params: {
+        sort: query.sort,
+        search: query.search,
+        risk_tier: query.riskTier,
+        confidence_tier: query.confidenceTier,
+        known_sysndd_gene: query.knownSysnddGene,
+        page: query.page,
+        page_size: query.pageSize,
+      },
+    }
+  );
+  return normalizePage(envelope);
 }
 
 export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreGeneDetail> {
@@ -82,16 +105,20 @@ export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreG
 export async function fetchHpoPredictions(
   query: NddScoreHpoQuery = {}
 ): Promise<NddScorePage<NddScoreHpoPrediction>> {
-  return apiClient.get<NddScorePage<NddScoreHpoPrediction>>('/api/nddscore/hpo', {
-    params: {
-      sort: query.sort,
-      search: query.search,
-      phenotype_id: query.phenotypeId,
-      passes_threshold: query.passesThreshold,
-      page: query.page,
-      page_size: query.pageSize,
-    },
-  });
+  const envelope = await apiClient.get<NddScoreEnvelope<NddScoreHpoPrediction[]>>(
+    '/api/nddscore/hpo',
+    {
+      params: {
+        sort: query.sort,
+        search: query.search,
+        phenotype_id: query.phenotypeId,
+        passes_threshold: query.passesThreshold,
+        page: query.page,
+        page_size: query.pageSize,
+      },
+    }
+  );
+  return normalizePage(envelope);
 }
 
 export async function fetchHpoTerms(): Promise<NddScoreHpoTerm[]> {
