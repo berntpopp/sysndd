@@ -69,6 +69,21 @@ const MAIN_NAV = {
       ],
     },
     {
+      id: 'ndd_score_dropdown',
+      title: 'NDDScore',
+      required: [''],
+      align: 'left',
+      items: [
+        { text: 'Gene predictions', path: '/NDDScore', icons: ['cpu', 'list-ol'] },
+        {
+          text: 'Phenotype predictions',
+          path: '/NDDScore/PhenotypePredictions',
+          icons: ['cpu', 'diagram-3'],
+        },
+        { text: 'Model card', path: '/NDDScore/ModelCard', icons: ['cpu', 'card-text'] },
+      ],
+    },
+    {
       id: 'help_dropdown',
       title: 'Help',
       required: [''],
@@ -103,6 +118,7 @@ const MAIN_NAV = {
         { text: 'Manage backups', path: '/ManageBackups', icons: ['gear', 'database'] },
         { text: 'Manage PubTator', path: '/ManagePubtator', icons: ['gear', 'journal-medical'] },
         { text: 'LLM Management', path: '/ManageLLM', icons: ['gear', 'robot'] },
+        { text: 'Manage NDDScore', path: '/ManageNDDScore', icons: ['gear', 'graph-up-arrow'] },
       ],
     },
     {
@@ -149,6 +165,8 @@ const MAIN_NAV = {
 } as const;
 
 export default MAIN_NAV;
+
+export const { DROPDOWN_ITEMS_LEFT, DROPDOWN_ITEMS_RIGHT } = MAIN_NAV;
 
 /** Type for accessing main navigation configuration */
 export type MainNavConfig = typeof MAIN_NAV;
