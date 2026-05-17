@@ -57,11 +57,13 @@ The worker must have outbound network egress for external providers used inside 
 
 ### Read-only MCP sidecar
 
-`api/start_sysndd_mcp.R` runs the MCP server as a separate sidecar/process, not inside Plumber. The Phase 0 spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text output; v1 tools should keep returning stable JSON text with `schema_version` unless a future spike proves native structured output.
+`api/start_sysndd_mcp.R` runs the MCP server as a separate sidecar/process, not inside Plumber. The Phase 0 spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text output; v1 tools should keep stable JSON text with `schema_version` as the compatibility contract. The sidecar also patches `mcptools` to advertise output schemas, read-only tool annotations, static schema resources, and tool-visible recoverable errors.
 
 MCP v1 is private/internal by default in Compose. Do not expose public unauthenticated `/mcp`; any route must be private or static-bearer protected at the proxy/service boundary.
 
-MCP client ergonomics are part of the contract. Keep initialize instructions SysNDD-specific, with the gene -> entity -> publication workflow, the entity model, resource semantics, stable error codes, caps, and read-only constraints. Publication outputs should remain citation-friendly (`recommended_citation`), distinguish `pubmed_publication_date` from `sysndd_curation_date`, and expose `abstract_available` when abstract text is absent.
+MCP client ergonomics are part of the contract. Keep initialize instructions SysNDD-specific, with the gene -> entity -> publication workflow, the entity model, resource semantics, stable error codes, caps, and read-only constraints. Keep `resources/list` / `resources/read` aligned with `sysndd://schema/overview` and `sysndd://schema/tool-guide`; record-like `sysndd://gene`, `sysndd://entity`, and `sysndd://publication` URIs are stable identifiers, not v1 parameterized resources. Publication outputs should remain citation-friendly (`recommended_citation`), distinguish `pubmed_publication_date` from `sysndd_curation_date`, and expose `abstract_available` when abstract text is absent.
+
+Recoverable MCP validation failures should return a JSON tool result with `schema_version`, `error.code`, and `isError = true`, not raw R errors or JSON-RPC `-32603`. Keep `symbol` as a deprecated alias for `get_gene_context(gene = ...)`, and use `get_entities_context` / `get_publications_context` to avoid avoidable fan-out.
 
 MCP tools are strictly read-only. They must not write to the DB, execute raw SQL/R, call Gemini, call external providers, or expose draft reviews, re-review workflows, admin/user/log/job data, curation comments, or broad export payloads. Enforce approved public data in repository queries: active records from `ndd_entity_view`, and review-derived synopsis/phenotype/variation/publication data only from primary approved reviews (`is_primary = 1` and `review_approved = 1`).
 
