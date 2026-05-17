@@ -369,9 +369,10 @@ causality.
 
 ## 8. Testing (TDD for importer + API)
 
-A small **fixture archive** (a trimmed `.tar.gz` with a handful of genes and a
-matching `nddscore_release.json` / `checksums.sha256`) is committed under the API
-test fixtures. Tests cover:
+A small **fixture archive generator** creates trimmed `.tar.gz` files with a
+handful of genes and a matching `nddscore_release.json` / `checksums.sha256`
+under the API test fixtures. The generated archives are gitignored and tests
+regenerate them on demand in fresh checkouts. Tests cover:
 
 - migration / table creation
 - active-release selection

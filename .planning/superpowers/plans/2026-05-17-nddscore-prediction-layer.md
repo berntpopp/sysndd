@@ -56,7 +56,8 @@ Read `AGENTS.md` before starting. Key invariants this plan depends on:
 - `api/tests/testthat/test-nddscore-repository.R` — repository query tests.
 - `api/tests/testthat/test-nddscore-endpoints.R` — public + admin endpoint tests.
 - `api/tests/testthat/helper-nddscore.R` — fixture-archive path helper + DB seed helpers.
-- `api/tests/testthat/fixtures/nddscore/` — committed trimmed fixture archive + generator script.
+- `api/tests/testthat/fixtures/nddscore/` — committed fixture generator + README;
+  generated `.tar.gz` archives are gitignored.
 
 **Modified — API:**
 - `api/bootstrap/load_modules.R` — register the two new `functions/nddscore-*.R` files.
@@ -279,23 +280,38 @@ git commit -m "feat(db): add NDDScore prediction-layer migration 023"
 ### Task 2: Test fixture archive + generator
 
 **Files:**
+- Modify: `.gitignore`
 - Create: `api/tests/testthat/fixtures/nddscore/make-fixture-archive.R` (generator script)
-- Create: `api/tests/testthat/fixtures/nddscore/nddscore_fixture_release.tar.gz` (committed fixture)
-- Create: `api/tests/testthat/fixtures/nddscore/nddscore_fixture_bad_md5.tar.gz` (committed; identical bytes are fine — only the *expected* md5 passed in tests differs)
 - Create: `api/tests/testthat/fixtures/nddscore/README.md`
 
-The fixture is a trimmed `.tar.gz` with the same internal layout as the real Zenodo archive but only 3 genes / a handful of HPO rows, so importer tests run with no network. It ships its own valid inner `checksums.sha256`. A second archive (`*_corrupt_sha256.tar.gz`) has a deliberately wrong inner sha256 line to test extract-verification failure.
+The generator creates trimmed `.tar.gz` archives with the same internal layout
+as the real Zenodo archive but only 3 genes / a handful of HPO rows, so importer
+tests run with no network. The generated archives are reproducible test
+artifacts and must stay gitignored. The valid archive ships its own valid inner
+`checksums.sha256`. A second generated archive
+(`*_corrupt_sha256.tar.gz`) has a deliberately wrong inner sha256 line to test
+extract-verification failure.
+
+- [ ] **Step 0: Ignore generated archives**
+
+Ensure `.gitignore` contains:
+
+```gitignore
+# Generated NDDScore test fixture archives
+api/tests/testthat/fixtures/nddscore/*.tar.gz
+```
 
 - [ ] **Step 1: Write the generator script**
 
 Create `api/tests/testthat/fixtures/nddscore/make-fixture-archive.R`:
 
 ```r
-# Regenerates the committed NDDScore test fixture archives.
+# Regenerates the NDDScore test fixture archives.
 # Run from repo root: Rscript api/tests/testthat/fixtures/nddscore/make-fixture-archive.R
 # Produces, in this directory:
 #   nddscore_fixture_release.tar.gz  - valid trimmed release (3 genes, 4 HPO predictions, 2 terms)
 #   nddscore_fixture_corrupt_sha256.tar.gz - same files but inner checksums.sha256 is wrong
+# Generated archives are intentionally gitignored; commit this generator, not the tarballs.
 # The fixture mirrors the real archive layout:
 #   sysndd_zenodo_dataset/sysndd_prediction_release/{*.tsv, nddscore_release.json,
 #     nddscore_schema.sql, checksums.sha256}
@@ -397,7 +413,7 @@ build_one("nddscore_fixture_corrupt_sha256.tar.gz", corrupt_sha = TRUE)
 - [ ] **Step 2: Generate the fixtures**
 
 Run: `cd /home/bernt-popp/development/sysndd && Rscript --no-init-file api/tests/testthat/fixtures/nddscore/make-fixture-archive.R`
-Expected: prints two lines like `nddscore_fixture_release.tar.gz: NNNN bytes, md5=<hash>`. **Record the md5 of `nddscore_fixture_release.tar.gz`** — it is needed verbatim in Task 8's `helper-nddscore.R` and Task 9's tests as the "expected good md5".
+Expected: prints two lines like `nddscore_fixture_release.tar.gz: NNNN bytes, md5=<hash>`. Record the md5 in the task report for auditability. Do **not** commit the generated `.tar.gz` files.
 
 - [ ] **Step 3: Write the fixture README**
 
@@ -407,6 +423,7 @@ Create `api/tests/testthat/fixtures/nddscore/README.md`:
 # NDDScore test fixtures
 
 Trimmed Zenodo-style release archives for offline importer/job tests. No network.
+The archives are generated artifacts and are intentionally gitignored.
 
 - `nddscore_fixture_release.tar.gz` — valid 3-gene / 4-HPO-prediction / 2-term release
   with a correct inner `checksums.sha256`. Internal layout matches the real archive:
@@ -415,14 +432,14 @@ Trimmed Zenodo-style release archives for offline importer/job tests. No network
   line for `nddscore_release.json` is wrong (extract-verification failure case).
 
 Regenerate with `Rscript api/tests/testthat/fixtures/nddscore/make-fixture-archive.R`.
-The valid archive's md5 is recorded in `helper-nddscore.R` as the expected good checksum.
+Tests regenerate the archives on demand if they are missing from a fresh checkout.
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add api/tests/testthat/fixtures/nddscore/
-git commit -m "test(api): add trimmed NDDScore fixture archives + generator"
+git add .gitignore api/tests/testthat/fixtures/nddscore/make-fixture-archive.R api/tests/testthat/fixtures/nddscore/README.md
+git commit -m "test(api): add trimmed NDDScore fixture generator"
 ```
 
 ---
@@ -447,12 +464,35 @@ Create `api/tests/testthat/test-nddscore-import.R`:
 
 ```r
 # Tests for the pure NDDScore importer functions (api/functions/nddscore-import.R).
-# Zenodo HTTP is always stubbed; archive operations use the committed fixture.
+# Zenodo HTTP is always stubbed; archive operations use generated local fixtures.
 
 source_api_file("functions/nddscore-import.R", local = FALSE)
 
 fixture_archive <- function(name = "nddscore_fixture_release.tar.gz") {
-  testthat::test_path("fixtures", "nddscore", name)
+  path <- testthat::test_path("fixtures", "nddscore", name)
+  if (!file.exists(path)) {
+    script <- normalizePath(
+      testthat::test_path("fixtures", "nddscore", "make-fixture-archive.R"),
+      mustWork = TRUE
+    )
+    repo_root <- normalizePath(
+      file.path(dirname(script), "..", "..", "..", "..", ".."),
+      mustWork = TRUE
+    )
+    withr::with_dir(repo_root, {
+      status <- system2(
+        file.path(R.home("bin"), "Rscript"),
+        c("--no-init-file", script),
+        stdout = TRUE,
+        stderr = TRUE
+      )
+      if (!file.exists(path)) {
+        stop(paste(c("Failed to generate NDDScore fixture archive", status),
+                   collapse = "\n"), call. = FALSE)
+      }
+    })
+  }
+  path
 }
 
 # A minimal Zenodo API record shaped like the real /api/records/<id> response.
@@ -1077,13 +1117,36 @@ Create `api/tests/testthat/helper-nddscore.R`:
 ```r
 # Shared helpers for NDDScore DB-write, job, repository, and endpoint tests.
 
-# Path to a committed fixture archive.
+# Path to a generated fixture archive. Fresh checkouts generate archives on demand.
 nddscore_fixture_path <- function(name = "nddscore_fixture_release.tar.gz") {
-  testthat::test_path("fixtures", "nddscore", name)
+  path <- testthat::test_path("fixtures", "nddscore", name)
+  if (!file.exists(path)) {
+    script <- normalizePath(
+      testthat::test_path("fixtures", "nddscore", "make-fixture-archive.R"),
+      mustWork = TRUE
+    )
+    repo_root <- normalizePath(
+      file.path(dirname(script), "..", "..", "..", "..", ".."),
+      mustWork = TRUE
+    )
+    withr::with_dir(repo_root, {
+      status <- system2(
+        file.path(R.home("bin"), "Rscript"),
+        c("--no-init-file", script),
+        stdout = TRUE,
+        stderr = TRUE
+      )
+      if (!file.exists(path)) {
+        stop(paste(c("Failed to generate NDDScore fixture archive", status),
+                   collapse = "\n"), call. = FALSE)
+      }
+    })
+  }
+  path
 }
 
 # The valid fixture archive's md5 — recomputed each call so it never goes stale
-# if the fixture is regenerated. Used as the "expected good md5" in job tests.
+# when the fixture is regenerated. Used as the "expected good md5" in job tests.
 nddscore_fixture_good_md5 <- function() {
   digest::digest(file = nddscore_fixture_path(), algo = "md5")
 }
@@ -1095,7 +1158,7 @@ nddscore_clean_tables <- function(conn) {
 }
 
 # Build an importer dependency list whose Zenodo calls are fully stubbed and
-# whose download copies the committed fixture archive. record_id is cosmetic.
+# whose download copies the generated fixture archive. record_id is cosmetic.
 nddscore_stub_deps <- function(fixture = "nddscore_fixture_release.tar.gz",
                                archive_md5 = NULL) {
   src <- nddscore_fixture_path(fixture)
