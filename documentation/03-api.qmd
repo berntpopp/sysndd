@@ -34,6 +34,27 @@ Here one can generate cURL requests to use in external software.
 ![Swagger/OpenAPI endpoint overview for the SysNDD API.](./static/img/generated/api-swagger-overview.png)
 :::
 
+## Read-only MCP sidecar
+
+SysNDD can also run an optional Model Context Protocol (MCP) sidecar from `api/start_sysndd_mcp.R`. The MCP sidecar is a separate R process/container and is not mounted inside the Plumber API process.
+
+MCP v1 is read-only and private/internal by default. The production Compose service has no Traefik labels and therefore is not publicly exposed unless an operator explicitly adds a protected route. The current `mcptools` HTTP transport listens at the service root; a reverse proxy can expose that as `/mcp` with path stripping when protected access is configured.
+
+Available MCP tools:
+
+- `search_sysndd`
+- `get_gene_context`
+- `get_entity_context`
+- `list_gene_entities`
+- `get_publication_context`
+- `find_entities_by_phenotype`
+- `find_entities_by_disease`
+- `get_sysndd_stats`
+
+The MCP service exposes only approved public data: active records represented by `ndd_entity_view` and review-derived evidence from primary approved reviews (`is_primary = 1` and `review_approved = 1`). It must not expose draft reviews, re-review assignments, admin/user/log/job data, raw SQL/R execution, external provider calls, or Gemini-backed generation.
+
+The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore returns stable JSON text with `schema_version` rather than relying on native `structuredContent`.
+
 
 ## Usage policy
 

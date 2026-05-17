@@ -292,6 +292,71 @@ services:
         - action: rebuild
           path: ./api/renv.lock
 
+  mcp:
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    command: ["Rscript", "start_sysndd_mcp.R"]
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/core:/app/core:ro
+      - ./api/services:/app/services:ro
+      - ./api/bootstrap:/app/bootstrap:ro
+      - ./api/config:/app/config:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./api/config.yml:/app/config.yml:ro
+      - ./api/version_spec.json:/app/version_spec.json:ro
+      - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
+    environment:
+      ENVIRONMENT: production
+      SYSNDD_RUNTIME: mcp
+      MCP_DB_POOL_SIZE: ${MCP_DB_POOL_SIZE:-2}
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8787
+      MCP_OUTPUT_MODE: ${MCP_OUTPUT_MODE:-json_text}
+      CACHE_VERSION: ${CACHE_VERSION:-2}
+    networks:
+      # Internal-only by default: no Traefik labels are set for mcp.
+      # Operators may add a protected /mcp proxy route explicitly later.
+      - backend
+    healthcheck:
+      test: ["CMD", "Rscript", "scripts/mcp-smoke.R"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: '0.5'
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/services
+          target: /app/services
+        - action: sync
+          path: ./api/bootstrap
+          target: /app/bootstrap
+        - action: rebuild
+          path: ./api/renv.lock
+
   app:
     build: ./app/
     container_name: sysndd_app

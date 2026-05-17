@@ -69,6 +69,15 @@ services:
       # Lower worker count for development (memory-constrained local machines)
       MIRAI_WORKERS: ${MIRAI_WORKERS:-1}
 
+  # Local-only MCP access for development. Production compose does not expose
+  # MCP through Traefik or host ports by default.
+  mcp:
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      ENVIRONMENT: development
+      MCP_DB_POOL_SIZE: ${MCP_DB_POOL_SIZE:-2}
+
   # FRONT-04, DEV-01, DEV-02: Frontend development with hot-reload
   app:
     # Expose Vite dev server directly for development
