@@ -15,6 +15,68 @@
 ## Administration section
 ## -------------------------------------------------------------------##
 
+.nddscore_admin_default_record_id <- "20258027"
+
+.nddscore_admin_has_rows <- function(value) {
+  !is.null(value) && is.data.frame(value) && nrow(value) > 0L
+}
+
+.nddscore_admin_scalar <- function(value, default = NULL) {
+  if (is.null(value) || length(value) == 0L) {
+    return(default)
+  }
+  value <- value[[1]]
+  if (is.null(value) || (length(value) == 1L && is.na(value))) {
+    return(default)
+  }
+  if (is.character(value) && !nzchar(trimws(value))) {
+    return(default)
+  }
+  value
+}
+
+.nddscore_admin_bool <- function(value, default = FALSE) {
+  value <- .nddscore_admin_scalar(value, default)
+  if (is.logical(value)) {
+    return(isTRUE(value))
+  }
+  if (is.numeric(value)) {
+    return(!is.na(value) && value != 0)
+  }
+  value <- tolower(trimws(as.character(value)))
+  if (value %in% c("true", "t", "1", "yes", "y")) {
+    return(TRUE)
+  }
+  if (value %in% c("false", "f", "0", "no", "n")) {
+    return(FALSE)
+  }
+  isTRUE(default)
+}
+
+.nddscore_admin_request_body <- function(req) {
+  body <- req$body
+  if (is.null(body) && !is.null(req$postBody) && nzchar(req$postBody)) {
+    body <- jsonlite::fromJSON(req$postBody, simplifyVector = FALSE)
+  }
+  if (is.null(body)) {
+    body <- list()
+  }
+  body
+}
+
+.nddscore_admin_tibble_rows <- function(data) {
+  if (!.nddscore_admin_has_rows(data)) {
+    return(list())
+  }
+  lapply(seq_len(nrow(data)), function(i) {
+    as.list(data[i, , drop = FALSE])
+  })
+}
+
+.nddscore_admin_job_status_url <- function(job_id) {
+  paste0("/api/jobs/", job_id, "/status")
+}
+
 #* Get OpenAPI specification
 #*
 #* Returns the enhanced OpenAPI JSON specification for this API.
@@ -973,6 +1035,161 @@ function(req, res) {
   )
 
   result
+}
+
+
+## -------------------------------------------------------------------##
+## NDDScore Administration Endpoints
+## -------------------------------------------------------------------##
+
+#* Get NDDScore import status
+#*
+#* Returns the active NDDScore release and recent durable import jobs.
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* @tag admin
+#* @serializer json list(na="null")
+#* @get /nddscore/status
+function(req, res, limit = 10L) {
+  require_role(req, res, "Administrator")
+
+  limit <- suppressWarnings(as.integer(limit))
+  if (is.na(limit) || limit < 1L) {
+    limit <- 10L
+  }
+  limit <- min(limit, 100L)
+
+  release <- nddscore_repo_current_release()
+  jobs <- async_job_service_history(limit = 100L)
+  if (.nddscore_admin_has_rows(jobs)) {
+    jobs <- jobs[jobs$job_type == "nddscore_import", , drop = FALSE]
+    jobs <- utils::head(jobs, limit)
+  }
+
+  list(
+    active_release = if (.nddscore_admin_has_rows(release)) {
+      as.list(release[1L, , drop = FALSE])
+    } else {
+      NULL
+    },
+    active_release_available = .nddscore_admin_has_rows(release),
+    recent_jobs = .nddscore_admin_tibble_rows(jobs),
+    meta = list(
+      job_type = "nddscore_import",
+      count = if (.nddscore_admin_has_rows(jobs)) nrow(jobs) else 0L,
+      limit = limit
+    )
+  )
+}
+
+
+#* Check NDDScore Zenodo metadata
+#*
+#* Fetches Zenodo record metadata and compares it with the active release.
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* @tag admin
+#* @serializer json list(na="null")
+#* @get /nddscore/zenodo
+function(req, res, record_id = .nddscore_admin_default_record_id) {
+  require_role(req, res, "Administrator")
+
+  record_id <- as.character(
+    .nddscore_admin_scalar(record_id, .nddscore_admin_default_record_id)
+  )
+  zenodo <- nddscore_fetch_zenodo_metadata(record_id)
+  release <- nddscore_repo_current_release()
+  active_release <- if (.nddscore_admin_has_rows(release)) {
+    as.list(release[1L, , drop = FALSE])
+  } else {
+    NULL
+  }
+
+  comparison <- if (.nddscore_admin_has_rows(release)) {
+    list(
+      active_release_available = TRUE,
+      record_id_matches = identical(
+        as.character(release$source_record_id[[1]]),
+        as.character(zenodo$record_id)
+      ),
+      version_matches = identical(
+        as.character(release$version[[1]]),
+        as.character(zenodo$version)
+      ),
+      archive_name_matches = identical(
+        as.character(release$source_archive_name[[1]]),
+        as.character(zenodo$archive_name)
+      ),
+      archive_checksum_matches = identical(
+        as.character(release$source_archive_checksum[[1]]),
+        as.character(zenodo$archive_md5)
+      )
+    )
+  } else {
+    list(active_release_available = FALSE)
+  }
+
+  list(
+    record_id = record_id,
+    zenodo = zenodo,
+    active_release = active_release,
+    comparison = comparison
+  )
+}
+
+
+#* Submit NDDScore import job
+#*
+#* Submits a durable nddscore_import job. Poll the returned status_url.
+#*
+#* # `Request Body`
+#* {
+#*   "record_id": "20258027",
+#*   "validate_only": false
+#* }
+#*
+#* # `Authorization`
+#* Restricted to Administrator role.
+#*
+#* @tag admin
+#* @serializer json list(na="null")
+#* @post /nddscore/import
+function(req, res) {
+  require_role(req, res, "Administrator")
+
+  body <- .nddscore_admin_request_body(req)
+  record_id <- as.character(
+    .nddscore_admin_scalar(body$record_id, .nddscore_admin_default_record_id)
+  )
+  validate_only <- .nddscore_admin_bool(body$validate_only, FALSE)
+
+  submitted <- async_job_service_submit(
+    job_type = "nddscore_import",
+    request_payload = list(
+      record_id = record_id,
+      validate_only = validate_only
+    ),
+    submitted_by = req$user_id %||% NULL
+  )
+
+  job <- submitted$job
+  job_id <- job$job_id[[1]]
+  status_url <- .nddscore_admin_job_status_url(job_id)
+
+  res$status <- if (isTRUE(submitted$duplicate)) 409L else 202L
+  res$setHeader("Location", status_url)
+  res$setHeader("Retry-After", "5")
+
+  list(
+    job_id = job_id,
+    status = if (isTRUE(submitted$duplicate)) "already_running" else "accepted",
+    job_status = job$status[[1]],
+    status_url = status_url
+  )
 }
 
 
