@@ -68,3 +68,45 @@ nddscore_fetch_zenodo_metadata <- function(
     content_url = entry$links$self
   )
 }
+
+#' Verify a downloaded archive against the Zenodo-published MD5.
+#' @return TRUE on match; stops with a clear error on mismatch.
+nddscore_verify_archive_checksum <- function(path, expected_md5) {
+  if (!file.exists(path)) {
+    stop("NDDScore archive not found for checksum verification", call. = FALSE)
+  }
+  actual <- digest::digest(file = path, algo = "md5")
+  expected <- tolower(sub("^md5:", "", expected_md5 %||% ""))
+  if (!identical(tolower(actual), expected)) {
+    stop(sprintf(
+      "NDDScore archive checksum mismatch (expected %s, got %s)",
+      expected, actual
+    ), call. = FALSE)
+  }
+  TRUE
+}
+
+#' Default binary downloader; tests inject a stub.
+.nddscore_http_download <- function(url, destfile) {
+  resp <- httr2::request(url) |>
+    httr2::req_retry(max_tries = 4) |>
+    httr2::req_timeout(300) |>
+    httr2::req_perform(path = destfile)
+  invisible(destfile)
+}
+
+#' Download the release archive to a destination path.
+#' @return The destination path.
+nddscore_download_archive <- function(
+    url,
+    dest,
+    http_download = .nddscore_http_download) {
+  if (is.null(url) || !nzchar(url)) {
+    stop("NDDScore archive download URL is missing", call. = FALSE)
+  }
+  http_download(url, dest)
+  if (!file.exists(dest) || file.size(dest) == 0) {
+    stop("NDDScore archive download produced an empty file", call. = FALSE)
+  }
+  dest
+}

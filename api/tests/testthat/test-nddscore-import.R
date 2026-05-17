@@ -83,3 +83,41 @@ test_that("nddscore_fetch_zenodo_metadata errors clearly without archive entry",
     "no \\.tar\\.gz archive file entry"
   )
 })
+
+describe("nddscore_verify_archive_checksum", {
+  it("passes when md5 matches", {
+    path <- fixture_archive()
+    good_md5 <- digest::digest(file = path, algo = "md5")
+    expect_true(nddscore_verify_archive_checksum(path, good_md5))
+  })
+
+  it("stops with a clear error on md5 mismatch", {
+    expect_error(
+      nddscore_verify_archive_checksum(
+        fixture_archive(),
+        paste(rep("0", 32), collapse = "")
+      ),
+      "checksum"
+    )
+  })
+})
+
+describe("nddscore_download_archive", {
+  it("writes the archive to the destination path", {
+    src <- fixture_archive()
+    dest <- file.path(tempdir(), "ndd_dl_test.tar.gz")
+    on.exit(unlink(dest), add = TRUE)
+    stub_download <- function(url, destfile) {
+      file.copy(src, destfile, overwrite = TRUE)
+    }
+
+    out <- nddscore_download_archive(
+      "https://example/content",
+      dest,
+      http_download = stub_download
+    )
+    expect_equal(out, dest)
+    expect_true(file.exists(dest))
+    expect_gt(file.size(dest), 0)
+  })
+})
