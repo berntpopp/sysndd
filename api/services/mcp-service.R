@@ -100,6 +100,10 @@ mcp_truncate_text <- function(text, max_chars) {
   list(text = substr(text, 1L, max_chars), truncated = truncated, max_chars = max_chars)
 }
 
+mcp_has_text <- function(text) {
+  !is.null(text) && length(text) > 0L && !is.na(text[1]) && nzchar(trimws(as.character(text[1])))
+}
+
 mcp_first_row <- function(rows, not_found_message) {
   if (is.null(rows) || nrow(rows) == 0L) {
     stop(mcp_error("not_found", not_found_message))
@@ -135,6 +139,20 @@ mcp_score_for_tier <- function(tier) {
 
 mcp_resource_uri <- function(type, id) {
   sprintf("sysndd://%s/%s", type, id)
+}
+
+mcp_recommended_citation <- function(pub) {
+  pieces <- c(
+    pub$Lastname,
+    pub$Title,
+    pub$Journal,
+    pub$Publication_date,
+    pub$publication_id
+  )
+  pieces <- pieces[!vapply(pieces, is.null, logical(1))]
+  pieces <- as.character(pieces)
+  pieces <- pieces[!is.na(pieces) & nzchar(trimws(pieces))]
+  paste(pieces, collapse = ". ")
 }
 
 mcp_cache_key <- function(name, args) {
@@ -261,9 +279,12 @@ mcp_get_entity_context <- function(entity_id,
         publication_id = item$publication_id,
         title = item$Title,
         journal = item$Journal,
-        publication_date = item$Publication_date,
+        pubmed_publication_date = item$Publication_date,
+        sysndd_curation_date = item$curation_review_date,
         first_author = item$Lastname,
         publication_type = item$publication_type,
+        recommended_citation = mcp_recommended_citation(item),
+        abstract_available = mcp_has_text(item$Abstract),
         abstract_excerpt = abstract$text,
         abstract_truncated = abstract$truncated,
         resource_uri = mcp_resource_uri("publication", item$publication_id)
@@ -307,21 +328,79 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L) {
     rows <- mcp_repo_get_publication_context(publication_id)
     first <- mcp_first_row(rows, "Publication not found")
     pub <- mcp_row_to_list(first)
+    abstract_available <- mcp_has_text(pub$Abstract)
     abstract <- mcp_truncate_text(pub$Abstract %||% "", abstract_max_chars)
-    linked <- rows[!is.na(rows$entity_id), c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category"), drop = FALSE]
+    linked_cols <- intersect(
+      c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category", "curation_review_date"),
+      names(rows)
+    )
+    linked <- rows[!is.na(rows$entity_id), linked_cols, drop = FALSE]
+    linked_records <- lapply(mcp_rows_to_records(unique(linked)), function(item) {
+      item$sysndd_curation_date <- item$curation_review_date
+      item$curation_review_date <- NULL
+      item
+    })
     list(
       schema_version = MCP_SCHEMA_VERSION,
       publication_id = pub$publication_id,
       title = pub$Title,
       journal = pub$Journal,
-      publication_date = pub$Publication_date,
+      pubmed_publication_date = pub$Publication_date,
       first_author = pub$Lastname,
       keywords = pub$Keywords,
+      recommended_citation = mcp_recommended_citation(pub),
+      abstract_available = abstract_available,
       abstract_excerpt = abstract$text,
       abstract_truncated = abstract$truncated,
-      linked_entities = mcp_rows_to_records(unique(linked))
+      linked_entities = linked_records,
+      date_notes = list(
+        pubmed_publication_date = "Publication date from the local PubMed-derived publication table.",
+        sysndd_curation_date = "Primary approved SysNDD review date on linked entities."
+      )
     )
   })
+}
+
+mcp_get_publications_context <- function(pmids, abstract_max_chars = 2000L) {
+  if (is.null(pmids)) {
+    stop(mcp_error("invalid_input", "pmids must contain at least one PubMed identifier", list(argument = "pmids")))
+  }
+  pmids <- as.character(unlist(pmids, use.names = FALSE))
+  pmids <- pmids[!is.na(pmids) & nzchar(trimws(pmids))]
+  if (length(pmids) == 0L) {
+    stop(mcp_error("invalid_input", "pmids must contain at least one PubMed identifier", list(argument = "pmids")))
+  }
+  if (length(pmids) > 20L) {
+    stop(mcp_error("invalid_input", "pmids supports at most 20 identifiers per call", list(argument = "pmids", max = 20L)))
+  }
+  abstract_max_chars <- mcp_validate_limit(abstract_max_chars, default = 2000L, max = 4000L, name = "abstract_max_chars")
+
+  publications <- lapply(pmids, function(pmid) {
+    normalized <- tryCatch(mcp_normalize_pmid(pmid), mcp_tool_error = function(e) NA_character_)
+    if (is.na(normalized)) {
+      return(list(publication_id = as.character(pmid), error = unclass(mcp_error("invalid_input", "Invalid PMID"))$error))
+    }
+
+    tryCatch(
+      mcp_get_publication_context(normalized, abstract_max_chars = abstract_max_chars),
+      mcp_tool_error = function(e) {
+        list(publication_id = normalized, error = unclass(e)$error)
+      }
+    )
+  })
+
+  returned <- sum(vapply(publications, function(item) is.null(item$error), logical(1)))
+  list(
+    schema_version = MCP_SCHEMA_VERSION,
+    publications = publications,
+    meta = list(
+      requested = length(pmids),
+      returned = returned,
+      errors = length(pmids) - returned,
+      max_pmids = 20L,
+      abstract_max_chars = abstract_max_chars
+    )
+  )
 }
 
 mcp_find_entities_by_phenotype <- function(phenotype,

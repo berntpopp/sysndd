@@ -57,6 +57,8 @@ The optional `mcp` service runs `api/start_sysndd_mcp.R` as a separate read-only
 - `MCP_OUTPUT_MODE` defaults to `json_text`, matching the transport spike result for `mcptools 0.2.1.9000`.
 - `MCP_URL` is used by `make test-mcp-smoke` and the container health probe. Inside the container the default is `http://127.0.0.1:8787`.
 
+The sidecar initializes with SysNDD-specific client instructions that describe the gene -> entity -> publication workflow, resource semantics, error envelope, and read-only constraints. Publication tools expose `recommended_citation`, `pubmed_publication_date`, `abstract_available`, and separate `sysndd_curation_date` values for linked entities. Use `get_publications_context` for 2-20 PMIDs instead of issuing many single-PMID calls.
+
 The production Compose file keeps MCP internal-only by default: no host port and no Traefik labels are configured. If an operator exposes it as `/mcp`, the proxy must protect it with a static bearer-token middleware, equivalent private network control, or a future OAuth flow, and should strip `/mcp` before forwarding to the `mcptools` HTTP root endpoint.
 
 ## Operations Notes

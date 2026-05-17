@@ -20,6 +20,7 @@ test_that("MCP repository queries use approved public views and primary approved
   expect_match(sql, "ndd_entity_view")
   expect_match(sql, "is_primary\\s*=\\s*1")
   expect_match(sql, "review_approved\\s*=\\s*1")
+  expect_false(grepl("LEFT\\s+JOIN\\s+ndd_review_publication_join|LEFT\\s+JOIN\\s+ndd_entity_review|LEFT\\s+JOIN\\s+ndd_entity_view", sql, ignore.case = TRUE))
   expect_false(grepl("INSERT|UPDATE|DELETE|DROP|ALTER", sql, ignore.case = TRUE))
   expect_true(all(vapply(captured, function(x) is.list(x$params), logical(1))))
 })

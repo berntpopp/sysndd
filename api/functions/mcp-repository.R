@@ -163,7 +163,7 @@ mcp_repo_get_gene_entities <- function(hgnc_id,
              ev.disease_ontology_name, ev.hpo_mode_of_inheritance_term_name,
              ev.category, ev.ndd_phenotype_word, er.synopsis, er.review_date
       FROM ndd_entity_view ev
-      LEFT JOIN ndd_entity_review er
+      JOIN ndd_entity_review er
         ON er.entity_id = ev.entity_id
        AND er.is_primary = 1
        AND er.review_approved = 1
@@ -213,7 +213,7 @@ mcp_repo_get_entity_context <- function(entity_id) {
              ev.hpo_mode_of_inheritance_term_name, ev.category, ev.category_id,
              ev.ndd_phenotype, ev.ndd_phenotype_word, er.synopsis, er.review_date
       FROM ndd_entity_view ev
-      LEFT JOIN ndd_entity_review er
+      JOIN ndd_entity_review er
         ON er.entity_id = ev.entity_id
        AND er.is_primary = 1
        AND er.review_approved = 1
@@ -272,7 +272,7 @@ mcp_repo_get_entity_publications <- function(entity_id, limit = 10L) {
     "
       SELECT rpj.entity_id, p.publication_id, p.Title, p.Journal,
              p.Publication_date, p.Lastname, p.Firstname, p.Abstract,
-             rpj.publication_type
+             rpj.publication_type, er.review_date AS curation_review_date
       FROM ndd_entity_view ev
       JOIN ndd_entity_review er
         ON er.entity_id = ev.entity_id
@@ -296,16 +296,16 @@ mcp_repo_get_publication_context <- function(publication_id) {
       SELECT p.publication_id, p.Title, p.Abstract, p.Journal, p.Publication_date,
              p.Lastname, p.Firstname, p.Keywords,
              ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_name,
-             ev.category
+             ev.category, er.review_date AS curation_review_date
       FROM publication p
-      LEFT JOIN ndd_review_publication_join rpj
+      JOIN ndd_review_publication_join rpj
         ON rpj.publication_id = p.publication_id
        AND rpj.is_reviewed = 1
-      LEFT JOIN ndd_entity_review er
+      JOIN ndd_entity_review er
         ON er.review_id = rpj.review_id
        AND er.is_primary = 1
        AND er.review_approved = 1
-      LEFT JOIN ndd_entity_view ev
+      JOIN ndd_entity_view ev
         ON ev.entity_id = rpj.entity_id
        AND ev.entity_id = er.entity_id
       WHERE p.publication_id = ?

@@ -47,13 +47,18 @@ Available MCP tools:
 - `get_entity_context`
 - `list_gene_entities`
 - `get_publication_context`
+- `get_publications_context`
 - `find_entities_by_phenotype`
 - `find_entities_by_disease`
 - `get_sysndd_stats`
 
+The intended LLM retrieval path is `search_sysndd` -> `get_gene_context` -> `get_entity_context` -> `get_publication_context` or `get_publications_context`. SysNDD entities are gene-disease-inheritance curation records, so one gene can have multiple entities. Publication outputs include `recommended_citation`, `pubmed_publication_date`, `abstract_available`, `abstract_excerpt`, and `abstract_truncated`; linked entity review dates are reported separately as `sysndd_curation_date`.
+
+The static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources document schema and tool usage. Record-level `sysndd://gene`, `sysndd://entity`, and `sysndd://publication` URIs in tool payloads are stable identifiers; v1 retrieval remains tool-based rather than parameterized resource templates.
+
 The MCP service exposes only approved public data: active records represented by `ndd_entity_view` and review-derived evidence from primary approved reviews (`is_primary = 1` and `review_approved = 1`). It must not expose draft reviews, re-review assignments, admin/user/log/job data, raw SQL/R execution, external provider calls, or Gemini-backed generation.
 
-The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore returns stable JSON text with `schema_version` rather than relying on native `structuredContent`.
+The Phase 0 transport spike proved `mcptools` HTTP initialize -> `tools/list` -> `tools/call`, `GET 405`, no required session header, and JSON-serialized text tool output. MCP v1 therefore returns stable JSON text with `schema_version` rather than relying on native `structuredContent`. The sidecar patches `mcptools` initialize metadata so clients receive SysNDD-specific workflow instructions instead of the package's generic R-session instructions.
 
 
 ## Usage policy

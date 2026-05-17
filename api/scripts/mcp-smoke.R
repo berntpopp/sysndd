@@ -39,11 +39,14 @@ init <- rpc("initialize", list(
   clientInfo = list(name = "sysndd-mcp-smoke", version = "0.1.0")
 ), 1L)
 if (is.null(init$result)) stop("MCP initialize failed")
+if (!grepl("SysNDD", init$result$instructions %||% "", fixed = TRUE)) {
+  stop("MCP initialize did not return SysNDD-specific instructions")
+}
 
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_publication_context")
+required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_publication_context", "get_publications_context")
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))

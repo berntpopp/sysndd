@@ -46,6 +46,44 @@ mcp_static_resources <- function() {
   )
 }
 
+mcp_server_instructions <- function() {
+  paste(
+    "SysNDD MCP provides read-only access to approved public neurodevelopmental disorder gene-disease evidence.",
+    "Canonical workflow: search_sysndd to resolve user text, get_gene_context for a gene overview, get_entity_context for one gene-disease-inheritance entity, then get_publication_context or get_publications_context for PMID evidence.",
+    "Entity model: entities are gene-disease-inheritance curation records; one gene can have many entities with different diseases, inheritance modes, categories, and NDD phenotype flags.",
+    "Use list_gene_entities when you need entity rows without full phenotype/publication expansion.",
+    "Use find_entities_by_phenotype and find_entities_by_disease for constrained discovery from HPO or disease terms.",
+    "Use get_publications_context for 2-20 PMIDs; it preserves request order and returns per-PMID errors rather than failing the whole batch.",
+    "Publication dates are exposed as pubmed_publication_date; linked entity review dates are sysndd_curation_date.",
+    "Publication outputs include recommended_citation, abstract_available, abstract_excerpt, and abstract_truncated for citation-safe summaries.",
+    "Resource URIs such as sysndd://schema/overview and sysndd://schema/tool-guide are static documentation resources; payload sysndd://gene, entity, and publication URIs are stable identifiers, while tools are the model-facing retrieval path in v1.",
+    "Errors are JSON payloads with schema_version and error.code values such as invalid_input, not_found, ambiguous_query, and temporarily_unavailable.",
+    "Limits are enforced by each tool. V1 is read-only and never exposes draft reviews, admin/user/job/log data, raw SQL, raw R execution, Gemini, or external provider calls.",
+    sep = " "
+  )
+}
+
+mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructions()) {
+  if (!requireNamespace("mcptools", quietly = TRUE)) return(FALSE)
+  ns <- asNamespace("mcptools")
+  original <- getOption("sysndd.mcptools.capabilities_original")
+  if (is.null(original)) {
+    original <- base::get("capabilities", envir = ns)
+    options(sysndd.mcptools.capabilities_original = list(original))
+  } else {
+    original <- original[[1]]
+  }
+  patched <- function(protocol_version = "2025-06-18") {
+    res <- original(protocol_version = protocol_version)
+    res$serverInfo$name <- "SysNDD read-only MCP"
+    res$instructions <- instructions
+    res
+  }
+  environment(patched) <- environment()
+  assignInNamespace("capabilities", patched, ns = "mcptools")
+  TRUE
+}
+
 mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
   search_sysndd_fun <- function(query, types = NULL, limit = NULL) {
     mcp_tool_safe(mcp_search_sysndd, output_mode)(query = query, types = types, limit = limit)
@@ -82,6 +120,9 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
   }
   get_publication_context_fun <- function(pmid, abstract_max_chars = NULL) {
     mcp_tool_safe(mcp_get_publication_context, output_mode)(pmid = pmid, abstract_max_chars = abstract_max_chars)
+  }
+  get_publications_context_fun <- function(pmids, abstract_max_chars = NULL) {
+    mcp_tool_safe(mcp_get_publications_context, output_mode)(pmids = pmids, abstract_max_chars = abstract_max_chars)
   }
   find_entities_by_phenotype_fun <- function(phenotype,
                                              modifier = "present",
@@ -157,6 +198,15 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
         abstract_max_chars = ellmer::type_integer("Abstract excerpt cap, default 2000, max 4000.", required = FALSE)
       ),
       name = "get_publication_context"
+    ),
+    ellmer::tool(
+      get_publications_context_fun,
+      "Batch get publication metadata for 2-20 PMIDs, preserving request order with per-PMID errors.",
+      arguments = list(
+        pmids = ellmer::type_array(ellmer::type_string("PMID:123, 123, or a PubMed URL.")),
+        abstract_max_chars = ellmer::type_integer("Abstract excerpt cap per publication, default 2000, max 4000.", required = FALSE)
+      ),
+      name = "get_publications_context"
     ),
     ellmer::tool(
       find_entities_by_phenotype_fun,

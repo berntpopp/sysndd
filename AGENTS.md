@@ -61,6 +61,8 @@ The worker must have outbound network egress for external providers used inside 
 
 MCP v1 is private/internal by default in Compose. Do not expose public unauthenticated `/mcp`; any route must be private or static-bearer protected at the proxy/service boundary.
 
+MCP client ergonomics are part of the contract. Keep initialize instructions SysNDD-specific, with the gene -> entity -> publication workflow, the entity model, resource semantics, stable error codes, caps, and read-only constraints. Publication outputs should remain citation-friendly (`recommended_citation`), distinguish `pubmed_publication_date` from `sysndd_curation_date`, and expose `abstract_available` when abstract text is absent.
+
 MCP tools are strictly read-only. They must not write to the DB, execute raw SQL/R, call Gemini, call external providers, or expose draft reviews, re-review workflows, admin/user/log/job data, curation comments, or broad export payloads. Enforce approved public data in repository queries: active records from `ndd_entity_view`, and review-derived synopsis/phenotype/variation/publication data only from primary approved reviews (`is_primary = 1` and `review_approved = 1`).
 
 ### Migrations

@@ -100,3 +100,77 @@ test_that("search and list tools return capped metadata envelopes", {
   expect_equal(listed$meta$total, 1L)
   expect_false(listed$meta$has_more)
 })
+
+test_that("publication context includes citation, availability, and date semantics", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_publication <- mcp_repo_get_publication_context
+  assign("mcp_repo_get_publication_context", function(publication_id) {
+    tibble::tibble(
+      publication_id = publication_id,
+      Title = "NAA10-related neurodevelopmental syndrome",
+      Abstract = NA_character_,
+      Journal = "Am J Med Genet A",
+      Publication_date = as.Date("2021-08-01"),
+      Lastname = "Gogoll",
+      Firstname = "L",
+      Keywords = "NAA10",
+      entity_id = c(451L, 452L),
+      symbol = c("NAA10", "NAA15"),
+      hgnc_id = c("18704", "30782"),
+      disease_ontology_name = c("NAA10-related syndrome", "NAA15-related syndrome"),
+      category = c("Definitive", "Moderate"),
+      curation_review_date = as.Date(c("2023-04-12", "2024-02-01"))
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
+
+  result <- mcp_get_publication_context("37130971")
+
+  expect_equal(result$pubmed_publication_date, "2021-08-01")
+  expect_null(result$publication_date)
+  expect_false(result$abstract_available)
+  expect_equal(result$abstract_excerpt, "")
+  expect_match(result$recommended_citation, "Gogoll")
+  expect_match(result$recommended_citation, "Am J Med Genet A")
+  expect_match(result$recommended_citation, "PMID:37130971")
+  expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
+})
+
+test_that("batch publication context preserves request order and returns per-PMID errors", {
+  source("../../functions/mcp-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_publication <- mcp_repo_get_publication_context
+  assign("mcp_repo_get_publication_context", function(publication_id) {
+    if (identical(publication_id, "PMID:999")) return(tibble::tibble())
+    tibble::tibble(
+      publication_id = publication_id,
+      Title = paste("Title", publication_id),
+      Abstract = "Abstract text",
+      Journal = "Journal",
+      Publication_date = as.Date("2020-01-01"),
+      Lastname = "Smith",
+      Firstname = "A",
+      Keywords = "",
+      entity_id = NA_integer_,
+      symbol = NA_character_,
+      hgnc_id = NA_character_,
+      disease_ontology_name = NA_character_,
+      category = NA_character_,
+      curation_review_date = as.Date(NA)
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
+
+  result <- mcp_get_publications_context(c("PMID:123", "999", "PMID:123"))
+
+  expect_equal(result$schema_version, "1.0")
+  expect_equal(result$meta$requested, 3L)
+  expect_equal(result$meta$returned, 2L)
+  expect_equal(result$publications[[1]]$publication_id, "PMID:123")
+  expect_equal(result$publications[[2]]$publication_id, "PMID:999")
+  expect_equal(result$publications[[2]]$error$code, "not_found")
+  expect_equal(result$publications[[3]]$publication_id, "PMID:123")
+})
