@@ -5,6 +5,23 @@
 source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/re-review-sync.R", local = FALSE)
 
+ensure_test_users <- function(conn, user_ids) {
+  for (user_id in user_ids) {
+    DBI::dbExecute(
+      conn,
+      sprintf(
+        paste0(
+          "INSERT IGNORE INTO `user` ",
+          "(user_id, user_name) ",
+          "VALUES (%d, 'sysndd_rereview_test_%d')"
+        ),
+        user_id,
+        user_id
+      )
+    )
+  }
+}
+
 # Ensure test table exists (CI starts with empty DB; DDL is idempotent)
 if (test_db_available()) {
   con <- get_test_db_connection()
@@ -35,12 +52,13 @@ test_that("sync_rereview_approval updates matching rows for review_ids", {
 
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    ensure_test_users(conn, 1L)
 
     # Insert test re_review_entity_connect row
     DBI::dbExecute(conn,
       "INSERT INTO re_review_entity_connect
-       (re_review_batch, entity_id, review_id, status_id, re_review_submitted, re_review_approved)
-       VALUES (1, 999, 888, 777, 1, 0)"
+       (re_review_batch, review_id, status_id, re_review_submitted, re_review_approved)
+       VALUES (1, 888, 777, 1, 0)"
     )
 
     # Call sync function
@@ -66,12 +84,13 @@ test_that("sync_rereview_approval updates matching rows for status_ids", {
 
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    ensure_test_users(conn, 2L)
 
     # Insert test re_review_entity_connect row
     DBI::dbExecute(conn,
       "INSERT INTO re_review_entity_connect
-       (re_review_batch, entity_id, review_id, status_id, re_review_submitted, re_review_approved)
-       VALUES (2, 998, 887, 776, 1, 0)"
+       (re_review_batch, review_id, status_id, re_review_submitted, re_review_approved)
+       VALUES (2, 887, 776, 1, 0)"
     )
 
     # Call sync function
@@ -97,12 +116,13 @@ test_that("sync_rereview_approval skips unsubmitted rows", {
 
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    ensure_test_users(conn, 3L)
 
     # Insert test re_review_entity_connect row with re_review_submitted = 0
     DBI::dbExecute(conn,
       "INSERT INTO re_review_entity_connect
-       (re_review_batch, entity_id, review_id, status_id, re_review_submitted, re_review_approved)
-       VALUES (3, 997, 886, 775, 0, 0)"
+       (re_review_batch, review_id, status_id, re_review_submitted, re_review_approved)
+       VALUES (3, 886, 775, 0, 0)"
     )
 
     # Call sync function
@@ -143,17 +163,18 @@ test_that("sync_rereview_approval handles both review_ids and status_ids", {
 
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
+    ensure_test_users(conn, 4L)
 
     # Insert two test rows
     DBI::dbExecute(conn,
       "INSERT INTO re_review_entity_connect
-       (re_review_batch, entity_id, review_id, status_id, re_review_submitted, re_review_approved)
-       VALUES (4, 996, 885, 774, 1, 0)"
+       (re_review_batch, review_id, status_id, re_review_submitted, re_review_approved)
+       VALUES (4, 885, 774, 1, 0)"
     )
     DBI::dbExecute(conn,
       "INSERT INTO re_review_entity_connect
-       (re_review_batch, entity_id, review_id, status_id, re_review_submitted, re_review_approved)
-       VALUES (5, 995, 884, 773, 1, 0)"
+       (re_review_batch, review_id, status_id, re_review_submitted, re_review_approved)
+       VALUES (5, 884, 773, 1, 0)"
     )
 
     # Call sync function with both review_ids and status_ids
