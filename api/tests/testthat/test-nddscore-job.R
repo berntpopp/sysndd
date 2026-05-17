@@ -124,3 +124,137 @@ test_that("advisory lock excludes a second connection until release", {
   expect_true(nddscore_try_acquire_import_lock(conn_two))
   expect_true(nddscore_release_import_lock(conn_two))
 })
+
+nddscore_import_test_run <- function(
+    conn,
+    validate_only = FALSE,
+    deps = nddscore_stub_deps(),
+    record_id = "20258027",
+    job_id = "job-nddscore-run-import") {
+  nddscore_run_import(
+    conn = conn,
+    record_id = record_id,
+    validate_only = validate_only,
+    imported_by = NULL,
+    job_id = job_id,
+    deps = deps,
+    progress = function(...) NULL
+  )
+}
+
+test_that("nddscore_run_import validate_only writes no release or predictions", {
+  conn <- nddscore_test_conn()
+
+  result <- nddscore_import_test_run(conn, validate_only = TRUE)
+
+  expect_true(result$validation$ok)
+  expect_true(result$validate_only)
+  expect_equal(
+    DBI::dbGetQuery(conn, "SELECT COUNT(*) AS n FROM nddscore_release")$n[[1]],
+    0
+  )
+  expect_equal(
+    DBI::dbGetQuery(conn, "SELECT COUNT(*) AS n FROM nddscore_gene_prediction")$n[[1]],
+    0
+  )
+  expect_equal(
+    DBI::dbGetQuery(conn, "SELECT COUNT(*) AS n FROM nddscore_hpo_prediction")$n[[1]],
+    0
+  )
+  expect_equal(
+    DBI::dbGetQuery(conn, "SELECT COUNT(*) AS n FROM nddscore_hpo_term")$n[[1]],
+    0
+  )
+})
+
+test_that("nddscore_run_import full import activates release with expected counts", {
+  conn <- nddscore_test_conn()
+
+  result <- nddscore_import_test_run(conn)
+
+  expect_equal(result$status, "active")
+  expect_false(result$validate_only)
+  expect_equal(result$release_id, "ndd_fixture_release")
+  expect_equal(result$counts$gene, 3L)
+  expect_equal(result$counts$hpo, 4L)
+  expect_equal(result$counts$term, 2L)
+
+  state <- nddscore_release_exists(conn, result$release_id)
+  expect_true(state$exists)
+  expect_true(state$is_active)
+  expect_equal(state$import_status, "active")
+})
+
+test_that("nddscore_run_import checksum failure leaves previous active release active", {
+  conn <- nddscore_test_conn()
+  fx <- nddscore_test_fixture()
+  old_release <- fx$release
+  old_release$release_id <- "ndd_fixture_release_old"
+
+  nddscore_upsert_release_row(conn, old_release, import_job_id = "job-old")
+  nddscore_mark_release_validated(conn, old_release$release_id)
+  nddscore_activate_release(conn, old_release$release_id)
+
+  expect_error(
+    nddscore_import_test_run(
+      conn,
+      deps = nddscore_stub_deps(archive_md5 = "00000000000000000000000000000000"),
+      job_id = "job-bad-checksum"
+    ),
+    "checksum mismatch"
+  )
+
+  old_state <- nddscore_release_exists(conn, old_release$release_id)
+  new_state <- nddscore_release_exists(conn, fx$release$release_id)
+  expect_true(old_state$is_active)
+  expect_equal(old_state$import_status, "active")
+  expect_false(new_state$exists)
+})
+
+test_that("nddscore_run_import refuses to re-import currently active release_id", {
+  conn <- nddscore_test_conn()
+
+  nddscore_import_test_run(conn, job_id = "job-first-import")
+
+  expect_error(
+    nddscore_import_test_run(conn, job_id = "job-second-import"),
+    "currently active"
+  )
+
+  counts <- nddscore_count_release_rows(conn, "ndd_fixture_release")
+  expect_equal(counts$gene, 3L)
+  expect_equal(counts$hpo, 4L)
+  expect_equal(counts$term, 2L)
+})
+
+test_that("nddscore_run_import re-imports a previously failed inactive release_id", {
+  conn <- nddscore_test_conn()
+  fx <- nddscore_test_fixture()
+
+  nddscore_upsert_release_row(
+    conn,
+    fx$release,
+    import_job_id = "job-failed-release",
+    import_status = "failed"
+  )
+  nddscore_mark_release_failed(conn, fx$release$release_id, "previous failure")
+
+  result <- nddscore_import_test_run(conn, job_id = "job-retry-failed-release")
+
+  expect_equal(result$status, "active")
+  expect_equal(result$release_id, fx$release$release_id)
+  expect_equal(result$counts$gene, 3L)
+
+  state <- nddscore_release_exists(conn, fx$release$release_id)
+  expect_true(state$is_active)
+  expect_equal(state$import_status, "active")
+})
+
+test_that("nddscore_import async handler is registered", {
+  source_api_file("functions/async-job-handlers.R", local = FALSE, envir = .GlobalEnv)
+
+  entry <- async_job_get_handler("nddscore_import")
+
+  expect_true(is.function(entry$run))
+  expect_equal(entry$cancel_mode, "non_interruptible")
+})

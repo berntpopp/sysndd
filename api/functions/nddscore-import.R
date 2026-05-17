@@ -656,3 +656,134 @@ nddscore_delete_inactive_release <- function(conn, release_id) {
   )
   invisible(TRUE)
 }
+
+nddscore_run_import <- function(
+    conn,
+    record_id,
+    validate_only = FALSE,
+    imported_by = NULL,
+    job_id = NULL,
+    deps = list(),
+    progress = NULL) {
+  deps <- utils::modifyList(
+    list(
+      fetch_metadata = nddscore_fetch_zenodo_metadata,
+      download = nddscore_download_archive,
+      verify_checksum = nddscore_verify_archive_checksum,
+      extract = nddscore_extract_and_verify,
+      parse_release = nddscore_parse_release_json,
+      load_tsvs = nddscore_load_tsvs,
+      validate = nddscore_validate
+    ),
+    deps
+  )
+
+  report <- function(step, message, current, total = 12L) {
+    if (is.function(progress)) {
+      progress(step, message, current = current, total = total)
+    }
+  }
+
+  validate_only <- isTRUE(validate_only)
+  job_id <- job_id %||% NA_character_
+
+  report("metadata", "Fetching NDDScore Zenodo metadata", 1L)
+  source <- deps$fetch_metadata(record_id)
+
+  archive_path <- tempfile(pattern = "nddscore_", fileext = ".tar.gz")
+  extract_dir <- tempfile(pattern = "nddscore_extract_")
+  on.exit(unlink(c(archive_path, extract_dir), recursive = TRUE, force = TRUE), add = TRUE)
+
+  report("download", "Downloading NDDScore archive", 2L)
+  deps$download(source$content_url, archive_path)
+
+  report("checksum", "Verifying NDDScore archive checksum", 3L)
+  deps$verify_checksum(archive_path, source$archive_md5)
+
+  report("extract", "Extracting NDDScore release archive", 4L)
+  release_dir <- deps$extract(archive_path, exdir = extract_dir)
+
+  report("parse_release", "Parsing NDDScore release metadata", 5L)
+  release <- deps$parse_release(release_dir)
+  release_id <- .nddscore_scalar(release$release_id)
+
+  report("load_predictions", "Loading NDDScore prediction tables", 6L)
+  frames <- deps$load_tsvs(release_dir)
+
+  report("validate", "Validating NDDScore release content", 7L)
+  validation <- deps$validate(release, frames)
+  if (!isTRUE(validation$ok)) {
+    stop(
+      sprintf(
+        "NDDScore release validation failed: %s",
+        paste(validation$messages, collapse = "; ")
+      ),
+      call. = FALSE
+    )
+  }
+
+  if (validate_only) {
+    report("complete", "NDDScore release validation complete", 12L)
+    return(list(
+      status = "validated",
+      validate_only = TRUE,
+      release_id = release_id,
+      validation = validation,
+      counts = list(
+        gene = nrow(frames$gene),
+        hpo = nrow(frames$hpo),
+        term = nrow(frames$term)
+      ),
+      source = source
+    ))
+  }
+
+  existing <- nddscore_release_exists(conn, release_id)
+  if (isTRUE(existing$is_active)) {
+    stop(
+      sprintf(
+        "NDDScore release_id '%s' is currently active and cannot be re-imported",
+        release_id
+      ),
+      call. = FALSE
+    )
+  }
+
+  tryCatch(
+    {
+      report("release_row", "Recording NDDScore release import", 8L)
+      nddscore_upsert_release_row(
+        conn,
+        release,
+        import_job_id = job_id,
+        imported_by = imported_by,
+        source = source
+      )
+
+      report("prediction_rows", "Writing NDDScore prediction rows", 9L)
+      nddscore_insert_predictions(conn, release_id, frames)
+
+      report("validated", "Marking NDDScore release validated", 10L)
+      nddscore_mark_release_validated(conn, release_id)
+
+      report("activate", "Activating NDDScore release", 11L)
+      nddscore_activate_release(conn, release_id)
+
+      counts <- nddscore_count_release_rows(conn, release_id)
+      report("complete", "NDDScore release import complete", 12L)
+
+      list(
+        status = "active",
+        validate_only = FALSE,
+        release_id = release_id,
+        validation = validation,
+        counts = counts,
+        source = source
+      )
+    },
+    error = function(e) {
+      nddscore_mark_release_failed(conn, release$release_id, conditionMessage(e))
+      stop(e)
+    }
+  )
+}

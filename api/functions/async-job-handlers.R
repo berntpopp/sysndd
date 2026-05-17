@@ -330,6 +330,85 @@
   )
 }
 
+.async_job_ensure_nddscore_import_loaded <- function() {
+  if (exists("nddscore_run_import", mode = "function")) {
+    return(invisible(TRUE))
+  }
+
+  candidates <- c(
+    "functions/nddscore-import.R",
+    "/app/functions/nddscore-import.R"
+  )
+
+  for (path in candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      return(invisible(TRUE))
+    }
+  }
+
+  stop("NDDScore import functions are not loaded", call. = FALSE)
+}
+
+.async_job_run_nddscore_import <- function(job, payload, state, worker_config) {
+  .async_job_ensure_nddscore_import_loaded()
+
+  record_id <- .async_job_payload_scalar(payload, "record_id")
+  validate_only <- isTRUE(.async_job_payload_scalar(
+    payload,
+    "validate_only",
+    required = FALSE,
+    default = FALSE
+  ))
+  imported_by <- .async_job_payload_scalar(
+    payload,
+    "imported_by",
+    required = FALSE,
+    default = NULL
+  )
+  progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
+
+  if (!exists("pool", envir = .GlobalEnv, inherits = FALSE)) {
+    stop("NDDScore import requires the global database pool", call. = FALSE)
+  }
+
+  db_pool <- get("pool", envir = .GlobalEnv, inherits = FALSE)
+  conn <- pool::poolCheckout(db_pool)
+  conn_checked_out <- TRUE
+  lock_acquired <- FALSE
+  on.exit({
+    if (isTRUE(lock_acquired)) {
+      tryCatch(nddscore_release_import_lock(conn), error = function(e) NULL)
+    }
+    if (isTRUE(conn_checked_out)) {
+      pool::poolReturn(conn)
+    }
+  }, add = TRUE)
+
+  nddscore_acquire_import_lock(conn)
+  lock_acquired <- TRUE
+
+  tryCatch(
+    {
+      nddscore_run_import(
+        conn = conn,
+        record_id = record_id,
+        validate_only = validate_only,
+        imported_by = imported_by,
+        job_id = job$job_id[[1]],
+        deps = list(
+          fetch_metadata = nddscore_fetch_zenodo_metadata,
+          download = nddscore_download_archive
+        ),
+        progress = progress
+      )
+    },
+    error = function(e) {
+      stop(e)
+    }
+  )
+}
+
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
@@ -793,6 +872,11 @@ async_job_handler_registry <- list(
   pubtator_update = list(
     cancel_mode = "best_effort",
     run = .async_job_run_pubtator,
+    after_success = .async_job_after_success_noop
+  ),
+  nddscore_import = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_nddscore_import,
     after_success = .async_job_after_success_noop
   ),
   llm_generation = list(
