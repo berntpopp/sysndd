@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -131,6 +131,18 @@ test-api-full: check-r ## [test] Run full R API test suite including slow tests
 	@cd $(ROOT_DIR)/api && RUN_SLOW_TESTS=true $(HOST_RSCRIPT) scripts/run-ci-tests.R full && \
 		printf "$(GREEN)✓ test-api-full complete$(RESET)\n" || \
 		(printf "$(RED)✗ test-api-full failed$(RESET)\n" && exit 1)
+
+mcp-transport-spike: check-r ## [test] Verify mcptools HTTP MCP initialize/list/call behavior
+	@printf "$(CYAN)==> Running MCP transport spike...$(RESET)\n"
+	@cd $(ROOT_DIR)/api && Rscript scripts/mcp-transport-spike.R && \
+		printf "$(GREEN)✓ mcp-transport-spike complete$(RESET)\n" || \
+		(printf "$(RED)✗ mcp-transport-spike failed$(RESET)\n" && exit 1)
+
+test-mcp-smoke: check-r ## [test] Probe a running MCP sidecar with initialize and tools/list
+	@printf "$(CYAN)==> Running MCP smoke probe...$(RESET)\n"
+	@cd $(ROOT_DIR)/api && MCP_URL=$${MCP_URL:-http://127.0.0.1:8787} Rscript scripts/mcp-smoke.R && \
+		printf "$(GREEN)✓ test-mcp-smoke complete$(RESET)\n" || \
+		(printf "$(RED)✗ test-mcp-smoke failed$(RESET)\n" && exit 1)
 
 coverage: check-r ## [test] Generate test coverage report with covr
 	@printf "$(CYAN)==> Calculating test coverage...$(RESET)\n"

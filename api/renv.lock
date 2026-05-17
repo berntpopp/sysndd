@@ -6438,6 +6438,17 @@
       "Maintainer": "Lionel Henry <lionel@posit.co>",
       "Repository": "https://packagemanager.posit.co/cran/__linux__/noble/2026-05-08"
     },
+    "mcptools": {
+      "Package": "mcptools",
+      "Version": "0.2.1.9000",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteHost": "api.github.com",
+      "RemoteUsername": "posit-dev",
+      "RemoteRepo": "mcptools",
+      "RemoteRef": "main",
+      "RemoteSha": "0602ec7611f91442c38c2e75922d6b6c70f8d27e"
+    },
     "memoise": {
       "Package": "memoise",
       "Version": "2.0.1",

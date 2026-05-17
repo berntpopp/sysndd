@@ -22,7 +22,8 @@
 #' @return A pool object created by `pool::dbPool()`.
 #' @export
 bootstrap_create_pool <- function(dw) {
-  pool_size <- as.integer(Sys.getenv("DB_POOL_SIZE", "5"))
+  pool_env <- if (identical(Sys.getenv("SYSNDD_RUNTIME", ""), "mcp")) "MCP_DB_POOL_SIZE" else "DB_POOL_SIZE"
+  pool_size <- as.integer(Sys.getenv(pool_env, Sys.getenv("DB_POOL_SIZE", "5")))
   if (is.na(pool_size) || pool_size < 1L) {
     pool_size <- 5L
   }

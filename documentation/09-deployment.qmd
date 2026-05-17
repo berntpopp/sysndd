@@ -48,6 +48,23 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 
 External genomic proxy caches live under `/app/cache/external/{static,stable,dynamic}` by default and can be relocated with `EXTERNAL_PROXY_CACHE_DIR`. The proxy layer caches successful and true not-found responses, but transient upstream errors (`error = TRUE`, mapped to 503) are evicted immediately so a timeout does not poison the cache for the full 7/14/30-day source TTL.
 
+### MCP sidecar settings
+
+The optional `mcp` service runs `api/start_sysndd_mcp.R` as a separate read-only process. It is not part of Plumber and does not run migrations or workers.
+
+- `MCP_DB_POOL_SIZE` defaults to `2` and controls the MCP-only DB pool.
+- `MCP_PORT` defaults to `8787`.
+- `MCP_OUTPUT_MODE` defaults to `json_text`, matching the transport spike result for `mcptools 0.2.1.9000`.
+- `MCP_URL` is used by `make test-mcp-smoke` and the lightweight MCP container liveness probe. Inside the container the default is `http://127.0.0.1:8787`.
+
+The sidecar initializes with concise SysNDD-specific client instructions that describe the gene -> entity -> publication workflow, entity model, cheap-path payload controls, resource semantics, and read-only constraints. `get_sysndd_capabilities` provides the longer in-band guide for workflows, limits, payload modes, citation rules, resources, prompts, errors, and v1 exclusions. Tool descriptions include short example calls and boolean defaults. `get_gene_context` and `list_gene_entities` still accept deprecated `symbol` and `query` aliases for client self-correction, but those aliases are hidden from advertised input schemas.
+
+Payload controls are exposed as `response_mode`, `abstract_mode`, `synopsis_mode`, include flags, `expand`, and `dedupe_publications`. `get_gene_context` defaults `include_comparisons` to false, reports `meta.entity_total` / `meta.entity_has_more` / `meta.next_entity_offset`, and supports `expand = "entities"` for an opt-in one-call gene + entity detail response. Detailed entity expansion is capped at 20 IDs per call and reports `meta.entity_detail_truncated_by_batch_cap` when the requested entity limit exceeded that cap. `get_entities_context` defaults `dedupe_publications` to true so shared publication objects are returned once at the top level with per-entity `publication_refs`. Publication tools expose `recommended_citation`, `pubmed_publication_date`, `pubmed_publication_date_confidence`, optional abstract fields, and separate `sysndd_curation_date` values for linked entities. `abstract_mode = "metadata"` reports `abstract_available` and omits excerpt fields. Use `get_entities_context` for 1-20 entity IDs and `get_publications_context` for 1-20 PMIDs instead of issuing many single-record calls.
+
+The sidecar patches `mcptools` so `tools/list` advertises read-only annotations and output schemas, `prompts/list` / `prompts/get` expose four user-controlled SysNDD workflow prompts, and `resources/list` / `resources/read` serve distinct static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources. Recoverable validation failures return stable tool-result JSON envelopes with `isError = true`; malformed or unknown user inputs should not surface as JSON-RPC `-32603` internal errors. The container healthcheck uses only `initialize` and `tools/list`; `make test-mcp-smoke` remains the heavier end-to-end probe.
+
+The production Compose file keeps MCP internal-only by default: no host port and no Traefik labels are configured. If an operator exposes it as `/mcp`, the proxy must protect it with a static bearer-token middleware, equivalent private network control, or a future OAuth flow, and should strip `/mcp` before forwarding to the `mcptools` HTTP root endpoint.
+
 ## Operations Notes
 
 - Migrations run at API startup and should fail hard if broken.
@@ -56,6 +73,7 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 - Run the worker service alongside the API service; `mirai` daemons live in the worker service and jobs are executed by the worker entrypoint, not the web process.
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - The worker service needs both internal database access and outbound provider access. In Compose it should stay on `backend` for MySQL/API internals and on the egress-capable `proxy` network for Gemini, PubMed, PubTator, and other external calls. Do not attach it only to the internal `backend` network.
+- Keep the MCP service on internal/private access unless a protected route is deliberately configured. MCP tools and prompts are read-only and must not call Gemini, external providers, raw SQL/R execution, write routes, admin/user/log/job routes, draft reviews, or re-review data.
 - Use HTTPS in production.
 
 ## SEO Prerender Operations
