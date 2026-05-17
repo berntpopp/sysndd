@@ -85,7 +85,7 @@ describe('AppNavbar', () => {
     const wrapper = await mountNavbar();
 
     const triggers = wrapper.findAll('.chrome-nav-trigger').map((trigger) => trigger.text());
-    expect(triggers).toEqual(['Tables', 'Analyses', 'Help']);
+    expect(triggers).toEqual(['Tables', 'Analyses', 'NDDScore', 'Help']);
   });
 
   it('labels the collapsed navigation trigger for mobile and assistive tech', async () => {
