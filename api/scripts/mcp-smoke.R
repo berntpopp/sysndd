@@ -52,7 +52,7 @@ if (is.null(init$result$capabilities$resources)) {
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
+required_tools <- c("search_sysndd", "get_gene_context", "get_genes_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))
@@ -103,6 +103,10 @@ if (is.null(gene_tool$inputSchema$properties$expand)) {
 }
 if (!grepl("default true", gene_tool$inputSchema$properties$include_entities$description %||% "", ignore.case = TRUE)) {
   stop("get_gene_context include_entities description is missing default")
+}
+gene_batch_tool <- tool_by_name("get_genes_context")
+if (is.null(gene_batch_tool$inputSchema$properties$genes)) {
+  stop("get_genes_context schema is missing genes")
 }
 entity_batch_tool <- tool_by_name("get_entities_context")
 if (is.null(entity_batch_tool$inputSchema$properties$dedupe_publications)) {
@@ -193,6 +197,13 @@ if (!is.null(query_alias$error)) stop("query alias returned JSON-RPC error: ", q
 query_payload <- jsonlite::fromJSON(query_alias$result$content[[1]]$text, simplifyVector = FALSE)
 if (!identical(query_payload$gene$symbol, "NAA10")) {
   stop("get_gene_context query alias did not resolve NAA10")
+}
+
+gene_batch <- call_tool("get_genes_context", list(genes = list("PNKP")), id = 80L)
+if (!is.null(gene_batch$error)) stop("get_genes_context returned JSON-RPC error: ", gene_batch$error$message)
+gene_batch_payload <- jsonlite::fromJSON(gene_batch$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(gene_batch_payload$meta$requested, 1L)) {
+  stop("get_genes_context did not report the requested gene count")
 }
 
 cheap_gene <- call_tool(

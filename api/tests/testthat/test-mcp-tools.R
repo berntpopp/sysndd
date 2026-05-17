@@ -10,6 +10,7 @@ test_that("MCP registry exposes only approved SysNDD tools", {
   expect_setequal(tool_names, c(
     "search_sysndd",
     "get_gene_context",
+    "get_genes_context",
     "get_entity_context",
     "get_entities_context",
     "list_gene_entities",
@@ -23,6 +24,18 @@ test_that("MCP registry exposes only approved SysNDD tools", {
   expect_false(any(grepl("session|code|sql|admin|review|job|log|user", tool_names, ignore.case = TRUE)))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/overview"), logical(1))))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/tool-guide"), logical(1))))
+})
+
+test_that("get_genes_context is registered in the tool registry", {
+  skip_if_not_installed("ellmer")
+
+  source("../../services/mcp-service.R")
+  source("../../services/mcp-tools.R")
+
+  registry <- mcp_build_tool_registry()
+  tool_names <- vapply(registry$tools, function(t) t@name, character(1))
+  expect_true("get_genes_context" %in% tool_names)
+  expect_true("get_genes_context" %in% names(registry$tool_functions))
 })
 
 test_that("MCP server instructions describe workflow, resources, errors, and constraints", {
@@ -64,7 +77,7 @@ test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
   wrapped <- mcp_tool_safe(function() stop(mcp_error("invalid_input", "Bad input")), output_mode = "json_text")
   parsed <- jsonlite::fromJSON(wrapped(), simplifyVector = FALSE)
 
-  expect_equal(parsed$schema_version, "1.0")
+  expect_equal(parsed$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(parsed$error$code, "invalid_input")
 
   wrapped_condition <- mcp_tool_safe(function() {
@@ -255,4 +268,26 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
   missing_arg <- mcp_handle_prompts_get(4L, "sysndd_gene_evidence_summary", list())
   expect_equal(missing_arg$error$code, -32602)
   expect_equal(missing_arg$error$data$argument, "gene")
+})
+
+test_that("capabilities expose error examples, performance, prompts, categories", {
+  source("../../services/mcp-service.R")
+
+  caps <- mcp_get_sysndd_capabilities()
+  expect_true(!is.null(caps$error_examples$ambiguous_query$error$choices))
+  expect_true(!is.null(caps$performance$get_publication_context$cache_ttl_seconds))
+  expect_true(!is.null(caps$performance$get_publication_context$cost_tier))
+  expect_true(!is.null(caps$mode_resolution))
+  expect_true("not applicable" %in% caps$entity_categories$returned_values)
+  expect_true(!is.null(caps$prompts$note))
+  expect_true(!is.null(caps$prompts$available[[1]]$arguments))
+  expect_equal(caps$payload_modes$gene_expand_example$abstract_mode, "excerpt")
+})
+
+test_that("capabilities reference get_genes_context", {
+  source("../../services/mcp-service.R")
+
+  caps <- mcp_get_sysndd_capabilities()
+  expect_false(is.null(caps$canonical_workflows$gene_comparison))
+  expect_false(is.null(caps$limits$get_genes_context))
 })

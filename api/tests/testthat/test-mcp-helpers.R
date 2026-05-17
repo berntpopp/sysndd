@@ -18,7 +18,7 @@ test_that("MCP envelopes include schema version and truncation metadata", {
 
   err <- mcp_error("invalid_input", "Bad input", fields = list(argument = "query"))
 
-  expect_equal(err$schema_version, "1.0")
+  expect_equal(err$schema_version, MCP_SCHEMA_VERSION)
   expect_equal(err$error$code, "invalid_input")
   expect_equal(err$error$argument, "query")
 })

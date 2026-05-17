@@ -579,6 +579,42 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       )
     }, output_mode)()
   }
+  get_genes_context_fun <- function(genes = NULL,
+                                    include_entities = TRUE,
+                                    include_comparisons = FALSE,
+                                    entity_limit = NULL,
+                                    response_mode = NULL,
+                                    synopsis_mode = NULL,
+                                    expand = NULL,
+                                    include_publications = TRUE,
+                                    include_phenotypes = TRUE,
+                                    include_variants = TRUE,
+                                    publication_limit = NULL,
+                                    abstract_mode = NULL,
+                                    dedupe_publications = TRUE) {
+    mcp_tool_safe(function() {
+      if (is.null(genes)) {
+        stop(mcp_error("invalid_input", "Missing required parameter 'genes'",
+          list(argument = "genes")
+        ))
+      }
+      mcp_get_genes_context(
+        genes = genes,
+        include_entities = include_entities,
+        include_comparisons = include_comparisons,
+        entity_limit = entity_limit,
+        response_mode = response_mode,
+        synopsis_mode = synopsis_mode,
+        expand = expand,
+        include_publications = include_publications,
+        include_phenotypes = include_phenotypes,
+        include_variants = include_variants,
+        publication_limit = publication_limit,
+        abstract_mode = abstract_mode,
+        dedupe_publications = dedupe_publications
+      )
+    }, output_mode)()
+  }
   get_entity_context_fun <- function(entity_id = NULL,
                                      include_publications = TRUE,
                                      include_phenotypes = TRUE,
@@ -714,6 +750,26 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       name = "get_gene_context"
     ),
     ellmer::tool(
+      get_genes_context_fun,
+      "Batch get compact approved public context for 1-10 SysNDD genes, preserving order with per-gene errors. Use expand=entities for one-call multi-gene detail (token-heavy on large batches). Example: get_genes_context({\"genes\":[\"CTCF\",\"MECP2\",\"SCN2A\"],\"expand\":\"entities\",\"abstract_mode\":\"metadata\"}).",
+      arguments = list(
+        genes = ellmer::type_array(ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID."), description = "Array of 1-10 gene identifiers."),
+        include_entities = ellmer::type_boolean("Include compact entity rows per gene; default true.", required = FALSE),
+        include_comparisons = ellmer::type_boolean("Include comparison-source rows; default false.", required = FALSE),
+        entity_limit = ellmer::type_integer("Entity cap per gene, default 10, max 25.", required = FALSE),
+        response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
+        synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE),
+        expand = ellmer::type_string("none or entities; default none. Use entities for one-call gene plus entity detail.", required = FALSE),
+        include_publications = ellmer::type_boolean("When expand=entities, include linked publications; default true.", required = FALSE),
+        include_phenotypes = ellmer::type_boolean("When expand=entities, include HPO phenotype terms; default true.", required = FALSE),
+        include_variants = ellmer::type_boolean("When expand=entities, include variation ontology terms; default true.", required = FALSE),
+        publication_limit = ellmer::type_integer("When expand=entities, publication cap per entity, default 10, max 25.", required = FALSE),
+        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        dedupe_publications = ellmer::type_boolean("Deduplicate shared publications into top-level publications across genes; default true.", required = FALSE)
+      ),
+      name = "get_genes_context"
+    ),
+    ellmer::tool(
       get_entity_context_fun,
       "Get compact approved public context for one SysNDD entity; use abstract_mode/synopsis_mode to control token cost. Example: get_entity_context({\"entity_id\":451,\"publication_limit\":5,\"abstract_mode\":\"metadata\"}).",
       arguments = list(
@@ -818,6 +874,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     tool_functions = list(
       search_sysndd = search_sysndd_fun,
       get_gene_context = get_gene_context_fun,
+      get_genes_context = get_genes_context_fun,
       get_entity_context = get_entity_context_fun,
       get_entities_context = get_entities_context_fun,
       list_gene_entities = list_gene_entities_fun,
