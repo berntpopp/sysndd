@@ -2,6 +2,7 @@
 // unwrap Plumber scalar arrays.
 
 import { apiClient, unwrapScalar } from './client';
+import type { AxiosRequestConfig } from 'axios';
 
 type MaybeScalar<T> = T | [T];
 
@@ -128,13 +129,16 @@ export async function fetchGenePredictions(
   return normalizePage(envelope);
 }
 
-export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreGeneDetail> {
+export async function fetchGeneDetail(
+  hgncIdOrSymbol: string,
+  config?: AxiosRequestConfig
+): Promise<NddScoreGeneDetail> {
   const envelope = await apiClient.get<
     NddScoreEnvelope<{
       gene?: NddScoreGeneDetail[] | NddScoreGeneDetail | null;
       hpo_predictions?: NddScoreHpoPrediction[];
     }>
-  >(`/api/nddscore/genes/${encodeURIComponent(hgncIdOrSymbol)}`);
+  >(`/api/nddscore/genes/${encodeURIComponent(hgncIdOrSymbol)}`, config);
   const geneRaw = Array.isArray(envelope.data?.gene) ? envelope.data?.gene[0] : envelope.data?.gene;
   if (!geneRaw) {
     return {};

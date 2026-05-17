@@ -1,9 +1,14 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NddScoreGeneDetail from './NddScoreGeneDetail.vue';
 
 const routeState = vi.hoisted(() => ({
   query: {} as Record<string, string>,
+}));
+
+const nddScoreApi = vi.hoisted(() => ({
+  fetchGeneDetail: vi.fn(),
 }));
 
 vi.mock('vue-router', () => ({
@@ -15,7 +20,11 @@ vi.mock('vue-router', () => ({
 }));
 
 vi.mock('@/api/nddscore', () => ({
-  fetchGeneDetail: vi.fn().mockResolvedValue({
+  fetchGeneDetail: nddScoreApi.fetchGeneDetail,
+}));
+
+function prediction(overrides: Record<string, unknown> = {}) {
+  return {
     hgnc_id: 'HGNC:2024',
     gene_symbol: 'CLCN4',
     ndd_score: 0.982,
@@ -42,10 +51,18 @@ vi.mock('@/api/nddscore', () => ({
     }),
     prediction_note:
       'CLCN4 is predicted as a candidate NDD gene (score 0.98). Note: SHAP attributions reflect statistical associations.',
-  }),
-}));
+    ...overrides,
+  };
+}
 
 describe('NddScoreGeneDetail', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    routeState.query = {};
+    nddScoreApi.fetchGeneDetail.mockReset();
+    nddScoreApi.fetchGeneDetail.mockResolvedValue(prediction());
+  });
+
   it('does not render the predictions back link', async () => {
     routeState.query = {
       returnTo:
@@ -82,5 +99,35 @@ describe('NddScoreGeneDetail', () => {
     expect(wrapper.text()).not.toContain('read as a distinct evidence source');
     expect(wrapper.text()).not.toContain('predicted as a candidate NDD gene');
     expect(wrapper.text()).not.toContain('SHAP attributions reflect statistical associations');
+  });
+
+  it('restores cached gene detail immediately when browser history remounts the page', async () => {
+    nddScoreApi.fetchGeneDetail.mockResolvedValueOnce(
+      prediction({
+        hgnc_id: 'HGNC:29140',
+        gene_symbol: 'MAU2',
+        known_sysndd_gene: 0,
+      })
+    );
+
+    const firstVisit = mount(NddScoreGeneDetail, {
+      props: { hgncIdOrSymbol: 'HGNC:29140' },
+    });
+
+    await flushPromises();
+    expect(firstVisit.text()).toContain('MAU2');
+    firstVisit.unmount();
+
+    nddScoreApi.fetchGeneDetail.mockImplementationOnce(() => new Promise(() => {}));
+
+    const restoredVisit = mount(NddScoreGeneDetail, {
+      props: { hgncIdOrSymbol: 'HGNC:29140' },
+    });
+
+    await flushPromises();
+
+    expect(restoredVisit.text()).toContain('MAU2');
+    expect(restoredVisit.text()).not.toContain('Loading gene prediction.');
+    expect(nddScoreApi.fetchGeneDetail).toHaveBeenCalledTimes(1);
   });
 });

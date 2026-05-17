@@ -209,12 +209,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { BBadge, BCol, BContainer, BRow } from 'bootstrap-vue-next';
 import type { ColorVariant } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import { fetchGeneDetail, type NddScoreGeneDetail } from '@/api/nddscore';
+import { useResource } from '@/composables/useResource';
 
 defineOptions({
   name: 'NddScoreGeneDetail',
@@ -236,9 +237,18 @@ type HpoPrediction = {
   probability: unknown;
 };
 
-const gene = ref<GeneDetailRow | null>(null);
-const loaded = ref(false);
-let requestSerial = 0;
+const geneResource = useResource<GeneDetailRow>(
+  computed(() => `nddscore:gene:${props.hgncIdOrSymbol}`),
+  (signal) => fetchGeneDetail(props.hgncIdOrSymbol, { signal }) as Promise<GeneDetailRow>,
+  { ttlMs: 60_000, staleWhileRevalidate: true }
+);
+
+const gene = computed<GeneDetailRow | null>(() => {
+  const row = geneResource.data.value;
+  return row && Object.keys(row).length > 0 ? row : null;
+});
+
+const loaded = computed(() => !geneResource.loading.value);
 
 const geneSymbol = computed(() =>
   displayValue(readField(gene.value, 'gene_symbol', 'symbol') ?? props.hgncIdOrSymbol)
@@ -345,26 +355,6 @@ const shapHelp =
   'Signed contribution of each feature group to the model score. Positive values pushed the score higher; negative values pushed it lower.';
 const hpoHelp =
   'Predicted phenotype association for this gene in the active NDDScore release, shown with model probability.';
-
-async function loadGene() {
-  const serial = ++requestSerial;
-  loaded.value = false;
-
-  try {
-    const result = await fetchGeneDetail(props.hgncIdOrSymbol);
-    if (serial === requestSerial) {
-      gene.value = result as GeneDetailRow;
-    }
-  } catch {
-    if (serial === requestSerial) {
-      gene.value = null;
-    }
-  } finally {
-    if (serial === requestSerial) {
-      loaded.value = true;
-    }
-  }
-}
 
 function readField(row: Record<string, unknown> | null | undefined, ...keys: string[]): unknown {
   if (!row) {
@@ -480,17 +470,6 @@ function confidenceVariant(value: unknown): ColorVariant {
       return 'light';
   }
 }
-
-onMounted(() => {
-  void loadGene();
-});
-
-watch(
-  () => props.hgncIdOrSymbol,
-  () => {
-    void loadGene();
-  }
-);
 </script>
 
 <style scoped>
