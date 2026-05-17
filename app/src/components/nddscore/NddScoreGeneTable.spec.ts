@@ -63,6 +63,23 @@ describe('NddScoreGeneTable', () => {
     expect(wrapper.text()).toContain('not manually curated SysNDD classifications');
   });
 
+  it('uses the same filter control treatment for range, text, select, and HPO filters', async () => {
+    const wrapper = mount(NddScoreGeneTable);
+    await flushPromises();
+
+    expect(wrapper.get('input[placeholder=".. Gene .."]').classes()).toContain(
+      'nddscore-gene-table__filter-control'
+    );
+    const riskTierSelect = selectWithOption(wrapper, 'Very High');
+    expect(riskTierSelect.classes()).toContain('nddscore-gene-table__filter-control');
+    expect(wrapper.get('[aria-label="NDD score filter"]').classes()).toContain(
+      'nddscore-gene-table__filter-dropdown--empty'
+    );
+    expect(wrapper.get('[data-testid="nddscore-hpo-filter"]').classes()).toContain(
+      'nddscore-gene-table__filter-dropdown--empty'
+    );
+  });
+
   it('offers live NDDScore values as column filters', async () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();

@@ -74,7 +74,8 @@
                       :auto-close="false"
                       variant="outline-secondary"
                       size="sm"
-                      class="nddscore-gene-table__filter-dropdown"
+                      :class="rangeFilterDropdownClass(field)"
+                      :toggle-class="rangeFilterToggleClass(field)"
                       menu-class="nddscore-gene-table__filter-menu"
                       :aria-label="`${field.label} filter`"
                     >
@@ -134,6 +135,7 @@
                       type="search"
                       autocomplete="off"
                       size="sm"
+                      class="nddscore-gene-table__filter-control"
                       @click="removeSearch"
                       @update:model-value="handleColumnFilterChange"
                     />
@@ -143,6 +145,7 @@
                       v-model="columnFilters[field.key]"
                       :options="selectOptionsFor(field)"
                       size="sm"
+                      :class="filterControlClass(field.key)"
                       @update:model-value="
                         removeSearch();
                         handleColumnFilterChange();
@@ -154,7 +157,8 @@
                       :auto-close="false"
                       variant="outline-secondary"
                       size="sm"
-                      class="nddscore-gene-table__filter-dropdown"
+                      :class="hpoFilterDropdownClass"
+                      :toggle-class="hpoFilterToggleClass"
                       menu-class="nddscore-gene-table__hpo-menu"
                       aria-label="Predicted HPO terms"
                       data-testid="nddscore-hpo-filter"
@@ -581,6 +585,14 @@ const hpoFilterLabel = computed(() => {
   return `${hpoTermFilter.value.length} HPO terms`;
 });
 
+const hpoFilterToggleClass = computed(() =>
+  filterDropdownToggleClass(hpoTermFilter.value.length === 0)
+);
+
+const hpoFilterDropdownClass = computed(() =>
+  filterDropdownClass(hpoTermFilter.value.length === 0)
+);
+
 function normalizeRows(data: NddScoreGenePrediction[] | undefined): GenePredictionRow[] {
   return (data ?? []).map((row) => row as GenePredictionRow);
 }
@@ -637,6 +649,39 @@ function rangeFilterLabel(field: FieldDefinition): string {
     (option) => option.value === state.operator
   )?.text;
   return state.value ? `${operatorLabel} ${state.value}` : `${field.label} ${operatorLabel}`;
+}
+
+function filterDropdownToggleClass(isEmpty: boolean): string {
+  return [
+    'nddscore-gene-table__filter-toggle',
+    isEmpty
+      ? 'nddscore-gene-table__filter-toggle--empty nddscore-gene-table__filter-dropdown--empty'
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function filterDropdownClass(isEmpty: boolean): Record<string, boolean> {
+  return {
+    'nddscore-gene-table__filter-dropdown': true,
+    'nddscore-gene-table__filter-dropdown--empty': isEmpty,
+  };
+}
+
+function rangeFilterToggleClass(field: FieldDefinition): string {
+  return filterDropdownToggleClass(rangeFilters[rangeKey(field.key)].operator === 'any');
+}
+
+function rangeFilterDropdownClass(field: FieldDefinition): Record<string, boolean> {
+  return filterDropdownClass(rangeFilters[rangeKey(field.key)].operator === 'any');
+}
+
+function filterControlClass(key: FieldKey): Record<string, boolean> {
+  return {
+    'nddscore-gene-table__filter-control': true,
+    'nddscore-gene-table__filter-control--empty': !columnFilters[key],
+  };
 }
 
 function handleRangeOperatorChange(key: FieldKey) {
@@ -1098,8 +1143,8 @@ onMounted(() => {
 
 .nddscore-gene-table__filter-dropdown :deep(.btn) {
   width: 100%;
-  min-height: calc(1.5em + 0.5rem + 2px);
-  padding: 0.25rem 0.5rem;
+  min-height: calc(1.5em + 1rem + 2px);
+  padding: 0.5rem 0.5rem;
   overflow: hidden;
   border-color: #dee2e6;
   color: #212529;
@@ -1109,6 +1154,20 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   background-color: #fff;
+}
+
+.nddscore-gene-table__filter-control {
+  min-height: calc(1.5em + 1rem + 2px);
+}
+
+.nddscore-gene-table__filter-control--empty,
+.nddscore-gene-table__filter-dropdown :deep(.nddscore-gene-table__filter-toggle--empty) {
+  color: var(--neutral-600, #757575);
+}
+
+.nddscore-gene-table__filter-control::placeholder {
+  color: var(--neutral-600, #757575);
+  opacity: 1;
 }
 
 .nddscore-gene-table__filter-dropdown :deep(.btn:hover),
