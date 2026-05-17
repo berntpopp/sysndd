@@ -63,7 +63,9 @@ function parsePerformance(value: unknown): Record<string, unknown> {
       return {};
     }
   }
-  return normalized && typeof normalized === 'object' ? (normalized as Record<string, unknown>) : {};
+  return normalized && typeof normalized === 'object'
+    ? (normalized as Record<string, unknown>)
+    : {};
 }
 
 onMounted(async () => {

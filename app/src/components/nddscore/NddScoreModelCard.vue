@@ -23,7 +23,11 @@
 
     <template v-else>
       <div class="nddscore-model-card__grid" aria-label="Test performance">
-        <div v-for="metric in performanceMetrics" :key="metric.label" class="nddscore-model-card__metric">
+        <div
+          v-for="metric in performanceMetrics"
+          :key="metric.label"
+          class="nddscore-model-card__metric"
+        >
           <span class="nddscore-model-card__metric-label">{{ metric.label }}</span>
           <span class="nddscore-model-card__metric-value">{{ metric.value }}</span>
         </div>
@@ -44,7 +48,12 @@
         <div>
           <dt>Version DOI</dt>
           <dd>
-            <a v-if="versionDoi" :href="doiUrl(versionDoi)" target="_blank" rel="noopener noreferrer">
+            <a
+              v-if="versionDoi"
+              :href="doiUrl(versionDoi)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {{ versionDoi }}
             </a>
             <span v-else>NA</span>
@@ -53,7 +62,12 @@
         <div>
           <dt>Concept DOI</dt>
           <dd>
-            <a v-if="conceptDoi" :href="doiUrl(conceptDoi)" target="_blank" rel="noopener noreferrer">
+            <a
+              v-if="conceptDoi"
+              :href="doiUrl(conceptDoi)"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {{ conceptDoi }}
             </a>
             <span v-else>NA</span>
@@ -62,7 +76,12 @@
         <div>
           <dt>Zenodo record</dt>
           <dd>
-            <a v-if="zenodoRecordUrl" :href="zenodoRecordUrl" target="_blank" rel="noopener noreferrer">
+            <a
+              v-if="zenodoRecordUrl"
+              :href="zenodoRecordUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Record
             </a>
             <span v-else>NA</span>

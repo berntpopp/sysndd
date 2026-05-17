@@ -134,12 +134,8 @@ export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreG
       gene?: NddScoreGeneDetail[] | NddScoreGeneDetail | null;
       hpo_predictions?: NddScoreHpoPrediction[];
     }>
-  >(
-    `/api/nddscore/genes/${encodeURIComponent(hgncIdOrSymbol)}`
-  );
-  const geneRaw = Array.isArray(envelope.data?.gene)
-    ? envelope.data?.gene[0]
-    : envelope.data?.gene;
+  >(`/api/nddscore/genes/${encodeURIComponent(hgncIdOrSymbol)}`);
+  const geneRaw = Array.isArray(envelope.data?.gene) ? envelope.data?.gene[0] : envelope.data?.gene;
   if (!geneRaw) {
     return {};
   }
@@ -172,8 +168,7 @@ export async function fetchGeneDetail(hgncIdOrSymbol: string): Promise<NddScoreG
     hpo_predictions: hpoPredictions,
     top_hpo_predictions_json: gene.top_hpo_predictions_json ?? hpoPredictions,
     shap_group_contributions_json: gene.shap_group_contributions_json ?? shapGroupContributions,
-    inheritance_probabilities_json:
-      gene.inheritance_probabilities_json ?? inheritanceProbabilities,
+    inheritance_probabilities_json: gene.inheritance_probabilities_json ?? inheritanceProbabilities,
   };
 }
 
@@ -198,7 +193,9 @@ export async function fetchHpoPredictions(
 
 export async function fetchHpoTerms(): Promise<NddScoreHpoTerm[]> {
   const envelope = await apiClient.get<NddScoreEnvelope<NddScoreHpoTerm[]>>('/api/nddscore/terms');
-  return unwrapRecords((envelope.data ?? []) as Array<Record<string, unknown>>) as NddScoreHpoTerm[];
+  return unwrapRecords(
+    (envelope.data ?? []) as Array<Record<string, unknown>>
+  ) as NddScoreHpoTerm[];
 }
 
 export async function fetchDownloadInfo(): Promise<NddScoreDownloadInfo> {

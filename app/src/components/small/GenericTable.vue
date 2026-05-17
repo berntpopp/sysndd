@@ -494,11 +494,7 @@
       <slot name="row-expansion" :row="row.item" :toggle="row.toggleExpansion">
         <BCard class="generic-table-detail-card">
           <dl class="generic-table-detail">
-            <div
-              v-for="field in fieldDetails"
-              :key="field.key"
-              class="generic-table-detail__row"
-            >
+            <div v-for="field in fieldDetails" :key="field.key" class="generic-table-detail__row">
               <dt class="generic-table-detail__label">
                 {{ field.label || field.key }}
               </dt>

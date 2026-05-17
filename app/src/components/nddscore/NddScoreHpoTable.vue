@@ -188,12 +188,7 @@ function handlePageSizeChange(nextPageSize: number) {
 }
 
 function rowKey(row: HpoPredictionRow): string {
-  return [
-    row.release_id,
-    row.hgnc_id,
-    row.phenotype_id,
-    row.rank_for_gene,
-  ]
+  return [row.release_id, row.hgnc_id, row.phenotype_id, row.rank_for_gene]
     .map((value) => displayValue(value))
     .join(':');
 }

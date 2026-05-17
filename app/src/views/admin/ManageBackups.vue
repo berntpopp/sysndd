@@ -249,9 +249,7 @@
                   <BProgress
                     v-if="backupJob.isLoading.value"
                     :value="
-                      backupJob.hasRealProgress.value
-                        ? (backupJob.progressPercent.value ?? 0)
-                        : 100
+                      backupJob.hasRealProgress.value ? (backupJob.progressPercent.value ?? 0) : 100
                     "
                     :max="100"
                     :animated="!backupJob.hasRealProgress.value"

@@ -1173,5 +1173,4 @@ onMounted(() => {
 :deep(.entities-table thead select) {
   min-width: 7.5rem;
 }
-
 </style>

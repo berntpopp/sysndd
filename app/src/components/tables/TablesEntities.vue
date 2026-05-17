@@ -35,11 +35,7 @@
                   />
                 </BCol>
 
-                <BCol
-                  v-if="totalRows > perPage || showPaginationControls"
-                  class="my-1"
-                  sm="4"
-                >
+                <BCol v-if="totalRows > perPage || showPaginationControls" class="my-1" sm="4">
                   <BContainer>
                     <TablePaginationControls
                       :total-rows="totalRows"
@@ -843,5 +839,4 @@ export default {
     animation: none;
   }
 }
-
 </style>

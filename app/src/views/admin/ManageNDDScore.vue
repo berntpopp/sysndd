@@ -149,7 +149,9 @@
           <p v-if="importJob.step.value" class="ndd-job__step">{{ importJob.step.value }}</p>
           <BProgress :max="100" height="0.875rem">
             <BProgressBar
-              :value="importJob.hasRealProgress.value ? (importJob.progressPercent.value ?? 0) : 100"
+              :value="
+                importJob.hasRealProgress.value ? (importJob.progressPercent.value ?? 0) : 100
+              "
               :variant="importJob.progressVariant.value"
               :striped="!importJob.hasRealProgress.value"
               :animated="importJob.isLoading.value"
@@ -198,7 +200,9 @@
                 </td>
                 <td>{{ jobMode(job) }}</td>
                 <td class="ndd-mono">{{ firstValue(job, ['release_id']) }}</td>
-                <td>{{ formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at'])) }}</td>
+                <td>
+                  {{ formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at'])) }}
+                </td>
                 <td class="ndd-error-cell">{{ firstValue(job, ['error', 'error_message']) }}</td>
               </tr>
             </tbody>
@@ -220,7 +224,9 @@
             </div>
             <div class="ndd-mobile-row__meta">
               <span>{{ jobMode(job) }}</span>
-              <span>{{ formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at'])) }}</span>
+              <span>{{
+                formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at']))
+              }}</span>
             </div>
             <div class="ndd-mono">{{ firstValue(job, ['release_id']) }}</div>
             <div v-if="firstValue(job, ['error', 'error_message'])" class="ndd-mobile-row__error">
@@ -236,8 +242,8 @@
           stays active until activation succeeds.
         </p>
         <p class="mb-0">
-          Use validate-only first when you need to check archive contents without changing the active
-          release.
+          Use validate-only first when you need to check archive contents without changing the
+          active release.
         </p>
         <template #footer>
           <BButton variant="secondary" @click="showImportModal = false">Cancel</BButton>
@@ -291,9 +297,13 @@ const loadError = ref('');
 const actionError = ref('');
 const actionMessage = ref('');
 
-const activeRelease = computed<AdminRecord | null>(() => normalizeRecord(status.value?.active_release));
+const activeRelease = computed<AdminRecord | null>(() =>
+  normalizeRecord(status.value?.active_release)
+);
 const recentJobs = computed<AdminRecord[]>(() =>
-  (status.value?.recent_jobs ?? []).map(normalizeRecord).filter((job): job is AdminRecord => Boolean(job))
+  (status.value?.recent_jobs ?? [])
+    .map(normalizeRecord)
+    .filter((job): job is AdminRecord => Boolean(job))
 );
 const submittingJob = computed(() => submittingValidate.value || submittingImport.value);
 
@@ -334,12 +344,20 @@ const releaseRows = computed(() => [
   },
   {
     label: 'Archive',
-    value: firstValue(activeRelease.value, ['source_archive_name', 'archive_name', 'zenodo_archive_name']),
+    value: firstValue(activeRelease.value, [
+      'source_archive_name',
+      'archive_name',
+      'zenodo_archive_name',
+    ]),
     mono: true,
   },
   {
     label: 'Checksum',
-    value: firstValue(activeRelease.value, ['source_archive_checksum', 'archive_checksum', 'checksum']),
+    value: firstValue(activeRelease.value, [
+      'source_archive_checksum',
+      'archive_checksum',
+      'checksum',
+    ]),
     mono: true,
   },
   {
@@ -454,7 +472,9 @@ function normalizeRecord(value: unknown): AdminRecord | null {
 
 function firstValue(record: AdminRecord | null | undefined, keys: string[]) {
   if (!record) return 'Not recorded';
-  const match = keys.map((key) => record[key]).find((value) => value !== null && value !== undefined);
+  const match = keys
+    .map((key) => record[key])
+    .find((value) => value !== null && value !== undefined);
   return displayValue(match);
 }
 
@@ -496,7 +516,8 @@ function statusClass(value: unknown): string {
 
 function jobMode(job: AdminRecord): string {
   const validateOnly = job.validate_only;
-  if (validateOnly === true || validateOnly === 'true' || validateOnly === 1) return 'Validate only';
+  if (validateOnly === true || validateOnly === 'true' || validateOnly === 1)
+    return 'Validate only';
   return 'Import';
 }
 

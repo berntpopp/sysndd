@@ -73,7 +73,9 @@ defineEmits<{
 
 const metaItems = computed(() =>
   [
-    props.metadata.last_full_refresh ? `Last: ${formatDate(props.metadata.last_full_refresh)}` : null,
+    props.metadata.last_full_refresh
+      ? `Last: ${formatDate(props.metadata.last_full_refresh)}`
+      : null,
     props.metadata.sources_count > 0 ? `${props.metadata.sources_count} sources` : null,
     props.metadata.rows_imported > 0
       ? `${props.metadata.rows_imported.toLocaleString()} rows`
