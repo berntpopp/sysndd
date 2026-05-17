@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS `publication` (
   `Title` varchar(1000) DEFAULT NULL,
   `Abstract` text,
   `Fulltext` text,
-  `Publication_date` timestamp NULL DEFAULT NULL,
+  `Publication_date` date DEFAULT NULL,
   `Journal_abbreviation` varchar(50) DEFAULT NULL,
   `Journal` varchar(200) DEFAULT NULL,
   `Keywords` text,

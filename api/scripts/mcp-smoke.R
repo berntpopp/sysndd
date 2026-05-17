@@ -139,13 +139,18 @@ if (identical(overview_text, tool_guide_text) || grepl("schema/tool-guide", over
 prompts <- rpc("prompts/list", id = 42L)
 if (!is.null(prompts$error)) stop("MCP prompts/list failed: ", prompts$error$message)
 prompt_names <- vapply(prompts$result$prompts %||% list(), function(x) x$name %||% "", character(1))
-if (!"sysndd_gene_evidence_summary" %in% prompt_names) {
-  stop("MCP prompts/list missing sysndd_gene_evidence_summary")
-}
-prompt <- rpc("prompts/get", list(name = "sysndd_gene_evidence_summary", arguments = list(gene = "NAA10")), id = 43L)
-if (!is.null(prompt$error)) stop("MCP prompts/get failed: ", prompt$error$message)
-if (!grepl("recommended_citation", prompt$result$messages[[1]]$content$text %||% "", fixed = TRUE)) {
-  stop("MCP prompt did not include citation guidance")
+prompts_enabled <- tolower(Sys.getenv("MCP_ENABLE_PROMPTS", "false")) %in% c("1", "true", "yes", "on")
+if (prompts_enabled) {
+  if (!"sysndd_gene_evidence_summary" %in% prompt_names) {
+    stop("MCP prompts/list missing sysndd_gene_evidence_summary")
+  }
+  prompt <- rpc("prompts/get", list(name = "sysndd_gene_evidence_summary", arguments = list(gene = "NAA10")), id = 43L)
+  if (!is.null(prompt$error)) stop("MCP prompts/get failed: ", prompt$error$message)
+  if (!grepl("recommended_citation", prompt$result$messages[[1]]$content$text %||% "", fixed = TRUE)) {
+    stop("MCP prompt did not include citation guidance")
+  }
+} else if (length(prompt_names) > 0L) {
+  stop("MCP prompts are disabled by default but prompts/list returned prompts")
 }
 
 call_tool <- function(name, arguments, id) {

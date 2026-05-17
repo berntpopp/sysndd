@@ -221,12 +221,11 @@ test_that("publication context includes citation, availability, and date semanti
   expect_equal(result$publication_date_sysndd_record, "2021-08-01")
   expect_null(result$publication_date)
   expect_false(result$abstract_available)
-  expect_equal(result$abstract_excerpt, "")
+  expect_null(result$abstract_excerpt)
   expect_match(result$recommended_citation, "Gogoll")
   expect_match(result$recommended_citation, "Am J Med Genet A")
   expect_match(result$recommended_citation, "PMID:37130971")
   expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
-  expect_false(result$publication_date_matches_curation_date)
   expect_equal(result$publication_date_confidence, "pubmed_verified")
 
   metadata <- mcp_get_publication_context("37130971", abstract_mode = "metadata")
@@ -395,40 +394,7 @@ test_that("get_gene_context expand respects the batch detail cap instead of erro
   expect_equal(result$entity_details$meta$requested, 20L)
 })
 
-test_that("publication context flags dates that mirror curation dates", {
-  source("../../functions/mcp-repository.R")
-  source("../../services/mcp-service.R")
-
-  old_publication <- mcp_repo_get_publication_context
-  assign("mcp_repo_get_publication_context", function(publication_id) {
-    tibble::tibble(
-      publication_id = publication_id,
-      Title = "Paper",
-      Abstract = "Abstract",
-      Journal = "Journal",
-      Publication_date = as.Date("2023-04-12"),
-      publication_date_source = NA_character_,
-      Lastname = "Smith",
-      Firstname = "A",
-      Keywords = "",
-      entity_id = 451L,
-      symbol = "NAA10",
-      hgnc_id = "18704",
-      disease_ontology_name = "NAA10-related syndrome",
-      category = "Definitive",
-      curation_review_date = as.Date("2023-04-12")
-    )
-  }, envir = .GlobalEnv)
-  withr::defer(assign("mcp_repo_get_publication_context", old_publication, envir = .GlobalEnv))
-
-  result <- mcp_get_publication_context("PMID:1")
-
-  expect_true(result$publication_date_matches_curation_date)
-  expect_equal(result$publication_date_confidence, "matches_curation_date")
-  expect_match(result$date_notes$publication_date_sysndd_record, "equals", fixed = TRUE)
-})
-
-test_that("publication context date confidence considers all linked curation dates", {
+test_that("publication context treats missing PubMed provenance as unverified", {
   source("../../functions/mcp-repository.R")
   source("../../services/mcp-service.R")
 
@@ -456,8 +422,8 @@ test_that("publication context date confidence considers all linked curation dat
 
   result <- mcp_get_publication_context("PMID:1")
 
-  expect_true(result$publication_date_matches_curation_date)
-  expect_equal(result$publication_date_confidence, "matches_curation_date")
+  expect_equal(result$publication_date_confidence, "unverified")
+  expect_match(result$date_notes$publication_date_sysndd_record, "provenance not yet verified", fixed = TRUE)
 })
 
 test_that("batch publication context preserves request order and returns per-PMID errors", {
@@ -756,8 +722,7 @@ test_that("mcp_publication_date_quality uses the stored provenance column", {
   no_source <- mcp_publication_date_quality("2024-12-08",
                                             curation_dates = "2024-12-08",
                                             date_source = NULL)
-  expect_equal(no_source$confidence, "matches_curation_date")
-  expect_true(no_source$matches_curation_date)
+  expect_equal(no_source$confidence, "unverified")
 
   fallback <- mcp_publication_date_quality("2019-05-01", curation_dates = NULL,
                                            date_source = NULL)
@@ -774,7 +739,7 @@ test_that("mcp_publication_record renames the date field and guards the citation
   rec <- mcp_publication_record(pub, abstract_mode = "metadata")
   expect_true("publication_date_sysndd_record" %in% names(rec))
   expect_false("pubmed_publication_date" %in% names(rec))
-  expect_equal(rec$publication_date_confidence, "matches_curation_date")
+  expect_equal(rec$publication_date_confidence, "unverified")
   expect_match(rec$recommended_citation, "publication date unverified")
 })
 

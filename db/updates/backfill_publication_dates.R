@@ -106,7 +106,9 @@ linked <- DBI::dbGetQuery(con, "
   JOIN ndd_review_publication_join rpj
     ON rpj.publication_id = p.publication_id AND rpj.is_reviewed = 1
   JOIN ndd_entity_review er
-    ON er.review_id = rpj.review_id AND er.is_primary = 1 AND er.review_approved = 1")
+    ON er.review_id = rpj.review_id AND er.is_primary = 1 AND er.review_approved = 1
+  WHERE p.publication_date_source IS NULL
+     OR p.publication_date_source NOT IN ('pubmed', 'pubmed_partial', 'medline_date', 'unknown')")
 if (!is.na(row_limit)) {
   linked <- utils::head(linked, row_limit)
 }
@@ -154,7 +156,7 @@ fetch_chunk <- function(publication_ids) {
 }
 
 chunks <- split(linked$publication_id, ceiling(seq_along(linked$publication_id) / chunk_size))
-fetched <- purrr::map_dfr(chunks, fetch_chunk)
+fetched <- if (nrow(linked) == 0L) tibble::tibble() else purrr::map_dfr(chunks, fetch_chunk)
 
 merged <- linked %>%
   dplyr::left_join(

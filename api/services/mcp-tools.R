@@ -14,20 +14,31 @@ mcp_serialize_result <- function(value, output_mode = Sys.getenv("MCP_OUTPUT_MOD
   )
 }
 
+mcp_add_elapsed_ms <- function(value, started_at) {
+  if (!is.list(value)) {
+    return(value)
+  }
+  elapsed_ms <- as.integer(round((as.numeric(Sys.time()) - started_at) * 1000))
+  value$meta <- value$meta %||% list()
+  value$meta$elapsed_ms <- elapsed_ms
+  value
+}
+
 mcp_tool_safe <- function(fn, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
   force(fn)
   force(output_mode)
   function(...) {
+    started_at <- as.numeric(Sys.time())
     tryCatch(
-      mcp_serialize_result(fn(...), output_mode = output_mode),
+      mcp_serialize_result(mcp_add_elapsed_ms(fn(...), started_at), output_mode = output_mode),
       mcp_tool_error = function(e) {
-        res <- mcp_serialize_result(mcp_error_payload(e), output_mode = output_mode)
+        res <- mcp_serialize_result(mcp_add_elapsed_ms(mcp_error_payload(e), started_at), output_mode = output_mode)
         attr(res, "sysndd_mcp_is_error") <- TRUE
         res
       },
       error = function(e) {
         res <- mcp_serialize_result(
-          mcp_error("temporarily_unavailable", "MCP tool failed"),
+          mcp_add_elapsed_ms(mcp_error("temporarily_unavailable", "MCP tool failed"), started_at),
           output_mode = output_mode
         )
         attr(res, "sysndd_mcp_is_error") <- TRUE
@@ -122,6 +133,7 @@ mcp_server_instructions <- function() {
   paste(
     "SysNDD MCP provides read-only access to approved public neurodevelopmental disorder gene-disease evidence.",
     "Canonical workflow: search_sysndd to resolve user text, get_gene_context for a gene overview, get_entities_context for entity detail, then get_publications_context for PMID evidence.",
+    "If tools are deferred, first load search_sysndd, get_gene_context, get_genes_context, get_entities_context, get_publications_context, and get_sysndd_capabilities.",
     "Entity model: entities are gene-disease-inheritance curation records; one gene can have many entities with different diseases, inheritance modes, categories, and NDD phenotype flags.",
     "Call get_sysndd_capabilities for workflows, limits, payload modes, citation rules, resources, errors, and v1 exclusions.",
     "Use response_mode, abstract_mode, synopsis_mode, include_* flags, expand=entities, and dedupe_publications to control token cost and round trips.",
@@ -132,6 +144,11 @@ mcp_server_instructions <- function() {
     "Limits are enforced by each tool. V1 is read-only and never exposes draft reviews, admin/user/job/log data, raw SQL, raw R execution, Gemini, or external provider calls.",
     sep = " "
   )
+}
+
+mcp_prompts_enabled <- function() {
+  value <- tolower(trimws(Sys.getenv("MCP_ENABLE_PROMPTS", "false")))
+  value %in% c("1", "true", "yes", "on")
 }
 
 mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructions()) {
@@ -150,7 +167,11 @@ mcp_patch_mcptools_instructions <- function(instructions = mcp_server_instructio
     res <- original(protocol_version = protocol_version)
     res$serverInfo$name <- "SysNDD read-only MCP"
     res$instructions <- instructions
-    res$capabilities$prompts <- list(listChanged = FALSE)
+    if (mcp_prompts_enabled()) {
+      res$capabilities$prompts <- list(listChanged = FALSE)
+    } else {
+      res$capabilities$prompts <- NULL
+    }
     res$capabilities$resources <- list(subscribe = FALSE, listChanged = FALSE)
     res
   }
@@ -209,11 +230,7 @@ mcp_fill_array_descriptions <- function(input_schema) {
 }
 
 mcp_hidden_aliases <- function(tool_name) {
-  switch(tool_name,
-    get_gene_context = c("symbol", "query"),
-    list_gene_entities = c("symbol", "query"),
-    character()
-  )
+  character()
 }
 
 mcp_visible_expected_arguments <- function(tool_name, expected) {
@@ -288,6 +305,9 @@ mcp_handle_resources_read <- function(id, uri) {
 }
 
 mcp_prompt_definitions <- function() {
+  if (!mcp_prompts_enabled()) {
+    return(list())
+  }
   list(
     list(
       name = "sysndd_gene_evidence_summary",
@@ -517,6 +537,12 @@ mcp_patch_mcptools_protocol <- function(registry, instructions = mcp_server_inst
       return(mcp_handle_prompts_list(data$id))
     }
     if (identical(data$method, "prompts/get")) {
+      if (!mcp_prompts_enabled()) {
+        return(mcp_jsonrpc_response(
+          data$id,
+          error = list(code = -32601L, message = "MCP prompts are disabled")
+        ))
+      }
       return(mcp_handle_prompts_get(data$id, data$params$name, data$params$arguments %||% list()))
     }
     tool_arg_error <- mcp_tool_call_arg_error(data, registry$tools)
@@ -533,8 +559,6 @@ mcp_patch_mcptools_protocol <- function(registry, instructions = mcp_server_inst
 }
 
 mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
-  gene_arg_hint <- "Use 'gene' for gene symbols, HGNC IDs, or HGNC:1234 identifiers."
-
   search_sysndd_fun <- function(query = NULL, types = NULL, limit = NULL) {
     mcp_tool_safe(function() {
       if (is.null(query)) stop(mcp_error("invalid_input", "Missing required parameter 'query'", list(argument = "query")))
@@ -542,8 +566,6 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     }, output_mode)()
   }
   get_gene_context_fun <- function(gene = NULL,
-                                   symbol = NULL,
-                                   query = NULL,
                                    include_entities = TRUE,
                                    include_comparisons = FALSE,
                                    entity_limit = NULL,
@@ -556,11 +578,9 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
                                    publication_limit = NULL,
                                    abstract_mode = NULL,
                                    dedupe_publications = TRUE) {
-    if (is.null(gene) && !is.null(symbol)) gene <- symbol
-    if (is.null(gene) && !is.null(query)) gene <- query
     mcp_tool_safe(function() {
       if (is.null(gene)) {
-        stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene", expected_arguments = c("gene", "include_entities", "include_comparisons", "entity_limit", "response_mode", "synopsis_mode", "expand", "include_publications", "include_phenotypes", "include_variants", "publication_limit", "abstract_mode", "dedupe_publications"), hint = gene_arg_hint)))
+        stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene", expected_arguments = c("gene", "include_entities", "include_comparisons", "entity_limit", "response_mode", "synopsis_mode", "expand", "include_publications", "include_phenotypes", "include_variants", "publication_limit", "abstract_mode", "dedupe_publications"))))
       }
       mcp_get_gene_context(
         gene = gene,
@@ -661,11 +681,9 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       )
     }, output_mode)()
   }
-  list_gene_entities_fun <- function(gene = NULL, symbol = NULL, query = NULL, category = NULL, ndd_phenotype = "any", limit = NULL, offset = NULL) {
-    if (is.null(gene) && !is.null(symbol)) gene <- symbol
-    if (is.null(gene) && !is.null(query)) gene <- query
+  list_gene_entities_fun <- function(gene = NULL, category = NULL, ndd_phenotype = "any", limit = NULL, offset = NULL) {
     mcp_tool_safe(function() {
-      if (is.null(gene)) stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene", hint = gene_arg_hint)))
+      if (is.null(gene)) stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene")))
       mcp_list_gene_entities(
         gene = gene,
         category = category,
@@ -733,18 +751,16 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       arguments = list(
         gene = ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID.", required = FALSE),
         include_entities = ellmer::type_boolean("Include compact entity rows; default true.", required = FALSE),
-        symbol = ellmer::type_string("Deprecated hidden alias for gene.", required = FALSE),
-        query = ellmer::type_string("Deprecated hidden alias for gene; accepted to recover from search-style calls.", required = FALSE),
         include_comparisons = ellmer::type_boolean("Include comparison-source rows; default false for the cheap path.", required = FALSE),
         entity_limit = ellmer::type_integer("Entity cap, default 10, max 25; expand=entities detail fetches at most 20 IDs per call.", required = FALSE),
-        response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
+        response_mode = ellmer::type_string("minimal, compact, standard, or full; default compact.", required = FALSE),
         synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE),
         expand = ellmer::type_string("none or entities; default none. Use entities for one-call gene plus entity detail.", required = FALSE),
         include_publications = ellmer::type_boolean("When expand=entities, include linked publications; default true.", required = FALSE),
         include_phenotypes = ellmer::type_boolean("When expand=entities, include HPO phenotype terms; default true.", required = FALSE),
         include_variants = ellmer::type_boolean("When expand=entities, include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("When expand=entities, publication cap per entity, default 10, max 25.", required = FALSE),
-        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode; minimal defaults none, otherwise metadata.", required = FALSE),
         dedupe_publications = ellmer::type_boolean("When expand=entities, deduplicate shared publications into top-level publications; default true.", required = FALSE)
       ),
       name = "get_gene_context"
@@ -757,14 +773,14 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
         include_entities = ellmer::type_boolean("Include compact entity rows per gene; default true.", required = FALSE),
         include_comparisons = ellmer::type_boolean("Include comparison-source rows; default false.", required = FALSE),
         entity_limit = ellmer::type_integer("Entity cap per gene, default 10, max 25.", required = FALSE),
-        response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
+        response_mode = ellmer::type_string("minimal, compact, standard, or full; default compact.", required = FALSE),
         synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE),
         expand = ellmer::type_string("none or entities; default none. Use entities for one-call gene plus entity detail.", required = FALSE),
         include_publications = ellmer::type_boolean("When expand=entities, include linked publications; default true.", required = FALSE),
         include_phenotypes = ellmer::type_boolean("When expand=entities, include HPO phenotype terms; default true.", required = FALSE),
         include_variants = ellmer::type_boolean("When expand=entities, include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("When expand=entities, publication cap per entity, default 10, max 25.", required = FALSE),
-        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        abstract_mode = ellmer::type_string("When expand=entities, none, metadata, or excerpt; default follows response_mode; minimal defaults none, otherwise metadata.", required = FALSE),
         dedupe_publications = ellmer::type_boolean("Deduplicate shared publications into top-level publications across genes; default true.", required = FALSE)
       ),
       name = "get_genes_context"
@@ -778,8 +794,8 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
         include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms; default true.", required = FALSE),
         include_variants = ellmer::type_boolean("Include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("Publication cap, default 10, max 25.", required = FALSE),
-        response_mode = ellmer::type_string("compact, standard, or full; default standard.", required = FALSE),
-        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        response_mode = ellmer::type_string("minimal, compact, standard, or full; default compact.", required = FALSE),
+        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode; minimal defaults none, otherwise metadata.", required = FALSE),
         synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE)
       ),
       name = "get_entity_context"
@@ -793,8 +809,8 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
         include_phenotypes = ellmer::type_boolean("Include HPO phenotype terms; default true.", required = FALSE),
         include_variants = ellmer::type_boolean("Include variation ontology terms; default true.", required = FALSE),
         publication_limit = ellmer::type_integer("Publication cap per entity, default 10, max 25.", required = FALSE),
-        response_mode = ellmer::type_string("compact, standard, or full; default compact.", required = FALSE),
-        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode.", required = FALSE),
+        response_mode = ellmer::type_string("minimal, compact, standard, or full; default compact.", required = FALSE),
+        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default follows response_mode; minimal defaults none, otherwise metadata.", required = FALSE),
         synopsis_mode = ellmer::type_string("none, excerpt, or full; default follows response_mode.", required = FALSE),
         dedupe_publications = ellmer::type_boolean("Deduplicate shared publications into top-level publications; default true.", required = FALSE)
       ),
@@ -805,8 +821,6 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
       "List approved public SysNDD entities for one gene; pass returned entity_id values to get_entity_context or get_entities_context. Example: list_gene_entities({\"gene\":\"PNKP\",\"limit\":10}).",
       arguments = list(
         gene = ellmer::type_string("Gene identifier such as PNKP, HGNC:1234, or bare HGNC ID.", required = FALSE),
-        symbol = ellmer::type_string("Deprecated hidden alias for gene.", required = FALSE),
-        query = ellmer::type_string("Deprecated hidden alias for gene; accepted to recover from search-style calls.", required = FALSE),
         category = ellmer::type_string("Optional approved category filter; no category filter by default.", required = FALSE),
         ndd_phenotype = ellmer::type_string("yes, no, or any; default any.", required = FALSE),
         limit = ellmer::type_integer("Row cap, default 25, max 50.", required = FALSE),
@@ -816,21 +830,21 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     ),
     ellmer::tool(
       get_publication_context_fun,
-      "Get publication metadata linked to approved primary reviews. Example: get_publication_context({\"pmid\":\"PMID:37130971\",\"abstract_max_chars\":1200}).",
+      "Get publication metadata linked to approved primary reviews. Example: get_publication_context({\"pmid\":\"PMID:37130971\",\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         pmid = ellmer::type_string("PMID:123, 123, or a PubMed URL."),
         abstract_max_chars = ellmer::type_integer("Abstract excerpt cap, default 2000, max 4000.", required = FALSE),
-        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default excerpt.", required = FALSE)
+        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default metadata.", required = FALSE)
       ),
       name = "get_publication_context"
     ),
     ellmer::tool(
       get_publications_context_fun,
-      "Batch get publication metadata for 1-20 PMIDs, preserving request order with per-PMID errors. Example: get_publications_context({\"pmids\":[\"PMID:37130971\",\"30842225\"]}).",
+      "Batch get publication metadata for 1-20 PMIDs, preserving request order with per-PMID errors. Example: get_publications_context({\"pmids\":[\"PMID:37130971\",\"30842225\"],\"abstract_mode\":\"metadata\"}).",
       arguments = list(
         pmids = ellmer::type_array(ellmer::type_string("PMID:123, 123, or a PubMed URL."), description = "Array of 1-20 PubMed identifiers."),
         abstract_max_chars = ellmer::type_integer("Abstract excerpt cap per publication, default 2000, max 4000.", required = FALSE),
-        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default excerpt.", required = FALSE)
+        abstract_mode = ellmer::type_string("none, metadata, or excerpt; default metadata.", required = FALSE)
       ),
       name = "get_publications_context"
     ),
@@ -863,7 +877,7 @@ mcp_build_tool_registry <- function(output_mode = Sys.getenv("MCP_OUTPUT_MODE", 
     ),
     ellmer::tool(
       get_sysndd_capabilities_fun,
-      "Get SysNDD MCP capabilities: workflows, payload modes, limits, citations, resources, errors, prompts, and safety scope. Example: get_sysndd_capabilities({}).",
+      "Get SysNDD MCP capabilities: workflows, deferred-tool guidance, payload modes, limits, citations, resources, errors, prompts, and safety scope. Example: get_sysndd_capabilities({}).",
       name = "get_sysndd_capabilities"
     )
   )
