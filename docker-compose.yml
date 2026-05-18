@@ -120,6 +120,7 @@ services:
           cpus: '0.5'
 
   api:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:
@@ -216,6 +217,7 @@ services:
       - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
 
   worker:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:
@@ -301,6 +303,7 @@ services:
           path: ./api/renv.lock
 
   mcp:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:
