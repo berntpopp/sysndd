@@ -70,6 +70,7 @@ bootstrap_load_modules <- function() {
     "functions/phenotype-repository.R",
     "functions/ontology-repository.R",
     "functions/mcp-repository.R",
+    "functions/mcp-analysis-repository.R",
     "functions/user-repository.R",
     "functions/hash-repository.R",
     "functions/category-normalization.R",
