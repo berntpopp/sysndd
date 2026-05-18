@@ -18,11 +18,18 @@
     return(config)
   }
 
-  config_name <- Sys.getenv("API_CONFIG", "")
-  if (nzchar(config_name)) {
-    return(config::get(config_name))
-  }
-  config::get()
+  tryCatch(
+    {
+      config_name <- Sys.getenv("API_CONFIG", "")
+      if (nzchar(config_name)) {
+        return(config::get(config_name))
+      }
+      config::get()
+    },
+    error = function(e) {
+      list()
+    }
+  )
 }
 
 .nddscore_config_scalar <- function(config, name, default) {

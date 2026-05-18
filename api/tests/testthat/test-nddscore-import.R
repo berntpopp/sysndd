@@ -101,6 +101,22 @@ test_that("NDDScore Zenodo source falls back to API config", {
   expect_equal(nddscore_zenodo_api_base_url(config), "https://mirror.example/records")
 })
 
+test_that("NDDScore Zenodo source uses built-in defaults without config.yml", {
+  withr::local_envvar(c(
+    API_CONFIG = NA,
+    R_CONFIG_ACTIVE = NA,
+    NDDSCORE_ZENODO_RECORD_ID = NA,
+    NDDSCORE_ZENODO_API_BASE_URL = NA
+  ))
+  withr::local_dir(withr::local_tempdir())
+
+  expect_equal(nddscore_default_zenodo_record_id(), "20258027")
+  expect_equal(
+    nddscore_zenodo_api_base_url(),
+    "https://zenodo.org/api/records"
+  )
+})
+
 test_that("nddscore_fetch_zenodo_metadata errors clearly without archive entry", {
   expect_error(
     nddscore_fetch_zenodo_metadata(
