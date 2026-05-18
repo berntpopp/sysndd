@@ -224,6 +224,7 @@ test_that("MCP network repository degrades to unavailable on cached-read errors"
 
 test_that("shared phenotype analysis helpers enforce approved and active review rows", {
   source("../../functions/analyses-functions.R")
+  source("../../functions/analysis-phenotype-functions.R")
 
   correlation_body <- paste(deparse(body(generate_phenotype_correlations)), collapse = "\n")
   cluster_body <- paste(deparse(body(generate_phenotype_cluster_input)), collapse = "\n")
@@ -236,6 +237,7 @@ test_that("shared phenotype analysis helpers enforce approved and active review 
 
 test_that("shared phenotype correlations preserve the public filter argument", {
   source("../../functions/analyses-functions.R")
+  source("../../functions/analysis-phenotype-functions.R")
 
   correlation_body <- paste(deparse(body(generate_phenotype_correlations)), collapse = "\n")
   modifier_pos <- regexpr("modifier_phenotype_id", correlation_body, fixed = TRUE)[[1]]

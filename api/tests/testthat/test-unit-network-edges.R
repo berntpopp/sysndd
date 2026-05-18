@@ -15,6 +15,7 @@
 # Source helper functions into global environment for test access
 source_api_file("functions/helper-functions.R", local = FALSE, envir = globalenv())
 source_api_file("functions/analyses-functions.R", local = FALSE, envir = globalenv())
+source_api_file("functions/analysis-network-functions.R", local = FALSE, envir = globalenv())
 
 # =============================================================================
 # Category Selection Tests

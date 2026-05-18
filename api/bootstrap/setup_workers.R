@@ -90,6 +90,8 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/file-functions.R", local = FALSE)
     # Source the analysis functions (gen_string_clust_obj, gen_mca_clust_obj)
     source("/app/functions/analyses-functions.R", local = FALSE)
+    source("/app/functions/analysis-phenotype-functions.R", local = FALSE)
+    source("/app/functions/analysis-network-functions.R", local = FALSE)
     # Source shared external proxy infrastructure (validate_gene_symbol, cache backends, throttle)
     source("/app/functions/external-proxy-functions.R", local = FALSE)
     # Source gnomAD proxy functions (fetch_gnomad_constraints + memoised wrapper)

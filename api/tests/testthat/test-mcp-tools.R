@@ -297,6 +297,7 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
 
 test_that("capabilities expose error examples, performance, prompts, categories", {
   source("../../services/mcp-service.R")
+  source("../../services/mcp-capabilities-service.R")
 
   caps <- mcp_get_sysndd_capabilities()
   expect_true(!is.null(caps$error_examples$ambiguous_query$error$choices))
@@ -314,6 +315,7 @@ test_that("capabilities expose error examples, performance, prompts, categories"
 
 test_that("capabilities reference get_genes_context", {
   source("../../services/mcp-service.R")
+  source("../../services/mcp-capabilities-service.R")
 
   caps <- mcp_get_sysndd_capabilities()
   expect_false(is.null(caps$canonical_workflows$gene_comparison))

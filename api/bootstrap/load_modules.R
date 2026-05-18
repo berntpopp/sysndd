@@ -78,6 +78,8 @@ bootstrap_load_modules <- function() {
     "functions/publication-functions.R",
     "functions/genereviews-functions.R",
     "functions/analyses-functions.R",
+    "functions/analysis-phenotype-functions.R",
+    "functions/analysis-network-functions.R",
     "functions/account-helpers.R",
     "functions/data-helpers.R",
     "functions/entity-helpers.R",
@@ -139,6 +141,12 @@ bootstrap_load_modules <- function() {
     "services/re-review-service.R",
     "services/seo-service.R",
     "services/mcp-service.R",
+    "services/mcp-analysis-shaping.R",
+    "services/mcp-query-service.R",
+    "services/mcp-record-service.R",
+    "services/mcp-analysis-service.R",
+    "services/mcp-research-context-service.R",
+    "services/mcp-capabilities-service.R",
     "services/mcp-tools.R"
   )
 
