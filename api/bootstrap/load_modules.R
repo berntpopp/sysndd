@@ -147,7 +147,11 @@ bootstrap_load_modules <- function() {
     "services/mcp-analysis-service.R",
     "services/mcp-research-context-service.R",
     "services/mcp-capabilities-service.R",
-    "services/mcp-tools.R"
+    "services/mcp-tool-core.R",
+    "services/mcp-tool-resources.R",
+    "services/mcp-tools.R",
+    "services/mcp-tool-analysis-registry.R",
+    "services/mcp-tool-registry.R"
   )
 
   for (path in function_files) .bootstrap_source(path)

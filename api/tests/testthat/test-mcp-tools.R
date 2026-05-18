@@ -1,8 +1,27 @@
+source_mcp_tools <- function() {
+  source("../../services/mcp-service.R")
+  source("../../services/mcp-analysis-shaping.R")
+  source("../../services/mcp-capabilities-service.R")
+  source("../../services/mcp-tool-core.R")
+  source("../../services/mcp-tool-resources.R")
+  source("../../services/mcp-tools.R")
+  source("../../services/mcp-tool-analysis-registry.R")
+  source("../../services/mcp-tool-registry.R")
+}
+
+analysis_tool_names <- c(
+  "get_sysndd_analysis_catalog",
+  "get_gene_research_context",
+  "get_nddscore_context",
+  "get_curation_comparison_context",
+  "get_phenotype_analysis_context",
+  "get_gene_network_context"
+)
+
 test_that("MCP registry exposes only approved SysNDD tools", {
   skip_if_not_installed("ellmer")
 
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   registry <- mcp_build_tool_registry(output_mode = "json_text")
   tool_names <- vapply(registry$tools, function(x) x@name %||% x$name %||% "", character(1))
@@ -19,7 +38,8 @@ test_that("MCP registry exposes only approved SysNDD tools", {
     "find_entities_by_phenotype",
     "find_entities_by_disease",
     "get_sysndd_stats",
-    "get_sysndd_capabilities"
+    "get_sysndd_capabilities",
+    analysis_tool_names
   ))
   expect_false(any(grepl("session|code|sql|admin|review|job|log|user", tool_names, ignore.case = TRUE)))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/overview"), logical(1))))
@@ -29,8 +49,7 @@ test_that("MCP registry exposes only approved SysNDD tools", {
 test_that("get_genes_context is registered in the tool registry", {
   skip_if_not_installed("ellmer")
 
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   registry <- mcp_build_tool_registry()
   tool_names <- vapply(registry$tools, function(t) t@name, character(1))
@@ -39,8 +58,7 @@ test_that("get_genes_context is registered in the tool registry", {
 })
 
 test_that("MCP server instructions describe workflow, resources, errors, and constraints", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   instructions <- mcp_server_instructions()
 
@@ -58,8 +76,7 @@ test_that("MCP server instructions describe workflow, resources, errors, and con
 test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   skip_if_not_installed("mcptools")
 
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   expect_true(mcp_patch_mcptools_instructions("SysNDD custom instructions"))
   capabilities <- get("capabilities", envir = asNamespace("mcptools"))()
@@ -83,8 +100,7 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
 })
 
 test_that("MCP tool wrapper serializes tool errors as stable JSON text", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   wrapped <- mcp_tool_safe(function() stop(mcp_error("invalid_input", "Bad input")), output_mode = "json_text")
   parsed <- jsonlite::fromJSON(wrapped(), simplifyVector = FALSE)
@@ -105,8 +121,7 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
   skip_if_not_installed("ellmer")
   skip_if_not_installed("mcptools")
 
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   registry <- mcp_build_tool_registry(output_mode = "json_text")
   metadata <- mcp_tool_metadata(registry$tools)
@@ -160,9 +175,51 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
   expect_match(capabilities$description, "capabilities", ignore.case = TRUE)
 })
 
+test_that("MCP analysis tools advertise labels and do not expose LLM generation", {
+  skip_if_not_installed("ellmer")
+  skip_if_not_installed("mcptools")
+
+  source_mcp_tools()
+
+  registry <- mcp_build_tool_registry(output_mode = "json_text")
+  metadata <- mcp_tool_metadata(registry$tools)
+  names <- vapply(metadata, `[[`, character(1), "name")
+
+  for (tool_name in c("get_nddscore_context", "get_gene_research_context")) {
+    item <- metadata[[which(names == tool_name)]]
+    expect_true(isTRUE(item$annotations$readOnlyHint))
+    expect_false(isTRUE(item$annotations$openWorldHint))
+    expect_false(any(grepl("prompt|gemini|generate", names(item$inputSchema$properties), ignore.case = TRUE)))
+    expect_true("response_mode" %in% names(item$inputSchema$properties))
+    expect_true("max_response_chars" %in% names(item$inputSchema$properties))
+    expect_true("include_diagnostics" %in% names(item$inputSchema$properties))
+    expect_true("dry_run" %in% names(item$inputSchema$properties))
+    expect_match(item$description, "compact", ignore.case = TRUE)
+    expect_match(item$description, "cache", ignore.case = TRUE)
+    expect_false(is.null(item$outputSchema))
+  }
+})
+
+test_that("MCP analysis output schemas expose budget and data-class fields", {
+  source_mcp_tools()
+
+  for (tool_name in analysis_tool_names) {
+    schema <- mcp_output_schema(tool_name)
+    expect_true("schema_version" %in% names(schema$properties))
+    expect_true("error" %in% names(schema$properties))
+    expect_true("budget" %in% names(schema$properties))
+    expect_true("meta" %in% names(schema$properties))
+  }
+
+  nddscore <- mcp_output_schema("get_nddscore_context")
+  expect_true("data_class" %in% names(nddscore$properties))
+  expect_true("curation_effect" %in% names(nddscore$properties))
+  expect_true("not_evidence_tier" %in% names(nddscore$properties))
+  expect_true("notice" %in% names(nddscore$properties))
+})
+
 test_that("MCP tool responses include structuredContent when output schemas are advertised", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   payload <- list(schema_version = "1.0", value = "ok")
   response <- mcp_tool_result_response(1L, payload, output_mode = "json_text")
@@ -172,8 +229,7 @@ test_that("MCP tool responses include structuredContent when output schemas are 
 })
 
 test_that("MCP static resource handlers list and read distinct schema resources", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   listed <- mcp_handle_resources_list(1L)
   uris <- vapply(listed$result$resources, `[[`, character(1), "uri")
@@ -199,8 +255,7 @@ test_that("MCP tool wrappers reject unknown gene aliases visibly", {
   skip_if_not_installed("ellmer")
 
   source("../../functions/mcp-repository.R")
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   old_resolve <- mcp_repo_resolve_gene
   old_entities <- mcp_repo_get_gene_entities
@@ -246,8 +301,7 @@ test_that("MCP tool wrappers reject unknown gene aliases visibly", {
 })
 
 test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-tools.R")
+  source_mcp_tools()
 
   old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
   on.exit({
@@ -296,8 +350,7 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
 })
 
 test_that("capabilities expose error examples, performance, prompts, categories", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-capabilities-service.R")
+  source_mcp_tools()
 
   caps <- mcp_get_sysndd_capabilities()
   expect_true(!is.null(caps$error_examples$ambiguous_query$error$choices))
@@ -314,10 +367,23 @@ test_that("capabilities expose error examples, performance, prompts, categories"
 })
 
 test_that("capabilities reference get_genes_context", {
-  source("../../services/mcp-service.R")
-  source("../../services/mcp-capabilities-service.R")
+  source_mcp_tools()
 
   caps <- mcp_get_sysndd_capabilities()
   expect_false(is.null(caps$canonical_workflows$gene_comparison))
   expect_false(is.null(caps$limits$get_genes_context))
+})
+
+test_that("capabilities document analysis workflows and guardrails", {
+  source_mcp_tools()
+
+  caps <- mcp_get_sysndd_capabilities()
+  expect_false(is.null(caps$canonical_workflows$analysis_catalog))
+  expect_false(is.null(caps$canonical_workflows$gene_research))
+  expect_false(is.null(caps$analysis_data_classes$ml_prediction))
+  expect_true(caps$analysis_data_classes$ml_prediction$not_evidence_tier)
+  expect_match(caps$analysis_data_classes$llm_generated_summary$note, "cache", ignore.case = TRUE)
+  expect_true(caps$safety$live_external_calls_disabled)
+  expect_true(caps$safety$llm_generation_disabled)
+  expect_match(caps$analysis_tools$guardrails, "No Gemini", fixed = TRUE)
 })

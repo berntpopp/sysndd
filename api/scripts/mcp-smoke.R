@@ -52,7 +52,22 @@ if (is.null(init$result$capabilities$resources)) {
 listed <- rpc("tools/list", id = 2L)
 tools <- listed$result$tools %||% list()
 tool_names <- vapply(tools, function(x) x$name %||% "", character(1))
-required_tools <- c("search_sysndd", "get_gene_context", "get_genes_context", "get_entity_context", "get_entities_context", "get_publication_context", "get_publications_context", "get_sysndd_capabilities")
+required_tools <- c(
+  "search_sysndd",
+  "get_gene_context",
+  "get_genes_context",
+  "get_entity_context",
+  "get_entities_context",
+  "get_publication_context",
+  "get_publications_context",
+  "get_sysndd_capabilities",
+  "get_sysndd_analysis_catalog",
+  "get_gene_research_context",
+  "get_nddscore_context",
+  "get_curation_comparison_context",
+  "get_phenotype_analysis_context",
+  "get_gene_network_context"
+)
 missing_tools <- setdiff(required_tools, tool_names)
 if (length(missing_tools) > 0L) {
   stop("MCP tools/list missing required tools: ", paste(missing_tools, collapse = ", "))
@@ -116,6 +131,18 @@ pub_tool <- tool_by_name("get_publications_context")
 if (is.null(pub_tool$inputSchema$properties$abstract_mode)) {
   stop("get_publications_context schema is missing abstract_mode")
 }
+gene_research_tool <- tool_by_name("get_gene_research_context")
+for (property in c("response_mode", "max_response_chars", "include_diagnostics", "dry_run")) {
+  if (is.null(gene_research_tool$inputSchema$properties[[property]])) {
+    stop("get_gene_research_context schema is missing ", property)
+  }
+}
+nddscore_tool <- tool_by_name("get_nddscore_context")
+for (property in c("response_mode", "max_response_chars", "include_diagnostics", "dry_run")) {
+  if (is.null(nddscore_tool$inputSchema$properties[[property]])) {
+    stop("get_nddscore_context schema is missing ", property)
+  }
+}
 
 resources <- rpc("resources/list", id = 3L)
 if (!is.null(resources$error)) stop("MCP resources/list failed: ", resources$error$message)
@@ -168,6 +195,69 @@ if (!"compact" %in% capabilities_payload$payload_modes$response_mode) {
 }
 if (!identical(capabilities_payload$limits$get_entities_context$max_entity_ids, 20L)) {
   stop("Capabilities payload missing get_entities_context max")
+}
+if (is.null(capabilities_payload$analysis_data_classes$ml_prediction) ||
+  !isTRUE(capabilities_payload$safety$llm_generation_disabled)) {
+  stop("Capabilities payload missing analysis data-class guardrails")
+}
+
+search_gene <- call_tool("search_sysndd", list(query = "PNKP", types = list("gene"), limit = 1L), id = 45L)
+if (!is.null(search_gene$error)) stop("search_sysndd returned JSON-RPC error: ", search_gene$error$message)
+search_payload <- jsonlite::fromJSON(search_gene$result$content[[1]]$text, simplifyVector = FALSE)
+matches <- search_payload$matches %||% list()
+if (length(matches) == 0L) {
+  stop("search_sysndd did not find the approved public smoke gene PNKP")
+}
+gene <- matches[[1]]$id %||% matches[[1]]$label %||% "PNKP"
+
+catalog <- call_tool("get_sysndd_analysis_catalog", list(), id = 46L)
+if (!is.null(catalog$error)) stop("Analysis catalog returned JSON-RPC error: ", catalog$error$message)
+catalog_payload <- jsonlite::fromJSON(catalog$result$content[[1]]$text, simplifyVector = FALSE)
+analysis_ids <- vapply(catalog_payload$analyses %||% list(), function(x) x$analysis_id %||% "", character(1))
+if (!"gene_research_context" %in% analysis_ids || !"nddscore" %in% analysis_ids) {
+  stop("Analysis catalog missing required analysis IDs")
+}
+
+gene_research_dry <- call_tool(
+  "get_gene_research_context",
+  list(gene = gene, dry_run = TRUE, include_diagnostics = TRUE),
+  id = 47L
+)
+if (!is.null(gene_research_dry$error)) stop("Gene research dry-run returned JSON-RPC error: ", gene_research_dry$error$message)
+dry_payload <- jsonlite::fromJSON(gene_research_dry$result$content[[1]]$text, simplifyVector = FALSE)
+if (is.null(dry_payload$section_status) || is.null(dry_payload$budget)) {
+  stop("Gene research dry-run missing section_status or budget")
+}
+
+gene_research <- call_tool(
+  "get_gene_research_context",
+  list(gene = gene, sections = list("curated", "nddscore"), response_mode = "compact"),
+  id = 48L
+)
+if (!is.null(gene_research$error)) stop("Gene research context returned JSON-RPC error: ", gene_research$error$message)
+research_payload <- jsonlite::fromJSON(gene_research$result$content[[1]]$text, simplifyVector = FALSE)
+if (is.null(research_payload$sections$curated) || is.null(research_payload$section_status$nddscore)) {
+  stop("Gene research context missing curated section or nddscore status")
+}
+
+nddscore <- call_tool("get_nddscore_context", list(gene = gene), id = 49L)
+if (!is.null(nddscore$error)) stop("NDDScore returned JSON-RPC error: ", nddscore$error$message)
+if (!isTRUE(is.null(nddscore$result$isError) || nddscore$result$isError %in% c(TRUE, FALSE))) {
+  stop("NDDScore did not return a valid tool-result error flag")
+}
+if (!isTRUE(nddscore$result$isError)) {
+  nddscore_payload <- jsonlite::fromJSON(nddscore$result$content[[1]]$text, simplifyVector = FALSE)
+  if (!identical(nddscore_payload$data_class, "ml_prediction") || !isTRUE(nddscore_payload$not_evidence_tier)) {
+    stop("NDDScore payload missing ML prediction evidence-boundary labels")
+  }
+}
+
+bad_mode <- call_tool("get_phenotype_analysis_context", list(mode = "raw_matrix"), id = 50L)
+if (!is.null(bad_mode$error)) stop("Invalid phenotype mode returned JSON-RPC error: ", bad_mode$error$message)
+if (!isTRUE(bad_mode$result$isError)) stop("Invalid phenotype mode did not return a tool error result")
+bad_mode_payload <- jsonlite::fromJSON(bad_mode$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(bad_mode_payload$error$code, "invalid_input")) {
+  stop("Invalid phenotype mode did not return invalid_input")
 }
 
 malformed_pmid <- call_tool("get_publication_context", list(pmid = "notapmid"), id = 5L)

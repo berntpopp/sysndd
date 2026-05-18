@@ -13,10 +13,19 @@ mcp_get_sysndd_capabilities <- function() {
       phenotype_discovery = list("find_entities_by_phenotype", "get_entities_context"),
       disease_discovery = list("find_entities_by_disease", "get_entities_context"),
       citation_pack = list("get_publications_context"),
-      gene_comparison = list("get_genes_context")
+      gene_comparison = list("get_genes_context"),
+      analysis_catalog = list("get_sysndd_analysis_catalog"),
+      gene_research = list("get_sysndd_analysis_catalog", "get_gene_research_context", "get_nddscore_context", "get_curation_comparison_context"),
+      low_token_analysis = list(
+        "get_sysndd_analysis_catalog",
+        "get_gene_research_context(dry_run=true, response_mode='compact')",
+        "focused follow-up tools with max_response_chars='auto'"
+      )
     ),
     payload_modes = list(
       response_mode = mcp_response_modes(),
+      analysis_response_mode = MCP_ANALYSIS_RESPONSE_MODES,
+      max_response_chars = "auto by default for analysis tools; accepts integer character budgets for tighter payloads.",
       abstract_mode = c("none", "metadata", "excerpt"),
       synopsis_mode = c("none", "excerpt", "full"),
       cheap_gene_example = list(gene = "PNKP", include_entities = TRUE, include_comparisons = FALSE, response_mode = "compact"),
@@ -27,6 +36,7 @@ mcp_get_sysndd_capabilities <- function() {
     ),
     payload_efficiency = list(
       minimal_mode = "response_mode=minimal drops default prose by setting synopsis_mode=none and abstract_mode=none unless explicitly overridden.",
+      analysis_controls = "Use dry_run=true and include_diagnostics=true to inspect availability before broad exploration. Analysis payloads echo budget metadata, and dropped_summary records sections or rows omitted by max_response_chars.",
       phenotype_shape = "Entity phenotypes are grouped as phenotypes.<modifier> = [HPO IDs] to avoid repeating entity_id and modifier on every row.",
       nested_schema_versions = "Batch and expanded payloads keep schema_version only at the outer envelope."
     ),
@@ -40,6 +50,11 @@ mcp_get_sysndd_capabilities <- function() {
       search_sysndd = list(default_limit = 10L, max_limit = 25L),
       get_gene_context = list(default_entity_limit = 10L, max_entity_limit = 25L, max_entity_detail_expand_ids = MCP_MAX_ENTITY_BATCH_IDS),
       get_genes_context = list(max_genes = 10L, default_dedupe_publications = TRUE),
+      get_gene_research_context = list(default_entity_limit = 10L, default_publication_limit = 5L, max_response_chars = "auto"),
+      get_nddscore_context = list(default_page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
+      get_curation_comparison_context = list(default_page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
+      get_phenotype_analysis_context = list(default_limit = 25L, max_limit = 50L, max_response_chars = "auto"),
+      get_gene_network_context = list(default_max_edges = 100L, max_edges = 250L, max_response_chars = "auto"),
       list_gene_entities = list(default_limit = 25L, max_limit = 50L),
       get_entity_context = list(default_publication_limit = 10L, max_publication_limit = 25L),
       get_entities_context = list(max_entity_ids = 20L, default_dedupe_publications = TRUE),
@@ -52,6 +67,10 @@ mcp_get_sysndd_capabilities <- function() {
       get_gene_context = list(cache_ttl_seconds = 300L, cost_tier = "moderate"),
       get_entity_context = list(cache_ttl_seconds = 300L, cost_tier = "moderate"),
       get_publication_context = list(cache_ttl_seconds = 1800L, cost_tier = "moderate"),
+      get_sysndd_analysis_catalog = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
+      get_gene_research_context = list(cache_ttl_seconds = 0L, cost_tier = "moderate", cheap_path = "dry_run=true"),
+      get_nddscore_context = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
+      get_gene_network_context = list(cache_ttl_seconds = 0L, cost_tier = "cache_hit_only"),
       get_sysndd_capabilities = list(cache_ttl_seconds = 0L, cost_tier = "cheap")
     ),
     citation_contract = list(
@@ -71,6 +90,19 @@ mcp_get_sysndd_capabilities <- function() {
     comparison_sources = list(
       availability = "Use get_gene_context(include_comparisons=true) for external panel/source rows.",
       note = "comparison_sources are source cross-references, not cross-gene biological comparisons."
+    ),
+    analysis_data_classes = list(
+      curated_sysndd_evidence = list(curation_effect = "curated_evidence", not_evidence_tier = FALSE),
+      curated_derived_analysis = list(curation_effect = "none", not_evidence_tier = TRUE),
+      ml_prediction = list(curation_effect = "none", not_evidence_tier = TRUE, note = "NDDScore ML prediction is separate from curated SysNDD evidence."),
+      llm_generated_summary = list(curation_effect = "none", not_evidence_tier = TRUE, note = "Admin-generated validated cache only; MCP never generates summaries."),
+      external_reference_identifier = list(curation_effect = "none", not_evidence_tier = TRUE, note = "Stored identifiers only; no live external provider calls.")
+    ),
+    analysis_tools = list(
+      catalog = "get_sysndd_analysis_catalog documents available analysis sections, data classes, and limits.",
+      gene_research = "get_gene_research_context aggregates curated, ML prediction, derived analysis, local-cache network, cache-only LLM summaries, and stored external identifiers with section_status labels.",
+      network_cache = "get_gene_network_context returns cache_hit status on dry_run and a recoverable temporarily_unavailable error when local network cache is absent.",
+      guardrails = "No Gemini, no prompt/query exposure, no live external providers, no writes, no raw SQL/R tools."
     ),
     resources = list(
       static = c("sysndd://schema/overview", "sysndd://schema/tool-guide"),
@@ -116,6 +148,9 @@ mcp_get_sysndd_capabilities <- function() {
     error_handling_note = "Recoverable errors arrive as a tool result with isError=true and an error.code; retry ambiguous_query by calling again with one of error.choices.",
     safety = list(
       scope = "Read-only approved public SysNDD evidence for research review; not clinical decision support.",
+      live_external_calls_disabled = TRUE,
+      llm_generation_disabled = TRUE,
+      cached_llm_summaries = "Admin-generated validated cache only; never represented as curated SysNDD evidence.",
       exclusions = c("draft reviews", "admin/user/job/log data", "raw SQL", "raw R", "Gemini", "external provider calls", "database writes")
     )
   )
