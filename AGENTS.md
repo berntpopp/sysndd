@@ -6,6 +6,12 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - `app/` — Vue 3 + TypeScript SPA built with Vite
 - `db/` — MySQL schema, data-prep scripts, and versioned migrations
 
+## Code Organization
+
+- Write modular, focused code with one clear responsibility per file or module, so humans and LLM agents can read, test, and edit it in a single context.
+- Keep handwritten source files under 600 lines when practical. Treat this as a soft ceiling: if a file approaches it, extract cohesive helpers, components, composables, or services before adding more behavior.
+- Do not split code mechanically. Tests, migrations, generated files, snapshots, fixtures, and tightly coupled implementations may exceed 600 lines when splitting would reduce clarity.
+
 ## Verify Before Handoff
 
 - Full-repo check: `make ci-local`
