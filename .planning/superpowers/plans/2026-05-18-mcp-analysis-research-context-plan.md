@@ -4,7 +4,7 @@
 
 **Goal:** Add read-only MCP tools that expose SysNDD analysis context, NDDScore model-derived predictions, and cache-only LLM summaries for bounded gene-centered research workflows.
 
-**Architecture:** Keep the existing private read-only R MCP sidecar. Add a focused MCP analysis repository layer for DB/cache reads, service-layer shaping with explicit data-class provenance, and tool registrations with schemas/read-only annotations. MCP must not call Gemini, expose LLM prompts, write data, call live external providers, or expose admin-only workflows.
+**Architecture:** Keep the existing private read-only R MCP sidecar. Add a focused MCP analysis repository layer for DB/cache reads, service-layer shaping with explicit data-class provenance, response budgets, dry-run/diagnostics paths, and tool registrations with schemas/read-only annotations. Follow the existing SysNDD cheap-path MCP style and adapt the strongest `../pubtator-link` patterns: catalog/workflow entrypoints, compact defaults, auto response budgets, diagnostics, and recovery hints. MCP must not call Gemini, expose LLM prompts, write data, call live external providers, or expose admin-only workflows.
 
 **Tech Stack:** R, testthat, DBI/RMariaDB, pool, dplyr/dbplyr, jsonlite, ellmer, mcptools, Plumber-side existing repositories, MySQL current-release views, SysNDD MCP static resources.
 
@@ -13,25 +13,25 @@
 ## File Map
 
 - Create `api/functions/mcp-analysis-repository.R`: read-only repository helpers for analysis catalog metadata, NDDScore active-release context, curation comparisons, phenotype/correlation summaries, gene network cache-safe reads, and validated LLM summary cache reads.
-- Modify `api/functions/analyses-functions.R`: extract shared `mcp_analysis_build_phenotype_cluster_input()`, `generate_phenotype_correlations()`, and `generate_phenotype_functional_cluster_correlation()` helpers so endpoints and MCP use one implementation.
+- Modify `api/functions/analyses-functions.R`: extract shared `generate_phenotype_cluster_input()`, `generate_phenotype_correlations()`, and `generate_phenotype_functional_cluster_correlation()` helpers so endpoints and MCP use one implementation.
 - Modify `api/endpoints/analysis_endpoints.R` and `api/endpoints/phenotype_endpoints.R`: replace inline phenotype correlation and phenotype-functional correlation bodies with shared helper calls.
 - Create `api/tests/testthat/test-mcp-analysis-repository.R`: repository tests for SQL boundaries, cache-only LLM reads, NDDScore current views, and comparison/analysis public-data gates.
 - Create `api/tests/testthat/test-mcp-analysis-service.R`: service tests for provenance envelopes, analysis catalog, NDDScore labels, comparison context, phenotype analysis modes, network unavailable behavior, cache-only LLM summaries, and gene research aggregation.
 - Modify `api/bootstrap/load_modules.R`: source `functions/mcp-analysis-repository.R` after `functions/mcp-repository.R` and before services.
-- Modify `api/services/mcp-service.R`: add data-class helpers and new service entrypoints.
-- Modify `api/services/mcp-tools.R`: register six new tools, output schemas, argument validation, capability text, and resource text.
+- Modify `api/services/mcp-service.R`: add data-class helpers, response-budget helpers, diagnostics/dry-run shaping, and new service entrypoints.
+- Modify `api/services/mcp-tools.R`: register six new tools, output schemas, argument validation, capability text, resource text, compact defaults, and detailed tool descriptions.
 - Modify `api/config/mcp/resources/sysndd-schema.md`: document analysis tools, data classes, and cache-only LLM summary semantics.
 - Modify `api/scripts/mcp-smoke.R`: add smoke calls for analysis catalog, gene research context, NDDScore, and invalid mode errors.
 - Modify `api/tests/testthat/test-mcp-tools.R`: assert the expanded registry, metadata, read-only annotations, and no LLM/external prompt/query exposure.
 - Modify `documentation/03-api.qmd`, `documentation/08-development.qmd`, `documentation/09-deployment.qmd`, and `AGENTS.md`: durable docs for MCP v1.2 analysis scope.
 
-## Task 1: Data Classification Helpers
+## Task 1: Data Classification And Budget Helpers
 
 **Files:**
 - Modify: `api/services/mcp-service.R`
 - Create: `api/tests/testthat/test-mcp-analysis-service.R`
 
-- [ ] **Step 1: Write failing tests for data-class envelopes**
+- [ ] **Step 1: Write failing tests for data-class envelopes and response budgets**
 
 Create `api/tests/testthat/test-mcp-analysis-service.R` with:
 
@@ -68,6 +68,51 @@ test_that("MCP analysis data-class envelopes distinguish curated, derived, ML, a
   expect_true(llm$not_evidence_tier)
   expect_match(llm$limitations[[1]], "Cache-only", fixed = TRUE)
 })
+
+test_that("MCP analysis response budgets support auto, diagnostics, and truncation metadata", {
+  source("../../services/mcp-service.R")
+
+  compact <- mcp_analysis_response_budget("compact", "auto")
+  expect_equal(compact$response_mode, "compact")
+  expect_true(compact$max_response_chars > 0L)
+
+  diagnostics <- mcp_analysis_response_budget("diagnostics", "auto")
+  expect_equal(diagnostics$response_mode, "diagnostics")
+  expect_true(diagnostics$diagnostics_only)
+
+  records <- replicate(
+    10,
+    list(id = "row", text = paste(rep("x", 200), collapse = "")),
+    simplify = FALSE
+  )
+  trimmed <- mcp_analysis_trim_records(records, max_records = 3L, budget = compact)
+  expect_length(trimmed$records, 3L)
+  expect_true(trimmed$budget$dropped_records >= 7L)
+  expect_true(length(trimmed$budget$dropped_summary) > 0L)
+
+  tiny <- mcp_analysis_response_budget("compact", 1000L)
+  oversized <- replicate(
+    5,
+    list(id = "row", text = paste(rep("y", 900), collapse = "")),
+    simplify = FALSE
+  )
+  char_trimmed <- mcp_analysis_trim_records(oversized, max_records = 5L, budget = tiny)
+  expect_true(char_trimmed$budget$truncated)
+  expect_true(char_trimmed$budget$total_chars <= tiny$max_response_chars || length(char_trimmed$records) == 1L)
+
+  sections <- list(
+    curated = list(text = paste(rep("a", 900), collapse = "")),
+    nddscore = list(text = paste(rep("b", 900), collapse = "")),
+    gene_network = list(text = paste(rep("c", 900), collapse = ""))
+  )
+  section_trimmed <- mcp_analysis_trim_sections(
+    sections,
+    priority = c("curated", "nddscore", "gene_network"),
+    budget = tiny
+  )
+  expect_true(section_trimmed$budget$truncated)
+  expect_true(length(section_trimmed$sections) < length(sections))
+})
 ```
 
 - [ ] **Step 2: Run the test and confirm RED**
@@ -79,9 +124,10 @@ cd api
 Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-mcp-analysis-service.R')"
 ```
 
-Expected: FAIL because `mcp_analysis_provenance()` does not exist.
+Expected: FAIL because `mcp_analysis_provenance()` and
+`mcp_analysis_response_budget()` do not exist.
 
-- [ ] **Step 3: Add data-class constants and helper**
+- [ ] **Step 3: Add data-class constants, response modes, and helpers**
 
 In `api/services/mcp-service.R`, update the MCP schema version and add the new
 analysis constants near the MCP constants:
@@ -96,6 +142,16 @@ MCP_ANALYSIS_DATA_CLASSES <- c(
   "llm_generated_summary",
   "external_reference_identifier",
   "operational_metadata"
+)
+
+MCP_ANALYSIS_RESPONSE_MODES <- c("minimal", "compact", "standard", "full", "diagnostics")
+
+MCP_ANALYSIS_MODE_BUDGETS <- list(
+  minimal = 4000L,
+  compact = 12000L,
+  standard = 24000L,
+  full = 48000L,
+  diagnostics = 6000L
 )
 
 mcp_analysis_provenance <- function(data_class,
@@ -144,6 +200,94 @@ mcp_analysis_provenance <- function(data_class,
     ),
     limitations = c(class_limitations, limitations)
   )
+}
+
+mcp_analysis_response_budget <- function(response_mode = "compact",
+                                         max_response_chars = "auto") {
+  response_mode <- mcp_validate_enum(response_mode, MCP_ANALYSIS_RESPONSE_MODES, "response_mode")
+  if (identical(max_response_chars, "auto") || is.null(max_response_chars)) {
+    max_chars <- MCP_ANALYSIS_MODE_BUDGETS[[response_mode]]
+  } else {
+    max_chars <- suppressWarnings(as.integer(max_response_chars))
+    if (is.na(max_chars) || max_chars < 1000L || max_chars > 80000L) {
+      stop(mcp_error(
+        "invalid_input",
+        "max_response_chars must be 'auto' or an integer between 1000 and 80000",
+        list(argument = "max_response_chars")
+      ))
+    }
+  }
+
+  list(
+    response_mode = response_mode,
+    max_response_chars = max_chars,
+    diagnostics_only = identical(response_mode, "diagnostics"),
+    total_chars = 0L,
+    estimated_tokens = 0L,
+    truncated = FALSE,
+    dropped_records = 0L,
+    dropped_summary = list()
+  )
+}
+
+mcp_analysis_estimate_chars <- function(value) {
+  nchar(jsonlite::toJSON(value, auto_unbox = TRUE, null = "null"), type = "chars")
+}
+
+mcp_analysis_finalize_budget <- function(value, budget) {
+  total_chars <- mcp_analysis_estimate_chars(value)
+  budget$total_chars <- total_chars
+  budget$estimated_tokens <- ceiling(total_chars / 4)
+  budget$truncated <- isTRUE(budget$truncated) || total_chars > budget$max_response_chars
+  budget
+}
+
+mcp_analysis_trim_records <- function(records,
+                                      max_records,
+                                      budget,
+                                      label = "records") {
+  total <- length(records)
+  kept <- head(records, max_records)
+  dropped <- max(0L, total - length(kept))
+  while (length(kept) > 1L && mcp_analysis_estimate_chars(kept) > budget$max_response_chars) {
+    kept <- head(kept, length(kept) - 1L)
+    dropped <- dropped + 1L
+  }
+  if (dropped > 0L) {
+    budget$truncated <- TRUE
+    budget$dropped_records <- budget$dropped_records + dropped
+    budget$dropped_summary <- c(
+      budget$dropped_summary,
+      list(list(section = label, dropped_records = dropped))
+    )
+  }
+  budget <- mcp_analysis_finalize_budget(kept, budget)
+  list(records = kept, budget = budget)
+}
+
+mcp_analysis_trim_sections <- function(sections,
+                                       priority,
+                                       budget) {
+  kept <- sections
+  ordered_names <- intersect(priority, names(kept))
+  overflow_names <- setdiff(names(kept), ordered_names)
+  drop_order <- rev(c(ordered_names, overflow_names))
+
+  while (length(kept) > 1L && mcp_analysis_estimate_chars(kept) > budget$max_response_chars && length(drop_order) > 0L) {
+    drop_name <- drop_order[[1]]
+    drop_order <- drop_order[-1]
+    if (!drop_name %in% names(kept)) next
+    kept[[drop_name]] <- NULL
+    budget$truncated <- TRUE
+    budget$dropped_records <- budget$dropped_records + 1L
+    budget$dropped_summary <- c(
+      budget$dropped_summary,
+      list(list(section = drop_name, dropped_section = TRUE))
+    )
+  }
+
+  budget <- mcp_analysis_finalize_budget(kept, budget)
+  list(sections = kept, budget = budget)
 }
 ```
 
@@ -288,8 +432,8 @@ mcp_analysis_repo_get_comparison_metadata <- function() {
 mcp_analysis_repo_get_comparison_rows <- function(hgnc_id = NULL,
                                                   sources = NULL,
                                                   category = NULL,
-                                                  limit = 25L,
-                                                  offset = 0L) {
+                                                  page = 1L,
+                                                  page_size = 25L) {
   filters <- character()
   params <- list()
 
@@ -308,6 +452,7 @@ mcp_analysis_repo_get_comparison_rows <- function(hgnc_id = NULL,
   }
 
   where <- if (length(filters) > 0L) paste("WHERE", paste(filters, collapse = " AND ")) else ""
+  offset <- (page - 1L) * page_size
   db_execute_query(
     paste(
       "SELECT hgnc_id, disease_ontology_id, inheritance, category, pathogenicity_mode, list, version",
@@ -316,7 +461,7 @@ mcp_analysis_repo_get_comparison_rows <- function(hgnc_id = NULL,
       "ORDER BY hgnc_id, list, disease_ontology_id",
       "LIMIT ? OFFSET ?"
     ),
-    unname(c(params, list(limit, offset)))
+    unname(c(params, list(page_size, offset)))
   )
 }
 
@@ -447,6 +592,9 @@ test_that("analysis catalog advertises approved scope B tools and data classes",
   expect_true("gene_research_context" %in% ids)
   expect_true("cached_llm_summaries" %in% ids)
   expect_false(any(grepl("generate|prompt|gemini", ids, ignore.case = TRUE)))
+  expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$default_limits), logical(1))))
+  expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$example_call), logical(1))))
+  expect_equal(catalog$recommended_workflow[[1]], "Call get_sysndd_analysis_catalog first for scope and limits.")
 })
 
 test_that("NDDScore MCP context is always marked as ML prediction and not evidence tier", {
@@ -518,21 +666,81 @@ Expected: FAIL because service functions are absent.
 Add to `api/services/mcp-service.R`:
 
 ```r
-mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE) {
+mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
+                                            response_mode = "compact") {
+  response_mode <- mcp_validate_enum(response_mode, c("minimal", "compact"), "response_mode")
   analyses <- list(
-    list(analysis_id = "gene_research_context", tool = "get_gene_research_context", data_class = "operational_metadata", payload_shape = "mixed_labeled_sections", availability = "available"),
-    list(analysis_id = "nddscore", tool = "get_nddscore_context", data_class = "ml_prediction", availability = "available"),
-    list(analysis_id = "curation_comparisons", tool = "get_curation_comparison_context", data_class = "curated_derived_analysis", availability = "available"),
-    list(analysis_id = "phenotype_analysis", tool = "get_phenotype_analysis_context", data_class = "curated_derived_analysis", availability = "available"),
-    list(analysis_id = "gene_network", tool = "get_gene_network_context", data_class = "curated_derived_analysis", availability = "cache_hit_only"),
-    list(analysis_id = "cached_llm_summaries", tool = "get_gene_research_context", data_class = "llm_generated_summary", availability = "cache_only")
+    list(
+      analysis_id = "gene_research_context",
+      tool = "get_gene_research_context",
+      data_class = "operational_metadata",
+      payload_shape = "mixed_labeled_sections",
+      availability = "available",
+      estimated_latency_class = "fast_to_medium",
+      default_limits = list(entity_limit = 10L, publication_limit = 5L, max_response_chars = "auto"),
+      example_call = list(gene = "HGNC:61", sections = list("curated", "nddscore"), response_mode = "compact")
+    ),
+    list(
+      analysis_id = "nddscore",
+      tool = "get_nddscore_context",
+      data_class = "ml_prediction",
+      availability = "available",
+      estimated_latency_class = "fast",
+      default_limits = list(page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
+      example_call = list(gene = "HGNC:61", response_mode = "compact")
+    ),
+    list(
+      analysis_id = "curation_comparisons",
+      tool = "get_curation_comparison_context",
+      data_class = "curated_derived_analysis",
+      availability = "available",
+      estimated_latency_class = "fast",
+      default_limits = list(page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
+      example_call = list(gene = "HGNC:61", mode = "gene_sources")
+    ),
+    list(
+      analysis_id = "phenotype_analysis",
+      tool = "get_phenotype_analysis_context",
+      data_class = "curated_derived_analysis",
+      availability = "local_analysis_or_cache",
+      estimated_latency_class = "medium",
+      default_limits = list(limit = 25L, max_limit = 50L, max_response_chars = "auto"),
+      example_call = list(mode = "correlations", phenotype = "HP:0001250", response_mode = "compact")
+    ),
+    list(
+      analysis_id = "gene_network",
+      tool = "get_gene_network_context",
+      data_class = "curated_derived_analysis",
+      availability = "cache_hit_only",
+      estimated_latency_class = "fast_on_cache_hit",
+      default_limits = list(max_edges = 100L, hard_max_edges = 250L, max_response_chars = "auto"),
+      example_call = list(gene = "HGNC:61", dry_run = TRUE)
+    ),
+    list(
+      analysis_id = "cached_llm_summaries",
+      tool = "get_gene_research_context",
+      data_class = "llm_generated_summary",
+      availability = "cache_only",
+      estimated_latency_class = "fast",
+      default_limits = list(limit = 5L, max_limit = 20L, max_response_chars = "auto"),
+      example_call = list(gene = "HGNC:61", sections = list("phenotype_clusters", "cached_llm_summaries"))
+    )
   )
   if (!isTRUE(include_unavailable)) {
     analyses <- Filter(function(x) !identical(x$availability, "unavailable"), analyses)
   }
+  if (identical(response_mode, "minimal")) {
+    analyses <- lapply(analyses, function(x) x[c("analysis_id", "tool", "data_class", "availability")])
+  }
   list(
     schema_version = MCP_SCHEMA_VERSION,
+    response_mode = response_mode,
     analyses = analyses,
+    recommended_workflow = list(
+      "Call get_sysndd_analysis_catalog first for scope and limits.",
+      "Use get_gene_research_context(response_mode = 'compact', dry_run = TRUE) to preflight broad gene questions.",
+      "Use focused analysis tools only for narrower follow-up."
+    ),
     contract = list(
       llm_generation = "never",
       llm_summaries = "current validated cache only",
@@ -565,9 +773,14 @@ mcp_get_nddscore_context <- function(gene = NULL,
                                      search = NULL,
                                      sort = "rank",
                                      page = 1L,
-                                     page_size = 25L) {
+                                     page_size = 25L,
+                                     response_mode = "compact",
+                                     max_response_chars = "auto",
+                                     include_diagnostics = FALSE,
+                                     dry_run = FALSE) {
   mode <- mode %||% if (!is.null(gene)) "gene" else "ranked_genes"
   mode <- mcp_validate_enum(mode, c("gene", "ranked_genes", "release"), "mode")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
   page <- suppressWarnings(as.integer(page %||% 1L))
   if (is.na(page) || page < 1L) {
     stop(mcp_error("invalid_input", "page must be a positive integer", list(argument = "page")))
@@ -580,8 +793,21 @@ mcp_get_nddscore_context <- function(gene = NULL,
   envelope <- mcp_analysis_provenance("ml_prediction", "NDDScore", "nddscore_*_current", "nddscore_model")
   release_record <- mcp_nddscore_release_record(release)
 
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      mode = mode,
+      notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.",
+      release = release_record,
+      rows = list(),
+      meta = list(page = page, page_size = page_size, diagnostics_only = TRUE),
+      budget = mcp_analysis_finalize_budget(list(mode = mode, release = release_record), budget),
+      recovery = list(retry_with = list(response_mode = "compact", page = page, page_size = page_size))
+    )))
+  }
+
   if (identical(mode, "release")) {
-    return(c(envelope, list(release = release_record, notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.")))
+    payload <- list(release = release_record, notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.")
+    return(c(envelope, payload, list(budget = mcp_analysis_finalize_budget(payload, budget))))
   }
 
   if (identical(mode, "gene")) {
@@ -592,12 +818,13 @@ mcp_get_nddscore_context <- function(gene = NULL,
     if (is.null(detail$gene) || nrow(detail$gene) == 0L) {
       stop(mcp_error("not_found", sprintf("NDDScore gene '%s' was not found.", gene), list(argument = "gene")))
     }
-    return(c(envelope, list(
+    payload <- list(
       notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.",
       release = release_record,
       gene = mcp_rows_to_records(detail$gene)[[1]],
       hpo_predictions = if (is.null(detail$hpo_predictions)) list() else mcp_rows_to_records(detail$hpo_predictions)
-    )))
+    )
+    return(c(envelope, payload, list(budget = mcp_analysis_finalize_budget(payload, budget))))
   }
 
   filters <- Filter(Negate(is.null), list(
@@ -611,11 +838,14 @@ mcp_get_nddscore_context <- function(gene = NULL,
     mcp_analysis_repo_get_nddscore_genes(filters = filters, sort = sort, page = page, page_size = page_size),
     error = function(e) stop(mcp_error("invalid_input", conditionMessage(e), list(argument = "sort_or_filter")))
   )
+  records <- mcp_rows_to_records(result$data)
+  trimmed <- mcp_analysis_trim_records(records, max_records = page_size, budget = budget, label = "nddscore_genes")
   c(envelope, list(
     notice = "NDDScore is an ML prediction layer. Separate from curated SysNDD evidence. Not an evidence tier.",
     release = release_record,
-    genes = mcp_rows_to_records(result$data),
-    meta = list(total = result$total, page = result$page, page_size = result$page_size, has_more = result$page * result$page_size < result$total)
+    genes = trimmed$records,
+    meta = list(total = result$total, page = result$page, page_size = result$page_size, has_more = result$page * result$page_size < result$total),
+    budget = trimmed$budget
   ))
 }
 
@@ -623,15 +853,23 @@ mcp_get_curation_comparison_context <- function(gene = NULL,
                                                 mode = NULL,
                                                 sources = NULL,
                                                 category = NULL,
-                                                limit = 25L,
-                                                offset = 0L) {
+                                                page = 1L,
+                                                page_size = 25L,
+                                                response_mode = "compact",
+                                                max_response_chars = "auto",
+                                                include_diagnostics = FALSE,
+                                                dry_run = FALSE) {
   mode <- mode %||% if (!is.null(gene)) "gene_sources" else "browse"
   if (mode %in% c("source_overlap", "source_similarity")) {
     stop(mcp_error("unsupported_mode", "Comparison plot modes are not exposed through MCP v1.2; use gene_sources or browse.", list(argument = "mode")))
   }
   mode <- mcp_validate_enum(mode, c("gene_sources", "browse"), "mode")
-  limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
-  offset <- mcp_validate_offset(offset)
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
+  page <- suppressWarnings(as.integer(page %||% 1L))
+  if (is.na(page) || page < 1L) {
+    stop(mcp_error("invalid_input", "page must be a positive integer", list(argument = "page")))
+  }
+  page_size <- mcp_validate_limit(page_size, default = 25L, max = 50L, name = "page_size")
   category <- if (is.null(category)) NULL else mcp_validate_query(category, min_chars = 1L, max_chars = 100L, argument = "category")
 
   hgnc_id <- NULL
@@ -639,15 +877,29 @@ mcp_get_curation_comparison_context <- function(gene = NULL,
     hgnc_id <- mcp_resolve_gene_one(gene)$hgnc_id
   }
 
-  rows <- mcp_analysis_repo_get_comparison_rows(hgnc_id = hgnc_id, sources = sources, category = category, limit = limit, offset = offset)
   total <- mcp_analysis_repo_count_comparison_rows(hgnc_id = hgnc_id, sources = sources, category = category)
   meta <- mcp_analysis_repo_get_comparison_metadata()
   envelope <- mcp_analysis_provenance("curated_derived_analysis", "SysNDD comparison view", "ndd_database_comparison_view", "sysndd_import_pipeline")
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      mode = mode,
+      rows = list(),
+      comparison_metadata = if (isTRUE(include_diagnostics)) mcp_rows_to_records(meta) else list(),
+      meta = list(total = total, page = page, page_size = page_size, has_more = page * page_size < total),
+      budget = mcp_analysis_finalize_budget(list(total = total, page = page, page_size = page_size), budget),
+      recovery = list(retry_with = list(response_mode = "compact", page = page, page_size = min(page_size, 25L)))
+    )))
+  }
+
+  rows <- mcp_analysis_repo_get_comparison_rows(hgnc_id = hgnc_id, sources = sources, category = category, page = page, page_size = page_size)
+  records <- mcp_rows_to_records(rows)
+  trimmed <- mcp_analysis_trim_records(records, max_records = page_size, budget = budget, label = "comparison_rows")
   c(envelope, list(
     mode = mode,
-    rows = mcp_rows_to_records(rows),
+    rows = trimmed$records,
     comparison_metadata = mcp_rows_to_records(meta),
-    meta = list(total = total, limit = limit, offset = offset, has_more = offset + limit < total),
+    meta = list(total = total, page = page, page_size = page_size, has_more = page * page_size < total),
+    budget = trimmed$budget,
     notice = "Comparison sources are cross-references and do not alter curated SysNDD classifications."
   ))
 }
@@ -896,10 +1148,11 @@ Expected: FAIL because phenotype/network service and repository functions are ab
 
 - [ ] **Step 3: Add repository helpers**
 
-In `api/functions/mcp-analysis-repository.R`, add bounded helpers:
+In `api/functions/analyses-functions.R`, add the shared phenotype-cluster input
+helper that both endpoints and MCP will call:
 
 ```r
-mcp_analysis_build_phenotype_cluster_input <- function() {
+generate_phenotype_cluster_input <- function() {
   id_phenotype_ids <- c(
     "HP:0001249", "HP:0001256", "HP:0002187",
     "HP:0002342", "HP:0006889", "HP:0010864"
@@ -949,6 +1202,11 @@ mcp_analysis_build_phenotype_cluster_input <- function() {
     entity_gene_map = ndd_entity_view_tbl %>% dplyr::select(entity_id, hgnc_id, symbol)
   )
 }
+```
+
+In `api/functions/mcp-analysis-repository.R`, add bounded helpers:
+
+```r
 
 mcp_analysis_repo_get_phenotype_correlations <- function(phenotype = NULL,
                                                          min_abs_correlation = 0.3,
@@ -997,7 +1255,7 @@ mcp_analysis_repo_get_phenotype_clusters <- function(gene = NULL,
                                                      cluster_id = NULL,
                                                      limit = 25L) {
   if (!exists("gen_mca_clust_obj_mem", mode = "function")) return(tibble::tibble())
-  input <- mcp_analysis_build_phenotype_cluster_input()
+  input <- generate_phenotype_cluster_input()
   if (is.null(input$matrix) || nrow(input$matrix) == 0L) return(tibble::tibble())
 
   clusters <- gen_mca_clust_obj_mem(input$matrix)
@@ -1055,14 +1313,30 @@ mcp_get_phenotype_analysis_context <- function(mode,
                                                min_abs_correlation = 0.3,
                                                cluster_id = NULL,
                                                limit = 25L,
-                                               include_cached_llm_summaries = TRUE) {
+                                               include_cached_llm_summaries = TRUE,
+                                               response_mode = "compact",
+                                               max_response_chars = "auto",
+                                               include_diagnostics = FALSE,
+                                               dry_run = FALSE) {
   mode <- mcp_validate_enum(mode, c("correlations", "clusters", "phenotype_functional_correlations"), "mode")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
   limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
   min_abs_correlation <- suppressWarnings(as.numeric(min_abs_correlation))
   if (is.na(min_abs_correlation) || min_abs_correlation < 0 || min_abs_correlation > 1) {
     stop(mcp_error("invalid_input", "min_abs_correlation must be between 0 and 1", list(argument = "min_abs_correlation")))
   }
   envelope <- mcp_analysis_provenance("curated_derived_analysis", "SysNDD phenotype analysis", "approved primary review phenotypes", "deterministic_analysis")
+
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      mode = mode,
+      records = list(),
+      cached_llm_summaries = list(),
+      meta = list(limit = limit, diagnostics_only = TRUE, min_abs_correlation = min_abs_correlation),
+      budget = mcp_analysis_finalize_budget(list(mode = mode, limit = limit), budget),
+      recovery = list(retry_with = list(mode = mode, response_mode = "compact", limit = min(limit, 25L)))
+    )))
+  }
 
   records <- switch(
     mode,
@@ -1078,11 +1352,14 @@ mcp_get_phenotype_analysis_context <- function(mode,
     ))
   }
 
+  record_list <- mcp_rows_to_records(records)
+  trimmed <- mcp_analysis_trim_records(record_list, max_records = limit, budget = budget, label = paste0("phenotype_", mode))
   c(envelope, list(
     mode = mode,
-    records = mcp_rows_to_records(records),
+    records = trimmed$records,
     cached_llm_summaries = list(),
-    meta = list(limit = limit, returned = nrow(records), min_abs_correlation = min_abs_correlation)
+    meta = list(limit = limit, returned = length(trimmed$records), min_abs_correlation = min_abs_correlation),
+    budget = trimmed$budget
   ))
 }
 
@@ -1090,14 +1367,37 @@ mcp_get_gene_network_context <- function(gene = NULL,
                                          cluster_type = "clusters",
                                          min_confidence = 400L,
                                          max_edges = 100L,
-                                         include_cached_llm_summaries = TRUE) {
+                                         include_cached_llm_summaries = TRUE,
+                                         response_mode = "compact",
+                                         max_response_chars = "auto",
+                                         include_diagnostics = FALSE,
+                                         dry_run = FALSE) {
   cluster_type <- mcp_validate_enum(cluster_type, c("clusters", "subclusters"), "cluster_type")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
   min_confidence <- suppressWarnings(as.integer(min_confidence))
   max_edges <- mcp_validate_limit(max_edges, default = 100L, max = 250L, name = "max_edges")
   if (is.na(min_confidence) || min_confidence < 0L || min_confidence > 1000L) {
     stop(mcp_error("invalid_input", "min_confidence must be between 0 and 1000", list(argument = "min_confidence")))
   }
   envelope <- mcp_analysis_provenance("curated_derived_analysis", "SysNDD STRING-derived network analysis", "local STRING/memoise cache", "deterministic_analysis")
+  cache_hit <- mcp_analysis_repo_network_cache_hit(cluster_type = cluster_type, min_confidence = min_confidence)
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      section_status = if (isTRUE(cache_hit)) "available" else "temporarily_unavailable",
+      nodes = list(),
+      edges = list(),
+      meta = list(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = max_edges, cache_hit = cache_hit),
+      budget = mcp_analysis_finalize_budget(list(cache_hit = cache_hit, cluster_type = cluster_type), budget),
+      recovery = list(retry_with = list(response_mode = "compact", max_edges = min(max_edges, 100L)))
+    )))
+  }
+  if (!isTRUE(cache_hit)) {
+    stop(mcp_error(
+      "temporarily_unavailable",
+      "Gene network context is not available from local cache without initializing STRINGdb.",
+      list(argument = "gene_network", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
+    ))
+  }
   network <- mcp_analysis_repo_get_network_edges_local(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = max_edges)
   if (is.null(network)) {
     stop(mcp_error(
@@ -1106,11 +1406,14 @@ mcp_get_gene_network_context <- function(gene = NULL,
       list(argument = "gene_network")
     ))
   }
+  edge_records <- mcp_rows_to_records(network$edges)
+  trimmed <- mcp_analysis_trim_records(edge_records, max_records = max_edges, budget = budget, label = "gene_network_edges")
   c(envelope, list(
     section_status = "available",
     nodes = mcp_rows_to_records(network$nodes),
-    edges = mcp_rows_to_records(network$edges),
-    meta = c(network$metadata %||% list(), list(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = max_edges))
+    edges = trimmed$records,
+    meta = c(network$metadata %||% list(), list(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = max_edges)),
+    budget = trimmed$budget
   ))
 }
 ```
@@ -1174,6 +1477,30 @@ test_that("gene research context aggregates requested sections with explicit sec
   expect_equal(result$section_status$nddscore, "available")
   expect_equal(result$section_status$gene_network, "temporarily_unavailable")
   expect_false(is.null(result$sections$nddscore))
+  expect_false(is.null(result$budget))
+  expect_equal(result$meta$response_mode, "compact")
+})
+
+test_that("gene research dry-run returns statuses and budget without bulky section rows", {
+  source("../../functions/mcp-repository.R")
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_gene <- mcp_get_gene_context
+  assign("mcp_get_gene_context", function(gene, ...) list(schema_version = MCP_SCHEMA_VERSION, gene = list(hgnc_id = "HGNC:61", symbol = "ABCD1"), entities = list()), envir = .GlobalEnv)
+  withr::defer(assign("mcp_get_gene_context", old_gene, envir = .GlobalEnv))
+
+  result <- mcp_get_gene_research_context(
+    gene = "HGNC:61",
+    sections = c("curated", "nddscore", "gene_network"),
+    dry_run = TRUE,
+    include_diagnostics = TRUE
+  )
+
+  expect_equal(result$section_status$curated, "available")
+  expect_true(result$meta$dry_run)
+  expect_equal(result$sections, list())
+  expect_false(is.null(result$budget$estimated_tokens))
 })
 ```
 
@@ -1236,10 +1563,16 @@ mcp_gene_external_identifier_refs <- function(hgnc_id) {
 mcp_get_gene_research_context <- function(gene,
                                           sections = NULL,
                                           response_mode = "compact",
+                                          max_response_chars = "auto",
+                                          budget_strategy = "section_fair",
                                           entity_limit = 10L,
                                           publication_limit = 5L,
-                                          include_cached_llm_summaries = TRUE) {
+                                          include_cached_llm_summaries = TRUE,
+                                          include_diagnostics = FALSE,
+                                          dry_run = FALSE) {
   gene <- mcp_validate_query(gene, min_chars = 2L, max_chars = 100L, argument = "gene")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
+  budget_strategy <- mcp_validate_enum(budget_strategy, c("section_fair", "scarcity_first"), "budget_strategy")
   sections <- sections %||% c("curated", "comparison", "nddscore", "phenotype_correlations", "gene_network", "external_identifiers")
   invalid <- setdiff(sections, MCP_GENE_RESEARCH_SECTIONS)
   if (length(invalid) > 0L) {
@@ -1248,49 +1581,79 @@ mcp_get_gene_research_context <- function(gene,
 
   section_status <- setNames(as.list(rep("not_requested", length(MCP_GENE_RESEARCH_SECTIONS))), MCP_GENE_RESEARCH_SECTIONS)
   output_sections <- list()
+  curated_response_mode <- if (identical(response_mode, "diagnostics")) "minimal" else response_mode
 
   curated <- mcp_section_call("curated", function() {
     mcp_get_gene_context(
       gene,
-      include_entities = TRUE,
+      include_entities = !isTRUE(dry_run),
       include_comparisons = FALSE,
-      entity_limit = entity_limit,
-      response_mode = response_mode,
+      entity_limit = if (isTRUE(dry_run)) 1L else entity_limit,
+      response_mode = curated_response_mode,
       expand = "none",
-      publication_limit = publication_limit
+      publication_limit = if (isTRUE(dry_run)) 1L else publication_limit
     )
   })
   section_status$curated <- curated$status
   output_sections$curated <- curated$value
   resolved_gene <- curated$value$gene %||% list()
 
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    requested <- sections
+    for (section in requested) {
+      section_status[[section]] <- if (identical(section, "gene_network")) {
+        cache_hit <- tryCatch(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 400L), error = function(e) FALSE)
+        if (isTRUE(cache_hit)) "available" else "temporarily_unavailable"
+      } else {
+        "available"
+      }
+    }
+    dry_payload <- list(gene = resolved_gene, requested_sections = requested, section_status = section_status)
+    return(list(
+      schema_version = MCP_SCHEMA_VERSION,
+      gene = resolved_gene,
+      sections = list(),
+      section_status = section_status,
+      budget = mcp_analysis_finalize_budget(dry_payload, budget),
+      recovery = list(retry_with = list(response_mode = "compact", sections = requested)),
+      meta = list(
+        response_mode = response_mode,
+        budget_strategy = budget_strategy,
+        dry_run = TRUE,
+        include_diagnostics = include_diagnostics,
+        llm_generation = "never",
+        live_external_provider_calls = "never"
+      )
+    ))
+  }
+
   if ("comparison" %in% sections) {
-    comparison <- mcp_section_call("comparison", function() mcp_get_curation_comparison_context(gene = gene, limit = 25L))
+    comparison <- mcp_section_call("comparison", function() mcp_get_curation_comparison_context(gene = gene, page_size = 25L, response_mode = response_mode))
     section_status$comparison <- comparison$status
     output_sections$comparison <- comparison$value
   }
   if ("nddscore" %in% sections) {
-    nddscore <- mcp_section_call("nddscore", function() mcp_get_nddscore_context(gene = gene))
+    nddscore <- mcp_section_call("nddscore", function() mcp_get_nddscore_context(gene = gene, response_mode = response_mode))
     section_status$nddscore <- nddscore$status
     output_sections$nddscore <- nddscore$value
   }
   if ("phenotype_correlations" %in% sections) {
-    phenotype <- mcp_section_call("phenotype_correlations", function() mcp_get_phenotype_analysis_context(mode = "correlations", gene = gene, limit = 25L))
+    phenotype <- mcp_section_call("phenotype_correlations", function() mcp_get_phenotype_analysis_context(mode = "correlations", gene = gene, limit = 25L, response_mode = response_mode))
     section_status$phenotype_correlations <- phenotype$status
     output_sections$phenotype_correlations <- phenotype$value
   }
   if ("phenotype_clusters" %in% sections) {
-    clusters <- mcp_section_call("phenotype_clusters", function() mcp_get_phenotype_analysis_context(mode = "clusters", gene = gene, limit = 25L))
+    clusters <- mcp_section_call("phenotype_clusters", function() mcp_get_phenotype_analysis_context(mode = "clusters", gene = gene, limit = 25L, response_mode = response_mode))
     section_status$phenotype_clusters <- clusters$status
     output_sections$phenotype_clusters <- clusters$value
   }
   if ("phenotype_functional_correlations" %in% sections) {
-    pfc <- mcp_section_call("phenotype_functional_correlations", function() mcp_get_phenotype_analysis_context(mode = "phenotype_functional_correlations", gene = gene, limit = 25L))
+    pfc <- mcp_section_call("phenotype_functional_correlations", function() mcp_get_phenotype_analysis_context(mode = "phenotype_functional_correlations", gene = gene, limit = 25L, response_mode = response_mode))
     section_status$phenotype_functional_correlations <- pfc$status
     output_sections$phenotype_functional_correlations <- pfc$value
   }
   if ("gene_network" %in% sections) {
-    network <- mcp_section_call("gene_network", function() mcp_get_gene_network_context(gene = gene))
+    network <- mcp_section_call("gene_network", function() mcp_get_gene_network_context(gene = gene, response_mode = response_mode))
     section_status$gene_network <- network$status
     output_sections$gene_network <- network$value
   }
@@ -1313,18 +1676,45 @@ mcp_get_gene_research_context <- function(gene,
     output_sections$external_identifiers <- mcp_gene_external_identifier_refs(resolved_gene$hgnc_id)
   }
 
-  list(
+  section_priority <- c(
+    "curated",
+    "nddscore",
+    "external_identifiers",
+    "comparison",
+    "phenotype_clusters",
+    "phenotype_correlations",
+    "phenotype_functional_correlations",
+    "gene_network",
+    "cached_llm_summaries"
+  )
+  if (identical(budget_strategy, "scarcity_first")) {
+    section_priority <- c(
+      "cached_llm_summaries",
+      "gene_network",
+      "phenotype_functional_correlations",
+      section_priority
+    )
+    section_priority <- unique(section_priority)
+  }
+  section_trimmed <- mcp_analysis_trim_sections(output_sections, priority = section_priority, budget = budget)
+
+  payload <- list(
     schema_version = MCP_SCHEMA_VERSION,
     gene = resolved_gene,
-    sections = output_sections,
+    sections = section_trimmed$sections,
     section_status = section_status,
+    budget = section_trimmed$budget,
     meta = list(
       response_mode = response_mode,
+      budget_strategy = budget_strategy,
+      dry_run = FALSE,
+      include_diagnostics = include_diagnostics,
       llm_generation = "never",
       cached_llm_summaries = if (isTRUE(include_cached_llm_summaries)) "validated cache only" else "not_requested",
       live_external_provider_calls = "never"
     )
   )
+  payload
 }
 ```
 
@@ -1387,6 +1777,12 @@ test_that("MCP analysis tools advertise labels and do not expose LLM generation"
     expect_true(isTRUE(item$annotations$readOnlyHint))
     expect_false(isTRUE(item$annotations$openWorldHint))
     expect_false(any(grepl("prompt|gemini|generate", names(item$inputSchema$properties), ignore.case = TRUE)))
+    expect_true("response_mode" %in% names(item$inputSchema$properties))
+    expect_true("max_response_chars" %in% names(item$inputSchema$properties))
+    expect_true("include_diagnostics" %in% names(item$inputSchema$properties))
+    expect_true("dry_run" %in% names(item$inputSchema$properties))
+    expect_match(item$description, "compact", ignore.case = TRUE)
+    expect_match(item$description, "cache", ignore.case = TRUE)
     expect_false(is.null(item$outputSchema))
   }
 })
@@ -1408,24 +1804,33 @@ Expected: FAIL because tools are not registered.
 In `api/services/mcp-tools.R`, add wrapped functions for each new service:
 
 ```r
-get_sysndd_analysis_catalog_fun <- function(include_unavailable = FALSE) {
-  mcp_get_sysndd_analysis_catalog(include_unavailable = include_unavailable)
+get_sysndd_analysis_catalog_fun <- function(include_unavailable = FALSE,
+                                            response_mode = "compact") {
+  mcp_get_sysndd_analysis_catalog(include_unavailable = include_unavailable, response_mode = response_mode)
 }
 
 get_gene_research_context_fun <- function(gene = NULL,
                                           sections = NULL,
                                           response_mode = "compact",
+                                          max_response_chars = "auto",
+                                          budget_strategy = "section_fair",
                                           entity_limit = 10L,
                                           publication_limit = 5L,
-                                          include_cached_llm_summaries = TRUE) {
+                                          include_cached_llm_summaries = TRUE,
+                                          include_diagnostics = FALSE,
+                                          dry_run = FALSE) {
   if (is.null(gene)) stop(mcp_error("invalid_input", "Missing required parameter 'gene'", list(argument = "gene")))
   mcp_get_gene_research_context(
     gene = gene,
     sections = sections,
     response_mode = response_mode,
+    max_response_chars = max_response_chars,
+    budget_strategy = budget_strategy,
     entity_limit = entity_limit,
     publication_limit = publication_limit,
-    include_cached_llm_summaries = include_cached_llm_summaries
+    include_cached_llm_summaries = include_cached_llm_summaries,
+    include_diagnostics = include_diagnostics,
+    dry_run = dry_run
   )
 }
 
@@ -1438,7 +1843,11 @@ get_nddscore_context_fun <- function(gene = NULL,
                                      search = NULL,
                                      sort = "rank",
                                      page = 1L,
-                                     page_size = 25L) {
+                                     page_size = 25L,
+                                     response_mode = "compact",
+                                     max_response_chars = "auto",
+                                     include_diagnostics = FALSE,
+                                     dry_run = FALSE) {
   mcp_get_nddscore_context(
     gene = gene,
     mode = mode,
@@ -1449,18 +1858,94 @@ get_nddscore_context_fun <- function(gene = NULL,
     search = search,
     sort = sort,
     page = page,
-    page_size = page_size
+    page_size = page_size,
+    response_mode = response_mode,
+    max_response_chars = max_response_chars,
+    include_diagnostics = include_diagnostics,
+    dry_run = dry_run
+  )
+}
+
+get_curation_comparison_context_fun <- function(gene = NULL,
+                                                mode = NULL,
+                                                sources = NULL,
+                                                category = NULL,
+                                                page = 1L,
+                                                page_size = 25L,
+                                                response_mode = "compact",
+                                                max_response_chars = "auto",
+                                                include_diagnostics = FALSE,
+                                                dry_run = FALSE) {
+  mcp_get_curation_comparison_context(
+    gene = gene,
+    mode = mode,
+    sources = sources,
+    category = category,
+    page = page,
+    page_size = page_size,
+    response_mode = response_mode,
+    max_response_chars = max_response_chars,
+    include_diagnostics = include_diagnostics,
+    dry_run = dry_run
+  )
+}
+
+get_phenotype_analysis_context_fun <- function(mode = NULL,
+                                               gene = NULL,
+                                               phenotype = NULL,
+                                               min_abs_correlation = 0.3,
+                                               cluster_id = NULL,
+                                               limit = 25L,
+                                               include_cached_llm_summaries = TRUE,
+                                               response_mode = "compact",
+                                               max_response_chars = "auto",
+                                               include_diagnostics = FALSE,
+                                               dry_run = FALSE) {
+  if (is.null(mode)) stop(mcp_error("invalid_input", "Missing required parameter 'mode'", list(argument = "mode")))
+  mcp_get_phenotype_analysis_context(
+    mode = mode,
+    gene = gene,
+    phenotype = phenotype,
+    min_abs_correlation = min_abs_correlation,
+    cluster_id = cluster_id,
+    limit = limit,
+    include_cached_llm_summaries = include_cached_llm_summaries,
+    response_mode = response_mode,
+    max_response_chars = max_response_chars,
+    include_diagnostics = include_diagnostics,
+    dry_run = dry_run
+  )
+}
+
+get_gene_network_context_fun <- function(gene = NULL,
+                                         cluster_type = "clusters",
+                                         min_confidence = 400L,
+                                         max_edges = 100L,
+                                         include_cached_llm_summaries = TRUE,
+                                         response_mode = "compact",
+                                         max_response_chars = "auto",
+                                         include_diagnostics = FALSE,
+                                         dry_run = FALSE) {
+  mcp_get_gene_network_context(
+    gene = gene,
+    cluster_type = cluster_type,
+    min_confidence = min_confidence,
+    max_edges = max_edges,
+    include_cached_llm_summaries = include_cached_llm_summaries,
+    response_mode = response_mode,
+    max_response_chars = max_response_chars,
+    include_diagnostics = include_diagnostics,
+    dry_run = dry_run
   )
 }
 ```
-
-Add equivalent wrappers for `get_curation_comparison_context_fun`,
-`get_phenotype_analysis_context_fun`, and `get_gene_network_context_fun`.
 
 Register each wrapper with `ellmer::tool()` using descriptions that explicitly
 include:
 
 - "Read-only"
+- "Default response_mode is compact; use dry_run or diagnostics before broad exploration"
+- "max_response_chars defaults to auto and payloads may return dropped_summary"
 - "No LLM generation"
 - "NDDScore is ML prediction, not curated evidence" for NDDScore.
 - "Cached LLM summaries are admin-generated cache-only" for relevant tools.
@@ -1470,8 +1955,9 @@ Add each wrapper to `registry$tool_functions`.
 - [ ] **Step 4: Add output schema names**
 
 Extend `mcp_output_schema()` with cases for the six new tool names. Each schema
-must require `schema_version` and allow `error`. For `get_nddscore_context`,
-include `data_class`, `curation_effect`, `not_evidence_tier`, and `notice`.
+must require `schema_version` and allow `error`. Large-tool schemas must expose
+`budget`, `meta`, and optional `recovery`. For `get_nddscore_context`, include
+`data_class`, `curation_effect`, `not_evidence_tier`, and `notice`.
 
 - [ ] **Step 5: Update resources and capabilities**
 
@@ -1485,6 +1971,10 @@ Update `api/config/mcp/resources/sysndd-schema.md` and
 - cache-only LLM summary rule
 - live external calls disabled
 - network cache-unavailable behavior
+- low-token workflow: catalog -> gene research dry-run/compact -> focused
+  follow-up tools
+- `response_mode`, `max_response_chars`, `budget`, `dropped_summary`,
+  `include_diagnostics`, and `dry_run`
 
 - [ ] **Step 6: Update smoke test**
 
@@ -1493,6 +1983,7 @@ In `api/scripts/mcp-smoke.R`, add calls after existing happy-path checks:
 ```r
 call_tool("get_sysndd_analysis_catalog", list())
 gene <- "PNKP"
+call_tool("get_gene_research_context", list(gene = gene, dry_run = TRUE, include_diagnostics = TRUE))
 call_tool("get_gene_research_context", list(gene = gene, sections = c("curated", "nddscore")))
 nddscore <- call_tool("get_nddscore_context", list(gene = gene), expect_error = TRUE)
 stopifnot(isTRUE(is.null(nddscore$isError) || nddscore$isError %in% c(TRUE, FALSE)))
@@ -1554,13 +2045,17 @@ classifications. LLM summaries exposed through MCP are admin-generated,
 cache-only, current, and validated by default; MCP must never expose an LLM
 prompt/query endpoint or trigger Gemini/LLM generation. MCP must not call live
 external gene providers; external IDs stored on gene rows may be shown only as
-external reference identifiers.
+external reference identifiers. New large analysis tools must default to
+`response_mode = "compact"` and `max_response_chars = "auto"`, expose `budget`
+metadata, support `dry_run`/`diagnostics` where broad results are possible, and
+document the low-token path: catalog first, gene research preflight second,
+focused follow-up tools third.
 ```
 
 - [ ] **Step 2: Update human docs**
 
-In `documentation/03-api.qmd`, document the new MCP tools and the data-class
-contract.
+In `documentation/03-api.qmd`, document the new MCP tools, data-class contract,
+response modes, response budgets, and dry-run/diagnostics behavior.
 
 In `documentation/08-development.qmd`, add local verification commands:
 
@@ -1572,7 +2067,8 @@ make test-api-fast
 ```
 
 In `documentation/09-deployment.qmd`, document that these MCP tools are
-read-only, cache-only for LLM summaries, and live-external-disabled.
+read-only, cache-only for LLM summaries, live-external-disabled, and bounded by
+compact defaults plus `max_response_chars`.
 
 - [ ] **Step 3: Run guardrail searches**
 
@@ -1621,4 +2117,5 @@ git commit -m "docs: document MCP analysis data boundaries"
 - [ ] MCP analysis code does not call Gemini, `get_or_generate_summary()`, `get_cluster_summary()`, external proxy helpers, raw SQL/R execution tools, or write helpers.
 - [ ] Gene network context returns `temporarily_unavailable` instead of initializing STRINGdb when local/cache-safe data is not available.
 - [ ] `get_gene_research_context(gene = "HGNC:61")` returns labeled sections and per-section status.
+- [ ] Compact/dry-run analysis calls include `budget`, avoid raw matrices/layouts/large JSON, and provide `dropped_summary` or `recovery` when truncated or unavailable.
 - [ ] Durable docs explain that ML and LLM data are not curated SysNDD evidence.

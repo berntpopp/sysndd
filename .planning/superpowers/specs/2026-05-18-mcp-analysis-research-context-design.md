@@ -113,6 +113,22 @@ MCP and LLM research guidance:
   security boundaries; servers must validate inputs, keep least privilege, and
   prevent data exfiltration and prompt/tool poisoning:
   https://modelcontextprotocol.io/specification/2025-06-18/basic/security_best_practices
+- Current MCP schema includes read-only/open-world tool annotations,
+  `outputSchema`, and cursor-bearing paginated list results. This extension
+  keeps tool annotations aligned with behavior and uses explicit tool-level
+  pagination or caps rather than returning broad exports:
+  https://modelcontextprotocol.io/specification/2025-11-25/schema
+- Anthropic's current tool guidance emphasizes fewer workflow-oriented tools,
+  detailed descriptions, unambiguous parameters, high-signal responses,
+  pagination/filtering/truncation, helpful errors, and evaluation of runtime,
+  token use, redundant tool calls, and invalid arguments:
+  https://www.anthropic.com/engineering/writing-tools-for-agents
+- `../pubtator-link` provides a useful local pattern for LLM-facing research
+  MCP tools: compact defaults, one-call workflow helpers, `dry_run` and
+  diagnostics modes, `max_response_chars = "auto"`, budget metadata, fair
+  allocation across query variants, and explicit recovery hints. The reviewed
+  local references were `../pubtator-link/docs/MCP_CONNECTION_GUIDE.md`,
+  `../pubtator-link/README.md`, and the review context request/budget models.
 - Google's current Gemini model documentation says Gemini 3 Pro Preview and
   Gemini 3 Flash Preview shut down on March 9, 2026, which means existing LLM
   generation defaults should be updated separately from this MCP work:
@@ -134,6 +150,12 @@ MCP and LLM research guidance:
    or future persisted snapshot; otherwise the standalone tool raises
    `temporarily_unavailable` and the gene aggregator records that section as
    unavailable.
+9. Make the new tools token-efficient and fast by default: compact response
+   modes, response character budgets, SQL-side caps, dry-run preflight,
+   diagnostics without bulky row payloads, and clear truncation metadata.
+10. Make the tool surface easy to discover: one catalog tool, one gene-centered
+    happy path, consistent argument names, detailed descriptions, and static
+    resources that teach the workflow without duplicating row data.
 
 ## Non-Goals
 
@@ -195,6 +217,107 @@ Rules:
 - Derived analysis copy must state that correlations, clusters, and networks
   are hypothesis-generation views, not causal claims.
 
+## Token, Speed, And Discoverability Contract
+
+The analysis tools are for agentic research workflows, so the default behavior
+must protect model context and latency before exposing flexibility.
+
+Tool surface:
+
+- Keep the new public surface to the six tools in approved scope. Do not mirror
+  every web analysis endpoint as a separate MCP tool.
+- `get_sysndd_analysis_catalog` is the discovery root. It tells a client which
+  analysis IDs exist, which tool to call, default limits, cache requirements,
+  data classes, and one compact example call per tool.
+- `get_gene_research_context` is the one-call happy path for gene-centered
+  brainstorming. Low-level tools exist for focused follow-up, not for required
+  fan-out.
+- Tool descriptions must explain when to use the tool, when not to use it, the
+  safety boundary, the default response size, and the next lower-cost call when
+  a payload is truncated or unavailable.
+- Argument names must stay consistent across tools: `gene`, `mode`,
+  `response_mode`, `max_response_chars`, `include_diagnostics`, `dry_run`,
+  `page`, `page_size`, `limit`, and section-specific filters. Do not introduce
+  mixed names such as `query` versus `question` for the same concept.
+
+Response shaping:
+
+- Large tools support `response_mode`:
+  - `minimal`: identity, section status, counts, and next suggested calls.
+  - `compact`: default; high-signal records only, enough for immediate
+    reasoning.
+  - `standard`: more fields and method metadata, still capped.
+  - `full`: widest MCP-safe shape, still no raw matrices, visualization layout,
+    release JSON blobs, broad exports, live external data, or LLM prompts.
+  - `diagnostics`: availability, counts, cache state, filters used, and recovery
+    hints without row payloads.
+- Large tools support `max_response_chars`, default `"auto"`. Auto resolves by
+  mode to conservative budgets and never disables per-section row caps.
+- Large tools support `dry_run`, default `false`. Dry-run returns availability,
+  estimated counts, active cache/release status, and budget metadata without
+  materializing bulky sections.
+- Large tools support `include_diagnostics`, default `false`. When true, the
+  response includes resolver traces, cache hit/miss reasons, and suggested
+  lower-cost retries; it must not expose SQL, internal user IDs, prompts, or
+  admin state.
+- Every large response includes a `budget` object with `response_mode`,
+  `max_response_chars`, `total_chars`, `estimated_tokens`, `truncated`,
+  `dropped_records`, and `dropped_summary`.
+- The outer payload carries `schema_version`; nested repeated records should
+  not repeat the whole provenance envelope. Use section-level provenance and
+  compact row fields unless a standalone tool returns a single data class.
+- If truncation occurs, return stable semantic identifiers and recovery hints
+  such as a narrower `sections` value, lower `limit`, higher-specificity
+  `gene`, `phenotype`, `cluster_id`, `page`, or `response_mode = "minimal"`.
+
+Default caps:
+
+- Gene research compact mode: curated entities max 10, publications max 5,
+  comparison rows max 25, phenotype correlations max 25, phenotype clusters max
+  25, phenotype-functional correlations max 25, network edges max 100, cached
+  LLM summaries max 5.
+- Focused tool compact mode: rows max 25 except gene network edges max 100.
+- `standard` may double row caps up to each tool's hard max. `full` may expose
+  the hard max but still must respect `max_response_chars`.
+- NDDScore ranked mode uses page-based pagination only. It does not accept
+  arbitrary offsets because that misaligns with the existing repository helper.
+
+Speed and cache safety:
+
+- Apply `LIMIT`, `page`, source, gene, phenotype, cluster, and sort constraints
+  before DB collection whenever a table/view can be queried directly.
+- Shared analysis helpers that must compute local matrices should return
+  bounded summaries, not raw matrices. Endpoint and MCP code must share helpers
+  so fixes to correlation handling and cache safety land once.
+- Gene network and phenotype-functional correlation sections must check the
+  exact local memoise key before invoking any STRING-dependent helper. On miss,
+  standalone tools raise `temporarily_unavailable`; the gene aggregator records
+  section-level unavailability.
+- No MCP tool runs live external providers, Gemini, PubMed/PubTator, raw SQL,
+  broad exports, or admin-only workflows.
+
+Diagnostics and recovery:
+
+- `diagnostics` mode and unavailable section payloads include `reason`,
+  `cache_status`, `required_cache_key` when safe to disclose, and
+  `retry_with` arguments.
+- Empty results distinguish `empty` from `temporarily_unavailable` and
+  `unsupported_mode`.
+- Tool-visible errors should be short, actionable, and schema-shaped. Raw R
+  errors and stack traces remain internal.
+
+Borrowed PubTator-Link patterns adapted for SysNDD:
+
+- Use a catalog plus one-call workflow tool, like PubTator-Link's
+  search/index/retrieve workflow, but tuned to SysNDD gene analysis rather than
+  literature passage retrieval.
+- Use `max_response_chars = "auto"`, `response_mode = "compact"` by default,
+  `dry_run`, and diagnostics. SysNDD's aggregator uses a `section_fair` budget
+  strategy by default so one available section cannot consume the entire
+  response budget; `scarcity_first` may prioritize rare non-empty sections.
+- Return stable section keys and source labels rather than huge raw payloads.
+  Detailed follow-up remains tool-driven, not hidden in resource fan-out.
+
 ## Tool Designs
 
 ### `get_sysndd_analysis_catalog`
@@ -205,13 +328,15 @@ tool.
 Inputs:
 
 - `include_unavailable`: boolean, default `false`.
+- `response_mode`: `minimal` or `compact`; default `compact`.
 
 Output:
 
 - Schema version and server version.
 - Analysis entries with `analysis_id`, `tool`, `data_class`, `source`,
   `availability`, `default_limits`, `supports_gene_filter`,
-  `supports_cache_only_summary`, `limitations`, and `example_call`.
+  `supports_cache_only_summary`, `estimated_latency_class`, `limitations`,
+  and `example_call`.
 - Explicit entries for NDDScore, curation comparisons, phenotype correlations,
   phenotype clusters, phenotype-functional correlations, gene networks,
   functional clusters, and cached LLM summaries.
@@ -227,11 +352,16 @@ Inputs:
   `curated`, `comparison`, `nddscore`, `phenotype_clusters`,
   `phenotype_correlations`, `phenotype_functional_correlations`,
   `gene_network`, `cached_llm_summaries`, `external_identifiers`.
-- `response_mode`: `minimal`, `compact`, `standard`, or `full`; default
-  `compact`.
+- `response_mode`: `minimal`, `compact`, `standard`, `full`, or
+  `diagnostics`; default `compact`.
+- `max_response_chars`: integer or `"auto"`; default `"auto"`.
+- `budget_strategy`: `section_fair` or `scarcity_first`; default
+  `section_fair`.
 - `entity_limit`: default `10`, max `20`.
 - `publication_limit`: default `5`, max `20`.
 - `include_cached_llm_summaries`: boolean, default `true`.
+- `include_diagnostics`: boolean, default `false`.
+- `dry_run`: boolean, default `false`.
 
 Output:
 
@@ -247,6 +377,8 @@ Output:
   not fetched external data.
 - `section_status` for each requested section: `available`, `empty`,
   `not_requested`, or `temporarily_unavailable`.
+- `budget` metadata and `recovery` hints when a section is unavailable,
+  diagnostics are requested, or output is truncated.
 
 ### `get_nddscore_context`
 
@@ -263,6 +395,11 @@ Inputs:
 - `sort`: default `rank`; invalid sort values return `invalid_input`.
 - `page`: default `1`.
 - `page_size`: default `25`, max `50`.
+- `response_mode`: `minimal`, `compact`, `standard`, `full`, or
+  `diagnostics`; default `compact`.
+- `max_response_chars`: integer or `"auto"`; default `"auto"`.
+- `include_diagnostics`: boolean, default `false`.
+- `dry_run`: boolean, default `false`.
 
 Output:
 
@@ -273,6 +410,8 @@ Output:
   normal gene/ranked payloads.
 - Gene prediction rows or one gene detail with HPO predictions.
 - The existing prediction note that SHAP/statistical signal is not causation.
+- Budget metadata for ranked payloads and diagnostics without row payloads when
+  `response_mode = "diagnostics"` or `dry_run = true`.
 
 ### `get_curation_comparison_context`
 
@@ -286,8 +425,13 @@ Inputs:
   supplied, otherwise `browse`.
 - `sources`: optional source-name array.
 - `category`: optional curated/source category filter.
-- `limit`: default `25`, max `50`.
-- `offset`: default `0`.
+- `page`: default `1`.
+- `page_size`: default `25`, max `50`.
+- `response_mode`: `minimal`, `compact`, `standard`, `full`, or
+  `diagnostics`; default `compact`.
+- `max_response_chars`: integer or `"auto"`; default `"auto"`.
+- `include_diagnostics`: boolean, default `false`.
+- `dry_run`: boolean, default `false`.
 
 Output:
 
@@ -298,6 +442,8 @@ Output:
   alter SysNDD classifications.
 - Web-app overlap/similarity plot modes are not included in this MCP iteration;
   requests for those modes return `unsupported_mode`.
+- Page metadata, budget metadata, and recovery hints for invalid filters or
+  unsupported modes.
 
 ### `get_phenotype_analysis_context`
 
@@ -314,6 +460,11 @@ Inputs:
 - `cluster_id`: optional cluster identifier.
 - `limit`: default `25`, max `50`.
 - `include_cached_llm_summaries`: boolean, default `true`.
+- `response_mode`: `minimal`, `compact`, `standard`, `full`, or
+  `diagnostics`; default `compact`.
+- `max_response_chars`: integer or `"auto"`; default `"auto"`.
+- `include_diagnostics`: boolean, default `false`.
+- `dry_run`: boolean, default `false`.
 
 Output:
 
@@ -329,6 +480,8 @@ Output:
   implemented through shared helper code rather than endpoint copy-paste.
 - Phenotype-functional correlations depend on functional clusters; serve only
   from cache-hit-safe functional cluster data or return `temporarily_unavailable`.
+- Budget metadata and row-drop summaries when correlation or cluster results
+  exceed the selected mode budget.
 
 ### `get_gene_network_context`
 
@@ -341,6 +494,11 @@ Inputs:
 - `min_confidence`: STRING confidence, default `400`, valid range `0-1000`.
 - `max_edges`: default `100`, max `250`.
 - `include_cached_llm_summaries`: boolean, default `true`.
+- `response_mode`: `minimal`, `compact`, `standard`, `full`, or
+  `diagnostics`; default `compact`.
+- `max_response_chars`: integer or `"auto"`; default `"auto"`.
+- `include_diagnostics`: boolean, default `false`.
+- `dry_run`: boolean, default `false`.
 
 Output:
 
@@ -352,6 +510,8 @@ Output:
   `memoise::has_cache(gen_network_edges_mem)` does not confirm a cache hit for
   the requested arguments. It must not initialize `STRINGdb` or call
   `gen_network_edges_mem()` on a cache miss.
+- Dry-run and diagnostics report whether the exact cache key is available and
+  what retry arguments would be cheapest.
 
 ## Cache-Only LLM Summary Contract
 
@@ -451,14 +611,18 @@ contract. Do not add parameterized resources in this iteration.
 Unit tests:
 
 - Data classification envelope helpers.
+- Response budget helpers for `auto`, hard caps, truncation metadata,
+  `dry_run`, and diagnostics mode.
 - Cache-only LLM summary reads and missing-cache behavior.
 - NDDScore MCP shaping with model-derived labels.
 - Comparison context modes and pagination metadata.
 - Phenotype analysis mode validation and capped outputs.
 - Gene network cache/local-only unavailable behavior.
 - Gene research context partial section statuses.
+- Gene research context `compact`, `minimal`, `diagnostics`, `dry_run`, and
+  `max_response_chars` behavior.
 - Tool registry names, descriptions, schemas, read-only annotations, and output
-  schemas.
+  schemas, including documented defaults and examples.
 
 Repository tests:
 
@@ -476,6 +640,7 @@ Smoke test:
 - `get_sysndd_analysis_catalog`
 - `get_nddscore_context` for a known gene if an active release is available
 - `get_gene_research_context` for a known public gene
+- `get_gene_research_context` in `dry_run = true` mode
 - malformed mode/limit calls return tool-visible errors
 
 Verification commands:
@@ -520,6 +685,12 @@ changing the public MCP tool names.
   surfaces.
 - `get_gene_research_context(gene = "HGNC:61")` returns a bounded gene-centered
   payload with clearly labeled sections.
+- Compact analysis calls include `budget.total_chars`, `estimated_tokens`,
+  `truncated`, and `dropped_summary`; diagnostics and dry-run calls avoid bulky
+  row payloads.
+- The capabilities text and tool-guide resource explain the low-token path:
+  catalog first, gene research compact/dry-run second, focused follow-up tools
+  third.
 - NDDScore outputs are always marked `ml_prediction`, `curation_effect = none`,
   and `not_evidence_tier = true`.
 - Cached LLM summaries are never generated by MCP and are labeled
