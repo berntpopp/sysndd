@@ -621,14 +621,15 @@ async_job_repository_recover_stale <- function(now = Sys.time(), conn = NULL) {
 #' Return recent durable async jobs for operator history views
 #'
 #' @param limit Integer row limit.
+#' @param include_result Logical; include result_json in history rows.
 #' @param conn Optional connection or pool for dependency injection.
 #'
 #' @return Tibble of recent jobs ordered newest first.
 #' @export
-async_job_repository_history <- function(limit = 20L, conn = NULL) {
+async_job_repository_history <- function(limit = 20L, include_result = FALSE, conn = NULL) {
   limit <- max(1L, as.integer(limit))
   sql <- paste(
-    .async_job_build_select(FALSE),
+    .async_job_build_select(include_result),
     "FROM async_jobs ORDER BY submitted_at DESC LIMIT",
     limit
   )

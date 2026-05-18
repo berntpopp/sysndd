@@ -95,6 +95,29 @@ test_that("nddscore_repo_genes paginates, filters, searches, and validates sort"
     expect_true(hpo_filtered$total >= 1L)
     expect_true(any(hpo_filtered$data$gene_symbol == "CLCN4"))
 
+    DBI::dbExecute(
+      get("daemon_db_conn", envir = .GlobalEnv),
+      paste(
+        "INSERT INTO nddscore_hpo_prediction (",
+        "release_id, hgnc_id, gene_symbol, phenotype_id, phenotype_name,",
+        "probability, rank_for_gene, passes_default_threshold",
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      ),
+      params = unname(list(
+        "ndd_fixture_release",
+        "HGNC:99999",
+        "FIXNOVEL",
+        "HP:9999999",
+        "Fixture-only phenotype",
+        0.91,
+        9L,
+        1L
+      ))
+    )
+    hpo_from_current_table <- nddscore_repo_genes(filters = list(hpo_terms = "HP:9999999"))
+    expect_equal(hpo_from_current_table$total, 1L)
+    expect_equal(hpo_from_current_table$data$gene_symbol, "FIXNOVEL")
+
     expect_error(
       nddscore_repo_genes(sort = "release_id; DROP TABLE nddscore_release"),
       "Invalid sort column"

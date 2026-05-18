@@ -130,6 +130,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     plumber::pr_mount("/api/external", plumber::pr("endpoints/external_endpoints.R")) %>%
     plumber::pr_mount("/api/statistics", plumber::pr("endpoints/statistics_endpoints.R")) %>%
     plumber::pr_mount("/api/variant", plumber::pr("endpoints/variant_endpoints.R")) %>%
+    plumber::pr_mount("/api/nddscore", plumber::pr("endpoints/nddscore_endpoints.R")) %>%
     ####################################################################
     # preroute / postroute hooks for timing & logging
     ####################################################################

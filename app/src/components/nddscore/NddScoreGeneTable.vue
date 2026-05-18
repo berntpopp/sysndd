@@ -4,7 +4,6 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center py-2">
           <BCol col md="12">
-            <NddScorePredictionCard class="mb-3" />
             <TableShell
               title="Gene predictions"
               :meta="totalLabel"
@@ -299,6 +298,10 @@
               <div v-if="!loading && !rows.length" class="nddscore-gene-table__empty">
                 No gene predictions found.
               </div>
+              <BAlert v-if="loadError" variant="warning" show class="mt-3 mb-0">
+                <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
+                {{ loadError }}
+              </BAlert>
             </TableShell>
           </BCol>
         </BRow>
@@ -312,6 +315,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import {
   BBadge,
+  BAlert,
   BButton,
   BCol,
   BContainer,
@@ -337,7 +341,6 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
-import NddScorePredictionCard from '@/components/nddscore/NddScorePredictionCard.vue';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { withReturnTo } from '@/utils/returnNavigation';
 
@@ -406,6 +409,7 @@ const page = ref(1);
 const pageSize = ref(10);
 const loading = ref(false);
 const hasLoadedOnce = ref(false);
+const loadError = ref('');
 const search = ref('');
 const sort = ref('rank');
 const hpoTermFilter = ref<string[]>([]);
@@ -922,6 +926,7 @@ function numberFilter(value: string): number | undefined {
 async function loadRows() {
   const serial = ++requestSerial;
   loading.value = true;
+  loadError.value = '';
 
   try {
     const result = await fetchGenePredictions({
@@ -955,6 +960,13 @@ async function loadRows() {
     pageSize.value = Number(result.page_size) || pageSize.value;
     hasLoadedOnce.value = true;
     updateBrowserUrl();
+  } catch {
+    if (serial === requestSerial) {
+      rows.value = [];
+      total.value = 0;
+      loadError.value = 'NDDScore predictions are not available for the active release.';
+      hasLoadedOnce.value = true;
+    }
   } finally {
     if (serial === requestSerial) {
       loading.value = false;

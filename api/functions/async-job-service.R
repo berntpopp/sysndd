@@ -238,15 +238,20 @@ async_job_service_status <- function(job_id, include_result = FALSE, conn = NULL
 #' Return durable async job history
 #'
 #' @param limit Integer history limit.
+#' @param include_result Logical; include result_json in history rows.
 #' @param conn Optional DB connection or pool.
 #'
 #' @return Tibble of recent durable jobs.
 #' @export
-async_job_service_history <- function(limit = 20L, conn = NULL) {
-  async_job_repository_history(
+async_job_service_history <- function(limit = 20L, include_result = FALSE, conn = NULL) {
+  args <- list(
     limit = max(1L, as.integer(.async_job_service_scalar(limit, 20L))),
     conn = conn
   )
+  if (isTRUE(include_result)) {
+    args$include_result <- TRUE
+  }
+  do.call(async_job_repository_history, args)
 }
 
 #' Request durable async job cancellation and return the refreshed row

@@ -27,10 +27,12 @@ export async function submitNddScoreImport(opts: {
   recordId?: string;
   validateOnly: boolean;
 }): Promise<{ jobId: string; status: string }> {
-  const raw = await apiClient.post<{ job_id: unknown; status: unknown }>(
+  const response = await apiClient.raw.post<{ job_id: unknown; status: unknown }>(
     '/api/admin/nddscore/import',
-    { record_id: opts.recordId ?? '20258027', validate_only: opts.validateOnly }
+    { record_id: opts.recordId ?? '20258027', validate_only: opts.validateOnly },
+    { validateStatus: (status) => (status >= 200 && status < 300) || status === 409 }
   );
+  const raw = response.data;
   return {
     jobId: String(unwrapScalar(raw.job_id as never)),
     status: String(unwrapScalar(raw.status as never)),

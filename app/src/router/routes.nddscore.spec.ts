@@ -26,6 +26,7 @@ describe('NDDScore navigation + routes', () => {
     const score = routes.find((r) => r.path === '/NDDScore');
     expect(score).toBeDefined();
     expect(score?.beforeEnter).toBeUndefined();
+    expect(score?.component).toBeDefined();
     const childPaths = (score?.children ?? []).map((c) => c.path);
     expect(childPaths).toContain('');
     expect(childPaths).not.toContain('PhenotypePredictions');

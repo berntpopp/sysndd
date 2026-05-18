@@ -270,8 +270,15 @@ nddscore_repo_genes <- function(
   }
   hpo_terms <- .nddscore_vector_values(filters$hpo_terms)
   if (length(hpo_terms) > 0L) {
-    hpo_clause <- paste(rep("JSON_SEARCH(`top_hpo_predictions_json`, 'one', ?) IS NOT NULL", length(hpo_terms)), collapse = " OR ")
-    where <- c(where, paste0("(", hpo_clause, ")"))
+    hpo_clause <- paste(rep("hp.`phenotype_id` = ?", length(hpo_terms)), collapse = " OR ")
+    where <- c(where, paste0(
+      "EXISTS (",
+      "SELECT 1 FROM nddscore_hpo_prediction_current hp ",
+      "WHERE hp.`release_id` = nddscore_gene_prediction_current.`release_id` ",
+      "AND hp.`hgnc_id` = nddscore_gene_prediction_current.`hgnc_id` ",
+      "AND (", hpo_clause, ")",
+      ")"
+    ))
     params <- c(params, as.list(hpo_terms))
   }
 

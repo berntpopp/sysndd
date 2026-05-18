@@ -366,6 +366,9 @@
     required = FALSE,
     default = NULL
   )
+  if (is.null(imported_by) && !is.null(job$submitted_by) && !is.na(job$submitted_by[[1]])) {
+    imported_by <- job$submitted_by[[1]]
+  }
   progress <- .async_job_progress_reporter(job$job_id[[1]], throttle_seconds = 0)
 
   if (!base::exists("pool", envir = .GlobalEnv, inherits = FALSE)) {

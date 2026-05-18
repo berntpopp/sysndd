@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test-utils/mocks/server';
-import { fetchCurrentRelease, fetchGeneDetail, fetchGenePredictions } from './nddscore';
+import {
+  fetchCurrentRelease,
+  fetchGeneDetail,
+  fetchGenePredictions,
+  fetchHpoPredictions,
+} from './nddscore';
 
 describe('nddscore api client', () => {
   afterEach(() => server.resetHandlers());
@@ -104,5 +109,20 @@ describe('nddscore api client', () => {
       expression: 0.82,
       network: -0.13,
     });
+  });
+
+  it('passes the backend HPO threshold parameter name', async () => {
+    let seen: URL | null = null;
+    server.use(
+      http.get('/api/nddscore/hpo', ({ request }) => {
+        seen = new URL(request.url);
+        return HttpResponse.json({ data: [], meta: { total: [0], page: [1], page_size: [10] } });
+      })
+    );
+
+    await fetchHpoPredictions({ passesThreshold: true, page: 1, pageSize: 10 });
+
+    expect(seen!.searchParams.get('passes_default_threshold')).toBe('true');
+    expect(seen!.searchParams.get('passes_threshold')).toBeNull();
   });
 });

@@ -199,11 +199,13 @@
                   </BBadge>
                 </td>
                 <td>{{ jobMode(job) }}</td>
-                <td class="ndd-mono">{{ firstValue(job, ['release_id']) }}</td>
+                <td class="ndd-mono">{{ jobReleaseId(job) }}</td>
                 <td>
                   {{ formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at'])) }}
                 </td>
-                <td class="ndd-error-cell">{{ firstValue(job, ['error', 'error_message']) }}</td>
+                <td class="ndd-error-cell">
+                  {{ firstValue(job, ['last_error_message', 'error', 'error_message']) }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -228,9 +230,12 @@
                 formatDate(firstValue(job, ['updated_at', 'completed_at', 'created_at']))
               }}</span>
             </div>
-            <div class="ndd-mono">{{ firstValue(job, ['release_id']) }}</div>
-            <div v-if="firstValue(job, ['error', 'error_message'])" class="ndd-mobile-row__error">
-              {{ firstValue(job, ['error', 'error_message']) }}
+            <div class="ndd-mono">{{ jobReleaseId(job) }}</div>
+            <div
+              v-if="firstValue(job, ['last_error_message', 'error', 'error_message'])"
+              class="ndd-mobile-row__error"
+            >
+              {{ firstValue(job, ['last_error_message', 'error', 'error_message']) }}
             </div>
           </article>
         </div>
@@ -260,7 +265,7 @@
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useAsyncJob } from '@/composables/useAsyncJob';
 import {
   fetchNddScoreStatus,
@@ -280,8 +285,7 @@ import {
   BSpinner,
 } from 'bootstrap-vue-next';
 
-type RecordValue = string | number | boolean | null | undefined | Record<string, unknown>;
-type AdminRecord = Record<string, RecordValue>;
+type AdminRecord = Record<string, unknown>;
 
 const jobStatusUrl = (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`;
 const importJob = useAsyncJob(jobStatusUrl);
@@ -367,14 +371,14 @@ const releaseRows = computed(() => [
   },
   {
     label: 'Imported',
-    value: formatDate(activeRelease.value?.imported_at),
+    value: formatDate(firstValue(activeRelease.value, ['import_completed_at', 'imported_at'])),
     mono: false,
   },
 ]);
 
 const performanceRows = computed(() => {
-  const raw = activeRelease.value?.performance_summary;
-  const record = normalizeRecord(raw);
+  const raw = firstRawValue(activeRelease.value, ['ndd_performance_json', 'performance_summary']);
+  const record = parseRecord(raw);
   if (!record) return [];
 
   return Object.entries(record).map(([key, value]) => ({
@@ -394,6 +398,7 @@ const zenodoArchiveName = computed(() =>
 
 const zenodoChecksum = computed(() =>
   firstValue(normalizeRecord(zenodoResult.value?.zenodo), [
+    'archive_md5',
     'source_archive_checksum',
     'archive_checksum',
     'checksum',
@@ -403,6 +408,15 @@ const zenodoChecksum = computed(() =>
 onMounted(() => {
   void loadStatus();
 });
+
+watch(
+  () => importJob.status.value,
+  (nextStatus) => {
+    if (nextStatus === 'completed' || nextStatus === 'failed') {
+      void loadStatus();
+    }
+  }
+);
 
 async function loadStatus() {
   loadingStatus.value = true;
@@ -470,12 +484,24 @@ function normalizeRecord(value: unknown): AdminRecord | null {
   return value as AdminRecord;
 }
 
+function parseRecord(value: unknown): AdminRecord | null {
+  if (typeof value === 'string') {
+    try {
+      return normalizeRecord(JSON.parse(value));
+    } catch {
+      return null;
+    }
+  }
+  return normalizeRecord(value);
+}
+
+function firstRawValue(record: AdminRecord | null | undefined, keys: string[]): unknown {
+  if (!record) return undefined;
+  return keys.map((key) => record[key]).find((value) => value !== null && value !== undefined);
+}
+
 function firstValue(record: AdminRecord | null | undefined, keys: string[]) {
-  if (!record) return 'Not recorded';
-  const match = keys
-    .map((key) => record[key])
-    .find((value) => value !== null && value !== undefined);
-  return displayValue(match);
+  return displayValue(firstRawValue(record, keys));
 }
 
 function displayValue(value: unknown): string {
@@ -515,14 +541,26 @@ function statusClass(value: unknown): string {
 }
 
 function jobMode(job: AdminRecord): string {
-  const validateOnly = job.validate_only;
+  const payload = parseRecord(job.request_payload_json);
+  const validateOnly = firstRawValue(job, ['validate_only']) ?? payload?.validate_only;
   if (validateOnly === true || validateOnly === 'true' || validateOnly === 1)
     return 'Validate only';
   return 'Import';
 }
 
+function jobReleaseId(job: AdminRecord): string {
+  const payload = parseRecord(job.request_payload_json);
+  const result = parseRecord(firstRawValue(job, ['result_json', 'result_payload_json']));
+  return displayValue(
+    firstRawValue(job, ['release_id']) ??
+      result?.release_id ??
+      payload?.release_id ??
+      payload?.record_id
+  );
+}
+
 function jobKey(job: AdminRecord): string {
-  return firstValue(job, ['job_id', 'id', 'release_id', 'created_at']);
+  return firstValue(job, ['job_id', 'id', 'created_at']);
 }
 
 defineExpose({ confirmImport });

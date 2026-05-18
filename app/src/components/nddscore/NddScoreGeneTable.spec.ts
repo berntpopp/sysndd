@@ -57,9 +57,6 @@ describe('NddScoreGeneTable', () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Machine learning, not manual curation');
-    expect(wrapper.find('.ndd-score-card--ml-disclosure').exists()).toBe(true);
-    expect(wrapper.find('.bi-stars').exists()).toBe(true);
     expect(wrapper.text()).toContain('not manually curated SysNDD classifications');
   });
 
@@ -224,6 +221,17 @@ describe('NddScoreGeneTable', () => {
       expect.objectContaining({
         hpoTerms: ['HP:0001249', 'HP:0001250'],
       })
+    );
+  });
+
+  it('renders an inline warning when predictions cannot be loaded', async () => {
+    mocks.fetchGenePredictions.mockRejectedValueOnce(new Error('no active release'));
+
+    const wrapper = mount(NddScoreGeneTable);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain(
+      'NDDScore predictions are not available for the active release.'
     );
   });
 });

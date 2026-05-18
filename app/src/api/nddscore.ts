@@ -186,7 +186,7 @@ export async function fetchHpoPredictions(
         sort: query.sort,
         search: query.search,
         phenotype_id: query.phenotypeId,
-        passes_threshold: query.passesThreshold,
+        passes_default_threshold: query.passesThreshold,
         page: query.page,
         page_size: query.pageSize,
       },

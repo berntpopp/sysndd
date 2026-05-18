@@ -1062,7 +1062,7 @@ function(req, res, limit = 10L) {
   limit <- min(limit, 100L)
 
   release <- nddscore_repo_current_release()
-  jobs <- async_job_service_history(limit = 100L)
+  jobs <- async_job_service_history(limit = 100L, include_result = TRUE)
   if (.nddscore_admin_has_rows(jobs)) {
     jobs <- jobs[jobs$job_type == "nddscore_import", , drop = FALSE]
     jobs <- utils::head(jobs, limit)
@@ -1137,7 +1137,11 @@ function(req, res, record_id = .nddscore_admin_default_record_id) {
     record_id = record_id,
     zenodo = zenodo,
     active_release = active_release,
-    comparison = comparison
+    comparison = comparison,
+    matches_active = isTRUE(comparison$record_id_matches) &&
+      isTRUE(comparison$version_matches) &&
+      isTRUE(comparison$archive_name_matches) &&
+      isTRUE(comparison$archive_checksum_matches)
   )
 }
 

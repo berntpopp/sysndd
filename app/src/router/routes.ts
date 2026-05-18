@@ -302,6 +302,7 @@ export const routes: RouteRecordRaw[] = [
   },
   {
     path: '/NDDScore',
+    component: () => import('@/views/nddscore/NDDScore.vue'),
     children: [
       {
         path: '',
