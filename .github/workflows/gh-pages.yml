@@ -53,10 +53,19 @@ jobs:
       - name: Setup Quarto
         uses: quarto-dev/quarto-actions/setup@v2
         with:
-          # Install TinyTeX for PDF generation
-          tinytex: true
+          # PR validation renders HTML only and must not depend on TinyTeX's
+          # unauthenticated release lookup.
+          tinytex: ${{ github.event_name != 'pull_request' }}
 
-      - name: Render Quarto Book
+      - name: Render Quarto Book (PR)
+        if: github.event_name == 'pull_request'
+        uses: quarto-dev/quarto-actions/render@v2
+        with:
+          path: documentation
+          to: html
+
+      - name: Render Quarto Book (deployable formats)
+        if: github.event_name != 'pull_request'
         uses: quarto-dev/quarto-actions/render@v2
         with:
           path: documentation
