@@ -504,7 +504,18 @@
                 {{ field.label || field.key }}
               </dt>
               <dd class="generic-table-detail__value">
-                {{ detailValue(row.item, field.key) }}
+                <span>{{ detailValue(row.item, field.key) }}</span>
+                <BButton
+                  v-if="isCopyableDetailField(field.key, row.item)"
+                  size="sm"
+                  variant="outline-primary"
+                  class="generic-table-detail__copy-button"
+                  :aria-label="`Copy ${field.label || field.key}`"
+                  @click.stop="copyDetailValue(row.item, field.key)"
+                >
+                  <i class="bi bi-clipboard" aria-hidden="true" />
+                  {{ copiedDetailKey === detailCopyKey(row.item, field.key) ? 'Copied' : 'Copy' }}
+                </BButton>
               </dd>
             </div>
           </dl>
@@ -564,6 +575,12 @@ export default {
     },
   },
   emits: ['update-sort', 'update:sort-by', 'head-clicked', 'sorted'],
+  data() {
+    return {
+      copiedDetailKey: null,
+      copyResetTimer: null,
+    };
+  },
   computed: {
     /**
      * Converts sortBy prop to Bootstrap-Vue-Next array format.
@@ -588,6 +605,12 @@ export default {
       return [];
     },
   },
+  beforeUnmount() {
+    if (this.copyResetTimer) {
+      window.clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = null;
+    }
+  },
   methods: {
     detailValue(row, key) {
       const value = row?.[key];
@@ -595,6 +618,33 @@ export default {
     },
     isLongDetailField(key) {
       return /synopsis|abstract|comment|description|summary|note/i.test(String(key || ''));
+    },
+    isCopyableDetailField(key, row) {
+      return this.isLongDetailField(key) && this.detailValue(row, key) !== '—';
+    },
+    detailCopyKey(row, key) {
+      const rowKey = row?.entity_id ?? row?.id ?? row?.symbol ?? '';
+      return `${rowKey}:${String(key || '')}`;
+    },
+    async copyDetailValue(row, key) {
+      const value = this.detailValue(row, key);
+      if (value === '—' || !navigator?.clipboard?.writeText) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(String(value));
+        this.copiedDetailKey = this.detailCopyKey(row, key);
+        if (this.copyResetTimer) {
+          window.clearTimeout(this.copyResetTimer);
+        }
+        this.copyResetTimer = window.setTimeout(() => {
+          this.copiedDetailKey = null;
+          this.copyResetTimer = null;
+        }, 1600);
+      } catch {
+        this.copiedDetailKey = null;
+      }
     },
     handleSortByUpdate(newSortBy) {
       this.$emit('update:sort-by', newSortBy);
@@ -710,11 +760,35 @@ export default {
 }
 
 .generic-table-detail__row--long-text .generic-table-detail__value {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: start;
   padding: 0.65rem 0.75rem;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 0.375rem;
   background: #f8fafc;
   line-height: 1.45;
+}
+
+.generic-table-detail__copy-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.45rem;
+  padding: 0.08rem 0.4rem;
+  border-color: #0a58ca;
+  color: #0a58ca;
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.generic-table-detail__copy-button:hover,
+.generic-table-detail__copy-button:focus {
+  border-color: #084298;
+  background-color: #0a58ca;
+  color: #fff;
 }
 
 :deep(.entities-table td[colspan]) {
@@ -730,6 +804,14 @@ export default {
 
   .generic-table-detail__label {
     white-space: normal;
+  }
+
+  .generic-table-detail__row--long-text .generic-table-detail__value {
+    grid-template-columns: 1fr;
+  }
+
+  .generic-table-detail__copy-button {
+    justify-self: start;
   }
 }
 </style>
