@@ -78,4 +78,29 @@ describe('GenericTable responsive mode', () => {
     expect(rows[0].text()).toContain('HGNC:60');
     expect(wrapper.findAll('[data-testid="b-table"]')).toHaveLength(1);
   });
+
+  it('uses readable full-width rows for long narrative detail fields', () => {
+    const synopsis =
+      'A long clinical synopsis with multiple findings, inheritance context, and publication-derived evidence.';
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ synopsis, hgnc_id: 'HGNC:9100' }],
+        fields,
+        fieldDetails: [
+          { key: 'hgnc_id', label: 'HGNC ID' },
+          { key: 'synopsis', label: 'Clinical Synopsis' },
+        ],
+      },
+      global: {
+        stubs: {
+          BTable: bTableStub,
+          BCard: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    const longTextRow = wrapper.get('.generic-table-detail__row--long-text');
+    expect(longTextRow.text()).toContain('Clinical Synopsis');
+    expect(longTextRow.text()).toContain(synopsis);
+  });
 });

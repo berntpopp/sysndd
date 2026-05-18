@@ -494,7 +494,12 @@
       <slot name="row-expansion" :row="row.item" :toggle="row.toggleExpansion">
         <BCard class="generic-table-detail-card">
           <dl class="generic-table-detail">
-            <div v-for="field in fieldDetails" :key="field.key" class="generic-table-detail__row">
+            <div
+              v-for="field in fieldDetails"
+              :key="field.key"
+              class="generic-table-detail__row"
+              :class="{ 'generic-table-detail__row--long-text': isLongDetailField(field.key) }"
+            >
               <dt class="generic-table-detail__label">
                 {{ field.label || field.key }}
               </dt>
@@ -588,6 +593,9 @@ export default {
       const value = row?.[key];
       return value === null || value === undefined || value === '' ? '—' : value;
     },
+    isLongDetailField(key) {
+      return /synopsis|abstract|comment|description|summary|note/i.test(String(key || ''));
+    },
     handleSortByUpdate(newSortBy) {
       this.$emit('update:sort-by', newSortBy);
       if (newSortBy && newSortBy.length > 0 && newSortBy[0].key) {
@@ -652,10 +660,17 @@ export default {
   border-radius: 0.5rem;
   box-shadow: none;
   text-align: left;
+  white-space: normal;
+}
+
+:deep(.generic-table-detail-card .card-body) {
+  white-space: normal;
 }
 
 .generic-table-detail {
   margin: 0;
+  min-width: 0;
+  white-space: normal;
 }
 
 .generic-table-detail__row {
@@ -664,6 +679,13 @@ export default {
   gap: 0.75rem;
   padding: 0.45rem 0;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  white-space: normal;
+}
+
+.generic-table-detail__row--long-text {
+  grid-template-columns: 1fr;
+  gap: 0.3rem;
+  padding: 0.65rem 0;
 }
 
 .generic-table-detail__row:last-child {
@@ -684,6 +706,20 @@ export default {
   color: #111827;
   text-align: left;
   overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.generic-table-detail__row--long-text .generic-table-detail__value {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  line-height: 1.45;
+}
+
+:deep(.entities-table td[colspan]) {
+  overflow: visible;
+  white-space: normal;
 }
 
 @media (max-width: 575.98px) {
