@@ -75,3 +75,71 @@ test_that("MCP analysis response budgets support auto, diagnostics, and truncati
   expect_true(section_trimmed$budget$truncated)
   expect_true(length(section_trimmed$sections) < length(sections))
 })
+
+test_that("analysis catalog advertises approved scope B tools and data classes", {
+  source("../../services/mcp-service.R")
+
+  catalog <- mcp_get_sysndd_analysis_catalog()
+  ids <- vapply(catalog$analyses, `[[`, character(1), "analysis_id")
+
+  expect_equal(catalog$schema_version, MCP_SCHEMA_VERSION)
+  expect_true("nddscore" %in% ids)
+  expect_true("gene_research_context" %in% ids)
+  expect_true("cached_llm_summaries" %in% ids)
+  expect_false(any(grepl("generate|prompt|gemini", ids, ignore.case = TRUE)))
+  expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$default_limits), logical(1))))
+  expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$example_call), logical(1))))
+  expect_equal(catalog$recommended_workflow[[1]], "Call get_sysndd_analysis_catalog first for scope and limits.")
+})
+
+test_that("NDDScore MCP context is always marked as ML prediction and not evidence tier", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_release <- mcp_analysis_repo_current_release
+  old_gene <- mcp_analysis_repo_get_nddscore_gene
+  assign("mcp_analysis_repo_current_release", function() {
+    tibble::tibble(release_id = "rel1", version = "2026.05", is_active = 1L)
+  }, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_nddscore_gene", function(gene) {
+    list(
+      gene = tibble::tibble(hgnc_id = "HGNC:61", gene_symbol = "ABCD1", ndd_score = 0.7),
+      hpo_predictions = tibble::tibble(phenotype_id = "HP:0001250", probability = 0.4)
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_current_release", old_release, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_nddscore_gene", old_gene, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_nddscore_context(gene = "HGNC:61")
+
+  expect_equal(result$data_class, "ml_prediction")
+  expect_equal(result$curation_effect, "none")
+  expect_true(result$not_evidence_tier)
+  expect_match(result$notice, "Separate from curated SysNDD evidence", fixed = TRUE)
+})
+
+test_that("curation comparison context returns bounded rows with derived-analysis labels", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_rows <- mcp_analysis_repo_get_comparison_rows
+  old_count <- mcp_analysis_repo_count_comparison_rows
+  old_meta <- mcp_analysis_repo_get_comparison_metadata
+  assign("mcp_analysis_repo_get_comparison_rows", function(...) {
+    tibble::tibble(hgnc_id = "HGNC:61", list = "SysNDD", category = "Definitive")
+  }, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_count_comparison_rows", function(...) 1L, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_comparison_metadata", function() tibble::tibble(last_refresh_status = "success"), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_get_comparison_rows", old_rows, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_count_comparison_rows", old_count, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_comparison_metadata", old_meta, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_curation_comparison_context(gene = "HGNC:61")
+  expect_equal(result$data_class, "curated_derived_analysis")
+  expect_equal(result$rows[[1]]$hgnc_id, "HGNC:61")
+  expect_equal(result$meta$total, 1L)
+})
