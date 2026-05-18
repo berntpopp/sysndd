@@ -13,26 +13,6 @@ async_job_repository_path <- function() {
   file.path(get_api_dir(), "functions", "async-job-repository.R")
 }
 
-async_job_migration_path <- function() {
-  override <- Sys.getenv("ASYNC_JOB_MIGRATION_PATH", "")
-  if (nzchar(override)) {
-    return(override)
-  }
-
-  candidates <- c(
-    file.path(get_api_dir(), "..", "db", "migrations", "020_add_async_job_schema.sql"),
-    file.path(get_api_dir(), "db", "migrations", "020_add_async_job_schema.sql")
-  )
-
-  for (candidate in candidates) {
-    if (file.exists(candidate)) {
-      return(candidate)
-    }
-  }
-
-  candidates[[1]]
-}
-
 ensure_async_job_repository_loaded <- function() {
   repo_path <- async_job_repository_path()
   if (!file.exists(repo_path)) {
@@ -65,47 +45,11 @@ test_that("async job repository loads correctly when config masks base::get", {
   })
 })
 
-apply_async_job_migration <- function(conn) {
-  migration_path <- async_job_migration_path()
-  if (!file.exists(migration_path)) {
-    stop("async-job migration file is missing: ", migration_path)
-  }
-
-  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
-  statements <- split_sql_statements(sql)
-
-  for (statement in statements) {
-    DBI::dbExecute(conn, statement, immediate = TRUE)
-  }
-
-  invisible(TRUE)
-}
-
 ensure_async_job_schema <- function() {
   conn <- get_test_db_connection()
   on.exit(DBI::dbDisconnect(conn), add = TRUE)
 
-  if (DBI::dbExistsTable(conn, "async_job_events")) {
-    DBI::dbExecute(conn, "DROP TABLE async_job_events", immediate = TRUE)
-  }
-  if (DBI::dbExistsTable(conn, "async_jobs")) {
-    DBI::dbExecute(conn, "DROP TABLE async_jobs", immediate = TRUE)
-  }
-  if (!DBI::dbExistsTable(conn, "user")) {
-    DBI::dbExecute(
-      conn,
-      paste(
-        "CREATE TABLE user (",
-        "user_id INT NOT NULL PRIMARY KEY,",
-        "user_name VARCHAR(255) NULL",
-        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-        sep = " "
-      ),
-      immediate = TRUE
-    )
-  }
-
-  apply_async_job_migration(conn)
+  ensure_test_async_job_schema(conn, reset = TRUE)
 
   invisible(TRUE)
 }

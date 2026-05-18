@@ -6,6 +6,8 @@ source_api_file("functions/db-helpers.R", local = FALSE)
 source_api_file("functions/re-review-sync.R", local = FALSE)
 
 ensure_test_users <- function(conn, user_ids) {
+  ensure_test_user_table(conn)
+
   for (user_id in user_ids) {
     DBI::dbExecute(
       conn,

@@ -69,6 +69,7 @@ describe("NDDScore admin import submission", {
     skip_if_no_test_db()
     conn <- get_test_db_connection()
     withr::defer(DBI::dbDisconnect(conn), envir = parent.frame())
+    ensure_test_async_job_schema(conn)
     DBI::dbBegin(conn)
     withr::defer(DBI::dbRollback(conn), envir = parent.frame())
 

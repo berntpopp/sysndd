@@ -226,6 +226,14 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		sleep 1; \
 		SECONDS=$$((SECONDS+1)); \
 	done
+	@printf "$(CYAN)Resetting test database for CI parity...$(RESET)\n"
+	@cd $(ROOT_DIR) && { \
+		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
+			'mysql -h127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON sysndd_db_test.* TO '\''bernt'\''@'\''%'\'';"' || \
+		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
+			'mysql -h127.0.0.1 -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"'; \
+	} && printf "$(GREEN)✓ Test database reset$(RESET)\n" || \
+		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "\n$(CYAN)[2/6] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "\n$(CYAN)[3/6] Linting frontend code...$(RESET)\n"

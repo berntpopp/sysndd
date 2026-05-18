@@ -67,6 +67,97 @@ skip_if_no_test_db <- function() {
 }
 
 
+#' Ensure the minimal user table required by schema-level test fixtures exists
+#'
+#' CI starts with an empty test database. Some integration fixtures only need the
+#' user primary key as a foreign-key target, so they create this minimal table
+#' instead of loading the full application schema.
+#'
+#' @param conn DBI connection to the test database
+#' @return Invisibly TRUE
+ensure_test_user_table <- function(conn) {
+  if (DBI::dbExistsTable(conn, "user")) {
+    return(invisible(TRUE))
+  }
+
+  DBI::dbExecute(
+    conn,
+    paste(
+      "CREATE TABLE user (",
+      "user_id INT NOT NULL PRIMARY KEY,",
+      "user_name VARCHAR(255) NULL",
+      ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+      sep = " "
+    ),
+    immediate = TRUE
+  )
+
+  invisible(TRUE)
+}
+
+
+test_async_job_migration_path <- function() {
+  candidates <- c(
+    file.path(get_api_dir(), "..", "db", "migrations", "020_add_async_job_schema.sql"),
+    file.path(get_api_dir(), "db", "migrations", "020_add_async_job_schema.sql")
+  )
+
+  for (candidate in candidates) {
+    if (file.exists(candidate)) {
+      return(candidate)
+    }
+  }
+
+  candidates[[1]]
+}
+
+
+apply_test_async_job_migration <- function(conn) {
+  if (!exists("split_sql_statements", mode = "function")) {
+    source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
+  }
+
+  migration_path <- test_async_job_migration_path()
+  if (!file.exists(migration_path)) {
+    stop("async-job migration file is missing: ", migration_path)
+  }
+
+  sql <- paste(readLines(migration_path, warn = FALSE), collapse = "\n")
+  for (statement in split_sql_statements(sql)) {
+    DBI::dbExecute(conn, statement, immediate = TRUE)
+  }
+
+  invisible(TRUE)
+}
+
+
+#' Ensure the durable async job schema required by async job tests exists
+#'
+#' @param conn DBI connection to the test database
+#' @param reset Drop and recreate existing async-job tables
+#' @return Invisibly TRUE
+ensure_test_async_job_schema <- function(conn, reset = FALSE) {
+  ensure_test_user_table(conn)
+
+  has_jobs <- DBI::dbExistsTable(conn, "async_jobs")
+  has_events <- DBI::dbExistsTable(conn, "async_job_events")
+  if (!reset && has_jobs && has_events) {
+    return(invisible(TRUE))
+  }
+
+  if (has_events) {
+    DBI::dbExecute(conn, "DROP TABLE async_job_events", immediate = TRUE)
+  }
+  if (has_jobs) {
+    DBI::dbExecute(conn, "DROP TABLE async_jobs", immediate = TRUE)
+  }
+
+  apply_test_async_job_migration(conn)
+
+  invisible(TRUE)
+}
+
+
 #' Run code with test database transaction (auto-rollback)
 #'
 #' Wraps code in a transaction that is always rolled back,

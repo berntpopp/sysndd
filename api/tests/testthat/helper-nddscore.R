@@ -36,19 +36,7 @@ ensure_nddscore_schema <- function(conn) {
   if (DBI::dbExistsTable(conn, "nddscore_release")) {
     return(invisible(TRUE))
   }
-  if (!DBI::dbExistsTable(conn, "user")) {
-    DBI::dbExecute(
-      conn,
-      paste(
-        "CREATE TABLE user (",
-        "user_id INT NOT NULL PRIMARY KEY,",
-        "user_name VARCHAR(255) NULL",
-        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
-        sep = " "
-      ),
-      immediate = TRUE
-    )
-  }
+  ensure_test_user_table(conn)
 
   if (!exists("split_sql_statements", mode = "function")) {
     source_api_file("functions/migration-runner.R", local = FALSE, envir = .GlobalEnv)
