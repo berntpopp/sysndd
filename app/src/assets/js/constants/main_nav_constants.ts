@@ -86,6 +86,7 @@ const MAIN_NAV = {
       items: [
         { text: 'About', path: '/About' },
         { text: 'Docs and FAQ', path: '/Documentation' },
+        { text: 'MCP', path: '/mcp', icons: ['hdd-network'] },
       ],
     },
   ] satisfies NavDropdown[],

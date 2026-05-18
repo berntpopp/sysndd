@@ -114,6 +114,7 @@ services:
       - /app/node_modules
     environment:
       NODE_ENV: development
+      VITE_MCP_PROXY_TARGET: http://mcp:8787
     # Override memory limit from docker-compose.yml (256M is for nginx in prod)
     # Vite dev server needs less memory than webpack but still more than nginx
     deploy:

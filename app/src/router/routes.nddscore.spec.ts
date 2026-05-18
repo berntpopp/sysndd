@@ -22,6 +22,12 @@ describe('NDDScore navigation + routes', () => {
     expect(dd.items.some((i) => i.path === '/NDDScore')).toBe(true);
   });
 
+  it('keeps MCP documentation in the public Help dropdown', () => {
+    const help = DROPDOWN_ITEMS_LEFT.find((d) => d.id === 'help_dropdown');
+
+    expect(help?.items.some((i) => i.text === 'MCP' && i.path === '/mcp')).toBe(true);
+  });
+
   it('registers a public /NDDScore route with child routes', () => {
     const score = routes.find((r) => r.path === '/NDDScore');
     expect(score).toBeDefined();

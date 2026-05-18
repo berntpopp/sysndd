@@ -10,6 +10,18 @@ export function createViteConfig(mode: string): UserConfig {
   const env = loadEnv(mode, process.cwd(), '');
   const configuredApiUrl = process.env.VITE_API_URL || env.VITE_API_URL;
   const apiProxyTarget = configuredApiUrl?.trim() || 'http://traefik:80';
+  const configuredMcpUrl = process.env.VITE_MCP_PROXY_TARGET || env.VITE_MCP_PROXY_TARGET;
+  const mcpProxyTarget = configuredMcpUrl?.trim() || 'http://127.0.0.1:8787';
+  const isBrowserMcpInfoRequest = (req: { method?: string; headers: { accept?: string } }) => {
+    const accept = req.headers.accept ?? '';
+    return (
+      req.method === 'GET' && accept.includes('text/html') && !accept.includes('text/event-stream')
+    );
+  };
+  const stripMcpPrefix = (path: string) => {
+    const stripped = path.replace(/^\/mcp(?=\/|$)/, '');
+    return stripped || '/';
+  };
 
   return {
     plugins: [
@@ -142,6 +154,12 @@ export function createViteConfig(mode: string): UserConfig {
           // header expecting 'localhost'. Only override when using the default target;
           // when VITE_API_URL is set the caller controls the target host directly.
           ...(configuredApiUrl?.trim() ? {} : { headers: { Host: 'localhost' } }),
+        },
+        '/mcp': {
+          target: mcpProxyTarget,
+          changeOrigin: true,
+          rewrite: stripMcpPrefix,
+          bypass: (req) => (isBrowserMcpInfoRequest(req) ? req.url : undefined),
         },
       },
     },

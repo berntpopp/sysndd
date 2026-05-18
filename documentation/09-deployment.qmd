@@ -63,7 +63,32 @@ Payload controls are exposed as `response_mode`, `abstract_mode`, `synopsis_mode
 
 The sidecar patches `mcptools` so `tools/list` advertises read-only annotations and output schemas, and `resources/list` / `resources/read` serve distinct static `sysndd://schema/overview` and `sysndd://schema/tool-guide` resources. MCP prompts are disabled by default because Claude Code exposes them as user-invoked slash commands rather than automatically discovered LLM workflows; set `MCP_ENABLE_PROMPTS=true` only when the deployment intentionally wants `prompts/list` / `prompts/get` to expose the four SysNDD workflow prompts. Recoverable validation failures return stable tool-result JSON envelopes with `isError = true`; malformed or unknown user inputs should not surface as JSON-RPC `-32603` internal errors. The container healthcheck uses only `initialize` and `tools/list`; `make test-mcp-smoke` remains the heavier end-to-end probe.
 
-The production Compose file keeps MCP internal-only by default: no host port and no Traefik labels are configured. If an operator exposes it as `/mcp`, the proxy must protect it with a static bearer-token middleware, equivalent private network control, or a future OAuth flow, and should strip `/mcp` before forwarding to the `mcptools` HTTP root endpoint.
+The production Compose file keeps MCP internal-only by default: no host port and no Traefik labels are configured. If an operator exposes it as `/mcp`, the proxy must protect it with a static bearer-token middleware, equivalent private network control, or a future OAuth flow, and should strip `/mcp` before forwarding to the `mcptools` HTTP root endpoint. A safe deployment can route MCP protocol requests (`POST /mcp` and `GET /mcp` with `Accept: text/event-stream`) to the protected sidecar while letting normal browser `GET /mcp` requests reach the public informational Vue page. Without such a protected proxy route, the public app serves `/mcp` as a short informational page for humans and MCP client setup guidance; that page must not be treated as the transport endpoint.
+
+For Traefik, the intended shape is:
+
+```yaml
+# Operator overlay example; do not expose this without authentication.
+mcp:
+  networks:
+    - backend
+    - proxy
+  labels:
+    - "traefik.enable=true"
+    - "traefik.docker.network=sysndd_proxy"
+    - "traefik.http.routers.mcp-post.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && Method(`POST`)"
+    - "traefik.http.routers.mcp-post.entrypoints=web"
+    - "traefik.http.routers.mcp-post.priority=200"
+    - "traefik.http.routers.mcp-post.middlewares=mcp-strip,mcp-auth"
+    - "traefik.http.routers.mcp-sse.rule=Host(`sysndd.dbmr.unibe.ch`) && Path(`/mcp`) && HeadersRegexp(`Accept`, `.*text/event-stream.*`)"
+    - "traefik.http.routers.mcp-sse.entrypoints=web"
+    - "traefik.http.routers.mcp-sse.priority=200"
+    - "traefik.http.routers.mcp-sse.middlewares=mcp-strip,mcp-auth"
+    - "traefik.http.middlewares.mcp-strip.stripprefix.prefixes=/mcp"
+    - "traefik.http.services.mcp.loadbalancer.server.port=8787"
+```
+
+Add `mcp-auth` through the deployment's chosen authentication middleware before enabling the route.
 
 ## Operations Notes
 

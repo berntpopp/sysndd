@@ -59,6 +59,11 @@ const URLS = {
    * This ensures that the application can adapt to different environments (development, production, etc.).
    */
   API_URL: import.meta.env.VITE_API_URL,
+
+  /**
+   * Public base URL for this deployment.
+   */
+  APP_URL: import.meta.env.VITE_URL,
 } as const;
 
 export default URLS;

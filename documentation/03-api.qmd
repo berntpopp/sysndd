@@ -38,7 +38,7 @@ Here one can generate cURL requests to use in external software.
 
 SysNDD can also run an optional Model Context Protocol (MCP) sidecar from `api/start_sysndd_mcp.R`. The MCP sidecar is a separate R process/container and is not mounted inside the Plumber API process.
 
-MCP v1 is read-only and private/internal by default. The production Compose service has no Traefik labels and therefore is not publicly exposed unless an operator explicitly adds a protected route. The current `mcptools` HTTP transport listens at the service root; a reverse proxy can expose that as `/mcp` with path stripping when protected access is configured.
+MCP v1 is read-only and private/internal by default. The production Compose service has no Traefik labels and therefore is not publicly exposed unless an operator explicitly adds a protected route. The current `mcptools` HTTP transport listens at the service root; a reverse proxy can expose that as `/mcp` with path stripping when protected access is configured. The public website route `/mcp` is an informational page for browser `GET text/html` requests. Development Vite proxies MCP protocol requests on the same `/mcp` path to the sidecar, while letting browser navigation render the informational Vue page.
 
 Available MCP tools:
 

@@ -178,3 +178,18 @@ describe('/Panels beforeEnter — Vue Router 4 return-based API', () => {
     expect(guard.length).toBe(1);
   });
 });
+
+describe('MCP information route', () => {
+  it('registers /mcp before the catch-all route as a public help page', () => {
+    const routeIndex = routes.findIndex((r) => r.path === '/mcp');
+    const catchAllIndex = routes.findIndex((r) => r.path === '/:pathMatch(.*)*');
+
+    expect(routeIndex).toBeGreaterThan(-1);
+    expect(routeIndex).toBeLessThan(catchAllIndex);
+
+    const route = routes[routeIndex];
+    expect(route.name).toBe('McpInfo');
+    expect(route.beforeEnter).toBeUndefined();
+    expect(route.meta?.sitemap?.priority).toBe(0.5);
+  });
+});

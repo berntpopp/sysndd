@@ -384,6 +384,17 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/mcp',
+    name: 'McpInfo',
+    component: () => import('@/views/help/McpInfoView.vue'),
+    meta: {
+      sitemap: {
+        priority: 0.5,
+        changefreq: 'yearly',
+      },
+    },
+  },
+  {
     path: '/Login',
     name: 'Login',
     component: () => import('@/views/LoginView.vue'),
