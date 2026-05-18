@@ -129,9 +129,11 @@ MCP and LLM research guidance:
 5. Use stable schemas with caps, pagination, and tool-visible errors.
 6. Keep LLM-generated summaries cache-only and admin-generated.
 7. Make one-gene exploration ergonomic through `get_gene_research_context`.
-8. Keep broad analysis computation bounded and deterministic; return
-   `temporarily_unavailable` when a result cannot be served without live
-   external or LLM calls.
+8. Keep broad analysis computation bounded and deterministic. Network and
+   functional-cluster data may be served only from a proven local/disk cache hit
+   or future persisted snapshot; otherwise the standalone tool raises
+   `temporarily_unavailable` and the gene aggregator records that section as
+   unavailable.
 
 ## Non-Goals
 
@@ -258,16 +260,17 @@ Inputs:
   supplied, otherwise `ranked_genes`.
 - `risk_tier`, `confidence_tier`, `known_sysndd_gene`, `hpo_terms`, `search`:
   optional filters for ranked mode.
-- `sort`: default `rank`.
-- `limit`: default `25`, max `50`.
-- `offset`: default `0`.
+- `sort`: default `rank`; invalid sort values return `invalid_input`.
+- `page`: default `1`.
+- `page_size`: default `25`, max `50`.
 
 Output:
 
 - `data_class = "ml_prediction"`.
 - `curation_effect = "none"`.
 - `not_evidence_tier = true`.
-- Active release metadata.
+- Bounded active release metadata; large release JSON blobs are omitted from
+  normal gene/ranked payloads.
 - Gene prediction rows or one gene detail with HPO predictions.
 - The existing prediction note that SHAP/statistical signal is not causation.
 
@@ -279,8 +282,8 @@ form.
 Inputs:
 
 - `gene`: optional HGNC ID or symbol.
-- `mode`: `gene_sources`, `source_overlap`, `source_similarity`, or `browse`;
-  default `gene_sources` when `gene` is supplied, otherwise `browse`.
+- `mode`: `gene_sources` or `browse`; default `gene_sources` when `gene` is
+  supplied, otherwise `browse`.
 - `sources`: optional source-name array.
 - `category`: optional curated/source category filter.
 - `limit`: default `25`, max `50`.
@@ -288,11 +291,13 @@ Inputs:
 
 Output:
 
-- `data_class = "curated_derived_analysis"` for overlap/similarity summaries.
+- `data_class = "curated_derived_analysis"`.
 - Source rows from `ndd_database_comparison_view`.
 - Metadata from `comparisons_metadata` when available.
 - Clear note that external comparison sources are cross-references and do not
   alter SysNDD classifications.
+- Web-app overlap/similarity plot modes are not included in this MCP iteration;
+  requests for those modes return `unsupported_mode`.
 
 ### `get_phenotype_analysis_context`
 
@@ -318,6 +323,10 @@ Output:
 - `data_class = "curated_derived_analysis"` for computed correlations/clusters.
 - Optional `llm_generated_summary` blocks only when current validated cache rows
   exist.
+- Phenotype clusters are local MCA/HCPC-derived analysis and should be
+  implemented through shared helper code rather than endpoint copy-paste.
+- Phenotype-functional correlations depend on functional clusters; serve only
+  from cache-hit-safe functional cluster data or return `temporarily_unavailable`.
 
 ### `get_gene_network_context`
 
@@ -337,8 +346,10 @@ Output:
 - Cluster membership for the requested gene when supplied.
 - `data_class = "curated_derived_analysis"`.
 - STRING method/version metadata when available.
-- `temporarily_unavailable` if the data cannot be served from local/disk cache
-  without initializing a live external provider.
+- A standalone call raises `temporarily_unavailable` if
+  `memoise::has_cache(gen_network_edges_mem)` does not confirm a cache hit for
+  the requested arguments. It must not initialize `STRINGdb` or call
+  `gen_network_edges_mem()` on a cache miss.
 
 ## Cache-Only LLM Summary Contract
 
@@ -394,8 +405,9 @@ For `HGNC:61` / ABCD1, the new MCP path should be able to return:
 - Phenotype cluster membership and correlation context if available.
 - Gene network cluster membership and bounded neighboring edges if available
   without live external initialization.
-- Existing external identifiers stored in the gene row, such as OMIM, Ensembl,
-  UniProt, STRING, MGI, RGD, MANE, and AlphaFold IDs, labeled as
+- Existing external identifiers read through a dedicated bounded
+  `non_alt_loci_set` repository helper, such as OMIM, Ensembl, UniProt, STRING,
+  MGI, RGD, MANE, and AlphaFold IDs, labeled as
   `external_reference_identifier`.
 
 It must not return live gnomAD/ClinVar/UniProt/AlphaFold/MGI/RGD proxy data in
@@ -411,7 +423,7 @@ Use existing `mcp_error()` and `mcp_error_payload()` with codes:
 - `invalid_input`: bad enum, limit, identifier, threshold, or mode.
 - `not_found`: gene, release, cluster, or analysis record not found.
 - `temporarily_unavailable`: local/cache-only analysis data is not available
-  without a prohibited live call.
+  without a prohibited live call, or no active NDDScore release exists.
 - `unsupported_mode`: mode is valid for the web app but not this MCP tool.
 
 For partially available gene research context, return a successful payload with
@@ -489,13 +501,14 @@ code notes that `STRINGdb$new()` checks `string-db.org/api/version` when a new
 object is initialized. Because MCP must not call external providers, the
 network and functional-cluster portions must either:
 
-1. Serve from an already available local/disk cache without initializing
-   STRINGdb, or
+1. Serve from an already available local/disk cache only after
+   `memoise::has_cache()` confirms a hit for the exact arguments, or
 2. Return `temporarily_unavailable`, or
 3. Be backed by a future persisted analysis snapshot.
 
-The implementation plan uses option 1 when safe and option 2 otherwise. A future
-snapshot table can upgrade this without changing the public MCP tool names.
+The implementation plan uses option 1 when `memoise::has_cache()` proves a hit
+and option 2 otherwise. A future snapshot table can upgrade this without
+changing the public MCP tool names.
 
 ## Acceptance Criteria
 
