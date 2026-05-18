@@ -189,3 +189,120 @@ test_that("MCP LLM summary service reports cache miss without generation", {
   expect_true(result[[1]]$cache_only)
   expect_equal(result[[1]]$data_class, "llm_generated_summary")
 })
+
+test_that("phenotype analysis context validates mode and labels derived analyses", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_corr <- mcp_analysis_repo_get_phenotype_correlations
+  assign("mcp_analysis_repo_get_phenotype_correlations", function(...) {
+    tibble::tibble(x = "Seizure", x_id = "HP:0001250", y = "Ataxia", y_id = "HP:0001251", value = 0.42)
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv))
+
+  result <- mcp_get_phenotype_analysis_context(mode = "correlations", phenotype = "HP:0001250")
+  expect_equal(result$data_class, "curated_derived_analysis")
+  expect_equal(result$records[[1]]$value, 0.42)
+
+  err <- tryCatch(
+    mcp_get_phenotype_analysis_context(mode = "raw_matrix"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+  expect_equal(err$error$code, "invalid_input")
+})
+
+test_that("gene network context raises temporarily_unavailable when disk cache hit is absent", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_has <- mcp_analysis_repo_network_cache_hit
+  assign("mcp_analysis_repo_network_cache_hit", function(...) FALSE, envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv))
+
+  err <- tryCatch(
+    mcp_get_gene_network_context(gene = "HGNC:61"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+  expect_equal(err$error$code, "temporarily_unavailable")
+})
+
+test_that("gene network context passes the requested gene into cache-safe repository reads", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  seen_gene <- NULL
+  old_has <- mcp_analysis_repo_network_cache_hit
+  old_network <- get0("mcp_analysis_repo_get_network_edges_local", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_network_edges_local", function(gene = NULL, ...) {
+    seen_gene <<- gene
+    list(
+      nodes = tibble::tibble(hgnc_id = "HGNC:61", symbol = "ABCD1"),
+      edges = tibble::tibble(source = "HGNC:61", target = "HGNC:62", confidence = 0.9),
+      metadata = list(gene_filtered = TRUE)
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
+    if (is.null(old_network)) rm("mcp_analysis_repo_get_network_edges_local", envir = .GlobalEnv) else assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_gene_network_context(gene = "HGNC:61")
+  expect_equal(seen_gene, "HGNC:61")
+  expect_true(result$meta$gene_filtered)
+})
+
+test_that("phenotype and network services convert cache-safe helper errors to temporary unavailability", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_corr <- mcp_analysis_repo_get_phenotype_correlations
+  old_has <- mcp_analysis_repo_network_cache_hit
+  old_network <- mcp_analysis_repo_get_network_edges_local
+  assign("mcp_analysis_repo_get_phenotype_correlations", function(...) stop("helper failed"), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_network_edges_local", function(...) stop("network failed"), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+  })
+
+  phenotype_err <- tryCatch(
+    mcp_get_phenotype_analysis_context(mode = "correlations"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+  network_err <- tryCatch(
+    mcp_get_gene_network_context(gene = "HGNC:61"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+
+  expect_equal(phenotype_err$error$code, "temporarily_unavailable")
+  expect_equal(network_err$error$code, "temporarily_unavailable")
+})
+
+test_that("gene network context budget accounts for nodes and metadata", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_has <- mcp_analysis_repo_network_cache_hit
+  old_network <- mcp_analysis_repo_get_network_edges_local
+  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_network_edges_local", function(...) {
+    list(
+      nodes = tibble::tibble(hgnc_id = "HGNC:61", symbol = paste(rep("A", 500), collapse = "")),
+      edges = tibble::tibble(source = "HGNC:61", target = "HGNC:62", confidence = 0.9),
+      metadata = list(gene_filtered = TRUE, note = paste(rep("m", 500), collapse = ""))
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_gene_network_context(gene = "HGNC:61", max_response_chars = 1000L)
+  payload_chars <- mcp_analysis_estimate_chars(result[c("nodes", "edges", "meta")])
+
+  expect_gte(result$budget$total_chars, payload_chars)
+  expect_true(result$budget$truncated)
+})

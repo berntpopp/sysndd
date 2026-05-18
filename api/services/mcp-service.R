@@ -833,6 +833,168 @@ mcp_get_cached_llm_summaries <- function(cluster_type,
   })
 }
 
+mcp_get_phenotype_analysis_context <- function(mode,
+                                               gene = NULL,
+                                               phenotype = NULL,
+                                               min_abs_correlation = 0.3,
+                                               cluster_id = NULL,
+                                               limit = 25L,
+                                               include_cached_llm_summaries = TRUE,
+                                               response_mode = "compact",
+                                               max_response_chars = "auto",
+                                               include_diagnostics = FALSE,
+                                               dry_run = FALSE) {
+  mode <- mcp_validate_enum(mode, c("correlations", "clusters", "phenotype_functional_correlations"), "mode")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
+  limit <- mcp_validate_limit(limit, default = 25L, max = 50L)
+  min_abs_correlation <- suppressWarnings(as.numeric(min_abs_correlation))
+  if (is.na(min_abs_correlation) || min_abs_correlation < 0 || min_abs_correlation > 1) {
+    stop(mcp_error("invalid_input", "min_abs_correlation must be between 0 and 1", list(argument = "min_abs_correlation")))
+  }
+  envelope <- mcp_analysis_provenance(
+    "curated_derived_analysis",
+    "SysNDD phenotype analysis",
+    "approved primary review phenotypes",
+    "deterministic_analysis"
+  )
+
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      mode = mode,
+      records = list(),
+      cached_llm_summaries = list(),
+      meta = list(
+        limit = limit,
+        diagnostics_only = TRUE,
+        min_abs_correlation = min_abs_correlation,
+        include_diagnostics = include_diagnostics
+      ),
+      budget = mcp_analysis_finalize_budget(list(mode = mode, limit = limit), budget),
+      recovery = list(retry_with = list(mode = mode, response_mode = "compact", limit = min(limit, 25L)))
+    )))
+  }
+
+  records <- tryCatch(
+    switch(
+      mode,
+      correlations = mcp_analysis_repo_get_phenotype_correlations(
+        phenotype = phenotype,
+        min_abs_correlation = min_abs_correlation,
+        limit = limit
+      ),
+      clusters = mcp_analysis_repo_get_phenotype_clusters(gene = gene, cluster_id = cluster_id, limit = limit),
+      phenotype_functional_correlations = mcp_analysis_repo_get_phenotype_functional_correlations(gene = gene, limit = limit)
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(records)) {
+    stop(mcp_error(
+      "temporarily_unavailable",
+      "Requested phenotype analysis mode is not available from shared helper/cache-safe data.",
+      list(argument = "mode")
+    ))
+  }
+
+  record_list <- mcp_rows_to_records(records)
+  trimmed <- mcp_analysis_trim_records(record_list, max_records = limit, budget = budget, label = paste0("phenotype_", mode))
+  c(envelope, list(
+    mode = mode,
+    records = trimmed$records,
+    cached_llm_summaries = list(),
+    meta = list(
+      limit = limit,
+      returned = length(trimmed$records),
+      min_abs_correlation = min_abs_correlation,
+      include_cached_llm_summaries = include_cached_llm_summaries
+    ),
+    budget = trimmed$budget
+  ))
+}
+
+mcp_get_gene_network_context <- function(gene = NULL,
+                                         cluster_type = "clusters",
+                                         min_confidence = 400L,
+                                         max_edges = 100L,
+                                         include_cached_llm_summaries = TRUE,
+                                         response_mode = "compact",
+                                         max_response_chars = "auto",
+                                         include_diagnostics = FALSE,
+                                         dry_run = FALSE) {
+  cluster_type <- mcp_validate_enum(cluster_type, c("clusters", "subclusters"), "cluster_type")
+  budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
+  min_confidence <- suppressWarnings(as.integer(min_confidence))
+  max_edges <- mcp_validate_limit(max_edges, default = 100L, max = 250L, name = "max_edges")
+  if (is.na(min_confidence) || min_confidence < 0L || min_confidence > 1000L) {
+    stop(mcp_error("invalid_input", "min_confidence must be between 0 and 1000", list(argument = "min_confidence")))
+  }
+  envelope <- mcp_analysis_provenance(
+    "curated_derived_analysis",
+    "SysNDD STRING-derived network analysis",
+    "local STRING/memoise cache",
+    "deterministic_analysis"
+  )
+  cache_hit <- mcp_analysis_repo_network_cache_hit(cluster_type = cluster_type, min_confidence = min_confidence)
+  if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
+    return(c(envelope, list(
+      section_status = if (isTRUE(cache_hit)) "available" else "temporarily_unavailable",
+      nodes = list(),
+      edges = list(),
+      meta = list(
+        cluster_type = cluster_type,
+        min_confidence = min_confidence,
+        max_edges = max_edges,
+        cache_hit = cache_hit,
+        include_diagnostics = include_diagnostics
+      ),
+      budget = mcp_analysis_finalize_budget(list(cache_hit = cache_hit, cluster_type = cluster_type), budget),
+      recovery = list(retry_with = list(response_mode = "compact", max_edges = min(max_edges, 100L)))
+    )))
+  }
+  if (!isTRUE(cache_hit)) {
+    stop(mcp_error(
+      "temporarily_unavailable",
+      "Gene network context is not available from local cache without initializing STRINGdb.",
+      list(argument = "gene_network", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
+    ))
+  }
+  network <- tryCatch(
+    mcp_analysis_repo_get_network_edges_local(
+      gene = gene,
+      cluster_type = cluster_type,
+      min_confidence = min_confidence,
+      max_edges = max_edges
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(network)) {
+    stop(mcp_error(
+      "temporarily_unavailable",
+      "Gene network context is not available from local cache without initializing STRINGdb.",
+      list(argument = "gene_network")
+    ))
+  }
+  edge_records <- mcp_rows_to_records(network$edges)
+  trimmed <- mcp_analysis_trim_records(edge_records, max_records = max_edges, budget = budget, label = "gene_network_edges")
+  payload <- list(
+    nodes = mcp_rows_to_records(network$nodes),
+    edges = trimmed$records,
+    meta = c(network$metadata %||% list(), list(
+      cluster_type = cluster_type,
+      min_confidence = min_confidence,
+      max_edges = max_edges,
+      include_cached_llm_summaries = include_cached_llm_summaries
+    ))
+  )
+  trimmed$budget <- mcp_analysis_finalize_budget(payload, trimmed$budget)
+  c(envelope, list(
+    section_status = "available",
+    nodes = payload$nodes,
+    edges = payload$edges,
+    meta = payload$meta,
+    budget = trimmed$budget
+  ))
+}
+
 mcp_cache_key <- function(name, args) {
   paste(name, jsonlite::toJSON(args, auto_unbox = TRUE, null = "null"), sep = ":")
 }
