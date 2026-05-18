@@ -52,6 +52,7 @@ make docker-down
 make dev
 make docker-dev-db
 make serve-app
+make code-quality-audit
 make pre-commit
 make test-api-fast
 make ci-local
@@ -167,6 +168,7 @@ Offline importer fixtures live under `api/tests/testthat/fixtures/nddscore/`. Th
 ## Common Gotchas
 
 - Start the DB stack before host-side API work.
+- `make code-quality-audit` is the fast deterministic quality ratchet. It allows the committed oversized-file baseline in `scripts/code-quality-file-size-baseline.tsv`, but fails if a new handwritten source file exceeds 600 lines or an existing oversized source file grows.
 - `make pre-commit` is the fast local mirror of the pull-request gate. Use `make ci-local` before handoff, and `make test-api` when you want the full API suite locally.
 - Restart the worker container after changing code used by background jobs. The API submits durable jobs; the worker service executes them.
 - Namespace masked R functions such as `dplyr::select(...)`.

@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -196,18 +196,26 @@ verify-seo-app: check-npm ## [quality] Build fixture SEO pages and verify crawla
 		printf "$(GREEN)✓ verify-seo-app complete$(RESET)\n" || \
 		(printf "$(RED)✗ verify-seo-app failed$(RESET)\n" && exit 1)
 
+code-quality-audit: ## [quality] Run fast deterministic code-quality ratchet
+	@printf "$(CYAN)==> Running code-quality audit...$(RESET)\n"
+	@$(ROOT_DIR)/scripts/code-quality-audit.sh && \
+		printf "$(GREEN)✓ code-quality audit clean$(RESET)\n" || \
+		(printf "$(RED)✗ code-quality audit failed$(RESET)\n" && exit 1)
+
 # =============================================================================
 # Quality Targets
 # =============================================================================
 pre-commit: ## [quality] Run all quality checks before committing
 	@printf "$(CYAN)==> Running pre-commit quality checks...$(RESET)\n"
-	@printf "\n$(CYAN)[1/4] Running CI script harnesses...$(RESET)\n"
+	@printf "\n$(CYAN)[1/5] Running fast code-quality audit...$(RESET)\n"
+	@$(MAKE) code-quality-audit
+	@printf "\n$(CYAN)[2/5] Running CI script harnesses...$(RESET)\n"
 	@$(MAKE) test-ci-scripts
-	@printf "\n$(CYAN)[2/4] Linting R code...$(RESET)\n"
+	@printf "\n$(CYAN)[3/5] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api
-	@printf "\n$(CYAN)[3/4] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[4/5] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app
-	@printf "\n$(CYAN)[4/4] Running fast R API tests...$(RESET)\n"
+	@printf "\n$(CYAN)[5/5] Running fast R API tests...$(RESET)\n"
 	@$(MAKE) test-api-fast
 	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
 
@@ -267,6 +275,10 @@ _ci-cleanup:
 	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) stop mysql-test 2>/dev/null || true
 
 test-ci-scripts: ## [quality] Run lightweight bash harnesses for CI helper scripts
+	@printf "$(CYAN)==> Running code-quality-audit.sh harness...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/tests/test-code-quality-audit.sh && \
+		printf "$(GREEN)✓ code-quality-audit harness green$(RESET)\n" || \
+		(printf "$(RED)✗ code-quality-audit harness failed$(RESET)\n" && exit 1)
 	@printf "$(CYAN)==> Running ci-smoke.sh harness...$(RESET)\n"
 	@bash $(ROOT_DIR)/scripts/tests/test-ci-smoke.sh && \
 		printf "$(GREEN)✓ ci-smoke harness green$(RESET)\n" || \

@@ -12,8 +12,18 @@ This is the canonical agent-facing instruction file for this repository. SysNDD 
 - Keep handwritten source files under 600 lines when practical. Treat this as a soft ceiling: if a file approaches it, extract cohesive helpers, components, composables, or services before adding more behavior.
 - Do not split code mechanically. Tests, migrations, generated files, snapshots, fixtures, and tightly coupled implementations may exceed 600 lines when splitting would reduce clarity.
 
+## Code Quality
+
+- Start from nearby patterns and existing helpers before adding new abstractions, dependencies, or cross-layer shortcuts.
+- Pair behavior changes with targeted tests or deterministic checks. Run the smallest useful check first, then `make pre-commit` or `make ci-local` when the scope warrants it.
+- When touching files already over the 600-line soft ceiling, avoid making them larger by default. Extract cohesive code from the area being changed, but leave broad legacy splits for planned refactors. `make code-quality-audit` enforces this as a fast file-size ratchet.
+- Frontend API access should go through typed clients in `app/src/api/*`; do not add raw axios calls in views/components or direct `localStorage.token` / `localStorage.user` access.
+- API integration tests that write database state should use `with_test_db_transaction()` or document why rollback is not possible.
+- Use `.agents/skills/sysndd-code-quality/SKILL.md` for maintainability, modularity, file-size, DRY/KISS/SOLID, and anti-pattern review passes.
+
 ## Verify Before Handoff
 
+- Fast deterministic code-quality audit: `make code-quality-audit`
 - Full-repo check: `make ci-local`
 - Fast pre-push check: `make pre-commit`
 - Full dev stack: `make dev`

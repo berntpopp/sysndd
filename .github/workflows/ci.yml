@@ -59,6 +59,12 @@ jobs:
       smoke: ${{ steps.filter.outputs.smoke }}
     steps:
       - uses: actions/checkout@v6
+
+      - name: Run fast code-quality audit
+        run: |
+          make code-quality-audit
+          bash scripts/tests/test-code-quality-audit.sh
+
       - uses: dorny/paths-filter@v4
         id: filter
         with:
