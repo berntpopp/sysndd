@@ -110,6 +110,20 @@ onMounted(async () => {
 
 .nddscore-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
+}
+
+.nddscore-shell > * {
+  min-width: 0;
+}
+
+:deep(.analysis-content) {
+  padding-right: 1.1875rem;
+  padding-left: 1.1875rem;
+}
+
+:deep(.analysis-frame) {
+  width: 100%;
 }
 </style>
