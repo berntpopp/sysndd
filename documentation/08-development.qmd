@@ -86,6 +86,19 @@ make test-api-fast
 make test-api
 ```
 
+MCP analysis verification:
+
+```bash
+cd api
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-mcp-analysis-service.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-mcp-analysis-repository.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-mcp-tools.R')"
+cd ..
+make test-api-fast
+```
+
+For MCP 1.2 analysis changes, also check that the analysis tools remain read-only and bounded: `get_sysndd_analysis_catalog` -> `get_gene_research_context(dry_run = TRUE, response_mode = "compact")` -> focused follow-up tools. Analysis responses should use compact defaults, `max_response_chars = "auto"`, `budget` metadata, and `dry_run`/`diagnostics` recovery hints for broad result sets. Cached LLM summaries are validated admin-generated cache reads only, NDDScore is an ML prediction layer rather than a curated evidence tier, and stored external IDs should be treated only as `external_reference_identifier`.
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.
