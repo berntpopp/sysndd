@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
 # ci-smoke.sh
 #
-# CI smoke test: build the production image, bring the stack up, and curl
+# CI smoke test: bring the production stack up once and curl
 # /api/health/ready until it returns 200. Used by the `smoke-test` job in
-# .github/workflows/ci.yml (Phase B B4) and also runnable locally:
+# .github/workflows/ci.yml and also runnable locally:
 #
 #   ./scripts/ci-smoke.sh
 #
-# The heavy lifting (build + compose up + health poll + teardown) is already
-# implemented as `make preflight`. This wrapper adds an extra belt-and-braces
-# retry loop against the same endpoint once preflight finishes, which catches
-# the pathological case where preflight passes its own health loop but the
-# container dies between the probe and the teardown. It also fails loudly with
-# context (docker ps / docker logs) so CI logs are immediately actionable.
+# CI prebuilds the API image with Docker Buildx cache and passes
+# SYSNDD_API_IMAGE=sysndd-api:preflight so compose can reuse that local image
+# for both api and worker. The app image is still built by compose. The script
+# fails loudly with context (docker ps / docker logs) so CI logs are
+# immediately actionable.
 #
 # Exit codes:
 #   0 — health endpoint responded 200
-#   1 — preflight failed
+#   1 — compose startup failed
 #   2 — health endpoint never returned 200 after retries
+#   3 — SPA header assertion failed
 
 set -eu
 
@@ -28,7 +28,7 @@ log() { printf '[ci-smoke] %s\n' "$*"; }
 fail() { printf '[ci-smoke] FAIL: %s\n' "$*" >&2; }
 
 # Seed gitignored files from their committed templates if missing. This is
-# what lets `make preflight` build the prod Docker image on a fresh CI
+# what lets this script build/run the prod Docker image on a fresh CI
 # checkout: the Dockerfile does `COPY config.yml config.yml` and the
 # compose file consumes env vars from `.env`, but both `api/config.yml` and
 # `.env` are gitignored because they hold real credentials on dev machines.
@@ -72,23 +72,14 @@ dump_context() {
   (cd "$REPO_ROOT" && docker compose -f docker-compose.yml logs --tail=80 api || true) >&2
 }
 
-log "step 1/3: make preflight (builds prod image + compose up + internal health poll)"
-if ! (cd "$REPO_ROOT" && make preflight); then
-  dump_context
-  exit 1
-fi
-
-# preflight tears the stack down on success. To exercise the actual smoke loop
-# we bring the stack back up briefly and re-probe. This catches race conditions
-# where the container died between preflight's probe and teardown.
-log "step 2/3: re-up prod stack for independent curl probe"
+log "step 1/3: start prod stack"
 if ! (cd "$REPO_ROOT" && docker compose -f docker-compose.yml up -d); then
   dump_context
   exit 1
 fi
 trap '(cd "$REPO_ROOT" && docker compose -f docker-compose.yml down) || true' EXIT
 
-log "step 3/4: curl -f -H 'Host: $HEALTH_HOST_HEADER' $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
+log "step 2/3: curl -f -H 'Host: $HEALTH_HOST_HEADER' $HEALTH_URL (retries=$RETRIES, sleep=${RETRY_SLEEP_SECONDS}s)"
 i=0
 health_ok=0
 while [ "$i" -lt "$RETRIES" ]; do
@@ -107,7 +98,7 @@ if [ "$health_ok" -ne 1 ]; then
   exit 2
 fi
 
-# Step 4: assert the SPA root emits the security headers declared in
+# Step 3: assert the SPA root emits the security headers declared in
 # app/docker/nginx/security-headers.conf. Guards against two regression
 # classes:
 #   1. A new location{} block in local.conf/prod.conf forgetting the
@@ -115,7 +106,7 @@ fi
 #      inheritance would silently drop the headers — this is exactly what
 #      #296 was).
 #   2. `server_tokens off` being reverted, leaking the nginx version.
-log "step 4/4: assert SPA security headers"
+log "step 3/3: assert SPA security headers"
 SPA_URL="${SMOKE_SPA_URL:-http://localhost/}"
 SPA_HEADERS=""
 i=0

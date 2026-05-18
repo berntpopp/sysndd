@@ -38,6 +38,13 @@
                   >
                     {{ chromosomeLocation }}
                   </span>
+                  <RouterLink
+                    v-if="backToResults"
+                    class="btn btn-sm btn-outline-secondary ms-auto"
+                    :to="backToResults"
+                  >
+                    Back to results
+                  </RouterLink>
                 </div>
               </template>
               <div class="px-3 py-1 border-bottom bg-light">
@@ -185,9 +192,11 @@ import { useGeneUniProt } from '@/composables/useGeneUniProt';
 import { useGeneMGI } from '@/composables/useGeneMGI';
 import { useGeneRGD } from '@/composables/useGeneRGD';
 import type { MGIPhenotypeData, RGDPhenotypeData } from '@/types/external';
+import { returnToFromRoute } from '@/utils/returnNavigation';
 
 const route = useRoute();
 const router = useRouter();
+const backToResults = computed(() => returnToFromRoute(route, ''));
 
 const HGNC_RE = /^HGNC:?\d+$/i;
 

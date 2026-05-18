@@ -17,6 +17,7 @@ const TARGET_ROUTES = [
   '/ManageBackups',
   '/ManagePubtator',
   '/ManageLLM',
+  '/ManageNDDScore',
 ];
 
 const VIEWPORTS = [

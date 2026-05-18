@@ -96,6 +96,32 @@
   }
 }
 
+// Shared public data table filter row controls. Applies to GenericTable
+// (`.entities-table`) and direct public BTable surfaces (`.public-data-table`).
+:is(.entities-table, .public-data-table) {
+  thead tr:first-child {
+    input,
+    select {
+      min-height: calc(1.5em + 1rem + 2px);
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      color: var(--neutral-900, #212121);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      border-radius: var(--radius-sm, 0.25rem);
+    }
+
+    input::placeholder {
+      color: var(--neutral-600, #757575);
+      opacity: 1;
+    }
+
+    select:has(option:first-child:checked) {
+      color: var(--neutral-600, #757575);
+    }
+  }
+}
+
 // Table container with border radius
 .table-responsive,
 .table-container {

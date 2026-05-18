@@ -32,6 +32,13 @@
                     size="lg"
                   />
                 </h1>
+                <RouterLink
+                  v-if="backToResults"
+                  class="btn btn-sm btn-outline-secondary"
+                  :to="backToResults"
+                >
+                  Back to results
+                </RouterLink>
               </div>
             </template>
 
@@ -271,9 +278,11 @@ import { useEntityPublications } from '@/composables/useEntityPublications';
 import { useEntityPhenotypes } from '@/composables/useEntityPhenotypes';
 import { useEntityVariation } from '@/composables/useEntityVariation';
 import { useGeneRecord } from '@/composables/useGeneRecord';
+import { returnToFromRoute } from '@/utils/returnNavigation';
 
 const route = useRoute();
 const router = useRouter();
+const backToResults = computed(() => returnToFromRoute(route, ''));
 
 type EntityRowMap = Record<string, unknown>;
 

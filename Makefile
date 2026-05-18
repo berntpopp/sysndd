@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -201,17 +201,21 @@ verify-seo-app: check-npm ## [quality] Build fixture SEO pages and verify crawla
 # =============================================================================
 pre-commit: ## [quality] Run all quality checks before committing
 	@printf "$(CYAN)==> Running pre-commit quality checks...$(RESET)\n"
-	@printf "\n$(CYAN)[1/3] Linting R code...$(RESET)\n"
+	@printf "\n$(CYAN)[1/4] Running CI script harnesses...$(RESET)\n"
+	@$(MAKE) test-ci-scripts
+	@printf "\n$(CYAN)[2/4] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api
-	@printf "\n$(CYAN)[2/3] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[3/4] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app
-	@printf "\n$(CYAN)[3/3] Running fast R API tests...$(RESET)\n"
+	@printf "\n$(CYAN)[4/4] Running fast R API tests...$(RESET)\n"
 	@$(MAKE) test-api-fast
 	@printf "\n$(GREEN)✓ All pre-commit checks passed!$(RESET)\n"
 
 ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitHub Actions)
 	@printf "$(CYAN)==> Running CI checks locally (mirrors GitHub Actions)...$(RESET)\n"
-	@printf "\n$(CYAN)[1/6] Starting test database...$(RESET)\n"
+	@printf "\n$(CYAN)[1/7] Running CI script harnesses...$(RESET)\n"
+	@$(MAKE) test-ci-scripts
+	@printf "\n$(CYAN)[2/7] Starting test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) up -d mysql-test && \
 		printf "$(GREEN)✓ Test database started$(RESET)\n" || \
 		(printf "$(RED)✗ Failed to start test database$(RESET)\n" && exit 1)
@@ -226,17 +230,25 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		sleep 1; \
 		SECONDS=$$((SECONDS+1)); \
 	done
-	@printf "\n$(CYAN)[2/6] Linting R code...$(RESET)\n"
+	@printf "$(CYAN)Resetting test database for CI parity...$(RESET)\n"
+	@cd $(ROOT_DIR) && { \
+		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
+			'mysql -h127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON sysndd_db_test.* TO '\''bernt'\''@'\''%'\'';"' || \
+		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
+			'mysql -h127.0.0.1 -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"'; \
+	} && printf "$(GREEN)✓ Test database reset$(RESET)\n" || \
+		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
+	@printf "\n$(CYAN)[3/7] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[3/6] Linting frontend code...$(RESET)\n"
+	@printf "\n$(CYAN)[4/7] Linting frontend code...$(RESET)\n"
 	@$(MAKE) lint-app || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
-	@printf "\n$(CYAN)[4/6] Type-checking frontend...$(RESET)\n"
+	@printf "\n$(CYAN)[5/7] Type-checking frontend...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[5/6] Type-checking frontend (strict scopes)...$(RESET)\n"
+	@printf "\n$(CYAN)[6/7] Type-checking frontend (strict scopes)...$(RESET)\n"
 	@cd $(ROOT_DIR)/app && npm run type-check:strict || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "$(GREEN)✓ Strict type check passed$(RESET)\n"
-	@printf "\n$(CYAN)[6/6] Running R API tests (with database)...$(RESET)\n"
+	@printf "\n$(CYAN)[7/7] Running R API tests (with database)...$(RESET)\n"
 	@cd $(ROOT_DIR)/api && \
 		MYSQL_HOST=127.0.0.1 MYSQL_PORT=7655 MYSQL_DATABASE=sysndd_db_test \
 		MYSQL_USER=bernt MYSQL_PASSWORD=Nur7DoofeFliegen. \
@@ -254,7 +266,14 @@ _ci-cleanup:
 	@printf "\n$(CYAN)Cleaning up test database...$(RESET)\n"
 	@cd $(ROOT_DIR) && $(COMPOSE_DB_DEV) stop mysql-test 2>/dev/null || true
 
+test-ci-scripts: ## [quality] Run lightweight bash harnesses for CI helper scripts
+	@printf "$(CYAN)==> Running ci-smoke.sh harness...$(RESET)\n"
+	@bash $(ROOT_DIR)/scripts/tests/test-ci-smoke.sh && \
+		printf "$(GREEN)✓ ci-smoke harness green$(RESET)\n" || \
+		(printf "$(RED)✗ ci-smoke harness failed$(RESET)\n" && exit 1)
+
 verify-gate: ## [quality] Run verify-test-gate.sh + its bash harness (Phase B B4)
+	@$(MAKE) test-ci-scripts
 	@printf "$(CYAN)==> Running verify-test-gate.sh harness...$(RESET)\n"
 	@bash $(ROOT_DIR)/scripts/tests/test-verify-test-gate.sh && \
 		printf "$(GREEN)✓ verify-test-gate harness green$(RESET)\n" || \

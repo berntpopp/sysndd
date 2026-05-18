@@ -46,11 +46,15 @@ case_spa_probe_retries_until_headers_ready() {
 
   cat > "$fakebin/make" <<'EOF'
 #!/usr/bin/env bash
-exit 0
+set -eu
+printf '%s\n' "$*" > "${TEST_STATE_DIR:?}/make_called"
+exit 99
 EOF
 
   cat > "$fakebin/docker" <<'EOF'
 #!/usr/bin/env bash
+set -eu
+printf '%s\n' "$*" >> "${TEST_STATE_DIR:?}/docker_calls"
 exit 0
 EOF
 
@@ -125,6 +129,10 @@ EOF
 
   assert_equal 0 "$exit_code" "ci-smoke succeeds once SPA returns 200 with headers"
   assert_equal 3 "$(cat "$state/spa_count")" "ci-smoke retries SPA probe until the third attempt"
+  assert_equal "absent" "$([ -f "$state/make_called" ] && printf present || printf absent)" "ci-smoke does not call make preflight"
+  assert_equal 1 "$(grep -c '^compose -f docker-compose.yml up -d$' "$state/docker_calls")" "ci-smoke starts compose once"
+  assert_equal 0 "$(grep -c -- '--build' "$state/docker_calls" || true)" "ci-smoke does not force compose rebuilds"
+  assert_equal 1 "$(grep -c '^compose -f docker-compose.yml down$' "$state/docker_calls")" "ci-smoke tears compose down"
 
   rm -rf "$dir"
 }

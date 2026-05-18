@@ -33,7 +33,10 @@ const mocks = vi.hoisted(() => {
     nodes: vi.fn(() => ({ length: 0 })),
     zoom: vi.fn(() => 1),
   };
-  const cytoscapeMock = Object.assign(vi.fn(() => core), { use: vi.fn() });
+  const cytoscapeMock = Object.assign(
+    vi.fn(() => core),
+    { use: vi.fn() }
+  );
 
   return { collection, core, cytoscapeMock, handlers };
 });

@@ -7,9 +7,9 @@ const items = [{ symbol: 'ARID1B' }];
 
 const bTableStub = {
   name: 'BTable',
-  props: ['stacked', 'fixed'],
+  props: ['items', 'stacked', 'fixed'],
   template:
-    '<div data-testid="b-table" :data-stacked="String(stacked)" :data-fixed="String(fixed)"><slot /></div>',
+    '<div data-testid="b-table" :data-stacked="String(stacked)" :data-fixed="String(fixed)"><slot /><slot name="row-expansion" :item="items?.[0]" /></div>',
 };
 
 describe('GenericTable responsive mode', () => {
@@ -52,5 +52,30 @@ describe('GenericTable responsive mode', () => {
     });
 
     expect(wrapper.find('[data-testid="b-table"]').attributes('data-fixed')).toBe('false');
+  });
+
+  it('renders fallback row details as horizontal label-value rows', () => {
+    const wrapper = mount(GenericTable, {
+      props: {
+        items: [{ hgnc_id: 'HGNC:60', disease_ontology_name: 'Cardiomyopathy, dilated, 1O' }],
+        fields,
+        fieldDetails: [
+          { key: 'hgnc_id', label: 'HGNC ID' },
+          { key: 'disease_ontology_name', label: 'Disease ontology name' },
+        ],
+      },
+      global: {
+        stubs: {
+          BTable: bTableStub,
+          BCard: { template: '<div><slot /></div>' },
+        },
+      },
+    });
+
+    const rows = wrapper.findAll('.generic-table-detail__row');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text()).toContain('HGNC ID');
+    expect(rows[0].text()).toContain('HGNC:60');
+    expect(wrapper.findAll('[data-testid="b-table"]')).toHaveLength(1);
   });
 });

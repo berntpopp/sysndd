@@ -87,7 +87,8 @@ export default function useTableMethods(
     if (tableData.filter_string.value) {
       searchParams.set('filter', tableData.filter_string.value);
     }
-    if (tableData.currentItemID.value > 0) {
+    const currentItemID = String(tableData.currentItemID.value);
+    if (currentItemID !== '' && currentItemID !== '0') {
       searchParams.set('page_after', String(tableData.currentItemID.value));
     }
     if (tableData.perPage.value !== 10) {

@@ -120,6 +120,7 @@ services:
           cpus: '0.5'
 
   api:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:
@@ -167,6 +168,9 @@ services:
       CACHE_VERSION: ${CACHE_VERSION:-2}
       # OMIM download key for genemap2.txt (required for ontology/comparisons)
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      # NDDScore release source; defaults match api/config.yml.
+      NDDSCORE_ZENODO_RECORD_ID: "${NDDSCORE_ZENODO_RECORD_ID:-20258027}"
+      NDDSCORE_ZENODO_API_BASE_URL: "${NDDSCORE_ZENODO_API_BASE_URL:-https://zenodo.org/api/records}"
     networks:
       - proxy
       - backend
@@ -213,6 +217,7 @@ services:
       - "traefik.http.services.api.loadbalancer.sticky.cookie.samesite=lax"
 
   worker:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:
@@ -261,6 +266,8 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       CACHE_VERSION: ${CACHE_VERSION:-2}
       OMIM_DOWNLOAD_KEY: ${OMIM_DOWNLOAD_KEY}
+      NDDSCORE_ZENODO_RECORD_ID: "${NDDSCORE_ZENODO_RECORD_ID:-20258027}"
+      NDDSCORE_ZENODO_API_BASE_URL: "${NDDSCORE_ZENODO_API_BASE_URL:-https://zenodo.org/api/records}"
       ASYNC_JOB_LEASE_SECONDS: ${ASYNC_JOB_LEASE_SECONDS:-60}
       ASYNC_JOB_IDLE_SLEEP_SECONDS: ${ASYNC_JOB_IDLE_SLEEP_SECONDS:-2}
       MAX_JOBS_PER_WORKER: ${MAX_JOBS_PER_WORKER:-50}
@@ -296,6 +303,7 @@ services:
           path: ./api/renv.lock
 
   mcp:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
     build:
       context: ./api/
       args:

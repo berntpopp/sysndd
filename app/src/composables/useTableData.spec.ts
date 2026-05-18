@@ -95,6 +95,16 @@ describe('useTableData', () => {
       expect(state.perPage.value).toBe(50);
     });
 
+    it('preserves nonnumeric cursor options used by symbol-sorted tables', () => {
+      const state = useTableData({
+        pageAfterInput: 'ABCA5',
+        pageSizeInput: '10',
+      });
+
+      expect(state.currentItemID.value).toBe('ABCA5');
+      expect(state.perPage.value).toBe(10);
+    });
+
     it('falls back to defaults when option values are 0 / empty / NaN', () => {
       const state = useTableData({
         pageAfterInput: 0,

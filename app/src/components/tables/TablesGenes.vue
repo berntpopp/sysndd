@@ -68,6 +68,7 @@
                 small
                 fixed
                 hover
+                class="public-data-table"
                 sort-icon-left
                 no-local-sorting
                 @update:sort-by="handleSortByUpdate"
@@ -196,7 +197,7 @@
                       <template #cell(entity_id)="data">
                         <EntityBadge
                           :entity-id="data.item.entity_id"
-                          :link-to="'/Entities/' + data.item.entity_id"
+                          :link-to="withCurrentReturnTo('/Entities/' + data.item.entity_id)"
                           size="sm"
                         />
                       </template>
@@ -251,7 +252,7 @@
                   <GeneBadge
                     :symbol="data.item.symbol"
                     :hgnc-id="data.item.hgnc_id"
-                    :link-to="'/Genes/' + data.item.hgnc_id"
+                    :link-to="withCurrentReturnTo('/Genes/' + data.item.hgnc_id)"
                     size="sm"
                   />
                 </template>
@@ -349,6 +350,7 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import EntityBadge from '@/components/ui/EntityBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
+import { withReturnTo } from '@/utils/returnNavigation';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -576,7 +578,7 @@ export default {
 
     // Initialize pagination from URL if provided
     if (this.pageAfterInput && this.pageAfterInput !== '0' && this.pageAfterInput !== '') {
-      this.currentItemID = parseInt(this.pageAfterInput, 10) || 0;
+      this.currentItemID = this.pageAfterInput;
     }
 
     // Transform input filter string to object and load data
@@ -598,6 +600,9 @@ export default {
     });
   },
   methods: {
+    withCurrentReturnTo(path) {
+      return withReturnTo(path);
+    },
     // Update browser URL with current table state
     // Uses history.replaceState instead of router.replace to prevent component remount
     updateBrowserUrl() {

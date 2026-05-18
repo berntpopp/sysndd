@@ -54,6 +54,67 @@
       </slot>
     </template>
 
+    <!-- Gene prediction columns -->
+    <template #cell(gene_symbol)="data">
+      <slot name="cell-gene_symbol" :row="data.item" :index="data.index">
+        {{ data.item.gene_symbol }}
+      </slot>
+    </template>
+
+    <template #cell(hgnc_id)="data">
+      <slot name="cell-hgnc_id" :row="data.item" :index="data.index">
+        {{ data.item.hgnc_id }}
+      </slot>
+    </template>
+
+    <template #cell(ndd_score)="data">
+      <slot name="cell-ndd_score" :row="data.item" :index="data.index">
+        {{ data.item.ndd_score }}
+      </slot>
+    </template>
+
+    <template #cell(percentile)="data">
+      <slot name="cell-percentile" :row="data.item" :index="data.index">
+        {{ data.item.percentile }}
+      </slot>
+    </template>
+
+    <template #cell(risk_tier)="data">
+      <slot name="cell-risk_tier" :row="data.item" :index="data.index">
+        {{ data.item.risk_tier }}
+      </slot>
+    </template>
+
+    <template #cell(confidence_tier)="data">
+      <slot name="cell-confidence_tier" :row="data.item" :index="data.index">
+        {{ data.item.confidence_tier }}
+      </slot>
+    </template>
+
+    <template #cell(known_sysndd_gene)="data">
+      <slot name="cell-known_sysndd_gene" :row="data.item" :index="data.index">
+        {{ data.item.known_sysndd_gene }}
+      </slot>
+    </template>
+
+    <template #cell(model_split)="data">
+      <slot name="cell-model_split" :row="data.item" :index="data.index">
+        {{ data.item.model_split }}
+      </slot>
+    </template>
+
+    <template #cell(top_inheritance_mode)="data">
+      <slot name="cell-top_inheritance_mode" :row="data.item" :index="data.index">
+        {{ data.item.top_inheritance_mode }}
+      </slot>
+    </template>
+
+    <template #cell(top_hpo_predictions_json)="data">
+      <slot name="cell-top_hpo_predictions_json" :row="data.item" :index="data.index">
+        {{ data.item.top_hpo_predictions_json }}
+      </slot>
+    </template>
+
     <!-- Disease ontology name column -->
     <template #cell(disease_ontology_name)="data">
       <slot name="cell-disease_ontology_name" :row="data.item" :index="data.index">
@@ -431,8 +492,17 @@
     <!-- Row expansion - allows custom slot override -->
     <template #row-expansion="row">
       <slot name="row-expansion" :row="row.item" :toggle="row.toggleExpansion">
-        <BCard>
-          <BTable :items="[row.item]" :fields="fieldDetails" stacked small />
+        <BCard class="generic-table-detail-card">
+          <dl class="generic-table-detail">
+            <div v-for="field in fieldDetails" :key="field.key" class="generic-table-detail__row">
+              <dt class="generic-table-detail__label">
+                {{ field.label || field.key }}
+              </dt>
+              <dd class="generic-table-detail__value">
+                {{ detailValue(row.item, field.key) }}
+              </dd>
+            </div>
+          </dl>
         </BCard>
       </slot>
     </template>
@@ -514,6 +584,10 @@ export default {
     },
   },
   methods: {
+    detailValue(row, key) {
+      const value = row?.[key];
+      return value === null || value === undefined || value === '' ? '—' : value;
+    },
     handleSortByUpdate(newSortBy) {
       this.$emit('update:sort-by', newSortBy);
       if (newSortBy && newSortBy.length > 0 && newSortBy[0].key) {
@@ -570,6 +644,59 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.generic-table-detail-card {
+  margin: 0.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: none;
+  text-align: left;
+}
+
+.generic-table-detail {
+  margin: 0;
+}
+
+.generic-table-detail__row {
+  display: grid;
+  grid-template-columns: minmax(10rem, max-content) minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.generic-table-detail__row:last-child {
+  border-bottom: 0;
+}
+
+.generic-table-detail__label {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.generic-table-detail__value {
+  min-width: 0;
+  margin: 0;
+  color: #111827;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 575.98px) {
+  .generic-table-detail__row {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .generic-table-detail__label {
+    white-space: normal;
+  }
+}
+</style>
 
 <style scoped>
 .btn-group-xs > .btn,
@@ -638,12 +765,6 @@ export default {
   padding: 0.4rem 0.25rem;
   background-color: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
-}
-
-:deep(.entities-table thead tr:first-child input),
-:deep(.entities-table thead tr:first-child select) {
-  font-size: 0.75rem;
-  border-radius: 0.25rem;
 }
 
 /* Stacked mode improvements for mobile */

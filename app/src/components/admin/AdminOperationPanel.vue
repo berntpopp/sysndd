@@ -1,21 +1,17 @@
 <template>
-  <section
-    class="admin-operation-panel"
-    :class="toneClass"
-    data-testid="admin-operation-panel"
-  >
+  <section class="admin-operation-panel" :class="toneClass" data-testid="admin-operation-panel">
     <header class="admin-operation-panel__header">
       <div class="admin-operation-panel__heading">
         <div class="admin-operation-panel__title-line">
           <component :is="headingTag" class="admin-operation-panel__title">
-            <i v-if="icon" :class="['bi', icon, 'admin-operation-panel__icon']" aria-hidden="true" />
+            <i
+              v-if="icon"
+              :class="['bi', icon, 'admin-operation-panel__icon']"
+              aria-hidden="true"
+            />
             {{ title }}
           </component>
-          <span
-            v-for="item in normalizedMeta"
-            :key="item"
-            class="admin-operation-panel__meta"
-          >
+          <span v-for="item in normalizedMeta" :key="item" class="admin-operation-panel__meta">
             {{ item }}
           </span>
         </div>

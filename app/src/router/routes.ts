@@ -1,6 +1,6 @@
 // src/router/routes.ts
 
-import type { RouteRecordRaw, RouteLocationNormalized } from 'vue-router';
+import type { RouteRecordRaw, RouteLocationNormalized, RouteComponent } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
 
 /**
@@ -32,6 +32,20 @@ function createAuthGuard(allowed_roles: readonly string[]) {
     return true;
   };
 }
+
+const nddScoreComponents = import.meta.glob('../components/nddscore/*.vue');
+const adminViews = import.meta.glob('../views/admin/*.vue');
+
+const lazyRouteComponent = (
+  modules: Record<string, () => Promise<unknown>>,
+  path: string
+): (() => Promise<RouteComponent>) => {
+  const component = modules[path];
+  if (!component) {
+    throw new Error(`Route component not found: ${path}`);
+  }
+  return component as () => Promise<RouteComponent>;
+};
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -287,6 +301,43 @@ export const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/NDDScore',
+    component: () => import('@/views/nddscore/NDDScore.vue'),
+    children: [
+      {
+        path: '',
+        name: 'NDDScore',
+        component: lazyRouteComponent(
+          nddScoreComponents,
+          '../components/nddscore/NddScoreGeneTable.vue'
+        ),
+      },
+      {
+        path: 'ModelCard',
+        name: 'NDDScoreModelCard',
+        component: lazyRouteComponent(
+          nddScoreComponents,
+          '../components/nddscore/NddScoreModelCard.vue'
+        ),
+      },
+      {
+        path: 'Gene/:hgncIdOrSymbol',
+        name: 'NDDScoreGeneDetail',
+        component: lazyRouteComponent(
+          nddScoreComponents,
+          '../components/nddscore/NddScoreGeneDetail.vue'
+        ),
+        props: true,
+      },
+    ],
+    meta: {
+      sitemap: {
+        priority: 0.7,
+        changefreq: 'monthly',
+      },
+    },
+  },
+  {
     path: '/Panels/:category_input?/:inheritance_input?',
     name: 'Panels',
     component: () => import('@/views/tables/PanelsTable.vue'),
@@ -491,6 +542,13 @@ export const routes: RouteRecordRaw[] = [
     path: '/ManageLLM',
     name: 'ManageLLM',
     component: () => import('@/views/admin/ManageLLM.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: createAuthGuard(['Administrator']),
+  },
+  {
+    path: '/ManageNDDScore',
+    name: 'ManageNDDScore',
+    component: lazyRouteComponent(adminViews, '../views/admin/ManageNDDScore.vue'),
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: createAuthGuard(['Administrator']),
   },

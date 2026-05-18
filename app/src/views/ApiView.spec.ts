@@ -3,11 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ApiView from './ApiView.vue';
 
 const swaggerUiBundleMock = vi.hoisted(() =>
-  Object.assign(vi.fn(() => ({})), {
-    presets: {
-      apis: Symbol('swagger-apis-preset'),
-    },
-  }),
+  Object.assign(
+    vi.fn(() => ({})),
+    {
+      presets: {
+        apis: Symbol('swagger-apis-preset'),
+      },
+    }
+  )
 );
 
 vi.mock('swagger-ui-dist/swagger-ui-es-bundle.js', () => ({
@@ -33,7 +36,7 @@ describe('ApiView', () => {
         url: expect.stringMatching(/\/api\/admin\/openapi\.json$/),
         docExpansion: 'none',
         presets: [swaggerUiBundleMock.presets.apis],
-      }),
+      })
     );
   });
 });

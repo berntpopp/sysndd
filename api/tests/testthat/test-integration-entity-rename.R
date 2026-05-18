@@ -188,6 +188,18 @@ cleanup_entity_rename_fixture <- function(conn) {
 seed_reference_rows <- function(conn) {
   db_execute_params(
     conn,
+    paste0(
+      "INSERT IGNORE INTO `user` ",
+      "(user_id, user_name) ",
+      "VALUES (?, ?)"
+    ),
+    list(
+      1L,
+      "sysndd_entity_rename_test"
+    )
+  )
+  db_execute_params(
+    conn,
     "INSERT INTO non_alt_loci_set (hgnc_id, symbol, name) VALUES (?, ?, ?)",
     list(TEST_HGNC, "SYSNDDTEST", "SysNDD test gene")
   )

@@ -84,6 +84,11 @@ recorded in `schema_version` its **contents are frozen**. Editing an
 already-applied file will not re-run it and will desync envs. Write a new
 migration instead.
 
+Current high-level additions include `020_add_mcp_http_transport_artifacts.sql`
+for MCP HTTP transport support and `023_add_nddscore_prediction_release.sql`
+for the NDDScore prediction-layer release, gene, HPO-term, and prediction
+tables plus current-release views.
+
 ## 4. Adding a new migration
 
 1. Pick the next unused prefix: `ls db/migrations/ | sort | tail -1`, add

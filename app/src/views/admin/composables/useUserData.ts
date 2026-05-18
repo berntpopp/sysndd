@@ -161,7 +161,8 @@ export function useUserData(options: UseUserDataOptions = {}) {
     const searchParams = new URLSearchParams();
     if (tableData.sort.value) searchParams.set('sort', tableData.sort.value);
     if (tableData.filter_string.value) searchParams.set('filter', tableData.filter_string.value);
-    if (tableData.currentItemID.value > 0) {
+    const currentItemID = String(tableData.currentItemID.value);
+    if (currentItemID !== '' && currentItemID !== '0') {
       searchParams.set('page_after', String(tableData.currentItemID.value));
     }
     searchParams.set('page_size', String(tableData.perPage.value));

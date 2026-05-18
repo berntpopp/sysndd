@@ -138,14 +138,14 @@ COPY renv/settings.json renv/settings.json
 # This prevents renv from auto-detecting and using incorrect binary versions
 ENV RENV_CONFIG_RSPM_ENABLED=FALSE
 
-# Restore all packages from lockfile with BuildKit cache. Restore tseries
-# first because renv 1.2.x can schedule forecast before tseries on a cold
-# source restore, causing forecast's DESCRIPTION dependency check to fail.
+# Restore all packages from lockfile with BuildKit cache. Restore packages with
+# known lockfile ordering issues first: tseries before forecast, and mcptools'
+# runtime dependencies before the GitHub mcptools package.
 # The renv.lock now contains ALL dependencies including Bioconductor packages
 # No manual install.packages() calls needed - everything is in the lockfile
 RUN --mount=type=cache,target=/renv_cache,sharing=locked \
     --mount=type=cache,target=/root/.ccache,sharing=locked \
-    R -e 'renv::restore(packages = "tseries", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
+    R -e 'deps <- c("tseries", "ellmer", "httpuv", "httr2", "nanonext", "processx", "promises", "rlang"); renv::restore(packages = deps, library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(packages = "mcptools", library = "/usr/local/lib/R/site-library", prompt = FALSE); renv::restore(library = "/usr/local/lib/R/site-library", prompt = FALSE)'
 
 # Verify stringi loads correctly (links against correct ICU version)
 RUN R -e 'library(stringi); cat("stringi ICU:", stri_info()$ICU.version, "\n")'

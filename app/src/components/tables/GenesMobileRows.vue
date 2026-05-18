@@ -79,7 +79,7 @@
                 <EntityBadge
                   v-if="hasValue(entity.entity_id)"
                   :entity-id="badgeId(entity.entity_id)"
-                  :link-to="`/Entities/${displayValue(entity.entity_id)}`"
+                  :link-to="returnLink(`/Entities/${displayValue(entity.entity_id)}`)"
                   size="sm"
                 />
                 <span v-else>Unknown entity</span>
@@ -128,6 +128,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
 import NddIcon from '@/components/ui/NddIcon.vue';
+import { withReturnTo } from '@/utils/returnNavigation';
 
 type Item = Record<string, unknown>;
 type InheritanceStatus = {
@@ -177,7 +178,11 @@ function rowKey(item: Item, index: number): string {
 }
 
 function geneLink(item: Item): string | undefined {
-  return hasValue(item.hgnc_id) ? `/Genes/${displayValue(item.hgnc_id)}` : undefined;
+  return hasValue(item.hgnc_id) ? returnLink(`/Genes/${displayValue(item.hgnc_id)}`) : undefined;
+}
+
+function returnLink(path: string): string {
+  return withReturnTo(path);
 }
 
 function diseaseLink(item: Item): string | undefined {

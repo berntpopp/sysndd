@@ -43,3 +43,6 @@ __pycache__/
 # Generated Playwright design-audit captures
 .planning/screenshots/*-design-audit/
 .planning/screenshots/**/*.png
+
+# Generated NDDScore test fixture archives
+api/tests/testthat/fixtures/nddscore/*.tar.gz
