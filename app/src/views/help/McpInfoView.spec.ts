@@ -6,12 +6,6 @@ vi.mock('@unhead/vue', () => ({
   useHead: vi.fn(),
 }));
 
-vi.mock('@/assets/js/constants/url_constants', () => ({
-  default: {
-    APP_URL: 'https://example.test',
-  },
-}));
-
 const bootstrapStubs = {
   BAlert: { template: '<div role="alert"><slot /></div>' },
   BLink: { template: '<a><slot /></a>' },
@@ -32,9 +26,7 @@ describe('McpInfoView', () => {
     expect(wrapper.text()).toContain('SysNDD MCP');
     expect(wrapper.text()).toContain('Read-only');
     expect(wrapper.text()).toContain('not the public MCP transport endpoint');
-    expect(wrapper.text()).toContain('https://example.test/mcp');
-    expect(wrapper.text()).not.toContain('localhost');
-    expect(wrapper.text()).not.toContain('127.0.0.1');
+    expect(wrapper.text()).toContain(`${window.location.origin}/mcp`);
     expect(wrapper.text()).toContain('protected');
   });
 });

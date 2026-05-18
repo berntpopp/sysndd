@@ -369,7 +369,10 @@ services:
           path: ./api/renv.lock
 
   app:
-    build: ./app/
+    build:
+      context: ./app/
+      args:
+        VUE_MODE: production
     container_name: sysndd_app
     restart: unless-stopped
     security_opt:

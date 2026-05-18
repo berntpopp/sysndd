@@ -6,7 +6,9 @@ test.describe('MCP public information and protocol proxy', () => {
 
     await expect(page.getByRole('heading', { name: 'SysNDD MCP' })).toBeVisible();
     await expect(page.getByText('not the public MCP transport endpoint')).toBeVisible();
-    await expect(page.locator('dl code').filter({ hasText: 'http://localhost/mcp' })).toBeVisible();
+    await expect(
+      page.locator('dl code').filter({ hasText: `${new URL(page.url()).origin}/mcp` })
+    ).toBeVisible();
   });
 
   test('proxies MCP initialize requests through /mcp', async ({ request }) => {

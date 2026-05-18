@@ -108,6 +108,8 @@ Add `mcp-auth` through the deployment's chosen authentication middleware before 
 
 The default production path is build-time prerendering into the frontend image. Set Docker build arg `SEO_GENERATE=true` to generate crawlable public route HTML after the Vite build. If `SEO_API_BASE_URL` is set, the generator reads `/api/seo/*`; otherwise it uses deterministic fixtures.
 
+The production frontend image builds with `VUE_MODE=production` by default so Vite reads `app/.env.production`. Do not build the production image with `VUE_MODE=docker`; that mode is reserved for the local development container.
+
 ```bash
 docker build \
   -f app/Dockerfile \

@@ -99,9 +99,8 @@
 
 <script setup lang="ts">
 import { useHead } from '@unhead/vue';
-import URLS from '@/assets/js/constants/url_constants';
 
-const resolveMcpUrl = () => `${(URLS.APP_URL || window.location.origin).replace(/\/$/, '')}/mcp`;
+const resolveMcpUrl = () => `${window.location.origin.replace(/\/$/, '')}/mcp`;
 
 const mcpUrl = resolveMcpUrl();
 

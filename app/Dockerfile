@@ -1,7 +1,7 @@
 # Build arguments
 ARG NODE_VERSION=24
 ARG NGINX_VERSION=1.27.4
-ARG VUE_MODE=docker
+ARG VUE_MODE=production
 ARG SEO_GENERATE=false
 ARG SEO_API_BASE_URL=
 ARG SEO_PUBLIC_BASE_URL=https://sysndd.dbmr.unibe.ch
