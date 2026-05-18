@@ -323,6 +323,8 @@ Output:
 - `data_class = "curated_derived_analysis"` for computed correlations/clusters.
 - Optional `llm_generated_summary` blocks only when current validated cache rows
   exist.
+- Phenotype correlations should be exposed through a shared helper used by both
+  `/api/phenotype/correlation` and MCP, not copied into the MCP repository.
 - Phenotype clusters are local MCA/HCPC-derived analysis and should be
   implemented through shared helper code rather than endpoint copy-paste.
 - Phenotype-functional correlations depend on functional clusters; serve only

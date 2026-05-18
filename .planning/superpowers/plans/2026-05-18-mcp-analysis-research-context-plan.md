@@ -13,8 +13,8 @@
 ## File Map
 
 - Create `api/functions/mcp-analysis-repository.R`: read-only repository helpers for analysis catalog metadata, NDDScore active-release context, curation comparisons, phenotype/correlation summaries, gene network cache-safe reads, and validated LLM summary cache reads.
-- Modify `api/functions/analyses-functions.R`: extract a shared `generate_phenotype_functional_cluster_correlation()` helper from the current endpoint body so the endpoint and MCP use one implementation.
-- Modify `api/endpoints/analysis_endpoints.R`: replace the inline phenotype-functional correlation body with the shared helper call.
+- Modify `api/functions/analyses-functions.R`: extract shared `mcp_analysis_build_phenotype_cluster_input()`, `generate_phenotype_correlations()`, and `generate_phenotype_functional_cluster_correlation()` helpers so endpoints and MCP use one implementation.
+- Modify `api/endpoints/analysis_endpoints.R` and `api/endpoints/phenotype_endpoints.R`: replace inline phenotype correlation and phenotype-functional correlation bodies with shared helper calls.
 - Create `api/tests/testthat/test-mcp-analysis-repository.R`: repository tests for SQL boundaries, cache-only LLM reads, NDDScore current views, and comparison/analysis public-data gates.
 - Create `api/tests/testthat/test-mcp-analysis-service.R`: service tests for provenance envelopes, analysis catalog, NDDScore labels, comparison context, phenotype analysis modes, network unavailable behavior, cache-only LLM summaries, and gene research aggregation.
 - Modify `api/bootstrap/load_modules.R`: source `functions/mcp-analysis-repository.R` after `functions/mcp-repository.R` and before services.
@@ -399,7 +399,7 @@ mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
   if (!exists("gen_network_edges_mem", mode = "function")) return(FALSE)
   if (!memoise::is.memoised(gen_network_edges_mem)) return(FALSE)
   checker <- memoise::has_cache(gen_network_edges_mem)
-  isTRUE(checker(cluster_type = cluster_type, min_confidence = min_confidence, string_id_table = NULL))
+  isTRUE(checker(cluster_type = cluster_type, min_confidence = min_confidence))
 }
 ```
 
@@ -834,6 +834,9 @@ git commit -m "feat: expose cache-only MCP LLM summaries"
 
 **Files:**
 - Modify: `api/functions/mcp-analysis-repository.R`
+- Modify: `api/functions/analyses-functions.R`
+- Modify: `api/endpoints/analysis_endpoints.R`
+- Modify: `api/endpoints/phenotype_endpoints.R`
 - Modify: `api/services/mcp-service.R`
 - Modify: `api/tests/testthat/test-mcp-analysis-repository.R`
 - Modify: `api/tests/testthat/test-mcp-analysis-service.R`
@@ -950,38 +953,22 @@ mcp_analysis_build_phenotype_cluster_input <- function() {
 mcp_analysis_repo_get_phenotype_correlations <- function(phenotype = NULL,
                                                          min_abs_correlation = 0.3,
                                                          limit = 25L) {
-  # Uses the same approved public phenotype source as phenotype endpoints.
-  rows <- generate_phenotype_entities_list(
-    filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)"
-  )$data
-  if (is.null(rows) || nrow(rows) == 0L) return(tibble::tibble())
-
-  phenotype_entities_data <- rows %>%
-    tidyr::separate_rows(modifier_phenotype_id, sep = ",") %>%
-    unique()
-  phenotype_list_tbl <- pool %>% dplyr::tbl("phenotype_list") %>% dplyr::collect()
-  sysndd_db_phenotypes <- phenotype_entities_data %>%
-    dplyr::filter(stringr::str_detect(modifier_phenotype_id, "1-")) %>%
-    dplyr::mutate(phenotype_id = stringr::str_remove(modifier_phenotype_id, "[1-4]-")) %>%
-    dplyr::filter(phenotype_id != "HP:0001249") %>%
-    dplyr::left_join(phenotype_list_tbl, by = "phenotype_id") %>%
-    dplyr::select(entity_id, phenotype_id, HPO_term)
-
-  matrix <- sysndd_db_phenotypes %>%
-    dplyr::select(-phenotype_id) %>%
-    dplyr::mutate(has_HPO_term = 1) %>%
-    unique() %>%
-    tidyr::pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>%
-    replace(is.na(.), 0) %>%
-    dplyr::select(-entity_id)
-
-  if (ncol(matrix) < 2L) return(tibble::tibble())
-  corr <- round(stats::cor(matrix), 2)
-  melted <- reshape2::melt(corr) %>%
-    dplyr::select(x = Var1, y = Var2, value) %>%
-    dplyr::filter(abs(value) >= min_abs_correlation, x != y)
+  if (!exists("generate_phenotype_correlations", mode = "function")) {
+    return(NULL)
+  }
+  melted <- generate_phenotype_correlations(
+    filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)",
+    min_abs_correlation = min_abs_correlation
+  )
+  if (is.null(melted) || nrow(melted) == 0L) return(tibble::tibble())
   if (!is.null(phenotype)) {
-    melted <- melted %>% dplyr::filter(x == phenotype | y == phenotype | x %in% phenotype | y %in% phenotype)
+    melted <- melted %>%
+      dplyr::filter(
+        x == phenotype | y == phenotype |
+          x_id == phenotype | y_id == phenotype |
+          stringr::str_detect(x, stringr::fixed(phenotype, ignore_case = TRUE)) |
+          stringr::str_detect(y, stringr::fixed(phenotype, ignore_case = TRUE))
+      )
   }
   utils::head(melted[order(-abs(melted$value)), ], limit)
 }
@@ -1051,9 +1038,11 @@ mcp_analysis_repo_get_phenotype_functional_correlations <- function(gene = NULL,
 }
 ```
 
-Extract `generate_phenotype_functional_cluster_correlation()` from
-`api/endpoints/analysis_endpoints.R` into a shared function file and update the
-endpoint to call the helper. Do not duplicate that endpoint logic in MCP.
+Extract `generate_phenotype_correlations()` from
+`api/endpoints/phenotype_endpoints.R` and
+`generate_phenotype_functional_cluster_correlation()` from
+`api/endpoints/analysis_endpoints.R` into a shared function file, then update
+both endpoints to call the helpers. Do not duplicate endpoint logic in MCP.
 
 - [ ] **Step 4: Add service functions**
 
@@ -1084,7 +1073,7 @@ mcp_get_phenotype_analysis_context <- function(mode,
   if (is.null(records)) {
     stop(mcp_error(
       "temporarily_unavailable",
-      "Phenotype-functional correlations require cache-hit-safe functional cluster data.",
+      "Requested phenotype analysis mode is not available from shared helper/cache-safe data.",
       list(argument = "mode")
     ))
   }
