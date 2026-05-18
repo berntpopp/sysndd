@@ -15,8 +15,6 @@
 ## Administration section
 ## -------------------------------------------------------------------##
 
-.nddscore_admin_default_record_id <- "20258027"
-
 .nddscore_admin_has_rows <- function(value) {
   !is.null(value) && is.data.frame(value) && nrow(value) > 0L
 }
@@ -1078,6 +1076,7 @@ function(req, res, limit = 10L) {
     recent_jobs = .nddscore_admin_tibble_rows(jobs),
     meta = list(
       job_type = "nddscore_import",
+      default_record_id = nddscore_default_zenodo_record_id(),
       count = if (.nddscore_admin_has_rows(jobs)) nrow(jobs) else 0L,
       limit = limit
     )
@@ -1095,11 +1094,11 @@ function(req, res, limit = 10L) {
 #* @tag admin
 #* @serializer json list(na="null")
 #* @get /nddscore/zenodo
-function(req, res, record_id = .nddscore_admin_default_record_id) {
+function(req, res, record_id = NULL) {
   require_role(req, res, "Administrator")
 
   record_id <- as.character(
-    .nddscore_admin_scalar(record_id, .nddscore_admin_default_record_id)
+    .nddscore_admin_scalar(record_id, nddscore_default_zenodo_record_id())
   )
   zenodo <- nddscore_fetch_zenodo_metadata(record_id)
   release <- nddscore_repo_current_release()
@@ -1167,7 +1166,7 @@ function(req, res) {
 
   body <- .nddscore_admin_request_body(req)
   record_id <- as.character(
-    .nddscore_admin_scalar(body$record_id, .nddscore_admin_default_record_id)
+    .nddscore_admin_scalar(body$record_id, nddscore_default_zenodo_record_id())
   )
   validate_only <- .nddscore_admin_bool(body$validate_only, FALSE)
 

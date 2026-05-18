@@ -160,6 +160,8 @@ Use the administrator `/ManageNDDScore` page for local NDDScore release checks. 
 
 NDDScore import work runs in the worker service. Restart the worker container after changing `api/functions/nddscore-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
 
+The default Zenodo source is configured through the same environment-file path as other deployment settings. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. If those environment variables are absent, the API falls back to `api/config.yml`; the built-in literal defaults are only a final safety net for tests and local development.
+
 Offline importer fixtures live under `api/tests/testthat/fixtures/nddscore/`. The committed fixture generator, `make-fixture-archive.R`, rebuilds the small `.tar.gz` archives used by tests; those generated archives are ignored because they can be regenerated on demand.
 
 ## Common Gotchas

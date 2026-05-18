@@ -67,6 +67,40 @@ test_that("nddscore_fetch_zenodo_metadata locates archive and normalizes metadat
   expect_match(metadata$content_url, "/content$")
 })
 
+test_that("NDDScore Zenodo source defaults are configurable", {
+  withr::local_envvar(c(
+    NDDSCORE_ZENODO_RECORD_ID = "999999",
+    NDDSCORE_ZENODO_API_BASE_URL = "https://zenodo.example/api/records/"
+  ))
+
+  requested_url <- NULL
+  metadata <- nddscore_fetch_zenodo_metadata(
+    http_get = function(url) {
+      requested_url <<- url
+      fake_zenodo_record()
+    }
+  )
+
+  expect_equal(nddscore_default_zenodo_record_id(), "999999")
+  expect_equal(nddscore_zenodo_api_base_url(), "https://zenodo.example/api/records")
+  expect_equal(requested_url, "https://zenodo.example/api/records/999999")
+  expect_equal(metadata$record_id, "999999")
+})
+
+test_that("NDDScore Zenodo source falls back to API config", {
+  withr::local_envvar(c(
+    NDDSCORE_ZENODO_RECORD_ID = NA,
+    NDDSCORE_ZENODO_API_BASE_URL = NA
+  ))
+  config <- list(
+    nddscore_zenodo_record_id = "123456",
+    nddscore_zenodo_api_base_url = "https://mirror.example/records/"
+  )
+
+  expect_equal(nddscore_default_zenodo_record_id(config), "123456")
+  expect_equal(nddscore_zenodo_api_base_url(config), "https://mirror.example/records")
+})
+
 test_that("nddscore_fetch_zenodo_metadata errors clearly without archive entry", {
   expect_error(
     nddscore_fetch_zenodo_metadata(

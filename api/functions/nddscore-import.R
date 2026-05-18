@@ -10,6 +10,61 @@
   }
 }
 
+.NDDSCORE_DEFAULT_ZENODO_API_BASE_URL <- "https://zenodo.org/api/records"
+.NDDSCORE_DEFAULT_ZENODO_RECORD_ID <- "20258027"
+
+.nddscore_config <- function(config = NULL) {
+  if (!is.null(config)) {
+    return(config)
+  }
+
+  config_name <- Sys.getenv("API_CONFIG", "")
+  if (nzchar(config_name)) {
+    return(config::get(config_name))
+  }
+  config::get()
+}
+
+.nddscore_config_scalar <- function(config, name, default) {
+  value <- config[[name]]
+  if (is.null(value) || length(value) == 0L) {
+    return(default)
+  }
+
+  value <- trimws(as.character(value[[1]]))
+  if (!nzchar(value)) {
+    return(default)
+  }
+  value
+}
+
+nddscore_zenodo_api_base_url <- function(config = NULL) {
+  env_value <- trimws(Sys.getenv("NDDSCORE_ZENODO_API_BASE_URL", ""))
+  if (nzchar(env_value)) {
+    return(sub("/+$", "", env_value))
+  }
+
+  config_value <- .nddscore_config_scalar(
+    .nddscore_config(config),
+    "nddscore_zenodo_api_base_url",
+    .NDDSCORE_DEFAULT_ZENODO_API_BASE_URL
+  )
+  sub("/+$", "", config_value)
+}
+
+nddscore_default_zenodo_record_id <- function(config = NULL) {
+  env_value <- trimws(Sys.getenv("NDDSCORE_ZENODO_RECORD_ID", ""))
+  if (nzchar(env_value)) {
+    return(env_value)
+  }
+
+  .nddscore_config_scalar(
+    .nddscore_config(config),
+    "nddscore_zenodo_record_id",
+    .NDDSCORE_DEFAULT_ZENODO_RECORD_ID
+  )
+}
+
 #' Default HTTP JSON GET used by nddscore_fetch_zenodo_metadata.
 #' Separated out so tests inject a stub instead.
 .nddscore_http_get_json <- function(url) {
@@ -26,14 +81,17 @@
 #' Fetch Zenodo record metadata and locate the release archive file entry.
 #'
 #' @param record_id Zenodo numeric record id (string or numeric).
+#' @param api_base_url Base URL for Zenodo record API requests.
 #' @param http_get Function(url) returning the parsed record JSON as a list.
 #' @return Named list: record_id, record_url, version, version_doi, concept_doi,
 #'   archive_name, archive_bytes, archive_md5, content_url.
 nddscore_fetch_zenodo_metadata <- function(
-    record_id,
+    record_id = nddscore_default_zenodo_record_id(),
+    api_base_url = nddscore_zenodo_api_base_url(),
     http_get = .nddscore_http_get_json) {
   record_id <- as.character(record_id)[[1]]
-  url <- paste0("https://zenodo.org/api/records/", record_id)
+  api_base_url <- sub("/+$", "", as.character(api_base_url)[[1]])
+  url <- paste0(api_base_url, "/", record_id)
   record <- http_get(url)
 
   files <- record$files

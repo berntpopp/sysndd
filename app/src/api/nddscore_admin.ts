@@ -17,19 +17,26 @@ export async function fetchNddScoreStatus(): Promise<NddScoreAdminStatus> {
   return apiClient.get('/api/admin/nddscore/status');
 }
 
-export async function fetchNddScoreZenodo(
-  recordId = '20258027'
-): Promise<NddScoreZenodoComparison> {
-  return apiClient.get('/api/admin/nddscore/zenodo', { params: { record_id: recordId } });
+export async function fetchNddScoreZenodo(recordId?: string): Promise<NddScoreZenodoComparison> {
+  return apiClient.get('/api/admin/nddscore/zenodo', {
+    params: recordId ? { record_id: recordId } : undefined,
+  });
 }
 
 export async function submitNddScoreImport(opts: {
   recordId?: string;
   validateOnly: boolean;
 }): Promise<{ jobId: string; status: string }> {
+  const payload: { record_id?: string; validate_only: boolean } = {
+    validate_only: opts.validateOnly,
+  };
+  if (opts.recordId) {
+    payload.record_id = opts.recordId;
+  }
+
   const response = await apiClient.raw.post<{ job_id: unknown; status: unknown }>(
     '/api/admin/nddscore/import',
-    { record_id: opts.recordId ?? '20258027', validate_only: opts.validateOnly },
+    payload,
     { validateStatus: (status) => (status >= 200 && status < 300) || status === 409 }
   );
   const raw = response.data;
