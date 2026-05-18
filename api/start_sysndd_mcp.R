@@ -9,6 +9,7 @@
 source("bootstrap/init_libraries.R", local = FALSE)
 source("bootstrap/load_modules.R", local = FALSE)
 source("bootstrap/create_pool.R", local = FALSE)
+source("bootstrap/init_cache.R", local = FALSE)
 source("bootstrap/init_globals.R", local = FALSE)
 
 bootstrap_init_libraries()
@@ -35,6 +36,10 @@ if (!is.null(dw$workdir)) {
 }
 
 bootstrap_load_modules()
+bootstrap_bind_memoised(
+  cache_dir = Sys.getenv("MCP_CACHE_DIR", "/app/cache"),
+  envir = .GlobalEnv
+)
 
 Sys.setenv(SYSNDD_RUNTIME = "mcp")
 Sys.setenv(DB_POOL_SIZE = Sys.getenv("MCP_DB_POOL_SIZE", "2"))

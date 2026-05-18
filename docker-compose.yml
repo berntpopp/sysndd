@@ -328,6 +328,7 @@ services:
       - ./api/bootstrap:/app/bootstrap:ro
       - ./api/config:/app/config:ro
       - ./api/scripts:/app/scripts:ro
+      - api_cache:/app/cache:ro
       - ./api/config.yml:/app/config.yml:ro
       - ./api/version_spec.json:/app/version_spec.json:ro
       - ./api/start_sysndd_mcp.R:/app/start_sysndd_mcp.R:ro
