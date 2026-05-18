@@ -143,3 +143,49 @@ test_that("curation comparison context returns bounded rows with derived-analysi
   expect_equal(result$rows[[1]]$hgnc_id, "HGNC:61")
   expect_equal(result$meta$total, 1L)
 })
+
+test_that("MCP LLM summary service returns cached validated summaries and never generates", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_cache <- mcp_analysis_repo_get_cached_llm_summaries
+  assign("mcp_analysis_repo_get_cached_llm_summaries", function(...) {
+    tibble::tibble(
+      cache_id = 7L,
+      cluster_type = "functional",
+      cluster_number = 3L,
+      cluster_hash = "abc",
+      model_name = "gemini-3-flash",
+      prompt_version = "1.0",
+      summary_json = "{\"summary\":\"cached summary\"}",
+      tags = "[\"synaptic\"]",
+      is_current = 1L,
+      validation_status = "validated",
+      created_at = as.POSIXct("2026-05-01 00:00:00", tz = "UTC"),
+      validated_at = as.POSIXct("2026-05-02 00:00:00", tz = "UTC")
+    )
+  }, envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_get_cached_llm_summaries", old_cache, envir = .GlobalEnv))
+
+  result <- mcp_get_cached_llm_summaries("functional", cluster_hashes = "abc")
+
+  expect_true(result[[1]]$summary_available)
+  expect_equal(result[[1]]$data_class, "llm_generated_summary")
+  expect_true(result[[1]]$cache_only)
+  expect_equal(result[[1]]$summary$summary, "cached summary")
+})
+
+test_that("MCP LLM summary service reports cache miss without generation", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  old_cache <- mcp_analysis_repo_get_cached_llm_summaries
+  assign("mcp_analysis_repo_get_cached_llm_summaries", function(...) tibble::tibble(), envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_get_cached_llm_summaries", old_cache, envir = .GlobalEnv))
+
+  result <- mcp_get_cached_llm_summaries("phenotype", cluster_numbers = 1L)
+
+  expect_false(result[[1]]$summary_available)
+  expect_true(result[[1]]$cache_only)
+  expect_equal(result[[1]]$data_class, "llm_generated_summary")
+})
