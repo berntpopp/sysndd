@@ -141,132 +141,6 @@ mcp_analysis_repo_get_cached_llm_summaries <- function(cluster_type,
   )
 }
 
-mcp_analysis_repo_cache_dir <- function() {
-  Sys.getenv("MCP_CACHE_DIR", "/app/cache")
-}
-
-mcp_analysis_repo_network_memoise_cache_hit <- function(cluster_type = "clusters",
-                                                        min_confidence = 400L) {
-  if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
-  if (!exists("gen_network_edges_mem", mode = "function")) return(FALSE)
-  if (!memoise::is.memoised(gen_network_edges_mem)) return(FALSE)
-  checker <- memoise::has_cache(gen_network_edges_mem)
-  isTRUE(checker(cluster_type = cluster_type, min_confidence = min_confidence))
-}
-
-mcp_analysis_repo_network_payload_matches <- function(network,
-                                                      cluster_type = "clusters",
-                                                      min_confidence = 400L) {
-  if (!is.list(network)) return(FALSE)
-  if (!all(c("nodes", "edges", "metadata") %in% names(network))) return(FALSE)
-
-  metadata <- network$metadata
-  if (!is.list(metadata)) return(FALSE)
-
-  payload_min_confidence <- suppressWarnings(as.integer(metadata$min_confidence %||% NA_integer_))
-  if (is.na(payload_min_confidence) || payload_min_confidence != as.integer(min_confidence)) {
-    return(FALSE)
-  }
-
-  payload_cluster_type <- metadata$cluster_type %||% NULL
-  if (!is.null(payload_cluster_type)) {
-    return(identical(as.character(payload_cluster_type)[1], as.character(cluster_type)[1]))
-  }
-
-  # Older cached network payloads did not persist cluster_type. Those payloads
-  # were generated from the default public network view, so only reuse them for
-  # the default clusters request.
-  identical(as.character(cluster_type)[1], "clusters")
-}
-
-mcp_analysis_repo_read_cached_rds_value <- function(path) {
-  cached <- tryCatch(readRDS(path), error = function(e) NULL)
-  if (is.null(cached)) return(NULL)
-  if (is.list(cached) && "value" %in% names(cached)) {
-    return(cached$value)
-  }
-  cached
-}
-
-mcp_analysis_repo_find_network_disk_payload <- function(cluster_type = "clusters",
-                                                        min_confidence = 400L,
-                                                        cache_dir = mcp_analysis_repo_cache_dir(),
-                                                        max_files = 500L) {
-  if (is.null(cache_dir) || !nzchar(cache_dir) || !dir.exists(cache_dir)) {
-    return(NULL)
-  }
-
-  paths <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
-  if (length(paths) == 0L) return(NULL)
-
-  info <- file.info(paths)
-  paths <- paths[!is.na(info$mtime)]
-  info <- info[!is.na(info$mtime), , drop = FALSE]
-  if (length(paths) == 0L) return(NULL)
-
-  paths <- paths[order(info$mtime, decreasing = TRUE)]
-  paths <- utils::head(paths, max(1L, as.integer(max_files)))
-
-  for (path in paths) {
-    network <- mcp_analysis_repo_read_cached_rds_value(path)
-    if (!mcp_analysis_repo_network_payload_matches(
-      network,
-      cluster_type = cluster_type,
-      min_confidence = min_confidence
-    )) {
-      next
-    }
-    network$metadata$cache_source <- "disk_payload_scan"
-    return(network)
-  }
-
-  NULL
-}
-
-mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
-                                                min_confidence = 400L) {
-  if (mcp_analysis_repo_network_memoise_cache_hit(
-    cluster_type = cluster_type,
-    min_confidence = min_confidence
-  )) {
-    return(TRUE)
-  }
-
-  !is.null(mcp_analysis_repo_find_network_disk_payload(
-    cluster_type = cluster_type,
-    min_confidence = min_confidence
-  ))
-}
-
-mcp_analysis_repo_functional_cluster_cache_hit <- function(algorithm = "leiden") {
-  if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
-  if (!exists("gen_string_clust_obj_mem", mode = "function")) return(FALSE)
-  if (!exists("generate_ndd_hgnc_ids", mode = "function")) return(FALSE)
-  if (!memoise::is.memoised(gen_string_clust_obj_mem)) return(FALSE)
-
-  genes <- tryCatch(generate_ndd_hgnc_ids(), error = function(e) NULL)
-  if (is.null(genes) || is.null(genes$hgnc_id)) {
-    return(FALSE)
-  }
-  checker <- memoise::has_cache(gen_string_clust_obj_mem)
-  isTRUE(checker(genes$hgnc_id, algorithm = algorithm))
-}
-
-mcp_analysis_repo_phenotype_cluster_cache_hit <- function() {
-  if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
-  if (!exists("gen_mca_clust_obj_mem", mode = "function")) return(FALSE)
-  if (!exists("generate_phenotype_cluster_input", mode = "function")) return(FALSE)
-  if (!memoise::is.memoised(gen_mca_clust_obj_mem)) return(FALSE)
-
-  input <- tryCatch(generate_phenotype_cluster_input(), error = function(e) NULL)
-  if (is.null(input) || is.null(input$matrix) || nrow(input$matrix) == 0L) {
-    return(FALSE)
-  }
-
-  checker <- memoise::has_cache(gen_mca_clust_obj_mem)
-  isTRUE(checker(input$matrix))
-}
-
 mcp_analysis_repo_filter_gene_rows <- function(rows, gene) {
   if (is.null(gene) || !nzchar(trimws(as.character(gene)[1])) || is.null(rows) || nrow(rows) == 0L) {
     return(rows)
@@ -338,18 +212,15 @@ mcp_analysis_repo_get_phenotype_correlations <- function(phenotype = NULL,
 mcp_analysis_repo_get_phenotype_clusters <- function(gene = NULL,
                                                      cluster_id = NULL,
                                                      limit = 25L) {
-  if (!mcp_analysis_repo_phenotype_cluster_cache_hit()) {
-    return(NULL)
-  }
-  if (!exists("generate_phenotype_clusters", mode = "function")) {
-    return(NULL)
-  }
   limit <- mcp_analysis_repo_limit(limit)
 
-  clusters <- tryCatch(
-    generate_phenotype_clusters(),
-    error = function(e) NULL
-  )
+  clusters <- NULL
+  if (mcp_analysis_repo_phenotype_memoise_cache_hit() && exists("generate_phenotype_clusters", mode = "function")) {
+    clusters <- tryCatch(generate_phenotype_clusters(), error = function(e) NULL)
+  }
+  if (is.null(clusters)) {
+    clusters <- mcp_analysis_repo_find_phenotype_cluster_disk_payload()
+  }
   if (is.null(clusters)) {
     return(NULL)
   }
@@ -374,24 +245,33 @@ mcp_analysis_repo_get_phenotype_clusters <- function(gene = NULL,
 
 mcp_analysis_repo_get_phenotype_functional_correlations <- function(gene = NULL,
                                                                     limit = 25L) {
-  if (!mcp_analysis_repo_functional_cluster_cache_hit(algorithm = "leiden")) {
-    return(NULL)
-  }
-  if (!mcp_analysis_repo_phenotype_cluster_cache_hit()) {
-    return(NULL)
-  }
-  if (!exists("generate_phenotype_functional_cluster_correlation", mode = "function")) {
-    return(NULL)
-  }
   limit <- mcp_analysis_repo_limit(limit)
 
-  result <- tryCatch(
-    generate_phenotype_functional_cluster_correlation(
-      include_membership = TRUE,
-      include_sfari = FALSE
-    ),
-    error = function(e) NULL
-  )
+  result <- NULL
+  if (
+    mcp_analysis_repo_functional_memoise_cache_hit(algorithm = "leiden") &&
+      mcp_analysis_repo_phenotype_memoise_cache_hit() &&
+      exists("generate_phenotype_functional_cluster_correlation", mode = "function")
+  ) {
+    result <- tryCatch(
+      generate_phenotype_functional_cluster_correlation(
+        include_membership = TRUE,
+        include_sfari = FALSE
+      ),
+      error = function(e) NULL
+    )
+  }
+  if (is.null(result)) {
+    functional_clusters <- mcp_analysis_repo_find_functional_cluster_disk_payload()
+    phenotype_clusters <- mcp_analysis_repo_find_phenotype_cluster_disk_payload()
+    if (!is.null(functional_clusters) && !is.null(phenotype_clusters)) {
+      result <- mcp_analysis_repo_compute_cluster_correlations(
+        functional_clusters = functional_clusters,
+        phenotype_clusters = phenotype_clusters,
+        include_membership = TRUE
+      )
+    }
+  }
   if (is.null(result)) {
     return(NULL)
   }

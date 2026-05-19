@@ -5,6 +5,11 @@ source("../../services/mcp-record-service.R")
 source("../../services/mcp-analysis-service.R")
 source("../../services/mcp-research-context-service.R")
 
+source_mcp_analysis_repository <- function() {
+  source("../../functions/mcp-analysis-cache-repository.R")
+  source("../../functions/mcp-analysis-repository.R")
+}
+
 test_that("MCP analysis data-class envelopes distinguish curated, derived, ML, and LLM data", {
   source("../../services/mcp-service.R")
 
@@ -107,7 +112,7 @@ test_that("analysis catalog advertises approved scope B tools and data classes",
 })
 
 test_that("NDDScore MCP context is always marked as ML prediction and not evidence tier", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_release <- mcp_analysis_repo_current_release
@@ -135,7 +140,7 @@ test_that("NDDScore MCP context is always marked as ML prediction and not eviden
 })
 
 test_that("curation comparison context returns bounded rows with derived-analysis labels", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_rows <- mcp_analysis_repo_get_comparison_rows
@@ -159,7 +164,7 @@ test_that("curation comparison context returns bounded rows with derived-analysi
 })
 
 test_that("curation comparison plot modes return documented invalid_input errors", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   err <- tryCatch(
@@ -174,7 +179,7 @@ test_that("curation comparison plot modes return documented invalid_input errors
 })
 
 test_that("MCP LLM summary service returns cached validated summaries and never generates", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_cache <- mcp_analysis_repo_get_cached_llm_summaries
@@ -205,7 +210,7 @@ test_that("MCP LLM summary service returns cached validated summaries and never 
 })
 
 test_that("MCP LLM summary service reports cache miss without generation", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_cache <- mcp_analysis_repo_get_cached_llm_summaries
@@ -220,7 +225,7 @@ test_that("MCP LLM summary service reports cache miss without generation", {
 })
 
 test_that("phenotype analysis context validates mode and labels derived analyses", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_corr <- mcp_analysis_repo_get_phenotype_correlations
@@ -241,7 +246,7 @@ test_that("phenotype analysis context validates mode and labels derived analyses
 })
 
 test_that("gene network context raises temporarily_unavailable when disk cache hit is absent", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_has <- mcp_analysis_repo_network_cache_hit
@@ -256,7 +261,7 @@ test_that("gene network context raises temporarily_unavailable when disk cache h
 })
 
 test_that("gene network context passes the requested gene into cache-safe repository reads", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   seen_gene <- NULL
@@ -282,7 +287,7 @@ test_that("gene network context passes the requested gene into cache-safe reposi
 })
 
 test_that("phenotype and network services convert cache-safe helper errors to temporary unavailability", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_corr <- mcp_analysis_repo_get_phenotype_correlations
@@ -311,7 +316,7 @@ test_that("phenotype and network services convert cache-safe helper errors to te
 })
 
 test_that("gene network context budget accounts for nodes and metadata", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_has <- mcp_analysis_repo_network_cache_hit
@@ -338,7 +343,7 @@ test_that("gene network context budget accounts for nodes and metadata", {
 
 test_that("gene research context aggregates requested sections with explicit section statuses", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -380,7 +385,7 @@ test_that("gene research context aggregates requested sections with explicit sec
 
 test_that("gene research dry-run returns statuses and budget without bulky section rows", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -404,7 +409,7 @@ test_that("gene research dry-run returns statuses and budget without bulky secti
 
 test_that("gene research dry-run probes section availability instead of assuming available", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -431,7 +436,7 @@ test_that("gene research dry-run probes section availability instead of assuming
 })
 
 test_that("gene research dry-run reports phenotype cache unavailability explicitly", {
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-research-context-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -470,7 +475,7 @@ test_that("gene research validates public limits before wrapping section errors"
 
 test_that("gene research cached LLM section can derive phenotype cluster numbers without returning clusters", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -504,7 +509,7 @@ test_that("gene research cached LLM section can derive phenotype cluster numbers
 
 test_that("gene research cached LLM section handles disabled and unavailable cluster lookups explicitly", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-research-context-service.R")
 
   old_gene <- mcp_get_gene_context
@@ -535,7 +540,7 @@ test_that("gene research cached LLM section handles disabled and unavailable clu
 
 test_that("gene research marks budget-dropped sections and returns recovery hints", {
   source("../../functions/mcp-repository.R")
-  source("../../functions/mcp-analysis-repository.R")
+  source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   old_gene <- mcp_get_gene_context
