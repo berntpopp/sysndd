@@ -329,6 +329,12 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import { useExcelExport } from '@/composables/useExcelExport';
 import { withReturnTo } from '@/utils/returnNavigation';
+import {
+  buildNddScoreGeneApiFilters,
+  buildNddScoreGeneFilterString,
+  parseNddScoreGeneFilterClauses,
+  type NddScoreGeneRangeOperator,
+} from './nddScoreGeneTableFilters';
 
 defineOptions({
   name: 'NddScoreGeneTable',
@@ -376,7 +382,7 @@ type FieldDefinition = {
   numericStep?: string;
 };
 
-type RangeOperator = 'any' | 'gte' | 'lte' | 'eq' | 'range';
+type RangeOperator = NddScoreGeneRangeOperator;
 type RangeFieldKey = 'ndd_score' | 'rank' | 'percentile';
 type RangeFilterState = {
   operator: RangeOperator;
@@ -694,31 +700,6 @@ function clearRangeFilter(key: FieldKey) {
   handleColumnFilterChange();
 }
 
-function rangeMin(key: RangeFieldKey): number | undefined {
-  const state = rangeFilters[key];
-  if (state.operator === 'gte' || state.operator === 'range') {
-    return numberFilter(state.value);
-  }
-  if (state.operator === 'eq') {
-    return numberFilter(state.value);
-  }
-  return undefined;
-}
-
-function rangeMax(key: RangeFieldKey): number | undefined {
-  const state = rangeFilters[key];
-  if (state.operator === 'lte') {
-    return numberFilter(state.value);
-  }
-  if (state.operator === 'range') {
-    return numberFilter(state.valueMax);
-  }
-  if (state.operator === 'eq') {
-    return numberFilter(state.value);
-  }
-  return undefined;
-}
-
 function toggleHpoTerm(value: string) {
   if (hpoTermFilter.value.includes(value)) {
     hpoTermFilter.value = hpoTermFilter.value.filter((term) => term !== value);
@@ -762,39 +743,13 @@ function removeFilters() {
   void loadRows();
 }
 
-function encodeFilterValue(value: string): string {
-  return value.replace(/[(),]/g, ' ');
-}
-
 function activeFilterString(): string {
-  const clauses: string[] = [];
-  const addClause = (operator: string, key: string, values: string[]) => {
-    const cleaned = values.map((value) => encodeFilterValue(value.trim())).filter(Boolean);
-    if (cleaned.length) {
-      clauses.push(`${operator}(${key},${cleaned.join(',')})`);
-    }
-  };
-
-  addClause('contains', 'any', [search.value]);
-  addClause('equals', 'gene_symbol', [columnFilters.gene_symbol]);
-  addClause('equals', 'risk_tier', [columnFilters.risk_tier]);
-  addClause('equals', 'confidence_tier', [columnFilters.confidence_tier]);
-  addClause('equals', 'known_sysndd_gene', [columnFilters.known_sysndd_gene]);
-  addClause('equals', 'model_split', [columnFilters.model_split]);
-  addClause('equals', 'top_inheritance_mode', [columnFilters.top_inheritance_mode]);
-  (Object.keys(rangeFilters) as RangeFieldKey[]).forEach((key) => {
-    const state = rangeFilters[key];
-    if (state.operator === 'any') {
-      return;
-    }
-    if (state.operator === 'range') {
-      addClause('range', key, [state.value, state.valueMax]);
-    } else {
-      addClause(state.operator, key, [state.value]);
-    }
+  return buildNddScoreGeneFilterString({
+    search: search.value,
+    columnFilters,
+    rangeFilters,
+    hpoTerms: hpoTermFilter.value,
   });
-  addClause('any', 'top_hpo_predictions_json', hpoTermFilter.value);
-  return clauses.join(',');
 }
 
 function normalizedSortForUrl(): string {
@@ -829,28 +784,7 @@ function updateBrowserUrl() {
 }
 
 function parseFilterClauses(filterString: string | null): UrlFilterClause[] {
-  if (!filterString || filterString === 'null') {
-    return [];
-  }
-
-  return filterString
-    .split('),')
-    .map((part) => part.replace(/\)$/, ''))
-    .map((part) => {
-      const match = part.match(/^([^()]+)\(([^,]+),(.*)$/);
-      if (!match) {
-        return null;
-      }
-      return {
-        operator: match[1].trim(),
-        key: match[2].trim(),
-        values: match[3]
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-      };
-    })
-    .filter((clause): clause is UrlFilterClause => clause != null);
+  return parseNddScoreGeneFilterClauses(filterString);
 }
 
 function applyInitialQuery() {
@@ -901,39 +835,25 @@ function applyInitialQuery() {
   });
 }
 
-function numberFilter(value: string): number | undefined {
-  if (value.trim() === '') {
-    return undefined;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
 async function loadRows() {
   const serial = ++requestSerial;
   loading.value = true;
   loadError.value = '';
 
   try {
+    const apiFilters = buildNddScoreGeneApiFilters({
+      search: search.value,
+      columnFilters,
+      rangeFilters,
+      hpoTerms: hpoTermFilter.value,
+    });
+
     const result = await fetchGenePredictions({
       sort: normalizedSortForApi(),
-      search: search.value || undefined,
-      nddScoreMin: rangeMin('ndd_score'),
-      nddScoreMax: rangeMax('ndd_score'),
-      rankMin: rangeMin('rank'),
-      rankMax: rangeMax('rank'),
-      percentileMin: rangeMin('percentile'),
-      percentileMax: rangeMax('percentile'),
-      riskTier: columnFilters.risk_tier || undefined,
-      confidenceTier: columnFilters.confidence_tier || undefined,
-      knownSysnddGene: columnFilters.known_sysndd_gene || undefined,
+      ...apiFilters,
       page: page.value,
       pageSize: pageSize.value,
       hgncId: undefined,
-      geneSymbol: columnFilters.gene_symbol || undefined,
-      modelSplit: columnFilters.model_split || undefined,
-      topInheritanceMode: columnFilters.top_inheritance_mode || undefined,
-      hpoTerms: hpoTermFilter.value.length ? hpoTermFilter.value : undefined,
     });
 
     if (serial !== requestSerial) {
