@@ -81,7 +81,7 @@
     "@vue/test-utils": "^2.4.10",
     "@vue/tsconfig": "^0.9.0",
     "axios": "^1.16.0",
-    "cssnano": "^7.1.9",
+    "cssnano": "^8.0.1",
     "eslint": "^10.3.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.9.1",
