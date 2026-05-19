@@ -108,46 +108,7 @@ function(req,
 #* @get correlation
 function(res,
          filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
-  phenotype_entities_data <- generate_phenotype_entities_list(filter = filter)$data %>%
-    separate_rows(modifier_phenotype_id, sep = ",") %>%
-    unique()
-
-  phenotype_list_tbl <- pool %>%
-    tbl("phenotype_list") %>%
-    collect()
-
-  sysndd_db_phenotypes <- phenotype_entities_data %>%
-    filter(str_detect(modifier_phenotype_id, "1-")) %>%
-    mutate(phenotype_id = str_remove(modifier_phenotype_id, "[1-4]-")) %>%
-    filter(phenotype_id != "HP:0001249") %>%
-    left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-    select(entity_id, phenotype_id, HPO_term)
-
-  sysndd_db_phenotypes_matrix <- sysndd_db_phenotypes %>%
-    select(-phenotype_id) %>%
-    mutate(has_HPO_term = 1) %>%
-    unique() %>%
-    pivot_wider(names_from = HPO_term, values_from = has_HPO_term) %>%
-    replace(is.na(.), 0) %>%
-    select(-entity_id)
-
-  sysndd_db_phenotypes_corr <- round(cor(sysndd_db_phenotypes_matrix), 2)
-  phenotypes_corr_melted <- melt(sysndd_db_phenotypes_corr) %>%
-    select(x = Var1, y = Var2, value)
-
-  phenotype_list_join <- phenotype_list_tbl %>%
-    select(phenotype_id, HPO_term)
-
-  phenotypes_corr_melted_ids <- phenotypes_corr_melted %>%
-    left_join(phenotype_list_join, by = c("x" = "HPO_term")) %>%
-    select(x, y, value, x_id = phenotype_id) %>%
-    left_join(phenotype_list_join, by = c("y" = "HPO_term")) %>%
-    select(x, x_id, y, y_id = phenotype_id, value)
-
-  # Note: cluster_id is not included because phenotype pairs don't map to
-  # entity clusters (see documentation above). Frontend should link to
-  # /Phenotypes/ filtered by phenotype pair.
-  phenotypes_corr_melted_ids
+  generate_phenotype_correlations(filter = filter)
 }
 
 

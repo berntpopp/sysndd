@@ -15,6 +15,7 @@
 # Source helper functions into global environment for test access
 source_api_file("functions/helper-functions.R", local = FALSE, envir = globalenv())
 source_api_file("functions/analyses-functions.R", local = FALSE, envir = globalenv())
+source_api_file("functions/analysis-network-functions.R", local = FALSE, envir = globalenv())
 
 # =============================================================================
 # Category Selection Tests
@@ -269,4 +270,20 @@ test_that("metadata layout_algorithm field can be dynamic", {
 
   expect_true(all(nchar(algorithms) > 0))
   expect_equal(length(algorithms), 3)
+})
+
+test_that("layout normalization keeps degenerate coordinates finite", {
+  layout_matrix <- matrix(c(4, 9, 4, 9, 4, 9), ncol = 2, byrow = TRUE)
+  normalized <- normalize_network_layout_positions(layout_matrix, node_ids = c("a", "b", "c"))
+
+  expect_true(all(is.finite(normalized$x)))
+  expect_true(all(is.finite(normalized$y)))
+  expect_equal(normalized$x, c(500, 500, 500))
+  expect_equal(normalized$y, c(500, 500, 500))
+})
+
+test_that("network helper does not advertise unused cache version state", {
+  src <- readLines(file.path(get_api_dir(), "functions", "analysis-network-functions.R"), warn = FALSE)
+
+  expect_false(any(grepl("cache_version <-", src, fixed = TRUE)))
 })

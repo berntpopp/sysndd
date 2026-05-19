@@ -70,6 +70,8 @@ bootstrap_load_modules <- function() {
     "functions/phenotype-repository.R",
     "functions/ontology-repository.R",
     "functions/mcp-repository.R",
+    "functions/mcp-analysis-cache-repository.R",
+    "functions/mcp-analysis-repository.R",
     "functions/user-repository.R",
     "functions/hash-repository.R",
     "functions/category-normalization.R",
@@ -77,6 +79,8 @@ bootstrap_load_modules <- function() {
     "functions/publication-functions.R",
     "functions/genereviews-functions.R",
     "functions/analyses-functions.R",
+    "functions/analysis-phenotype-functions.R",
+    "functions/analysis-network-functions.R",
     "functions/account-helpers.R",
     "functions/data-helpers.R",
     "functions/entity-helpers.R",
@@ -138,7 +142,17 @@ bootstrap_load_modules <- function() {
     "services/re-review-service.R",
     "services/seo-service.R",
     "services/mcp-service.R",
-    "services/mcp-tools.R"
+    "services/mcp-analysis-shaping.R",
+    "services/mcp-query-service.R",
+    "services/mcp-record-service.R",
+    "services/mcp-analysis-service.R",
+    "services/mcp-research-context-service.R",
+    "services/mcp-capabilities-service.R",
+    "services/mcp-tool-core.R",
+    "services/mcp-tool-resources.R",
+    "services/mcp-tools.R",
+    "services/mcp-tool-analysis-registry.R",
+    "services/mcp-tool-registry.R"
   )
 
   for (path in function_files) .bootstrap_source(path)

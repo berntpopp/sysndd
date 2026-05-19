@@ -101,3 +101,20 @@ bootstrap_init_memoised <- function(cache_dir = "/app/cache") {
     nest_pubtator_gene_tibble_mem  = memoise::memoise(nest_pubtator_gene_tibble, cache = cm)
   )
 }
+
+#' Bind memoised wrappers into a runtime environment.
+#'
+#' API startup uses these names as globals. The MCP sidecar also needs the same
+#' wrapper names to check/read shared disk-cache entries without computing them.
+#'
+#' @inheritParams bootstrap_init_memoised
+#' @param envir Environment to receive the memoised wrapper bindings.
+#' @return Invisibly returns the named wrapper list.
+#' @export
+bootstrap_bind_memoised <- function(cache_dir = "/app/cache", envir = parent.frame()) {
+  memoised <- bootstrap_init_memoised(cache_dir = cache_dir)
+  for (name in names(memoised)) {
+    assign(name, memoised[[name]], envir = envir)
+  }
+  invisible(memoised)
+}

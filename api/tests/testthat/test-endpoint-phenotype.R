@@ -107,14 +107,21 @@ test_that("GET correlation: happy path — decorator + default filter value", {
   })
 })
 
-test_that("GET correlation: validation — joins phenotype_list, computes cor()", {
+test_that("GET correlation: validation — delegates to helper that joins phenotype_list and computes cor()", {
   with_test_db_transaction({
     body_blob <- phenotype_body_blob("^#\\*\\s+@get\\s+correlation\\s*$")
-    expect_match(body_blob, "phenotype_list")
-    expect_match(body_blob, "cor\\(sysndd_db_phenotypes_matrix\\)")
+    helper_src <- readLines(
+      file.path(get_api_dir(), "functions", "analysis-phenotype-functions.R"),
+      warn = FALSE
+    )
+    helper_blob <- paste(helper_src, collapse = "\n")
+
+    expect_match(body_blob, "generate_phenotype_correlations")
+    expect_match(helper_blob, "phenotype_list")
+    expect_match(helper_blob, "stats::cor\\(sysndd_db_phenotypes_matrix\\)")
     # HP:0001249 "Intellectual disability" is the catch-all root node — the
-    # handler must exclude it so the correlation matrix doesn't saturate.
-    expect_match(body_blob, "HP:0001249")
+    # helper must exclude it so the correlation matrix doesn't saturate.
+    expect_match(helper_blob, "HP:0001249")
   })
 })
 
