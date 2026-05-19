@@ -34,7 +34,7 @@ app/src/components/analyses/PublicationsNDDTable.vue	1059
 app/src/components/analyses/PubtatorNDDGenes.vue	1180
 app/src/components/analyses/PubtatorNDDTable.vue	945
 app/src/components/forms/BatchCriteriaForm.vue	747
-app/src/components/gene/GeneStructurePlotWithVariants.vue	1410
+app/src/components/gene/GeneStructurePlotWithVariants.vue	1306
 app/src/components/gene/GenomicVisualizationTabs.vue	748
 app/src/components/gene/ProteinDomainLollipopPlot.vue	713
 app/src/components/gene/VariantPanel.vue	671
