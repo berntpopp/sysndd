@@ -76,6 +76,7 @@ bootstrap_load_modules <- function() {
     "functions/hash-repository.R",
     "functions/category-normalization.R",
     "functions/endpoint-functions.R",
+    "functions/publication-endpoint-helpers.R",
     "functions/publication-functions.R",
     "functions/genereviews-functions.R",
     "functions/analyses-functions.R",

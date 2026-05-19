@@ -4,7 +4,7 @@ api/endpoints/entity_endpoints.R	842
 api/endpoints/external_endpoints.R	607
 api/endpoints/jobs_endpoints.R	966
 api/endpoints/llm_admin_endpoints.R	797
-api/endpoints/publication_endpoints.R	1217
+api/endpoints/publication_endpoints.R	1174
 api/endpoints/re_review_endpoints.R	777
 api/endpoints/review_endpoints.R	634
 api/endpoints/statistics_endpoints.R	774
