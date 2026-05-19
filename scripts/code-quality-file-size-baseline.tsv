@@ -1,5 +1,4 @@
 api/endpoints/admin_endpoints.R	1428
-api/endpoints/analysis_endpoints.R	752
 api/endpoints/backup_endpoints.R	641
 api/endpoints/entity_endpoints.R	842
 api/endpoints/external_endpoints.R	607
@@ -10,7 +9,6 @@ api/endpoints/re_review_endpoints.R	777
 api/endpoints/review_endpoints.R	634
 api/endpoints/statistics_endpoints.R	774
 api/endpoints/user_endpoints.R	1128
-api/functions/analyses-functions.R	666
 api/functions/async-job-handlers.R	940
 api/functions/async-job-repository.R	638
 api/functions/comparisons-functions.R	967
@@ -25,8 +23,6 @@ api/functions/nddscore-import.R	854
 api/functions/omim-functions.R	971
 api/functions/response-helpers.R	768
 api/services/entity-service.R	1063
-api/services/mcp-service.R	1092
-api/services/mcp-tools.R	903
 api/services/re-review-service.R	929
 app/src/components/ApprovalTableView.vue	689
 app/src/components/analyses/AnalyseGeneClusters.vue	1446
