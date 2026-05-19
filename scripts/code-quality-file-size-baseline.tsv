@@ -25,7 +25,7 @@ api/functions/response-helpers.R	768
 api/services/entity-service.R	1063
 api/services/re-review-service.R	929
 app/src/components/ApprovalTableView.vue	689
-app/src/components/analyses/AnalyseGeneClusters.vue	1446
+app/src/components/analyses/AnalyseGeneClusters.vue	1387
 app/src/components/analyses/AnalysesCurationComparisonsTable.vue	672
 app/src/components/analyses/AnalysesCurationUpset.vue	748
 app/src/components/analyses/AnalysesPhenotypeClusters.vue	728

@@ -371,6 +371,10 @@ import { getClusterColor } from '@/utils/clusterColors';
 import { getFunctionalClustering, getFunctionalClusterSummary } from '@/api/analysis';
 import { submitClustering, getJobStatus } from '@/api/jobs';
 import { isApiError } from '@/api/client';
+import {
+  filterFunctionalClusterRows,
+  sortFunctionalClusterRows,
+} from './functionalClusterTable';
 
 export default {
   name: 'AnalyseGeneClusters',
@@ -666,38 +670,7 @@ export default {
     displayedItems() {
       let dataArray = this.selectedCluster[this.tableType] || [];
       dataArray = this.applyFilters(dataArray);
-
-      // Apply sorting
-      if (this.sortBy) {
-        dataArray = [...dataArray].sort((a, b) => {
-          let aVal = a[this.sortBy];
-          let bVal = b[this.sortBy];
-
-          // Handle null/undefined - push to end
-          if (aVal == null && bVal == null) return 0;
-          if (aVal == null) return 1;
-          if (bVal == null) return -1;
-
-          // Handle numeric comparison (including scientific notation like FDR values)
-          // Convert to number - handles "0", "1e-94", 0, 1e-94, etc.
-          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
-          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
-
-          if (!isNaN(aNum) && !isNaN(bNum)) {
-            // Both are valid numbers - compare numerically
-            // This correctly handles 0 vs 1e-94 (0 < 1e-94)
-            const diff = aNum - bNum;
-            return this.sortDesc ? -diff : diff;
-          }
-
-          // String comparison for non-numeric values
-          const aStr = String(aVal).toLowerCase();
-          const bStr = String(bVal).toLowerCase();
-          if (aStr < bStr) return this.sortDesc ? 1 : -1;
-          if (aStr > bStr) return this.sortDesc ? -1 : 1;
-          return 0;
-        });
-      }
+      dataArray = sortFunctionalClusterRows(dataArray, this.sortBy, this.sortDesc);
 
       // Pagination
       const start = (this.currentPage - 1) * this.perPage;
@@ -1000,58 +973,26 @@ export default {
      * Filtering logic
      * ------------------------------------ */
     applyFilters(items) {
-      const anyVal = (this.filter.any.content || '').toLowerCase();
-
       // Sync wildcard pattern from filterState
       const searchPattern = this.filterSyncState?.search || '';
       if (searchPattern !== this.wildcardSearch.pattern.value) {
         this.wildcardSearch.pattern.value = searchPattern;
       }
 
-      return items.filter((row) => {
-        // 0) Wildcard gene search filter (for identifiers table)
-        if (searchPattern && this.tableType === 'identifiers' && row.symbol) {
-          if (!this.wildcardSearch.matches(row.symbol)) {
-            return false;
-          }
-        }
+      const columnFilters = Object.fromEntries(
+        Object.entries(this.filter)
+          .filter(([key]) => key !== 'any')
+          .map(([key, filter]) => [key, filter.content])
+      );
 
-        // 1) Category dropdown filter (for term_enrichment table)
-        if (this.categoryFilter && this.tableType === 'term_enrichment') {
-          if (row.category !== this.categoryFilter) {
-            return false;
-          }
-        }
-
-        // 2) FDR threshold filter (for term_enrichment table)
-        if (this.fdrThreshold !== null && this.tableType === 'term_enrichment') {
-          const fdrValue = parseFloat(row.fdr);
-          if (isNaN(fdrValue) || fdrValue >= this.fdrThreshold) {
-            return false;
-          }
-        }
-
-        // 3) "any" filter
-        if (anyVal) {
-          const rowString = Object.values(row).join(' ').toLowerCase();
-          if (!rowString.includes(anyVal)) {
-            return false;
-          }
-        }
-
-        // 4) column-specific text filters
-        const filterKeys = Object.keys(this.filter).filter((k) => k !== 'any');
-        let keep = true;
-        filterKeys.forEach((fieldKey) => {
-          const colVal = (this.filter[fieldKey].content || '').toLowerCase();
-          if (colVal) {
-            const rowVal = String(row[fieldKey] || '').toLowerCase();
-            if (!rowVal.includes(colVal)) {
-              keep = false;
-            }
-          }
-        });
-        return keep;
+      return filterFunctionalClusterRows(items, {
+        tableType: this.tableType,
+        searchPattern,
+        wildcardMatches: (symbol) => this.wildcardSearch.matches(symbol),
+        categoryFilter: this.categoryFilter,
+        fdrThreshold: this.fdrThreshold,
+        anyText: this.filter.any.content,
+        columnFilters,
       });
     },
     onFilterChange() {
