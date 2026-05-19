@@ -105,5 +105,29 @@ describe('geneStructureVariantPlotUtils', () => {
         },
       })
     ).toBe(false);
+
+    expect(
+      isGeneStructureVariantVisible(
+        { genomicPosition: 1200, classification: 'Pathogenic', majorConsequence: null },
+        {
+          pathogenicity: {
+            Pathogenic: true,
+            'Likely pathogenic': false,
+            'Uncertain significance': false,
+            'Likely benign': false,
+            Benign: false,
+          },
+          effectFilters: {
+            missense: false,
+            frameshift: false,
+            stop_gained: false,
+            splice: false,
+            inframe_indel: false,
+            synonymous: false,
+            other: true,
+          },
+        }
+      )
+    ).toBe(true);
   });
 });

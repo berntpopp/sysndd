@@ -90,7 +90,7 @@ export function isGeneStructureVariantVisible(
   filterState: GeneStructureVariantFilterState
 ): boolean {
   const pathogenicityVisible = filterState.pathogenicity[variant.classification] ?? true;
-  const effectType = normalizeEffectType(variant.majorConsequence);
+  const effectType = normalizeEffectType(variant.majorConsequence ?? '');
   const effectVisible = filterState.effectFilters[effectType];
 
   return pathogenicityVisible && effectVisible;
