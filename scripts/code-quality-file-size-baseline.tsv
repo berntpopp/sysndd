@@ -1,4 +1,4 @@
-api/endpoints/admin_endpoints.R	1428
+api/endpoints/admin_endpoints.R	1368
 api/endpoints/backup_endpoints.R	641
 api/endpoints/entity_endpoints.R	842
 api/endpoints/external_endpoints.R	607

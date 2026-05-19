@@ -62,6 +62,7 @@ bootstrap_load_modules <- function() {
     "functions/async-job-service.R",
     "functions/nddscore-import.R",
     "functions/nddscore-repository.R",
+    "functions/nddscore-admin-endpoint-helpers.R",
     "functions/entity-repository.R",
     "functions/review-repository.R",
     "functions/status-repository.R",
