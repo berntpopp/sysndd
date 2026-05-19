@@ -169,9 +169,9 @@ test_that("MCP phenotype cluster repositories do not cold-run memoised analysis 
 test_that("MCP network repository filters cached edges to the requested gene neighborhood", {
   source("../../functions/mcp-analysis-repository.R")
 
-  old_hit <- mcp_analysis_repo_network_cache_hit
+  old_hit <- mcp_analysis_repo_network_memoise_cache_hit
   old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_network_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
   assign("gen_network_edges_mem", function(...) {
     list(
       nodes = tibble::tibble(
@@ -194,7 +194,7 @@ test_that("MCP network repository filters cached edges to the requested gene nei
     )
   }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_network_cache_hit", old_hit, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_network_memoise_cache_hit", old_hit, envir = .GlobalEnv)
     if (is.null(old_network)) rm("gen_network_edges_mem", envir = .GlobalEnv) else assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
   })
 
@@ -207,15 +207,94 @@ test_that("MCP network repository filters cached edges to the requested gene nei
   expect_false("Limited" %in% names(result$metadata$category_counts))
 })
 
+test_that("MCP network repository detects shared disk cache payloads when memoise key lookup misses", {
+  source("../../functions/mcp-analysis-repository.R")
+
+  cache_dir <- withr::local_tempdir()
+  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
+  saveRDS(
+    list(
+      value = list(
+        nodes = tibble::tibble(hgnc_id = "HGNC:1", symbol = "GENE1", cluster = 1L),
+        edges = tibble::tibble(source = character(), target = character(), confidence = numeric()),
+        metadata = list(min_confidence = 400L, cluster_type = "clusters")
+      )
+    ),
+    file.path(cache_dir, "network.rds")
+  )
+
+  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
+  if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) {
+    rm("gen_network_edges_mem", envir = .GlobalEnv)
+  }
+  withr::defer(
+    if (is.null(old_network)) {
+      if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_network_edges_mem", envir = .GlobalEnv)
+    } else {
+      assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
+    }
+  )
+
+  expect_true(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 400L))
+  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "subclusters", min_confidence = 400L))
+  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 700L))
+})
+
+test_that("MCP network repository reads and filters shared disk cache payloads without cold-running STRING", {
+  source("../../functions/mcp-analysis-repository.R")
+
+  cache_dir <- withr::local_tempdir()
+  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
+  saveRDS(
+    list(
+      value = list(
+        nodes = tibble::tibble(
+          hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
+          symbol = c("GENE1", "GENE2", "GENE3"),
+          cluster = c(1L, 1L, 2L),
+          category = c("Definitive", "Moderate", "Limited")
+        ),
+        edges = tibble::tibble(
+          source = c("HGNC:1", "HGNC:2"),
+          target = c("HGNC:2", "HGNC:3"),
+          confidence = c(0.9, 0.8)
+        ),
+        metadata = list(min_confidence = 400L, cluster_type = "clusters")
+      )
+    ),
+    file.path(cache_dir, "network.rds")
+  )
+
+  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
+  if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) {
+    rm("gen_network_edges_mem", envir = .GlobalEnv)
+  }
+  withr::defer(
+    if (is.null(old_network)) {
+      if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_network_edges_mem", envir = .GlobalEnv)
+    } else {
+      assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
+    }
+  )
+
+  result <- mcp_analysis_repo_get_network_edges_local(gene = "HGNC:1", max_edges = 10L)
+
+  expect_equal(nrow(result$edges), 1L)
+  expect_equal(result$edges$source[[1]], "HGNC:1")
+  expect_equal(sort(result$nodes$hgnc_id), c("HGNC:1", "HGNC:2"))
+  expect_true(result$metadata$gene_filtered)
+  expect_equal(result$metadata$cache_source, "disk_payload_scan")
+})
+
 test_that("MCP network repository degrades to unavailable on cached-read errors", {
   source("../../functions/mcp-analysis-repository.R")
 
-  old_hit <- mcp_analysis_repo_network_cache_hit
+  old_hit <- mcp_analysis_repo_network_memoise_cache_hit
   old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_network_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
   assign("gen_network_edges_mem", function(...) stop("cached read failed"), envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_network_cache_hit", old_hit, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_network_memoise_cache_hit", old_hit, envir = .GlobalEnv)
     if (is.null(old_network)) rm("gen_network_edges_mem", envir = .GlobalEnv) else assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
   })
 

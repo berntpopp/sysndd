@@ -141,13 +141,101 @@ mcp_analysis_repo_get_cached_llm_summaries <- function(cluster_type,
   )
 }
 
-mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
-                                                min_confidence = 400L) {
+mcp_analysis_repo_cache_dir <- function() {
+  Sys.getenv("MCP_CACHE_DIR", "/app/cache")
+}
+
+mcp_analysis_repo_network_memoise_cache_hit <- function(cluster_type = "clusters",
+                                                        min_confidence = 400L) {
   if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
   if (!exists("gen_network_edges_mem", mode = "function")) return(FALSE)
   if (!memoise::is.memoised(gen_network_edges_mem)) return(FALSE)
   checker <- memoise::has_cache(gen_network_edges_mem)
   isTRUE(checker(cluster_type = cluster_type, min_confidence = min_confidence))
+}
+
+mcp_analysis_repo_network_payload_matches <- function(network,
+                                                      cluster_type = "clusters",
+                                                      min_confidence = 400L) {
+  if (!is.list(network)) return(FALSE)
+  if (!all(c("nodes", "edges", "metadata") %in% names(network))) return(FALSE)
+
+  metadata <- network$metadata
+  if (!is.list(metadata)) return(FALSE)
+
+  payload_min_confidence <- suppressWarnings(as.integer(metadata$min_confidence %||% NA_integer_))
+  if (is.na(payload_min_confidence) || payload_min_confidence != as.integer(min_confidence)) {
+    return(FALSE)
+  }
+
+  payload_cluster_type <- metadata$cluster_type %||% NULL
+  if (!is.null(payload_cluster_type)) {
+    return(identical(as.character(payload_cluster_type)[1], as.character(cluster_type)[1]))
+  }
+
+  # Older cached network payloads did not persist cluster_type. Those payloads
+  # were generated from the default public network view, so only reuse them for
+  # the default clusters request.
+  identical(as.character(cluster_type)[1], "clusters")
+}
+
+mcp_analysis_repo_read_cached_rds_value <- function(path) {
+  cached <- tryCatch(readRDS(path), error = function(e) NULL)
+  if (is.null(cached)) return(NULL)
+  if (is.list(cached) && "value" %in% names(cached)) {
+    return(cached$value)
+  }
+  cached
+}
+
+mcp_analysis_repo_find_network_disk_payload <- function(cluster_type = "clusters",
+                                                        min_confidence = 400L,
+                                                        cache_dir = mcp_analysis_repo_cache_dir(),
+                                                        max_files = 500L) {
+  if (is.null(cache_dir) || !nzchar(cache_dir) || !dir.exists(cache_dir)) {
+    return(NULL)
+  }
+
+  paths <- list.files(cache_dir, pattern = "\\.rds$", full.names = TRUE)
+  if (length(paths) == 0L) return(NULL)
+
+  info <- file.info(paths)
+  paths <- paths[!is.na(info$mtime)]
+  info <- info[!is.na(info$mtime), , drop = FALSE]
+  if (length(paths) == 0L) return(NULL)
+
+  paths <- paths[order(info$mtime, decreasing = TRUE)]
+  paths <- utils::head(paths, max(1L, as.integer(max_files)))
+
+  for (path in paths) {
+    network <- mcp_analysis_repo_read_cached_rds_value(path)
+    if (!mcp_analysis_repo_network_payload_matches(
+      network,
+      cluster_type = cluster_type,
+      min_confidence = min_confidence
+    )) {
+      next
+    }
+    network$metadata$cache_source <- "disk_payload_scan"
+    return(network)
+  }
+
+  NULL
+}
+
+mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
+                                                min_confidence = 400L) {
+  if (mcp_analysis_repo_network_memoise_cache_hit(
+    cluster_type = cluster_type,
+    min_confidence = min_confidence
+  )) {
+    return(TRUE)
+  }
+
+  !is.null(mcp_analysis_repo_find_network_disk_payload(
+    cluster_type = cluster_type,
+    min_confidence = min_confidence
+  ))
 }
 
 mcp_analysis_repo_functional_cluster_cache_hit <- function(algorithm = "leiden") {
@@ -390,18 +478,27 @@ mcp_analysis_repo_get_network_edges_local <- function(cluster_type = "clusters",
                                                       min_confidence = 400L,
                                                       max_edges = 100L,
                                                       gene = NULL) {
-  if (!mcp_analysis_repo_network_cache_hit(cluster_type = cluster_type, min_confidence = min_confidence)) {
-    return(NULL)
-  }
-  if (!exists("gen_network_edges_mem", mode = "function")) {
-    return(NULL)
-  }
   max_edges <- mcp_analysis_repo_limit(max_edges, default = 100L, max = 250L)
 
-  network <- tryCatch(
-    gen_network_edges_mem(cluster_type = cluster_type, min_confidence = min_confidence),
-    error = function(e) NULL
-  )
+  network <- NULL
+  if (
+    mcp_analysis_repo_network_memoise_cache_hit(
+      cluster_type = cluster_type,
+      min_confidence = min_confidence
+    ) &&
+      exists("gen_network_edges_mem", mode = "function")
+  ) {
+    network <- tryCatch(
+      gen_network_edges_mem(cluster_type = cluster_type, min_confidence = min_confidence),
+      error = function(e) NULL
+    )
+  }
+  if (is.null(network)) {
+    network <- mcp_analysis_repo_find_network_disk_payload(
+      cluster_type = cluster_type,
+      min_confidence = min_confidence
+    )
+  }
   if (is.null(network)) {
     return(NULL)
   }
