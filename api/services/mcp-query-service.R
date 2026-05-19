@@ -103,7 +103,7 @@ mcp_get_gene_context <- function(gene,
     gene_obj <- mcp_row_to_list(gene_row)
 
     fetch_entities <- isTRUE(include_entities) || identical(expand, "entities")
-    total_entities <- if (isTRUE(fetch_entities)) mcp_repo_count_gene_entities(gene_obj$hgnc_id) else NULL
+    total_entities <- mcp_repo_count_gene_entities(gene_obj$hgnc_id)
     entity_fetch_limit <- if (identical(expand, "entities")) min(entity_limit, MCP_MAX_ENTITY_BATCH_IDS) else entity_limit
     entities <- if (isTRUE(fetch_entities)) {
       mcp_repo_get_gene_entities(gene_obj$hgnc_id, limit = entity_fetch_limit, offset = 0L)
@@ -128,7 +128,7 @@ mcp_get_gene_context <- function(gene,
     })
 
     comparisons <- if (isTRUE(include_comparisons)) mcp_repo_get_gene_comparisons(gene_obj$hgnc_id, limit = 25L) else tibble::tibble()
-    entity_has_more <- !is.null(total_entities) && length(entity_records) < total_entities
+    entity_has_more <- isTRUE(fetch_entities) && !is.null(total_entities) && length(entity_records) < total_entities
     entity_details <- NULL
     if (identical(expand, "entities")) {
       entity_ids <- vapply(entity_records, function(item) as.integer(item$entity_id %||% NA_integer_), integer(1))
@@ -184,6 +184,7 @@ mcp_get_gene_context <- function(gene,
         entity_offset = 0L,
         entity_returned = length(entity_records),
         entity_total = total_entities,
+        entity_rows_included = isTRUE(fetch_entities),
         entity_has_more = entity_has_more,
         next_entity_offset = if (isTRUE(entity_has_more)) length(entity_records) else NULL,
         include_comparisons = isTRUE(include_comparisons),
@@ -296,4 +297,3 @@ mcp_get_genes_context <- function(genes,
     )
   )
 }
-

@@ -97,6 +97,13 @@ test_that("analysis catalog advertises approved scope B tools and data classes",
   expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$default_limits), logical(1))))
   expect_true(all(vapply(catalog$analyses, function(x) !is.null(x$example_call), logical(1))))
   expect_equal(catalog$recommended_workflow[[1]], "Call get_sysndd_analysis_catalog first for scope and limits.")
+  expect_equal(catalog$data_class, "operational_metadata")
+  expect_equal(catalog$curation_effect, "none")
+  expect_true(catalog$not_evidence_tier)
+  expect_false(is.null(catalog$provenance))
+  expect_false(is.null(catalog$budget))
+  expect_equal(catalog$meta$response_mode, "compact")
+  expect_false(is.null(catalog$recovery$retry_with))
 })
 
 test_that("NDDScore MCP context is always marked as ML prediction and not evidence tier", {
@@ -149,6 +156,21 @@ test_that("curation comparison context returns bounded rows with derived-analysi
   expect_equal(result$data_class, "curated_derived_analysis")
   expect_equal(result$rows[[1]]$hgnc_id, "HGNC:61")
   expect_equal(result$meta$total, 1L)
+})
+
+test_that("curation comparison plot modes return documented invalid_input errors", {
+  source("../../functions/mcp-analysis-repository.R")
+  source("../../services/mcp-service.R")
+
+  err <- tryCatch(
+    mcp_get_curation_comparison_context(mode = "source_overlap"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+
+  expect_equal(err$error$code, "invalid_input")
+  expect_equal(err$error$argument, "mode")
+  expect_true("gene_sources" %in% err$error$allowed_values)
+  expect_true("browse" %in% err$error$allowed_values)
 })
 
 test_that("MCP LLM summary service returns cached validated summaries and never generates", {

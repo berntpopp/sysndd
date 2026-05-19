@@ -5,6 +5,13 @@
 mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
                                             response_mode = "compact") {
   response_mode <- mcp_validate_enum(response_mode, c("minimal", "compact"), "response_mode")
+  budget <- mcp_analysis_response_budget(response_mode, "auto")
+  envelope <- mcp_analysis_provenance(
+    "operational_metadata",
+    "SysNDD MCP analysis catalog",
+    "mcp_build_tool_registry",
+    "deterministic_service"
+  )
   analyses <- list(
     list(
       analysis_id = "gene_research_context",
@@ -68,8 +75,7 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
   if (identical(response_mode, "minimal")) {
     analyses <- lapply(analyses, function(x) x[c("analysis_id", "tool", "data_class", "availability")])
   }
-  list(
-    schema_version = MCP_SCHEMA_VERSION,
+  payload <- list(
     response_mode = response_mode,
     analyses = analyses,
     recommended_workflow = list(
@@ -82,8 +88,17 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       llm_summaries = "current validated cache only",
       live_external_providers = "never",
       evidence_boundary = "ML and LLM outputs do not change curated SysNDD evidence"
+    ),
+    meta = list(
+      response_mode = response_mode,
+      include_unavailable = isTRUE(include_unavailable),
+      analysis_count = length(analyses)
+    ),
+    recovery = list(
+      retry_with = list(response_mode = "minimal", include_unavailable = include_unavailable)
     )
   )
+  mcp_analysis_finalize_response_budget(c(envelope, payload), budget)
 }
 
 mcp_nddscore_release_record <- function(release) {
@@ -221,7 +236,11 @@ mcp_get_curation_comparison_context <- function(gene = NULL,
                                                 dry_run = FALSE) {
   mode <- mode %||% if (!is.null(gene)) "gene_sources" else "browse"
   if (mode %in% c("source_overlap", "source_similarity")) {
-    stop(mcp_error("unsupported_mode", "Comparison plot modes are not exposed through MCP v1.2; use gene_sources or browse.", list(argument = "mode")))
+    stop(mcp_error(
+      "invalid_input",
+      "Comparison plot modes are not exposed through MCP v1.2; use gene_sources or browse.",
+      list(argument = "mode", allowed_values = c("gene_sources", "browse"))
+    ))
   }
   mode <- mcp_validate_enum(mode, c("gene_sources", "browse"), "mode")
   budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
@@ -491,4 +510,3 @@ mcp_get_gene_network_context <- function(gene = NULL,
     budget = trimmed$budget
   ))
 }
-

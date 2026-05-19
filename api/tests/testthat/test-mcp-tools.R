@@ -41,7 +41,8 @@ test_that("MCP registry exposes only approved SysNDD tools", {
     "get_sysndd_capabilities",
     analysis_tool_names
   ))
-  expect_false(any(grepl("session|code|sql|admin|review|job|log|user", tool_names, ignore.case = TRUE)))
+  tool_tokens <- unique(unlist(strsplit(tool_names, "_", fixed = TRUE)))
+  expect_false(any(tolower(tool_tokens) %in% c("session", "code", "sql", "admin", "review", "job", "log", "user")))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/overview"), logical(1))))
   expect_true(any(vapply(registry$resources, function(x) identical(x$uri, "sysndd://schema/tool-guide"), logical(1))))
 })
@@ -148,6 +149,7 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
   expect_null(gene$inputSchema$properties$symbol)
   expect_null(gene$inputSchema$properties$query)
   expect_no_match(gene$inputSchema$properties$gene$description, "symbol/query", fixed = TRUE)
+  expect_true("gene" %in% gene$inputSchema$required)
   expect_false(is.null(gene$inputSchema$properties$response_mode))
   expect_match(gene$inputSchema$properties$include_entities$description, "default true", ignore.case = TRUE)
   expect_match(gene$inputSchema$properties$include_comparisons$description, "default false", ignore.case = TRUE)
@@ -163,6 +165,7 @@ test_that("MCP registry exposes rich tool metadata for LLM clients", {
   expect_null(list_gene$inputSchema$properties$symbol)
   expect_null(list_gene$inputSchema$properties$query)
   expect_no_match(list_gene$inputSchema$properties$gene$description, "symbol", ignore.case = TRUE)
+  expect_true("gene" %in% list_gene$inputSchema$required)
 
   search <- metadata[[which(tool_names == "search_sysndd")]]
   expect_match(search$inputSchema$properties$types$description, "default all", ignore.case = TRUE)

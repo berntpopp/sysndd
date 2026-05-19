@@ -64,6 +64,30 @@ generate_network_edges_response <- function(cluster_type = "clusters",
 }
 
 
+#' Normalize network layout coordinates.
+#'
+#' @param layout_matrix Two-column layout matrix from igraph.
+#' @param node_ids Node IDs matching the layout row order.
+#'
+#' @return Data frame with STRING_id, x, and y coordinates in the 0-1000 range.
+#' @export
+normalize_network_layout_positions <- function(layout_matrix, node_ids) {
+  normalize_axis <- function(values) {
+    value_range <- range(values, finite = TRUE)
+    delta <- value_range[2] - value_range[1]
+    if (!is.finite(delta) || delta == 0) {
+      return(rep(500, length(values)))
+    }
+    round((values - value_range[1]) / delta * 1000)
+  }
+
+  data.frame(
+    STRING_id = node_ids,
+    x = normalize_axis(layout_matrix[, 1]),
+    y = normalize_axis(layout_matrix[, 2])
+  )
+}
+
 #' Extract Network Edges from STRINGdb for Cytoscape.js Visualization
 #'
 #' Returns protein-protein interaction network data in a format suitable for
@@ -86,7 +110,6 @@ gen_network_edges <- function(
 ) {
   # Version constants for cache invalidation
   string_version <- "11.5" # Must match STRINGdb$new version below
-  cache_version <- Sys.getenv("CACHE_VERSION", "1")
 
   # Get all NDD genes for clustering
   # If string_id_table is provided (for daemon context), use it; otherwise fetch from pool
@@ -288,14 +311,8 @@ gen_network_edges <- function(
   layout_time <- as.numeric(difftime(Sys.time(), layout_start, units = "secs"))
   message(paste0("[gen_network_edges] Layout computed in ", round(layout_time, 2), "s"))
 
-  # Normalize layout to 0-1000 range for consistent client rendering
-  x_range <- range(layout_matrix[, 1])
-  y_range <- range(layout_matrix[, 2])
-  layout_normalized <- data.frame(
-    STRING_id = names(node_degrees),
-    x = round((layout_matrix[, 1] - x_range[1]) / (x_range[2] - x_range[1]) * 1000),
-    y = round((layout_matrix[, 2] - y_range[1]) / (y_range[2] - y_range[1]) * 1000)
-  )
+  # Normalize layout to 0-1000 range for consistent client rendering.
+  layout_normalized <- normalize_network_layout_positions(layout_matrix, names(node_degrees))
 
   # Add positions and category to nodes
   nodes <- nodes %>%
