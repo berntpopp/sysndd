@@ -185,12 +185,18 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
 // declare only the subset the tests touch.
 // ---------------------------------------------------------------------------
 interface ManageReReviewVm {
+  user_options: Array<{ value: number; text: string; role: string }>;
   user_id_assignment: number;
+  availableEntities: Array<Record<string, unknown>>;
+  availableEntityTotal: number;
+  manualEntityFilter: string | null;
   selectedEntityIds: number[];
   entityAssignUserId: number | null;
   entityAssignBatchName: string;
+  reassignModalShow: boolean;
   reassignBatchId: number | null;
   reassignNewUserId: number | null;
+  recalculateModalShow: boolean;
   recalculateBatchId: number | null;
   recalculateCriteria: {
     date_range: { start: string | null; end: string | null };
@@ -198,11 +204,18 @@ interface ManageReReviewVm {
     status_filter: number | null;
     batch_size: number;
   };
+  status_options: Array<{ value: number; text: string }>;
+  loadUserList: () => Promise<void>;
+  loadReReviewTableData: () => Promise<void>;
+  loadAvailableEntities: () => Promise<void>;
+  loadStatusOptions: () => Promise<void>;
   handleNewBatchAssignment: () => Promise<void>;
   handleBatchUnAssignment: (batchId: number) => Promise<void>;
   handleEntityAssignment: () => Promise<void>;
   handleBatchReassignment: () => Promise<void>;
   handleBatchRecalculation: () => Promise<void>;
+  makeToast: ReturnType<typeof vi.fn>;
+  announce: ReturnType<typeof vi.fn>;
 }
 
 const vm = (wrapper: VueWrapper): ManageReReviewVm => wrapper.vm as unknown as ManageReReviewVm;
@@ -224,7 +237,7 @@ function installDefaultHandlers(): void {
     http.get('*/api/re_review/entities/available', () =>
       HttpResponse.json({ data: [], meta: { total: 0 } })
     ),
-    http.get('*/api/list/status', () => HttpResponse.json([]))
+    http.get('*/api/list/status', () => HttpResponse.json({ data: [] }))
   );
 }
 
@@ -485,17 +498,196 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
       http.get('*/api/list/status', ({ request }) => {
         expectBearerHeader(request, token);
         sawCall = true;
+        return HttpResponse.json({
+          data: [
+            { category_id: 1, category: 'Definitive' },
+            { category_id: 2, category: 'Moderate' },
+          ],
+        });
+      })
+    );
+
+    const wrapper = await mountManageReReview();
+    await flushPromises();
+
+    expect(sawCall).toBe(true);
+    expect(vm(wrapper).status_options).toEqual([
+      { value: 1, text: 'Definitive' },
+      { value: 2, text: 'Moderate' },
+    ]);
+  });
+});
+
+describe('ManageReReview.vue — typed client migration behavior', () => {
+  it('loadUserList maps Curator/Reviewer rows from the typed user client', async () => {
+    primeAuth('re-review-users-token');
+    let observedUrl = '';
+
+    server.use(
+      http.get('*/api/user/list', ({ request }) => {
+        observedUrl = request.url;
+        expectBearerHeader(request, 're-review-users-token');
         return HttpResponse.json([
-          { category_id: 1, category: 'Definitive' },
-          { category_id: 2, category: 'Moderate' },
+          { user_id: 7, user_name: 'curator_a', user_role: 'Curator' },
+          { user_id: 8, user_name: 'reviewer_b', user_role: 'Reviewer' },
         ]);
       })
     );
 
-    await mountManageReReview();
+    const wrapper = await mountManageReReview();
     await flushPromises();
 
-    expect(sawCall).toBe(true);
+    expect(new URL(observedUrl).searchParams.get('roles')).toBe('Curator,Reviewer');
+    expect(vm(wrapper).user_options).toEqual([
+      { value: 7, text: 'curator_a', role: 'Curator' },
+      { value: 8, text: 'reviewer_b', role: 'Reviewer' },
+    ]);
+  });
+
+  it('loadAvailableEntities normalizes entity rows and scalar total', async () => {
+    primeAuth('re-review-entities-token');
+
+    server.use(
+      http.get('*/api/re_review/entities/available', ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        expect(query.get('q')).toBe('ARID');
+        expect(query.get('page')).toBe('1');
+        expect(query.get('page_size')).toBe('100');
+        return HttpResponse.json({
+          data: [{ entity_id: 11, symbol: 'ARID1B' }],
+          meta: { total: 1 },
+        });
+      })
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    component.manualEntityFilter = 'ARID';
+
+    await component.loadAvailableEntities();
+    await flushPromises();
+
+    expect(component.availableEntities).toEqual([{ entity_id: 11, symbol: 'ARID1B' }]);
+    expect(component.availableEntityTotal).toBe(1);
+  });
+
+  it('handleEntityAssignment preserves null batch name and success side effects', async () => {
+    primeAuth('re-review-assign-token');
+    let receivedBody: unknown = null;
+
+    server.use(
+      http.put('*/api/re_review/entities/assign', async ({ request }) => {
+        receivedBody = await request.json();
+        return HttpResponse.json({
+          entry: { batch_id: 77, entity_count: 2 },
+        });
+      })
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    const tableRefresh = vi.spyOn(component, 'loadReReviewTableData').mockResolvedValue();
+    const entityRefresh = vi.spyOn(component, 'loadAvailableEntities').mockResolvedValue();
+
+    component.selectedEntityIds = [11, 22];
+    component.entityAssignUserId = 3;
+    component.entityAssignBatchName = '';
+
+    await component.handleEntityAssignment();
+    await flushPromises();
+
+    expect(receivedBody).toEqual({
+      entity_ids: [11, 22],
+      user_id: 3,
+      batch_name: null,
+    });
+    expect(component.makeToast).toHaveBeenCalledWith(
+      'Created batch 77 with 2 entities',
+      'Success',
+      'success'
+    );
+    expect(component.announce).toHaveBeenCalledWith('Created batch 77 with 2 entities');
+    expect(component.selectedEntityIds).toEqual([]);
+    expect(component.entityAssignUserId).toBeNull();
+    expect(component.entityAssignBatchName).toBe('');
+    expect(tableRefresh).toHaveBeenCalledTimes(1);
+    expect(entityRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('handleEntityAssignment validation avoids API calls for missing inputs', async () => {
+    primeAuth('re-review-validation-token');
+    let sawAssignCall = false;
+    server.use(
+      http.put('*/api/re_review/entities/assign', () => {
+        sawAssignCall = true;
+        return HttpResponse.json({});
+      })
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    component.selectedEntityIds = [];
+    component.entityAssignUserId = 3;
+
+    await component.handleEntityAssignment();
+
+    expect(sawAssignCall).toBe(false);
+    expect(component.makeToast).toHaveBeenCalledWith(
+      'Please select at least one entity',
+      'Validation',
+      'warning'
+    );
+  });
+
+  it('handleBatchReassignment closes the modal and refreshes only the table', async () => {
+    primeAuth('re-review-reassign-token');
+    server.use(
+      http.put('*/api/re_review/batch/reassign', () => HttpResponse.json({ status: 200 }))
+    );
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    const tableRefresh = vi.spyOn(component, 'loadReReviewTableData').mockResolvedValue();
+    const entityRefresh = vi.spyOn(component, 'loadAvailableEntities').mockResolvedValue();
+
+    component.reassignModalShow = true;
+    component.reassignBatchId = 42;
+    component.reassignNewUserId = 9;
+
+    await component.handleBatchReassignment();
+    await flushPromises();
+
+    expect(component.reassignModalShow).toBe(false);
+    expect(tableRefresh).toHaveBeenCalledTimes(1);
+    expect(entityRefresh).not.toHaveBeenCalled();
+  });
+
+  it('handleBatchRecalculation closes the modal and refreshes table plus entities', async () => {
+    primeAuth('re-review-recalculate-token');
+    server.use(
+      http.put('*/api/re_review/batch/recalculate', () =>
+        HttpResponse.json({ entry: { batch_id: 42, entity_count: 20 } })
+      )
+    );
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    const tableRefresh = vi.spyOn(component, 'loadReReviewTableData').mockResolvedValue();
+    const entityRefresh = vi.spyOn(component, 'loadAvailableEntities').mockResolvedValue();
+
+    component.recalculateModalShow = true;
+    component.recalculateBatchId = 42;
+    component.recalculateCriteria = {
+      date_range: { start: null, end: null },
+      gene_list: [],
+      status_filter: null,
+      batch_size: 20,
+    };
+
+    await component.handleBatchRecalculation();
+    await flushPromises();
+
+    expect(component.recalculateModalShow).toBe(false);
+    expect(tableRefresh).toHaveBeenCalledTimes(1);
+    expect(entityRefresh).toHaveBeenCalledTimes(1);
   });
 });
 
