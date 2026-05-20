@@ -197,7 +197,12 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     );
 
     const wrapper = await mountTable();
-    (wrapper.vm as unknown as LogsVm).isBusy = true;
+    const vm = wrapper.vm as unknown as LogsVm;
+    if (vm.loadDataDebounceTimer) {
+      clearTimeout(vm.loadDataDebounceTimer);
+      vm.loadDataDebounceTimer = null;
+    }
+    vm.isBusy = true;
     await flushPromises();
 
     expect(wrapper.get('[data-testid="logs-loading-state"]').text()).toContain('Loading logs');
