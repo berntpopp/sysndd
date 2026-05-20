@@ -44,7 +44,7 @@ app/src/components/nddscore/NddScoreGeneTable.vue	1156
 app/src/components/small/GenericTable.vue	923
 app/src/components/tables/TablesEntities.vue	842
 app/src/components/tables/TablesGenes.vue	782
-app/src/components/tables/TablesLogs.vue	1265
+app/src/components/tables/TablesLogs.vue	1221
 app/src/components/tables/TablesPhenotypes.vue	1155
 app/src/composables/useCytoscape.ts	637
 app/src/composables/useD3Lollipop.ts	1125

@@ -74,6 +74,9 @@ interface LogsVm {
   totalRows: number;
   user_options: unknown[];
   isBusy: boolean;
+  isInitializing: boolean;
+  sort: string;
+  loadDataDebounceTimer: ReturnType<typeof setTimeout> | null;
 }
 
 function makeRouter() {
@@ -257,5 +260,82 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     await flushPromises();
 
     expect(sawBearer).toBe(true);
+  });
+
+  it('updates the browser URL only after a successful fresh logs response', async () => {
+    primeAuth('logs-url-success-token');
+    let resolveLogs: () => void;
+    const logsReady = new Promise<void>((resolve) => {
+      resolveLogs = resolve;
+    });
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
+
+    server.use(
+      http.get('/api/user/list', () => HttpResponse.json([])),
+      http.get('/api/logs/', async () => {
+        await logsReady;
+        return HttpResponse.json({
+          data: [],
+          meta: [
+            {
+              totalItems: 0,
+              currentPage: 1,
+              totalPages: 1,
+              prevItemID: 0,
+              currentItemID: 0,
+              nextItemID: 0,
+              lastItemID: 0,
+              executionTime: 5,
+            },
+          ],
+        });
+      })
+    );
+
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as unknown as LogsVm;
+    if (vm.loadDataDebounceTimer) {
+      clearTimeout(vm.loadDataDebounceTimer);
+      vm.loadDataDebounceTimer = null;
+    }
+    vm.isInitializing = false;
+    vm.sort = '-timestamp';
+
+    const loadPromise = vm.doLoadData();
+    await Promise.resolve();
+
+    expect(replaceStateSpy).not.toHaveBeenCalled();
+
+    resolveLogs!();
+    await loadPromise;
+    await flushPromises();
+
+    expect(replaceStateSpy).toHaveBeenCalledTimes(1);
+    replaceStateSpy.mockRestore();
+  });
+
+  it('does not update the browser URL after a failed logs response', async () => {
+    primeAuth('logs-url-failure-token');
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
+
+    server.use(
+      http.get('/api/user/list', () => HttpResponse.json([])),
+      http.get('/api/logs/', () => HttpResponse.json({ error: 'INVALID_FILTER' }, { status: 400 }))
+    );
+
+    const wrapper = await mountTable();
+    const vm = wrapper.vm as unknown as LogsVm;
+    if (vm.loadDataDebounceTimer) {
+      clearTimeout(vm.loadDataDebounceTimer);
+      vm.loadDataDebounceTimer = null;
+    }
+    vm.isInitializing = false;
+    vm.sort = '+timestamp';
+
+    await vm.doLoadData();
+    await flushPromises();
+
+    expect(replaceStateSpy).not.toHaveBeenCalled();
+    replaceStateSpy.mockRestore();
   });
 });
