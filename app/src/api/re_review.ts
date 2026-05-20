@@ -78,6 +78,28 @@ export interface AssignmentRow {
   entity_count: number;
 }
 
+export interface AvailableReReviewEntitiesParams {
+  q?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface AvailableReReviewEntity {
+  entity_id: number;
+  symbol?: string | null;
+  disease_ontology_name?: string | null;
+  category?: string | null;
+  [key: string]: unknown;
+}
+
+export interface AvailableReReviewEntitiesResponse {
+  data: AvailableReReviewEntity[];
+  meta?: {
+    total?: number | number[];
+    [key: string]: unknown;
+  };
+}
+
 // Batch management types
 
 export interface BatchCriteria {
@@ -95,6 +117,13 @@ export interface CreateBatchRequest extends BatchCriteria {
   batch_name?: string;
 }
 
+export interface BatchEntry {
+  batch_id?: number;
+  re_review_batch?: number;
+  entity_count?: number;
+  [key: string]: unknown;
+}
+
 /**
  * Service-layer envelope used by `batch_*` repository functions:
  * `{ status, message, entry?, ... }`.
@@ -102,7 +131,7 @@ export interface CreateBatchRequest extends BatchCriteria {
 export interface BatchServiceResponse {
   status: number;
   message?: string;
-  entry?: Record<string, unknown>;
+  entry?: BatchEntry;
   error?: string;
   [key: string]: unknown;
 }
@@ -119,7 +148,7 @@ export interface ArchiveBatchParams {
 export interface AssignEntitiesRequest {
   entity_ids: number[];
   user_id: number;
-  batch_name?: string;
+  batch_name?: string | null;
 }
 
 export interface RecalculateBatchRequest extends BatchCriteria {
@@ -254,6 +283,23 @@ export async function getAssignmentTable(
   config?: AxiosRequestConfig
 ): Promise<AssignmentRow[]> {
   return apiClient.get<AssignmentRow[]>('/api/re_review/assignment_table', {
+    ...config,
+    params: { ...(config?.params as object | undefined), ...params },
+  });
+}
+
+/**
+ * GET /api/re_review/entities/available
+ * Mirrors api/endpoints/re_review_endpoints.R available-entities handler.
+ *
+ * Curator+ only. Returns entities currently available for manual batch
+ * assignment.
+ */
+export async function listAvailableReReviewEntities(
+  params: AvailableReReviewEntitiesParams = {},
+  config?: AxiosRequestConfig
+): Promise<AvailableReReviewEntitiesResponse> {
+  return apiClient.get<AvailableReReviewEntitiesResponse>('/api/re_review/entities/available', {
     ...config,
     params: { ...(config?.params as object | undefined), ...params },
   });

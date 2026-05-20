@@ -481,7 +481,7 @@
 
 <script>
 // Import Vue utilities
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 // Import composables
@@ -513,18 +513,11 @@ import {
   getLogMethodVariant,
   getLogStatusVariant,
 } from './logTableFormatters';
-// v11.0 closeout F2b: apiClient is the single outbound surface — the
-// request interceptor injects `Authorization: Bearer <token>` from
-// `useAuth().token.value`, so this component stops building the header
-// by hand.
-import { apiClient } from '@/api/client';
+import { listLogs, listLogsXlsx, deleteLogs as deleteLogsApi } from '@/api/logging';
+import { listUsersByRole } from '@/api/user';
+import { createLogTableRequestCache } from './logTableRequests';
 
-// Module-level variables to track API calls across component remounts
-// This survives when Vue Router remounts the component on URL changes
-let moduleLastApiParams = null;
-let moduleApiCallInProgress = false;
-let moduleLastApiCallTime = 0;
-let moduleLastApiResponse = null;
+const moduleLogRequestCache = createLogTableRequestCache();
 
 export default {
   name: 'TablesLogs',
@@ -589,8 +582,6 @@ export default {
       modified: { content: null, join_char: ',', operator: 'contains' },
     });
 
-    // Inject axios and route
-    const axios = inject('axios');
     const route = useRoute();
 
     // Table methods composable
@@ -598,12 +589,9 @@ export default {
       filter,
       filterObjToStr,
       apiEndpoint: props.apiEndpoint,
-      axios,
       route,
     });
 
-    // Destructure to exclude methods that are overridden in the component's methods section
-    // This matches the pattern used in TablesEntities for proper method overriding
     const {
       filtered: _filtered,
       handlePageChange: _handlePageChange,
@@ -611,6 +599,9 @@ export default {
       handleSortByOrDescChange: _handleSortByOrDescChange,
       removeFilters: _removeFilters,
       removeSearch: _removeSearch,
+      requestExcel: _requestExcel,
+      copyLinkToClipboard: _copyLinkToClipboard,
+      truncate: _truncate,
       ...restTableMethods
     } = tableMethods;
 
@@ -625,7 +616,6 @@ export default {
       ...tableData,
       ...restTableMethods,
       filter,
-      axios,
     };
   },
   data() {
@@ -860,8 +850,8 @@ export default {
     // Load user list for filter dropdown
     async loadUserList() {
       try {
-        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/user/list`);
-        this.user_options = response.data.map((item) => ({
+        const data = await listUsersByRole();
+        this.user_options = data.map((item) => ({
           value: item.user_name,
           text: `${item.user_name} (${item.user_role})`,
         }));
@@ -881,51 +871,25 @@ export default {
     },
     // Actual data loading with module-level caching
     async doLoadData() {
-      const urlParam = `sort=${this.sort}&filter=${this.filter_string}&page_after=${this.currentItemID}&page_size=${this.perPage}`;
-      const now = Date.now();
-
-      // Prevent duplicate API calls using module-level tracking
-      // This works across component remounts caused by router.replace()
-      if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-        // Use cached response data for remounted component
-        if (moduleLastApiResponse) {
-          this.applyApiResponse(moduleLastApiResponse);
-          this.isBusy = false;
-        }
-        return;
-      }
-
-      // Also prevent if a call is already in progress with same params
-      if (moduleApiCallInProgress && moduleLastApiParams === urlParam) {
-        return;
-      }
-
-      moduleLastApiParams = urlParam;
-      moduleLastApiCallTime = now;
-      moduleApiCallInProgress = true;
+      const params = {
+        sort: this.sort,
+        filter: this.filter_string,
+        page_after: this.currentItemID,
+        page_size: this.perPage,
+      };
       this.isBusy = true;
 
       try {
-        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
-          params: {
-            sort: this.sort,
-            filter: this.filter_string,
-            page_after: this.currentItemID,
-            page_size: this.perPage,
-          },
-        });
-
-        moduleApiCallInProgress = false;
-        // Cache response for remounted components
-        moduleLastApiResponse = response.data;
-        this.applyApiResponse(response.data);
+        const result = await moduleLogRequestCache.load(params, () => listLogs(params));
+        this.applyApiResponse(result.response);
 
         // Update URL AFTER API success to prevent component remount during API call
-        this.updateBrowserUrl();
+        if (!result.fromCache) {
+          this.updateBrowserUrl();
+        }
 
         this.isBusy = false;
       } catch (error) {
-        moduleApiCallInProgress = false;
         this.makeToast(`Error: ${error.message}`, 'Error loading logs', 'danger');
         this.isBusy = false;
       }
@@ -1066,22 +1030,18 @@ export default {
       }
 
       try {
-        const response = await apiClient.raw.get(`${import.meta.env.VITE_API_URL}/api/logs/`, {
-          params: {
-            page_after: 0,
-            page_size: 'all',
-            format: 'xlsx',
-            filter: this.filter_string, // Apply current filters
-            sort: this.sort,
-          },
-          responseType: 'blob', // Important for binary download
+        const blob = await listLogsXlsx({
+          page_after: 0,
+          page_size: 'all',
+          filter: this.filter_string,
+          sort: this.sort,
         });
 
         // Generate filename with date
         const date = new Date().toISOString().split('T')[0];
         const filename = `sysndd_audit_logs_${date}.xlsx`;
 
-        const fileURL = window.URL.createObjectURL(new Blob([response.data]));
+        const fileURL = window.URL.createObjectURL(new Blob([blob]));
         const fileLink = document.createElement('a');
 
         fileLink.href = fileURL;
@@ -1151,13 +1111,9 @@ export default {
       this.isDeleting = true;
       try {
         const olderThanDays = this.deleteMode === 'all' ? 0 : parseInt(this.deleteMode, 10);
-        const response = await apiClient.raw.delete(`${import.meta.env.VITE_API_URL}/api/logs/`, {
-          params: {
-            older_than_days: olderThanDays,
-          },
-        });
+        const response = await deleteLogsApi({ older_than_days: olderThanDays });
 
-        const deletedCount = response.data.deleted_count || 0;
+        const deletedCount = response.deleted_count || 0;
         const message =
           this.deleteMode === 'all'
             ? `Successfully deleted ${deletedCount.toLocaleString()} log entries`

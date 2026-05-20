@@ -651,12 +651,17 @@ import {
   filterReReviewBatches,
   sortReReviewBatches,
 } from '@/views/curate/utils/reReviewFilters';
-
-// v11.0 closeout F2d: typed api client. The request interceptor in
-// `@/api/client` reads `useAuth().token.value` on every outbound call and
-// injects `Authorization: Bearer <token>` — no inline header construction
-// here.
-import { apiClient } from '@/api/client';
+import {
+  assignReReviewBatch,
+  assignReReviewEntities,
+  getAssignmentTable,
+  listAvailableReReviewEntities,
+  recalculateReReviewBatch,
+  reassignReReviewBatch,
+  unassignReReviewBatch,
+} from '@/api/re_review';
+import { listUsersByRole } from '@/api/user';
+import { listStatusCategories } from '@/api/list';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -872,9 +877,8 @@ export default {
   },
   methods: {
     async loadUserList() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/user/list?roles=Curator,Reviewer`;
       try {
-        const data = await apiClient.get(apiUrl);
+        const data = await listUsersByRole({ roles: 'Curator,Reviewer' });
         this.user_options = Array.isArray(data)
           ? data.map((item) => ({
               value: item.user_id,
@@ -889,9 +893,8 @@ export default {
     },
     async loadReReviewTableData() {
       this.loadingReReviewManagment = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/assignment_table`;
       try {
-        const data = await apiClient.get(apiUrl);
+        const data = await getAssignmentTable();
         if (Array.isArray(data)) {
           this.items_ReReviewTable = data;
           this.totalRows = data.length;
@@ -914,12 +917,8 @@ export default {
       }
     },
     async handleNewBatchAssignment() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/assign?user_id=${
-        this.user_id_assignment
-      }`;
-
       try {
-        await apiClient.put(apiUrl, {});
+        await assignReReviewBatch({ user_id: this.user_id_assignment });
         this.makeToast('New batch assigned successfully.', 'Success', 'success');
         this.announce('New batch assigned successfully');
       } catch (e) {
@@ -940,12 +939,8 @@ export default {
       this.currentPage = 1;
     },
     async handleBatchUnAssignment(batch_id) {
-      const apiUrl = `${
-        import.meta.env.VITE_API_URL
-      }/api/re_review/batch/unassign?re_review_batch=${batch_id}`;
-
       try {
-        await apiClient.delete(apiUrl);
+        await unassignReReviewBatch({ re_review_batch: batch_id });
         this.makeToast('Batch unassigned successfully.', 'Success', 'success');
         this.announce('Batch unassigned successfully');
       } catch (e) {
@@ -975,15 +970,12 @@ export default {
     // Load available entities for manual assignment (RRV-06)
     async loadAvailableEntities() {
       this.isLoadingEntities = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/entities/available`;
 
       try {
-        const responseData = await apiClient.get(apiUrl, {
-          params: {
-            q: this.manualEntityFilter || '',
-            page: 1,
-            page_size: 100,
-          },
+        const responseData = await listAvailableReReviewEntities({
+          q: this.manualEntityFilter || '',
+          page: 1,
+          page_size: 100,
         });
         this.availableEntities = responseData.data || [];
         const total = responseData.meta?.total;
@@ -1031,22 +1023,21 @@ export default {
       }
 
       this.isAssigningEntities = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/entities/assign`;
 
       try {
-        const responseData = await apiClient.put(apiUrl, {
+        const responseData = await assignReReviewEntities({
           entity_ids: this.selectedEntityIds,
           user_id: this.entityAssignUserId,
           batch_name: this.entityAssignBatchName || null,
         });
 
         const result = responseData.entry;
-        this.makeToast(
-          `Created batch ${result.batch_id} with ${result.entity_count} entities`,
-          'Success',
-          'success'
-        );
-        this.announce(`Created batch ${result.batch_id} with ${result.entity_count} entities`);
+        const message =
+          result?.batch_id != null && result?.entity_count != null
+            ? `Created batch ${result.batch_id} with ${result.entity_count} entities`
+            : 'Created assignment batch, but the batch summary was unavailable';
+        this.makeToast(message, 'Success', 'success');
+        this.announce(message);
 
         // Reset and refresh
         this.selectedEntityIds = [];
@@ -1075,10 +1066,11 @@ export default {
         return;
       }
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/reassign?re_review_batch=${this.reassignBatchId}&user_id=${this.reassignNewUserId}`;
-
       try {
-        await apiClient.put(apiUrl, {});
+        await reassignReReviewBatch({
+          re_review_batch: this.reassignBatchId,
+          user_id: this.reassignNewUserId,
+        });
         this.makeToast('Batch reassigned successfully', 'Success', 'success');
         this.announce('Batch reassigned successfully');
         this.reassignModalShow = false;
@@ -1104,7 +1096,6 @@ export default {
 
     async handleBatchRecalculation() {
       this.isRecalculating = true;
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/re_review/batch/recalculate`;
 
       try {
         // Build criteria payload
@@ -1121,15 +1112,15 @@ export default {
           payload.status_filter = this.recalculateCriteria.status_filter;
         }
 
-        const responseData = await apiClient.put(apiUrl, payload);
+        const responseData = await recalculateReReviewBatch(payload);
 
         const result = responseData.entry;
-        this.makeToast(
-          `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`,
-          'Success',
-          'success'
-        );
-        this.announce(`Batch ${result.batch_id} recalculated with ${result.entity_count} entities`);
+        const message =
+          result?.batch_id != null && result?.entity_count != null
+            ? `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`
+            : 'Batch recalculated, but the batch summary was unavailable';
+        this.makeToast(message, 'Success', 'success');
+        this.announce(message);
         this.recalculateModalShow = false;
         this.loadReReviewTableData();
         this.loadAvailableEntities();
@@ -1144,9 +1135,8 @@ export default {
 
     // Load status options for recalculate modal
     async loadStatusOptions() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/list/status`;
       try {
-        const responseData = await apiClient.get(apiUrl);
+        const responseData = await listStatusCategories();
         // Handle paginated response format
         const data = responseData?.data || responseData;
         this.status_options = Array.isArray(data)

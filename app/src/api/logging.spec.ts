@@ -16,7 +16,7 @@ import { isApiError } from './client';
 import { server } from '@/test-utils/mocks/server';
 
 describe('api/logs — listLogs', () => {
-  it('forwards format=json + sort/filter params', async () => {
+  it('forwards format=json + table params', async () => {
     let observedQuery: URLSearchParams | null = null;
     const ok: LogListResponse = { links: {}, meta: {}, data: [] };
     server.use(
@@ -26,11 +26,18 @@ describe('api/logs — listLogs', () => {
       })
     );
 
-    await listLogs({ sort: '-timestamp', filter: 'status==500' });
+    await listLogs({
+      sort: '-timestamp',
+      filter: 'status==500',
+      page_after: 10,
+      page_size: 25,
+    });
     const q = observedQuery as unknown as URLSearchParams;
     expect(q.get('format')).toBe('json');
     expect(q.get('sort')).toBe('-timestamp');
     expect(q.get('filter')).toBe('status==500');
+    expect(q.get('page_after')).toBe('10');
+    expect(q.get('page_size')).toBe('25');
   });
 
   it('throws AxiosError on 400 (invalid filter)', async () => {
