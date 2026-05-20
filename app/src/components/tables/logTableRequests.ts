@@ -10,7 +10,12 @@ export interface LogTableRequestResult {
 }
 
 export function logRequestKey(params: LogTableRequestParams): string {
-  return `sort=${params.sort}&filter=${params.filter}&page_after=${params.page_after}&page_size=${params.page_size}`;
+  return new URLSearchParams({
+    sort: String(params.sort),
+    filter: String(params.filter),
+    page_after: String(params.page_after),
+    page_size: String(params.page_size),
+  }).toString();
 }
 
 export function createLogTableRequestCache(windowMs = 500) {
@@ -36,17 +41,21 @@ export function createLogTableRequestCache(windowMs = 500) {
         return { response: await inProgressPromise, fromCache: true };
       }
 
-      lastKey = key;
-      lastCallTime = now;
       inProgressKey = key;
-      inProgressPromise = fetcher();
+      const requestPromise = fetcher();
+      inProgressPromise = requestPromise;
 
       try {
-        lastResponse = await inProgressPromise;
-        return { response: lastResponse, fromCache: false };
+        const response = await requestPromise;
+        lastKey = key;
+        lastCallTime = Date.now();
+        lastResponse = response;
+        return { response, fromCache: false };
       } finally {
-        inProgressKey = null;
-        inProgressPromise = null;
+        if (inProgressKey === key && inProgressPromise === requestPromise) {
+          inProgressKey = null;
+          inProgressPromise = null;
+        }
       }
     },
   };

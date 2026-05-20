@@ -582,7 +582,6 @@ export default {
       modified: { content: null, join_char: ',', operator: 'contains' },
     });
 
-    // Route context for shared table helpers.
     const route = useRoute();
 
     // Table methods composable
@@ -593,8 +592,6 @@ export default {
       route,
     });
 
-    // Destructure to exclude methods that are overridden in the component's methods section
-    // This matches the pattern used in TablesEntities for proper method overriding
     const {
       filtered: _filtered,
       handlePageChange: _handlePageChange,
@@ -602,6 +599,9 @@ export default {
       handleSortByOrDescChange: _handleSortByOrDescChange,
       removeFilters: _removeFilters,
       removeSearch: _removeSearch,
+      requestExcel: _requestExcel,
+      copyLinkToClipboard: _copyLinkToClipboard,
+      truncate: _truncate,
       ...restTableMethods
     } = tableMethods;
 

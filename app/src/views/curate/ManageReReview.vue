@@ -1032,12 +1032,12 @@ export default {
         });
 
         const result = responseData.entry;
-        this.makeToast(
-          `Created batch ${result.batch_id} with ${result.entity_count} entities`,
-          'Success',
-          'success'
-        );
-        this.announce(`Created batch ${result.batch_id} with ${result.entity_count} entities`);
+        const message =
+          result?.batch_id != null && result?.entity_count != null
+            ? `Created batch ${result.batch_id} with ${result.entity_count} entities`
+            : 'Created assignment batch, but the batch summary was unavailable';
+        this.makeToast(message, 'Success', 'success');
+        this.announce(message);
 
         // Reset and refresh
         this.selectedEntityIds = [];
@@ -1115,12 +1115,12 @@ export default {
         const responseData = await recalculateReReviewBatch(payload);
 
         const result = responseData.entry;
-        this.makeToast(
-          `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`,
-          'Success',
-          'success'
-        );
-        this.announce(`Batch ${result.batch_id} recalculated with ${result.entity_count} entities`);
+        const message =
+          result?.batch_id != null && result?.entity_count != null
+            ? `Batch ${result.batch_id} recalculated with ${result.entity_count} entities`
+            : 'Batch recalculated, but the batch summary was unavailable';
+        this.makeToast(message, 'Success', 'success');
+        this.announce(message);
         this.recalculateModalShow = false;
         this.loadReReviewTableData();
         this.loadAvailableEntities();

@@ -14,7 +14,25 @@ describe('logTableRequests', () => {
         page_after: 10,
         page_size: 25,
       })
-    ).toBe('sort=-timestamp&filter=status==500&page_after=10&page_size=25');
+    ).toBe('sort=-timestamp&filter=status%3D%3D500&page_after=10&page_size=25');
+  });
+
+  it('encodes param values so filters cannot collide with pagination fields', () => {
+    const keyWithEmbeddedDelimiter = logRequestKey({
+      sort: '-id',
+      filter: 'path contains &page_after=25',
+      page_after: 0,
+      page_size: 10,
+    });
+    const keyWithDifferentPage = logRequestKey({
+      sort: '-id',
+      filter: 'path contains ',
+      page_after: 25,
+      page_size: 10,
+    });
+
+    expect(keyWithEmbeddedDelimiter).not.toBe(keyWithDifferentPage);
+    expect(keyWithEmbeddedDelimiter).toContain('filter=path+contains+%26page_after%3D25');
   });
 
   it('reuses a fresh cached response for duplicate requests', async () => {
@@ -87,5 +105,31 @@ describe('logTableRequests', () => {
     expect(result.response.data).toEqual([{ id: 2 }]);
     expect(result.fromCache).toBe(false);
     expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reuse a previous successful response after a different request fails', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-20T00:00:00Z'));
+
+    const cache = createLogTableRequestCache();
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce({ data: [{ id: 1 }], meta: [{ totalItems: 1 }] })
+      .mockRejectedValueOnce(new Error('invalid filter'))
+      .mockResolvedValueOnce({ data: [{ id: 2 }], meta: [{ totalItems: 1 }] });
+
+    await cache.load({ sort: '-id', filter: 'status==200', page_after: 0, page_size: 10 }, fetcher);
+    await expect(
+      cache.load({ sort: '-id', filter: 'status==500', page_after: 0, page_size: 10 }, fetcher)
+    ).rejects.toThrow('invalid filter');
+
+    const retry = await cache.load(
+      { sort: '-id', filter: 'status==500', page_after: 0, page_size: 10 },
+      fetcher
+    );
+
+    expect(retry.response.data).toEqual([{ id: 2 }]);
+    expect(retry.fromCache).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 });

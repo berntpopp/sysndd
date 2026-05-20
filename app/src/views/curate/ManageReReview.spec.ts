@@ -571,6 +571,28 @@ describe('ManageReReview.vue — typed client migration behavior', () => {
     expect(component.availableEntityTotal).toBe(1);
   });
 
+  it('loadAvailableEntities unwraps Plumber scalar-array total values', async () => {
+    primeAuth('re-review-entities-array-total-token');
+
+    server.use(
+      http.get('*/api/re_review/entities/available', () =>
+        HttpResponse.json({
+          data: [{ entity_id: 22, symbol: 'SCN2A' }],
+          meta: { total: [1] },
+        })
+      )
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+
+    await component.loadAvailableEntities();
+    await flushPromises();
+
+    expect(component.availableEntities).toEqual([{ entity_id: 22, symbol: 'SCN2A' }]);
+    expect(component.availableEntityTotal).toBe(1);
+  });
+
   it('handleEntityAssignment preserves null batch name and success side effects', async () => {
     primeAuth('re-review-assign-token');
     let receivedBody: unknown = null;
@@ -639,6 +661,38 @@ describe('ManageReReview.vue — typed client migration behavior', () => {
     );
   });
 
+  it('handleEntityAssignment uses fallback copy when the server omits batch summary fields', async () => {
+    primeAuth('re-review-assign-empty-entry-token');
+
+    server.use(
+      http.put('*/api/re_review/entities/assign', () =>
+        HttpResponse.json({
+          entry: {},
+        })
+      )
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    vi.spyOn(component, 'loadReReviewTableData').mockResolvedValue();
+    vi.spyOn(component, 'loadAvailableEntities').mockResolvedValue();
+
+    component.selectedEntityIds = [11];
+    component.entityAssignUserId = 3;
+
+    await component.handleEntityAssignment();
+    await flushPromises();
+
+    expect(component.makeToast).toHaveBeenCalledWith(
+      'Created assignment batch, but the batch summary was unavailable',
+      'Success',
+      'success'
+    );
+    expect(component.announce).toHaveBeenCalledWith(
+      'Created assignment batch, but the batch summary was unavailable'
+    );
+  });
+
   it('handleBatchReassignment closes the modal and refreshes only the table', async () => {
     primeAuth('re-review-reassign-token');
     server.use(
@@ -688,6 +742,33 @@ describe('ManageReReview.vue — typed client migration behavior', () => {
     expect(component.recalculateModalShow).toBe(false);
     expect(tableRefresh).toHaveBeenCalledTimes(1);
     expect(entityRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('handleBatchRecalculation uses fallback copy when the server omits batch summary fields', async () => {
+    primeAuth('re-review-recalculate-empty-entry-token');
+    server.use(
+      http.put('*/api/re_review/batch/recalculate', () => HttpResponse.json({ entry: {} }))
+    );
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    vi.spyOn(component, 'loadReReviewTableData').mockResolvedValue();
+    vi.spyOn(component, 'loadAvailableEntities').mockResolvedValue();
+
+    component.recalculateModalShow = true;
+    component.recalculateBatchId = 42;
+
+    await component.handleBatchRecalculation();
+    await flushPromises();
+
+    expect(component.makeToast).toHaveBeenCalledWith(
+      'Batch recalculated, but the batch summary was unavailable',
+      'Success',
+      'success'
+    );
+    expect(component.announce).toHaveBeenCalledWith(
+      'Batch recalculated, but the batch summary was unavailable'
+    );
+    expect(component.recalculateModalShow).toBe(false);
   });
 });
 

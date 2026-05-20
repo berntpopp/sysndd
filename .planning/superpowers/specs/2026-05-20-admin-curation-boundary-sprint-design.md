@@ -86,6 +86,8 @@ For `ManageReReview.vue`, extract a small local helper module or composable only
 
 For `TablesLogs.vue`, extract request/cache coordination into `app/src/components/tables/logTableRequests.ts`. The helper should own duplicate-request detection and API calls, while the component owns applying returned data to Vue state and updating browser history after a successful fresh API load. Cache hits must apply cached response data without calling `updateBrowserUrl()`, preserving the current behavior where URL replacement happens only after a non-cached API success.
 
+The helper should also share an in-flight matching request with a remounted table instance instead of returning early. This intentionally fixes a latent busy-state edge case in the old inline module cache: a remount during an in-flight logs request could previously keep the new instance busy without applying the eventual response.
+
 ## Testing Strategy
 
 Tests must be added or strengthened before touching production code in each slice.
