@@ -93,9 +93,20 @@ export interface PubtatorTableParams {
 }
 
 /**
- * One row of `pubtator_search_cache` — keys are dynamic.
+ * One row of `pubtator_search_cache`. The endpoint supports dynamic fields,
+ * but these columns are used by PubTator publication-detail consumers.
  */
-export type PubtatorTableRow = Record<string, unknown>;
+export interface PubtatorTableRow extends Record<string, unknown> {
+  search_id?: number;
+  pmid: number;
+  doi?: string;
+  title?: string;
+  journal?: string;
+  date?: string;
+  score?: number;
+  gene_symbols?: string;
+  text_hl?: string;
+}
 
 export interface PubtatorTableResponse {
   links?: unknown;
