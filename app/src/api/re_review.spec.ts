@@ -14,6 +14,7 @@ import {
   assignReReviewBatch,
   unassignReReviewBatch,
   getAssignmentTable,
+  listAvailableReReviewEntities,
   createReReviewBatch,
   previewReReviewBatch,
   reassignReReviewBatch,
@@ -186,6 +187,30 @@ describe('api/re_review — getAssignmentTable', () => {
   });
 });
 
+describe('api/re_review — listAvailableReReviewEntities', () => {
+  it('sends q/page/page_size params and returns available rows', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    server.use(
+      http.get('/api/re_review/entities/available', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json({
+          data: [{ entity_id: 11, symbol: 'ARID1B' }],
+          meta: { total: 1 },
+        });
+      })
+    );
+
+    const result = await listAvailableReReviewEntities({ q: 'ARI', page: 2, page_size: 50 });
+
+    const q = observedQuery as unknown as URLSearchParams;
+    expect(q.get('q')).toBe('ARI');
+    expect(q.get('page')).toBe('2');
+    expect(q.get('page_size')).toBe('50');
+    expect(result.data).toEqual([{ entity_id: 11, symbol: 'ARID1B' }]);
+    expect(result.meta?.total).toBe(1);
+  });
+});
+
 describe('api/re_review — createReReviewBatch', () => {
   it('POSTs the criteria body', async () => {
     let receivedBody: unknown = null;
@@ -263,6 +288,31 @@ describe('api/re_review — assignReReviewEntities', () => {
     await assignReReviewEntities({ entity_ids: [1, 2], user_id: 7 });
     expect((receivedBody as { user_id?: number }).user_id).toBe(7);
   });
+
+  it('returns the created batch entry', async () => {
+    server.use(
+      http.put('/api/re_review/entities/assign', async ({ request }) => {
+        expect(await request.json()).toEqual({
+          entity_ids: [11, 12],
+          user_id: 7,
+          batch_name: 'Manual ARID batch',
+        });
+        return HttpResponse.json({
+          status: 200,
+          entry: { batch_id: 4, entity_count: 2 },
+        });
+      })
+    );
+
+    const result = await assignReReviewEntities({
+      entity_ids: [11, 12],
+      user_id: 7,
+      batch_name: 'Manual ARID batch',
+    });
+
+    expect(result.entry?.batch_id).toBe(4);
+    expect(result.entry?.entity_count).toBe(2);
+  });
 });
 
 describe('api/re_review — recalculateReReviewBatch', () => {
@@ -277,5 +327,30 @@ describe('api/re_review — recalculateReReviewBatch', () => {
 
     await recalculateReReviewBatch({ re_review_batch: 5, batch_size: 30 });
     expect((receivedBody as { re_review_batch?: number }).re_review_batch).toBe(5);
+  });
+
+  it('sends criteria body and returns entry', async () => {
+    server.use(
+      http.put('/api/re_review/batch/recalculate', async ({ request }) => {
+        expect(await request.json()).toEqual({
+          re_review_batch: 9,
+          batch_size: 20,
+          status_filter: 3,
+        });
+        return HttpResponse.json({
+          status: 200,
+          entry: { batch_id: 9, entity_count: 17 },
+        });
+      })
+    );
+
+    const result = await recalculateReReviewBatch({
+      re_review_batch: 9,
+      batch_size: 20,
+      status_filter: 3,
+    });
+
+    expect(result.entry?.batch_id).toBe(9);
+    expect(result.entry?.entity_count).toBe(17);
   });
 });
