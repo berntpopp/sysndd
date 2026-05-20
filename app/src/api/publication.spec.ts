@@ -134,6 +134,35 @@ describe('api/publication — listPubtatorTable', () => {
     await listPubtatorTable();
     expect((observedQuery as unknown as URLSearchParams).get('format')).toBe('json');
   });
+
+  it('forwards PMID filter params and accepts request config', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    const ok: PubtatorTableResponse = { data: [{ pmid: 123 }] };
+    server.use(
+      http.get('/api/publication/pubtator/table', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json(ok);
+      })
+    );
+
+    const controller = new AbortController();
+    const result = await listPubtatorTable(
+      {
+        filter: 'any(pmid,123,456)',
+        fields: 'search_id,pmid,title',
+        page_size: '2',
+      },
+      { signal: controller.signal }
+    );
+
+    expect(result.data[0].pmid).toBe(123);
+    expect(observedQuery).not.toBeNull();
+    const query = observedQuery as unknown as URLSearchParams;
+    expect(query.get('filter')).toBe('any(pmid,123,456)');
+    expect(query.get('fields')).toBe('search_id,pmid,title');
+    expect(query.get('page_size')).toBe('2');
+    expect(query.get('format')).toBe('json');
+  });
 });
 
 describe('api/publication — listPubtatorTableXlsx', () => {
@@ -161,6 +190,34 @@ describe('api/publication — listPubtatorGenes', () => {
     server.use(http.get('/api/publication/pubtator/genes', () => HttpResponse.json(ok)));
     const result = await listPubtatorGenes();
     expect(result.data).toHaveLength(0);
+  });
+
+  it('forwards cursor params and forces format=json', async () => {
+    let observedQuery: URLSearchParams | null = null;
+    const ok: PubtatorGenesResponse = { data: [] };
+    server.use(
+      http.get('/api/publication/pubtator/genes', ({ request }) => {
+        observedQuery = new URL(request.url).searchParams;
+        return HttpResponse.json(ok);
+      })
+    );
+
+    await listPubtatorGenes({
+      sort: '-is_novel,oldest_pub_date',
+      filter: 'all(publication_count,5)',
+      page_after: 25,
+      page_size: '10',
+      fields: 'gene_symbol,pmids',
+    });
+
+    expect(observedQuery).not.toBeNull();
+    const query = observedQuery as unknown as URLSearchParams;
+    expect(query.get('sort')).toBe('-is_novel,oldest_pub_date');
+    expect(query.get('filter')).toBe('all(publication_count,5)');
+    expect(query.get('page_after')).toBe('25');
+    expect(query.get('page_size')).toBe('10');
+    expect(query.get('fields')).toBe('gene_symbol,pmids');
+    expect(query.get('format')).toBe('json');
   });
 });
 
