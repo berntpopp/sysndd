@@ -647,6 +647,10 @@ import TableShell from '@/components/table/TableShell.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
+import {
+  filterReReviewBatches,
+  sortReReviewBatches,
+} from '@/views/curate/utils/reReviewFilters';
 
 // v11.0 closeout F2d: typed api client. The request interceptor in
 // `@/api/client` reads `useAuth().token.value` on every outbound call and
@@ -841,53 +845,14 @@ export default {
     },
     // Filtered items based on all filters
     filteredItems() {
-      let items = this.items_ReReviewTable;
-
-      // Apply text search filter
-      if (this.filter) {
-        const searchTerm = this.filter.toLowerCase();
-        items = items.filter((item) => {
-          const userName = (item.user_name || '').toLowerCase();
-          const batchId = String(item.re_review_batch || '');
-          return userName.includes(searchTerm) || batchId.includes(searchTerm);
-        });
-      }
-
-      // Apply user filter
-      if (this.userFilter) {
-        items = items.filter((item) => item.user_name === this.userFilter);
-      }
-
-      // Apply assignment filter
-      if (this.assignmentFilter === 'assigned') {
-        items = items.filter((item) => item.user_id);
-      } else if (this.assignmentFilter === 'unassigned') {
-        items = items.filter((item) => !item.user_id);
-      }
-
-      return items;
+      return filterReReviewBatches(this.items_ReReviewTable, {
+        text: this.filter,
+        userName: this.userFilter,
+        assignment: this.assignmentFilter,
+      });
     },
     sortedItems() {
-      const [sort] = Array.isArray(this.sortBy) ? this.sortBy : [];
-      if (!sort?.key) return this.filteredItems;
-
-      const order = sort.order === 'desc' ? -1 : 1;
-      return [...this.filteredItems].sort((a, b) => {
-        const aValue = a[sort.key];
-        const bValue = b[sort.key];
-        if (aValue === bValue) return 0;
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return (aValue - bValue) * order;
-        }
-        return (
-          String(aValue).localeCompare(String(bValue), undefined, {
-            numeric: true,
-            sensitivity: 'base',
-          }) * order
-        );
-      });
+      return sortReReviewBatches(this.filteredItems, this.sortBy);
     },
     paginatedItems() {
       const start = (this.currentPage - 1) * this.perPage;

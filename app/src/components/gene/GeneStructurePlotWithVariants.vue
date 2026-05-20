@@ -184,6 +184,14 @@ import { formatGenomicCoordinate } from '@/types/ensembl';
 import type { EffectType, ColoringMode } from '@/types/protein';
 import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS, normalizeEffectType } from '@/types/protein';
 import type { GenomicVariant } from './GenomicVisualizationTabs.vue';
+import {
+  aggregateVariantsByGenomicPosition,
+  calculateAggregatedRadius,
+  calculateDynamicOpacity,
+  determineRenderingMode,
+  isGeneStructureVariantVisible,
+  type AggregatedGeneStructureVariant,
+} from './geneStructureVariantPlotUtils';
 
 interface Props {
   geneData: GeneStructureRenderData;
@@ -255,24 +263,7 @@ const STEM_BASE_HEIGHT = 18;
 const MARKER_RADIUS = 5;
 const MARKER_STROKE_WIDTH = 1;
 
-// Adaptive rendering thresholds (matching protein lollipop)
-const AGGREGATION_THRESHOLD = 500; // Switch to aggregated mode above this count
-const MIN_MARKER_RADIUS = 3; // Minimum marker size in aggregated mode
-const MAX_MARKER_RADIUS = 12; // Maximum marker size for high-count positions
-const MIN_OPACITY = 0.25;
-const MAX_OPACITY = 0.95;
-const DENSITY_THRESHOLD = 200;
-
-/**
- * Aggregated variant at a genomic position
- */
-interface AggregatedGenomicVariant {
-  genomicPosition: number;
-  count: number;
-  dominantClassification: string;
-  classifications: Record<string, number>;
-  variants: GenomicVariant[];
-}
+type AggregatedGenomicVariant = AggregatedGeneStructureVariant<GenomicVariant>;
 
 /**
  * Format coordinate for display
@@ -476,85 +467,6 @@ function selectAllEffectTypes(): void {
 }
 
 /**
- * Aggregate variants by genomic position for dense regions
- * Uses binning to group nearby variants
- */
-function aggregateVariantsByGenomicPosition(
-  variants: GenomicVariant[],
-  geneLength: number
-): AggregatedGenomicVariant[] {
-  // Bin size: approximately 100 bins across the gene
-  const binSize = Math.max(100, Math.floor(geneLength / 100));
-
-  const binMap = new Map<number, GenomicVariant[]>();
-
-  for (const v of variants) {
-    const binKey = Math.floor(v.genomicPosition / binSize) * binSize;
-    if (!binMap.has(binKey)) {
-      binMap.set(binKey, []);
-    }
-    binMap.get(binKey)!.push(v);
-  }
-
-  const aggregated: AggregatedGenomicVariant[] = [];
-
-  for (const [_binPosition, binVariants] of binMap) {
-    // Find dominant classification
-    const classCounts: Record<string, number> = {};
-    for (const v of binVariants) {
-      classCounts[v.classification] = (classCounts[v.classification] || 0) + 1;
-    }
-
-    let dominantClassification = 'Uncertain significance';
-    let maxCount = 0;
-    for (const [cls, count] of Object.entries(classCounts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        dominantClassification = cls;
-      }
-    }
-
-    // Calculate centroid position
-    const avgPosition =
-      binVariants.reduce((sum, v) => sum + v.genomicPosition, 0) / binVariants.length;
-
-    aggregated.push({
-      genomicPosition: Math.round(avgPosition),
-      count: binVariants.length,
-      dominantClassification,
-      classifications: classCounts,
-      variants: binVariants,
-    });
-  }
-
-  return aggregated;
-}
-
-/**
- * Calculate marker radius for aggregated variant based on count
- */
-function calculateAggregatedRadius(count: number, maxCount: number): number {
-  const scale = Math.sqrt(count / Math.max(maxCount, 1));
-  return MIN_MARKER_RADIUS + scale * (MAX_MARKER_RADIUS - MIN_MARKER_RADIUS);
-}
-
-/**
- * Calculate dynamic opacity based on variant density
- */
-function calculateDynamicOpacity(visibleCount: number): number {
-  const densityFactor = Math.min(1, DENSITY_THRESHOLD / Math.max(visibleCount, 1));
-  const opacity = 0.4 + 0.6 * densityFactor;
-  return Math.max(MIN_OPACITY, Math.min(MAX_OPACITY, opacity));
-}
-
-/**
- * Determine rendering mode based on visible variant count
- */
-function determineRenderingMode(visibleCount: number): 'aggregated' | 'individual' {
-  return visibleCount > AGGREGATION_THRESHOLD ? 'aggregated' : 'individual';
-}
-
-/**
  * Reset zoom to full gene view
  */
 function resetZoom(): void {
@@ -626,32 +538,16 @@ function forceHideTooltip(): void {
  * Check if variant is visible based on filters (AND logic: both pathogenicity AND effect type)
  */
 function isVariantVisible(variant: GenomicVariant): boolean {
-  // Check pathogenicity filter
-  let pathogenicityVisible = true;
-  switch (variant.classification) {
-    case 'Pathogenic':
-      pathogenicityVisible = filterState.pathogenic;
-      break;
-    case 'Likely pathogenic':
-      pathogenicityVisible = filterState.likelyPathogenic;
-      break;
-    case 'Uncertain significance':
-      pathogenicityVisible = filterState.vus;
-      break;
-    case 'Likely benign':
-      pathogenicityVisible = filterState.likelyBenign;
-      break;
-    case 'Benign':
-      pathogenicityVisible = filterState.benign;
-      break;
-  }
-
-  // Check effect type filter
-  const effectType = normalizeEffectType(variant.majorConsequence);
-  const effectVisible = filterState.effectFilters[effectType];
-
-  // AND logic: both must be true
-  return pathogenicityVisible && effectVisible;
+  return isGeneStructureVariantVisible(variant, {
+    pathogenicity: {
+      Pathogenic: filterState.pathogenic,
+      'Likely pathogenic': filterState.likelyPathogenic,
+      'Uncertain significance': filterState.vus,
+      'Likely benign': filterState.likelyBenign,
+      Benign: filterState.benign,
+    },
+    effectFilters: filterState.effectFilters,
+  });
 }
 
 /**

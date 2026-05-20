@@ -365,6 +365,11 @@ import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCo
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import {
+  applyPubtatorGenePrioritizationFilters,
+  createDefaultPubtatorGeneFilter,
+  type PubtatorGeneFilter,
+} from './pubtatorGeneFilters';
 
 import { useUiStore } from '@/stores/ui';
 import { useRoute } from 'vue-router';
@@ -391,12 +396,6 @@ interface PublicationData {
   score?: number;
   gene_symbols?: string;
   text_hl?: string;
-}
-
-interface FilterField {
-  content: string | string[] | null;
-  operator: string;
-  join_char: string | null;
 }
 
 interface FieldDefinition {
@@ -531,16 +530,7 @@ const fields = ref<FieldDefinition[]>([
 ]);
 
 // Component-specific filter
-const filter = ref<Record<string, FilterField>>({
-  any: { content: null, join_char: null, operator: 'contains' },
-  gene_name: { content: null, join_char: null, operator: 'contains' },
-  gene_symbol: { content: null, join_char: null, operator: 'contains' },
-  gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
-  hgnc_id: { content: null, join_char: null, operator: 'contains' },
-  publication_count: { content: null, join_char: null, operator: 'greaterThanOrEqual' },
-  oldest_pub_date: { content: null, join_char: null, operator: 'greaterThanOrEqual' },
-  is_novel: { content: null, join_char: null, operator: 'equals' },
-});
+const filter = ref<PubtatorGeneFilter>(createDefaultPubtatorGeneFilter());
 
 // Prioritization filter options
 const minPublications = ref<string>('all');
@@ -709,23 +699,10 @@ const getSegmentTooltip = (segment: ParsedSegment): string => {
 
 // Apply prioritization filters
 const applyPrioritizationFilters = () => {
-  // Publication count filter
-  if (minPublications.value === 'all') {
-    filter.value.publication_count.content = null;
-  } else {
-    filter.value.publication_count.content = minPublications.value;
-  }
-
-  // Date range filter (calculate date from current date)
-  if (dateRange.value === 'all') {
-    filter.value.oldest_pub_date.content = null;
-  } else {
-    const yearsAgo = parseInt(dateRange.value, 10);
-    const cutoffDate = new Date();
-    cutoffDate.setFullYear(cutoffDate.getFullYear() - yearsAgo);
-    filter.value.oldest_pub_date.content = cutoffDate.toISOString().split('T')[0];
-  }
-
+  filter.value = applyPubtatorGenePrioritizationFilters(filter.value, {
+    minPublications: minPublications.value,
+    dateRangeYears: dateRange.value,
+  });
   currentItemID.value = 0;
   filtered();
 };
@@ -811,16 +788,7 @@ const filtered = () => {
 
 // Clear all filters
 const removeFilters = () => {
-  filter.value = {
-    any: { content: null, join_char: null, operator: 'contains' },
-    gene_name: { content: null, join_char: null, operator: 'contains' },
-    gene_symbol: { content: null, join_char: null, operator: 'contains' },
-    gene_normalized_id: { content: null, join_char: null, operator: 'contains' },
-    hgnc_id: { content: null, join_char: null, operator: 'contains' },
-    publication_count: { content: null, join_char: null, operator: 'greaterThanOrEqual' },
-    oldest_pub_date: { content: null, join_char: null, operator: 'greaterThanOrEqual' },
-    is_novel: { content: null, join_char: null, operator: 'equals' },
-  };
+  filter.value = createDefaultPubtatorGeneFilter();
   minPublications.value = 'all';
   dateRange.value = 'all';
   currentItemID.value = 0;

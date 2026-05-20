@@ -323,6 +323,12 @@ import {
 } from '@/composables';
 import type { CategoryFilter } from '@/composables';
 import { getClusterColor } from '@/utils/clusterColors';
+import {
+  addNetworkCluster,
+  removeNetworkCluster,
+  selectSingleNetworkCluster,
+  showAllNetworkClusters,
+} from './networkSelection';
 
 // Props
 interface Props {
@@ -681,54 +687,35 @@ function setCategoryLevel(level: CategoryFilter) {
   handleApplyFilters();
 }
 
-/**
- * Select a single cluster (replaces any existing selection)
- * Primary action for cluster pills and dropdown items
- */
 function selectSingleCluster(clusterId: number) {
-  showAllClusters.value = false;
-  selectedClusters.value = new Set([clusterId]);
+  const nextSelection = selectSingleNetworkCluster(clusterId);
+  showAllClusters.value = nextSelection.showAllClusters;
+  selectedClusters.value = nextSelection.selectedClusters;
   handleApplyFilters();
   emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
-/**
- * Add a cluster to the current selection (multi-select)
- * Used by "+" button on pills and dropdown items
- */
 function addClusterToSelection(clusterId: number) {
-  showAllClusters.value = false;
-  const newSet = new Set(selectedClusters.value);
-  newSet.add(clusterId);
-  selectedClusters.value = newSet;
+  const nextSelection = addNetworkCluster(selectedClusters.value, clusterId);
+  showAllClusters.value = nextSelection.showAllClusters;
+  selectedClusters.value = nextSelection.selectedClusters;
   handleApplyFilters();
   emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
-/**
- * Remove a cluster from the current selection
- * Used by "x" button on selected pills and dropdown items
- */
 function removeClusterFromSelection(clusterId: number) {
-  const newSet = new Set(selectedClusters.value);
-  newSet.delete(clusterId);
-  selectedClusters.value = newSet;
-
-  // If no clusters left, show all
-  if (newSet.size === 0) {
-    showAllClusters.value = true;
-  }
+  const nextSelection = removeNetworkCluster(selectedClusters.value, clusterId);
+  showAllClusters.value = nextSelection.showAllClusters;
+  selectedClusters.value = nextSelection.selectedClusters;
 
   handleApplyFilters();
   emit('clusters-changed', Array.from(selectedClusters.value), showAllClusters.value);
 }
 
-// Show all clusters handler
 function setShowAllClusters(value: boolean) {
-  showAllClusters.value = value;
-  if (value) {
-    selectedClusters.value = new Set();
-  }
+  const nextSelection = showAllNetworkClusters(value, selectedClusters.value);
+  showAllClusters.value = nextSelection.showAllClusters;
+  selectedClusters.value = nextSelection.selectedClusters;
   handleApplyFilters();
 
   // Emit cluster selection change for table sync
@@ -889,8 +876,9 @@ const retryLoadNetwork = async () => {
  * Used when parent auto-selects first cluster on initial load
  */
 function selectCluster(clusterId: number) {
-  showAllClusters.value = false;
-  selectedClusters.value = new Set([clusterId]);
+  const nextSelection = selectSingleNetworkCluster(clusterId);
+  showAllClusters.value = nextSelection.showAllClusters;
+  selectedClusters.value = nextSelection.selectedClusters;
   handleApplyFilters();
   // Don't emit clusters-changed here - parent already knows the state
 }

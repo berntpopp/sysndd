@@ -504,6 +504,15 @@ import LogMobileRows from '@/views/admin/components/LogMobileRows.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
+import {
+  formatAbsoluteLogTime,
+  formatLogDate,
+  formatLogDuration,
+  formatRelativeLogTime,
+  getLogDurationClass,
+  getLogMethodVariant,
+  getLogStatusVariant,
+} from './logTableFormatters';
 // v11.0 closeout F2b: apiClient is the single outbound surface — the
 // request interceptor injects `Authorization: Bearer <token>` from
 // `useAuth().token.value`, so this component stops building the header
@@ -1096,59 +1105,22 @@ export default {
       return Utils.truncate(str, n);
     },
     formatDate(dateStr) {
-      const options = {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      };
-      return new Date(dateStr).toLocaleDateString(undefined, options);
+      return formatLogDate(dateStr);
     },
     // Format relative time using Intl.RelativeTimeFormat (e.g., "2 hours ago")
     formatRelativeTime(dateStr) {
-      if (!dateStr) return '';
-      const now = new Date();
-      const date = new Date(dateStr);
-      const diffMs = now - date;
-      const diffMins = Math.round(diffMs / 60000);
-      const diffHours = Math.round(diffMs / 3600000);
-      const diffDays = Math.round(diffMs / 86400000);
-
-      const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-      if (Math.abs(diffMins) < 60) return rtf.format(-diffMins, 'minute');
-      if (Math.abs(diffHours) < 24) return rtf.format(-diffHours, 'hour');
-      return rtf.format(-diffDays, 'day');
+      return formatRelativeLogTime(dateStr);
     },
     // Format absolute time for tooltip display
     formatAbsoluteTime(dateStr) {
-      if (!dateStr) return '';
-      return new Date(dateStr).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        timeZoneName: 'short',
-      });
+      return formatAbsoluteLogTime(dateStr);
     },
     // Get Bootstrap variant for HTTP status code badges
     getStatusVariant(status) {
-      if (status >= 200 && status < 300) return 'success'; // 2xx OK
-      if (status >= 400 && status < 500) return 'warning'; // 4xx client error
-      if (status >= 500) return 'danger'; // 5xx server error
-      return 'secondary';
+      return getLogStatusVariant(status);
     },
     getMethodVariant(method) {
-      const methodVariants = {
-        GET: 'success',
-        POST: 'primary',
-        PUT: 'warning',
-        DELETE: 'danger',
-        OPTIONS: 'info',
-      };
-      return methodVariants[method] || 'secondary';
+      return getLogMethodVariant(method);
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {
@@ -1162,18 +1134,11 @@ export default {
     },
     // Format duration with appropriate unit
     formatDuration(duration) {
-      if (duration === null || duration === undefined) return '-';
-      const ms = parseFloat(duration);
-      if (ms < 1) return '<1ms';
-      if (ms < 1000) return `${Math.round(ms)}ms`;
-      return `${(ms / 1000).toFixed(2)}s`;
+      return formatLogDuration(duration);
     },
     // Get CSS class for duration based on performance
     getDurationClass(duration) {
-      const ms = parseFloat(duration);
-      if (ms < 100) return 'text-success'; // Fast
-      if (ms < 500) return 'text-warning'; // Medium
-      return 'text-danger fw-bold'; // Slow
+      return getLogDurationClass(duration);
     },
     // Delete all logs with confirmation
     // Reset delete modal state

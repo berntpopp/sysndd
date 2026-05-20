@@ -393,6 +393,10 @@ import { useUiStore } from '@/stores/ui';
 import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import {
+  applyPhenotypeLogicMode,
+  createDefaultPhenotypeFilter,
+} from './phenotypeTableFilters';
 
 const phenotypeEntitiesRequestCoordinator = createTableRequestCoordinator();
 
@@ -531,18 +535,7 @@ export default {
       // Bootstrap-Vue-Next uses array-based sortBy
       sortBy: [{ key: 'entity_id', order: 'desc' }],
       sort: this.sortInput,
-      filter: {
-        modifier_phenotype_id: { content: ['HP:0001249'], join_char: ',', operator: 'all' },
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-      },
+      filter: createDefaultPhenotypeFilter(),
       filter_string: null,
       filterOn: [],
       checked: false,
@@ -704,16 +697,7 @@ export default {
       this.filtered();
     },
     filtered() {
-      switch (this.checked) {
-        case true:
-          this.filter.modifier_phenotype_id.operator = 'any';
-          break;
-        case false:
-          this.filter.modifier_phenotype_id.operator = 'all';
-          break;
-        default:
-          this.filter.modifier_phenotype_id.operator = 'all';
-      }
+      this.filter = applyPhenotypeLogicMode(this.filter, this.checked === true);
 
       const filter_string_loc = this.filterObjToStr(this.filter);
       if (filter_string_loc !== this.filter_string) {
@@ -725,18 +709,7 @@ export default {
       this.requestSelected();
     },
     removeFilters() {
-      this.filter = {
-        modifier_phenotype_id: { content: ['HP:0001249'], join_char: ',', operator: 'all' },
-        any: { content: null, join_char: null, operator: 'contains' },
-        entity_id: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_name: { content: null, join_char: null, operator: 'contains' },
-        disease_ontology_id_version: { content: null, join_char: null, operator: 'contains' },
-        hpo_mode_of_inheritance_term_name: { content: null, join_char: ',', operator: 'any' },
-        hpo_mode_of_inheritance_term: { content: null, join_char: ',', operator: 'any' },
-        ndd_phenotype_word: { content: null, join_char: null, operator: 'contains' },
-        category: { content: null, join_char: ',', operator: 'any' },
-      };
+      this.filter = createDefaultPhenotypeFilter();
     },
     removeSearch() {
       this.filter.any.content = null;
