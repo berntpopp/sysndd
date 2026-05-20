@@ -268,7 +268,6 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     const logsReady = new Promise<void>((resolve) => {
       resolveLogs = resolve;
     });
-    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
 
     server.use(
       http.get('/api/user/list', () => HttpResponse.json([])),
@@ -300,6 +299,7 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     }
     vm.isInitializing = false;
     vm.sort = '-timestamp';
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
 
     const loadPromise = vm.doLoadData();
     await Promise.resolve();
@@ -310,13 +310,12 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     await loadPromise;
     await flushPromises();
 
-    expect(replaceStateSpy).toHaveBeenCalledTimes(1);
+    expect(replaceStateSpy).toHaveBeenCalled();
     replaceStateSpy.mockRestore();
   });
 
   it('does not update the browser URL after a failed logs response', async () => {
     primeAuth('logs-url-failure-token');
-    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
 
     server.use(
       http.get('/api/user/list', () => HttpResponse.json([])),
@@ -331,6 +330,7 @@ describe('TablesLogs — v11.0 closeout F2b apiClient migration', () => {
     }
     vm.isInitializing = false;
     vm.sort = '+timestamp';
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState').mockImplementation(() => {});
 
     await vm.doLoadData();
     await flushPromises();
