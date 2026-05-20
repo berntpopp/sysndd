@@ -10,6 +10,28 @@
 
 ---
 
+## Completion Status
+
+- Completed and merged via PR #359: https://github.com/berntpopp/sysndd/pull/359
+- Merge commit: `aaea7f66ce7feb87f34de31784f7b8671806995b`
+- Final branch head before merge: `9968901d6421f306ad2ac34102ab15a823713142`
+- Version bumped to `0.20.8` in `api/version_spec.json`, `app/package.json`, and `app/package-lock.json`.
+- Follow-up issue for noisy-but-passing local CI output: https://github.com/berntpopp/sysndd/issues/360
+
+Final verification completed before merge:
+
+```bash
+git diff --check
+cd app && npx vitest run src/api/re_review.spec.ts src/api/logging.spec.ts src/api/user.spec.ts src/api/list.spec.ts
+cd app && npx vitest run src/views/curate/ManageReReview.spec.ts src/components/tables/TablesLogs.spec.ts src/components/tables/logTableRequests.spec.ts
+cd app && npm run type-check
+make code-quality-audit
+make pre-commit
+make ci-local
+```
+
+GitHub CI passed on the final commit, including `CI Success`, `Build Frontend`, `Check Frontend`, `Lint R API`, `Smoke Test (prod stack)`, `Test R API (fast PR gate)`, and `make doctor (ubuntu-latest)`.
+
 ## Guardrails
 
 - Work on a normal branch, for example `plan/admin-curation-boundary-sprint`.
@@ -57,7 +79,7 @@
 - Modify: `app/src/api/re_review.spec.ts`
 - Modify: `app/src/api/re_review.ts`
 
-- [ ] **Step 1: Add failing API-client tests for available entities and tighter batch entries**
+- [x] **Step 1: Add failing API-client tests for available entities and tighter batch entries**
 
 `app/src/api/re_review.spec.ts` already has coverage for `assignReReviewEntities()` and `recalculateReReviewBatch()` request bodies. Keep those existing tests if they pin useful body fields; the tests below add the missing available-entities helper and tighten the returned `entry` shape consumed by `ManageReReview.vue`.
 
@@ -146,7 +168,7 @@ it('PUT /api/re_review/batch/recalculate sends criteria body and returns entry',
 });
 ```
 
-- [ ] **Step 2: Run the API-client tests and confirm the new helper test fails**
+- [x] **Step 2: Run the API-client tests and confirm the new helper test fails**
 
 Run:
 
@@ -156,7 +178,7 @@ cd app && npx vitest run src/api/re_review.spec.ts
 
 Expected: fail because `listAvailableReReviewEntities` is not exported yet.
 
-- [ ] **Step 3: Implement the typed helper and consumed response types**
+- [x] **Step 3: Implement the typed helper and consumed response types**
 
 In `app/src/api/re_review.ts`, add these interfaces near the batch-management types:
 
@@ -234,7 +256,7 @@ export async function listAvailableReReviewEntities(
 }
 ```
 
-- [ ] **Step 4: Verify re-review API-client tests pass**
+- [x] **Step 4: Verify re-review API-client tests pass**
 
 Run:
 
@@ -244,7 +266,7 @@ cd app && npx vitest run src/api/re_review.spec.ts
 
 Expected: pass.
 
-- [ ] **Step 5: Commit the typed API helper**
+- [x] **Step 5: Commit the typed API helper**
 
 Run:
 
@@ -262,7 +284,7 @@ git commit -m "refactor: complete re-review typed api helpers"
 - Modify: `app/src/views/curate/ManageReReview.vue`
 - Modify: `scripts/code-quality-file-size-baseline.tsv`
 
-- [ ] **Step 1: Strengthen component tests before production changes**
+- [x] **Step 1: Strengthen component tests before production changes**
 
 In `app/src/views/curate/ManageReReview.spec.ts`, add a test that proves the user-list call uses the relative API path:
 
@@ -332,7 +354,7 @@ it('loadAvailableEntities normalizes entity rows and scalar total from the typed
 });
 ```
 
-- [ ] **Step 2: Run ManageReReview tests on unchanged production code**
+- [x] **Step 2: Run ManageReReview tests on unchanged production code**
 
 Run:
 
@@ -342,7 +364,7 @@ cd app && npx vitest run src/views/curate/ManageReReview.spec.ts
 
 Expected: pass or fail only where assertions expose current absolute URL construction. Do not edit production code until this is observed.
 
-- [ ] **Step 3: Replace inline request construction with typed clients**
+- [x] **Step 3: Replace inline request construction with typed clients**
 
 In `app/src/views/curate/ManageReReview.vue`, replace the `apiClient` import with typed imports:
 
@@ -476,7 +498,7 @@ HttpResponse.json({ data: [{ category_id: 1, category: 'Definitive' }] })
 
 This keeps status-option population aligned with `listStatusCategories()`. Tests that only assert the Bearer interceptor may still pass with a raw array, but the fixture should represent the typed-client contract.
 
-- [ ] **Step 4: Remove obsolete `apiClient` import**
+- [x] **Step 4: Remove obsolete `apiClient` import**
 
 Run:
 
@@ -486,7 +508,7 @@ rg -n "apiClient|VITE_API_URL" app/src/views/curate/ManageReReview.vue
 
 Expected: no matches.
 
-- [ ] **Step 5: Verify ManageReReview migration**
+- [x] **Step 5: Verify ManageReReview migration**
 
 Run:
 
@@ -499,7 +521,7 @@ make code-quality-audit
 
 Expected: all commands exit 0.
 
-- [ ] **Step 6: Ratchet baseline and commit**
+- [x] **Step 6: Ratchet baseline and commit**
 
 Run:
 
@@ -524,7 +546,7 @@ git commit -m "refactor: route re-review admin calls through typed clients"
 - Create: `app/src/components/tables/logTableRequests.ts`
 - Create: `app/src/components/tables/logTableRequests.spec.ts`
 
-- [ ] **Step 1: Add helper tests first**
+- [x] **Step 1: Add helper tests first**
 
 Create `app/src/components/tables/logTableRequests.spec.ts`:
 
@@ -595,7 +617,7 @@ describe('logTableRequests', () => {
 });
 ```
 
-- [ ] **Step 2: Run helper tests and confirm failure**
+- [x] **Step 2: Run helper tests and confirm failure**
 
 Run:
 
@@ -605,7 +627,7 @@ cd app && npx vitest run src/components/tables/logTableRequests.spec.ts
 
 Expected: fail because `logTableRequests.ts` does not exist.
 
-- [ ] **Step 3: Implement the helper**
+- [x] **Step 3: Implement the helper**
 
 Create `app/src/components/tables/logTableRequests.ts`:
 
@@ -665,7 +687,7 @@ export function createLogTableRequestCache(windowMs = 500) {
 }
 ```
 
-- [ ] **Step 4: Verify helper tests pass**
+- [x] **Step 4: Verify helper tests pass**
 
 Run:
 
@@ -675,7 +697,7 @@ cd app && npx vitest run src/components/tables/logTableRequests.spec.ts
 
 Expected: pass.
 
-- [ ] **Step 5: Commit helper extraction**
+- [x] **Step 5: Commit helper extraction**
 
 Run:
 
@@ -693,7 +715,7 @@ git commit -m "refactor: extract log table request cache"
 - Modify: `app/src/components/tables/TablesLogs.vue`
 - Modify: `scripts/code-quality-file-size-baseline.tsv`
 
-- [ ] **Step 1: Strengthen logs API-client tests**
+- [x] **Step 1: Strengthen logs API-client tests**
 
 In `app/src/api/logging.spec.ts`, ensure these behaviors are covered:
 
@@ -754,7 +776,7 @@ it('deleteLogs sends older_than_days as a query param', async () => {
 });
 ```
 
-- [ ] **Step 2: Run logging API tests on unchanged production code**
+- [x] **Step 2: Run logging API tests on unchanged production code**
 
 Run:
 
@@ -764,7 +786,7 @@ cd app && npx vitest run src/api/logging.spec.ts
 
 Expected: pass. If a duplicate test already exists, keep the existing equivalent and do not add redundant assertions.
 
-- [ ] **Step 3: Replace TablesLogs inline API calls**
+- [x] **Step 3: Replace TablesLogs inline API calls**
 
 In `app/src/components/tables/TablesLogs.vue`, import typed clients and cache helper:
 
@@ -845,7 +867,7 @@ const response = await deleteLogsApi({ older_than_days: olderThanDays });
 const deletedCount = response.deleted_count || 0;
 ```
 
-- [ ] **Step 4: Remove obsolete raw URL state**
+- [x] **Step 4: Remove obsolete raw URL state**
 
 Run:
 
@@ -855,7 +877,7 @@ rg -n "VITE_API_URL|apiClient|moduleLastApi|moduleApiCallInProgress" app/src/com
 
 Expected: no matches for `VITE_API_URL`, `apiClient`, `moduleLastApi`, or `moduleApiCallInProgress`.
 
-- [ ] **Step 5: Verify TablesLogs migration**
+- [x] **Step 5: Verify TablesLogs migration**
 
 Run:
 
@@ -869,7 +891,7 @@ make code-quality-audit
 
 Expected: all commands exit 0.
 
-- [ ] **Step 6: Ratchet baseline and commit**
+- [x] **Step 6: Ratchet baseline and commit**
 
 Run:
 
@@ -893,7 +915,7 @@ git commit -m "refactor: route log table calls through typed clients"
 **Files:**
 - Inspect all changed files.
 
-- [ ] **Step 1: Confirm no touched component uses raw request URL construction**
+- [x] **Step 1: Confirm no touched component uses raw request URL construction**
 
 Run:
 
@@ -903,7 +925,7 @@ rg -n "VITE_API_URL|apiClient|getAxios|inject\\('axios'\\)|inject<Axios" app/src
 
 Expected: no matches, unless a remaining match is unrelated to request construction and documented in the handoff.
 
-- [ ] **Step 2: Run final deterministic checks**
+- [x] **Step 2: Run final deterministic checks**
 
 Run:
 
@@ -918,7 +940,7 @@ make pre-commit
 
 Expected: all commands exit 0.
 
-- [ ] **Step 3: Run local CI parity if practical**
+- [x] **Step 3: Run local CI parity if practical**
 
 Run:
 
@@ -928,7 +950,7 @@ make ci-local
 
 Expected: exits 0. If the environment blocks it, record the exact blocker and the last passing command.
 
-- [ ] **Step 4: Review code-quality risks**
+- [x] **Step 4: Review code-quality risks**
 
 Use `.agents/skills/sysndd-code-quality/SKILL.md` and check:
 
@@ -938,7 +960,7 @@ Use `.agents/skills/sysndd-code-quality/SKILL.md` and check:
 - Component tests still cover Bearer-header behavior through `apiClient`.
 - No public route, UI, table-column, or backend endpoint behavior changed.
 
-- [ ] **Step 5: Final commit if any verification-only edits were made**
+- [x] **Step 5: Final commit if any verification-only edits were made**
 
 If verification required follow-up edits, commit them:
 
