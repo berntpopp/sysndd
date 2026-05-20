@@ -4,8 +4,6 @@ import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import { http, HttpResponse } from 'msw';
 
-import '@/plugins/axios';
-import axios from '@/plugins/axios';
 import PubtatorNDDGenes from './PubtatorNDDGenes.vue';
 import { server } from '@/test-utils/mocks/server';
 
@@ -71,7 +69,6 @@ async function mountSubject(props = {}) {
     props,
     global: {
       plugins: [router],
-      provide: { axios },
       directives: { 'b-tooltip': {} },
       stubs: {
         AnalysisPanel: {
@@ -123,7 +120,6 @@ async function mountSubject(props = {}) {
 beforeEach(() => {
   makeToastSpy.mockClear();
   exportToExcelSpy.mockClear();
-  vi.stubEnv('VITE_API_URL', '');
   vi.stubEnv('VITE_URL', 'https://sysndd.test');
 });
 
@@ -168,6 +164,7 @@ describe('PubtatorNDDGenes', () => {
     expect(wrapper.emitted('novel-count')?.at(-1)).toEqual([1]);
     expect((observed as URLSearchParams).get('sort')).toBe('-is_novel,oldest_pub_date');
     expect((observed as URLSearchParams).get('page_size')).toBe('10');
+    expect((observed as URLSearchParams).get('format')).toBe('json');
   });
 
   it('loads expanded publication details through the PubTator table endpoint', async () => {
@@ -213,6 +210,7 @@ describe('PubtatorNDDGenes', () => {
 
     expect((observed as URLSearchParams).get('filter')).toBe('any(pmid,123,456)');
     expect((observed as URLSearchParams).get('page_size')).toBe('2');
+    expect((observed as URLSearchParams).get('format')).toBe('json');
     expect(wrapper.text()).toContain('MECP2 paper');
   });
 

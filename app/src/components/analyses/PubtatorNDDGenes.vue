@@ -350,8 +350,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, inject } from 'vue';
-import type { AxiosInstance } from 'axios';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { listPubtatorGenes, listPubtatorTable } from '@/api/publication';
 
 // Import composables
 import { useToast, useUrlParsing, useTableData, parsePubtatorText } from '@/composables';
@@ -451,8 +451,6 @@ const tableData = useTableData({
 });
 const { isExporting, exportToExcel } = useExcelExport();
 
-// Inject axios
-const axios = inject<AxiosInstance>('axios');
 const route = useRoute();
 
 // Destructure tableData
@@ -614,7 +612,7 @@ const truncateText = (str: string | undefined, n: number): string => {
 
 // Fetch publication data for a gene's PMIDs from pubtator cache
 const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
-  if (!axios || pmids.length === 0) return;
+  if (pmids.length === 0) return;
   if (publicationCache.value[geneSymbol]) return; // Already cached
 
   // Cancel any in-flight request for this gene
@@ -625,12 +623,15 @@ const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
   loadingPublications.value[geneSymbol] = true;
 
   try {
-    // Use pubtator table endpoint - PMIDs are integers (no PMID: prefix)
-    const pmidFilter = pmids.join(',');
-    const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/table?filter=any(pmid,${pmidFilter})&fields=search_id,pmid,doi,title,journal,date,score,gene_symbols,text_hl&page_size=${pmids.length}`;
-
-    const response = await axios.get(apiUrl, { signal: controller.signal });
-    publicationCache.value[geneSymbol] = response.data.data || [];
+    const response = await listPubtatorTable(
+      {
+        filter: `any(pmid,${pmids.join(',')})`,
+        fields: 'search_id,pmid,doi,title,journal,date,score,gene_symbols,text_hl',
+        page_size: String(pmids.length),
+      },
+      { signal: controller.signal }
+    );
+    publicationCache.value[geneSymbol] = response.data || [];
   } catch (error) {
     if ((error as Error).name !== 'AbortError' && (error as Error).name !== 'CanceledError') {
       console.error('Failed to fetch publication data:', error);
@@ -707,30 +708,31 @@ const applyPrioritizationFilters = () => {
   filtered();
 };
 
-// Load data from API
 const loadData = async () => {
-  if (!axios) {
-    makeToast('Axios not available', 'Error', 'danger');
-    return;
-  }
-
   isBusy.value = true;
 
-  const urlParam =
-    `sort=${sort.value}` +
-    `&filter=${filter_string.value}` +
-    `&page_after=${currentItemID.value}` +
-    `&page_size=${perPage.value}` +
-    `&fields=${props.fspecInput}`;
-
-  const apiUrl = `${import.meta.env.VITE_API_URL}/api/publication/pubtator/genes?${urlParam}`;
-
   try {
-    const response = await axios.get(apiUrl);
-    items.value = response.data.data || [];
+    const response = await listPubtatorGenes({
+      sort: sort.value,
+      filter: filter_string.value,
+      page_after: currentItemID.value,
+      page_size: String(perPage.value),
+      fields: props.fspecInput,
+    });
 
-    if (response.data.meta && response.data.meta.length > 0) {
-      const metaObj = response.data.meta[0];
+    items.value = response.data || [];
+
+    if (response.meta && Array.isArray(response.meta) && response.meta.length > 0) {
+      const metaObj = response.meta[0] as {
+        totalItems?: number;
+        totalPages?: number;
+        prevItemID?: number | null;
+        currentItemID?: number;
+        nextItemID?: number | null;
+        lastItemID?: number | null;
+        currentPage?: number;
+        fspec?: FieldDefinition[];
+      };
       totalRows.value = metaObj.totalItems || 0;
       totalPages.value = metaObj.totalPages || 1;
       prevItemID.value = metaObj.prevItemID || null;
@@ -738,10 +740,8 @@ const loadData = async () => {
       nextItemID.value = metaObj.nextItemID || null;
       lastItemID.value = metaObj.lastItemID || null;
 
-      // Update currentPage from meta
       currentPage.value = metaObj.currentPage || 1;
 
-      // Optionally merge any fspec changes into fields
       if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
         fields.value = mergeFields(metaObj.fspec);
       }
