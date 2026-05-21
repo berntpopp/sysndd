@@ -129,8 +129,9 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
         BSpinner: { template: '<div role="status" />' },
         BTable: {
           name: 'BTable',
-          props: ['items', 'fields'],
-          template: '<table><tbody><tr /></tbody></table>',
+          props: ['items', 'fields', 'tbodyTrClass', 'busy'],
+          template:
+            '<table><tbody><tr v-for="item in items" :key="item.entity_id" :class="tbodyTrClass ? tbodyTrClass(item) : undefined"><td><slot name="cell(selected)" :item="item" /></td><td><slot name="cell(entity_id)" :item="item" /></td><td>{{ item.gene_symbol }}</td><td><slot name="cell(disease_ontology_name)" :item="item" /></td><td>{{ item.review_date }}</td><td>{{ item.status_name }}</td></tr></tbody></table>',
         },
         BPagination: { template: '<nav />' },
         BFormInput: {
@@ -157,6 +158,10 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
         BInputGroup: { template: '<div><slot name="prepend" /><slot /></div>' },
         BInputGroupText: { template: '<span><slot /></span>' },
         BPopover: { template: '' },
+        BAlert: {
+          props: ['variant', 'show'],
+          template: '<div :data-variant="variant"><slot /></div>',
+        },
         BModal: {
           name: 'BModal',
           props: ['modelValue', 'id', 'title'],
@@ -186,6 +191,7 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
 // ---------------------------------------------------------------------------
 interface ManageReReviewVm {
   user_options: Array<{ value: number; text: string; role: string }>;
+  activeBatchMode: 'criteria' | 'manual' | null;
   user_id_assignment: number;
   availableEntities: Array<Record<string, unknown>>;
   availableEntityTotal: number;
@@ -193,6 +199,9 @@ interface ManageReReviewVm {
   selectedEntityIds: number[];
   entityAssignUserId: number | null;
   entityAssignBatchName: string;
+  previewBoundaryGene: string | null;
+  previewGeneCount: number;
+  previewEntityCount: number;
   reassignModalShow: boolean;
   reassignBatchId: number | null;
   reassignNewUserId: number | null;
@@ -519,6 +528,58 @@ describe('ManageReReview.vue — apiClient Bearer header on every authed endpoin
 });
 
 describe('ManageReReview.vue — typed client migration behavior', () => {
+  it('renders manual entity assignment state from loaded entities', async () => {
+    primeAuth('re-review-manual-panel-token');
+
+    server.use(
+      http.get('*/api/re_review/entities/available', ({ request }) => {
+        const query = new URL(request.url).searchParams;
+        expect(query.get('page')).toBe('1');
+        expect(query.get('page_size')).toBe('100');
+        return HttpResponse.json({
+          data: [
+            {
+              entity_id: 11,
+              gene_symbol: 'ARID1B',
+              disease_ontology_name: 'ARID1B disorder',
+              review_date: '2026-01-01',
+              status_name: 'Definitive',
+            },
+          ],
+          meta: { total: 4 },
+        });
+      })
+    );
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    component.activeBatchMode = 'manual';
+    component.selectedEntityIds = [11];
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.text()).toContain('Manual pick');
+    expect(wrapper.text()).toContain('ARID1B');
+    expect(wrapper.text()).toContain('ARID1B disorder');
+    expect(wrapper.text()).toContain('Showing 1 of 4 available entities.');
+    expect(wrapper.text()).toContain('Assign 1 selected');
+  });
+
+  it('renders the manual assignment boundary-gene alert in manual mode', async () => {
+    primeAuth('re-review-boundary-panel-token');
+
+    const wrapper = await mountManageReReview();
+    const component = vm(wrapper);
+    component.activeBatchMode = 'manual';
+    component.previewBoundaryGene = 'HGNC:4585';
+    component.previewGeneCount = 2;
+    component.previewEntityCount = 6;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="batch-boundary-gene-alert"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('HGNC:4585');
+    expect(wrapper.text()).toContain('6 entities');
+  });
+
   it('loadUserList maps Curator/Reviewer rows from the typed user client', async () => {
     primeAuth('re-review-users-token');
     let observedUrl = '';
