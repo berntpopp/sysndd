@@ -63,7 +63,7 @@
     <BFormGroup label="Entities" label-for="entity-select-table" class="mb-3 re-review-entity-picker">
       <div class="re-review-picker-toolbar">
         <TableSearchInput
-          :model-value="manualEntityFilter"
+          :model-value="manualEntityFilter ?? ''"
           placeholder="Search available entities"
           :debounce-time="300"
           @update:model-value="updateManualEntityFilter"
@@ -187,12 +187,12 @@ const emit = defineEmits<{
   (event: 'close'): void;
 }>();
 
-function updateEntityAssignUserId(value: number | null) {
-  emit('update:entityAssignUserId', value);
+function updateEntityAssignUserId(value: number | number[] | null) {
+  emit('update:entityAssignUserId', Array.isArray(value) ? (value[0] ?? null) : value);
 }
 
-function updateEntityAssignBatchName(value: string) {
-  emit('update:entityAssignBatchName', value);
+function updateEntityAssignBatchName(value: string | number | null) {
+  emit('update:entityAssignBatchName', value === null ? '' : String(value));
 }
 
 function updateManualEntityFilter(value: string | null) {
