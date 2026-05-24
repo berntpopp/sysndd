@@ -144,6 +144,27 @@ describe('useCytoscape', () => {
     vi.useRealTimers();
   });
 
+  it('reports direct initialization readiness once when layoutstop also fires', () => {
+    vi.useFakeTimers();
+    const container = document.createElement('div');
+    const onLayoutReady = vi.fn();
+    const { initializeCytoscape } = useCytoscape({
+      container: ref(container),
+      onLayoutReady,
+    });
+
+    initializeCytoscape([{ data: { id: 'HGNC:1' }, position: { x: 1, y: 2 } }]);
+
+    const layoutStopHandler = mocks.handlers.find(
+      (entry) => entry.event === 'layoutstop' && typeof entry.selectorOrHandler === 'function'
+    )?.selectorOrHandler as (() => void) | undefined;
+    layoutStopHandler?.();
+    vi.runOnlyPendingTimers();
+
+    expect(onLayoutReady).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it('batches element replacement before running layout', () => {
     const container = document.createElement('div');
     const { initializeCytoscape, updateElements } = useCytoscape({ container: ref(container) });

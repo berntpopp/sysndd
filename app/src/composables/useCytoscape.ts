@@ -290,13 +290,31 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   let cy: Core | null = null;
   let lastElements: ElementDefinition[] = [];
   let lastUsedPreset = false;
+  let layoutReadyCycle = 0;
+  let reportedLayoutReadyCycle = 0;
+  let layoutReadyTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Reactive state for UI binding
   const isInitialized = ref(false);
   const isLoading = ref(false);
 
-  const fitAndReportLayoutReady = (): void => {
+  const clearLayoutReadyTimeout = (): void => {
+    if (layoutReadyTimeout) {
+      clearTimeout(layoutReadyTimeout);
+      layoutReadyTimeout = null;
+    }
+  };
+
+  const startLayoutReadyCycle = (): void => {
+    layoutReadyCycle += 1;
+    clearLayoutReadyTimeout();
+  };
+
+  const fitAndReportLayoutReady = (cycle = layoutReadyCycle): void => {
     if (!cy) return;
+    if (cycle !== layoutReadyCycle || reportedLayoutReadyCycle === cycle) return;
+
+    reportedLayoutReadyCycle = cycle;
 
     cy.resize();
     cy.fit(undefined, 30);
@@ -306,6 +324,15 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`
     );
     options.onLayoutReady?.();
+  };
+
+  const scheduleFitAndReportLayoutReady = (): void => {
+    const cycle = layoutReadyCycle;
+    clearLayoutReadyTimeout();
+    layoutReadyTimeout = setTimeout(() => {
+      layoutReadyTimeout = null;
+      fitAndReportLayoutReady(cycle);
+    }, 50);
   };
 
   /**
@@ -319,6 +346,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
     // Clean up existing instance if any
     if (cy) {
+      clearLayoutReadyTimeout();
       cy.destroy();
       cy = null;
     }
@@ -329,6 +357,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     const startTime = performance.now();
     lastElements = initialElements;
     lastUsedPreset = shouldUsePresetLayout(lastElements);
+    startLayoutReadyCycle();
 
     cy = cytoscapeFn({
       container: options.container.value,
@@ -422,13 +451,13 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     cy.on('layoutstop', () => {
       if (cy) {
         // Small delay to ensure DOM is updated
-        setTimeout(fitAndReportLayoutReady, 50);
+        scheduleFitAndReportLayoutReady();
       }
       isLoading.value = false;
     });
 
     if (initialElements.length > 0) {
-      setTimeout(fitAndReportLayoutReady, 50);
+      scheduleFitAndReportLayoutReady();
     }
 
     isInitialized.value = true;
@@ -459,6 +488,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
 
     lastElements = elements;
     lastUsedPreset = shouldUsePresetLayout(elements);
+    startLayoutReadyCycle();
 
     const layout = cy.layout(lastUsedPreset ? presetLayoutOptions() : updateFcoseLayoutOptions());
 
