@@ -21,6 +21,13 @@ import cytoscape from 'cytoscape';
 import type { Core, ElementDefinition } from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import svg from 'cytoscape-svg';
+import {
+  collectPresetPositions,
+  initialFcoseLayoutOptions,
+  presetLayoutOptions,
+  shouldUsePresetLayout,
+  updateFcoseLayoutOptions,
+} from './geneNetworkLayoutOptions';
 
 // Cytoscape.js style type (simplified for our use case)
 type CytoscapeStylesheet = Array<{
@@ -28,36 +35,10 @@ type CytoscapeStylesheet = Array<{
   style: Record<string, unknown>;
 }>;
 
-/**
- * fcose layout options (cytoscape-fcose plugin)
- * The fcose plugin is not typed in cytoscape's LayoutOptions union,
- * so we define a minimal interface for the options we use.
- */
-interface FcoseLayoutOptions {
-  name: 'fcose';
-  quality?: 'default' | 'draft' | 'proof';
-  randomize?: boolean;
-  animate?: boolean;
-  animationDuration?: number;
-  fit?: boolean;
-  padding?: number;
-  nodeDimensionsIncludeLabels?: boolean;
-  nodeSeparation?: number;
-  nodeRepulsion?: number | ((node: unknown) => number);
-  idealEdgeLength?: number | ((edge: unknown) => number);
-  edgeElasticity?: number | ((edge: unknown) => number);
-  nestingFactor?: number;
-  gravity?: number;
-  gravityRange?: number;
-  gravityCompound?: number;
-  gravityRangeCompound?: number;
-  numIter?: number;
-  tile?: boolean;
-  tilingPaddingVertical?: number;
-  tilingPaddingHorizontal?: number;
-  packComponents?: boolean;
-  ready?: () => void;
-  stop?: () => void;
+function restorePresetPositions(cy: Core, elements: ElementDefinition[]): void {
+  for (const [nodeId, position] of collectPresetPositions(elements)) {
+    cy.getElementById(nodeId).position(position);
+  }
 }
 
 // Type assertion for cytoscape function
@@ -305,6 +286,8 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   // Using ref() would cause Vue reactivity to trigger layout recalculations
   // on every graph mutation (100 renders instead of 1)
   let cy: Core | null = null;
+  let lastElements: ElementDefinition[] = [];
+  let lastUsedPreset = false;
 
   // Reactive state for UI binding
   const isInitialized = ref(false);
@@ -328,10 +311,12 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     isLoading.value = true;
     console.log('[useCytoscape] Initializing with', options.elements?.length || 0, 'elements');
     const startTime = performance.now();
+    lastElements = options.elements || [];
+    lastUsedPreset = shouldUsePresetLayout(lastElements);
 
     cy = cytoscapeFn({
       container: options.container.value,
-      elements: options.elements || [],
+      elements: lastElements,
 
       // Style configuration
       style: getCytoscapeStyle(),
@@ -340,40 +325,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
       // Optimized for compound graphs with cluster separation
       // Using animate: false for reliable fit/center (per GitHub issue #2559)
 
-      layout: {
-        name: 'fcose',
-        quality: 'default',
-        randomize: true,
-        // CRITICAL: animate: false ensures synchronous layout for reliable fit
-        animate: false,
-        nodeDimensionsIncludeLabels: false,
-        // fit and padding for proper centering
-        fit: true,
-        padding: 50,
-        // Node separation within clusters
-        nodeSeparation: 100,
-        // Increased node repulsion for better cluster separation
-        nodeRepulsion: 15000,
-        // Ideal edge length for edges within clusters
-        idealEdgeLength: 100,
-        edgeElasticity: 0.45,
-        // IMPORTANT: nestingFactor controls inter-cluster edge length
-        // Higher values = more space between clusters
-        nestingFactor: 0.5,
-        // Gravity settings for compound graphs
-        gravity: 0.2,
-        gravityRange: 3.8,
-        gravityCompound: 1.5, // Gravity for compound parent nodes
-        gravityRangeCompound: 2.0, // Range for compound gravity
-        // Performance
-        numIter: 2500,
-        // Tiling for isolated nodes
-        tile: true,
-        tilingPaddingVertical: 20,
-        tilingPaddingHorizontal: 20,
-        // Pack disconnected components (clusters)
-        packComponents: true,
-      } as FcoseLayoutOptions,
+      layout: lastUsedPreset ? presetLayoutOptions() : initialFcoseLayoutOptions(),
 
       // WebGL renderer for better performance
       renderer: {
@@ -483,7 +435,7 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   };
 
   /**
-   * Update the graph elements and run fcose layout
+   * Update the graph elements and run preset layout when complete positions exist.
    */
   const updateElements = (elements: ElementDefinition[]): void => {
     if (!cy) {
@@ -501,22 +453,10 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     // Add new elements
     cy.add(elements);
 
-    // Run fcose layout for proper force-directed visualization
-    // Using animate: false for reliable fit/center (per GitHub issue #2559)
+    lastElements = elements;
+    lastUsedPreset = shouldUsePresetLayout(elements);
 
-    const layout = cy.layout({
-      name: 'fcose',
-      quality: 'default',
-      randomize: true,
-      animate: false,
-      fit: true,
-      padding: 30,
-      idealEdgeLength: 80,
-      nodeRepulsion: 8000,
-      edgeElasticity: 0.45,
-      gravity: 0.25,
-      numIter: 2500,
-    } as FcoseLayoutOptions);
+    const layout = cy.layout(lastUsedPreset ? presetLayoutOptions() : updateFcoseLayoutOptions());
 
     layout.run();
 
@@ -538,27 +478,19 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   };
 
   /**
-   * Reset the layout - re-runs fcose layout
+   * Reset the layout - restores preset coordinates when available, otherwise re-runs fcose
    */
   const resetLayout = (): void => {
     if (!cy) return;
 
     console.log('[useCytoscape] Resetting layout');
     isLoading.value = true;
+    lastUsedPreset = shouldUsePresetLayout(lastElements);
+    if (lastUsedPreset) {
+      restorePresetPositions(cy, lastElements);
+    }
 
-    const layout = cy.layout({
-      name: 'fcose',
-      quality: 'default',
-      randomize: true,
-      animate: false,
-      fit: true,
-      padding: 30,
-      idealEdgeLength: 80,
-      nodeRepulsion: 8000,
-      edgeElasticity: 0.45,
-      gravity: 0.25,
-      numIter: 2500,
-    } as FcoseLayoutOptions);
+    const layout = cy.layout(lastUsedPreset ? presetLayoutOptions() : updateFcoseLayoutOptions());
 
     layout.run();
   };

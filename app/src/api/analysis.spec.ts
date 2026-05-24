@@ -120,18 +120,19 @@ describe('api/analysis — getPhenotypeFunctionalCorrelation', () => {
 });
 
 describe('api/analysis — getNetworkEdges', () => {
-  it('forwards cluster_type and min_confidence params', async () => {
+  it('forwards network params and returns display layout coordinates', async () => {
     let observedQuery: URLSearchParams | null = null;
     const ok: NetworkEdgesResponse = {
-      nodes: [],
+      nodes: [{ hgnc_id: 'HGNC:1', symbol: 'AAA', cluster: 1, degree: 4, x: 10, y: 20 }],
       edges: [],
       metadata: {
-        node_count: 0,
+        node_count: 1,
         edge_count: 0,
-        cluster_count: 0,
+        cluster_count: 1,
         total_edges: 0,
         edges_filtered: false,
         elapsed_seconds: 0,
+        display_layout_status: 'available',
       },
     };
     server.use(
@@ -141,11 +142,18 @@ describe('api/analysis — getNetworkEdges', () => {
       })
     );
 
-    await getNetworkEdges({ cluster_type: 'subclusters', min_confidence: '700' });
+    const result = await getNetworkEdges({
+      cluster_type: 'subclusters',
+      min_confidence: '700',
+      max_edges: '3000',
+    });
     expect(observedQuery).not.toBeNull();
     const q = observedQuery as unknown as URLSearchParams;
     expect(q.get('cluster_type')).toBe('subclusters');
     expect(q.get('min_confidence')).toBe('700');
+    expect(q.get('max_edges')).toBe('3000');
+    expect(result.nodes[0].x).toBe(10);
+    expect(result.nodes[0].y).toBe(20);
   });
 });
 

@@ -13,9 +13,9 @@
  */
 
 import { ref, computed, type Ref, type ComputedRef } from 'vue';
-import axios from 'axios';
 import type { ElementDefinition } from 'cytoscape';
-import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '../types/models';
+import { getNetworkEdges } from '@/api/analysis';
+import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
 import { getClusterColor } from '../utils/clusterColors';
 
 /**
@@ -31,7 +31,7 @@ export interface NetworkDataState {
   /** Network metadata for UI display */
   metadata: ComputedRef<NetworkMetadata | null>;
   /** Fetch network data from API */
-  fetchNetworkData: (clusterType?: 'clusters' | 'subclusters') => Promise<void>;
+  fetchNetworkData: (clusterType?: 'clusters' | 'subclusters', maxEdges?: number) => Promise<void>;
   /** Transformed data in Cytoscape.js ElementDefinition format */
   cytoscapeElements: ComputedRef<ElementDefinition[]>;
   /** Clear network data and reset state */
@@ -99,24 +99,21 @@ export function useNetworkData(): NetworkDataState {
     const startTime = performance.now();
 
     try {
-      const response = await axios.get<NetworkResponse>('/api/analysis/network_edges', {
-        params: {
-          cluster_type: clusterType,
-          max_edges: maxEdges,
-        },
-        withCredentials: true,
+      const data = await getNetworkEdges({
+        cluster_type: clusterType,
+        max_edges: String(maxEdges),
       });
-      networkData.value = response.data;
+      networkData.value = data;
 
       const elapsed = performance.now() - startTime;
       console.log(`[useNetworkData] Fetch complete in ${elapsed.toFixed(0)}ms`);
       console.log(
-        `[useNetworkData] Received ${response.data.nodes?.length || 0} nodes, ${response.data.edges?.length || 0} edges`
+        `[useNetworkData] Received ${data.nodes?.length || 0} nodes, ${data.edges?.length || 0} edges`
       );
 
-      if (response.data.metadata?.edges_filtered) {
+      if (data.metadata?.edges_filtered) {
         console.log(
-          `[useNetworkData] Edges filtered: showing ${response.data.metadata.edge_count} of ${response.data.metadata.total_edges} total`
+          `[useNetworkData] Edges filtered: showing ${data.metadata.edge_count} of ${data.metadata.total_edges} total`
         );
       }
     } catch (err) {
@@ -131,7 +128,7 @@ export function useNetworkData(): NetworkDataState {
    * Transform network data to Cytoscape.js ElementDefinition format
    *
    * PERFORMANCE OPTIMIZED:
-   * - Uses pre-computed positions from server (no client layout needed)
+   * - Uses backend fCoSE display coordinates when complete, with client fCoSE fallback
    * - Pre-computes node size and edge width as data properties
    * - Creates compound parent nodes for clusters to enable visual separation
    * - Cytoscape uses fcose layout with compound node support
@@ -145,6 +142,7 @@ export function useNetworkData(): NetworkDataState {
       `[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
     );
     const startTime = performance.now();
+    const hasDisplayLayout = networkData.value.metadata?.display_layout_status === 'available';
 
     // Collect unique cluster IDs
     const clusterIds = new Set<number | string>();
@@ -175,6 +173,8 @@ export function useNetworkData(): NetworkDataState {
       const mainCluster =
         typeof node.cluster === 'string' ? parseInt(node.cluster.split('.')[0], 10) : node.cluster;
 
+      const hasPosition = hasDisplayLayout && Number.isFinite(node.x) && Number.isFinite(node.y);
+
       return {
         data: {
           id: node.hgnc_id,
@@ -190,6 +190,7 @@ export function useNetworkData(): NetworkDataState {
           // Cluster color
           color: getClusterColor(node.cluster),
         },
+        ...(hasPosition ? { position: { x: Number(node.x), y: Number(node.y) } } : {}),
       };
     });
 
@@ -239,4 +240,4 @@ export function useNetworkData(): NetworkDataState {
 export default useNetworkData;
 
 // Re-export types for convenience
-export type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata };
+export type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
