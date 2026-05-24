@@ -82,6 +82,7 @@ test_ignores_tests_migrations_fixtures_and_generated_output() {
   local repo
   repo=$(with_fixture)
   make_lines 20 "$repo/api/tests/testthat/test-large.R"
+  make_lines 20 "$repo/api/layout/node_modules/cytoscape/generated.js"
   make_lines 20 "$repo/app/src/components/Large.spec.ts"
   make_lines 20 "$repo/app/src/test-utils/mocks/handlers.ts"
   make_lines 20 "$repo/db/migrations/999_large.sql"
