@@ -39,7 +39,7 @@ function(req, res) {
   submitted <- async_job_service_submit(
     job_type = "network_layout_prewarm",
     request_payload = params,
-    submitted_by = req$user$user_id %||% NULL
+    submitted_by = req$user_id %||% NULL
   )
 
   job <- submitted$job

@@ -113,3 +113,13 @@ test_that("network layout submit endpoint is mounted under jobs", {
     mount_script
   )))
 })
+
+test_that("network layout submit endpoint uses top-level authenticated user id", {
+  endpoint_script <- paste(
+    readLines(file.path(get_api_dir(), "endpoints", "jobs_network_layout_endpoints.R"), warn = FALSE),
+    collapse = "\n"
+  )
+
+  expect_true(grepl("submitted_by = req\\$user_id %\\|\\|% NULL", endpoint_script))
+  expect_false(grepl("submitted_by = req\\$user\\$user_id", endpoint_script))
+})
