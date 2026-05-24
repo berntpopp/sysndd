@@ -66,6 +66,8 @@ export interface CytoscapeOptions {
   onClusterClick?: (clusterId: number, nodeData: Record<string, unknown>) => void;
   /** Callback when the graph background is clicked */
   onBackgroundClick?: () => void;
+  /** Callback after layout has stopped, resized, and fitted the viewport */
+  onLayoutReady?: () => void;
 }
 
 /**
@@ -79,7 +81,7 @@ export interface CytoscapeState {
   /** Whether the graph is currently loading/laying out */
   isLoading: Ref<boolean>;
   /** Initialize the Cytoscape instance */
-  initializeCytoscape: () => void;
+  initializeCytoscape: (elements?: ElementDefinition[]) => void;
   /** Update the graph elements and re-run layout */
   updateElements: (elements: ElementDefinition[]) => void;
   /** Fit the graph to the viewport */
@@ -293,10 +295,23 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
   const isInitialized = ref(false);
   const isLoading = ref(false);
 
+  const fitAndReportLayoutReady = (): void => {
+    if (!cy) return;
+
+    cy.resize();
+    cy.fit(undefined, 30);
+
+    const bb = cy.elements().boundingBox();
+    console.log(
+      `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`
+    );
+    options.onLayoutReady?.();
+  };
+
   /**
    * Initialize the Cytoscape instance
    */
-  const initializeCytoscape = (): void => {
+  const initializeCytoscape = (elements?: ElementDefinition[]): void => {
     if (!options.container.value) {
       console.warn('useCytoscape: container not available');
       return;
@@ -309,14 +324,15 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     }
 
     isLoading.value = true;
-    console.log('[useCytoscape] Initializing with', options.elements?.length || 0, 'elements');
+    const initialElements = elements || options.elements || [];
+    console.log('[useCytoscape] Initializing with', initialElements.length, 'elements');
     const startTime = performance.now();
-    lastElements = options.elements || [];
+    lastElements = initialElements;
     lastUsedPreset = shouldUsePresetLayout(lastElements);
 
     cy = cytoscapeFn({
       container: options.container.value,
-      elements: lastElements,
+      elements: initialElements,
 
       // Style configuration
       style: getCytoscapeStyle(),
@@ -406,30 +422,19 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     cy.on('layoutstop', () => {
       if (cy) {
         // Small delay to ensure DOM is updated
-        setTimeout(() => {
-          if (!cy) return;
-
-          // Force resize to pick up any container dimension changes
-          cy.resize();
-
-          // Use Cytoscape's built-in fit which handles centering correctly
-          // Padding ensures the graph doesn't touch edges
-          cy.fit(undefined, 30);
-
-          // Log for debugging
-          const bb = cy.elements().boundingBox();
-          console.log(
-            `[useCytoscape] Layout complete: ${cy.nodes().length} nodes, bb=${bb.w.toFixed(0)}x${bb.h.toFixed(0)}, zoom=${cy.zoom().toFixed(3)}`
-          );
-        }, 50);
+        setTimeout(fitAndReportLayoutReady, 50);
       }
       isLoading.value = false;
     });
 
+    if (initialElements.length > 0) {
+      setTimeout(fitAndReportLayoutReady, 50);
+    }
+
     isInitialized.value = true;
 
     // If no elements, loading is complete
-    if (!options.elements || options.elements.length === 0) {
+    if (initialElements.length === 0) {
       isLoading.value = false;
     }
   };
@@ -447,11 +452,10 @@ export function useCytoscape(options: CytoscapeOptions): CytoscapeState {
     const startTime = performance.now();
     isLoading.value = true;
 
-    // Remove existing elements
-    cy.elements().remove();
-
-    // Add new elements
-    cy.add(elements);
+    cy.batch(() => {
+      cy.elements().remove();
+      cy.add(elements);
+    });
 
     lastElements = elements;
     lastUsedPreset = shouldUsePresetLayout(elements);

@@ -71,6 +71,52 @@ test_that("cytoscape layout input contains compound parents and gene node sizes"
   expect_equal(request$layout_options$name, "fcose")
 })
 
+test_that("network fCoSE helper runner passes payload through stdin", {
+  testthat::skip_if(Sys.which("node") == "", "Node.js is required for the layout helper runner")
+
+  helper <- tempfile(fileext = ".mjs")
+  writeLines(c(
+    "let input = '';",
+    "process.stdin.setEncoding('utf8');",
+    "process.stdin.on('data', chunk => { input += chunk; });",
+    "process.stdin.on('end', () => {",
+    "  const request = JSON.parse(input);",
+    "  const positions = {};",
+    "  for (const element of request.elements) {",
+    "    if (!element.data.id.startsWith('cluster-')) {",
+    "      positions[element.data.id] = { x: 10, y: 20 };",
+    "    }",
+    "  }",
+    "  process.stdout.write(JSON.stringify({",
+    "    schema_version: 1,",
+    "    layout_engine: 'fake-fcose',",
+    "    positions,",
+    "    metadata: { node_count: Object.keys(positions).length, edge_count: request.elements.length }",
+    "  }));",
+    "});"
+  ), helper)
+
+  network <- list(
+    nodes = tibble::tibble(
+      hgnc_id = "HGNC:1",
+      symbol = "AAA",
+      cluster = 1,
+      degree = 1L,
+      category = "Definitive"
+    ),
+    edges = tibble::tibble(),
+    metadata = list()
+  )
+
+  request <- build_network_fcose_layout_request(network, layout_key = "stdin-smoke")
+  artifact <- run_network_fcose_layout_helper(request, helper_path = helper)
+
+  expect_equal(artifact$schema_version, 1)
+  expect_equal(artifact$layout_engine, "fake-fcose")
+  expect_equal(artifact$positions[["HGNC:1"]]$x, 10)
+  expect_equal(artifact$positions[["HGNC:1"]]$y, 20)
+})
+
 test_that("layout artifacts round trip through cache", {
   cache_dir <- withr::local_tempdir()
   artifact <- list(

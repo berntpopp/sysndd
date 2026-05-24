@@ -257,18 +257,18 @@ describe('TablesPhenotypes', () => {
 
   it('exports all selected phenotype rows as phenotype_search.xlsx', async () => {
     let exportQuery: URLSearchParams | null = null;
-    const createElementSpy = vi
-      .spyOn(document, 'createElement')
-      .mockImplementation(((tagName: string) => {
-        const element = document.createElementNS(
-          'http://www.w3.org/1999/xhtml',
-          tagName
-        ) as HTMLAnchorElement;
-        if (tagName === 'a') {
-          element.click = clickSpy;
-        }
-        return element;
-      }) as typeof document.createElement);
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(((
+      tagName: string
+    ) => {
+      const element = document.createElementNS(
+        'http://www.w3.org/1999/xhtml',
+        tagName
+      ) as HTMLAnchorElement;
+      if (tagName === 'a') {
+        element.click = clickSpy;
+      }
+      return element;
+    }) as typeof document.createElement);
     server.use(
       http.get('/api/list/phenotype', () => HttpResponse.json({ data: [] })),
       http.get('/api/phenotype/entities/browse', ({ request }) => {

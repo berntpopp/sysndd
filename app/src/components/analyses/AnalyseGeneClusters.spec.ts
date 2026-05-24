@@ -1,5 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getFunctionalClustering } from '@/api/analysis';
+import { submitClustering } from '@/api/jobs';
 import AnalyseGeneClusters from './AnalyseGeneClusters.vue';
 
 const mocks = vi.hoisted(() => ({
@@ -34,6 +36,9 @@ vi.mock('@/api/analysis', () => ({
   getFunctionalClusterSummary: mocks.getFunctionalClusterSummary,
 }));
 
+const getFunctionalClusteringMock = vi.mocked(getFunctionalClustering);
+const submitClusteringMock = vi.mocked(submitClustering);
+
 const globalStubs = {
   AnalysisPanel: {
     template: '<section><slot name="actions" /><slot /></section>',
@@ -64,7 +69,8 @@ const globalStubs = {
   Splitpanes: { template: '<div><slot /></div>' },
   Pane: { template: '<div><slot /></div>' },
   NetworkVisualization: {
-    template: '<div data-testid="network-viz" />',
+    template: '<button data-testid="network-viz" @click="$emit(\'network-ready\')" />',
+    emits: ['network-ready'],
     methods: {
       selectSingleCluster: mocks.networkSelectSingleCluster,
     },
@@ -86,6 +92,41 @@ describe('AnalyseGeneClusters', () => {
   beforeEach(() => {
     mocks.getFunctionalClusterSummary.mockReset();
     mocks.networkSelectSingleCluster.mockClear();
+    getFunctionalClusteringMock.mockReset();
+    getFunctionalClusteringMock.mockResolvedValue({
+      categories: [],
+      clusters: [],
+      pagination: {
+        page_size: 50,
+        page_after: '',
+        next_cursor: null,
+        total_count: 0,
+        has_more: false,
+      },
+      meta: {
+        algorithm: 'leiden',
+        elapsed_seconds: 0.1,
+        gene_count: 0,
+        cluster_count: 0,
+      },
+    });
+    submitClusteringMock.mockClear();
+  });
+
+  it('waits for the network to render before loading the heavy cluster table', async () => {
+    const wrapper = mountComponent();
+
+    expect(getFunctionalClusteringMock).not.toHaveBeenCalled();
+    expect(submitClusteringMock).not.toHaveBeenCalled();
+
+    await wrapper.get('[data-testid="network-viz"]').trigger('click');
+    await flushPromises();
+
+    expect(getFunctionalClusteringMock).toHaveBeenCalledWith({
+      algorithm: 'leiden',
+      page_size: '50',
+    });
+    expect(submitClusteringMock).not.toHaveBeenCalled();
   });
 
   it('shows a compact AI summary cue in all-clusters mode', async () => {

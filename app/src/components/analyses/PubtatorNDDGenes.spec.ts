@@ -26,11 +26,7 @@ vi.mock('@/composables', async () => {
   return {
     ...actual,
     useToast: () => ({ makeToast: makeToastSpy }),
-    useTableData: (opts: {
-      pageSizeInput: number;
-      sortInput: string;
-      pageAfterInput: string;
-    }) => ({
+    useTableData: (opts: { pageSizeInput: number; sortInput: string; pageAfterInput: string }) => ({
       items: ref([]),
       totalRows: ref(0),
       perPage: ref(opts.pageSizeInput),
@@ -205,7 +201,10 @@ describe('PubtatorNDDGenes', () => {
     );
 
     const wrapper = await mountSubject();
-    await wrapper.findAll('button').find((button) => button.text().includes('Show'))!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Show'))!
+      .trigger('click');
     await flushPromises();
 
     expect((observed as URLSearchParams).get('filter')).toBe('any(pmid,123,456)');
@@ -234,7 +233,10 @@ describe('PubtatorNDDGenes', () => {
     );
 
     const wrapper = await mountSubject();
-    await wrapper.findAll('button').find((button) => button.text().includes('Export'))!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Export'))!
+      .trigger('click');
     await flushPromises();
 
     expect(exportToExcelSpy).toHaveBeenCalledWith(

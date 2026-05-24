@@ -455,40 +455,29 @@ run_network_fcose_layout_helper <- function(
 ) {
   payload <- jsonlite::toJSON(request, auto_unbox = TRUE, null = "null", digits = NA)
   timeout <- as.numeric(Sys.getenv("NETWORK_LAYOUT_HELPER_TIMEOUT_SECONDS", unset = "120"))
-  result <- tryCatch(
-    processx::run(
+  input_path <- tempfile("network-layout-request-", fileext = ".json")
+  stdout_path <- tempfile("network-layout-stdout-", fileext = ".json")
+  stderr_path <- tempfile("network-layout-stderr-", fileext = ".log")
+  on.exit(unlink(c(input_path, stdout_path, stderr_path), force = TRUE), add = TRUE)
+
+  writeChar(payload, input_path, eos = NULL, useBytes = TRUE)
+  status <- suppressWarnings(
+    system2(
       command = "node",
       args = helper_path,
-      input = payload,
-      timeout = timeout,
-      error_on_status = FALSE
-    ),
-    error = function(e) {
-      if (!grepl("unused argument.*input", conditionMessage(e))) {
-        stop(e)
-      }
-
-      process <- processx::process$new(
-        command = "node",
-        args = helper_path,
-        stdin = "|",
-        stdout = "|",
-        stderr = "|"
-      )
-      process$write_input(payload, sep = "")
-      close(process$get_input_connection())
-      process$wait(timeout * 1000)
-      if (process$is_alive()) {
-        process$kill_tree()
-        stop("network fCoSE layout helper timed out", call. = FALSE)
-      }
-
-      list(
-        status = process$get_exit_status(),
-        stdout = process$read_all_output(),
-        stderr = process$read_all_error()
-      )
-    }
+      stdin = input_path,
+      stdout = stdout_path,
+      stderr = stderr_path,
+      timeout = timeout
+    )
+  )
+  if (is.null(status)) {
+    status <- 0L
+  }
+  result <- list(
+    status = as.integer(status),
+    stdout = paste(readLines(stdout_path, warn = FALSE), collapse = "\n"),
+    stderr = paste(readLines(stderr_path, warn = FALSE), collapse = "\n")
   )
 
   if (result$status != 0L) {

@@ -519,10 +519,7 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import ManualEntityAssignmentPanel from '@/views/curate/components/ManualEntityAssignmentPanel.vue';
-import {
-  filterReReviewBatches,
-  sortReReviewBatches,
-} from '@/views/curate/utils/reReviewFilters';
+import { filterReReviewBatches, sortReReviewBatches } from '@/views/curate/utils/reReviewFilters';
 import {
   assignReReviewBatch,
   assignReReviewEntities,

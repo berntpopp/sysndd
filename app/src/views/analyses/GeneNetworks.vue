@@ -13,6 +13,7 @@ import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
 import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
+import { preloadNetworkData } from '@/composables/useNetworkData';
 
 export default {
   name: 'GeneNetworks',
@@ -22,6 +23,7 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
+    void preloadNetworkData('clusters').catch(() => undefined);
     useHead({
       title: 'Functional clusters',
       meta: [

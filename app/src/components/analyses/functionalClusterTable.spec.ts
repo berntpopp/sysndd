@@ -72,7 +72,16 @@ describe('functionalClusterTable', () => {
       enrichmentRows[2],
     ]);
     expect(
-      sortFunctionalClusterRows([...identifierRows, { cluster_num: 4, symbol: null }], 'symbol', false)
-    ).toEqual([identifierRows[2], identifierRows[0], identifierRows[1], { cluster_num: 4, symbol: null }]);
+      sortFunctionalClusterRows(
+        [...identifierRows, { cluster_num: 4, symbol: null }],
+        'symbol',
+        false
+      )
+    ).toEqual([
+      identifierRows[2],
+      identifierRows[0],
+      identifierRows[1],
+      { cluster_num: 4, symbol: null },
+    ]);
   });
 });

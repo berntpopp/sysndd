@@ -12,7 +12,7 @@
  * @returns Network data state and fetch function
  */
 
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, shallowRef, computed, type Ref, type ComputedRef } from 'vue';
 import type { ElementDefinition } from 'cytoscape';
 import { getNetworkEdges } from '@/api/analysis';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
@@ -34,8 +34,110 @@ export interface NetworkDataState {
   fetchNetworkData: (clusterType?: 'clusters' | 'subclusters', maxEdges?: number) => Promise<void>;
   /** Transformed data in Cytoscape.js ElementDefinition format */
   cytoscapeElements: ComputedRef<ElementDefinition[]>;
+  /** Initial graph render with all nodes and default-visible edges */
+  cytoscapeInitialElements: ComputedRef<ElementDefinition[]>;
+  /** Node-only graph render for the first paint */
+  cytoscapeNodeElements: ComputedRef<ElementDefinition[]>;
   /** Clear network data and reset state */
   clearNetworkData: () => void;
+}
+
+const INITIAL_EDGE_CATEGORY = 'Definitive';
+const inflightNetworkRequests = new Map<string, Promise<NetworkResponse>>();
+
+function networkRequestKey(clusterType: 'clusters' | 'subclusters', maxEdges: number): string {
+  return `${clusterType}:${maxEdges}`;
+}
+
+export function preloadNetworkData(
+  clusterType: 'clusters' | 'subclusters' = 'clusters',
+  maxEdges: number = 10000
+): Promise<NetworkResponse> {
+  const key = networkRequestKey(clusterType, maxEdges);
+  const existing = inflightNetworkRequests.get(key);
+  if (existing) return existing;
+
+  const request = getNetworkEdges({
+    cluster_type: clusterType,
+    max_edges: String(maxEdges),
+  }).finally(() => {
+    inflightNetworkRequests.delete(key);
+  });
+  inflightNetworkRequests.set(key, request);
+  return request;
+}
+
+function getMainClusterId(cluster: NetworkNode['cluster']): number | string {
+  return typeof cluster === 'string' ? parseInt(cluster.split('.')[0], 10) : cluster;
+}
+
+function buildCytoscapeElements(
+  data: NetworkResponse,
+  options: { initialDefaultEdgesOnly?: boolean; omitEdges?: boolean } = {}
+): ElementDefinition[] {
+  const hasDisplayLayout = data.metadata?.display_layout_status === 'available';
+  const clusterIds = new Set<number | string>();
+  const initialEdgeNodeIds = new Set<string>();
+
+  const nodes: ElementDefinition[] = data.nodes.map((node: NetworkNode) => {
+    const mainCluster = getMainClusterId(node.cluster);
+    const category = node.category || INITIAL_EDGE_CATEGORY;
+    const hasPosition = hasDisplayLayout && Number.isFinite(node.x) && Number.isFinite(node.y);
+
+    if (mainCluster !== undefined && mainCluster !== null) {
+      clusterIds.add(mainCluster);
+    }
+    if (category === INITIAL_EDGE_CATEGORY) {
+      initialEdgeNodeIds.add(node.hgnc_id);
+    }
+
+    return {
+      data: {
+        id: node.hgnc_id,
+        parent: mainCluster !== undefined ? `cluster-${mainCluster}` : undefined,
+        symbol: node.symbol,
+        cluster: node.cluster,
+        degree: node.degree,
+        category,
+        size: Math.max(15, Math.sqrt(node.degree || 1) * 6),
+        color: getClusterColor(node.cluster),
+      },
+      ...(hasPosition ? { position: { x: Number(node.x), y: Number(node.y) } } : {}),
+    };
+  });
+
+  const clusterParentNodes: ElementDefinition[] = Array.from(clusterIds).map((clusterId) => ({
+    data: {
+      id: `cluster-${clusterId}`,
+      label: `Cluster ${clusterId}`,
+      isClusterParent: true,
+      color: getClusterColor(clusterId),
+    },
+  }));
+
+  const edges: ElementDefinition[] = options.omitEdges
+    ? []
+    : data.edges.flatMap((edge: NetworkEdge, idx: number) => {
+        if (
+          options.initialDefaultEdgesOnly &&
+          (!initialEdgeNodeIds.has(edge.source) || !initialEdgeNodeIds.has(edge.target))
+        ) {
+          return [];
+        }
+        return [
+          {
+            data: {
+              id: `e${idx}`,
+              source: edge.source,
+              target: edge.target,
+              confidence: edge.confidence,
+              width: Math.max(0.5, edge.confidence * 3),
+            },
+          },
+        ];
+      });
+
+  return [...clusterParentNodes, ...nodes, ...edges];
 }
 
 /**
@@ -65,7 +167,7 @@ export interface NetworkDataState {
  */
 export function useNetworkData(): NetworkDataState {
   // Reactive state
-  const networkData = ref<NetworkResponse | null>(null);
+  const networkData = shallowRef<NetworkResponse | null>(null);
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
 
@@ -99,10 +201,7 @@ export function useNetworkData(): NetworkDataState {
     const startTime = performance.now();
 
     try {
-      const data = await getNetworkEdges({
-        cluster_type: clusterType,
-        max_edges: String(maxEdges),
-      });
+      const data = await preloadNetworkData(clusterType, maxEdges);
       networkData.value = data;
 
       const elapsed = performance.now() - startTime;
@@ -142,79 +241,45 @@ export function useNetworkData(): NetworkDataState {
       `[useNetworkData] Transforming ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
     );
     const startTime = performance.now();
-    const hasDisplayLayout = networkData.value.metadata?.display_layout_status === 'available';
-
-    // Collect unique cluster IDs
-    const clusterIds = new Set<number | string>();
-    networkData.value.nodes.forEach((node) => {
-      if (node.cluster !== undefined && node.cluster !== null) {
-        // Get main cluster number for grouping
-        const mainCluster =
-          typeof node.cluster === 'string'
-            ? parseInt(node.cluster.split('.')[0], 10)
-            : node.cluster;
-        clusterIds.add(mainCluster);
-      }
-    });
-
-    // Create parent nodes for each cluster (compound nodes for fcose)
-    const clusterParentNodes: ElementDefinition[] = Array.from(clusterIds).map((clusterId) => ({
-      data: {
-        id: `cluster-${clusterId}`,
-        label: `Cluster ${clusterId}`,
-        isClusterParent: true,
-        color: getClusterColor(clusterId),
-      },
-    }));
-
-    // Transform nodes to Cytoscape format with parent assignment
-    const nodes: ElementDefinition[] = networkData.value.nodes.map((node: NetworkNode) => {
-      // Get main cluster number for parent assignment
-      const mainCluster =
-        typeof node.cluster === 'string' ? parseInt(node.cluster.split('.')[0], 10) : node.cluster;
-
-      const hasPosition = hasDisplayLayout && Number.isFinite(node.x) && Number.isFinite(node.y);
-
-      return {
-        data: {
-          id: node.hgnc_id,
-          // Assign parent for compound graph (cluster grouping)
-          parent: mainCluster !== undefined ? `cluster-${mainCluster}` : undefined,
-          symbol: node.symbol,
-          cluster: node.cluster,
-          degree: node.degree,
-          // Include category for filtering (defaults to 'Definitive' if not provided)
-          category: node.category || 'Definitive',
-          // Pre-compute size for performance (avoids function in style)
-          size: Math.max(15, Math.sqrt(node.degree || 1) * 6),
-          // Cluster color
-          color: getClusterColor(node.cluster),
-        },
-        ...(hasPosition ? { position: { x: Number(node.x), y: Number(node.y) } } : {}),
-      };
-    });
-
-    // Transform edges to Cytoscape format with pre-computed width
-    const edges: ElementDefinition[] = networkData.value.edges.map(
-      (edge: NetworkEdge, idx: number) => ({
-        data: {
-          id: `e${idx}`,
-          source: edge.source,
-          target: edge.target,
-          confidence: edge.confidence,
-          // Pre-compute width for performance (avoids function in style)
-          width: Math.max(0.5, edge.confidence * 3),
-        },
-      })
-    );
+    const elements = buildCytoscapeElements(networkData.value);
 
     const elapsed = performance.now() - startTime;
     console.log(
-      `[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms (${clusterParentNodes.length} clusters)`
+      `[useNetworkData] Transform complete in ${elapsed.toFixed(0)}ms (${elements.length} elements)`
     );
+    return elements;
+  });
 
-    // Return cluster parents first, then nodes, then edges
-    return [...clusterParentNodes, ...nodes, ...edges];
+  const cytoscapeInitialElements = computed<ElementDefinition[]>(() => {
+    if (!networkData.value) return [];
+
+    console.log(
+      `[useNetworkData] Building initial graph from ${networkData.value.nodes.length} nodes, ${networkData.value.edges.length} edges`
+    );
+    const startTime = performance.now();
+    const elements = buildCytoscapeElements(networkData.value, { initialDefaultEdgesOnly: true });
+
+    const elapsed = performance.now() - startTime;
+    console.log(
+      `[useNetworkData] Initial graph built in ${elapsed.toFixed(0)}ms (${elements.length} elements)`
+    );
+    return elements;
+  });
+
+  const cytoscapeNodeElements = computed<ElementDefinition[]>(() => {
+    if (!networkData.value) return [];
+
+    console.log(
+      `[useNetworkData] Building node graph from ${networkData.value.nodes.length} nodes`
+    );
+    const startTime = performance.now();
+    const elements = buildCytoscapeElements(networkData.value, { omitEdges: true });
+
+    const elapsed = performance.now() - startTime;
+    console.log(
+      `[useNetworkData] Node graph built in ${elapsed.toFixed(0)}ms (${elements.length} elements)`
+    );
+    return elements;
   });
 
   /**
@@ -233,6 +298,8 @@ export function useNetworkData(): NetworkDataState {
     metadata,
     fetchNetworkData,
     cytoscapeElements,
+    cytoscapeInitialElements,
+    cytoscapeNodeElements,
     clearNetworkData,
   };
 }

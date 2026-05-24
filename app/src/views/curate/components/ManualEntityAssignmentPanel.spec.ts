@@ -109,18 +109,30 @@ describe('ManualEntityAssignmentPanel', () => {
     expect(
       disabledWrapper
         .findAll('button')
-        .some((button) => button.text().includes('Assign') && button.attributes('disabled') !== undefined)
+        .some(
+          (button) =>
+            button.text().includes('Assign') && button.attributes('disabled') !== undefined
+        )
     ).toBe(true);
     expect(
-      disabledWrapper.findAll('button').find((button) => button.text().includes('Clear'))?.attributes('disabled')
+      disabledWrapper
+        .findAll('button')
+        .find((button) => button.text().includes('Clear'))
+        ?.attributes('disabled')
     ).toBeDefined();
 
     const enabledWrapper = mountSubject({ selectedEntityIds: [11], entityAssignUserId: 3 });
     expect(
-      enabledWrapper.findAll('button').find((button) => button.text().includes('Assign'))?.attributes('disabled')
+      enabledWrapper
+        .findAll('button')
+        .find((button) => button.text().includes('Assign'))
+        ?.attributes('disabled')
     ).toBeUndefined();
     expect(
-      enabledWrapper.findAll('button').find((button) => button.text().includes('Clear'))?.attributes('disabled')
+      enabledWrapper
+        .findAll('button')
+        .find((button) => button.text().includes('Clear'))
+        ?.attributes('disabled')
     ).toBeUndefined();
   });
 
@@ -131,10 +143,22 @@ describe('ManualEntityAssignmentPanel', () => {
     await wrapper.find('input').setValue('named-batch');
     await wrapper.find('[aria-label="Search available entities"]').setValue('SCN2A');
     await wrapper.find('[aria-label="Select entity 22"]').trigger('change');
-    await wrapper.findAll('button').find((button) => button.text().includes('Assign'))!.trigger('click');
-    await wrapper.findAll('button').find((button) => button.text().includes('Refresh entities'))!.trigger('click');
-    await wrapper.findAll('button').find((button) => button.text().includes('Clear'))!.trigger('click');
-    await wrapper.findAll('button').find((button) => button.text().includes('Close setup'))!.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Assign'))!
+      .trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Refresh entities'))!
+      .trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Clear'))!
+      .trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Close setup'))!
+      .trigger('click');
 
     expect(wrapper.emitted('update:entityAssignUserId')?.at(-1)).toEqual([4]);
     expect(wrapper.emitted('update:entityAssignBatchName')?.at(-1)).toEqual(['named-batch']);

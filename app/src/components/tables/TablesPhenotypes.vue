@@ -393,10 +393,7 @@ import { useUiStore } from '@/stores/ui';
 import { browsePhenotypeEntities, browsePhenotypeEntitiesXlsx } from '@/api/phenotype';
 import { listPhenotypes } from '@/api/list';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
-import {
-  applyPhenotypeLogicMode,
-  createDefaultPhenotypeFilter,
-} from './phenotypeTableFilters';
+import { applyPhenotypeLogicMode, createDefaultPhenotypeFilter } from './phenotypeTableFilters';
 
 const phenotypeEntitiesRequestCoordinator = createTableRequestCoordinator();
 

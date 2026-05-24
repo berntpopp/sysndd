@@ -34,6 +34,7 @@
             :cluster-type="selectType"
             @cluster-selected="handleClusterSelected"
             @clusters-changed="handleClustersChanged"
+            @network-ready="handleNetworkReady"
             @node-hover="handleNetworkNodeHover"
             @search-match-count="handleSearchMatchCount"
           />
@@ -369,12 +370,8 @@ import { getClusterColor } from '@/utils/clusterColors';
 
 // Typed API clients (W5)
 import { getFunctionalClustering, getFunctionalClusterSummary } from '@/api/analysis';
-import { submitClustering, getJobStatus } from '@/api/jobs';
 import { isApiError } from '@/api/client';
-import {
-  filterFunctionalClusterRows,
-  sortFunctionalClusterRows,
-} from './functionalClusterTable';
+import { filterFunctionalClusterRows, sortFunctionalClusterRows } from './functionalClusterTable';
 
 export default {
   name: 'AnalyseGeneClusters',
@@ -515,6 +512,7 @@ export default {
       currentSummary: null,
       summaryLoading: false,
       summaryRequestId: 0,
+      clusterTableLoadStarted: false,
     };
   },
   computed: {
@@ -714,9 +712,6 @@ export default {
       this.currentPage = 1;
     },
   },
-  mounted() {
-    this.loadClusterData();
-  },
   methods: {
     /**
      * Helper method: find category text from valueCategories
@@ -741,133 +736,14 @@ export default {
       return getClusterColor(clusterNum);
     },
 
-    /* --------------------------------------
-     * Load cluster data from API using async job system
-     * ------------------------------------ */
-    async loadClusterData() {
-      this.loading = true;
-      this.loadingStage = 'submitting';
-      this.loadingProgress = 5;
-
-      try {
-        // Step 1: Submit async job
-        const submitData = await submitClustering({
-          algorithm: this.algorithm,
-        });
-
-        // Extract job info (R returns arrays for scalars)
-        const jobId = Array.isArray(submitData.job_id) ? submitData.job_id[0] : submitData.job_id;
-        const estSeconds = Array.isArray(submitData.estimated_seconds)
-          ? submitData.estimated_seconds[0]
-          : submitData.estimated_seconds;
-
-        this.jobId = jobId;
-        this.estimatedSeconds = estSeconds || 30;
-
-        this.loadingStage = 'processing';
-        this.loadingProgress = 15;
-
-        // Step 2: Poll for results
-        await this.pollJobStatus();
-      } catch (e) {
-        // Handle 409 Conflict (duplicate job) - silently use existing job
-        if (isApiError(e) && e.response && e.response.status === 409) {
-          const dupData = e.response.data;
-          const existingJobId = Array.isArray(dupData.existing_job_id)
-            ? dupData.existing_job_id[0]
-            : dupData.existing_job_id;
-          this.jobId = existingJobId;
-          this.loadingStage = 'processing';
-          this.loadingProgress = 15;
-          await this.pollJobStatus();
-          return;
-        }
-
-        // Other errors: show toast and fall back to sync endpoint
-        this.makeToast('Using synchronous loading (async unavailable)', 'Info', 'info');
-        await this.loadClusterDataSync();
-      }
+    handleNetworkReady() {
+      if (this.clusterTableLoadStarted) return;
+      this.clusterTableLoadStarted = true;
+      this.loadClusterData();
     },
 
-    /**
-     * Poll job status until complete
-     */
-    async pollJobStatus() {
-      const maxAttempts = 60; // 5 minutes max (60 * 5 seconds)
-      let attempts = 0;
-      const startTime = Date.now();
-
-      const poll = async () => {
-        attempts += 1;
-
-        try {
-          const responseData = await getJobStatus(this.jobId);
-
-          // R/plumber may return scalars as single-element arrays
-          const status = Array.isArray(responseData.status)
-            ? responseData.status[0]
-            : responseData.status;
-          const result = responseData.result;
-          const progress = responseData.progress;
-
-          // Update progress based on elapsed time vs estimate
-          const elapsed = (Date.now() - startTime) / 1000;
-          const estimatedProgress = Math.min(90, 15 + (elapsed / this.estimatedSeconds) * 75);
-          this.loadingProgress = progress || estimatedProgress;
-
-          if (status === 'completed') {
-            this.loadingStage = 'loading_data';
-            this.loadingProgress = 95;
-
-            // Process result - handle both {clusters, categories} and flat array formats
-            if (result && result.clusters) {
-              this.itemsCluster = result.clusters;
-              this.valueCategories = result.categories || [];
-            } else if (Array.isArray(result)) {
-              this.itemsCluster = result;
-              this.valueCategories = [];
-            } else {
-              this.itemsCluster = result;
-              this.valueCategories = [];
-            }
-
-            // Update loading state
-            this.loadingProgress = 100;
-            this.loading = false;
-
-            // Set table display - default to showing all clusters
-            // User can select individual clusters to see AI summaries
-            this.$nextTick(() => {
-              if (this.itemsCluster.length > 0) {
-                // Default to all clusters view
-                this.showAllClustersInTable = true;
-                this.displayedClusters = [];
-                this.activeParentCluster = null;
-                this.setActiveCluster();
-              }
-            });
-            return;
-          }
-
-          if (status === 'failed') {
-            throw new Error(responseData.error || 'Clustering job failed');
-          }
-
-          // Still running, poll again
-          if (attempts < maxAttempts) {
-            const retryAfterSeconds = Number(responseData.retry_after ?? 5);
-            const retryAfter = (Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : 5) * 1000;
-            setTimeout(poll, retryAfter);
-          } else {
-            throw new Error('Job timed out after 5 minutes');
-          }
-        } catch (e) {
-          this.makeToast(e, 'Error', 'danger');
-          this.loading = false;
-        }
-      };
-
-      await poll();
+    async loadClusterData() {
+      await this.loadClusterDataSync();
     },
 
     /**
@@ -878,7 +754,10 @@ export default {
       this.loadingProgress = 50;
 
       try {
-        const data = await getFunctionalClustering({ algorithm: this.algorithm });
+        const data = await getFunctionalClustering({
+          algorithm: this.algorithm,
+          page_size: '50',
+        });
         this.itemsCluster = data.clusters;
         this.valueCategories = data.categories;
 
@@ -906,7 +785,8 @@ export default {
       // Set loading first - Vue will hide D3 container and show loading spinner
       this.loading = true;
       this.loadingProgress = 0;
-      this.loadingStage = 'submitting';
+      this.loadingStage = 'loading_data';
+      this.clusterTableLoadStarted = true;
 
       // Wait for Vue to swap from D3 container to loading spinner
       await this.$nextTick();
