@@ -1,3 +1,7 @@
+if (!exists("network_layout_cache_key", mode = "function")) {
+  source_api_file("functions/analysis-network-layout-functions.R", local = FALSE, envir = globalenv())
+}
+
 test_that("network layout key changes with max_edges and edge set", {
   network <- list(
     nodes = tibble::tibble(
