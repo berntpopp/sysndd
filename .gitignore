@@ -49,3 +49,6 @@ __pycache__/
 
 # Generated NDDScore test fixture archives
 api/tests/testthat/fixtures/nddscore/*.tar.gz
+
+# Understand-Anything knowledge graph artifacts
+.understand-anything/
