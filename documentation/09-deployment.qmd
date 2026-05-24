@@ -48,6 +48,12 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 
 External genomic proxy caches live under `/app/cache/external/{static,stable,dynamic}` by default and can be relocated with `EXTERNAL_PROXY_CACHE_DIR`. The proxy layer caches successful and true not-found responses, but transient upstream errors (`error = TRUE`, mapped to 503) are evicted immediately so a timeout does not poison the cache for the full 7/14/30-day source TTL.
 
+### GeneNetworks layout artifacts
+
+GeneNetworks display layouts are precomputed derived-analysis artifacts, not request-path work. The API and worker images contain Node 24 plus the minimal `api/layout/` dependencies needed to run the headless Cytoscape/fCoSE helper. The worker should run the durable `network_layout_prewarm` job after data/cache refreshes that can change the displayed gene network.
+
+The public `/api/analysis/network_edges` request path only reads matching artifacts from `/app/cache/network_layouts`; it must not run fCoSE synchronously. If an artifact is absent, invalid, or stale, the API marks the display layout as unavailable and the browser falls back to its existing fCoSE layout. Cache invalidation is controlled by the content-aware layout key, which includes the displayed node/edge set, query parameters, layout options, Cytoscape/fCoSE versions, and the current `CACHE_VERSION`.
+
 ### MCP sidecar settings
 
 The optional `mcp` service runs `api/start_sysndd_mcp.R` as a separate read-only process. It is not part of Plumber and does not run migrations or workers.
