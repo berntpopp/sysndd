@@ -1,4 +1,3 @@
-<!-- src/components/analyses/AnalysesPhenotypeClusters.vue -->
 <template>
   <AnalysisPanel
     title="Entities clustered using phenotype annotation"
@@ -22,9 +21,7 @@
       </div>
     </template>
 
-    <!-- Put both graph and table in ONE row -->
     <BRow>
-      <!-- LEFT COLUMN (Graph) -->
       <BCol md="4">
         <BCard
           header-tag="header"
@@ -46,7 +43,6 @@
           </template>
 
           <div id="cluster_dataviz" class="svg-container">
-            <!-- Error state with retry -->
             <div v-if="error" class="error-state text-center p-4">
               <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
               <p class="text-muted mb-3">
@@ -58,7 +54,6 @@
               </BButton>
             </div>
 
-            <!-- Loading spinner -->
             <BSpinner v-else-if="loading" label="Loading..." class="spinner" />
 
             <div
@@ -81,9 +76,7 @@
         </BCard>
       </BCol>
 
-      <!-- RIGHT COLUMN (Table) -->
       <BCol md="8">
-        <!-- LLM Summary Card (above table) -->
         <LlmSummaryCard
           v-if="currentSummary && !summaryLoading"
           class="my-3 mx-2"
@@ -109,8 +102,6 @@
           <BSpinner small class="me-2" />
           <span class="text-muted">Loading AI summary...</span>
         </div>
-        <!-- No placeholder when summary doesn't exist -->
-
         <BCard
           header-tag="header"
           class="my-3 mx-2 text-start"
@@ -118,7 +109,6 @@
           header-class="p-1"
           border-variant="light"
         >
-          <!-- TABLE HEADER CONTROLS (table type selector, search bar, pagination) -->
           <template #header>
             <div class="mb-0 font-weight-bold">
               <BRow>
@@ -130,20 +120,18 @@
 
                 <BCol sm="6" class="mb-1 text-end">
                   <div class="d-flex align-items-center justify-content-end gap-2">
-                    <!-- A search input controlling the 'any' filter -->
                     <TableSearchInput
                       v-model="filter.any.content"
                       :placeholder="'Search variables here...'"
                       :debounce-time="500"
                       @input="onFilterChange"
                     />
-                    <!-- Excel download button -->
                     <BButton
                       v-b-tooltip.hover.bottom
                       size="sm"
                       variant="outline-secondary"
                       title="Download table data as Excel file"
-                      :disabled="isExporting"
+                      :disabled="loading || isExporting"
                       @click="downloadExcel"
                     >
                       <i class="bi bi-table me-1" />
@@ -157,16 +145,22 @@
             </div>
           </template>
 
-          <!-- MAIN TABLE -->
-          <BCardText class="text-start">
+          <BCardText class="text-start" :aria-busy="loading ? 'true' : 'false'">
+            <TableLoadingState
+              v-if="loading"
+              class="phenotype-table-loading"
+              label="Loading phenotype cluster rows"
+              :rows="6"
+            />
+
             <GenericTable
+              v-else
               :items="displayedItems"
               :fields="fields"
               :sort-by="sortBy"
               :sort-desc="sortDesc"
               @update-sort="handleSortUpdate"
             >
-              <!-- Column-level filter slot (optional) -->
               <template #filter-controls>
                 <td v-for="field in fields" :key="field.key">
                   <BFormInput
@@ -179,7 +173,6 @@
                 </td>
               </template>
 
-              <!-- Optionally define custom column slots -->
               <template #cell-variable="{ row }">
                 <BBadge variant="primary">
                   {{ row.variable }}
@@ -199,8 +192,7 @@
               </template>
             </GenericTable>
 
-            <!-- Bottom pagination controls (optional) -->
-            <BRow class="justify-content-end">
+            <BRow v-if="!loading" class="justify-content-end">
               <BCol cols="12" md="auto" class="my-1">
                 <TablePaginationControls
                   :total-rows="totalRows"
@@ -222,18 +214,13 @@
 import { ref, onBeforeUnmount } from 'vue';
 import useToast from '@/composables/useToast';
 import { usePhenotypeCytoscape, useExcelExport } from '@/composables';
-
-// Import your small table components:
 import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
-
-// Import LLM Summary Card for AI-generated cluster summaries
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
-
-// Typed API client (W5)
 import { getPhenotypeClustering, getPhenotypeClusterSummary } from '@/api/analysis';
 import { isApiError } from '@/api/client';
 
@@ -243,15 +230,12 @@ export default {
     AnalysisPanel,
     GenericTable,
     InlineHelpBadge,
+    TableLoadingState,
     TableSearchInput,
     TablePaginationControls,
     LlmSummaryCard,
   },
   props: {
-    /**
-     * Optional filter state from parent AnalysisView
-     * Enables shared filter state across analysis views in 27-04
-     */
     filterState: {
       type: Object,
       default: null,
@@ -262,7 +246,6 @@ export default {
     const cytoscapeContainer = ref(null);
     const activeClusterRef = ref('1');
 
-    // Initialize composable in setup() to properly register lifecycle hooks
     const cytoscape = usePhenotypeCytoscape({
       container: cytoscapeContainer,
       onClusterClick: (clusterId) => {
@@ -270,10 +253,8 @@ export default {
       },
     });
 
-    // Excel export functionality
     const { isExporting, exportToExcel } = useExcelExport();
 
-    // Cleanup on unmount
     onBeforeUnmount(() => {
       cytoscape.destroy();
     });
@@ -289,23 +270,15 @@ export default {
   },
   data() {
     return {
-      /* --------------------------------------
-       * Clustering + Graph data
-       * ------------------------------------ */
       itemsCluster: [],
       selectedCluster: {
         quali_inp_var: [],
         quali_sup_var: [],
         quanti_sup_var: [],
       },
-      // activeCluster moved to setup() as activeClusterRef
-      loading: false,
-      error: null, // Error state for retry functionality
-      // cyInstance moved to setup() as 'cytoscape'
+      loading: true,
+      error: null,
 
-      /* --------------------------------------
-       * Table logic / fields
-       * ------------------------------------ */
       fields: [
         {
           key: 'variable',
@@ -342,9 +315,6 @@ export default {
       ],
       tableType: 'quali_inp_var',
 
-      /* --------------------------------------
-       * Pagination / Sorting / Filtering
-       * ------------------------------------ */
       perPage: 10,
       totalRows: 1,
       currentPage: 1,
@@ -357,9 +327,9 @@ export default {
         'v.test': { content: null, join_char: null, operator: 'contains' },
       },
 
-      // LLM Summary data
       currentSummary: null,
       summaryLoading: false,
+      summaryRequestId: 0,
     };
   },
   computed: {
@@ -444,7 +414,7 @@ export default {
       if (clusterData?.hash_filter) {
         this.fetchClusterSummary(clusterData.hash_filter, newCluster);
       } else {
-        this.currentSummary = null;
+        this.clearClusterSummary();
       }
     },
     // Watch the tableType so we can update totalRows based on new array
@@ -508,18 +478,21 @@ export default {
      */
     async fetchClusterSummary(clusterHash, clusterNumber) {
       if (!clusterHash) {
-        this.currentSummary = null;
+        this.clearClusterSummary();
         return;
       }
 
+      const requestId = ++this.summaryRequestId;
       this.summaryLoading = true;
       try {
         const data = await getPhenotypeClusterSummary({
           cluster_hash: clusterHash,
           cluster_number: String(clusterNumber),
         });
+        if (requestId !== this.summaryRequestId) return;
         this.currentSummary = data;
       } catch (error) {
+        if (requestId !== this.summaryRequestId) return;
         // 404 is expected when summary doesn't exist yet - treat as no summary
         if (isApiError(error) && error.response && error.response.status === 404) {
           this.currentSummary = null;
@@ -533,8 +506,16 @@ export default {
         );
         this.currentSummary = null;
       } finally {
-        this.summaryLoading = false;
+        if (requestId === this.summaryRequestId) {
+          this.summaryLoading = false;
+        }
       }
+    },
+
+    clearClusterSummary() {
+      this.summaryRequestId += 1;
+      this.currentSummary = null;
+      this.summaryLoading = false;
     },
 
     /* --------------------------------------
