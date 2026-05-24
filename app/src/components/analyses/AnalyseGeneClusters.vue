@@ -148,19 +148,22 @@
             </template>
 
             <BCardText class="text-start" :aria-busy="loading ? 'true' : 'false'">
+              <TableLoadingState
+                v-if="loading"
+                class="cluster-table-loading"
+                label="Loading functional cluster rows"
+                :rows="6"
+              />
+
               <!-- GenericTable for main table content -->
               <GenericTable
+                v-else
                 :items="displayedItems"
                 :fields="fieldsComputed"
-                :is-busy="loading"
                 :sort-by="sortBy"
                 :sort-desc="sortDesc"
                 @update-sort="handleSortUpdate"
               >
-                <template #table-busy>
-                  <TableLoadingState label="Loading functional cluster rows" :rows="6" />
-                </template>
-
                 <!-- Optional column-level filters -->
                 <template #filter-controls>
                   <td v-for="field in fieldsComputed" :key="field.key">
@@ -1222,6 +1225,10 @@ mark {
 
 :deep(.cluster-table-type-control .form-select) {
   min-width: 9.75rem;
+}
+
+.cluster-table-loading {
+  margin: 0.625rem;
 }
 
 @media (max-width: 767.98px) {

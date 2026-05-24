@@ -60,11 +60,7 @@ const globalStubs = {
   BCardText: { template: '<div><slot /></div>' },
   BBadge: { template: '<span><slot /></span>' },
   BLink: { template: '<a><slot /></a>' },
-  GenericTable: {
-    props: ['isBusy'],
-    template:
-      '<table :data-busy="String(isBusy)"><slot name="filter-controls" /><slot v-if="isBusy" name="table-busy" /></table>',
-  },
+  GenericTable: { template: '<table><slot name="filter-controls" /></table>' },
   TableLoadingState: {
     props: ['label'],
     template: '<div data-testid="cluster-table-loading">{{ label }}</div>',
@@ -113,7 +109,6 @@ describe('AnalyseGeneClusters', () => {
       page_size: '50',
     });
     expect(submitClusteringMock).not.toHaveBeenCalled();
-    expect(wrapper.get('table').attributes('data-busy')).toBe('true');
     expect(wrapper.get('[data-testid="cluster-table-loading"]').text()).toContain(
       'Loading functional cluster rows'
     );

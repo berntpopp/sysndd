@@ -25,12 +25,6 @@
       </slot>
     </template>
 
-    <template #table-busy>
-      <slot name="table-busy">
-        <div class="generic-table-busy" role="status" aria-live="polite">Loading table data...</div>
-      </slot>
-    </template>
-
     <!-- Slot for custom filter fields -->
     <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
     <template #thead-top>
@@ -800,13 +794,6 @@ export default {
 :deep(.entities-table td[colspan]) {
   overflow: visible;
   white-space: normal;
-}
-
-.generic-table-busy {
-  padding: 0.875rem;
-  color: #64748b;
-  font-size: 0.875rem;
-  text-align: center;
 }
 
 @media (max-width: 575.98px) {
