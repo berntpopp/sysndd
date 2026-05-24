@@ -1,0 +1,12 @@
+{
+  "name": "sysndd-network-layout",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test gene-network-fcose-layout.test.mjs"
+  },
+  "dependencies": {
+    "cytoscape": "3.33.3",
+    "cytoscape-fcose": "2.2.0"
+  }
+}
