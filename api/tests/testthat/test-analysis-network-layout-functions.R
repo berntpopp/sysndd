@@ -120,3 +120,30 @@ test_that("incomplete display positions are rejected", {
     "missing positions"
   )
 })
+
+test_that("apply cached display layout reports missing without computing", {
+  network <- list(
+    nodes = tibble::tibble(hgnc_id = c("HGNC:1"), x = 1, y = 2),
+    edges = tibble::tibble(),
+    metadata = list(layout_algorithm = "drl")
+  )
+
+  updated <- apply_cached_network_display_layout(
+    network,
+    cluster_type = "clusters",
+    min_confidence = 400L,
+    max_edges = 10000L,
+    cache_dir = tempfile("missing-layout-cache")
+  )
+
+  expect_equal(updated$metadata$display_layout_status, "missing")
+  expect_equal(updated$metadata$display_layout_key, network_layout_cache_key(
+    network,
+    cluster_type = "clusters",
+    min_confidence = 400L,
+    max_edges = 10000L
+  ))
+  expect_equal(updated$metadata$layout_engine, "drl")
+  expect_equal(updated$nodes$x, 1)
+  expect_equal(updated$nodes$y, 2)
+})

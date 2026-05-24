@@ -545,3 +545,45 @@ generate_network_display_layout_artifact <- function(network_data,
   write_network_layout_artifact(layout_key, artifact, cache_dir = cache_dir)
   artifact
 }
+
+apply_cached_network_display_layout <- function(network_data,
+                                                cluster_type,
+                                                min_confidence,
+                                                max_edges,
+                                                cache_dir = network_layout_cache_dir()) {
+  layout_key <- network_layout_cache_key(
+    network_data,
+    cluster_type = cluster_type,
+    min_confidence = min_confidence,
+    max_edges = max_edges
+  )
+  artifact <- read_network_layout_artifact(layout_key, cache_dir = cache_dir)
+
+  if (is.null(artifact)) {
+    network_data$metadata <- .network_layout_or(network_data$metadata, list())
+    network_data$metadata$layout_engine <- .network_layout_or(
+      network_data$metadata$layout_algorithm,
+      "unknown"
+    )
+    network_data$metadata$display_layout_status <- "missing"
+    network_data$metadata$display_layout_key <- layout_key
+    network_data$metadata$display_layout_version <- NETWORK_LAYOUT_VERSION
+    return(network_data)
+  }
+
+  tryCatch(
+    attach_network_display_layout(network_data, artifact, layout_key = layout_key),
+    error = function(e) {
+      network_data$metadata <- .network_layout_or(network_data$metadata, list())
+      network_data$metadata$layout_engine <- .network_layout_or(
+        network_data$metadata$layout_algorithm,
+        "unknown"
+      )
+      network_data$metadata$display_layout_status <- "invalid"
+      network_data$metadata$display_layout_key <- layout_key
+      network_data$metadata$display_layout_version <- NETWORK_LAYOUT_VERSION
+      network_data$metadata$display_layout_error <- conditionMessage(e)
+      network_data
+    }
+  )
+}

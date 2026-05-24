@@ -15,7 +15,9 @@ limit_network_edges_response <- function(network_data, max_edges = 10000L) {
   total_edges <- nrow(network_data$edges)
 
   if (max_edges > 0L && nrow(network_data$edges) > max_edges) {
-    network_data$edges <- network_data$edges[order(-network_data$edges$confidence), ]
+    network_data$edges <- network_data$edges[
+      order(-network_data$edges$confidence, network_data$edges$source, network_data$edges$target),
+    ]
     network_data$edges <- utils::head(network_data$edges, max_edges)
 
     connected_nodes <- unique(c(network_data$edges$source, network_data$edges$target))
@@ -56,6 +58,15 @@ generate_network_edges_response <- function(cluster_type = "clusters",
   )
 
   network_data <- limit_network_edges_response(network_data, max_edges = max_edges)
+  if (exists("apply_cached_network_display_layout", mode = "function")) {
+    network_data <- apply_cached_network_display_layout(
+      network_data,
+      cluster_type = cluster_type,
+      min_confidence = min_confidence,
+      max_edges = max_edges
+    )
+  }
+
   elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
   network_data$metadata$elapsed_seconds <- round(elapsed_seconds, 2)
 
