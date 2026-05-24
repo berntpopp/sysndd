@@ -13,6 +13,17 @@ if (!exists("create_async_job_progress_reporter", mode = "function")) {
 }
 
 if (!exists("async_job_get_handler", mode = "function")) {
+  network_layout_handler_candidates <- c(
+    "functions/async-job-network-layout-handlers.R",
+    "/app/functions/async-job-network-layout-handlers.R"
+  )
+  for (path in network_layout_handler_candidates) {
+    if (file.exists(path)) {
+      source(path, local = FALSE)
+      break
+    }
+  }
+
   handler_candidates <- c(
     "functions/async-job-handlers.R",
     "/app/functions/async-job-handlers.R"

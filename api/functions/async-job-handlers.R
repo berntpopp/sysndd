@@ -885,7 +885,7 @@ async_job_handler_registry <- list(
   ),
   network_layout_prewarm = list(
     cancel_mode = "best_effort",
-    run = .async_job_run_network_layout_prewarm,
+    run = function(...) .async_job_run_network_layout_prewarm(...),
     after_success = .async_job_after_success_noop
   ),
   backup_create = list(
