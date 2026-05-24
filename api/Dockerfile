@@ -102,6 +102,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && R CMD javareconf
 
+# Install Node for headless Cytoscape/fCoSE layout artifact generation.
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && node --version \
+    && npm --version \
+    && rm -rf /var/lib/apt/lists/*
+
 # Configure ccache for R package compilation (if any source builds needed)
 RUN mkdir -p ~/.R ~/.ccache && \
     echo 'CCACHE=ccache' > ~/.R/Makevars && \
@@ -188,6 +196,11 @@ COPY --chown=apiuser:api config/ config/
 COPY --chown=apiuser:api config.yml config.yml
 COPY --chown=apiuser:api version_spec.json version_spec.json
 COPY --chown=apiuser:api start_sysndd_api.R start_sysndd_api.R
+
+# Install the minimal headless Cytoscape layout helper runtime.
+COPY --chown=apiuser:api layout/package.json layout/package-lock.json /app/layout/
+RUN cd /app/layout && npm ci --omit=dev
+COPY --chown=apiuser:api layout/gene-network-fcose-layout.mjs /app/layout/gene-network-fcose-layout.mjs
 
 # Create logs, results, and cache directories with correct permissions
 RUN mkdir -p /app/logs /app/results /app/cache && \
