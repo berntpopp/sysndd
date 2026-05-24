@@ -60,7 +60,11 @@
       </div>
     </div>
 
-    <BFormGroup label="Entities" label-for="entity-select-table" class="mb-3 re-review-entity-picker">
+    <BFormGroup
+      label="Entities"
+      label-for="entity-select-table"
+      class="mb-3 re-review-entity-picker"
+    >
       <div class="re-review-picker-toolbar">
         <TableSearchInput
           :model-value="manualEntityFilter ?? ''"

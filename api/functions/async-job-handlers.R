@@ -1,7 +1,6 @@
 .async_job_after_success_noop <- function(result, job, payload, state, worker_config) {
   invisible(result)
 }
-
 .async_job_or <- function(value, fallback) {
   if (is.null(value) || length(value) == 0) {
     return(fallback)
@@ -9,7 +8,6 @@
 
   value
 }
-
 .async_job_progress_reporter <- function(job_id, throttle_seconds = 2) {
   if (!exists("create_async_job_progress_reporter", mode = "function")) {
     stop("create_async_job_progress_reporter() is required for durable async job handlers", call. = FALSE)
@@ -17,7 +15,6 @@
 
   create_async_job_progress_reporter(job_id, throttle_seconds = throttle_seconds)
 }
-
 .async_job_payload_field <- function(payload, field, required = TRUE, default = NULL) {
   value <- payload[[field]]
 
@@ -31,7 +28,6 @@
 
   value
 }
-
 .async_job_payload_scalar <- function(payload, field, required = TRUE, default = NULL) {
   value <- .async_job_payload_field(payload, field, required = required, default = default)
 
@@ -887,6 +883,11 @@ async_job_handler_registry <- list(
     run = .async_job_run_passthrough("llm_batch_executor"),
     after_success = .async_job_after_success_noop
   ),
+  network_layout_prewarm = list(
+    cancel_mode = "best_effort",
+    run = function(...) .async_job_run_network_layout_prewarm(...),
+    after_success = .async_job_after_success_noop
+  ),
   backup_create = list(
     cancel_mode = "non_interruptible",
     run = .async_job_run_backup_create,
@@ -915,7 +916,6 @@ async_job_handler_registry <- list(
 )
 
 #' Resolve a durable async job handler definition
-#'
 #' @param job_type Character async job type.
 #' @param registry Named handler registry.
 #'

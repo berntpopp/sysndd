@@ -10,13 +10,13 @@
       Set the <code>GEMINI_API_KEY</code> environment variable to enable LLM features.
     </BAlert>
 
-    <BForm v-else @submit.prevent>
+    <BForm @submit.prevent>
       <BFormGroup label="Current Model" label-for="model-select">
         <BFormSelect
           id="model-select"
           v-model="selectedModel"
           :options="modelOptions"
-          :disabled="loading"
+          :disabled="modelSelectDisabled"
           @change="handleModelChange"
         />
         <BFormText v-if="selectedModelInfo">
@@ -137,7 +137,10 @@ const selectedModelInfo = computed(() =>
   props.config?.available_models?.find((m) => m.model_id === selectedModel.value)
 );
 
+const modelSelectDisabled = computed(() => props.loading || !props.config?.gemini_configured);
+
 function handleModelChange() {
+  if (modelSelectDisabled.value) return;
   emit('update-model', selectedModel.value);
 }
 </script>

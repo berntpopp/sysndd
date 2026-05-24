@@ -115,6 +115,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     plumber::pr_mount("/api/panels", plumber::pr("endpoints/panels_endpoints.R")) %>%
     plumber::pr_mount("/api/comparisons", plumber::pr("endpoints/comparisons_endpoints.R")) %>%
     plumber::pr_mount("/api/analysis", plumber::pr("endpoints/analysis_endpoints.R")) %>%
+    plumber::pr_mount("/api/jobs/network_layout", plumber::pr("endpoints/jobs_network_layout_endpoints.R")) %>%
     plumber::pr_mount("/api/jobs", plumber::pr("endpoints/jobs_endpoints.R")) %>%
     plumber::pr_mount("/api/hash", plumber::pr("endpoints/hash_endpoints.R")) %>%
     plumber::pr_mount("/api/search", plumber::pr("endpoints/search_endpoints.R")) %>%

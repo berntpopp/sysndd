@@ -183,6 +183,14 @@ export interface NetworkNode {
   x?: number;
   /** Pre-computed Y position from server-side layout (0-1000 normalized) */
   y?: number;
+  /** Raw igraph-era X position retained for diagnostics/backward compatibility */
+  layout_x?: number;
+  /** Raw igraph-era Y position retained for diagnostics/backward compatibility */
+  layout_y?: number;
+  /** Raw igraph X position retained for diagnostics/backward compatibility */
+  igraph_x?: number;
+  /** Raw igraph Y position retained for diagnostics/backward compatibility */
+  igraph_y?: number;
   /** Entity category (highest confidence category for this gene) */
   category?: 'Definitive' | 'Moderate' | 'Limited' | 'Refuted';
 }
@@ -221,6 +229,20 @@ export interface NetworkMetadata {
   edges_filtered?: boolean;
   /** Layout algorithm used server-side */
   layout_algorithm?: string;
+  /** Layout engine used for display coordinates */
+  layout_engine?: string;
+  /** Status of the display-layout artifact attached by the API */
+  display_layout_status?: 'available' | 'missing' | 'invalid' | 'error';
+  /** Content-addressed display-layout artifact key */
+  display_layout_key?: string;
+  /** Display-layout artifact schema/version */
+  display_layout_version?: number;
+  /** Worker layout generation duration in milliseconds */
+  display_layout_duration_ms?: number;
+  /** Number of positioned nodes in the display-layout artifact */
+  display_layout_node_count?: number;
+  /** Number of edges used to build the display-layout artifact */
+  display_layout_edge_count?: number;
   /** Time taken for layout computation in seconds */
   layout_time_seconds?: number;
   /** Total NDD genes in database */

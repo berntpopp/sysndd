@@ -117,7 +117,7 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res)
     cache_id = result$cache_id,
     cluster_type = cluster_type,
     cluster_number = as.integer(cluster_number),
-    model_name = result$summary$model_name %||% "gemini-3-pro-preview",
+    model_name = result$summary$model_name %||% get_default_gemini_model(),
     created_at = as.character(Sys.time()),
     validation_status = result$validation_status %||% "pending",
     summary_json = result$summary,

@@ -49,7 +49,10 @@ export function filterReReviewBatches<T extends ReReviewBatchRow>(
   });
 }
 
-export function sortReReviewBatches<T extends ReReviewBatchRow>(rows: T[], sortBy: ReReviewSort[]): T[] {
+export function sortReReviewBatches<T extends ReReviewBatchRow>(
+  rows: T[],
+  sortBy: ReReviewSort[]
+): T[] {
   const [sort] = Array.isArray(sortBy) ? sortBy : [];
   if (!sort?.key) return rows;
 

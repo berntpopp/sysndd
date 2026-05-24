@@ -56,7 +56,7 @@ rm(list = intersect(c(".funcs_dir", ".p", ".f"), ls()), envir = environment())
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
+#' @param model Character, Gemini model name (defaults to get_default_gemini_model())
 #' @param require_validated Logical, if TRUE only returns validated summaries (default: FALSE)
 #'
 #' @return List with:
@@ -86,9 +86,13 @@ rm(list = intersect(c(".funcs_dir", ".p", ".f"), ls()), envir = environment())
 get_or_generate_summary <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-3-pro-preview",
+  model = NULL,
   require_validated = FALSE
 ) {
+  if (is.null(model)) {
+    model <- get_default_gemini_model()
+  }
+
   # Validate cluster_type
   if (!cluster_type %in% c("functional", "phenotype")) {
     rlang::abort(
@@ -282,7 +286,7 @@ fetch_functional_cluster_data <- function(cluster_hash) {
   conn <- get_db_connection()
   genes_from_entity_table <- tryCatch(
     {
-      pool::dbGetQuery(
+      DBI::dbGetQuery(
         conn,
         "SELECT DISTINCT hgnc_id FROM ndd_entity_view WHERE ndd_phenotype = 1"
       )
@@ -368,138 +372,26 @@ fetch_functional_cluster_data <- function(cluster_hash) {
 #'
 #' @noRd
 fetch_phenotype_cluster_data <- function(cluster_hash) {
-  # Build the filter format to match against cluster data
   hash_filter <- paste0("equals(hash,", cluster_hash, ")")
 
-  # ID phenotype IDs for filtering (same as phenotype_clustering endpoint)
-  id_phenotype_ids <- c(
-    "HP:0001249", "HP:0001256", "HP:0002187",
-    "HP:0002342", "HP:0006889", "HP:0010864"
-  )
-  categories <- c("Definitive")
-
-  # Get data from database (replicating phenotype_clustering endpoint logic)
-  conn <- get_db_connection()
-
-  ndd_entity_view_tbl <- tryCatch(
-    pool::dbGetQuery(conn, "SELECT * FROM ndd_entity_view"),
-    error = function(e) {
-      log_error("Failed to fetch ndd_entity_view: {e$message}")
-      return(NULL)
-    }
-  )
-  if (is.null(ndd_entity_view_tbl)) return(NULL)
-
-  ndd_entity_review_tbl <- tryCatch(
-    pool::dbGetQuery(conn, "SELECT review_id FROM ndd_entity_review WHERE is_primary = 1"),
-    error = function(e) {
-      log_error("Failed to fetch ndd_entity_review: {e$message}")
-      return(NULL)
-    }
-  )
-  if (is.null(ndd_entity_review_tbl)) return(NULL)
-
-  ndd_review_phenotype_connect_tbl <- tryCatch(
-    pool::dbGetQuery(conn, "SELECT * FROM ndd_review_phenotype_connect"),
-    error = function(e) {
-      log_error("Failed to fetch ndd_review_phenotype_connect: {e$message}")
-      return(NULL)
-    }
-  )
-  if (is.null(ndd_review_phenotype_connect_tbl)) return(NULL)
-
-  modifier_list_tbl <- tryCatch(
-    pool::dbGetQuery(conn, "SELECT * FROM modifier_list"),
-    error = function(e) {
-      log_error("Failed to fetch modifier_list: {e$message}")
-      return(NULL)
-    }
-  )
-  if (is.null(modifier_list_tbl)) return(NULL)
-
-  phenotype_list_tbl <- tryCatch(
-    pool::dbGetQuery(conn, "SELECT * FROM phenotype_list"),
-    error = function(e) {
-      log_error("Failed to fetch phenotype_list: {e$message}")
-      return(NULL)
-    }
-  )
-  if (is.null(phenotype_list_tbl)) return(NULL)
-
-  # Convert to tibbles for dplyr operations
-  ndd_entity_view_tbl <- tibble::as_tibble(ndd_entity_view_tbl)
-  ndd_entity_review_tbl <- tibble::as_tibble(ndd_entity_review_tbl)
-  ndd_review_phenotype_connect_tbl <- tibble::as_tibble(ndd_review_phenotype_connect_tbl)
-  modifier_list_tbl <- tibble::as_tibble(modifier_list_tbl)
-  phenotype_list_tbl <- tibble::as_tibble(phenotype_list_tbl)
-
-  # Join and filter (replicating phenotype_clustering endpoint logic)
-  sysndd_db_phenotypes <- ndd_entity_view_tbl %>%
-    dplyr::left_join(ndd_review_phenotype_connect_tbl, by = c("entity_id")) %>%
-    dplyr::left_join(modifier_list_tbl, by = c("modifier_id")) %>%
-    dplyr::left_join(phenotype_list_tbl, by = c("phenotype_id")) %>%
-    dplyr::mutate(
-      ndd_phenotype = dplyr::case_when(
-        ndd_phenotype == 1 ~ "Yes",
-        ndd_phenotype == 0 ~ "No",
-        TRUE ~ NA_character_
-      )
-    ) %>%
-    dplyr::filter(ndd_phenotype == "Yes") %>%
-    dplyr::filter(category %in% categories) %>%
-    dplyr::filter(modifier_name == "present") %>%
-    dplyr::filter(review_id %in% ndd_entity_review_tbl$review_id) %>%
-    dplyr::select(entity_id, hpo_mode_of_inheritance_term_name, phenotype_id, HPO_term, hgnc_id) %>%
-    dplyr::group_by(entity_id) %>%
-    dplyr::mutate(
-      phenotype_non_id_count = sum(!(phenotype_id %in% id_phenotype_ids)),
-      phenotype_id_count = sum(phenotype_id %in% id_phenotype_ids)
-    ) %>%
-    dplyr::ungroup() %>%
-    unique()
-
-  if (nrow(sysndd_db_phenotypes) == 0) {
-    log_warn("No phenotype data found for clustering")
+  if (!exists("generate_phenotype_clusters", mode = "function")) {
+    log_error("generate_phenotype_clusters not available - phenotype analysis functions not loaded")
     return(NULL)
   }
 
-  # Convert to wide format
-  sysndd_db_phenotypes_wider <- sysndd_db_phenotypes %>%
-    dplyr::mutate(present = "yes") %>%
-    dplyr::select(-phenotype_id) %>%
-    tidyr::pivot_wider(names_from = HPO_term, values_from = present) %>%
-    dplyr::group_by(hgnc_id) %>%
-    dplyr::mutate(gene_entity_count = dplyr::n()) %>%
-    dplyr::ungroup() %>%
-    dplyr::relocate(gene_entity_count, .after = phenotype_id_count) %>%
-    dplyr::select(-hgnc_id)
-
-  # Convert to data frame for MCA
-  sysndd_db_phenotypes_wider_df <- sysndd_db_phenotypes_wider %>%
-    dplyr::select(-entity_id) %>%
-    as.data.frame()
-  row.names(sysndd_db_phenotypes_wider_df) <- sysndd_db_phenotypes_wider$entity_id
-
-  # Check if gen_mca_clust_obj_mem is available
-  if (!exists("gen_mca_clust_obj_mem", mode = "function")) {
-    log_error("gen_mca_clust_obj_mem not available - clustering functions not loaded")
-    return(NULL)
-  }
-
-  # Perform cluster analysis using memoized function
   phenotype_clusters <- tryCatch(
-    gen_mca_clust_obj_mem(sysndd_db_phenotypes_wider_df),
+    generate_phenotype_clusters(),
     error = function(e) {
       log_error("Failed to generate phenotype clusters: {e$message}")
       return(NULL)
     }
   )
 
-  if (is.null(phenotype_clusters)) {
+  if (is.null(phenotype_clusters) || nrow(phenotype_clusters) == 0) {
+    log_warn("No phenotype clusters available for summary generation")
     return(NULL)
   }
 
-  # Find cluster matching the requested hash
   matching_cluster <- phenotype_clusters %>%
     dplyr::filter(hash_filter == !!hash_filter)
 
@@ -510,22 +402,15 @@ fetch_phenotype_cluster_data <- function(cluster_hash) {
 
   cluster_number <- matching_cluster$cluster[1]
 
-  # Extract identifiers and add symbols from entity view
   identifiers <- matching_cluster$identifiers[[1]]
   if (nrow(identifiers) == 0) {
     log_warn("No identifiers found for phenotype cluster {cluster_number}")
     return(NULL)
   }
 
-  # Add symbol from entity view
-  ndd_entity_view_sub <- ndd_entity_view_tbl %>%
-    dplyr::select(entity_id, symbol) %>%
-    dplyr::distinct()
   identifiers <- identifiers %>%
-    dplyr::mutate(entity_id = as.integer(entity_id)) %>%
-    dplyr::left_join(ndd_entity_view_sub, by = "entity_id")
+    dplyr::mutate(entity_id = as.integer(entity_id))
 
-  # Extract qualitative input variables
   quali_inp_var <- matching_cluster$quali_inp_var[[1]]
   if (is.null(quali_inp_var) || nrow(quali_inp_var) == 0) {
     quali_inp_var <- tibble::tibble(variable = character(), p.value = numeric(), v.test = numeric())

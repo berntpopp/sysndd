@@ -49,7 +49,7 @@ collect_counts() {
       rel=${file#"$REPO_ROOT"/}
 
       case "$rel" in
-        api/renv/*|api/tests/*|app/node_modules/*|app/dist/*|app/coverage/*)
+        api/renv/*|api/tests/*|api/layout/node_modules/*|app/node_modules/*|app/dist/*|app/coverage/*)
           continue
           ;;
         app/tests/*|app/src/test-utils/*|db/migrations/*|db/fixtures/*|scripts/tests/*)

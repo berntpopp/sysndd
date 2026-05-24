@@ -107,6 +107,12 @@ export interface NetworkNode {
   cluster: string | number;
   degree: number;
   category?: string;
+  x?: number;
+  y?: number;
+  layout_x?: number;
+  layout_y?: number;
+  igraph_x?: number;
+  igraph_y?: number;
   [key: string]: unknown;
 }
 
@@ -123,8 +129,21 @@ export interface NetworkMetadata {
   total_edges: number;
   edges_filtered: boolean;
   string_version?: string;
+  min_confidence?: number;
   elapsed_seconds: number;
   category_counts?: Record<string, number>;
+  layout_algorithm?: string;
+  layout_engine?: string;
+  display_layout_status?: 'available' | 'missing' | 'invalid' | 'error';
+  display_layout_key?: string;
+  display_layout_version?: number;
+  display_layout_duration_ms?: number;
+  display_layout_node_count?: number;
+  display_layout_edge_count?: number;
+  layout_time_seconds?: number;
+  total_ndd_genes?: number;
+  genes_with_string?: number;
+  genes_in_clusters?: number;
   [key: string]: unknown;
 }
 
@@ -133,6 +152,8 @@ export interface NetworkEdgesResponse {
   edges: NetworkEdge[];
   metadata: NetworkMetadata;
 }
+
+export type NetworkResponse = NetworkEdgesResponse;
 
 export interface ClusterSummaryParams {
   cluster_hash: string;

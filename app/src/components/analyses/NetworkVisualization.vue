@@ -322,6 +322,7 @@ import {
   useNetworkHighlight,
 } from '@/composables';
 import type { CategoryFilter } from '@/composables';
+import { useNetworkTooltip } from '@/composables/useNetworkTooltip';
 import { getClusterColor } from '@/utils/clusterColors';
 import {
   addNetworkCluster,
@@ -345,6 +346,7 @@ const emit = defineEmits<{
   (e: 'clusters-changed', clusters: number[], showAll: boolean): void;
   (e: 'node-hover', nodeId: string | null): void;
   (e: 'search-match-count', count: number): void;
+  (e: 'network-ready'): void;
 }>();
 
 // Router
@@ -353,22 +355,17 @@ const router = useRouter();
 // Template refs
 const cytoscapeContainer = ref<HTMLElement | null>(null);
 
-// Tooltip state
-const tooltipVisible = ref(false);
-const tooltipPosition = ref({ x: 0, y: 0 });
-const tooltipData = ref({
-  symbol: '',
-  hgncId: '',
-  cluster: '',
-  degree: 0,
-  category: '',
-  isClusterParent: false,
-});
-
 // Network data composable
-const { isLoading, error, metadata, fetchNetworkData, cytoscapeElements } = useNetworkData();
+const {
+  isLoading,
+  error,
+  metadata,
+  fetchNetworkData,
+  cytoscapeElements,
+  cytoscapeInitialElements,
+  cytoscapeNodeElements,
+} = useNetworkData();
 
-// Network filters composable
 const {
   categoryLevel,
   selectedClusters,
@@ -378,20 +375,18 @@ const {
   getVisibleEdgeCount,
 } = useNetworkFilters();
 
-// Filter sync composable for URL state management
 const { filterState } = useFilterSync();
 
-// Wildcard search composable
 const { pattern: searchPattern, regex: searchRegex, matches: searchMatches } = useWildcardSearch();
 
-// Track search match count for UI feedback
 const searchMatchCount = ref(0);
 
-// Visible counts (updated after filter application)
 const visibleNodeCount = ref(0);
 const visibleEdgeCount = ref(0);
+const fullGraphMounted = ref(false);
+const initialEdgesMounted = ref(false);
+const initialEdgeHydrationQueued = ref(false);
 
-// Cytoscape composable
 const {
   cy,
   isInitialized,
@@ -407,9 +402,7 @@ const {
 } = useCytoscape({
   container: cytoscapeContainer,
   onNodeClick: (nodeId: string) => {
-    // Navigate to entity detail page
     router.push({ name: 'Gene', params: { id: nodeId } });
-    // Emit for potential table sync
     emit('cluster-selected', nodeId);
   },
   onClusterClick: (clusterId: number) => {
@@ -418,9 +411,17 @@ const {
   onBackgroundClick: () => {
     setShowAllClusters(true);
   },
+  onLayoutReady: () => {
+    if (hydrateInitialEdgesIfNeeded()) return;
+    emit('network-ready');
+  },
 });
 
-// Network highlight composable for bidirectional hover
+const { tooltipVisible, tooltipPosition, tooltipData, setupTooltipHandlers } = useNetworkTooltip(
+  cy,
+  cytoscapeContainer
+);
+
 const {
   highlightState,
   setupNetworkListeners: setupHighlightListeners,
@@ -429,31 +430,27 @@ const {
   isRowHighlighted,
 } = useNetworkHighlight(cy);
 
-// Computed legend clusters - uses shared getClusterColor for consistency
 const legendClusters = computed(() => {
   if (!metadata.value || !metadata.value.cluster_count) return [];
 
   const count = Math.min(metadata.value.cluster_count, 10);
   return Array.from({ length: count }, (_, i) => ({
     id: i + 1,
-    color: getClusterColor(i + 1), // Use shared utility for consistent colors
+    color: getClusterColor(i + 1),
   }));
 });
 
-// Category filter options
 const categoryOptions = [
   { value: 'Definitive' as CategoryFilter, label: 'Definitive only' },
   { value: 'Moderate' as CategoryFilter, label: '+ Moderate' },
   { value: 'Limited' as CategoryFilter, label: '+ Limited' },
 ];
 
-// Category filter label for dropdown button
 const categoryFilterLabel = computed(() => {
   const opt = categoryOptions.find((o) => o.value === categoryLevel.value);
   return `Category: ${opt?.label || categoryLevel.value}`;
 });
 
-// Cluster filter label for dropdown button
 const clusterFilterLabel = computed(() => {
   if (showAllClusters.value) {
     return 'Clusters: All';
@@ -462,7 +459,6 @@ const clusterFilterLabel = computed(() => {
   return count === 0 ? 'Clusters: None' : `Clusters: ${count} selected`;
 });
 
-// Network coverage tooltip explaining why not all genes are shown
 const networkCoverageTooltip = computed(() => {
   if (!metadata.value) return '';
   const total = metadata.value.total_ndd_genes || 0;
@@ -474,7 +470,6 @@ const networkCoverageTooltip = computed(() => {
   return `${inNetwork} genes with protein-protein interactions`;
 });
 
-// Edges tooltip
 const edgesFilteredTooltip = computed(() => {
   if (!metadata.value) return '';
   if (metadata.value.edges_filtered && metadata.value.total_edges) {
@@ -483,14 +478,11 @@ const edgesFilteredTooltip = computed(() => {
   return `${metadata.value.edge_count} protein-protein interactions`;
 });
 
-// Check if category data is available (from metadata or node data)
 const hasCategoryData = computed(() => {
-  // Check if metadata has category counts
   if (metadata.value?.category_counts) {
     const counts = metadata.value.category_counts;
     return (counts.Definitive || 0) + (counts.Moderate || 0) + (counts.Limited || 0) > 0;
   }
-  // Fallback: check if any node has category data
   const cyInstance = cy();
   if (cyInstance) {
     const firstNode = cyInstance.nodes().first();
@@ -502,7 +494,6 @@ const hasCategoryData = computed(() => {
   return false;
 });
 
-// Category options with counts from metadata
 const categoryOptionsWithCounts = computed(() => {
   const counts = metadata.value?.category_counts || {};
   const defCount = counts.Definitive || 0;
@@ -528,69 +519,6 @@ const categoryOptionsWithCounts = computed(() => {
   ];
 });
 
-// Setup tooltip event handlers after cytoscape is initialized
-function setupTooltipHandlers() {
-  const cyInstance = cy();
-  if (!cyInstance) return;
-
-  cyInstance.on('mouseover', 'node', (event) => {
-    const node = event.target;
-    const data = node.data();
-    const renderedPosition = node.renderedPosition();
-    const containerRect = cytoscapeContainer.value?.getBoundingClientRect();
-
-    if (containerRect) {
-      // Check if this is a cluster parent node
-      const isClusterParent = data.isClusterParent === true;
-
-      if (isClusterParent) {
-        // Cluster parent node - show cluster info
-        // Extract cluster number from id like "cluster-1"
-        const clusterId = data.id?.replace('cluster-', '') || '?';
-        // Count children (genes in this cluster)
-        const children = cyInstance.nodes().filter((n) => n.data('parent') === data.id);
-        const visibleChildren = children.filter((n) => n.visible());
-
-        tooltipData.value = {
-          symbol: `Cluster ${clusterId}`,
-          hgncId: '',
-          cluster: clusterId,
-          degree: visibleChildren.length,
-          category: '',
-          isClusterParent: true,
-        };
-      } else {
-        // Gene node - show gene info
-        tooltipData.value = {
-          symbol: data.symbol || 'Unknown',
-          hgncId: data.id || '',
-          cluster: String(data.cluster || '?'),
-          degree: data.degree || 0,
-          category: data.category || 'Unknown',
-          isClusterParent: false,
-        };
-      }
-
-      // Position tooltip near the node
-      tooltipPosition.value = {
-        x: renderedPosition.x + 15,
-        y: renderedPosition.y - 10,
-      };
-
-      tooltipVisible.value = true;
-    }
-  });
-
-  cyInstance.on('mouseout', 'node', () => {
-    tooltipVisible.value = false;
-  });
-
-  // Hide tooltip when dragging
-  cyInstance.on('drag', 'node', () => {
-    tooltipVisible.value = false;
-  });
-}
-
 // Apply filters and update visible counts
 function handleApplyFilters() {
   const cyInstance = cy();
@@ -605,6 +533,62 @@ function handleApplyFilters() {
 
   // Re-apply search highlighting after filters
   updateSearchHighlighting();
+}
+
+function mountInitialGraphElements() {
+  if (cytoscapeInitialElements.value.length === 0) return;
+  updateElements(cytoscapeInitialElements.value);
+  initialEdgesMounted.value = true;
+  fullGraphMounted.value = false;
+  handleApplyFilters();
+}
+
+function mountNodeGraphElements() {
+  if (cytoscapeNodeElements.value.length === 0) return;
+  updateElements(cytoscapeNodeElements.value);
+  initialEdgesMounted.value = false;
+  initialEdgeHydrationQueued.value = false;
+  fullGraphMounted.value = false;
+  handleApplyFilters();
+}
+
+function hydrateInitialEdgesIfNeeded(): boolean {
+  if (
+    initialEdgesMounted.value ||
+    initialEdgeHydrationQueued.value ||
+    cytoscapeInitialElements.value.length <= cytoscapeNodeElements.value.length
+  ) {
+    return false;
+  }
+
+  initialEdgeHydrationQueued.value = true;
+  const hydrate = () => {
+    mountInitialGraphElements();
+    initialEdgeHydrationQueued.value = false;
+  };
+
+  const requestIdle =
+    typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback.bind(window)
+      : null;
+  if (requestIdle) {
+    requestIdle(hydrate, { timeout: 700 });
+  } else {
+    globalThis.setTimeout(hydrate, 100);
+  }
+  return true;
+}
+
+function mountFullGraphIfNeeded() {
+  if (fullGraphMounted.value || cytoscapeElements.value.length === 0) return;
+  updateElements(cytoscapeElements.value);
+  initialEdgesMounted.value = true;
+  initialEdgeHydrationQueued.value = false;
+  fullGraphMounted.value = true;
+  handleApplyFilters();
+  nextTick(() => {
+    setupTooltipHandlers();
+  });
 }
 
 /**
@@ -684,6 +668,9 @@ function updateSearchHighlighting() {
 // Category level change handler
 function setCategoryLevel(level: CategoryFilter) {
   categoryLevel.value = level;
+  if (level !== 'Definitive') {
+    mountFullGraphIfNeeded();
+  }
   handleApplyFilters();
 }
 
@@ -793,13 +780,13 @@ onMounted(async () => {
   // Wait for DOM update
   await nextTick();
 
-  // Initialize cytoscape
-  initializeCytoscape();
-
-  // CRITICAL: Update elements after initialization
-  // The watch may have fired before isInitialized was true
-  if (cytoscapeElements.value.length > 0) {
-    updateElements(cytoscapeElements.value);
+  if (cytoscapeNodeElements.value.length > 0) {
+    initializeCytoscape(cytoscapeNodeElements.value);
+    initialEdgesMounted.value = false;
+    fullGraphMounted.value = false;
+    handleApplyFilters();
+  } else {
+    initializeCytoscape();
   }
 
   // Setup tooltip handlers after a brief delay to ensure cy is ready
@@ -836,9 +823,12 @@ onBeforeUnmount(() => {
 });
 
 // Watch for element changes and update the graph
-watch(cytoscapeElements, (newElements) => {
+watch(cytoscapeNodeElements, (newElements) => {
   if (isInitialized.value && newElements.length > 0) {
     updateElements(newElements);
+    initialEdgesMounted.value = false;
+    initialEdgeHydrationQueued.value = false;
+    fullGraphMounted.value = false;
     // Re-setup tooltip handlers and apply filters after elements update
     nextTick(() => {
       setupTooltipHandlers();
@@ -862,10 +852,13 @@ const retryLoadNetwork = async () => {
   await fetchNetworkData(props.clusterType);
   await nextTick();
   if (!isInitialized.value) {
-    initializeCytoscape();
-  }
-  if (cytoscapeElements.value.length > 0) {
-    updateElements(cytoscapeElements.value);
+    initializeCytoscape(cytoscapeNodeElements.value);
+    initialEdgesMounted.value = false;
+    fullGraphMounted.value = false;
+    setupTooltipHandlers();
+    handleApplyFilters();
+  } else if (cytoscapeNodeElements.value.length > 0) {
+    mountNodeGraphElements();
     setupTooltipHandlers();
     handleApplyFilters();
   }

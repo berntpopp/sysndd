@@ -102,6 +102,20 @@ For MCP 1.2 analysis changes, also check that the analysis tools remain read-onl
 
 Cache-backed analysis sections such as phenotype clusters and STRING-derived gene networks require prewarmed API cache entries. The MCP sidecar mounts the shared API cache read-only and reports `temporarily_unavailable` when the exact cache key is missing; use the API/admin analysis path to warm those artifacts during development.
 
+### GeneNetworks fCoSE Layout Prewarm
+
+The GeneNetworks browser graph uses precomputed Cytoscape/fCoSE display positions when available. The worker computes the layout artifact with the Node helper in `api/layout/` and stores it under `/app/cache/network_layouts`.
+
+For local verification:
+
+```bash
+cd api/layout && npm test
+make dev
+curl -sS 'http://localhost/api/analysis/network_edges?cluster_type=clusters&max_edges=10000' | jq '.metadata.display_layout_status'
+```
+
+If the status is `missing`, `invalid`, or `error`, the frontend falls back to browser fCoSE. The frontend only uses Cytoscape `preset` when the API reports `display_layout_status = "available"` and every displayed gene node has finite artifact coordinates.
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.

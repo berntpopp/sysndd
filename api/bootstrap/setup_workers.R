@@ -112,6 +112,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/async-job-repository.R", local = FALSE)
     # Source durable async-job runtime helpers before the compatibility shim
     source("/app/functions/async-job-progress.R", local = FALSE)
+    source("/app/functions/async-job-network-layout-handlers.R", local = FALSE)
     source("/app/functions/async-job-handlers.R", local = FALSE)
     source("/app/functions/async-job-worker.R", local = FALSE)
     # Source transitional progress shim for legacy mirai async code paths

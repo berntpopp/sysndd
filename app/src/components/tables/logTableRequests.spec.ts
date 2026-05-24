@@ -70,7 +70,10 @@ describe('logTableRequests', () => {
     );
     const fetcher = vi.fn().mockReturnValue(responsePromise);
 
-    const firstPromise = cache.load({ sort: '-id', filter: '', page_after: 0, page_size: 10 }, fetcher);
+    const firstPromise = cache.load(
+      { sort: '-id', filter: '', page_after: 0, page_size: 10 },
+      fetcher
+    );
     const secondPromise = cache.load(
       { sort: '-id', filter: '', page_after: 0, page_size: 10 },
       fetcher

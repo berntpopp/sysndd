@@ -33,6 +33,8 @@ vi.mock('@/composables', () => ({
     }),
     fetchNetworkData: vi.fn().mockResolvedValue(undefined),
     cytoscapeElements: ref([]),
+    cytoscapeInitialElements: ref([]),
+    cytoscapeNodeElements: ref([]),
   }),
   useNetworkFilters: () => {
     const selectedClusters = ref(new Set<number>());

@@ -12,6 +12,7 @@ testthat/
 .Rhistory
 .RData
 .Ruserdata
+layout/node_modules/
 
 # renv cache (lockfile IS needed, but not the library)
 renv/library/
