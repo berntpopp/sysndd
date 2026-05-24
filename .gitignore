@@ -17,6 +17,9 @@ TESTING.md
 # Coverage reports
 coverage/
 
+# Local Node helper dependencies
+api/layout/node_modules/
+
 # Environment files with secrets
 .env
 .env.local
