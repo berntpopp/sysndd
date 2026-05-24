@@ -100,7 +100,7 @@
                 <BRow>
                   <BCol sm="4" class="mb-1">
                     <!-- Table type selector (term_enrichment vs. identifiers) -->
-                    <BInputGroup prepend="Table type" size="sm">
+                    <BInputGroup prepend="Table type" size="sm" class="cluster-table-type-control">
                       <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
                     </BInputGroup>
                   </BCol>
@@ -133,7 +133,7 @@
                         size="sm"
                         variant="outline-secondary"
                         title="Download table data as Excel file"
-                        :disabled="isExporting"
+                        :disabled="loading || isExporting"
                         @click="downloadExcel"
                       >
                         <i class="bi bi-table me-1" />
@@ -147,15 +147,20 @@
               </div>
             </template>
 
-            <BCardText class="text-start">
+            <BCardText class="text-start" :aria-busy="loading ? 'true' : 'false'">
               <!-- GenericTable for main table content -->
               <GenericTable
                 :items="displayedItems"
                 :fields="fieldsComputed"
+                :is-busy="loading"
                 :sort-by="sortBy"
                 :sort-desc="sortDesc"
                 @update-sort="handleSortUpdate"
               >
+                <template #table-busy>
+                  <TableLoadingState label="Loading functional cluster rows" :rows="6" />
+                </template>
+
                 <!-- Optional column-level filters -->
                 <template #filter-controls>
                   <td v-for="field in fieldsComputed" :key="field.key">
@@ -348,6 +353,7 @@ import {
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
 
 // Import filter components
 import TermSearch from '@/components/filters/TermSearch.vue';
@@ -379,6 +385,7 @@ export default {
     AnalysisPanel,
     GenericTable,
     InlineHelpBadge,
+    TableLoadingState,
     TablePaginationControls,
     TermSearch,
     CategoryFilter,
@@ -712,6 +719,9 @@ export default {
       this.currentPage = 1;
     },
   },
+  mounted() {
+    this.startClusterTableLoad();
+  },
   methods: {
     /**
      * Helper method: find category text from valueCategories
@@ -736,10 +746,14 @@ export default {
       return getClusterColor(clusterNum);
     },
 
-    handleNetworkReady() {
+    startClusterTableLoad() {
       if (this.clusterTableLoadStarted) return;
       this.clusterTableLoadStarted = true;
       this.loadClusterData();
+    },
+
+    handleNetworkReady() {
+      this.startClusterTableLoad();
     },
 
     async loadClusterData() {
@@ -1204,6 +1218,10 @@ mark {
 
 .cluster-summary-cue__action {
   flex: 0 0 auto;
+}
+
+:deep(.cluster-table-type-control .form-select) {
+  min-width: 9.75rem;
 }
 
 @media (max-width: 767.98px) {

@@ -60,7 +60,15 @@ const globalStubs = {
   BCardText: { template: '<div><slot /></div>' },
   BBadge: { template: '<span><slot /></span>' },
   BLink: { template: '<a><slot /></a>' },
-  GenericTable: { template: '<table><slot name="filter-controls" /></table>' },
+  GenericTable: {
+    props: ['isBusy'],
+    template:
+      '<table :data-busy="String(isBusy)"><slot name="filter-controls" /><slot v-if="isBusy" name="table-busy" /></table>',
+  },
+  TableLoadingState: {
+    props: ['label'],
+    template: '<div data-testid="cluster-table-loading">{{ label }}</div>',
+  },
   TablePaginationControls: { template: '<nav />' },
   TermSearch: { template: '<input />' },
   CategoryFilter: { template: '<select />' },
@@ -93,39 +101,27 @@ describe('AnalyseGeneClusters', () => {
     mocks.getFunctionalClusterSummary.mockReset();
     mocks.networkSelectSingleCluster.mockClear();
     getFunctionalClusteringMock.mockReset();
-    getFunctionalClusteringMock.mockResolvedValue({
-      categories: [],
-      clusters: [],
-      pagination: {
-        page_size: 50,
-        page_after: '',
-        next_cursor: null,
-        total_count: 0,
-        has_more: false,
-      },
-      meta: {
-        algorithm: 'leiden',
-        elapsed_seconds: 0.1,
-        gene_count: 0,
-        cluster_count: 0,
-      },
-    });
+    getFunctionalClusteringMock.mockImplementation(() => new Promise(() => {}));
     submitClusteringMock.mockClear();
   });
 
-  it('waits for the network to render before loading the heavy cluster table', async () => {
+  it('starts loading the cluster table immediately so it can render before the graph finishes', async () => {
     const wrapper = mountComponent();
-
-    expect(getFunctionalClusteringMock).not.toHaveBeenCalled();
-    expect(submitClusteringMock).not.toHaveBeenCalled();
-
-    await wrapper.get('[data-testid="network-viz"]').trigger('click');
-    await flushPromises();
 
     expect(getFunctionalClusteringMock).toHaveBeenCalledWith({
       algorithm: 'leiden',
       page_size: '50',
     });
+    expect(submitClusteringMock).not.toHaveBeenCalled();
+    expect(wrapper.get('table').attributes('data-busy')).toBe('true');
+    expect(wrapper.get('[data-testid="cluster-table-loading"]').text()).toContain(
+      'Loading functional cluster rows'
+    );
+
+    await wrapper.get('[data-testid="network-viz"]').trigger('click');
+    await flushPromises();
+
+    expect(getFunctionalClusteringMock).toHaveBeenCalledTimes(1);
     expect(submitClusteringMock).not.toHaveBeenCalled();
   });
 

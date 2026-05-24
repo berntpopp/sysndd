@@ -9,7 +9,7 @@ const bTableStub = {
   name: 'BTable',
   props: ['items', 'stacked', 'fixed'],
   template:
-    '<div data-testid="b-table" :data-stacked="String(stacked)" :data-fixed="String(fixed)"><slot /><slot name="row-expansion" :item="items?.[0]" /></div>',
+    '<div data-testid="b-table" :data-stacked="String(stacked)" :data-fixed="String(fixed)"><slot /><slot name="table-busy" /><slot name="row-expansion" :item="items?.[0]" /></div>',
 };
 
 describe('GenericTable responsive mode', () => {
@@ -52,6 +52,18 @@ describe('GenericTable responsive mode', () => {
     });
 
     expect(wrapper.find('[data-testid="b-table"]').attributes('data-fixed')).toBe('false');
+  });
+
+  it('forwards the table busy slot to the underlying Bootstrap table', () => {
+    const wrapper = mount(GenericTable, {
+      props: { items, fields, sortBy: 'symbol', sortDesc: false, isBusy: true },
+      slots: {
+        'table-busy': '<div data-testid="busy-state">Loading rows</div>',
+      },
+      global: { stubs: { BTable: bTableStub } },
+    });
+
+    expect(wrapper.get('[data-testid="busy-state"]').text()).toContain('Loading rows');
   });
 
   it('renders fallback row details as horizontal label-value rows', () => {
