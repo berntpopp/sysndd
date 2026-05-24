@@ -85,3 +85,37 @@ test_that("phenotype cluster data fetch uses the shared phenotype clustering hel
   expect_equal(result$identifiers$symbol, c("GENE1", "GENE2"))
   expect_equal(result$quali_inp_var$variable, "Seizure")
 })
+
+test_that("on-demand summary generation uses configured default Gemini model", {
+  env <- source_llm_service_for_db_access_tests()
+  captured_model <- NULL
+
+  env$generate_cluster_hash <- function(...) "summary-hash"
+  env$get_cached_summary <- function(...) NULL
+  env$generate_cluster_summary <- function(cluster_data, cluster_type, model, ...) {
+    captured_model <<- model
+    list(
+      success = TRUE,
+      summary = list(summary = "Generated summary", tags = character()),
+      validation = list(is_valid = TRUE)
+    )
+  }
+  env$calculate_derived_confidence <- function(...) list(score = "high")
+  env$save_summary_to_cache <- function(cluster_type, cluster_number, cluster_hash,
+                                        model_name, ...) {
+    expect_equal(model_name, "gemini-test")
+    123L
+  }
+
+  result <- env$get_or_generate_summary(
+    cluster_data = list(
+      identifiers = tibble::tibble(hgnc_id = c(1L, 2L)),
+      term_enrichment = tibble::tibble(),
+      cluster_number = 7L
+    ),
+    cluster_type = "functional"
+  )
+
+  expect_true(result$success)
+  expect_equal(captured_model, "gemini-test")
+})

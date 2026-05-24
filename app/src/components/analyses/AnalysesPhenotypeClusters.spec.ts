@@ -144,4 +144,16 @@ describe('AnalysesPhenotypeClusters', () => {
     expect(wrapper.vm.currentSummary.summary_json.summary).toBe('Cluster 2 active summary');
     expect(wrapper.vm.summaryLoading).toBe(false);
   });
+
+  it('does not show a transient-error toast when phenotype summaries are unavailable', async () => {
+    mocks.getPhenotypeClusterSummary.mockRejectedValue({ response: { status: 503 } });
+
+    const wrapper = mountComponent();
+    await wrapper.vm.fetchClusterSummary('equals(hash,missing)', 1);
+    await flushPromises();
+
+    expect(mocks.makeToast).not.toHaveBeenCalled();
+    expect(wrapper.vm.currentSummary).toBeNull();
+    expect(wrapper.vm.summaryLoading).toBe(false);
+  });
 });

@@ -19,12 +19,12 @@ if (!requireNamespace("ellmer", quietly = TRUE)) {
 # Default Gemini model configuration
 # Can be overridden via GEMINI_MODEL environment variable
 # Options:
-#   - gemini-3-flash-preview: Fast, high quality, good balance (default)
-#   - gemini-3-pro-preview: Best quality, 250 RPD limit
-#   - gemini-2.0-flash: Fast, unlimited RPD, good for high-volume
+#   - gemini-3.5-flash: Best speed + quality balance for text summaries (default)
+#   - gemini-3.1-flash-lite: Lower-cost high-volume text summaries
+#   - gemini-3.1-pro-preview: Highest-reasoning preview option
 #------------------------------------------------------------------------------
 get_default_gemini_model <- function() {
-  model <- Sys.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+  model <- Sys.getenv("GEMINI_MODEL", "gemini-3.5-flash")
   log_info("Using Gemini model: {model}")
   return(model)
 }
@@ -37,7 +37,7 @@ get_default_gemini_model <- function() {
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
+#' @param model Character, Gemini model name (defaults to get_default_gemini_model())
 #' @param max_retries Integer, maximum retry attempts (default: 3)
 #' @param top_n_terms Integer, number of enrichment terms per category (default: 20)
 #'
@@ -65,7 +65,7 @@ get_default_gemini_model <- function() {
 #'     term_enrichment = tibble(category = "GO", term = "pathway", fdr = 0.001)
 #'   ),
 #'   cluster_type = "functional",
-#'   model = "gemini-3-pro-preview"
+#'   model = "gemini-3.5-flash"
 #' )
 #' }
 #'
@@ -88,7 +88,7 @@ generate_cluster_summary <- function(
   api_key <- Sys.getenv("GEMINI_API_KEY")
   logger::log_debug("GEMINI_API_KEY present: {nzchar(api_key)}")
 
-  if (api_key == "" || is.na(api_key)) {
+  if (!is_gemini_configured()) {
     logger::log_error("GEMINI_API_KEY not set")
     rlang::abort(
       "GEMINI_API_KEY environment variable is not set. Please set it to your Gemini API key.",
@@ -294,25 +294,122 @@ generate_cluster_summary <- function(
 #'
 #' @export
 is_gemini_configured <- function() {
-  api_key <- Sys.getenv("GEMINI_API_KEY")
-  return(api_key != "" && !is.na(api_key))
+  api_key <- trimws(Sys.getenv("GEMINI_API_KEY"))
+  placeholder_keys <- c(
+    "your_gemini_api_key_here",
+    "your-api-key",
+    "your_api_key_here",
+    "YOUR_GEMINI_API_KEY",
+    "YOUR_API_KEY"
+  )
+
+  nzchar(api_key) && !is.na(api_key) && !api_key %in% placeholder_keys
 }
 
 
 #' List available Gemini models
 #'
 #' Returns a list of recommended Gemini models for cluster summary generation.
-#' Updated February 2026 - gemini-2.0-flash deprecated March 31, 2026.
+#' Updated May 2026 for current Gemini text-out models.
 #'
 #' @return Character vector of model names
 #'
 #' @export
 list_gemini_models <- function() {
   c(
-    "gemini-3-pro-preview", # Best quality, complex reasoning (default)
-    "gemini-3-flash-preview", # Fast + capable
+    "gemini-3.5-flash", # Best speed + quality balance for text summaries
+    "gemini-3.1-flash-lite", # Cost-efficient high-volume text summaries
+    "gemini-3.1-pro-preview", # Highest-reasoning preview option
+    "gemini-3.1-flash-lite-preview", # Preview channel for Flash-Lite updates
+    "gemini-3-flash-preview", # Previous Gemini 3 Flash preview
     "gemini-2.5-flash", # Best price-performance
     "gemini-2.5-pro", # Complex reasoning (stable)
     "gemini-2.5-flash-lite" # Budget option
+  )
+}
+
+
+#' Get display metadata for Gemini text generation models
+#'
+#' @param model_id Character Gemini model id.
+#'
+#' @return List with display_name, description, rpm_limit, rpd_limit,
+#'   and recommended_for fields.
+#'
+#' @export
+get_gemini_model_metadata <- function(model_id) {
+  metadata <- list(
+    "gemini-3.5-flash" = list(
+      display_name = "Gemini 3.5 Flash",
+      description = "Current fast text model with strong reasoning and grounding support",
+      rpm_limit = 1000,
+      rpd_limit = NULL,
+      recommended_for = "Default summaries"
+    ),
+    "gemini-3.1-flash-lite" = list(
+      display_name = "Gemini 3.1 Flash-Lite",
+      description = "Cost-efficient Gemini 3 text model for high-volume summary generation",
+      rpm_limit = 2000,
+      rpd_limit = NULL,
+      recommended_for = "High-volume summaries"
+    ),
+    "gemini-3.1-pro-preview" = list(
+      display_name = "Gemini 3.1 Pro Preview",
+      description = "Highest-reasoning Gemini 3.1 preview model",
+      rpm_limit = 1000,
+      rpd_limit = NULL,
+      recommended_for = "Complex analysis"
+    ),
+    "gemini-3.1-flash-lite-preview" = list(
+      display_name = "Gemini 3.1 Flash-Lite Preview",
+      description = paste(
+        "Preview channel for the cost-efficient",
+        "Gemini 3.1 Flash-Lite model"
+      ),
+      rpm_limit = 2000,
+      rpd_limit = NULL,
+      recommended_for = "Preview high-volume summaries"
+    ),
+    "gemini-3-flash-preview" = list(
+      display_name = "Gemini 3 Flash Preview",
+      description = "Previous Gemini 3 Flash preview text model",
+      rpm_limit = 1000,
+      rpd_limit = NULL,
+      recommended_for = "Legacy Gemini 3"
+    ),
+    "gemini-2.5-flash" = list(
+      display_name = "Gemini 2.5 Flash",
+      description = "Stable Gemini 2.5 balanced model",
+      rpm_limit = 2000,
+      rpd_limit = NULL,
+      recommended_for = "Stable balanced"
+    ),
+    "gemini-2.5-pro" = list(
+      display_name = "Gemini 2.5 Pro",
+      description = "Complex reasoning, stable release",
+      rpm_limit = 1000,
+      rpd_limit = 5000,
+      recommended_for = "Stable production"
+    ),
+    "gemini-2.5-flash-lite" = list(
+      display_name = "Gemini 2.5 Flash Lite",
+      description = "Stable low-cost Gemini 2.5 model",
+      rpm_limit = 4000,
+      rpd_limit = NULL,
+      recommended_for = "Budget processing"
+    )
+  )
+
+  info <- metadata[[model_id]]
+  if (!is.null(info)) {
+    return(info)
+  }
+
+  list(
+    display_name = model_id,
+    description = "Model",
+    rpm_limit = 1000,
+    rpd_limit = NULL,
+    recommended_for = "General use"
   )
 }

@@ -493,8 +493,8 @@ export default {
         this.currentSummary = data;
       } catch (error) {
         if (requestId !== this.summaryRequestId) return;
-        // 404 is expected when summary doesn't exist yet - treat as no summary
-        if (isApiError(error) && error.response && error.response.status === 404) {
+        // 404/503 are expected for cache misses when generation is unavailable.
+        if (isApiError(error) && error.response && [404, 503].includes(error.response.status)) {
           this.currentSummary = null;
           return;
         }

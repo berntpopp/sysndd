@@ -33,7 +33,7 @@
 #* Restricted to Administrator role.
 #*
 #* # `Return`
-#* - gemini_configured: Boolean, TRUE if GEMINI_API_KEY is set
+#* - gemini_configured: Boolean, TRUE if GEMINI_API_KEY is set to a non-placeholder value
 #* - current_model: String, current default model name
 #* - available_models: Array of model objects with model_id, display_name, etc.
 #* - rate_limit: Object with rate limit settings (capacity, fill_time_s, etc.)
@@ -44,57 +44,8 @@
 function(req, res) {
   require_role(req, res, "Administrator")
 
-  # Build structured model objects for frontend
-  model_names <- list_gemini_models()
-  model_info <- list(
-    "gemini-3-pro-preview" = list(
-      display_name = "Gemini 3 Pro Preview",
-      description = "Best quality, complex reasoning tasks",
-      rpm_limit = 1000,
-      rpd_limit = 10000,
-      recommended_for = "Complex analysis"
-    ),
-    "gemini-3-flash-preview" = list(
-      display_name = "Gemini 3 Flash Preview",
-      description = "Fast and capable for most tasks",
-      rpm_limit = 2000,
-      rpd_limit = NULL,
-      recommended_for = "Fast processing"
-    ),
-    "gemini-2.5-flash" = list(
-      display_name = "Gemini 2.5 Flash",
-      description = "Best price-performance balance",
-      rpm_limit = 2000,
-      rpd_limit = NULL,
-      recommended_for = "Cost-effective"
-    ),
-    "gemini-2.5-pro" = list(
-      display_name = "Gemini 2.5 Pro",
-      description = "Complex reasoning, stable release",
-      rpm_limit = 1000,
-      rpd_limit = 5000,
-      recommended_for = "Stable production"
-    ),
-    "gemini-2.5-flash-lite" = list(
-      display_name = "Gemini 2.5 Flash Lite",
-      description = "Budget option for simple tasks",
-      rpm_limit = 4000,
-      rpd_limit = NULL,
-      recommended_for = "Budget processing"
-    )
-  )
-
-  available_models <- lapply(model_names, function(name) {
-    info <- model_info[[name]]
-    if (is.null(info)) {
-      info <- list(
-        display_name = name,
-        description = "Model",
-        rpm_limit = 1000,
-        rpd_limit = NULL,
-        recommended_for = "General use"
-      )
-    }
+  available_models <- lapply(list_gemini_models(), function(name) {
+    info <- get_gemini_model_metadata(name)
     list(
       model_id = name,
       display_name = info$display_name,
@@ -121,7 +72,7 @@ function(req, res) {
 #*
 #* # `Request Body`
 #* {
-#*   "model": "gemini-3-flash-preview"
+#*   "model": "gemini-3.5-flash"
 #* }
 #*
 #* # `Authorization`

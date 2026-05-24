@@ -56,7 +56,7 @@ rm(list = intersect(c(".funcs_dir", ".p", ".f"), ls()), envir = environment())
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
+#' @param model Character, Gemini model name (defaults to get_default_gemini_model())
 #' @param require_validated Logical, if TRUE only returns validated summaries (default: FALSE)
 #'
 #' @return List with:
@@ -86,9 +86,13 @@ rm(list = intersect(c(".funcs_dir", ".p", ".f"), ls()), envir = environment())
 get_or_generate_summary <- function(
   cluster_data,
   cluster_type = "functional",
-  model = "gemini-3-pro-preview",
+  model = NULL,
   require_validated = FALSE
 ) {
+  if (is.null(model)) {
+    model <- get_default_gemini_model()
+  }
+
   # Validate cluster_type
   if (!cluster_type %in% c("functional", "phenotype")) {
     rlang::abort(
