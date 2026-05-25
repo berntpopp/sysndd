@@ -4,10 +4,8 @@
  * Handles draft save/load and publish workflow.
  */
 import { ref, computed } from 'vue';
-import axios from 'axios';
-import type { AboutSection, AboutContent } from '@/types';
-
-const API_URL = import.meta.env.VITE_API_URL || '';
+import type { AboutSection } from '@/types';
+import { getAboutDraft, getPublishedAbout, publishAbout, saveAboutDraft } from '@/api/about';
 
 /**
  * Composable for About page CMS content management.
@@ -28,13 +26,6 @@ export function useCmsContent() {
     return lastSavedAt.value === null && sections.value.length > 0;
   });
 
-  // v11.0 closeout F2a: the inline `getAuthHeader()` helper that read
-  // the session token from localStorage has been removed. The `apiClient`
-  // request interceptor (`@/api/client`) reads `useAuth().token.value`
-  // and injects the Bearer header on every outbound call against the
-  // shared axios singleton — which is what the raw `axios` import below
-  // resolves to. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
-
   /**
    * Load draft or published content for editing.
    * Returns true if API is available, false if not.
@@ -44,23 +35,14 @@ export function useCmsContent() {
     error.value = null;
 
     try {
-      const response = await axios.get<AboutContent>(`${API_URL}/api/about/draft`, {
+      const loadedSections = await getAboutDraft({
         timeout: 5000,
         withCredentials: true,
       });
 
-      if (response.data && response.data.sections) {
-        sections.value = response.data.sections;
-        isDraft.value = response.data.status === 'draft';
-        if ('version' in response.data) {
-          currentVersion.value = response.data.version;
-        }
-        lastSavedAt.value = new Date();
-      } else {
-        // No content exists, start with empty sections
-        sections.value = [];
-        isDraft.value = true;
-      }
+      sections.value = loadedSections;
+      isDraft.value = true;
+      lastSavedAt.value = loadedSections.length > 0 ? new Date() : null;
       apiAvailable.value = true;
       return true;
     } catch (err: unknown) {
@@ -94,11 +76,7 @@ export function useCmsContent() {
     error.value = null;
 
     try {
-      await axios.put(
-        `${API_URL}/api/about/draft`,
-        { sections: sections.value },
-        { withCredentials: true }
-      );
+      await saveAboutDraft(sections.value, { withCredentials: true });
 
       lastSavedAt.value = new Date();
       isDraft.value = true;
@@ -125,13 +103,9 @@ export function useCmsContent() {
     error.value = null;
 
     try {
-      const response = await axios.post<{ message: string; version: number }>(
-        `${API_URL}/api/about/publish`,
-        { sections: sections.value },
-        { withCredentials: true }
-      );
+      const response = await publishAbout(sections.value, { withCredentials: true });
 
-      currentVersion.value = response.data.version;
+      currentVersion.value = response.version ?? null;
       lastSavedAt.value = new Date();
       isDraft.value = false;
       return true;
@@ -152,12 +126,7 @@ export function useCmsContent() {
     error.value = null;
 
     try {
-      const response = await axios.get<{ sections: AboutSection[] }>(
-        `${API_URL}/api/about/published`,
-        { withCredentials: true }
-      );
-
-      return response.data?.sections || [];
+      return getPublishedAbout({ withCredentials: true });
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to load content';
       console.error('Failed to load published content:', err);

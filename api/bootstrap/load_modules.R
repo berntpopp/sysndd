@@ -122,6 +122,7 @@ bootstrap_load_modules <- function() {
     "functions/backup-functions.R",
     "functions/ols-functions.R",
     "functions/openapi-helpers.R",
+    "functions/migration-manifest.R",
     "functions/migration-runner.R"
   )
   # --- end source list ---

@@ -11,6 +11,9 @@ test_that("bootstrap helper binds memoised analysis wrappers into the target env
   test_env$gen_network_edges <- function(cluster_type = "clusters", min_confidence = 400L) {
     list(cluster_type = cluster_type, min_confidence = min_confidence)
   }
+  test_env$generate_phenotype_correlations <- function(filter = "", min_abs_correlation = NULL) {
+    tibble::tibble(x = "Seizure", x_id = "HP:0001250", y = "Ataxia", y_id = "HP:0001251", value = 0.42)
+  }
   test_env$read_log_files <- function() "logs"
   test_env$nest_pubtator_gene_tibble <- function() "pubtator"
 
@@ -22,6 +25,7 @@ test_that("bootstrap helper binds memoised analysis wrappers into the target env
   expect_true(memoise::is.memoised(test_env$gen_network_edges_mem))
   expect_true(memoise::is.memoised(test_env$gen_mca_clust_obj_mem))
   expect_true(memoise::is.memoised(test_env$gen_string_clust_obj_mem))
+  expect_true(memoise::is.memoised(test_env$generate_phenotype_correlations_mem))
   expect_equal(
     test_env$gen_network_edges_mem(cluster_type = "clusters", min_confidence = 400L)$cluster_type,
     "clusters"
@@ -34,6 +38,12 @@ test_that("MCP startup wires read-only shared memoise cache wrappers", {
   expect_true(any(grepl('source\\("bootstrap/init_cache.R"', script, fixed = FALSE)))
   expect_true(any(grepl("bootstrap_bind_memoised", script, fixed = TRUE)))
   expect_false(any(grepl("bootstrap_init_cache_version", script, fixed = TRUE)))
+})
+
+test_that("API startup exposes phenotype correlation memoise wrapper for cache warming", {
+  script <- paste(readLines(file.path(get_api_dir(), "start_sysndd_api.R"), warn = FALSE), collapse = "\n")
+
+  expect_match(script, "generate_phenotype_correlations_mem\\s*<-\\s*memoised\\$generate_phenotype_correlations_mem")
 })
 
 test_that("MCP compose service mounts the shared API cache read-only", {

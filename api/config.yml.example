@@ -6,11 +6,9 @@
 ## gitignored (`.gitignore` has `config.yml` under `api/`) so you never
 ## accidentally commit secrets.
 ##
-## This template exists because the prod Dockerfile does
-## `COPY config.yml config.yml` at build time, so every Docker build — local
-## dev, CI smoke-test, release — needs SOMETHING at `api/config.yml` or the
-## build fails. `scripts/ci-smoke.sh` copies this file to
-## `api/config.yml` when none exists, which is exactly what CI needs.
+## The API image must not bake real api/config.yml into image layers. This
+## template is used only to create a runtime api/config.yml for local/CI stacks
+## when no operator-specific file exists.
 ##
 ## NOTHING in this file should contain a real credential. The MySQL
 ## password here is the same as `MYSQL_PASSWORD` in `.env.example` and is a

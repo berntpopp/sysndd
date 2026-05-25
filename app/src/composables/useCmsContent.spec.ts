@@ -34,11 +34,9 @@ describe('useCmsContent — F2a Bearer-via-interceptor', () => {
     server.use(
       http.get('*/api/about/draft', ({ request }) => {
         expectBearerHeader(request, token);
-        return HttpResponse.json({
-          status: 'draft',
-          version: 3,
-          sections: [{ heading: 'Test', body: 'Body', sort_order: 0 }],
-        });
+        return HttpResponse.json([
+          { section_id: 'test', title: 'Test', icon: 'bi-info-circle', content: 'Body', sort_order: 0 },
+        ]);
       })
     );
 
@@ -46,6 +44,24 @@ describe('useCmsContent — F2a Bearer-via-interceptor', () => {
     const ok = await cms.loadDraft();
     expect(ok).toBe(true);
     expect(cms.sections.value).toHaveLength(1);
+  });
+
+  it('loadDraft preserves the backend bare sections array', async () => {
+    const { token } = primeAuth('bare-array-token');
+    const sampleSections = [
+      { section_id: 'welcome', title: 'Welcome', icon: 'bi-info-circle', content: 'Body', sort_order: 0 },
+    ];
+    server.use(
+      http.get('*/api/about/draft', ({ request }) => {
+        expectBearerHeader(request, token);
+        return HttpResponse.json(sampleSections);
+      })
+    );
+
+    const cms = useCmsContent();
+    const ok = await cms.loadDraft();
+    expect(ok).toBe(true);
+    expect(cms.sections.value).toEqual(sampleSections);
   });
 
   it('saveDraft sends Bearer on PUT /api/about/draft', async () => {

@@ -27,14 +27,10 @@ REPO_ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 log() { printf '[ci-smoke] %s\n' "$*"; }
 fail() { printf '[ci-smoke] FAIL: %s\n' "$*" >&2; }
 
-# Seed gitignored files from their committed templates if missing. This is
-# what lets this script build/run the prod Docker image on a fresh CI
-# checkout: the Dockerfile does `COPY config.yml config.yml` and the
-# compose file consumes env vars from `.env`, but both `api/config.yml` and
-# `.env` are gitignored because they hold real credentials on dev machines.
-# The templates (`api/config.yml.example`, `.env.example`) ship safe dummy
-# values; a developer running this script locally with real secrets in
-# place will NOT have either file overwritten.
+# Seed gitignored runtime files from committed templates if missing. The API
+# image no longer bakes api/config.yml into image layers; this seed exists so
+# docker compose can satisfy the runtime /app/config.yml bind mount on fresh CI
+# checkouts and local smoke runs.
 seed_from_template() {
   # seed_from_template <target> <template>
   local target="$1"

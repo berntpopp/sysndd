@@ -60,6 +60,12 @@ row or table lock. It is tied to the owning connection and MySQL releases
 it automatically if the API dies mid-migration, so a crashed replica cannot
 wedge the next boot.
 
+Startup validates the migration manifest before the fast path. In non-test
+startup the directory must exist, contain SQL files, have
+`EXPECTED_LATEST_MIGRATION` as the actual sorted latest migration, and meet the
+expected minimum file count. Missing, empty, or stale mounts are fatal and should
+be fixed at packaging/deployment time.
+
 ## 3. Numbered-prefix convention
 
 Filenames must match `<NNN>_<short_description>.sql`, e.g.

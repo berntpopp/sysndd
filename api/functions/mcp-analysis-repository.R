@@ -175,21 +175,27 @@ mcp_analysis_repo_limit <- function(limit, default = 25L, max = 50L) {
 mcp_analysis_repo_get_phenotype_correlations <- function(phenotype = NULL,
                                                          min_abs_correlation = 0.3,
                                                          limit = 25L) {
-  if (!exists("generate_phenotype_correlations", mode = "function")) {
+  filter <- MCP_PHENOTYPE_CORRELATION_FILTER
+  if (
+    !mcp_analysis_repo_phenotype_correlations_cache_hit(filter = filter) ||
+      !exists("generate_phenotype_correlations_mem", mode = "function")
+  ) {
     return(NULL)
   }
+
   limit <- mcp_analysis_repo_limit(limit)
 
   rows <- tryCatch(
-    generate_phenotype_correlations(
-      filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)",
-      min_abs_correlation = min_abs_correlation
-    ),
+    generate_phenotype_correlations_mem(filter = filter, min_abs_correlation = NULL),
     error = function(e) NULL
   )
   if (is.null(rows) || nrow(rows) == 0L) {
     if (is.null(rows)) return(NULL)
     return(tibble::tibble())
+  }
+
+  if (!is.null(min_abs_correlation)) {
+    rows <- rows %>% dplyr::filter(abs(value) >= min_abs_correlation)
   }
 
   if (!is.null(phenotype) && nzchar(trimws(as.character(phenotype)[1]))) {

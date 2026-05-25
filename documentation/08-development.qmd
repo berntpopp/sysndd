@@ -100,7 +100,7 @@ make test-api-fast
 
 For MCP 1.2 analysis changes, also check that the analysis tools remain read-only and bounded: `get_sysndd_analysis_catalog` -> `get_gene_research_context(dry_run = TRUE, response_mode = "compact")` -> focused follow-up tools. Analysis responses should use compact defaults, `max_response_chars = "auto"`, `budget` metadata, and `dry_run`/`diagnostics` recovery hints for broad result sets. Cached LLM summaries are validated admin-generated cache reads only, NDDScore is an ML prediction layer rather than a curated evidence tier, and stored external IDs should be treated only as `external_reference_identifier`.
 
-Cache-backed analysis sections such as phenotype clusters and STRING-derived gene networks require prewarmed API cache entries. The MCP sidecar mounts the shared API cache read-only and reports `temporarily_unavailable` when the exact cache key is missing; use the API/admin analysis path to warm those artifacts during development.
+Cache-backed analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require prewarmed API cache entries. The MCP sidecar mounts the shared API cache read-only and reports `temporarily_unavailable` when the exact cache key is missing; use the API/admin analysis path to warm those artifacts during development.
 
 ### GeneNetworks fCoSE Layout Prewarm
 

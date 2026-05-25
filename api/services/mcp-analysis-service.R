@@ -45,8 +45,8 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       analysis_id = "phenotype_analysis",
       tool = "get_phenotype_analysis_context",
       data_class = "curated_derived_analysis",
-      availability = "local_analysis_or_cache",
-      estimated_latency_class = "medium",
+      availability = "cache_hit_only",
+      estimated_latency_class = "fast_on_cache_hit",
       default_limits = list(limit = 25L, max_limit = 50L, max_response_chars = "auto"),
       example_call = list(mode = "correlations", phenotype = "HP:0001250", response_mode = "compact")
     ),
@@ -373,9 +373,18 @@ mcp_get_phenotype_analysis_context <- function(mode,
     "approved primary review phenotypes",
     "deterministic_analysis"
   )
+  cache_hit <- switch(
+    mode,
+    correlations = isTRUE(mcp_analysis_repo_phenotype_correlations_cache_hit()),
+    clusters = isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit()),
+    phenotype_functional_correlations = isTRUE(mcp_analysis_repo_functional_cluster_cache_hit(algorithm = "leiden")) &&
+      isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit()),
+    FALSE
+  )
 
   if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
     return(c(envelope, list(
+      section_status = if (isTRUE(cache_hit)) "available" else "temporarily_unavailable",
       mode = mode,
       records = list(),
       cached_llm_summaries = list(),
@@ -383,11 +392,20 @@ mcp_get_phenotype_analysis_context <- function(mode,
         limit = limit,
         diagnostics_only = TRUE,
         min_abs_correlation = min_abs_correlation,
-        include_diagnostics = include_diagnostics
+        include_diagnostics = include_diagnostics,
+        cache_hit = cache_hit
       ),
-      budget = mcp_analysis_finalize_budget(list(mode = mode, limit = limit), budget),
+      budget = mcp_analysis_finalize_budget(list(cache_hit = cache_hit, mode = mode, limit = limit), budget),
       recovery = list(retry_with = list(mode = mode, response_mode = "compact", limit = min(limit, 25L)))
     )))
+  }
+
+  if (!isTRUE(cache_hit)) {
+    stop(mcp_error(
+      "temporarily_unavailable",
+      "Requested phenotype analysis is not available from a warmed cache entry.",
+      list(argument = "mode", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
+    ))
   }
 
   records <- tryCatch(
@@ -407,7 +425,7 @@ mcp_get_phenotype_analysis_context <- function(mode,
     stop(mcp_error(
       "temporarily_unavailable",
       "Requested phenotype analysis mode is not available from shared helper/cache-safe data.",
-      list(argument = "mode")
+      list(argument = "mode", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
     ))
   }
 
@@ -421,7 +439,8 @@ mcp_get_phenotype_analysis_context <- function(mode,
       limit = limit,
       returned = length(trimmed$records),
       min_abs_correlation = min_abs_correlation,
-      include_cached_llm_summaries = include_cached_llm_summaries
+      include_cached_llm_summaries = include_cached_llm_summaries,
+      cache_hit = cache_hit
     ),
     budget = trimmed$budget
   ))

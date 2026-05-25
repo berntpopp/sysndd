@@ -162,6 +162,17 @@ mcp_analysis_repo_phenotype_memoise_cache_hit <- function() {
   isTRUE(checker(input$matrix))
 }
 
+MCP_PHENOTYPE_CORRELATION_FILTER <- "contains(ndd_phenotype_word,Yes),any(category,Definitive)"
+
+mcp_analysis_repo_phenotype_correlations_cache_hit <- function(filter = MCP_PHENOTYPE_CORRELATION_FILTER) {
+  if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
+  if (!exists("generate_phenotype_correlations_mem", mode = "function")) return(FALSE)
+  if (!memoise::is.memoised(generate_phenotype_correlations_mem)) return(FALSE)
+
+  checker <- memoise::has_cache(generate_phenotype_correlations_mem)
+  isTRUE(checker(filter = filter, min_abs_correlation = NULL))
+}
+
 mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
                                                 min_confidence = 400L) {
   mcp_analysis_repo_network_memoise_cache_hit(

@@ -97,6 +97,7 @@ bootstrap_init_memoised <- function(cache_dir = "/app/cache") {
     gen_string_clust_obj_mem       = memoise::memoise(gen_string_clust_obj, cache = cm),
     gen_mca_clust_obj_mem          = memoise::memoise(gen_mca_clust_obj, cache = cm),
     gen_network_edges_mem          = memoise::memoise(gen_network_edges, cache = cm),
+    generate_phenotype_correlations_mem = memoise::memoise(generate_phenotype_correlations, cache = cm),
     read_log_files_mem             = memoise::memoise(read_log_files, cache = cm),
     nest_pubtator_gene_tibble_mem  = memoise::memoise(nest_pubtator_gene_tibble, cache = cm)
   )

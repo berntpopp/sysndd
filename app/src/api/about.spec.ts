@@ -18,13 +18,31 @@ import { isApiError } from './client';
 import { server } from '@/test-utils/mocks/server';
 
 const sampleSections: AboutSection[] = [
-  { title: 'Welcome', body: 'About SysNDD' },
-  { title: 'Methods', body: 'A short methodological note.' },
+  {
+    section_id: 'welcome',
+    title: 'Welcome',
+    icon: 'bi-info-circle',
+    content: 'About SysNDD',
+    sort_order: 0,
+  },
+  {
+    section_id: 'methods',
+    title: 'Methods',
+    icon: 'bi-book',
+    content: 'A short methodological note.',
+    sort_order: 1,
+  },
 ];
 
 describe('api/about — getAboutDraft', () => {
   it('returns the draft sections array on 200', async () => {
     server.use(http.get('/api/about/draft', () => HttpResponse.json(sampleSections)));
+    const sections = await getAboutDraft();
+    expect(sections).toEqual(sampleSections);
+  });
+
+  it('normalizes a legacy draft envelope to sections', async () => {
+    server.use(http.get('/api/about/draft', () => HttpResponse.json({ sections: sampleSections })));
     const sections = await getAboutDraft();
     expect(sections).toEqual(sampleSections);
   });

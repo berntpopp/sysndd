@@ -9,23 +9,18 @@
 // About page (`/published` is unauthenticated) and the admin editor (`/draft`
 // + `/publish`, both Administrator-gated by `require_role`). Sections are an
 // arbitrary array of section objects — the R endpoint stores them as a JSON
-// blob, so we surface an opaque `unknown[]` shape rather than locking the
-// frontend into a specific section schema.
+// blob, but the current admin/public About UI owns the CMS section schema in
+// `@/types`.
 
 import type { AxiosRequestConfig } from 'axios';
+import type { AboutSection } from '@/types';
 import { apiClient } from './client';
+
+export type { AboutSection };
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-/**
- * A single section object stored in `about_content.sections_json`. The R
- * endpoint round-trips the array via `jsonlite::fromJSON` / `jsonlite::toJSON`
- * without inspecting the inner shape, so we type each section as an opaque
- * record. Callers can narrow it further via their own schema.
- */
-export type AboutSection = Record<string, unknown>;
 
 /**
  * Response from `PUT /api/about/draft` and `POST /api/about/publish` —
@@ -39,9 +34,27 @@ export interface AboutMutationResponse {
   error?: string;
 }
 
+type AboutSectionsPayload = AboutSection[] | { sections?: AboutSection[] | null };
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Normalize the canonical backend bare-array response while defensively
+ * accepting the legacy `{ sections }` envelope used by older callers/tests.
+ */
+export function normalizeAboutSections(
+  payload: AboutSectionsPayload | null | undefined
+): AboutSection[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (payload && Array.isArray(payload.sections)) {
+    return payload.sections;
+  }
+  return [];
+}
 
 /**
  * GET /api/about/draft
@@ -53,7 +66,8 @@ export interface AboutMutationResponse {
  * Throws AxiosError on non-2xx (401/403 if the caller is not an Administrator).
  */
 export async function getAboutDraft(config?: AxiosRequestConfig): Promise<AboutSection[]> {
-  return apiClient.get<AboutSection[]>('/api/about/draft', config);
+  const payload = await apiClient.get<AboutSectionsPayload>('/api/about/draft', config);
+  return normalizeAboutSections(payload);
 }
 
 /**
@@ -108,5 +122,6 @@ export async function publishAbout(
  * failure mode here).
  */
 export async function getPublishedAbout(config?: AxiosRequestConfig): Promise<AboutSection[]> {
-  return apiClient.get<AboutSection[]>('/api/about/published', config);
+  const payload = await apiClient.get<AboutSectionsPayload>('/api/about/published', config);
+  return normalizeAboutSections(payload);
 }
