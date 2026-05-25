@@ -680,11 +680,9 @@ function(req,
 #* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @response 200 OK - returns count of updated rows
-#*
 #* @post /pubtator/backfill-genes
 function(req, res) {
   require_role(req, res, "Administrator")
-
   start_time <- Sys.time()
 
   # Find search_ids with NULL gene_symbols
@@ -848,11 +846,9 @@ function(req, res, query = "") {
 #*
 #* @response 200 OK - returns query_id and statistics
 #* @response 400 Bad request - missing query parameter
-#*
 #* @post /pubtator/update
 function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
   require_role(req, res, "Administrator")
-
   start_time <- Sys.time()
 
   if (query == "") {
@@ -986,11 +982,9 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #* @response 400 Bad request - missing query parameter
 #* @response 409 Conflict - duplicate job already running
 #* @response 503 Service unavailable - job queue full
-#*
 #* @post /pubtator/update/submit
 function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
   require_role(req, res, "Administrator")
-
   if (query == "") {
     res$status <- 400
     return(list(error = "Query parameter is required"))
@@ -1115,11 +1109,9 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #* @serializer json list(na="string", auto_unbox=TRUE)
 #*
 #* @response 200 OK - returns count of deleted rows
-#*
 #* @post /pubtator/clear-cache
 function(req, res) {
   require_role(req, res, "Administrator")
-
   start_time <- Sys.time()
 
   tryCatch(

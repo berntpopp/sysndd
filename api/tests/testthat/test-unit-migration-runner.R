@@ -23,6 +23,7 @@ library(fs)
 # Source the migration runner (suppress logger messages during tests)
 suppressMessages({
   source(file.path(api_dir, "functions/migration-runner.R"), local = TRUE)
+  source(file.path(api_dir, "functions/migration-manifest.R"), local = TRUE)
 })
 
 # ============================================================================
