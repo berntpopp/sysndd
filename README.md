@@ -32,8 +32,15 @@ This repository is for development of our SysNDD web application (app), applicat
 
 ### Docker Deployment
 
+Use the maintained operator workflow in
+[documentation/09-deployment.qmd](documentation/09-deployment.qmd):
+
 ```bash
-bash deployment.sh "<config.tar.gz>"
+git clone https://github.com/berntpopp/sysndd.git
+cd sysndd
+cp .env.example .env
+# edit .env and provide api/config.yml from your deployment secret source
+docker compose up -d
 ```
 
 ### Local Development

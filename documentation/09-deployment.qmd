@@ -16,6 +16,10 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Legacy archive-downloader deployment scripts are not part of the supported
+deployment path; do not use unverified downloaded shell to provision runtime
+configuration.
+
 ## Key Runtime Settings
 
 ### `api/config.yml`
