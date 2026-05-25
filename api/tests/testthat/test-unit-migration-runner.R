@@ -193,6 +193,42 @@ describe("list_migration_files", {
   })
 })
 
+describe("validate_migration_manifest", {
+  it("fails for a missing migration directory in strict mode", {
+    expect_error(
+      validate_migration_manifest("/path/that/does/not/exist", allow_empty = FALSE),
+      "Migrations directory does not exist"
+    )
+  })
+
+  it("fails for an empty migration directory in strict mode", {
+    withr::with_tempdir({
+      dir.create("empty_migrations")
+      expect_error(
+        validate_migration_manifest("empty_migrations", allow_empty = FALSE),
+        "No migration files found"
+      )
+    })
+  })
+
+  it("allows empty fixture directories only when explicitly requested", {
+    withr::with_tempdir({
+      dir.create("empty_migrations")
+      result <- validate_migration_manifest("empty_migrations", allow_empty = TRUE)
+      expect_false(result$ok)
+      expect_true(result$allowed_empty)
+    })
+  })
+
+  it("reports the current repository migration manifest", {
+    migrations_dir <- file.path(api_dir, "..", "db", "migrations")
+    result <- validate_migration_manifest(migrations_dir)
+    expect_true(result$ok)
+    expect_equal(result$expected_latest, "023_add_nddscore_prediction_release.sql")
+    expect_true(result$count >= 24L)
+  })
+})
+
 # ============================================================================
 # Migration idempotency logic Tests
 # ============================================================================

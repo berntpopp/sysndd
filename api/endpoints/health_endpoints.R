@@ -86,25 +86,39 @@ function(req, res) {
 
   # Check migration status (variable set during API startup)
   migrations_ok <- FALSE
-  migration_info <- list(pending = NA, applied = NA, fast_path = NA, lock_acquired = NA)
+  manifest_ok <- FALSE
+  migration_info <- list(
+    pending = NA,
+    applied = NA,
+    fast_path = NA,
+    lock_acquired = NA,
+    manifest_ok = FALSE,
+    expected_latest = NA,
+    migration_file_count = NA
+  )
 
   if (exists("migration_status", where = .GlobalEnv) &&
     !is.null(.GlobalEnv$migration_status)) {
     status <- .GlobalEnv$migration_status
     pending <- status$pending_migrations
+    manifest_ok <- isTRUE(status$manifest$ok)
 
     # Check if startup had an error
     if (!is.null(status$error)) {
       migrations_ok <- FALSE
     } else {
-      migrations_ok <- !is.null(pending) && !is.na(pending) && pending == 0
+      migrations_ok <- !is.null(pending) && !is.na(pending) && pending == 0 && manifest_ok
     }
 
+    or_na <- function(x) if (is.null(x)) NA else x
     migration_info <- list(
       pending = if (is.null(pending) || is.na(pending)) NA else pending,
       applied = if (is.null(status$total_migrations)) NA else status$total_migrations,
       fast_path = if (is.null(status$fast_path)) NA else status$fast_path,
-      lock_acquired = if (is.null(status$lock_acquired)) NA else status$lock_acquired
+      lock_acquired = if (is.null(status$lock_acquired)) NA else status$lock_acquired,
+      manifest_ok = manifest_ok,
+      expected_latest = or_na(status$manifest$expected_latest),
+      migration_file_count = or_na(status$manifest$count)
     )
   }
 
@@ -144,6 +158,11 @@ function(req, res) {
           fast_path = migration_info$fast_path,
           lock_acquired = migration_info$lock_acquired
         ),
+        manifest = list(
+          ok = migration_info$manifest_ok,
+          expected_latest = migration_info$expected_latest,
+          migration_file_count = migration_info$migration_file_count
+        ),
         lock = lock_status
       ),
       pool = pool_stats,
@@ -174,6 +193,11 @@ function(req, res) {
         startup = list(
           fast_path = migration_info$fast_path,
           lock_acquired = migration_info$lock_acquired
+        ),
+        manifest = list(
+          ok = migration_info$manifest_ok,
+          expected_latest = migration_info$expected_latest,
+          migration_file_count = migration_info$migration_file_count
         ),
         lock = lock_status,
         error = if (exists("migration_status", where = .GlobalEnv)) .GlobalEnv$migration_status$error else NULL

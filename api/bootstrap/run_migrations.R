@@ -34,6 +34,8 @@
 bootstrap_run_migrations <- function(pool, migrations_dir = "db/migrations") {
   status <- tryCatch(
     {
+      manifest <- validate_migration_manifest(migrations_dir = migrations_dir, allow_empty = FALSE)
+
       # Step 1: Fast path check (no lock needed if schema current)
       pending_before_lock <- get_pending_migrations(
         migrations_dir = migrations_dir, conn = pool
@@ -54,7 +56,8 @@ bootstrap_run_migrations <- function(pool, migrations_dir = "db/migrations") {
           newly_applied = 0,
           filenames = character(0),
           fast_path = TRUE,
-          lock_acquired = FALSE
+          lock_acquired = FALSE,
+          manifest = manifest
         )
       } else {
         # Step 2: Migrations needed - acquire lock
@@ -92,7 +95,8 @@ bootstrap_run_migrations <- function(pool, migrations_dir = "db/migrations") {
             newly_applied = 0,
             filenames = character(0),
             fast_path = FALSE,
-            lock_acquired = TRUE
+            lock_acquired = TRUE,
+            manifest = manifest
           )
         } else {
           # Step 4: Apply migrations (we hold lock, migrations still needed)
@@ -124,7 +128,8 @@ bootstrap_run_migrations <- function(pool, migrations_dir = "db/migrations") {
             newly_applied = result$newly_applied,
             filenames = result$filenames,
             fast_path = FALSE,
-            lock_acquired = TRUE
+            lock_acquired = TRUE,
+            manifest = manifest
           )
         }
       }
@@ -143,6 +148,7 @@ bootstrap_run_migrations <- function(pool, migrations_dir = "db/migrations") {
         filenames = character(0),
         fast_path = FALSE,
         lock_acquired = FALSE,
+        manifest = list(ok = FALSE),
         error = e$message
       )
 

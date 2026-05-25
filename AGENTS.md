@@ -105,6 +105,8 @@ MCP tools and prompts are strictly read-only and limited to approved public data
 
 `db/migrations/*.sql` are applied at API startup by the migration runner using MySQL advisory locks. Migration failures are supposed to crash startup. Do not work around a failing migration by weakening startup checks.
 
+Startup validates the migration manifest before the fast path. In non-test startup the directory must exist, contain SQL files, include the expected latest migration, and meet the expected minimum file count. Missing or empty mounts are fatal and should be fixed at packaging/deployment time.
+
 ### Container mount boundary
 
 In the dev/prod containers, source directories such as `api/functions`, `api/services`, `api/endpoints`, and `db/migrations` are bind-mounted live. `api/tests/` is not bind-mounted. To run tests inside the running API container, copy them in or rebuild.
