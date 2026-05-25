@@ -193,7 +193,6 @@ COPY --chown=apiuser:api core/ core/
 COPY --chown=apiuser:api services/ services/
 COPY --chown=apiuser:api bootstrap/ bootstrap/
 COPY --chown=apiuser:api config/ config/
-COPY --chown=apiuser:api config.yml config.yml
 COPY --chown=apiuser:api version_spec.json version_spec.json
 COPY --chown=apiuser:api start_sysndd_api.R start_sysndd_api.R
 

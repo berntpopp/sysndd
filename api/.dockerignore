@@ -12,6 +12,8 @@ testthat/
 .Rhistory
 .RData
 .Ruserdata
+config.yml
+config.yml.devbackup
 layout/node_modules/
 
 # renv cache (lockfile IS needed, but not the library)

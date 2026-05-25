@@ -18,6 +18,14 @@ docker compose up -d
 
 ## Key Runtime Settings
 
+### `api/config.yml`
+
+The production API image does not include `api/config.yml`. Provide runtime
+configuration through the Compose read-only mount, an operator secret, or an
+equivalent deployment-specific config injection mechanism. Never re-add
+`COPY config.yml config.yml` to `api/Dockerfile`; local credentials can otherwise
+be baked into image layers.
+
 ### `MIRAI_WORKERS`
 
 Controls background worker count for long-running jobs.
