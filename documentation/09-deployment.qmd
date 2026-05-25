@@ -84,7 +84,7 @@ Payload controls are exposed as `response_mode`, `abstract_mode`, `synopsis_mode
 
 The MCP sidecar must not write to the database, call write routes, execute raw SQL/R, expose admin/user/log/job data, expose draft reviews or re-review workflows, call live external providers, or trigger Gemini/LLM generation.
 
-Cache-backed MCP analysis sections depend on prewarmed API/worker-derived artifacts. The sidecar binds the same memoised wrapper names used by the API but must not call `bootstrap_init_cache_version()`, clear cache files, compute STRING networks, run phenotype clustering, or generate LLM summaries. If `dry_run` reports `temporarily_unavailable`, warm the corresponding API/admin analysis path before expecting MCP to return records.
+Cache-backed MCP analysis sections depend on prewarmed API/worker-derived artifacts. The sidecar binds the same memoised wrapper names used by the API but must not call `bootstrap_init_cache_version()`, clear cache files, compute STRING networks, generate phenotype correlations, run phenotype clustering, or generate LLM summaries. If `dry_run` reports `temporarily_unavailable`, warm the corresponding API/admin analysis path before expecting MCP to return records.
 
 Large analysis calls default to `response_mode = "compact"` and `max_response_chars = "auto"`. Responses include `budget` metadata and may include `dropped_summary`, `recovery`, per-section status, `dry_run`, or `response_mode = "diagnostics"` output so clients can narrow broad requests. The recommended low-token path is `get_sysndd_analysis_catalog`, then `get_gene_research_context(dry_run = TRUE, response_mode = "compact")`, then focused analysis tools for the sections the client actually needs.
 

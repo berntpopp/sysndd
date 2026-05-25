@@ -108,7 +108,11 @@ function(req,
 #* @get correlation
 function(res,
          filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)") {
-  generate_phenotype_correlations(filter = filter)
+  if (exists("generate_phenotype_correlations_mem", mode = "function")) {
+    generate_phenotype_correlations_mem(filter = filter, min_abs_correlation = NULL)
+  } else {
+    generate_phenotype_correlations(filter = filter, min_abs_correlation = NULL)
+  }
 }
 
 

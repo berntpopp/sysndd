@@ -228,11 +228,16 @@ test_that("phenotype analysis context validates mode and labels derived analyses
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
+  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
   old_corr <- mcp_analysis_repo_get_phenotype_correlations
+  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) TRUE, envir = .GlobalEnv)
   assign("mcp_analysis_repo_get_phenotype_correlations", function(...) {
     tibble::tibble(x = "Seizure", x_id = "HP:0001250", y = "Ataxia", y_id = "HP:0001251", value = 0.42)
   }, envir = .GlobalEnv)
-  withr::defer(assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv))
+  withr::defer({
+    assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv)
+  })
 
   result <- mcp_get_phenotype_analysis_context(mode = "correlations", phenotype = "HP:0001250")
   expect_equal(result$data_class, "curated_derived_analysis")
@@ -243,6 +248,35 @@ test_that("phenotype analysis context validates mode and labels derived analyses
     mcp_tool_error = function(e) unclass(e)
   )
   expect_equal(err$error$code, "invalid_input")
+})
+
+test_that("phenotype correlations raise temporarily_unavailable when cache hit is absent", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
+  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv))
+
+  err <- tryCatch(
+    mcp_get_phenotype_analysis_context(mode = "correlations"),
+    mcp_tool_error = function(e) unclass(e)
+  )
+
+  expect_equal(err$error$code, "temporarily_unavailable")
+})
+
+test_that("phenotype analysis dry_run reports correlation cache miss as unavailable", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
+  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv))
+
+  result <- mcp_get_phenotype_analysis_context(mode = "correlations", dry_run = TRUE)
+  expect_equal(result$section_status, "temporarily_unavailable")
+  expect_false(result$meta$cache_hit)
 })
 
 test_that("gene network context raises temporarily_unavailable when disk cache hit is absent", {

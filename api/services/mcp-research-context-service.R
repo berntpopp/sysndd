@@ -37,7 +37,7 @@ mcp_research_phenotype_status <- function(mode) {
   tryCatch(
     switch(
       mode,
-      correlations = if (exists("generate_phenotype_correlations", mode = "function")) available else unavailable,
+      correlations = if (isTRUE(mcp_analysis_repo_phenotype_correlations_cache_hit())) available else unavailable,
       clusters = if (isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit())) available else unavailable,
       phenotype_functional_correlations = {
         has_helper <- exists("generate_phenotype_functional_cluster_correlation", mode = "function")

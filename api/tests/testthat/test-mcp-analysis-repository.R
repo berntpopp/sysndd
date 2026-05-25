@@ -67,6 +67,60 @@ test_that("MCP phenotype repository degrades to unavailable when shared endpoint
   expect_null(mcp_analysis_repo_get_phenotype_correlations())
 })
 
+test_that("MCP phenotype correlations return NULL instead of cold-running analysis on cache miss", {
+  source_mcp_analysis_repository()
+
+  old_hit <- get0("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv, ifnotfound = NULL)
+  old_mem <- get0("generate_phenotype_correlations_mem", envir = .GlobalEnv, ifnotfound = NULL)
+  old_live <- get0("generate_phenotype_correlations", envir = .GlobalEnv, ifnotfound = NULL)
+
+  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
+  assign("generate_phenotype_correlations", function(...) stop("cold phenotype correlations should not run"), envir = .GlobalEnv)
+  if (!is.null(old_mem)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
+
+  withr::defer({
+    if (is.null(old_hit)) rm("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv) else assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
+    if (is.null(old_mem)) {
+      if (exists("generate_phenotype_correlations_mem", envir = .GlobalEnv, inherits = FALSE)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
+    } else {
+      assign("generate_phenotype_correlations_mem", old_mem, envir = .GlobalEnv)
+    }
+    if (is.null(old_live)) rm("generate_phenotype_correlations", envir = .GlobalEnv) else assign("generate_phenotype_correlations", old_live, envir = .GlobalEnv)
+  })
+
+  expect_null(mcp_analysis_repo_get_phenotype_correlations())
+})
+
+test_that("MCP phenotype correlations read from memoised cache hit and apply limits", {
+  source_mcp_analysis_repository()
+
+  old_hit <- get0("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv, ifnotfound = NULL)
+  old_mem <- get0("generate_phenotype_correlations_mem", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) TRUE, envir = .GlobalEnv)
+  assign("generate_phenotype_correlations_mem", function(...) {
+    tibble::tibble(
+      x = c("Seizure", "Hypotonia"),
+      x_id = c("HP:0001250", "HP:0001252"),
+      y = c("Ataxia", "Seizure"),
+      y_id = c("HP:0001251", "HP:0001250"),
+      value = c(0.42, 0.1)
+    )
+  }, envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_hit)) rm("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv) else assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
+    if (is.null(old_mem)) {
+      if (exists("generate_phenotype_correlations_mem", envir = .GlobalEnv, inherits = FALSE)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
+    } else {
+      assign("generate_phenotype_correlations_mem", old_mem, envir = .GlobalEnv)
+    }
+  })
+
+  result <- mcp_analysis_repo_get_phenotype_correlations(phenotype = "HP:0001250", min_abs_correlation = 0.3, limit = 10L)
+
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$x_id[[1]], "HP:0001250")
+})
+
 test_that("MCP phenotype cluster repositories degrade to unavailable when shared helpers fail", {
   source_mcp_analysis_repository()
 
