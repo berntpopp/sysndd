@@ -62,7 +62,7 @@ test_that("PubTator list routes keep cursor pagination and xlsx branches", {
   })
 })
 
-test_that("PubTator mutation routes are present for backend auth follow-up", {
+test_that("PubTator mutation routes require Administrator role", {
   with_test_db_transaction({
     mutation_routes <- c(
       "^#\\*\\s+@post\\s+/pubtator/backfill-genes\\s*$",
@@ -71,9 +71,22 @@ test_that("PubTator mutation routes are present for backend auth follow-up", {
       "^#\\*\\s+@post\\s+/pubtator/clear-cache\\s*$"
     )
     for (route in mutation_routes) {
-      expect_silent(publication_body_blob(route))
+      body <- publication_body_blob(route)
+      expect_match(body, 'require_role\\(req, res, "Administrator"\\)')
     }
   })
+})
+
+test_that("PubTator mutation routes are not globally allowlisted", {
+  source(file.path(get_api_dir(), "core", "middleware.R"), local = TRUE)
+  forbidden <- c(
+    "/api/publication/pubtator/backfill-genes",
+    "/api/publication/pubtator/update",
+    "/api/publication/pubtator/update/submit",
+    "/api/publication/pubtator/clear-cache"
+  )
+  expect_false(any(forbidden %in% AUTH_ALLOWLIST))
+  expect_true("/api/publication/pubtator/cache-status" %in% AUTH_ALLOWLIST)
 })
 
 test_that("PubTator cache-status and update routes validate required query input", {

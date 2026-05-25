@@ -683,6 +683,8 @@ function(req,
 #*
 #* @post /pubtator/backfill-genes
 function(req, res) {
+  require_role(req, res, "Administrator")
+
   start_time <- Sys.time()
 
   # Find search_ids with NULL gene_symbols
@@ -849,6 +851,8 @@ function(req, res, query = "") {
 #*
 #* @post /pubtator/update
 function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
+  require_role(req, res, "Administrator")
+
   start_time <- Sys.time()
 
   if (query == "") {
@@ -985,6 +989,8 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #*
 #* @post /pubtator/update/submit
 function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
+  require_role(req, res, "Administrator")
+
   if (query == "") {
     res$status <- 400
     return(list(error = "Query parameter is required"))
@@ -1112,6 +1118,8 @@ function(req, res, query = "", max_pages = 10, clear_old = FALSE) {
 #*
 #* @post /pubtator/clear-cache
 function(req, res) {
+  require_role(req, res, "Administrator")
+
   start_time <- Sys.time()
 
   tryCatch(
