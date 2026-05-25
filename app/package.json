@@ -1,6 +1,6 @@
 {
   "name": "sysndd",
-  "version": "0.20.11",
+  "version": "0.20.12",
   "private": true,
   "type": "module",
   "scripts": {
