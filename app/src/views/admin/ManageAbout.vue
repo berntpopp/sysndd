@@ -178,6 +178,7 @@ const {
 
 const showPublishModal = ref(false);
 const successMessage = ref<string | null>(null);
+const defaultPreviewActive = ref(false);
 const statusMeta = computed(() =>
   [
     isDraft.value ? 'Draft' : 'Published',
@@ -285,12 +286,15 @@ onMounted(async () => {
   // If API not available or no sections, use defaults
   if (!loaded || sections.value.length === 0) {
     sections.value = [...defaultSections];
+    defaultPreviewActive.value = true;
+  } else {
+    defaultPreviewActive.value = false;
   }
 });
 
 // Autosave on navigate away (only if API is available)
 onBeforeUnmount(async () => {
-  if (apiAvailable.value && sections.value.length > 0) {
+  if (apiAvailable.value && sections.value.length > 0 && !defaultPreviewActive.value) {
     await saveDraft();
   }
 });
@@ -304,6 +308,7 @@ function formatTime(date: Date | null): string {
 // Handle sections update
 function handleSectionsUpdate(updated: AboutSection[]) {
   sections.value = updated;
+  defaultPreviewActive.value = false;
 }
 
 // Handle save draft button
@@ -326,7 +331,7 @@ async function handleSaveDraft() {
 
 // Handle autosave on blur
 async function handleAutosave() {
-  if (apiAvailable.value && sections.value.length > 0) {
+  if (apiAvailable.value && sections.value.length > 0 && !defaultPreviewActive.value) {
     await saveDraft();
   }
 }
