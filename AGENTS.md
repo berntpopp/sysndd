@@ -107,7 +107,7 @@ MCP tools and prompts are strictly read-only and limited to approved public data
 
 `db/migrations/*.sql` are applied at API startup by the migration runner using MySQL advisory locks. Migration failures are supposed to crash startup. Do not work around a failing migration by weakening startup checks.
 
-Startup validates the migration manifest before the fast path. In non-test startup the directory must exist, contain SQL files, include the expected latest migration, and meet the expected minimum file count. Missing or empty mounts are fatal and should be fixed at packaging/deployment time.
+Startup validates the migration manifest before the fast path. In non-test startup the directory must exist, contain SQL files, have `EXPECTED_LATEST_MIGRATION` as the actual sorted latest migration, and meet the expected minimum file count. Missing, empty, or stale mounts are fatal and should be fixed at packaging/deployment time.
 
 ### Container mount boundary
 

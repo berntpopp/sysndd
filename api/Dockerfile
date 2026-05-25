@@ -206,9 +206,9 @@ RUN mkdir -p /app/logs /app/results /app/cache && \
     chown apiuser:api /app/logs /app/results /app/cache
 
 # Health check instruction for Docker orchestration
-# Checks /health endpoint created in 07-01
+# Checks the health endpoint mounted by start_sysndd_api.R
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -sf http://localhost:7777/health/ || exit 1
+    CMD curl -sf http://localhost:7777/api/health/ || exit 1
 
 # Image metadata
 LABEL maintainer="SysNDD Team" \

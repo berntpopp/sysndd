@@ -115,6 +115,8 @@ generate_tibble_fspec_mem      <- memoised$generate_tibble_fspec_mem
 gen_string_clust_obj_mem       <- memoised$gen_string_clust_obj_mem
 gen_mca_clust_obj_mem          <- memoised$gen_mca_clust_obj_mem
 gen_network_edges_mem          <- memoised$gen_network_edges_mem
+generate_phenotype_correlations_mem <-
+  memoised$generate_phenotype_correlations_mem
 read_log_files_mem             <- memoised$read_log_files_mem
 nest_pubtator_gene_tibble_mem  <- memoised$nest_pubtator_gene_tibble_mem
 

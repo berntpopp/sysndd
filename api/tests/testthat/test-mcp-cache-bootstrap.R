@@ -40,6 +40,12 @@ test_that("MCP startup wires read-only shared memoise cache wrappers", {
   expect_false(any(grepl("bootstrap_init_cache_version", script, fixed = TRUE)))
 })
 
+test_that("API startup exposes phenotype correlation memoise wrapper for cache warming", {
+  script <- paste(readLines(file.path(get_api_dir(), "start_sysndd_api.R"), warn = FALSE), collapse = "\n")
+
+  expect_match(script, "generate_phenotype_correlations_mem\\s*<-\\s*memoised\\$generate_phenotype_correlations_mem")
+})
+
 test_that("MCP compose service mounts the shared API cache read-only", {
   compose <- readLines(file.path(dirname(get_api_dir()), "docker-compose.yml"), warn = FALSE)
   mcp_start <- grep("^  mcp:", compose)

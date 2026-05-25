@@ -221,6 +221,24 @@ describe("validate_migration_manifest", {
     })
   })
 
+  it("fails when the expected latest migration is not the actual latest file", {
+    withr::with_tempdir({
+      dir.create("migrations")
+      writeLines("SELECT 1;", file.path("migrations", "001_initial.sql"))
+      writeLines("SELECT 1;", file.path("migrations", "002_current.sql"))
+      writeLines("SELECT 1;", file.path("migrations", "003_newer.sql"))
+
+      expect_error(
+        validate_migration_manifest(
+          "migrations",
+          expected_latest = "002_current.sql",
+          expected_min_count = 2L
+        ),
+        "Expected latest migration mismatch"
+      )
+    })
+  })
+
   it("reports the current repository migration manifest", {
     migrations_dir <- file.path(api_dir, "..", "db", "migrations")
     result <- validate_migration_manifest(migrations_dir)

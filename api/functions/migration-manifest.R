@@ -40,8 +40,14 @@ validate_migration_manifest <- function(migrations_dir = "db/migrations",
     stop(sprintf("No migration files found in: %s", migrations_dir))
   }
 
-  if (!expected_latest %in% files) {
-    stop(sprintf("Expected latest migration is missing: %s", expected_latest))
+  latest <- utils::tail(files, 1L)[[1L]]
+
+  if (!identical(latest, expected_latest)) {
+    stop(sprintf(
+      "Expected latest migration mismatch: expected %s, found %s",
+      expected_latest,
+      latest
+    ))
   }
 
   if (count < expected_min_count) {
@@ -53,6 +59,6 @@ validate_migration_manifest <- function(migrations_dir = "db/migrations",
     allowed_empty = FALSE,
     count = count,
     expected_latest = expected_latest,
-    latest = utils::tail(files, 1L)[[1L]]
+    latest = latest
   )
 }

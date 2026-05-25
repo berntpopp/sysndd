@@ -49,6 +49,13 @@ test_that("API Docker image does not copy real runtime config.yml", {
   expect_false(grepl("COPY .*config\\.yml config\\.yml", dockerfile))
 })
 
+test_that("API Docker image healthcheck uses mounted API health route", {
+  dockerfile <- paste(readLines(file.path(get_api_dir(), "Dockerfile"), warn = FALSE), collapse = "\n")
+
+  expect_match(dockerfile, "http://localhost:7777/api/health/")
+  expect_false(grepl("http://localhost:7777/health/", dockerfile, fixed = TRUE))
+})
+
 test_that("API Docker build context excludes real runtime config files", {
   dockerignore <- readLines(file.path(get_api_dir(), ".dockerignore"), warn = FALSE)
 
