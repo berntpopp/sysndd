@@ -108,6 +108,8 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/ensembl-functions.R", local = FALSE)
     # Source db-helpers for parameterized queries
     source("/app/functions/db-helpers.R", local = FALSE)
+    # Source metadata refresh helpers for rollback-safe table replacement
+    source("/app/functions/metadata-refresh.R", local = FALSE)
     # Source durable async-job repository for worker-side lease/progress operations
     source("/app/functions/async-job-repository.R", local = FALSE)
     # Source durable async-job runtime helpers before the compatibility shim

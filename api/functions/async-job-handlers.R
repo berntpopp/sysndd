@@ -500,35 +500,13 @@
   )
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
-  auto_fixes_applied <- 0
-  DBI::dbBegin(sysndd_db)
-  tryCatch(
-    {
-      DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-      DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-      DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
-      DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
-
-      if (nrow(safeguard$auto_fixes) > 0) {
-        for (i in seq_len(nrow(safeguard$auto_fixes))) {
-          fix <- safeguard$auto_fixes[i, ]
-          DBI::dbExecute(
-            sysndd_db,
-            "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?",
-            params = unname(list(fix$new_version, fix$old_version))
-          )
-          auto_fixes_applied <- auto_fixes_applied + 1
-        }
-      }
-
-      DBI::dbCommit(sysndd_db)
-      auto_fixes_applied
-    },
-    error = function(e) {
-      DBI::dbRollback(sysndd_db)
-      stop(conditionMessage(e), call. = FALSE)
-    }
+  refresh_result <- refresh_disease_ontology_set(
+    conn = sysndd_db,
+    disease_ontology_set_update = disease_ontology_set_update,
+    auto_fixes = safeguard$auto_fixes
   )
+
+  refresh_result$auto_fixes_applied
 }
 
 .async_job_run_omim_update <- function(job, payload, state, worker_config) {
@@ -688,36 +666,17 @@
   )
   on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
 
-  auto_fixes_applied <- 0
   result <- tryCatch(
     {
-      DBI::dbBegin(sysndd_db)
-      compat_count <- 0
+      refresh_result <- refresh_disease_ontology_set(
+        conn = sysndd_db,
+        disease_ontology_set_update = disease_ontology_set_update,
+        auto_fixes = auto_fixes,
+        compatibility_rows = compatibility_rows
+      )
 
-      DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-      DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-      DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
-
-      if (nrow(compatibility_rows) > 0) {
-        DBI::dbAppendTable(sysndd_db, "disease_ontology_set", compatibility_rows)
-        compat_count <- nrow(compatibility_rows)
-      }
-
-      DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
-
-      if (nrow(auto_fixes) > 0) {
-        for (i in seq_len(nrow(auto_fixes))) {
-          fix <- auto_fixes[i, ]
-          DBI::dbExecute(
-            sysndd_db,
-            "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?",
-            params = unname(list(fix$new_version, fix$old_version))
-          )
-          auto_fixes_applied <- auto_fixes_applied + 1
-        }
-      }
-
-      DBI::dbCommit(sysndd_db)
+      auto_fixes_applied <- refresh_result$auto_fixes_applied
+      compat_count <- refresh_result$compatibility_rows
 
       re_review_batch_id <- NULL
       if (length(critical_entity_ids) > 0 && exists("batch_create", mode = "function")) {
@@ -754,7 +713,6 @@
       )
     },
     error = function(e) {
-      DBI::dbRollback(sysndd_db)
       stop(paste("Force-apply failed:", conditionMessage(e)), call. = FALSE)
     }
   )

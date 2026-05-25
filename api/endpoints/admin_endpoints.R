@@ -137,133 +137,7 @@ function(req, res) {
         host = dw$host,
         port = dw$port
       )
-    ),
-    executor_fn = function(params) {
-      # Source required functions in worker
-      source("functions/omim-functions.R")
-      source("functions/mondo-functions.R")
-      source("functions/ontology-functions.R")
-      source("functions/file-functions.R")
-
-      # Process new ontology data using mim2gene + JAX API
-      disease_ontology_set_update <- process_combine_ontology(
-        params$non_alt_loci_set,
-        params$mode_of_inheritance_list,
-        3,
-        "data/"
-      )
-
-      # Validate before write (CONTEXT.md: abort if any entry fails)
-      validation <- validate_omim_data(disease_ontology_set_update)
-      if (!validation$valid) {
-        stop(paste("Validation failed:", paste(validation$errors, collapse = "; ")))
-      }
-
-      # Identify critical changes with safeguard
-      ndd_entity_view_ontology_set <- params$ndd_entity_view %>%
-        dplyr::select(entity_id, disease_ontology_id_version, disease_ontology_name)
-
-      safeguard <- identify_critical_ontology_changes(
-        disease_ontology_set_update,
-        params$disease_ontology_set_current,
-        ndd_entity_view_ontology_set
-      )
-
-      # If truly critical changes exist, BLOCK the write
-      if (safeguard$summary$truly_critical > 0) {
-        # Save pending update to CSV for later force-apply
-        pending_dir <- "data/pending_ontology/"
-        if (!dir.exists(pending_dir)) dir.create(pending_dir, recursive = TRUE)
-        csv_path <- paste0(
-          pending_dir,
-          "pending_ontology_update.",
-          format(Sys.Date(), "%Y-%m-%d"),
-          ".csv"
-        )
-        readr::write_csv(disease_ontology_set_update, file = csv_path, na = "NULL")
-
-        # Return blocked result (job completes, but signals blocked)
-        return(list(
-          status = "blocked",
-          message = paste0(
-            "Ontology update blocked: ", safeguard$summary$truly_critical,
-            " critical entity-referenced changes detected. ",
-            "Review and use Force Apply to proceed."
-          ),
-          pending_csv_path = csv_path,
-          critical_count = safeguard$summary$truly_critical,
-          auto_fixable_count = safeguard$summary$auto_fixable,
-          total_affected = safeguard$summary$total_affected,
-          critical_entities = safeguard$critical %>%
-            dplyr::select(
-              disease_ontology_id_version,
-              disease_ontology_name,
-              hgnc_id,
-              hpo_mode_of_inheritance_term
-            ) %>%
-            as.list() %>%
-            purrr::transpose(),
-          auto_fixes = if (nrow(safeguard$auto_fixes) > 0) {
-            safeguard$auto_fixes %>%
-              as.list() %>%
-              purrr::transpose()
-          } else {
-            list()
-          }
-        ))
-      }
-
-      # No truly critical changes — proceed with write
-      # Connect to database
-      sysndd_db <- DBI::dbConnect(
-        RMariaDB::MariaDB(),
-        dbname = params$db_config$dbname,
-        user = params$db_config$user,
-        password = params$db_config$password,
-        server = params$db_config$server,
-        host = params$db_config$host,
-        port = params$db_config$port
-      )
-      on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
-
-      auto_fixes_applied <- 0
-      DBI::dbBegin(sysndd_db)
-      tryCatch(
-        {
-          # Truncate and write new ontology set first (new versions must
-          # exist before auto-fix UPDATEs can reference them)
-          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-          DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-          DBI::dbAppendTable(sysndd_db, "disease_ontology_set", disease_ontology_set_update)
-          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
-
-          # Apply auto-fix UPDATEs to ndd_entity (new versions now exist)
-          if (nrow(safeguard$auto_fixes) > 0) {
-            for (i in seq_len(nrow(safeguard$auto_fixes))) {
-              fix <- safeguard$auto_fixes[i, ]
-              DBI::dbExecute(
-                sysndd_db,
-                "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?", # nolint: line_length_linter
-                params = unname(list(fix$new_version, fix$old_version))
-              )
-              auto_fixes_applied <- auto_fixes_applied + 1
-            }
-          }
-
-          DBI::dbCommit(sysndd_db)
-          list(
-            status = "success",
-            rows_written = nrow(disease_ontology_set_update),
-            auto_fixes_applied = auto_fixes_applied,
-            total_affected = safeguard$summary$total_affected
-          )
-        },
-        error = function(e) {
-          DBI::dbRollback(sysndd_db)
-          stop(paste("Database write failed:", e$message))
-        }
-      )
-    }
+    )
   )
 
   res$status <- 202
@@ -413,164 +287,7 @@ function(req, res, blocked_job_id = NULL, assigned_user_id = NULL) {
         host = dw$host,
         port = dw$port
       )
-    ),
-    executor_fn = function(params) {
-      source("functions/file-functions.R")
-
-      # Load the pending ontology data
-      disease_ontology_set_update <- readr::read_csv(
-        params$csv_path, na = "NULL", show_col_types = FALSE
-      )
-
-      # Reconstruct auto_fixes tibble from raw list
-      auto_fixes <- if (length(params$auto_fixes_raw) > 0) {
-        tibble::tibble(
-          old_version = vapply(
-            params$auto_fixes_raw,
-            function(x) as.character(x$old_version %||% x$old_version[[1]]),
-            character(1)
-          ),
-          new_version = vapply(
-            params$auto_fixes_raw,
-            function(x) as.character(x$new_version %||% x$new_version[[1]]),
-            character(1)
-          )
-        )
-      } else {
-        tibble::tibble(old_version = character(0), new_version = character(0))
-      }
-
-      # Reconstruct critical entities tibble to extract old versions
-      critical_versions <- if (length(params$critical_entities_raw) > 0) {
-        vapply(
-          params$critical_entities_raw,
-          function(x) {
-            v <- x$disease_ontology_id_version
-            if (is.list(v)) v[[1]] else v
-          },
-          character(1)
-        )
-      } else {
-        character(0)
-      }
-
-      # Get entity_ids referencing critical versions
-      critical_entity_ids <- if (length(critical_versions) > 0) {
-        params$ndd_entity_view %>%
-          dplyr::filter(
-            disease_ontology_id_version %in% critical_versions
-          ) %>%
-          dplyr::pull(entity_id) %>%
-          unique()
-      } else {
-        integer(0)
-      }
-
-      # Build compatibility rows from current ontology for critical versions
-      compatibility_rows <- if (length(critical_versions) > 0) {
-        params$disease_ontology_set_current %>%
-          dplyr::filter(
-            disease_ontology_id_version %in% critical_versions
-          ) %>%
-          dplyr::mutate(is_active = FALSE)
-      } else {
-        tibble::tibble()
-      }
-
-      # Connect to database
-      sysndd_db <- DBI::dbConnect(
-        RMariaDB::MariaDB(),
-        dbname = params$db_config$dbname,
-        user = params$db_config$user,
-        password = params$db_config$password,
-        server = params$db_config$server,
-        host = params$db_config$host,
-        port = params$db_config$port
-      )
-      on.exit(DBI::dbDisconnect(sysndd_db), add = TRUE)
-
-      auto_fixes_applied <- 0
-      DBI::dbBegin(sysndd_db)
-      tryCatch(
-        {
-          # Truncate and write new ontology set first (new versions must
-          # exist before auto-fix UPDATEs can reference them)
-          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 0;")
-          DBI::dbExecute(sysndd_db, "TRUNCATE TABLE disease_ontology_set;")
-          DBI::dbAppendTable(
-            sysndd_db, "disease_ontology_set", disease_ontology_set_update
-          )
-
-          # Append compatibility rows so critical entity FKs remain valid
-          compat_count <- 0
-          if (nrow(compatibility_rows) > 0) {
-            DBI::dbAppendTable(
-              sysndd_db, "disease_ontology_set", compatibility_rows
-            )
-            compat_count <- nrow(compatibility_rows)
-          }
-
-          DBI::dbExecute(sysndd_db, "SET FOREIGN_KEY_CHECKS = 1;")
-
-          # Apply auto-fix UPDATEs to ndd_entity (new versions now exist)
-          if (nrow(auto_fixes) > 0) {
-            for (i in seq_len(nrow(auto_fixes))) {
-              fix <- auto_fixes[i, ]
-              DBI::dbExecute(
-                sysndd_db,
-                "UPDATE ndd_entity SET disease_ontology_id_version = ? WHERE disease_ontology_id_version = ?", # nolint: line_length_linter
-                params = unname(list(fix$new_version, fix$old_version))
-              )
-              auto_fixes_applied <- auto_fixes_applied + 1
-            }
-          }
-          DBI::dbCommit(sysndd_db)
-
-          # Create re-review batch for critical entities (outside transaction)
-          re_review_batch_id <- NULL
-          if (length(critical_entity_ids) > 0) {
-            tryCatch({
-              source("services/re-review-service.R")
-              source("functions/db-helpers.R")
-              batch_name <- paste0(
-                "Ontology Update Review - ",
-                format(Sys.Date(), "%Y-%m-%d")
-              )
-              batch_result <- batch_create(
-                criteria = list(entity_ids = critical_entity_ids),
-                assigned_user_id = params$requesting_user_id,
-                batch_name = batch_name,
-                pool = sysndd_db
-              )
-              if (batch_result$status == 200) {
-                re_review_batch_id <- batch_result$entry$batch_id
-              }
-            }, error = function(e) {
-              warning(paste(
-                "Re-review batch creation failed (non-fatal):",
-                e$message
-              ))
-            })
-          }
-
-          # Clean up pending CSV
-          tryCatch(file.remove(params$csv_path), error = function(e) NULL)
-
-          list(
-            status = "success",
-            rows_written = nrow(disease_ontology_set_update),
-            auto_fixes_applied = auto_fixes_applied,
-            compatibility_rows = compat_count,
-            re_review_batch_id = re_review_batch_id,
-            critical_entity_count = length(critical_entity_ids)
-          )
-        },
-        error = function(e) {
-          DBI::dbRollback(sysndd_db)
-          stop(paste("Force-apply failed:", e$message))
-        }
-      )
-    }
+    )
   )
 
   res$status <- 202
@@ -609,27 +326,26 @@ function(req, res) {
   tryCatch(
     {
       db_with_transaction(function(txn_conn) {
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 0", conn = txn_conn)
-        db_execute_statement("TRUNCATE TABLE non_alt_loci_set", conn = txn_conn)
+        metadata_with_foreign_key_checks_disabled(txn_conn, function() {
+          db_execute_statement("DELETE FROM non_alt_loci_set", conn = txn_conn)
 
-        # Insert hgnc_data rows using dynamic column names
-        if (nrow(hgnc_data) > 0) {
-          cols <- names(hgnc_data)
-          # Quote column names with backticks for MySQL (handles special chars like hyphens)
-          quoted_cols <- paste0("`", cols, "`")
-          placeholders <- paste(rep("?", length(cols)), collapse = ", ")
-          sql <- sprintf(
-            "INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
-            paste(quoted_cols, collapse = ", "), placeholders
-          )
-          for (i in seq_len(nrow(hgnc_data))) {
-            # Convert row to unnamed list for anonymous placeholders
-            row_values <- unname(as.list(hgnc_data[i, ]))
-            db_execute_statement(sql, row_values, conn = txn_conn)
+          # Insert hgnc_data rows using dynamic column names
+          if (nrow(hgnc_data) > 0) {
+            cols <- names(hgnc_data)
+            # Quote column names with backticks for MySQL (handles special chars like hyphens)
+            quoted_cols <- paste0("`", cols, "`")
+            placeholders <- paste(rep("?", length(cols)), collapse = ", ")
+            sql <- sprintf(
+              "INSERT INTO non_alt_loci_set (%s) VALUES (%s)",
+              paste(quoted_cols, collapse = ", "), placeholders
+            )
+            for (i in seq_len(nrow(hgnc_data))) {
+              # Convert row to unnamed list for anonymous placeholders
+              row_values <- unname(as.list(hgnc_data[i, ]))
+              db_execute_statement(sql, row_values, conn = txn_conn)
+            }
           }
-        }
-
-        db_execute_statement("SET FOREIGN_KEY_CHECKS = 1", conn = txn_conn)
+        })
       })
 
       list(status = "Success", message = "HGNC data update process completed.")
