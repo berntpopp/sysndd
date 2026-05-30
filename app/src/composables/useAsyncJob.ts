@@ -85,9 +85,9 @@ export interface UseAsyncJobReturn {
  *
  * @example
  * ```ts
- * const { startJob, status, progress, elapsedTimeDisplay, stopPolling } = useAsyncJob(
- *   (jobId) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
- * );
+   * const { startJob, status, progress, elapsedTimeDisplay, stopPolling } = useAsyncJob(
+   *   (jobId) => `/api/jobs/${encodeURIComponent(jobId)}/status`
+   * );
  *
  * // Start tracking a job
  * const response = await axios.post('/api/start-job');

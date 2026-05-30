@@ -408,6 +408,50 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     expect(html).toContain('completed');
   });
 
+  it('polls job status with a relative URL when VITE_API_URL is not configured', async () => {
+    vi.unstubAllEnvs();
+    delete (import.meta.env as Record<string, string | undefined>).VITE_API_URL;
+
+    let goodPollCount = 0;
+    let badPollCount = 0;
+    server.use(
+      http.put('/api/admin/update_ontology_async', () =>
+        HttpResponse.json({
+          job_id: ['ontology-update-no-env'],
+          status: ['accepted'],
+        })
+      ),
+      http.get('/api/jobs/:job_id/status', () => {
+        goodPollCount += 1;
+        return HttpResponse.json({
+          job_id: ['ontology-update-no-env'],
+          status: ['completed'],
+          step: ['Done'],
+          result: [{ status: ['ok'], auto_fixes_applied: [0] }],
+        });
+      }),
+      http.get('/undefined/api/jobs/:job_id/status', () => {
+        badPollCount += 1;
+        return HttpResponse.json({ error: 'bad status URL' }, { status: 500 });
+      })
+    );
+
+    const wrapper = await mountView();
+    const buttons = wrapper.findAll('button');
+    const updateOntology = buttons.find((button) =>
+      button.text().includes('Update Ontology Annotations')
+    );
+    expect(updateOntology, 'Update Ontology Annotations button exists').toBeTruthy();
+
+    await updateOntology!.trigger('click');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(goodPollCount).toBe(2);
+    expect(badPollCount).toBe(0);
+  });
+
   // -------------------------------------------------------------------------
   // Error path: ontology update returns Phase 76 `status = "blocked"` shape
   // -------------------------------------------------------------------------

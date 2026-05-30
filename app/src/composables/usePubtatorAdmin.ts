@@ -82,7 +82,7 @@ export function usePubtatorAdmin() {
   const baseUrl = `${URLS.API_URL}/api/publication/pubtator`;
 
   // Use the async job composable for fetch operations
-  const asyncJob = useAsyncJob((jobId: string) => `${URLS.API_URL}/api/jobs/${jobId}/status`, {
+  const asyncJob = useAsyncJob((jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`, {
     pollingInterval: 3000,
   });
 
