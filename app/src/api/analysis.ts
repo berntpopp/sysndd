@@ -52,12 +52,24 @@ export interface PaginationMeta {
   has_more: boolean;
 }
 
+export interface AnalysisSnapshotMeta {
+  snapshot_id?: number;
+  analysis_type?: string;
+  parameter_hash?: string;
+  schema_version?: string;
+  data_class?: string;
+  generated_at?: string;
+  stale_after?: string;
+  source_data_version?: string;
+}
+
 export interface ClusteringMeta {
   algorithm: string;
   elapsed_seconds: number;
   gene_count: number;
   cluster_count: number;
   cache_hit?: boolean;
+  snapshot?: AnalysisSnapshotMeta;
 }
 
 export interface FunctionalClusteringResponse {
@@ -68,13 +80,21 @@ export interface FunctionalClusteringResponse {
 }
 
 /**
- * One element returned by `GET /api/analysis/phenotype_clustering` — a
- * cluster + the nested entity identifiers belonging to it.
+ * One phenotype cluster row returned in the `GET /api/analysis/phenotype_clustering`
+ * envelope.
  */
 export interface PhenotypeCluster {
   cluster: string | number;
   identifiers: Array<{ entity_id: number; hgnc_id: string; symbol: string }>;
   [key: string]: unknown;
+}
+
+export interface PhenotypeClusteringResponse {
+  clusters: PhenotypeCluster[];
+  meta: {
+    snapshot?: AnalysisSnapshotMeta;
+    [key: string]: unknown;
+  };
 }
 
 /**
@@ -144,6 +164,7 @@ export interface NetworkMetadata {
   total_ndd_genes?: number;
   genes_with_string?: number;
   genes_in_clusters?: number;
+  snapshot?: AnalysisSnapshotMeta;
   [key: string]: unknown;
 }
 
@@ -202,8 +223,8 @@ export async function getFunctionalClustering(
  */
 export async function getPhenotypeClustering(
   config?: AxiosRequestConfig
-): Promise<PhenotypeCluster[]> {
-  return apiClient.get<PhenotypeCluster[]>('/api/analysis/phenotype_clustering', config);
+): Promise<PhenotypeClusteringResponse> {
+  return apiClient.get<PhenotypeClusteringResponse>('/api/analysis/phenotype_clustering', config);
 }
 
 /**

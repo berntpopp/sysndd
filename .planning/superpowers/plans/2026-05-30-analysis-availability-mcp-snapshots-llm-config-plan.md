@@ -689,7 +689,7 @@ Expected:
 - Modify: `app/src/composables/useNetworkData.ts`
 - Modify: `app/src/composables/useNetworkData.spec.ts`
 
-- [ ] **Step 1: Write API snapshot read tests first**
+- [x] **Step 1: Write API snapshot read tests first**
 
 Create `api/tests/testthat/test-endpoint-analysis-snapshot-read.R`:
 
@@ -723,7 +723,7 @@ test_that("analysis snapshot service returns snapshot_missing for supported miss
 })
 ```
 
-- [ ] **Step 2: Write job result mode tests first**
+- [x] **Step 2: Write job result mode tests first**
 
 Create `api/tests/testthat/test-unit-job-status-result-mode.R`:
 
@@ -781,7 +781,7 @@ test_that("get_job_status includes result only for full result mode", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -795,7 +795,7 @@ Expected:
 - Snapshot service test fails because `analysis-snapshot-service.R` does not exist.
 - Job result mode test fails because `get_job_status()` has no `result_mode` argument and always requests result JSON.
 
-- [ ] **Step 4: Implement snapshot service**
+- [x] **Step 4: Implement snapshot service**
 
 Create `api/services/analysis-snapshot-service.R` with:
 
@@ -833,7 +833,7 @@ Modify `api/bootstrap/load_modules.R`:
 
 - Add `"services/analysis-snapshot-service.R"` before MCP services that may call it.
 
-- [ ] **Step 5: Switch public analysis endpoints to snapshot service**
+- [x] **Step 5: Switch public analysis endpoints to snapshot service**
 
 Modify `api/endpoints/analysis_endpoints.R`:
 
@@ -846,7 +846,7 @@ Modify `api/endpoints/analysis_endpoints.R`:
 
 Keep the existing heavy helper functions available for worker/admin refresh; do not delete them.
 
-- [ ] **Step 6: Implement job result modes and remove public cache-hit LLM chaining**
+- [x] **Step 6: Implement job result modes and remove public cache-hit LLM chaining**
 
 Modify `api/functions/job-manager.R`:
 
@@ -867,7 +867,7 @@ Modify clustering and phenotype clustering cache-hit branches in `api/endpoints/
 - Add response field `llm_generation = "snapshot_refresh_owned"` in the accepted response metadata if a field is needed for clients.
 - Do not remove worker `after_success` chaining for actual queued clustering jobs in this task.
 
-- [ ] **Step 7: Update frontend analysis types and degraded network handling**
+- [x] **Step 7: Update frontend analysis types and degraded network handling**
 
 Modify `app/src/api/analysis.ts`:
 
@@ -899,7 +899,7 @@ Modify tests in `app/src/api/analysis.spec.ts` and `app/src/composables/useNetwo
 - Assert `metadata.snapshot.analysis_type` is accepted on network responses.
 - Assert a rejected snapshot problem sets `error.value` and leaves `networkData.value` null.
 
-- [ ] **Step 8: Run focused tests**
+- [x] **Step 8: Run focused tests**
 
 Run:
 
@@ -914,7 +914,7 @@ Expected:
 - API focused tests pass.
 - Vitest specs pass.
 
-- [ ] **Step 9: Commit Task 3**
+- [x] **Step 9: Commit Task 3**
 
 Run:
 

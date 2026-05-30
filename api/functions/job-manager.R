@@ -61,6 +61,8 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
 #' mirai resolution state, and returns appropriate response.
 #'
 #' @param job_id Character string - the UUID of the job
+#' @param result_mode Character string - "summary" omits stored result JSON,
+#'   "full" includes and parses it.
 #'
 #' @return List with either:
 #'   - Not found: error="JOB_NOT_FOUND"
@@ -71,8 +73,16 @@ create_job <- function(operation, params, executor_fn, timeout_ms = 1800000) {
 #' \dontrun{
 #' status <- get_job_status("550e8400-e29b-41d4-a716-446655440000")
 #' }
-get_job_status <- function(job_id) {
-  job <- async_job_service_status(job_id, include_result = TRUE)
+get_job_status <- function(job_id, result_mode = "summary") {
+  result_mode <- as.character(result_mode[[1]] %||% "summary")
+  if (!result_mode %in% c("summary", "full")) {
+    stop("result_mode must be one of: summary, full", call. = FALSE)
+  }
+
+  job <- async_job_service_status(
+    job_id,
+    include_result = identical(result_mode, "full")
+  )
 
   if (nrow(job) == 0) {
     return(list(
@@ -108,6 +118,23 @@ get_job_status <- function(job_id) {
   }
 
   if (durable_status == "completed") {
+    result <- NULL
+    error <- NULL
+    if (identical(result_mode, "full") &&
+        "result_json" %in% names(job) &&
+        !is.na(job$result_json[[1]])) {
+      result <- tryCatch(
+        jsonlite::fromJSON(job$result_json[[1]], simplifyVector = TRUE),
+        error = function(e) {
+          error <<- list(
+            code = "RESULT_PARSE_FAILED",
+            message = conditionMessage(e)
+          )
+          NULL
+        }
+      )
+    }
+
     return(list(
       job_id = job_id,
       status = "completed",
@@ -116,12 +143,9 @@ get_job_status <- function(job_id) {
       } else {
         NULL
       },
-      result = if (!is.na(job$result_json[[1]])) {
-        jsonlite::fromJSON(job$result_json[[1]], simplifyVector = TRUE)
-      } else {
-        NULL
-      },
-      error = NULL
+      result = result,
+      result_mode = result_mode,
+      error = error
     ))
   }
 

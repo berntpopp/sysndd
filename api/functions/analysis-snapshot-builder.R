@@ -320,7 +320,14 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         max_edges = params$max_edges
       )
       built <- analysis_snapshot_build_network_rows(network)
-      list(kind = "network", raw = network, nodes = built$nodes, edges = built$edges, row_counts = built$row_counts)
+      list(
+        kind = "network",
+        raw = network,
+        nodes = built$nodes,
+        edges = built$edges,
+        metadata = network$metadata %||% list(),
+        row_counts = built$row_counts
+      )
     },
     stop(sprintf("Unsupported analysis snapshot type: %s", normalized$analysis_type), call. = FALSE)
   )
@@ -348,6 +355,9 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     source_data_version <- analysis_snapshot_source_data_version(conn = refresh_conn)
     payload <- analysis_snapshot_build_payload(normalized$analysis_type, normalized$params, conn = refresh_conn)
     row_counts <- payload$row_counts %||% list()
+    if (identical(payload$kind, "network")) {
+      row_counts$network_metadata <- payload$metadata %||% list()
+    }
     payload_hash <- analysis_snapshot_payload_hash(payload[setdiff(names(payload), c("raw"))])
     input_hash <- analysis_snapshot_input_hash(list(
       analysis_type = normalized$analysis_type,

@@ -162,21 +162,6 @@ function(req, res) {
     )
     job_id <- completed_job$job_id[[1]]
 
-    # Chain LLM generation for cache hits (same as job completion path)
-    if (exists("trigger_llm_batch_generation", mode = "function")) {
-      message("[jobs_endpoints] Triggering LLM batch generation for functional clusters (cache hit)")
-      tryCatch(
-        trigger_llm_batch_generation(
-          clusters = cached_clusters,
-          cluster_type = "functional",
-          parent_job_id = job_id
-        ),
-        error = function(e) message("[jobs_endpoints] LLM trigger error: ", e$message)
-      )
-    } else {
-      message("[jobs_endpoints] trigger_llm_batch_generation not found")
-    }
-
     res$status <- 202
     res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
     res$setHeader("Retry-After", "0")
@@ -185,7 +170,8 @@ function(req, res) {
       job_id = job_id,
       status = "accepted",
       estimated_seconds = 0,
-      status_url = paste0("/api/jobs/", job_id, "/status")
+      status_url = paste0("/api/jobs/", job_id, "/status"),
+      meta = list(llm_generation = "snapshot_refresh_owned")
     ))
   }
 
@@ -392,21 +378,6 @@ function(req, res) {
     )
     job_id <- completed_job$job_id[[1]]
 
-    # Chain LLM generation for cache hits (same as job completion path)
-    if (exists("trigger_llm_batch_generation", mode = "function")) {
-      message("[jobs_endpoints] Triggering LLM batch generation for phenotype clusters (cache hit)")
-      tryCatch(
-        trigger_llm_batch_generation(
-          clusters = cached_clusters_with_ids,
-          cluster_type = "phenotype",
-          parent_job_id = job_id
-        ),
-        error = function(e) message("[jobs_endpoints] LLM trigger error: ", e$message)
-      )
-    } else {
-      message("[jobs_endpoints] trigger_llm_batch_generation not found")
-    }
-
     res$status <- 202
     res$setHeader("Location", paste0("/api/jobs/", job_id, "/status"))
     res$setHeader("Retry-After", "0")
@@ -415,7 +386,8 @@ function(req, res) {
       job_id = job_id,
       status = "accepted",
       estimated_seconds = 0,
-      status_url = paste0("/api/jobs/", job_id, "/status")
+      status_url = paste0("/api/jobs/", job_id, "/status"),
+      meta = list(llm_generation = "snapshot_refresh_owned")
     ))
   }
 
@@ -945,8 +917,20 @@ function(req, res, limit = 20) {
 #* @tag jobs
 #* @serializer json list(na="string", auto_unbox=TRUE)
 #* @get /<job_id>/status
-function(job_id, res) {
-  status <- get_job_status(job_id)
+function(job_id, result_mode = "summary", req, res) {
+  if (!is.null(req$argsBody$result_mode)) {
+    result_mode <- req$argsBody$result_mode
+  }
+  result_mode <- as.character(result_mode[[1]] %||% "summary")
+  if (!result_mode %in% c("summary", "full")) {
+    res$status <- 400
+    return(list(
+      error = "INVALID_RESULT_MODE",
+      message = "result_mode must be one of: summary, full"
+    ))
+  }
+
+  status <- get_job_status(job_id, result_mode = result_mode)
 
   if (identical(status$error, "JOB_NOT_FOUND")) {
     res$status <- 404

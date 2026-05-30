@@ -14,6 +14,7 @@ import {
   getPhenotypeClusterSummary,
   type FunctionalClusteringResponse,
   type PhenotypeCluster,
+  type PhenotypeClusteringResponse,
   type CorrelationResponse,
   type NetworkEdgesResponse,
   type ClusterSummary,
@@ -89,14 +90,23 @@ describe('api/analysis — getFunctionalClustering', () => {
 });
 
 describe('api/analysis — getPhenotypeClustering', () => {
-  it('returns the cluster array on 200', async () => {
+  it('returns the cluster envelope on 200', async () => {
     const clusters: PhenotypeCluster[] = [
       { cluster: 1, identifiers: [{ entity_id: 1, hgnc_id: 'HGNC:1', symbol: 'A1BG' }] },
     ];
-    server.use(http.get('/api/analysis/phenotype_clustering', () => HttpResponse.json(clusters)));
+    const response: PhenotypeClusteringResponse = {
+      clusters,
+      meta: {
+        snapshot: {
+          analysis_type: 'phenotype_clusters',
+        },
+      },
+    };
+    server.use(http.get('/api/analysis/phenotype_clustering', () => HttpResponse.json(response)));
     const result = await getPhenotypeClustering();
-    expect(result).toHaveLength(1);
-    expect(result[0].identifiers[0].symbol).toBe('A1BG');
+    expect(result.clusters).toHaveLength(1);
+    expect(result.clusters[0].identifiers[0].symbol).toBe('A1BG');
+    expect(result.meta.snapshot?.analysis_type).toBe('phenotype_clusters');
   });
 });
 
@@ -133,6 +143,9 @@ describe('api/analysis — getNetworkEdges', () => {
         edges_filtered: false,
         elapsed_seconds: 0,
         display_layout_status: 'available',
+        snapshot: {
+          analysis_type: 'gene_network_edges',
+        },
       },
     };
     server.use(
@@ -154,6 +167,7 @@ describe('api/analysis — getNetworkEdges', () => {
     expect(q.get('max_edges')).toBe('3000');
     expect(result.nodes[0].x).toBe(10);
     expect(result.nodes[0].y).toBe(20);
+    expect(result.metadata.snapshot?.analysis_type).toBe('gene_network_edges');
   });
 });
 

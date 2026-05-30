@@ -16,6 +16,7 @@ import { ref, shallowRef, computed, type Ref, type ComputedRef } from 'vue';
 import type { ElementDefinition } from 'cytoscape';
 import { getNetworkEdges } from '@/api/analysis';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
+import { isApiError } from '@/api/client';
 import { getClusterColor } from '../utils/clusterColors';
 
 /**
@@ -140,6 +141,19 @@ function buildCytoscapeElements(
   return [...clusterParentNodes, ...nodes, ...edges];
 }
 
+function networkDataError(err: unknown): Error {
+  if (isApiError<{ code?: string; message?: string }>(err)) {
+    const problem = err.response?.data;
+    if (problem?.code) {
+      return new Error(
+        problem.message ? `${problem.code}: ${problem.message}` : problem.code
+      );
+    }
+  }
+
+  return err instanceof Error ? err : new Error('Failed to fetch network data');
+}
+
 /**
  * Composable for fetching and transforming network data
  *
@@ -216,7 +230,7 @@ export function useNetworkData(): NetworkDataState {
         );
       }
     } catch (err) {
-      error.value = err instanceof Error ? err : new Error('Failed to fetch network data');
+      error.value = networkDataError(err);
       console.error('Network data fetch error:', err);
     } finally {
       isLoading.value = false;
