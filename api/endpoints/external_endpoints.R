@@ -551,43 +551,15 @@ function(symbol, res) {
     rgd = function() fetch_rgd_phenotypes_mem(symbol)
   )
 
-  # Initialize result structure
-  results <- list(
-    gene_symbol = symbol,
-    sources = list(),
-    errors = list(),
-    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+  results <- external_proxy_aggregate_sources(
+    symbol,
+    sources,
+    instance = paste0("/api/external/gene/", symbol)
   )
-
-  # Loop through sources with error isolation (tryCatch per source)
-  for (source_name in names(sources)) {
-    result <- tryCatch(
-      {
-        sources[[source_name]]()
-      },
-      error = function(e) {
-        list(error = TRUE, source = source_name, message = conditionMessage(e))
-      }
-    )
-
-    if (is.list(result) && isTRUE(result$error)) {
-      results$errors[[source_name]] <- create_external_error(
-        source_name,
-        result$message %||% paste(source_name, "unavailable"),
-        503L,
-        paste0("/api/external/gene/", symbol)
-      )
-    } else if (is.list(result) && isTRUE(result$found == FALSE)) {
-      # Gene not found in this source - not an error, just no data
-      results$sources[[source_name]] <- list(found = FALSE)
-    } else {
-      results$sources[[source_name]] <- result
-    }
-  }
 
   # Check if all sources failed (have actual errors, not just "not found")
   successful_sources <- Filter(function(s) !isTRUE(s$found == FALSE), results$sources)
-  if (length(successful_sources) == 0 && length(results$errors) > 0) {
+  if (!isTRUE(results$partial) && length(successful_sources) == 0 && length(results$errors) > 0) {
     res$status <- 503L
     res$setHeader("Content-Type", "application/problem+json")
     return(list(

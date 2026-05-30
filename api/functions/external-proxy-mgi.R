@@ -40,8 +40,10 @@ MOUSEMINE_BASE_URL <- "https://www.mousemine.org/mousemine/service"
 #'
 #' @export
 fetch_mgi_phenotypes <- function(gene_symbol) {
-  tryCatch(
-    {
+  external_proxy_with_timing("mgi", function() {
+    tryCatch(
+      {
+        budget <- external_proxy_budget("mgi")
       # Validate gene symbol format
       if (!validate_gene_symbol(gene_symbol)) {
         return(list(
@@ -66,14 +68,15 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
           size = "10000"
         ) |>
         httr2::req_retry(
-          max_tries = 3,
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
           backoff = ~ 2
         ) |>
         httr2::req_throttle(
           rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
           realm = "mousemine"
         ) |>
-        httr2::req_timeout(30) |>
+        httr2::req_timeout(budget$timeout_seconds) |>
         httr2::req_perform()
 
       phenotype_data <- httr2::resp_body_json(phenotype_response)
@@ -120,12 +123,16 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
                 format = "json",
                 size = "10000"
               ) |>
-              httr2::req_retry(max_tries = 2, backoff = ~ 2) |>
+              httr2::req_retry(
+                max_tries = budget$max_tries,
+                max_seconds = budget$max_seconds,
+                backoff = ~ 2
+              ) |>
               httr2::req_throttle(
                 rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
                 realm = "mousemine"
               ) |>
-              httr2::req_timeout(30) |>
+              httr2::req_timeout(budget$timeout_seconds) |>
               httr2::req_perform() |>
               httr2::resp_body_json()
           },
@@ -203,8 +210,9 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
         source = "mgi",
         message = paste("MouseMine query failed:", msg)
       ))
-    }
-  )
+      }
+    )
+  })
 }
 
 

@@ -34,8 +34,10 @@
 #'
 #' @export
 fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
-  tryCatch(
-    {
+  external_proxy_with_timing("rgd", function() {
+    tryCatch(
+      {
+        budget <- external_proxy_budget("rgd")
       # Normalize RGD ID (remove "RGD:" prefix if present)
       clean_rgd_id <- gsub("^RGD:", "", rgd_id)
 
@@ -57,14 +59,15 @@ fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
 
       phenotype_response <- httr2::request(phenotype_url) |>
         httr2::req_retry(
-          max_tries = 3,
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
           backoff = ~ 2
         ) |>
         httr2::req_throttle(
           rate = EXTERNAL_API_THROTTLE$rgd$capacity / EXTERNAL_API_THROTTLE$rgd$fill_time_s,
           realm = "rgd"
         ) |>
-        httr2::req_timeout(30) |>
+        httr2::req_timeout(budget$timeout_seconds) |>
         httr2::req_perform()
 
       phenotype_data <- httr2::resp_body_json(phenotype_response)
@@ -127,8 +130,9 @@ fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
         source = "rgd",
         message = paste("RGD query failed:", msg)
       ))
-    }
-  )
+      }
+    )
+  })
 }
 
 #' Fetch RGD rat phenotype data for a gene symbol
@@ -167,8 +171,9 @@ fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
 #'
 #' @export
 fetch_rgd_phenotypes <- function(gene_symbol, rgd_id = NULL) {
-  tryCatch(
-    {
+  external_proxy_with_timing("rgd", function() {
+    tryCatch(
+      {
       # If RGD ID is provided, use it directly
       if (!is.null(rgd_id) && nchar(rgd_id) > 0) {
         return(fetch_rgd_phenotypes_by_id(rgd_id, gene_symbol))
@@ -205,8 +210,9 @@ fetch_rgd_phenotypes <- function(gene_symbol, rgd_id = NULL) {
         source = "rgd",
         message = conditionMessage(e)
       ))
-    }
-  )
+      }
+    )
+  })
 }
 
 
