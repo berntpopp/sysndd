@@ -61,6 +61,7 @@ bootstrap_load_modules <- function() {
     "functions/metadata-refresh.R",
     "functions/async-job-repository.R",
     "functions/async-job-service.R",
+    "functions/analysis-snapshot-presets.R",
     "functions/async-job-network-layout-handlers.R",
     "functions/nddscore-import.R",
     "functions/nddscore-repository.R",

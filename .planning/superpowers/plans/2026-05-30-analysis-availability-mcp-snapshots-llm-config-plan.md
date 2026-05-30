@@ -113,7 +113,7 @@ Modify:
 - Modify: `api/functions/migration-manifest.R`
 - Modify: `api/bootstrap/load_modules.R`
 
-- [ ] **Step 1: Write migration manifest and DDL tests**
+- [x] **Step 1: Write migration manifest and DDL tests**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-migration.R`:
 
@@ -139,7 +139,7 @@ test_that("public analysis snapshot migration enforces scoped public-ready uniqu
 })
 ```
 
-- [ ] **Step 2: Write parameter preset tests**
+- [x] **Step 2: Write parameter preset tests**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-presets.R`:
 
@@ -199,7 +199,7 @@ test_that("snapshot presets define data_class for every public analysis type", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -213,7 +213,7 @@ Expected:
 - Migration test fails because migration `024_add_public_analysis_snapshots.sql` and manifest constants do not exist yet.
 - Preset test fails because `analysis-snapshot-presets.R` does not exist yet.
 
-- [ ] **Step 4: Add migration DDL**
+- [x] **Step 4: Add migration DDL**
 
 Create `db/migrations/024_add_public_analysis_snapshots.sql` with this table set:
 
@@ -342,7 +342,7 @@ CREATE TABLE IF NOT EXISTS `analysis_snapshot_correlation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-- [ ] **Step 5: Implement manifest constants and preset helpers**
+- [x] **Step 5: Implement manifest constants and preset helpers**
 
 Modify `api/functions/migration-manifest.R`:
 
@@ -399,7 +399,7 @@ Modify `api/bootstrap/load_modules.R`:
 
 - Add `"functions/analysis-snapshot-presets.R"` after `"functions/async-job-service.R"` and before repository files that will use it.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run:
 
@@ -412,7 +412,7 @@ Expected:
 
 - Both test files pass.
 
-- [ ] **Step 7: Commit Task 1**
+- [x] **Step 7: Commit Task 1**
 
 Run:
 
@@ -1660,4 +1660,3 @@ Expected:
 - [ ] Snapshot activation guarantees one public-ready row per `(analysis_type, parameter_hash)`.
 - [ ] LLM generation no longer happens from public cache-hit job submission.
 - [ ] LLM generation is handled by worker/admin snapshot refresh policy or reports `summary_available = false`.
-
