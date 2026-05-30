@@ -10,6 +10,7 @@
 # - fetch_phenotype_cluster_data(): Retrieve phenotype cluster data from DB
 #
 # Dependencies (sourced before this file):
+# - llm-model-config.R: Gemini model catalog and default resolution
 # - llm-client.R: generate_cluster_summary(), is_gemini_configured(), etc.
 # - llm-types.R: type specs and prompt builders
 # - llm-rate-limiter.R: GEMINI_RATE_LIMIT, calculate_derived_confidence()
@@ -41,7 +42,7 @@ if (!exists("validate_summary_entities", mode = "function")) {
 
 # Load split modules (if not already loaded)
 if (!exists("get_default_gemini_model", mode = "function")) {
-  for (.f in c("llm-rate-limiter.R", "llm-types.R", "llm-client.R")) {
+  for (.f in c("llm-model-config.R", "llm-rate-limiter.R", "llm-types.R", "llm-client.R")) {
     .p <- file.path(.funcs_dir, .f)
     if (file.exists(.p)) source(.p, local = FALSE)
   }

@@ -33,7 +33,7 @@ describe('useLlmAdmin — F2a coordinated API change (token dropped)', () => {
         expectBearerHeader(request, token);
         return HttpResponse.json({
           gemini_configured: [true],
-          current_model: ['gemini-1.5-flash'],
+          current_model: ['gemini-3.5-flash'],
         });
       })
     );
@@ -44,7 +44,7 @@ describe('useLlmAdmin — F2a coordinated API change (token dropped)', () => {
     // The response body is unwrapped by the plumber-array unwrapper inside
     // the composable; we assert on the `current_model` field to prove the
     // call actually completed against the MSW handler.
-    expect(admin.config.value?.current_model).toBe('gemini-1.5-flash');
+    expect(admin.config.value?.current_model).toBe('gemini-3.5-flash');
     expect(admin.error.value).toBeNull();
   });
 

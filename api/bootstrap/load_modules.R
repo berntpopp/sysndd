@@ -112,6 +112,7 @@ bootstrap_load_modules <- function() {
     "functions/hgnc-enrichment-gnomad.R",
     "functions/llm-cache-repository.R",
     "functions/llm-validation.R",
+    "functions/llm-model-config.R",
     "functions/llm-client.R",
     "functions/llm-rate-limiter.R",
     "functions/llm-types.R",

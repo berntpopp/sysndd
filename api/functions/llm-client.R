@@ -15,21 +15,6 @@ if (!requireNamespace("ellmer", quietly = TRUE)) {
   log_warn("ellmer package not available - LLM client disabled")
 }
 
-#------------------------------------------------------------------------------
-# Default Gemini model configuration
-# Can be overridden via GEMINI_MODEL environment variable
-# Options:
-#   - gemini-3.5-flash: Best speed + quality balance for text summaries (default)
-#   - gemini-3.1-flash-lite: Lower-cost high-volume text summaries
-#   - gemini-3.1-pro-preview: Highest-reasoning preview option
-#------------------------------------------------------------------------------
-get_default_gemini_model <- function() {
-  model <- Sys.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-  log_info("Using Gemini model: {model}")
-  return(model)
-}
-
-
 #' Generate cluster summary using Gemini API
 #'
 #' Calls Gemini API via ellmer to generate a structured summary.
@@ -81,6 +66,24 @@ generate_cluster_summary <- function(
   if (is.null(model)) {
     model <- get_default_gemini_model()
   }
+
+  model_validation <- llm_model_config_validate(model)
+  if (!isTRUE(model_validation$valid)) {
+    error_message <- model_validation$message
+    if (is.null(error_message) || is.na(error_message) || !nzchar(error_message)) {
+      error_message <- paste("Invalid Gemini model:", model)
+    }
+    logger::log_error("Invalid Gemini model configuration: {error_message}")
+    return(list(
+      success = FALSE,
+      error = error_message,
+      error_code = "llm_model_invalid",
+      model_name = model,
+      attempts = 0L,
+      model_config = model_validation
+    ))
+  }
+
   # Debug logging for daemon execution
   logger::log_debug("generate_cluster_summary called for {cluster_type} cluster")
 
@@ -304,112 +307,4 @@ is_gemini_configured <- function() {
   )
 
   nzchar(api_key) && !is.na(api_key) && !api_key %in% placeholder_keys
-}
-
-
-#' List available Gemini models
-#'
-#' Returns a list of recommended Gemini models for cluster summary generation.
-#' Updated May 2026 for current Gemini text-out models.
-#'
-#' @return Character vector of model names
-#'
-#' @export
-list_gemini_models <- function() {
-  c(
-    "gemini-3.5-flash", # Best speed + quality balance for text summaries
-    "gemini-3.1-flash-lite", # Cost-efficient high-volume text summaries
-    "gemini-3.1-pro-preview", # Highest-reasoning preview option
-    "gemini-3.1-flash-lite-preview", # Preview channel for Flash-Lite updates
-    "gemini-3-flash-preview", # Previous Gemini 3 Flash preview
-    "gemini-2.5-flash", # Best price-performance
-    "gemini-2.5-pro", # Complex reasoning (stable)
-    "gemini-2.5-flash-lite" # Budget option
-  )
-}
-
-
-#' Get display metadata for Gemini text generation models
-#'
-#' @param model_id Character Gemini model id.
-#'
-#' @return List with display_name, description, rpm_limit, rpd_limit,
-#'   and recommended_for fields.
-#'
-#' @export
-get_gemini_model_metadata <- function(model_id) {
-  metadata <- list(
-    "gemini-3.5-flash" = list(
-      display_name = "Gemini 3.5 Flash",
-      description = "Current fast text model with strong reasoning and grounding support",
-      rpm_limit = 1000,
-      rpd_limit = NULL,
-      recommended_for = "Default summaries"
-    ),
-    "gemini-3.1-flash-lite" = list(
-      display_name = "Gemini 3.1 Flash-Lite",
-      description = "Cost-efficient Gemini 3 text model for high-volume summary generation",
-      rpm_limit = 2000,
-      rpd_limit = NULL,
-      recommended_for = "High-volume summaries"
-    ),
-    "gemini-3.1-pro-preview" = list(
-      display_name = "Gemini 3.1 Pro Preview",
-      description = "Highest-reasoning Gemini 3.1 preview model",
-      rpm_limit = 1000,
-      rpd_limit = NULL,
-      recommended_for = "Complex analysis"
-    ),
-    "gemini-3.1-flash-lite-preview" = list(
-      display_name = "Gemini 3.1 Flash-Lite Preview",
-      description = paste(
-        "Preview channel for the cost-efficient",
-        "Gemini 3.1 Flash-Lite model"
-      ),
-      rpm_limit = 2000,
-      rpd_limit = NULL,
-      recommended_for = "Preview high-volume summaries"
-    ),
-    "gemini-3-flash-preview" = list(
-      display_name = "Gemini 3 Flash Preview",
-      description = "Previous Gemini 3 Flash preview text model",
-      rpm_limit = 1000,
-      rpd_limit = NULL,
-      recommended_for = "Legacy Gemini 3"
-    ),
-    "gemini-2.5-flash" = list(
-      display_name = "Gemini 2.5 Flash",
-      description = "Stable Gemini 2.5 balanced model",
-      rpm_limit = 2000,
-      rpd_limit = NULL,
-      recommended_for = "Stable balanced"
-    ),
-    "gemini-2.5-pro" = list(
-      display_name = "Gemini 2.5 Pro",
-      description = "Complex reasoning, stable release",
-      rpm_limit = 1000,
-      rpd_limit = 5000,
-      recommended_for = "Stable production"
-    ),
-    "gemini-2.5-flash-lite" = list(
-      display_name = "Gemini 2.5 Flash Lite",
-      description = "Stable low-cost Gemini 2.5 model",
-      rpm_limit = 4000,
-      rpd_limit = NULL,
-      recommended_for = "Budget processing"
-    )
-  )
-
-  info <- metadata[[model_id]]
-  if (!is.null(info)) {
-    return(info)
-  }
-
-  list(
-    display_name = model_id,
-    description = "Model",
-    rpm_limit = 1000,
-    rpd_limit = NULL,
-    recommended_for = "General use"
-  )
 }

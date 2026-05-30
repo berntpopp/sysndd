@@ -608,7 +608,7 @@ REMEMBER: If ANY forbidden molecular terms appear, verdict MUST be 'reject'.
 #'
 #' @param summary List, the generated summary to validate
 #' @param cluster_data List, the original cluster data (identifiers and enrichment)
-#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
+#' @param model Character, Gemini model name (defaults to get_default_gemini_model())
 #'
 #' @return List with verdict structure:
 #'   - is_factually_accurate: Logical
@@ -629,7 +629,7 @@ REMEMBER: If ANY forbidden molecular terms appear, verdict MUST be 'reject'.
 #' verdict <- validate_with_llm_judge(
 #'   summary = generated_summary,
 #'   cluster_data = cluster_data,
-#'   model = "gemini-3-pro-preview"
+#'   model = "gemini-3.5-flash"
 #' )
 #' }
 #'
@@ -709,7 +709,7 @@ validate_with_llm_judge <- function(summary, cluster_data, model = NULL, cluster
 #'
 #' @param cluster_data List containing identifiers and term_enrichment
 #' @param cluster_type Character, "functional" or "phenotype"
-#' @param model Character, Gemini model name (default: "gemini-3-pro-preview")
+#' @param model Character, Gemini model name (defaults to get_default_gemini_model())
 #'
 #' @return List with:
 #'   - success: Logical, TRUE if accepted or low_confidence, FALSE if rejected

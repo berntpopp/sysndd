@@ -151,7 +151,7 @@ get_cached_summary <- function(cluster_hash, require_validated = FALSE) {
 #' @param cluster_type Character, "functional" or "phenotype"
 #' @param cluster_number Integer, cluster number
 #' @param cluster_hash Character, SHA256 hash of cluster composition
-#' @param model_name Character, name of the LLM model used (e.g., "gemini-3-pro-preview")
+#' @param model_name Character, name of the LLM model used (e.g., "gemini-3.5-flash")
 #' @param prompt_version Character, version of the prompt template (default: "1.0")
 #' @param summary_json Character or list, the structured LLM response (will be serialized to JSON)
 #' @param tags Character vector or NULL, extracted tags for search/filtering
@@ -170,7 +170,7 @@ get_cached_summary <- function(cluster_hash, require_validated = FALSE) {
 #'   cluster_type = "functional",
 #'   cluster_number = 3,
 #'   cluster_hash = "abc123...",
-#'   model_name = "gemini-3-pro-preview",
+#'   model_name = "gemini-3.5-flash",
 #'   prompt_version = "1.0",
 #'   summary_json = list(summary = "...", key_themes = c(...)),
 #'   tags = c("mitochondrial", "metabolism")
@@ -280,7 +280,7 @@ save_summary_to_cache <- function(
 #'   cluster_type = "functional",
 #'   cluster_number = 3,
 #'   cluster_hash = "abc123...",
-#'   model_name = "gemini-3-pro-preview",
+#'   model_name = "gemini-3.5-flash",
 #'   status = "success",
 #'   prompt_text = "Analyze this cluster...",
 #'   response_json = result$summary,
@@ -294,7 +294,7 @@ save_summary_to_cache <- function(
 #'   cluster_type = "functional",
 #'   cluster_number = 3,
 #'   cluster_hash = "abc123...",
-#'   model_name = "gemini-3-pro-preview",
+#'   model_name = "gemini-3.5-flash",
 #'   status = "api_error",
 #'   prompt_text = "Analyze this cluster...",
 #'   error_message = "429 Too Many Requests"

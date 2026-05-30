@@ -33,6 +33,11 @@ describe('api/llm — getLlmConfig', () => {
     const ok: LlmConfig = {
       gemini_configured: true,
       current_model: 'gemini-2.5-flash',
+      source: 'default',
+      default_model: 'gemini-3.5-flash',
+      valid: true,
+      operator_allowed: false,
+      warning: null,
       available_models: [
         {
           model_id: 'gemini-2.5-flash',
@@ -61,14 +66,14 @@ describe('api/llm — updateLlmModel', () => {
         return HttpResponse.json({
           success: true,
           message: 'Model changed',
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3.1-pro-preview',
         });
       })
     );
 
-    await updateLlmModel({ model: 'gemini-3-flash-preview' });
+    await updateLlmModel({ model: 'gemini-3.1-pro-preview' });
     expect((observedQuery as unknown as URLSearchParams).get('model')).toBe(
-      'gemini-3-flash-preview'
+      'gemini-3.1-pro-preview'
     );
   });
 

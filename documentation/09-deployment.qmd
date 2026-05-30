@@ -60,6 +60,12 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 
 External genomic proxy caches live under `/app/cache/external/{static,stable,dynamic}` by default and can be relocated with `EXTERNAL_PROXY_CACHE_DIR`. The proxy layer caches successful and true not-found responses, but transient upstream errors (`error = TRUE`, mapped to 503) are evicted immediately so a timeout does not poison the cache for the full 7/14/30-day source TTL.
 
+### Gemini model configuration
+
+The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.
+
+Invalid or shut-down models are rejected before Gemini is called. If Google releases a model before the built-in catalog is updated, set `GEMINI_ALLOWED_MODELS_EXTRA` to a comma-separated allowlist of the new IDs; unknown allowlisted models are accepted but surfaced with an operator warning. The allowlist does not re-enable cataloged shut-down models.
+
 ### GeneNetworks layout artifacts
 
 GeneNetworks display layouts are precomputed derived-analysis artifacts, not request-path work. The API and worker images contain Node 24 plus the minimal `api/layout/` dependencies needed to run the headless Cytoscape/fCoSE helper. The worker should run the durable `network_layout_prewarm` job after data/cache refreshes that can change the displayed gene network.

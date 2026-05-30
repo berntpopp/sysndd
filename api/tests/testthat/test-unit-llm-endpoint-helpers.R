@@ -105,7 +105,7 @@ test_that("format_summary_response formats cached data correctly", {
   cached <- data.frame(
     cache_id = 123L,
     cluster_type = "functional",
-    model_name = "gemini-3-pro-preview",
+    model_name = "gemini-3.5-flash",
     created_at = as.POSIXct("2026-01-01 12:00:00"),
     validation_status = "validated",
     summary_json = '{"summary": "Test summary", "tags": ["tag1"]}',
