@@ -23,7 +23,7 @@ import { isApiError } from './client';
 import { server } from '@/test-utils/mocks/server';
 
 describe('api/analysis — getFunctionalClustering', () => {
-  it('forwards pagination + algorithm params', async () => {
+  it('forwards pagination params for the public Leiden preset', async () => {
     let observedQuery: URLSearchParams | null = null;
     const ok: FunctionalClusteringResponse = {
       categories: [],
@@ -51,14 +51,13 @@ describe('api/analysis — getFunctionalClustering', () => {
 
     await getFunctionalClustering({
       page_size: '25',
-      algorithm: 'walktrap',
       page_after: 'abc',
     });
 
     expect(observedQuery).not.toBeNull();
     const q = observedQuery as unknown as URLSearchParams;
     expect(q.get('page_size')).toBe('25');
-    expect(q.get('algorithm')).toBe('walktrap');
+    expect(q.has('algorithm')).toBe(false);
     expect(q.get('page_after')).toBe('abc');
   });
 
@@ -156,15 +155,15 @@ describe('api/analysis — getNetworkEdges', () => {
     );
 
     const result = await getNetworkEdges({
-      cluster_type: 'subclusters',
-      min_confidence: '700',
-      max_edges: '3000',
+      cluster_type: 'clusters',
+      min_confidence: '400',
+      max_edges: '10000',
     });
     expect(observedQuery).not.toBeNull();
     const q = observedQuery as unknown as URLSearchParams;
-    expect(q.get('cluster_type')).toBe('subclusters');
-    expect(q.get('min_confidence')).toBe('700');
-    expect(q.get('max_edges')).toBe('3000');
+    expect(q.get('cluster_type')).toBe('clusters');
+    expect(q.get('min_confidence')).toBe('400');
+    expect(q.get('max_edges')).toBe('10000');
     expect(result.nodes[0].x).toBe(10);
     expect(result.nodes[0].y).toBe(20);
     expect(result.metadata.snapshot?.analysis_type).toBe('gene_network_edges');

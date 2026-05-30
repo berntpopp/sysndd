@@ -216,11 +216,11 @@ mcp_compact_phenotypes <- function(rows) {
 
 mcp_score_for_tier <- function(tier) {
   switch(tier,
-    exact_identifier = 1.0,
-    exact_label = 0.95,
-    prefix = 0.8,
-    contains = 0.6,
-    0.4
+    exact_identifier = 1000,
+    exact_label = 950,
+    prefix = 800,
+    contains = 600,
+    400
   )
 }
 
@@ -259,7 +259,7 @@ mcp_recommended_citation <- function(pub, date_confidence = "unverified") {
 mcp_publication_date_quality <- function(publication_date, curation_dates = NULL,
                                          date_source = NULL) {
   source_value <- if (is.null(date_source) || length(date_source) == 0L ||
-                      is.na(date_source[1]) || !nzchar(as.character(date_source[1]))) {
+    is.na(date_source[1]) || !nzchar(as.character(date_source[1]))) {
     NA_character_
   } else {
     as.character(date_source[1])

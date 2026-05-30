@@ -918,9 +918,6 @@ function(req, res, limit = 20) {
 #* @serializer json list(na="string", auto_unbox=TRUE)
 #* @get /<job_id>/status
 function(job_id, result_mode = "summary", req, res) {
-  if (!is.null(req$argsBody$result_mode)) {
-    result_mode <- req$argsBody$result_mode
-  }
   result_mode <- as.character(result_mode[[1]] %||% "summary")
   if (!result_mode %in% c("summary", "full")) {
     res$status <- 400

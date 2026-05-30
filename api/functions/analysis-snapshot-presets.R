@@ -115,8 +115,18 @@ analysis_snapshot_normalize_params <- function(analysis_type, params = list()) {
 
   if (!identical(normalized_params, preset$params)) {
     analysis_snapshot_unsupported_parameter(
-      sprintf("Unsupported parameters for analysis snapshot type: %s", analysis_type),
-      fields = list(analysis_type = analysis_type, params = normalized_params)
+      sprintf(
+        paste(
+          "Unsupported parameters for analysis snapshot type: %s.",
+          "Only supported public preset values are accepted."
+        ),
+        analysis_type
+      ),
+      fields = list(
+        analysis_type = analysis_type,
+        params = normalized_params,
+        supported_params = preset$params
+      )
     )
   }
 

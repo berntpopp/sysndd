@@ -4,11 +4,11 @@ if (!exists("%||%", mode = "function")) {
   `%||%` <- function(x, y) if (is.null(x)) y else x
 }
 
-analysis_snapshot_problem <- function(code,
-                                      message,
-                                      status,
-                                      analysis_type,
-                                      retry_after = NULL) {
+service_analysis_snapshot_problem <- function(code,
+                                              message,
+                                              status,
+                                              analysis_type,
+                                              retry_after = NULL) {
   result <- list(
     status = as.integer(status),
     body = list(
@@ -23,7 +23,7 @@ analysis_snapshot_problem <- function(code,
   result
 }
 
-analysis_snapshot_service_read <- function(analysis_type,
+service_analysis_snapshot_read <- function(analysis_type,
                                            params,
                                            repo_get_public = analysis_snapshot_get_public) {
   normalized <- tryCatch(
@@ -32,7 +32,7 @@ analysis_snapshot_service_read <- function(analysis_type,
   )
 
   if (inherits(normalized, "analysis_snapshot_unsupported_parameter_error")) {
-    return(analysis_snapshot_problem(
+    return(service_analysis_snapshot_problem(
       code = "unsupported_parameter",
       message = conditionMessage(normalized),
       status = 400L,
@@ -42,7 +42,7 @@ analysis_snapshot_service_read <- function(analysis_type,
 
   snapshot <- repo_get_public(normalized$analysis_type, normalized$parameter_hash)
   if (is.null(snapshot)) {
-    return(analysis_snapshot_problem(
+    return(service_analysis_snapshot_problem(
       code = "snapshot_missing",
       message = "No public analysis snapshot is currently available for this supported parameter set.",
       status = 503L,
@@ -51,22 +51,44 @@ analysis_snapshot_service_read <- function(analysis_type,
     ))
   }
 
-  body <- switch(
-    normalized$analysis_type,
-    functional_clusters = analysis_snapshot_shape_functional(snapshot),
-    phenotype_clusters = analysis_snapshot_shape_phenotype_clusters(snapshot),
-    phenotype_correlations = analysis_snapshot_shape_correlations(snapshot),
-    phenotype_functional_correlations = analysis_snapshot_shape_correlations(snapshot),
-    gene_network_edges = analysis_snapshot_shape_network(snapshot, max_edges = normalized$params$max_edges),
+  status_code <- snapshot$status_code %||% "available"
+  if (!identical(status_code, "available")) {
+    return(service_analysis_snapshot_problem(
+      code = status_code,
+      message = service_analysis_snapshot_status_message(status_code),
+      status = 503L,
+      analysis_type = normalized$analysis_type,
+      retry_after = 60L
+    ))
+  }
+
+  body <- switch(normalized$analysis_type,
+    functional_clusters = service_analysis_snapshot_shape_functional(snapshot),
+    phenotype_clusters = service_analysis_snapshot_shape_phenotype_clusters(snapshot),
+    phenotype_correlations = service_analysis_snapshot_shape_correlations(snapshot),
+    phenotype_functional_correlations = service_analysis_snapshot_shape_correlations(snapshot, drop_diagonal = FALSE),
+    gene_network_edges = service_analysis_snapshot_shape_network(snapshot, max_edges = normalized$params$max_edges),
     stop(sprintf("Unsupported analysis snapshot type: %s", normalized$analysis_type), call. = FALSE)
   )
 
   list(status = 200L, body = body)
 }
 
-analysis_snapshot_shape_functional <- function(snapshot) {
-  clusters <- analysis_snapshot_shape_clusters(snapshot, cluster_kind = "functional")
-  categories <- analysis_snapshot_functional_categories(clusters)
+service_analysis_snapshot_status_message <- function(status_code) {
+  switch(status_code,
+    snapshot_stale = "The active public analysis snapshot is stale and should be refreshed before serving.",
+    source_version_mismatch = paste(
+      "The active public analysis snapshot was built from a different",
+      "public source-data version and should be refreshed before serving."
+    ),
+    snapshot_missing = "No public analysis snapshot is currently available for this supported parameter set.",
+    "The active public analysis snapshot is not currently available."
+  )
+}
+
+service_analysis_snapshot_shape_functional <- function(snapshot) {
+  clusters <- service_analysis_snapshot_shape_clusters(snapshot, cluster_kind = "functional")
+  categories <- service_analysis_snapshot_functional_categories(clusters)
 
   list(
     categories = categories,
@@ -80,29 +102,29 @@ analysis_snapshot_shape_functional <- function(snapshot) {
     ),
     meta = c(
       list(
-        algorithm = analysis_snapshot_manifest_algorithm(snapshot, default = "leiden"),
+        algorithm = service_analysis_snapshot_manifest_algorithm(snapshot, default = "leiden"),
         elapsed_seconds = 0,
-        gene_count = analysis_snapshot_count_cluster_members(clusters),
+        gene_count = service_analysis_snapshot_count_cluster_members(clusters),
         cluster_count = nrow(clusters),
         cache_hit = TRUE
       ),
-      analysis_snapshot_meta(snapshot)
+      service_analysis_snapshot_meta(snapshot)
     )
   )
 }
 
-analysis_snapshot_shape_phenotype_clusters <- function(snapshot) {
-  clusters <- analysis_snapshot_shape_clusters(snapshot, cluster_kind = "phenotype")
+service_analysis_snapshot_shape_phenotype_clusters <- function(snapshot) {
+  clusters <- service_analysis_snapshot_shape_clusters(snapshot, cluster_kind = "phenotype")
   list(
     clusters = clusters,
-    meta = analysis_snapshot_meta(snapshot)
+    meta = service_analysis_snapshot_meta(snapshot)
   )
 }
 
-analysis_snapshot_shape_correlations <- function(snapshot,
-                                                 min_abs_correlation = NULL,
-                                                 drop_diagonal = TRUE,
-                                                 triangle_only = FALSE) {
+service_analysis_snapshot_shape_correlations <- function(snapshot,
+                                                         min_abs_correlation = NULL,
+                                                         drop_diagonal = TRUE,
+                                                         triangle_only = FALSE) {
   rows <- tibble::as_tibble(snapshot$correlations %||% tibble::tibble())
   melted <- if (nrow(rows) == 0L) {
     tibble::tibble(x = character(), y = character(), value = numeric())
@@ -127,15 +149,15 @@ analysis_snapshot_shape_correlations <- function(snapshot,
     melted <- dplyr::filter(melted, x < y)
   }
 
-  matrix_value <- analysis_snapshot_correlation_matrix(melted)
+  matrix_value <- service_analysis_snapshot_correlation_matrix(melted)
   list(
     correlation_matrix = matrix_value,
     correlation_melted = melted,
-    meta = analysis_snapshot_meta(snapshot)
+    meta = service_analysis_snapshot_meta(snapshot)
   )
 }
 
-analysis_snapshot_shape_network <- function(snapshot, max_edges = 10000L) {
+service_analysis_snapshot_shape_network <- function(snapshot, max_edges = 10000L) {
   nodes_in <- tibble::as_tibble(snapshot$network_nodes %||% tibble::tibble())
   edges_in <- tibble::as_tibble(snapshot$network_edges %||% tibble::tibble())
 
@@ -209,7 +231,7 @@ analysis_snapshot_shape_network <- function(snapshot, max_edges = 10000L) {
     list()
   }
 
-  generated_metadata <- analysis_snapshot_manifest_network_metadata(snapshot)
+  generated_metadata <- service_analysis_snapshot_manifest_network_metadata(snapshot)
   metadata <- c(
     utils::modifyList(
       list(
@@ -218,7 +240,7 @@ analysis_snapshot_shape_network <- function(snapshot, max_edges = 10000L) {
         cluster_count = length(unique(nodes$cluster[!is.na(nodes$cluster)])),
         total_edges = total_edges,
         edges_filtered = edges_filtered,
-        min_confidence = analysis_snapshot_manifest_min_confidence(snapshot),
+        min_confidence = service_analysis_snapshot_manifest_min_confidence(snapshot),
         elapsed_seconds = 0,
         category_counts = category_counts,
         display_layout_status = if (all(c("x", "y") %in% names(nodes)) && nrow(nodes) > 0L) {
@@ -229,13 +251,13 @@ analysis_snapshot_shape_network <- function(snapshot, max_edges = 10000L) {
       ),
       generated_metadata
     ),
-    analysis_snapshot_meta(snapshot)
+    service_analysis_snapshot_meta(snapshot)
   )
 
   list(nodes = nodes, edges = edges, metadata = metadata)
 }
 
-analysis_snapshot_shape_clusters <- function(snapshot, cluster_kind) {
+service_analysis_snapshot_shape_clusters <- function(snapshot, cluster_kind) {
   clusters <- tibble::as_tibble(snapshot$clusters %||% tibble::tibble())
   members <- tibble::as_tibble(snapshot$cluster_members %||% tibble::tibble())
   if (!"cluster_kind" %in% names(clusters)) {
@@ -259,7 +281,7 @@ analysis_snapshot_shape_clusters <- function(snapshot, cluster_kind) {
 
   rows <- lapply(seq_len(nrow(clusters)), function(i) {
     cluster <- clusters[i, , drop = FALSE]
-    metadata <- analysis_snapshot_parse_json_object(cluster$metadata_json[[1]])
+    metadata <- service_analysis_snapshot_parse_json_object(cluster$metadata_json[[1]])
     cluster_members <- members[members$cluster_id == cluster$cluster_id[[1]], , drop = FALSE]
     identifiers <- if (nrow(cluster_members) == 0L) {
       tibble::tibble(entity_id = integer(), hgnc_id = character(), symbol = character())
@@ -291,35 +313,48 @@ analysis_snapshot_shape_clusters <- function(snapshot, cluster_kind) {
   dplyr::bind_rows(rows)
 }
 
-analysis_snapshot_meta <- function(snapshot) {
+service_analysis_snapshot_meta <- function(snapshot) {
   manifest <- tibble::as_tibble(snapshot$manifest)
   row <- manifest[1, , drop = FALSE]
   list(
     snapshot = list(
-      snapshot_id = analysis_snapshot_scalar_value(row$snapshot_id),
-      analysis_type = analysis_snapshot_scalar_value(row$analysis_type),
-      parameter_hash = analysis_snapshot_scalar_value(row$parameter_hash),
-      schema_version = analysis_snapshot_scalar_value(row$schema_version),
-      data_class = analysis_snapshot_scalar_value(row$data_class),
-      generated_at = analysis_snapshot_time_string(analysis_snapshot_scalar_value(row$generated_at)),
-      stale_after = analysis_snapshot_time_string(analysis_snapshot_scalar_value(row$stale_after)),
-      source_data_version = analysis_snapshot_scalar_value(row$source_data_version)
+      snapshot_id = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$snapshot_id)),
+      analysis_type = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$analysis_type)),
+      parameter_hash = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$parameter_hash)),
+      schema_version = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$schema_version)),
+      data_class = service_analysis_snapshot_json_scalar(service_analysis_snapshot_scalar_value(row$data_class)),
+      generated_at = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_time_string(service_analysis_snapshot_scalar_value(row$generated_at))
+      ),
+      stale_after = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_time_string(service_analysis_snapshot_scalar_value(row$stale_after))
+      ),
+      source_data_version = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_scalar_value(row$source_data_version)
+      )
     )
   )
 }
 
-analysis_snapshot_parse_json_object <- function(value) {
+service_analysis_snapshot_parse_json_object <- function(value) {
   if (is.null(value) || length(value) == 0L || is.na(value[[1]]) || !nzchar(value[[1]])) {
     return(list())
   }
   parsed <- tryCatch(
-    jsonlite::fromJSON(value[[1]], simplifyVector = FALSE),
+    jsonlite::fromJSON(value[[1]], simplifyVector = TRUE),
     error = function(e) list()
   )
   if (is.list(parsed)) parsed else list()
 }
 
-analysis_snapshot_scalar_value <- function(value, default = NULL) {
+service_analysis_snapshot_json_scalar <- function(value) {
+  if (is.null(value)) {
+    return(NULL)
+  }
+  jsonlite::unbox(value)
+}
+
+service_analysis_snapshot_scalar_value <- function(value, default = NULL) {
   if (is.null(value) || length(value) == 0L) {
     return(default)
   }
@@ -330,52 +365,52 @@ analysis_snapshot_scalar_value <- function(value, default = NULL) {
   first
 }
 
-analysis_snapshot_time_string <- function(value) {
+service_analysis_snapshot_time_string <- function(value) {
   if (is.null(value)) {
     return(NULL)
   }
   if (inherits(value, "POSIXt")) {
-    return(format(value, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"))
+    return(format(value, "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC"))
   }
   as.character(value)
 }
 
-analysis_snapshot_manifest_algorithm <- function(snapshot, default = NULL) {
+service_analysis_snapshot_manifest_algorithm <- function(snapshot, default = NULL) {
   manifest <- tibble::as_tibble(snapshot$manifest)
-  value <- analysis_snapshot_scalar_value(manifest$algorithm_name, default)
+  value <- service_analysis_snapshot_scalar_value(manifest$algorithm_name, default)
   value %||% default
 }
 
-analysis_snapshot_manifest_min_confidence <- function(snapshot) {
+service_analysis_snapshot_manifest_min_confidence <- function(snapshot) {
   manifest <- tibble::as_tibble(snapshot$manifest)
-  params <- analysis_snapshot_parse_json_object(manifest$parameters_json[[1]])
+  params <- service_analysis_snapshot_parse_json_object(manifest$parameters_json[[1]])
   suppressWarnings(as.integer(params$min_confidence %||% NA_integer_))
 }
 
-analysis_snapshot_manifest_network_metadata <- function(snapshot) {
+service_analysis_snapshot_manifest_network_metadata <- function(snapshot) {
   manifest <- tibble::as_tibble(snapshot$manifest)
   if (!"row_counts_json" %in% names(manifest)) {
     return(list())
   }
-  row_counts <- analysis_snapshot_parse_json_object(manifest$row_counts_json[[1]])
+  row_counts <- service_analysis_snapshot_parse_json_object(manifest$row_counts_json[[1]])
   metadata <- row_counts$network_metadata %||% list()
   if (is.list(metadata)) metadata else list()
 }
 
-analysis_snapshot_count_cluster_members <- function(clusters) {
+service_analysis_snapshot_count_cluster_members <- function(clusters) {
   if (nrow(clusters) == 0L || !"identifiers" %in% names(clusters)) {
     return(0L)
   }
   length(unique(unlist(lapply(clusters$identifiers, function(x) x$hgnc_id), use.names = FALSE)))
 }
 
-analysis_snapshot_functional_categories <- function(clusters) {
+service_analysis_snapshot_functional_categories <- function(clusters) {
   if (nrow(clusters) == 0L || !"term_enrichment" %in% names(clusters)) {
     return(tibble::tibble(value = character(), text = character(), link = character()))
   }
 
   values <- unique(unlist(lapply(clusters$term_enrichment, function(term_rows) {
-    analysis_snapshot_extract_categories(term_rows)
+    service_analysis_snapshot_extract_categories(term_rows)
   }), use.names = FALSE))
   values <- sort(values[!is.na(values) & nzchar(values)])
 
@@ -405,7 +440,7 @@ analysis_snapshot_functional_categories <- function(clusters) {
   )
 }
 
-analysis_snapshot_extract_categories <- function(value) {
+service_analysis_snapshot_extract_categories <- function(value) {
   if (is.null(value) || length(value) == 0L) {
     return(character())
   }
@@ -416,12 +451,12 @@ analysis_snapshot_extract_categories <- function(value) {
     if ("category" %in% names(value)) {
       return(as.character(value$category))
     }
-    return(unlist(lapply(value, analysis_snapshot_extract_categories), use.names = FALSE))
+    return(unlist(lapply(value, service_analysis_snapshot_extract_categories), use.names = FALSE))
   }
   character()
 }
 
-analysis_snapshot_correlation_matrix <- function(melted) {
+service_analysis_snapshot_correlation_matrix <- function(melted) {
   if (nrow(melted) == 0L) {
     return(matrix(numeric(), nrow = 0L, ncol = 0L))
   }

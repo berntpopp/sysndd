@@ -19,6 +19,23 @@ test_that("external proxy budgets are short and source-specific", {
   expect_true(mgi$max_tries >= 1L)
 })
 
+test_that("gnomAD proxy fetchers use central external request budgets", {
+  api_dir <- get_api_dir()
+  source(file.path(api_dir, "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(
+    EXTERNAL_PROXY_MAX_SECONDS = NA,
+    EXTERNAL_PROXY_GNOMAD_MAX_SECONDS = NA
+  ))
+
+  gnomad <- external_proxy_budget("gnomad")
+  source_text <- paste(readLines(file.path(api_dir, "functions", "external-proxy-gnomad.R"), warn = FALSE), collapse = "\n")
+
+  expect_lte(gnomad$max_seconds, 12)
+  expect_match(source_text, 'external_proxy_budget\\("gnomad"\\)')
+  expect_false(grepl("max_seconds = 120", source_text, fixed = TRUE))
+  expect_false(grepl("req_timeout(30)", source_text, fixed = TRUE))
+})
+
 test_that("external proxy timing wrapper preserves result and records elapsed metadata", {
   source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
 

@@ -88,13 +88,16 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   expect_false(is.null(capabilities$capabilities$resources))
 
   old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
-  on.exit({
-    if (is.na(old_prompts)) {
-      Sys.unsetenv("MCP_ENABLE_PROMPTS")
-    } else {
-      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
-    }
-  }, add = TRUE)
+  on.exit(
+    {
+      if (is.na(old_prompts)) {
+        Sys.unsetenv("MCP_ENABLE_PROMPTS")
+      } else {
+        Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+      }
+    },
+    add = TRUE
+  )
   Sys.setenv(MCP_ENABLE_PROMPTS = "true")
   capabilities <- get("capabilities", envir = asNamespace("mcptools"))()
   expect_false(is.null(capabilities$capabilities$prompts))
@@ -198,7 +201,7 @@ test_that("MCP analysis tools advertise labels and do not expose LLM generation"
     expect_true("include_diagnostics" %in% names(item$inputSchema$properties))
     expect_true("dry_run" %in% names(item$inputSchema$properties))
     expect_match(item$description, "compact", ignore.case = TRUE)
-    expect_match(item$description, "cache", ignore.case = TRUE)
+    expect_match(item$description, "snapshot|cache", ignore.case = TRUE)
     expect_false(is.null(item$outputSchema))
   }
 })
@@ -307,13 +310,16 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
   source_mcp_tools()
 
   old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
-  on.exit({
-    if (is.na(old_prompts)) {
-      Sys.unsetenv("MCP_ENABLE_PROMPTS")
-    } else {
-      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
-    }
-  }, add = TRUE)
+  on.exit(
+    {
+      if (is.na(old_prompts)) {
+        Sys.unsetenv("MCP_ENABLE_PROMPTS")
+      } else {
+        Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+      }
+    },
+    add = TRUE
+  )
 
   Sys.unsetenv("MCP_ENABLE_PROMPTS")
   disabled <- mcp_handle_prompts_list(0L)

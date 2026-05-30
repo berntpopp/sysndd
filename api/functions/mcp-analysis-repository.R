@@ -151,20 +151,20 @@ mcp_analysis_repo_get_public_snapshot <- function(analysis_type, params = list()
 }
 
 mcp_analysis_repo_shape_snapshot_network <- function(snapshot, max_edges = 10000L) {
-  if (!exists("analysis_snapshot_shape_network", mode = "function")) {
+  if (!exists("service_analysis_snapshot_shape_network", mode = "function")) {
     stop("analysis snapshot shaping service is not loaded", call. = FALSE)
   }
-  analysis_snapshot_shape_network(snapshot, max_edges = max_edges)
+  service_analysis_snapshot_shape_network(snapshot, max_edges = max_edges)
 }
 
 mcp_analysis_repo_shape_snapshot_correlations <- function(snapshot,
                                                           min_abs_correlation = NULL,
                                                           drop_diagonal = TRUE,
                                                           triangle_only = FALSE) {
-  if (!exists("analysis_snapshot_shape_correlations", mode = "function")) {
+  if (!exists("service_analysis_snapshot_shape_correlations", mode = "function")) {
     stop("analysis snapshot shaping service is not loaded", call. = FALSE)
   }
-  analysis_snapshot_shape_correlations(
+  service_analysis_snapshot_shape_correlations(
     snapshot,
     min_abs_correlation = min_abs_correlation,
     drop_diagonal = drop_diagonal,
@@ -173,10 +173,10 @@ mcp_analysis_repo_shape_snapshot_correlations <- function(snapshot,
 }
 
 mcp_analysis_repo_shape_snapshot_phenotype_clusters <- function(snapshot) {
-  if (!exists("analysis_snapshot_shape_phenotype_clusters", mode = "function")) {
+  if (!exists("service_analysis_snapshot_shape_phenotype_clusters", mode = "function")) {
     stop("analysis snapshot shaping service is not loaded", call. = FALSE)
   }
-  analysis_snapshot_shape_phenotype_clusters(snapshot)
+  service_analysis_snapshot_shape_phenotype_clusters(snapshot)
 }
 
 mcp_analysis_repo_get_snapshot_network <- function(gene = NULL, max_edges = 100L) {
@@ -256,12 +256,52 @@ mcp_analysis_repo_get_snapshot_phenotype_clusters <- function(gene = NULL,
 
   rows <- clusters %>%
     tidyr::unnest(identifiers)
+  if (!"entity_id" %in% names(rows)) {
+    rows$entity_id <- NA_integer_
+  }
   rows <- mcp_analysis_repo_filter_gene_rows(rows, gene)
   if (!is.null(cluster_id) && nzchar(trimws(as.character(cluster_id)[1]))) {
     rows <- rows %>% dplyr::filter(as.character(cluster) == as.character(cluster_id)[1])
   }
   rows <- rows %>% dplyr::arrange(cluster, hgnc_id, entity_id)
   utils::head(rows, mcp_analysis_repo_limit(limit))
+}
+
+mcp_analysis_repo_get_snapshot_functional_clusters <- function(gene = NULL,
+                                                               cluster_id = NULL,
+                                                               limit = 25L) {
+  snapshot <- mcp_analysis_repo_get_public_snapshot("functional_clusters", list(algorithm = "leiden"))
+  if (is.null(snapshot)) {
+    return(NULL)
+  }
+
+  shaped <- service_analysis_snapshot_shape_functional(snapshot$snapshot)
+  clusters <- tibble::as_tibble(shaped$clusters %||% tibble::tibble())
+  if (nrow(clusters) == 0L || !"identifiers" %in% names(clusters)) {
+    return(tibble::tibble())
+  }
+
+  rows <- clusters %>%
+    tidyr::unnest(identifiers)
+  if (!"entity_id" %in% names(rows)) {
+    rows$entity_id <- NA_integer_
+  }
+  rows <- mcp_analysis_repo_filter_gene_rows(rows, gene)
+  if (!is.null(cluster_id) && nzchar(trimws(as.character(cluster_id)[1]))) {
+    rows <- rows %>% dplyr::filter(as.character(cluster) == as.character(cluster_id)[1])
+  }
+  rows <- rows %>% dplyr::arrange(cluster, hgnc_id, entity_id)
+  utils::head(rows, mcp_analysis_repo_limit(limit))
+}
+
+mcp_analysis_repo_cluster_keys <- function(rows, prefix) {
+  cluster_ids <- unique(as.character(rows$cluster %||% character()))
+  cluster_ids <- cluster_ids[!is.na(cluster_ids) & nzchar(cluster_ids)]
+  paste0(prefix, cluster_ids)
+}
+
+mcp_analysis_repo_is_producer_cluster_key <- function(values) {
+  grepl("^(pc|fc)_[^[:space:]]+$", as.character(values))
 }
 
 mcp_analysis_repo_get_snapshot_phenotype_functional_correlations <- function(gene = NULL,
@@ -278,13 +318,21 @@ mcp_analysis_repo_get_snapshot_phenotype_functional_correlations <- function(gen
   }
 
   if (!is.null(gene) && nzchar(trimws(as.character(gene)[1]))) {
-    cluster_rows <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = gene, limit = 50L)
-    gene_clusters <- unique(as.character(cluster_rows$cluster %||% character()))
-    gene_clusters <- gene_clusters[!is.na(gene_clusters) & nzchar(gene_clusters)]
-    prefixed <- unique(c(gene_clusters, paste0("pc_", gene_clusters), paste0("phenotype_", gene_clusters)))
-    if (length(prefixed) > 0L) {
-      rows <- rows %>% dplyr::filter(x %in% prefixed | y %in% prefixed)
+    phenotype_rows <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = gene, limit = 50L)
+    functional_rows <- mcp_analysis_repo_get_snapshot_functional_clusters(gene = gene, limit = 50L)
+    gene_cluster_keys <- unique(c(
+      mcp_analysis_repo_cluster_keys(phenotype_rows %||% tibble::tibble(), "pc_"),
+      mcp_analysis_repo_cluster_keys(functional_rows %||% tibble::tibble(), "fc_")
+    ))
+    if (length(gene_cluster_keys) == 0L) {
+      return(rows[0L, , drop = FALSE])
     }
+    rows <- rows %>%
+      dplyr::filter(
+        mcp_analysis_repo_is_producer_cluster_key(x),
+        mcp_analysis_repo_is_producer_cluster_key(y),
+        x %in% gene_cluster_keys | y %in% gene_cluster_keys
+      )
   }
 
   rows <- rows[order(-abs(rows$value), rows$x, rows$y), , drop = FALSE]
@@ -320,131 +368,6 @@ mcp_analysis_repo_limit <- function(limit, default = 25L, max = 50L) {
     return(default)
   }
   min(limit, max)
-}
-
-mcp_analysis_repo_get_phenotype_correlations <- function(phenotype = NULL,
-                                                         min_abs_correlation = 0.3,
-                                                         limit = 25L) {
-  filter <- MCP_PHENOTYPE_CORRELATION_FILTER
-  if (
-    !mcp_analysis_repo_phenotype_correlations_cache_hit(filter = filter) ||
-      !exists("generate_phenotype_correlations_mem", mode = "function")
-  ) {
-    return(NULL)
-  }
-
-  limit <- mcp_analysis_repo_limit(limit)
-
-  rows <- tryCatch(
-    generate_phenotype_correlations_mem(filter = filter, min_abs_correlation = NULL),
-    error = function(e) NULL
-  )
-  if (is.null(rows) || nrow(rows) == 0L) {
-    if (is.null(rows)) return(NULL)
-    return(tibble::tibble())
-  }
-
-  if (!is.null(min_abs_correlation)) {
-    rows <- rows %>% dplyr::filter(abs(value) >= min_abs_correlation)
-  }
-
-  if (!is.null(phenotype) && nzchar(trimws(as.character(phenotype)[1]))) {
-    phenotype <- trimws(as.character(phenotype)[1])
-    rows <- rows %>%
-      dplyr::filter(
-        x == phenotype |
-          y == phenotype |
-          x_id == phenotype |
-          y_id == phenotype |
-          stringr::str_detect(x, stringr::fixed(phenotype, ignore_case = TRUE)) |
-          stringr::str_detect(y, stringr::fixed(phenotype, ignore_case = TRUE))
-      )
-  }
-
-  rows <- rows[order(-abs(rows$value), rows$x, rows$y), , drop = FALSE]
-  utils::head(rows, limit)
-}
-
-mcp_analysis_repo_get_phenotype_clusters <- function(gene = NULL,
-                                                     cluster_id = NULL,
-                                                     limit = 25L) {
-  limit <- mcp_analysis_repo_limit(limit)
-
-  clusters <- NULL
-  if (mcp_analysis_repo_phenotype_memoise_cache_hit() && exists("generate_phenotype_clusters", mode = "function")) {
-    clusters <- tryCatch(generate_phenotype_clusters(), error = function(e) NULL)
-  }
-  if (is.null(clusters)) {
-    clusters <- mcp_analysis_repo_find_phenotype_cluster_disk_payload()
-  }
-  if (is.null(clusters)) {
-    return(NULL)
-  }
-  if (nrow(clusters) == 0L || !"identifiers" %in% names(clusters)) {
-    return(tibble::tibble())
-  }
-
-  rows <- clusters %>%
-    tidyr::unnest(identifiers)
-
-  rows <- mcp_analysis_repo_filter_gene_rows(rows, gene)
-
-  if (!is.null(cluster_id) && nzchar(trimws(as.character(cluster_id)[1]))) {
-    rows <- rows %>%
-      dplyr::filter(as.character(cluster) == as.character(cluster_id)[1])
-  }
-
-  rows <- rows %>%
-    dplyr::arrange(cluster, hgnc_id, entity_id)
-  utils::head(rows, limit)
-}
-
-mcp_analysis_repo_get_phenotype_functional_correlations <- function(gene = NULL,
-                                                                    limit = 25L) {
-  limit <- mcp_analysis_repo_limit(limit)
-
-  result <- NULL
-  if (
-    mcp_analysis_repo_functional_memoise_cache_hit(algorithm = "leiden") &&
-      mcp_analysis_repo_phenotype_memoise_cache_hit() &&
-      exists("generate_phenotype_functional_cluster_correlation", mode = "function")
-  ) {
-    result <- tryCatch(
-      generate_phenotype_functional_cluster_correlation(
-        include_membership = TRUE,
-        include_sfari = FALSE
-      ),
-      error = function(e) NULL
-    )
-  }
-  if (is.null(result)) {
-    functional_clusters <- mcp_analysis_repo_find_functional_cluster_disk_payload()
-    phenotype_clusters <- mcp_analysis_repo_find_phenotype_cluster_disk_payload()
-    if (!is.null(functional_clusters) && !is.null(phenotype_clusters)) {
-      result <- mcp_analysis_repo_compute_cluster_correlations(
-        functional_clusters = functional_clusters,
-        phenotype_clusters = phenotype_clusters,
-        include_membership = TRUE
-      )
-    }
-  }
-  if (is.null(result)) {
-    return(NULL)
-  }
-  rows <- result$correlation_melted %||% tibble::tibble()
-  if (is.null(rows) || nrow(rows) == 0L) {
-    return(tibble::tibble())
-  }
-
-  if (!is.null(gene) && nzchar(trimws(as.character(gene)[1]))) {
-    membership <- mcp_analysis_repo_filter_gene_rows(result$cluster_membership %||% tibble::tibble(), gene)
-    gene_clusters <- unique(membership$cluster %||% character())
-    rows <- rows %>%
-      dplyr::filter(x %in% gene_clusters | y %in% gene_clusters)
-  }
-
-  rows <- rows[order(-abs(rows$value), rows$x, rows$y), , drop = FALSE]
-  utils::head(rows, limit)
 }
 
 mcp_analysis_repo_refresh_network_metadata <- function(network) {
@@ -495,8 +418,7 @@ mcp_analysis_repo_filter_network_gene <- function(network, gene) {
     network$nodes <- network$nodes[0, , drop = FALSE]
   } else {
     network$edges <- network$edges[
-      network$edges$source %in% gene_ids | network$edges$target %in% gene_ids,
-      ,
+      network$edges$source %in% gene_ids | network$edges$target %in% gene_ids, ,
       drop = FALSE
     ]
     connected_nodes <- unique(c(network$edges$source, network$edges$target))
@@ -507,43 +429,5 @@ mcp_analysis_repo_filter_network_gene <- function(network, gene) {
 
   network$metadata$gene_filtered <- TRUE
   network$metadata$gene_filter <- as.character(gene)[1]
-  mcp_analysis_repo_refresh_network_metadata(network)
-}
-
-mcp_analysis_repo_get_network_edges_local <- function(cluster_type = "clusters",
-                                                      min_confidence = 400L,
-                                                      max_edges = 100L,
-                                                      gene = NULL) {
-  max_edges <- mcp_analysis_repo_limit(max_edges, default = 100L, max = 250L)
-
-  network <- NULL
-  if (
-    mcp_analysis_repo_network_memoise_cache_hit(
-      cluster_type = cluster_type,
-      min_confidence = min_confidence
-    ) &&
-      exists("gen_network_edges_mem", mode = "function")
-  ) {
-    network <- tryCatch(
-      gen_network_edges_mem(cluster_type = cluster_type, min_confidence = min_confidence),
-      error = function(e) NULL
-    )
-  }
-  if (is.null(network)) {
-    network <- mcp_analysis_repo_find_network_disk_payload(
-      cluster_type = cluster_type,
-      min_confidence = min_confidence
-    )
-  }
-  if (is.null(network)) {
-    return(NULL)
-  }
-  network <- mcp_analysis_repo_filter_network_gene(network, gene)
-  if (exists("limit_network_edges_response", mode = "function")) {
-    network <- limit_network_edges_response(network, max_edges = max_edges)
-  } else if (!is.null(network$edges) && nrow(network$edges) > max_edges) {
-    network$edges <- network$edges[order(-network$edges$confidence), ]
-    network$edges <- utils::head(network$edges, max_edges)
-  }
   mcp_analysis_repo_refresh_network_metadata(network)
 }

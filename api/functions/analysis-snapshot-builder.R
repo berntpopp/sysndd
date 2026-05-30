@@ -99,6 +99,12 @@ analysis_snapshot_build_network_rows <- function(network) {
       display_order = integer()
     )
   }
+  if (nrow(nodes) > 0L) {
+    node_key <- as.character(nodes$hgnc_id)
+    keep <- !is.na(node_key) & nzchar(node_key) & !duplicated(node_key)
+    nodes <- nodes[keep, , drop = FALSE]
+    nodes$display_order <- seq_len(nrow(nodes))
+  }
 
   edges <- if (nrow(edges_in) > 0L) {
     source_col <- if ("source_hgnc_id" %in% names(edges_in)) "source_hgnc_id" else "source"
@@ -228,6 +234,16 @@ analysis_snapshot_build_correlation_rows <- function(rows, correlation_kind) {
         character(1)
       )
     )
+    valid_rows <- !is.na(correlations$x_key) &
+      nzchar(correlations$x_key) &
+      !is.na(correlations$y_key) &
+      nzchar(correlations$y_key) &
+      is.finite(correlations$value)
+    correlations <- correlations[valid_rows, , drop = FALSE]
+    if (nrow(correlations) > 0L) {
+      correlations$row_rank <- seq_len(nrow(correlations))
+      correlations$abs_value <- abs(correlations$value)
+    }
   }
 
   list(
@@ -267,6 +283,52 @@ analysis_snapshot_with_write_transaction <- function(conn, code) {
   DBI::dbWithTransaction(conn, code(conn))
 }
 
+analysis_snapshot_stale_after <- function(now = Sys.time()) {
+  days <- suppressWarnings(as.numeric(Sys.getenv("ANALYSIS_SNAPSHOT_STALE_AFTER_DAYS", unset = "7")))
+  if (is.na(days) || days <= 0) {
+    days <- 7
+  }
+  as.POSIXct(now, tz = "UTC") + (days * 86400)
+}
+
+analysis_snapshot_cluster_llm_type <- function(analysis_type) {
+  switch(as.character(analysis_type[[1]]),
+    functional_clusters = "functional",
+    phenotype_clusters = "phenotype",
+    NULL
+  )
+}
+
+analysis_snapshot_trigger_llm_generation <- function(analysis_type, payload, parent_job_id = NULL) {
+  cluster_type <- analysis_snapshot_cluster_llm_type(analysis_type)
+  if (is.null(cluster_type)) {
+    return(NULL)
+  }
+  if (!exists("trigger_llm_batch_generation", mode = "function")) {
+    return(list(skipped = TRUE, reason = "llm_trigger_unavailable"))
+  }
+
+  clusters <- payload$raw %||% tibble::tibble()
+  if (is.null(clusters) || (is.data.frame(clusters) && nrow(clusters) == 0L)) {
+    return(list(skipped = TRUE, reason = "empty_clusters"))
+  }
+
+  tryCatch(
+    trigger_llm_batch_generation(
+      clusters,
+      cluster_type = cluster_type,
+      parent_job_id = as.character(parent_job_id %||% "")
+    ),
+    error = function(e) {
+      list(
+        success = FALSE,
+        error = conditionMessage(e),
+        cluster_type = cluster_type
+      )
+    }
+  )
+}
+
 analysis_snapshot_approved_gene_ids <- function(conn = NULL) {
   rows <- db_execute_query(
     "SELECT DISTINCT hgnc_id
@@ -284,8 +346,7 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
   normalized <- analysis_snapshot_normalize_params(analysis_type, params)
   params <- normalized$params
 
-  switch(
-    normalized$analysis_type,
+  switch(normalized$analysis_type,
     functional_clusters = {
       clusters <- gen_string_clust_obj_mem(
         analysis_snapshot_approved_gene_ids(conn = conn),
@@ -365,6 +426,7 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
     )
 
     source_data_version <- analysis_snapshot_source_data_version(conn = refresh_conn)
+    stale_after <- analysis_snapshot_stale_after()
     payload <- analysis_snapshot_build_payload(normalized$analysis_type, normalized$params, conn = refresh_conn)
     row_counts <- payload$row_counts %||% list()
     if (identical(payload$kind, "network")) {
@@ -386,6 +448,7 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
           data_class = normalized$data_class,
           status = "pending",
           generated_by_job_id = job_id,
+          stale_after = stale_after,
           source_versions = list(sysndd_public_data = source_data_version),
           source_data_version = source_data_version,
           parameters_json = normalized$parameters_json,
@@ -418,6 +481,11 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
 
       list(snapshot_id = snapshot_id, pruned = pruned)
     })
+    llm_generation <- analysis_snapshot_trigger_llm_generation(
+      normalized$analysis_type,
+      payload,
+      parent_job_id = job_id %||% write_result$snapshot_id
+    )
 
     list(
       snapshot_id = write_result$snapshot_id,
@@ -428,7 +496,9 @@ analysis_snapshot_refresh <- function(analysis_type, params, job_id = NULL, conn
       payload_hash = payload_hash,
       input_hash = input_hash,
       source_data_version = source_data_version,
-      pruned = write_result$pruned
+      stale_after = stale_after,
+      pruned = write_result$pruned,
+      llm_generation = llm_generation
     )
   })
 }

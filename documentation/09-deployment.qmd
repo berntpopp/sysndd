@@ -72,8 +72,8 @@ Snapshot status meanings:
 
 - `unsupported_parameter`: the requested parameters are not in the fixed public preset matrix; change the request or predefine and refresh a new preset in code.
 - `snapshot_missing`: the preset is supported, but no public-ready snapshot is active yet; run the refresh job.
-- `snapshot_stale`: an active snapshot exists but is past `stale_after`; continue serving only if acceptable for the deployment window, then refresh.
-- `source_version_mismatch`: the stored source data version no longer matches the cheap current source version; refresh before treating the payload as current.
+- `snapshot_stale`: an active snapshot exists but is past `stale_after`; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
+- `source_version_mismatch`: the stored source data version no longer matches the cheap current source version; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
 
 ### Gemini model configuration
 

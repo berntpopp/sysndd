@@ -27,6 +27,7 @@ test_that("snapshot presets reject unsupported analysis parameters", {
 
   expect_error(
     analysis_snapshot_normalize_params("functional_clusters", list(algorithm = "walktrap")),
+    regexp = "supported public preset values",
     class = "analysis_snapshot_unsupported_parameter_error"
   )
   expect_error(

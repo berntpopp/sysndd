@@ -175,7 +175,7 @@ export interface NetworkNode {
   hgnc_id: string;
   /** Gene symbol (e.g., "BRCA1") */
   symbol: string;
-  /** Cluster assignment from Leiden algorithm (or combined ID like "1.2" for subclusters) */
+  /** Cluster assignment from the public Leiden snapshot, sometimes encoded as a compound ID. */
   cluster: number | string;
   /** Node degree (number of connections) */
   degree: number;
@@ -276,12 +276,12 @@ export interface NetworkResponse {
  * Query parameters for the network_edges endpoint
  */
 export interface NetworkEdgesParams {
-  /** Type of clusters: "clusters" (main) or "subclusters" (nested) */
-  cluster_type?: 'clusters' | 'subclusters';
-  /** Minimum STRING confidence (0-1000, default 400) */
-  min_confidence?: number | string;
-  /** Maximum edges to return (default 10000, 0 for all). High confidence edges prioritized. */
-  max_edges?: number | string;
+  /** Public snapshot preset cluster type. */
+  cluster_type?: 'clusters';
+  /** Public snapshot preset STRING confidence threshold. */
+  min_confidence?: 400 | '400';
+  /** Public snapshot preset edge cap. */
+  max_edges?: 10000 | '10000';
 }
 
 // ============================================================================

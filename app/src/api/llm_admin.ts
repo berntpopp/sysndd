@@ -22,6 +22,11 @@ export interface LlmModelInfo {
   rpm_limit: number | null;
   rpd_limit: number | null;
   recommended_for: string;
+  status?: string;
+  allowed?: boolean;
+  default?: boolean;
+  operator_allowed?: boolean;
+  shutdown_date?: string | null;
 }
 
 export interface LlmRateLimit {

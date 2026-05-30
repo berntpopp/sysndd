@@ -78,3 +78,9 @@ test_that("get_job_status returns structured error for corrupt full result JSON"
   expect_null(result$result)
   expect_equal(result$error$code, "RESULT_PARSE_FAILED")
 })
+
+test_that("job status GET endpoint keeps result_mode query-only", {
+  lines <- readLines(file.path("endpoints", "jobs_endpoints.R"), warn = FALSE)
+
+  expect_false(any(grepl("argsBody\\$result_mode", lines)))
+})

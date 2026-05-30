@@ -331,15 +331,6 @@ import {
   showAllNetworkClusters,
 } from './networkSelection';
 
-// Props
-interface Props {
-  clusterType?: 'clusters' | 'subclusters';
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  clusterType: 'clusters',
-});
-
 // Emits
 const emit = defineEmits<{
   (e: 'cluster-selected', hgncId: string): void;
@@ -775,7 +766,7 @@ watch(
 // Initialize on mount
 onMounted(async () => {
   // Fetch network data
-  await fetchNetworkData(props.clusterType);
+  await fetchNetworkData();
 
   // Wait for DOM update
   await nextTick();
@@ -837,19 +828,11 @@ watch(cytoscapeNodeElements, (newElements) => {
   }
 });
 
-// Watch for clusterType prop changes
-watch(
-  () => props.clusterType,
-  async (newType) => {
-    await fetchNetworkData(newType);
-  }
-);
-
 /**
  * Retry loading network data after an error
  */
 const retryLoadNetwork = async () => {
-  await fetchNetworkData(props.clusterType);
+  await fetchNetworkData();
   await nextTick();
   if (!isInitialized.value) {
     initializeCytoscape(cytoscapeNodeElements.value);

@@ -100,7 +100,7 @@ make test-api-fast
 
 For MCP 1.2 analysis changes, also check that the analysis tools remain read-only and bounded: `get_sysndd_analysis_catalog` -> `get_gene_research_context(dry_run = TRUE, response_mode = "compact")` -> focused follow-up tools. Analysis responses should use compact defaults, `max_response_chars = "auto"`, `budget` metadata, and `dry_run`/`diagnostics` recovery hints for broad result sets. Cached LLM summaries are validated admin-generated cache reads only, NDDScore is an ML prediction layer rather than a curated evidence tier, and stored external IDs should be treated only as `external_reference_identifier`.
 
-Public and MCP analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require public-ready analysis snapshots. MCP reports snapshot diagnostics such as `snapshot_missing` or `snapshot_stale`; it does not compute heavy analysis or read draft/admin data on miss.
+Public and MCP analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require current public-ready analysis snapshots. Public REST and MCP paths report snapshot diagnostics such as `snapshot_missing`, `snapshot_stale`, or `source_version_mismatch`; they do not compute heavy analysis or read draft/admin data on miss.
 
 ### Public Analysis Snapshots
 

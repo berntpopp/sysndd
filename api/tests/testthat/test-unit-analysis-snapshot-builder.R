@@ -29,6 +29,26 @@ test_that("network snapshot builder normalizes nodes and edges", {
   expect_equal(built$row_counts$edges, 1L)
 })
 
+test_that("network snapshot builder deduplicates nodes by HGNC id for snapshot primary key", {
+  source(file.path("functions", "analysis-snapshot-builder.R"), local = TRUE)
+
+  network <- list(
+    nodes = tibble::tibble(
+      hgnc_id = c("HGNC:1", "HGNC:1", "HGNC:2"),
+      symbol = c("A", "A2", "B"),
+      cluster = c(1, 2, 1),
+      degree = c(5L, 10L, 2L)
+    ),
+    edges = tibble::tibble(source = "HGNC:1", target = "HGNC:2", confidence = 0.8)
+  )
+
+  built <- analysis_snapshot_build_network_rows(network)
+
+  expect_equal(built$nodes$hgnc_id, c("HGNC:1", "HGNC:2"))
+  expect_equal(built$nodes$symbol[[1]], "A")
+  expect_equal(built$row_counts$nodes, 2L)
+})
+
 test_that("correlation snapshot builder supports triangle and diagonal shaping later", {
   source(file.path("functions", "analysis-snapshot-builder.R"), local = TRUE)
 
@@ -38,6 +58,23 @@ test_that("correlation snapshot builder supports triangle and diagonal shaping l
   expect_equal(nrow(built$correlations), 3L)
   expect_equal(built$correlations$row_rank, 1:3)
   expect_equal(built$correlations$abs_value, c(1, 0.5, 1))
+})
+
+test_that("correlation snapshot builder drops non-finite values before NOT NULL inserts", {
+  source(file.path("functions", "analysis-snapshot-builder.R"), local = TRUE)
+
+  rows <- tibble::tibble(
+    x = c("A", "A", "B", "C"),
+    y = c("A", "B", "B", "C"),
+    value = c(1, NA_real_, NaN, Inf)
+  )
+
+  built <- analysis_snapshot_build_correlation_rows(rows, correlation_kind = "phenotype")
+
+  expect_equal(nrow(built$correlations), 1L)
+  expect_equal(built$correlations$row_rank, 1L)
+  expect_equal(built$correlations$value, 1)
+  expect_false(any(is.na(built$correlations$value)))
 })
 
 test_that("approved gene query limits functional snapshots to NDD phenotype genes", {
@@ -104,6 +141,8 @@ test_that("snapshot refresh uses one connection and one write transaction", {
   env$analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
     record_conn("create_manifest", conn)
     expect_equal(manifest$source_data_version, "source-v1")
+    expect_s3_class(manifest$stale_after, "POSIXct")
+    expect_gt(as.numeric(manifest$stale_after), as.numeric(Sys.time()))
     42
   }
   env$analysis_snapshot_insert_network_rows <- function(snapshot_id, rows, conn = NULL) {
@@ -125,6 +164,7 @@ test_that("snapshot refresh uses one connection and one write transaction", {
   )
 
   expect_equal(result$snapshot_id, 42)
+  expect_s3_class(result$stale_after, "POSIXct")
   expect_equal(
     events,
     c(
@@ -220,6 +260,7 @@ test_that("snapshot refresh checks out an explicit pool once before locking", {
     record_conn("prune", conn)
     0L
   }
+  env$trigger_llm_batch_generation <- function(...) stop("network snapshots must not trigger LLM generation")
 
   result <- env$analysis_snapshot_refresh(
     "gene_network_edges",
@@ -245,4 +286,41 @@ test_that("snapshot refresh checks out an explicit pool once before locking", {
       "return"
     )
   )
+})
+
+test_that("cluster snapshot refresh delegates LLM summary generation to the worker-owned refresh path", {
+  env <- new.env(parent = globalenv())
+  source(file.path("functions", "analysis-snapshot-presets.R"), local = env)
+  source(file.path("functions", "analysis-snapshot-builder.R"), local = env)
+
+  events <- character()
+  refresh_conn <- structure(list(label = "refresh"), class = "DBIConnection")
+  clusters <- tibble::tibble(cluster = 1L, identifiers = list(tibble::tibble(hgnc_id = "HGNC:1")))
+  env$get_db_connection <- function() refresh_conn
+  env$db_with_transaction <- function(code, pool_obj = NULL) code(pool_obj)
+  env$analysis_snapshot_acquire_lock <- function(...) TRUE
+  env$analysis_snapshot_release_lock <- function(...) TRUE
+  env$analysis_snapshot_source_data_version <- function(...) "source-v1"
+  env$analysis_snapshot_build_payload <- function(...) {
+    list(
+      kind = "clusters",
+      raw = clusters,
+      clusters = tibble::tibble(),
+      members = tibble::tibble(),
+      row_counts = list(clusters = 1L, members = 1L)
+    )
+  }
+  env$analysis_snapshot_create_manifest <- function(...) 77L
+  env$analysis_snapshot_insert_cluster_rows <- function(...) NULL
+  env$analysis_snapshot_activate <- function(...) NULL
+  env$analysis_snapshot_prune <- function(...) 0L
+  env$trigger_llm_batch_generation <- function(clusters, cluster_type, parent_job_id) {
+    events <<- c(events, paste(cluster_type, parent_job_id, nrow(clusters), sep = ":"))
+    list(job_id = "llm-job")
+  }
+
+  result <- env$analysis_snapshot_refresh("phenotype_clusters", list(), job_id = "snapshot-job")
+
+  expect_equal(events, "phenotype:snapshot-job:1")
+  expect_equal(result$llm_generation$job_id, "llm-job")
 })

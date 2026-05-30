@@ -23,7 +23,7 @@ export default {
   },
   setup() {
     const { makeToast } = useToast();
-    void preloadNetworkData('clusters').catch(() => undefined);
+    void preloadNetworkData().catch(() => undefined);
     useHead({
       title: 'Functional clusters',
       meta: [

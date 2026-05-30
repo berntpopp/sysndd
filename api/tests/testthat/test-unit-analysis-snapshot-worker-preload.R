@@ -28,3 +28,17 @@ test_that("async workers preload analysis snapshot refresh dependencies before h
 
   expect_equal(positions, sort(positions))
 })
+
+test_that("async workers preload LLM model configuration before LLM clients", {
+  lines <- trimws(readLines(file.path("bootstrap", "setup_workers.R"), warn = FALSE))
+
+  model_config_pos <- which(lines == 'source("/app/functions/llm-model-config.R", local = FALSE)')
+  client_pos <- which(lines == 'source("/app/functions/llm-client.R", local = FALSE)')
+  service_pos <- which(lines == 'source("/app/functions/llm-service.R", local = FALSE)')
+
+  expect_length(model_config_pos, 1L)
+  expect_length(client_pos, 1L)
+  expect_length(service_pos, 1L)
+  expect_lt(model_config_pos, client_pos)
+  expect_lt(model_config_pos, service_pos)
+})

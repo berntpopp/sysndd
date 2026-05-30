@@ -137,6 +137,7 @@ bootstrap_setup_workers <- function() {
     source("/app/functions/llm-validation.R", local = FALSE)
     source("/app/functions/llm-rate-limiter.R", local = FALSE)
     source("/app/functions/llm-types.R", local = FALSE)
+    source("/app/functions/llm-model-config.R", local = FALSE)
     source("/app/functions/llm-client.R", local = FALSE)
     source("/app/functions/llm-service.R", local = FALSE)
     source("/app/functions/llm-judge.R", local = FALSE)

@@ -16,7 +16,7 @@ import { apiClient } from './client';
 // Types
 // ---------------------------------------------------------------------------
 
-export type ClusteringAlgorithm = 'leiden' | 'walktrap';
+export type ClusteringAlgorithm = 'leiden';
 
 export interface FunctionalClusteringParams {
   page_after?: string;
@@ -112,13 +112,12 @@ export interface CorrelationResponse {
   correlation_melted: CorrelationCell[];
 }
 
-export type ClusterType = 'clusters' | 'subclusters';
+export type ClusterType = 'clusters';
 
 export interface NetworkEdgesParams {
-  cluster_type?: ClusterType;
-  min_confidence?: string;
-  /** "0" returns all edges; default "10000". */
-  max_edges?: string;
+  cluster_type?: 'clusters';
+  min_confidence?: '400';
+  max_edges?: '10000';
 }
 
 export interface NetworkNode {
@@ -202,7 +201,7 @@ export interface ClusterSummary {
  * GET /api/analysis/functional_clustering
  * Mirrors api/endpoints/analysis_endpoints.R:51 (handler `@get functional_clustering`).
  *
- * Cursor-paginated functional clusters (STRINGdb + Leiden/Walktrap).
+ * Cursor-paginated public functional clusters (STRINGdb + Leiden preset).
  * Public — no auth.
  */
 export async function getFunctionalClustering(
@@ -248,8 +247,8 @@ export async function getPhenotypeFunctionalCorrelation(
  * Mirrors api/endpoints/analysis_endpoints.R:612 (handler `@get network_edges`).
  *
  * Returns Cytoscape.js-shaped node/edge payload for the protein-protein
- * interaction network. Uses `@serializer json list(auto_unbox=TRUE)`, so no
- * scalar-array wrapping.
+ * interaction network for the fixed public preset:
+ * cluster_type="clusters", min_confidence="400", max_edges="10000".
  */
 export async function getNetworkEdges(
   params: NetworkEdgesParams = {},

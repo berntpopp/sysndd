@@ -19,6 +19,12 @@ import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from 
 import { isApiError } from '@/api/client';
 import { getClusterColor } from '../utils/clusterColors';
 
+const PUBLIC_NETWORK_PRESET = {
+  cluster_type: 'clusters',
+  min_confidence: '400',
+  max_edges: '10000',
+} as const;
+
 /**
  * State returned by the useNetworkData composable
  */
@@ -32,7 +38,7 @@ export interface NetworkDataState {
   /** Network metadata for UI display */
   metadata: ComputedRef<NetworkMetadata | null>;
   /** Fetch network data from API */
-  fetchNetworkData: (clusterType?: 'clusters' | 'subclusters', maxEdges?: number) => Promise<void>;
+  fetchNetworkData: () => Promise<void>;
   /** Transformed data in Cytoscape.js ElementDefinition format */
   cytoscapeElements: ComputedRef<ElementDefinition[]>;
   /** Initial graph render with all nodes and default-visible edges */
@@ -45,26 +51,16 @@ export interface NetworkDataState {
 
 const INITIAL_EDGE_CATEGORY = 'Definitive';
 const inflightNetworkRequests = new Map<string, Promise<NetworkResponse>>();
+const NETWORK_REQUEST_KEY = 'public-network-preset';
 
-function networkRequestKey(clusterType: 'clusters' | 'subclusters', maxEdges: number): string {
-  return `${clusterType}:${maxEdges}`;
-}
-
-export function preloadNetworkData(
-  clusterType: 'clusters' | 'subclusters' = 'clusters',
-  maxEdges: number = 10000
-): Promise<NetworkResponse> {
-  const key = networkRequestKey(clusterType, maxEdges);
-  const existing = inflightNetworkRequests.get(key);
+export function preloadNetworkData(): Promise<NetworkResponse> {
+  const existing = inflightNetworkRequests.get(NETWORK_REQUEST_KEY);
   if (existing) return existing;
 
-  const request = getNetworkEdges({
-    cluster_type: clusterType,
-    max_edges: String(maxEdges),
-  }).finally(() => {
-    inflightNetworkRequests.delete(key);
+  const request = getNetworkEdges(PUBLIC_NETWORK_PRESET).finally(() => {
+    inflightNetworkRequests.delete(NETWORK_REQUEST_KEY);
   });
-  inflightNetworkRequests.set(key, request);
+  inflightNetworkRequests.set(NETWORK_REQUEST_KEY, request);
   return request;
 }
 
@@ -170,7 +166,7 @@ function networkDataError(err: unknown): Error {
  * } = useNetworkData();
  *
  * onMounted(async () => {
- *   await fetchNetworkData('clusters');
+ *   await fetchNetworkData();
  * });
  *
  * // Use cytoscapeElements with useCytoscape composable
@@ -195,27 +191,17 @@ export function useNetworkData(): NetworkDataState {
   /**
    * Fetch network data from the API
    *
-   * PERFORMANCE: Uses max_edges parameter (default 10000) to limit edges
-   * returned. This prevents browser from being overwhelmed with 66k+ edges.
-   * Higher confidence edges are prioritized when filtering.
-   *
-   * @param clusterType - Type of clustering to use ('clusters' or 'subclusters')
-   * @param maxEdges - Maximum edges to return (default 10000, 0 for all)
+   * Fetches the supported public-ready network snapshot preset.
    */
-  const fetchNetworkData = async (
-    clusterType: 'clusters' | 'subclusters' = 'clusters',
-    maxEdges: number = 10000
-  ): Promise<void> => {
+  const fetchNetworkData = async (): Promise<void> => {
     isLoading.value = true;
     error.value = null;
 
-    console.log(
-      `[useNetworkData] Fetching network data (cluster_type=${clusterType}, max_edges=${maxEdges})`
-    );
+    console.log('[useNetworkData] Fetching public network snapshot preset');
     const startTime = performance.now();
 
     try {
-      const data = await preloadNetworkData(clusterType, maxEdges);
+      const data = await preloadNetworkData();
       networkData.value = data;
 
       const elapsed = performance.now() - startTime;

@@ -36,6 +36,16 @@ LLM_DEFAULT_GEMINI_MODEL <- "gemini-3.5-flash"
   NA_character_
 }
 
+.llm_model_runtime_config <- function(config = NULL) {
+  if (!is.null(config)) {
+    return(config)
+  }
+  if (exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    return(get("dw", envir = .GlobalEnv, inherits = FALSE))
+  }
+  NULL
+}
+
 .llm_model_log_info <- function(message) {
   if (requireNamespace("logger", quietly = TRUE)) {
     logger::log_info(message)
@@ -90,8 +100,10 @@ llm_model_catalog <- function() {
     status = c("stable", "preview", "stable", "stable", "stable", "stable", "shutdown"),
     allowed = c(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
     default = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
-    shutdown_date = c(NA_character_, NA_character_, NA_character_, NA_character_, NA_character_,
-                      NA_character_, "2026-03-09"),
+    shutdown_date = c(
+      NA_character_, NA_character_, NA_character_, NA_character_, NA_character_,
+      NA_character_, "2026-03-09"
+    ),
     stringsAsFactors = FALSE
   )
 }
@@ -214,8 +226,9 @@ llm_model_config_validate <- function(model, config = NULL) {
 #' @return List with model, source, default, validity, and warning metadata.
 #' @export
 llm_model_config_resolve <- function(config = NULL) {
+  runtime_config <- .llm_model_runtime_config(config)
   env_model <- .llm_model_scalar(Sys.getenv("GEMINI_MODEL", unset = NA_character_))
-  config_model <- .llm_model_config_value(config)
+  config_model <- .llm_model_config_value(runtime_config)
 
   if (!is.na(env_model)) {
     model <- env_model
@@ -228,7 +241,7 @@ llm_model_config_resolve <- function(config = NULL) {
     source <- "default"
   }
 
-  validation <- llm_model_config_validate(model, config = config)
+  validation <- llm_model_config_validate(model, config = runtime_config)
   c(
     list(
       model = model,

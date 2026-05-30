@@ -38,98 +38,100 @@ fetch_rgd_phenotypes_by_id <- function(rgd_id, gene_symbol = NULL) {
     tryCatch(
       {
         budget <- external_proxy_budget("rgd")
-      # Normalize RGD ID (remove "RGD:" prefix if present)
-      clean_rgd_id <- gsub("^RGD:", "", rgd_id)
+        # Normalize RGD ID (remove "RGD:" prefix if present)
+        clean_rgd_id <- gsub("^RGD:", "", rgd_id)
 
-      # Validate RGD ID is numeric
-      if (!grepl("^[0-9]+$", clean_rgd_id)) {
+        # Validate RGD ID is numeric
+        if (!grepl("^[0-9]+$", clean_rgd_id)) {
+          return(list(
+            error = TRUE,
+            source = "rgd",
+            message = paste("Invalid RGD ID format:", rgd_id)
+          ))
+        }
+
+        # Fetch mammalian phenotype (MP) annotations for the RGD ID
+        phenotype_url <- paste0(
+          "https://rest.rgd.mcw.edu/rgdws/annotations/rgdId/",
+          clean_rgd_id,
+          "/MP"
+        )
+
+        phenotype_response <- httr2::request(phenotype_url) |>
+          httr2::req_retry(
+            max_tries = budget$max_tries,
+            max_seconds = budget$max_seconds,
+            backoff = ~2
+          ) |>
+          httr2::req_throttle(
+            rate = EXTERNAL_API_THROTTLE$rgd$capacity / EXTERNAL_API_THROTTLE$rgd$fill_time_s,
+            realm = "rgd"
+          ) |>
+          httr2::req_timeout(budget$timeout_seconds) |>
+          httr2::req_perform()
+
+        phenotype_data <- httr2::resp_body_json(phenotype_response)
+
+        # Extract phenotypes
+        phenotype_count <- 0
+        phenotypes <- list()
+        rat_symbol <- NULL
+
+        if (!is.null(phenotype_data) && length(phenotype_data) > 0) {
+          # Extract unique phenotypes
+          phenotype_map <- list()
+          for (annotation in phenotype_data) {
+            term_acc <- annotation$termAcc
+            if (!is.null(term_acc) && !is.null(annotation$term)) {
+              phenotype_map[[term_acc]] <- list(
+                term = annotation$term,
+                annotation_type = "MP"
+              )
+            }
+            # Extract rat symbol from first annotation
+            if (is.null(rat_symbol) && !is.null(annotation$objectSymbol)) {
+              rat_symbol <- annotation$objectSymbol
+            }
+          }
+          phenotypes <- unname(phenotype_map)
+          phenotype_count <- length(phenotypes)
+        }
+
+        # Return structured response
+        return(list(
+          source = "rgd",
+          gene_symbol = gene_symbol %||% rat_symbol %||% clean_rgd_id,
+          rgd_id = paste0("RGD:", clean_rgd_id),
+          rat_symbol = rat_symbol,
+          rat_name = NULL, # Not available from annotations endpoint
+          phenotype_count = phenotype_count,
+          phenotypes = phenotypes,
+          rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=", clean_rgd_id)
+        ))
+      },
+      error = function(e) {
+        msg <- conditionMessage(e)
+        # Check for 404/empty response (no phenotype annotations)
+        if (grepl("404|Not Found|empty", msg, ignore.case = TRUE)) {
+          return(list(
+            source = "rgd",
+            gene_symbol = gene_symbol,
+            rgd_id = paste0("RGD:", gsub("^RGD:", "", rgd_id)),
+            rat_symbol = NULL,
+            rat_name = NULL,
+            phenotype_count = 0,
+            phenotypes = list(),
+            rgd_url = paste0(
+              "https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=",
+              gsub("^RGD:", "", rgd_id)
+            )
+          ))
+        }
         return(list(
           error = TRUE,
           source = "rgd",
-          message = paste("Invalid RGD ID format:", rgd_id)
+          message = paste("RGD query failed:", msg)
         ))
-      }
-
-      # Fetch mammalian phenotype (MP) annotations for the RGD ID
-      phenotype_url <- paste0(
-        "https://rest.rgd.mcw.edu/rgdws/annotations/rgdId/",
-        clean_rgd_id,
-        "/MP"
-      )
-
-      phenotype_response <- httr2::request(phenotype_url) |>
-        httr2::req_retry(
-          max_tries = budget$max_tries,
-          max_seconds = budget$max_seconds,
-          backoff = ~ 2
-        ) |>
-        httr2::req_throttle(
-          rate = EXTERNAL_API_THROTTLE$rgd$capacity / EXTERNAL_API_THROTTLE$rgd$fill_time_s,
-          realm = "rgd"
-        ) |>
-        httr2::req_timeout(budget$timeout_seconds) |>
-        httr2::req_perform()
-
-      phenotype_data <- httr2::resp_body_json(phenotype_response)
-
-      # Extract phenotypes
-      phenotype_count <- 0
-      phenotypes <- list()
-      rat_symbol <- NULL
-
-      if (!is.null(phenotype_data) && length(phenotype_data) > 0) {
-        # Extract unique phenotypes
-        phenotype_map <- list()
-        for (annotation in phenotype_data) {
-          term_acc <- annotation$termAcc
-          if (!is.null(term_acc) && !is.null(annotation$term)) {
-            phenotype_map[[term_acc]] <- list(
-              term = annotation$term,
-              annotation_type = "MP"
-            )
-          }
-          # Extract rat symbol from first annotation
-          if (is.null(rat_symbol) && !is.null(annotation$objectSymbol)) {
-            rat_symbol <- annotation$objectSymbol
-          }
-        }
-        phenotypes <- unname(phenotype_map)
-        phenotype_count <- length(phenotypes)
-      }
-
-      # Return structured response
-      return(list(
-        source = "rgd",
-        gene_symbol = gene_symbol %||% rat_symbol %||% clean_rgd_id,
-        rgd_id = paste0("RGD:", clean_rgd_id),
-        rat_symbol = rat_symbol,
-        rat_name = NULL,  # Not available from annotations endpoint
-        phenotype_count = phenotype_count,
-        phenotypes = phenotypes,
-        rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=", clean_rgd_id)
-      ))
-    },
-    error = function(e) {
-      msg <- conditionMessage(e)
-      # Check for 404/empty response (no phenotype annotations)
-      if (grepl("404|Not Found|empty", msg, ignore.case = TRUE)) {
-        return(list(
-          source = "rgd",
-          gene_symbol = gene_symbol,
-          rgd_id = paste0("RGD:", gsub("^RGD:", "", rgd_id)),
-          rat_symbol = NULL,
-          rat_name = NULL,
-          phenotype_count = 0,
-          phenotypes = list(),
-          rgd_url = paste0("https://rgd.mcw.edu/rgdweb/report/gene/main.html?id=",
-                           gsub("^RGD:", "", rgd_id))
-        ))
-      }
-      return(list(
-        error = TRUE,
-        source = "rgd",
-        message = paste("RGD query failed:", msg)
-      ))
       }
     )
   })
@@ -174,42 +176,42 @@ fetch_rgd_phenotypes <- function(gene_symbol, rgd_id = NULL) {
   external_proxy_with_timing("rgd", function() {
     tryCatch(
       {
-      # If RGD ID is provided, use it directly
-      if (!is.null(rgd_id) && nchar(rgd_id) > 0) {
-        return(fetch_rgd_phenotypes_by_id(rgd_id, gene_symbol))
-      }
+        # If RGD ID is provided, use it directly
+        if (!is.null(rgd_id) && nchar(rgd_id) > 0) {
+          return(fetch_rgd_phenotypes_by_id(rgd_id, gene_symbol))
+        }
 
-      # Validate gene symbol format
-      if (!validate_gene_symbol(gene_symbol)) {
+        # Validate gene symbol format
+        if (!validate_gene_symbol(gene_symbol)) {
+          return(list(
+            error = TRUE,
+            source = "rgd",
+            message = paste("Invalid gene symbol format:", gene_symbol)
+          ))
+        }
+
+        # Note: RGD gene lookup APIs are unreliable and often return 500 errors.
+        # The preferred approach is to provide the rgd_id parameter directly.
+
+        # Try RGD annotations endpoint with various ID formats
+        # Unfortunately, RGD doesn't have a reliable gene symbol search API
+
+        # Return not found (recommend using rgd_id parameter)
+        return(list(
+          found = FALSE,
+          source = "rgd",
+          message = paste(
+            "RGD gene lookup APIs are unreliable.",
+            "Please ensure rgd_id is provided from the internal gene database."
+          )
+        ))
+      },
+      error = function(e) {
         return(list(
           error = TRUE,
           source = "rgd",
-          message = paste("Invalid gene symbol format:", gene_symbol)
+          message = conditionMessage(e)
         ))
-      }
-
-      # Note: RGD gene lookup APIs are unreliable and often return 500 errors.
-      # The preferred approach is to provide the rgd_id parameter directly.
-
-      # Try RGD annotations endpoint with various ID formats
-      # Unfortunately, RGD doesn't have a reliable gene symbol search API
-
-      # Return not found (recommend using rgd_id parameter)
-      return(list(
-        found = FALSE,
-        source = "rgd",
-        message = paste(
-          "RGD gene lookup APIs are unreliable.",
-          "Please ensure rgd_id is provided from the internal gene database."
-        )
-      ))
-    },
-    error = function(e) {
-      return(list(
-        error = TRUE,
-        source = "rgd",
-        message = conditionMessage(e)
-      ))
       }
     )
   })

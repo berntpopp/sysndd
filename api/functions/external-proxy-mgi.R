@@ -44,172 +44,175 @@ fetch_mgi_phenotypes <- function(gene_symbol) {
     tryCatch(
       {
         budget <- external_proxy_budget("mgi")
-      # Validate gene symbol format
-      if (!validate_gene_symbol(gene_symbol)) {
-        return(list(
-          error = TRUE,
-          source = "mgi",
-          message = paste("Invalid gene symbol format:", gene_symbol)
-        ))
-      }
-
-      # Step 1: Query MouseMine HGene_MPhenotype template
-      # This maps human gene symbol to mouse ortholog phenotypes
-      phenotype_url <- paste0(MOUSEMINE_BASE_URL, "/template/results")
-
-      phenotype_response <- httr2::request(phenotype_url) |>
-        httr2::req_url_query(
-          name = "HGene_MPhenotype",
-          constraint1 = "Gene",
-          op1 = "LOOKUP",
-          value1 = gene_symbol,
-          extra1 = "H. sapiens",
-          format = "json",
-          size = "10000"
-        ) |>
-        httr2::req_retry(
-          max_tries = budget$max_tries,
-          max_seconds = budget$max_seconds,
-          backoff = ~ 2
-        ) |>
-        httr2::req_throttle(
-          rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
-          realm = "mousemine"
-        ) |>
-        httr2::req_timeout(budget$timeout_seconds) |>
-        httr2::req_perform()
-
-      phenotype_data <- httr2::resp_body_json(phenotype_response)
-
-      # Check if we got results
-      results <- phenotype_data$results
-      if (is.null(results) || length(results) == 0) {
-        return(list(found = FALSE, source = "mgi"))
-      }
-
-      # Extract unique mouse symbol and MGI ID from first result
-      # MouseMine HGene_MPhenotype response structure (R 1-indexed):
-      # [1]: Human gene ID, [2]: Human symbol, [3]: Human organism
-      # [4]: MGI ID, [5]: Mouse symbol, [6]: Mouse organism
-      # [7]: MP ID (phenotype), [8]: Phenotype term
-      first_result <- results[[1]]
-      mgi_id <- first_result[[4]]
-      mouse_symbol <- first_result[[5]]
-
-      # Collect unique phenotypes from all results
-      phenotype_map <- list()
-      for (row in results) {
-        mp_id <- row[[7]]  # MP ID (phenotype identifier)
-        term <- row[[8]]   # Phenotype term name
-        if (!is.null(mp_id) && !is.null(term)) {
-          phenotype_map[[mp_id]] <- list(
-            phenotype_id = mp_id,
-            term = term,
-            zygosity = NA_character_
-          )
+        # Validate gene symbol format
+        if (!validate_gene_symbol(gene_symbol)) {
+          return(list(
+            error = TRUE,
+            source = "mgi",
+            message = paste("Invalid gene symbol format:", gene_symbol)
+          ))
         }
-      }
 
-      # Step 2: Query for zygosity data using _Genotype_Phenotype template
-      if (!is.null(mouse_symbol) && nchar(mouse_symbol) > 0) {
-        zygosity_response <- tryCatch(
-          {
-            httr2::request(phenotype_url) |>
-              httr2::req_url_query(
-                name = "_Genotype_Phenotype",
-                constraint1 = "OntologyAnnotation.subject.symbol",
-                op1 = "CONTAINS",
-                value1 = mouse_symbol,
-                format = "json",
-                size = "10000"
-              ) |>
-              httr2::req_retry(
-                max_tries = budget$max_tries,
-                max_seconds = budget$max_seconds,
-                backoff = ~ 2
-              ) |>
-              httr2::req_throttle(
-                rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
-                realm = "mousemine"
-              ) |>
-              httr2::req_timeout(budget$timeout_seconds) |>
-              httr2::req_perform() |>
-              httr2::resp_body_json()
-          },
-          error = function(e) NULL
-        )
+        # Step 1: Query MouseMine HGene_MPhenotype template
+        # This maps human gene symbol to mouse ortholog phenotypes
+        phenotype_url <- paste0(MOUSEMINE_BASE_URL, "/template/results")
 
-        # Parse zygosity data if available
-        if (!is.null(zygosity_response) && !is.null(zygosity_response$results)) {
-          for (row in zygosity_response$results) {
-            # _Genotype_Phenotype structure varies; extract zygosity info
-            # Typically includes genotype zygosity state
-            mp_id <- NULL
-            zygosity <- NULL
+        phenotype_response <- httr2::request(phenotype_url) |>
+          httr2::req_url_query(
+            name = "HGene_MPhenotype",
+            constraint1 = "Gene",
+            op1 = "LOOKUP",
+            value1 = gene_symbol,
+            extra1 = "H. sapiens",
+            format = "json",
+            size = "10000"
+          ) |>
+          httr2::req_retry(
+            max_tries = budget$max_tries,
+            max_seconds = budget$max_seconds,
+            backoff = ~2
+          ) |>
+          httr2::req_throttle(
+            rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
+            realm = "mousemine"
+          ) |>
+          httr2::req_timeout(budget$timeout_seconds) |>
+          httr2::req_perform()
 
-            # Try to find MP ID and zygosity in row
-            for (i in seq_along(row)) {
-              val <- row[[i]]
-              if (is.character(val)) {
-                if (grepl("^MP:", val)) {
-                  mp_id <- val
-                } else if (val %in% c("homozygous", "heterozygous", "conditional",
-                                       "hm", "ht", "cn")) {
-                  zygosity <- switch(
-                    val,
-                    "hm" = "homozygous",
-                    "ht" = "heterozygous",
-                    "cn" = "conditional",
-                    val
-                  )
+        phenotype_data <- httr2::resp_body_json(phenotype_response)
+
+        # Check if we got results
+        results <- phenotype_data$results
+        if (is.null(results) || length(results) == 0) {
+          return(list(found = FALSE, source = "mgi"))
+        }
+
+        # Extract unique mouse symbol and MGI ID from first result
+        # MouseMine HGene_MPhenotype response structure (R 1-indexed):
+        # [1]: Human gene ID, [2]: Human symbol, [3]: Human organism
+        # [4]: MGI ID, [5]: Mouse symbol, [6]: Mouse organism
+        # [7]: MP ID (phenotype), [8]: Phenotype term
+        first_result <- results[[1]]
+        mgi_id <- first_result[[4]]
+        mouse_symbol <- first_result[[5]]
+
+        # Collect unique phenotypes from all results
+        phenotype_map <- list()
+        for (row in results) {
+          mp_id <- row[[7]] # MP ID (phenotype identifier)
+          term <- row[[8]] # Phenotype term name
+          if (!is.null(mp_id) && !is.null(term)) {
+            phenotype_map[[mp_id]] <- list(
+              phenotype_id = mp_id,
+              term = term,
+              zygosity = NA_character_
+            )
+          }
+        }
+
+        # Step 2: Query for zygosity data using _Genotype_Phenotype template
+        if (!is.null(mouse_symbol) && nchar(mouse_symbol) > 0) {
+          zygosity_response <- tryCatch(
+            {
+              httr2::request(phenotype_url) |>
+                httr2::req_url_query(
+                  name = "_Genotype_Phenotype",
+                  constraint1 = "OntologyAnnotation.subject.symbol",
+                  op1 = "CONTAINS",
+                  value1 = mouse_symbol,
+                  format = "json",
+                  size = "10000"
+                ) |>
+                httr2::req_retry(
+                  max_tries = budget$max_tries,
+                  max_seconds = budget$max_seconds,
+                  backoff = ~2
+                ) |>
+                httr2::req_throttle(
+                  rate = EXTERNAL_API_THROTTLE$mgi$capacity / EXTERNAL_API_THROTTLE$mgi$fill_time_s,
+                  realm = "mousemine"
+                ) |>
+                httr2::req_timeout(budget$timeout_seconds) |>
+                httr2::req_perform() |>
+                httr2::resp_body_json()
+            },
+            error = function(e) NULL
+          )
+
+          # Parse zygosity data if available
+          if (!is.null(zygosity_response) && !is.null(zygosity_response$results)) {
+            for (row in zygosity_response$results) {
+              # _Genotype_Phenotype structure varies; extract zygosity info
+              # Typically includes genotype zygosity state
+              mp_id <- NULL
+              zygosity <- NULL
+
+              # Try to find MP ID and zygosity in row
+              for (i in seq_along(row)) {
+                val <- row[[i]]
+                if (is.character(val)) {
+                  if (grepl("^MP:", val)) {
+                    mp_id <- val
+                  } else if (val %in% c(
+                    "homozygous", "heterozygous", "conditional",
+                    "hm", "ht", "cn"
+                  )) {
+                    zygosity <- switch(val,
+                      "hm" = "homozygous",
+                      "ht" = "heterozygous",
+                      "cn" = "conditional",
+                      val
+                    )
+                  }
                 }
               }
-            }
 
-            # Update phenotype with zygosity if found
-            if (!is.null(mp_id) && !is.null(zygosity) &&
+              # Update phenotype with zygosity if found
+              if (!is.null(mp_id) && !is.null(zygosity) &&
                 !is.null(phenotype_map[[mp_id]])) {
-              phenotype_map[[mp_id]]$zygosity <- zygosity
+                phenotype_map[[mp_id]]$zygosity <- zygosity
+              }
             }
           }
         }
-      }
 
-      # Convert phenotype map to list
-      phenotypes <- unname(phenotype_map)
-      phenotype_count <- length(phenotypes)
+        # Convert phenotype map to list
+        phenotypes <- unname(phenotype_map)
+        phenotype_count <- length(phenotypes)
 
-      # Build MGI marker URL (use MGI ID if available, otherwise search URL)
-      mgi_url <- if (!is.null(mgi_id) && grepl("^MGI:", mgi_id)) {
-        paste0("https://www.informatics.jax.org/marker/", mgi_id)
-      } else {
-        paste0("https://www.informatics.jax.org/searchtool/Search.do?query=",
-               utils::URLencode(gene_symbol))
-      }
+        # Build MGI marker URL (use MGI ID if available, otherwise search URL)
+        mgi_url <- if (!is.null(mgi_id) && grepl("^MGI:", mgi_id)) {
+          paste0("https://www.informatics.jax.org/marker/", mgi_id)
+        } else {
+          paste0(
+            "https://www.informatics.jax.org/searchtool/Search.do?query=",
+            utils::URLencode(gene_symbol)
+          )
+        }
 
-      # Return structured response
-      return(list(
-        source = "mgi",
-        gene_symbol = gene_symbol,
-        mgi_id = mgi_id,
-        mouse_symbol = mouse_symbol %||% gene_symbol,
-        marker_name = NULL,  # Not provided by this template
-        phenotype_count = phenotype_count,
-        phenotypes = phenotypes,
-        mgi_url = mgi_url
-      ))
-    },
-    error = function(e) {
-      # Check for specific HTTP errors
-      msg <- conditionMessage(e)
-      if (grepl("404|Not Found", msg, ignore.case = TRUE)) {
-        return(list(found = FALSE, source = "mgi"))
-      }
-      return(list(
-        error = TRUE,
-        source = "mgi",
-        message = paste("MouseMine query failed:", msg)
-      ))
+        # Return structured response
+        return(list(
+          source = "mgi",
+          gene_symbol = gene_symbol,
+          mgi_id = mgi_id,
+          mouse_symbol = mouse_symbol %||% gene_symbol,
+          marker_name = NULL, # Not provided by this template
+          phenotype_count = phenotype_count,
+          phenotypes = phenotypes,
+          mgi_url = mgi_url
+        ))
+      },
+      error = function(e) {
+        # Check for specific HTTP errors
+        msg <- conditionMessage(e)
+        if (grepl("404|Not Found", msg, ignore.case = TRUE)) {
+          return(list(found = FALSE, source = "mgi"))
+        }
+        return(list(
+          error = TRUE,
+          source = "mgi",
+          message = paste("MouseMine query failed:", msg)
+        ))
       }
     )
   })

@@ -58,3 +58,43 @@ test_that("Gemini client rejects invalid configured models before API calls", {
   expect_equal(result$error_code, "llm_model_invalid")
   expect_equal(result$attempts, 0L)
 })
+
+test_that("Gemini client normalizes malformed invalid model messages", {
+  source_llm_client_config()
+
+  old_validate <- llm_model_config_validate
+  assign("llm_model_config_validate", function(...) {
+    list(valid = FALSE, message = c("first", "second"))
+  }, envir = .GlobalEnv)
+  withr::defer(assign("llm_model_config_validate", old_validate, envir = .GlobalEnv))
+
+  expect_warning(
+    result <- generate_cluster_summary(
+      cluster_data = list(),
+      cluster_type = "functional",
+      model = "future-shape-change"
+    ),
+    NA
+  )
+
+  expect_false(result$success)
+  expect_equal(result$error, "Invalid Gemini model: future-shape-change")
+  expect_equal(result$error_code, "llm_model_invalid")
+})
+
+test_that("Gemini client default model honors runtime config when env is unset", {
+  source_llm_client_config()
+
+  withr::local_envvar(GEMINI_MODEL = NA)
+  old_dw <- get0("dw", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("dw", list(gemini_model = "gemini-2.5-pro"), envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_dw)) {
+      rm("dw", envir = .GlobalEnv)
+    } else {
+      assign("dw", old_dw, envir = .GlobalEnv)
+    }
+  })
+
+  expect_equal(get_default_gemini_model(), "gemini-2.5-pro")
+})

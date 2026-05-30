@@ -70,7 +70,12 @@ generate_cluster_summary <- function(
   model_validation <- llm_model_config_validate(model)
   if (!isTRUE(model_validation$valid)) {
     error_message <- model_validation$message
-    if (is.null(error_message) || is.na(error_message) || !nzchar(error_message)) {
+    if (
+      !is.character(error_message) ||
+        length(error_message) != 1L ||
+        is.na(error_message) ||
+        !nzchar(error_message)
+    ) {
       error_message <- paste("Invalid Gemini model:", model)
     }
     logger::log_error("Invalid Gemini model configuration: {error_message}")

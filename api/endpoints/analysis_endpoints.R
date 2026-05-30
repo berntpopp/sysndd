@@ -119,7 +119,7 @@ analysis_paginate_snapshot_clusters <- function(body, page_after_clean, page_siz
 #* @serializer json list(na="string")
 #* @param page_after:str Cursor for pagination (hash_filter of last item, empty for first page)
 #* @param page_size:str Number of clusters per page (default "10", max "50")
-#* @param algorithm:str Clustering algorithm: "leiden" (default, fast) or "walktrap" (slower, legacy)
+#* @param algorithm:str Supported public preset algorithm: "leiden" (default)
 #*
 #* @response 200 OK. Returns object with:
 #*   - categories: Full list of enrichment categories with links
@@ -140,7 +140,7 @@ function(page_after = "", page_size = "10", algorithm = "leiden", res) {
 
   algorithm_clean <- tolower(as.character(analysis_endpoint_scalar(algorithm, "leiden")))
 
-  snapshot_result <- analysis_snapshot_service_read(
+  snapshot_result <- service_analysis_snapshot_read(
     "functional_clusters",
     list(algorithm = algorithm_clean)
   )
@@ -171,7 +171,7 @@ function(page_after = "", page_size = "10", algorithm = "leiden", res) {
 #*
 #* @get phenotype_clustering
 function(res) {
-  snapshot_result <- analysis_snapshot_service_read("phenotype_clusters", list())
+  snapshot_result <- service_analysis_snapshot_read("phenotype_clusters", list())
   analysis_snapshot_endpoint_response(snapshot_result, res)
 }
 
@@ -194,7 +194,7 @@ function(res) {
 #*
 #* @get phenotype_functional_cluster_correlation
 function(res) {
-  snapshot_result <- analysis_snapshot_service_read("phenotype_functional_correlations", list())
+  snapshot_result <- service_analysis_snapshot_read("phenotype_functional_correlations", list())
   analysis_snapshot_endpoint_response(snapshot_result, res)
 }
 
@@ -209,17 +209,18 @@ function(res) {
 #* - Nodes contain hgnc_id, symbol, cluster assignment, and degree (connection count)
 #* - Edges contain source, target (HGNC IDs), and confidence (0-1 normalized)
 #* - Metadata includes node_count, edge_count, cluster_count, string_version
-#* - Results are cached via memoise for performance
+#* - Results are read from the fixed public snapshot preset
 #*
 #* # `Parameters`
-#* - cluster_type: Use "clusters" for main clusters or "subclusters" for nested
-#* - min_confidence: STRING confidence threshold (0-1000, higher = more stringent)
+#* - cluster_type: "clusters" fixed public preset
+#* - min_confidence: "400" fixed public preset
+#* - max_edges: "10000" fixed public preset
 #*
 #* @tag analysis
 #* @serializer json list(na="string", auto_unbox=TRUE)
-#* @param cluster_type:str Type of clusters: "clusters" (default) or "subclusters"
-#* @param min_confidence:str Minimum STRING confidence (0-1000, default "400")
-#* @param max_edges:str Maximum edges to return (default "10000", 0 for all). Higher confidence edges are prioritized.
+#* @param cluster_type:str Fixed public preset cluster type: "clusters"
+#* @param min_confidence:str Fixed public preset STRING confidence: "400"
+#* @param max_edges:str Fixed public preset maximum edges: "10000"
 #*
 #* @response 200 OK. Returns nodes, edges, and metadata
 #*
@@ -229,7 +230,7 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000",
   min_confidence_value <- as.character(analysis_endpoint_scalar(min_confidence, "400"))
   max_edges_value <- as.character(analysis_endpoint_scalar(max_edges, "10000"))
 
-  snapshot_result <- analysis_snapshot_service_read(
+  snapshot_result <- service_analysis_snapshot_read(
     "gene_network_edges",
     list(
       cluster_type = cluster_type_clean,

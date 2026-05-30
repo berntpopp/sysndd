@@ -116,17 +116,34 @@ mcp_get_sysndd_capabilities <- function() {
       enable_with = "MCP_ENABLE_PROMPTS=true",
       note = "MCP prompts are disabled by default because Claude and other agentic hosts do not invoke prompt templates during normal tool-calling flows; advertising unused prompts creates recurring client-quality warnings. Enable them only when a deployment intentionally wants user-invoked slash-command templates.",
       available_when_enabled = list(
-        list(name = "sysndd_gene_evidence_summary",
-             arguments = list(list(name = "gene", required = TRUE), list(name = "depth", required = FALSE))),
-        list(name = "sysndd_entity_evidence_brief",
-             arguments = list(list(name = "entity_id", required = TRUE), list(name = "depth", required = FALSE))),
-        list(name = "sysndd_publication_citation_pack",
-             arguments = list(list(name = "pmids", required = TRUE))),
-        list(name = "sysndd_phenotype_entity_discovery",
-             arguments = list(list(name = "phenotype", required = TRUE), list(name = "category", required = FALSE)))
+        list(
+          name = "sysndd_gene_evidence_summary",
+          arguments = list(list(name = "gene", required = TRUE), list(name = "depth", required = FALSE))
+        ),
+        list(
+          name = "sysndd_entity_evidence_brief",
+          arguments = list(list(name = "entity_id", required = TRUE), list(name = "depth", required = FALSE))
+        ),
+        list(
+          name = "sysndd_publication_citation_pack",
+          arguments = list(list(name = "pmids", required = TRUE))
+        ),
+        list(
+          name = "sysndd_phenotype_entity_discovery",
+          arguments = list(list(name = "phenotype", required = TRUE), list(name = "category", required = FALSE))
+        )
       )
     ),
-    error_codes = c("invalid_input", "not_found", "ambiguous_query", "temporarily_unavailable", "unsupported_parameter", "snapshot_missing"),
+    error_codes = c(
+      "invalid_input",
+      "not_found",
+      "ambiguous_query",
+      "temporarily_unavailable",
+      "unsupported_parameter",
+      "snapshot_missing",
+      "snapshot_stale",
+      "source_version_mismatch"
+    ),
     error_examples = list(
       invalid_input = list(schema_version = MCP_SCHEMA_VERSION, error = list(
         code = "invalid_input", message = "Unknown parameter 'symbol'. Expected: gene, include_entities, ...",
@@ -150,6 +167,13 @@ mcp_get_sysndd_capabilities <- function() {
       )),
       snapshot_missing = list(schema_version = MCP_SCHEMA_VERSION, error = list(
         code = "snapshot_missing", message = "Supported public-ready analysis snapshot is not currently available."
+      )),
+      snapshot_stale = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "snapshot_stale", message = "The active public analysis snapshot is stale and should be refreshed."
+      )),
+      source_version_mismatch = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "source_version_mismatch",
+        message = "The active public analysis snapshot was built from a different public source-data version."
       ))
     ),
     error_handling_note = "Recoverable errors arrive as a tool result with isError=true and an error.code; retry ambiguous_query by calling again with one of error.choices.",

@@ -80,7 +80,24 @@ analysis_snapshot_with_repository_connection <- function(conn = NULL, code) {
     return(code(checked_out))
   }
 
+  if (inherits(db_connection, "DBIConnection")) {
+    is_daemon_conn <- base::exists("daemon_db_conn", envir = .GlobalEnv) &&
+      identical(db_connection, base::get("daemon_db_conn", envir = .GlobalEnv))
+    if (!is_daemon_conn) {
+      on.exit(DBI::dbDisconnect(db_connection), add = TRUE)
+    }
+  }
+
   code(db_connection)
+}
+
+analysis_snapshot_append_rows <- function(table_name, rows, conn) {
+  rows <- as.data.frame(rows, stringsAsFactors = FALSE)
+  if (nrow(rows) == 0L) {
+    return(invisible(0L))
+  }
+  DBI::dbAppendTable(conn, table_name, rows)
+  invisible(nrow(rows))
 }
 
 analysis_snapshot_create_manifest <- function(manifest, conn = NULL) {
@@ -134,50 +151,35 @@ analysis_snapshot_insert_network_rows <- function(snapshot_id, rows, conn = NULL
   edges <- tibble::as_tibble(rows$edges %||% tibble::tibble())
 
   if (nrow(nodes) > 0L) {
-    for (i in seq_len(nrow(nodes))) {
-      node <- nodes[i, , drop = FALSE]
-      db_execute_statement(
-        "INSERT INTO analysis_snapshot_network_node (
-           snapshot_id, hgnc_id, symbol, cluster_id, category, degree,
-           x, y, layout_x, layout_y, igraph_x, igraph_y, display_order
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        unname(list(
-          snapshot_id,
-          node$hgnc_id[[1]],
-          analysis_snapshot_scalar(node$symbol, NA_character_),
-          analysis_snapshot_scalar(node$cluster_id, NA_character_),
-          analysis_snapshot_scalar(node$category, NA_character_),
-          analysis_snapshot_scalar(node$degree, NA_integer_),
-          analysis_snapshot_scalar(node$x, NA_real_),
-          analysis_snapshot_scalar(node$y, NA_real_),
-          analysis_snapshot_scalar(node$layout_x, NA_real_),
-          analysis_snapshot_scalar(node$layout_y, NA_real_),
-          analysis_snapshot_scalar(node$igraph_x, NA_real_),
-          analysis_snapshot_scalar(node$igraph_y, NA_real_),
-          analysis_snapshot_scalar(node$display_order, NA_integer_)
-        )),
-        conn = conn
-      )
-    }
+    node_rows <- data.frame(
+      snapshot_id = rep(snapshot_id, nrow(nodes)),
+      hgnc_id = as.character(nodes$hgnc_id),
+      symbol = as.character(nodes$symbol),
+      cluster_id = as.character(nodes$cluster_id),
+      category = as.character(nodes$category),
+      degree = suppressWarnings(as.integer(nodes$degree)),
+      x = suppressWarnings(as.numeric(nodes$x)),
+      y = suppressWarnings(as.numeric(nodes$y)),
+      layout_x = suppressWarnings(as.numeric(nodes$layout_x)),
+      layout_y = suppressWarnings(as.numeric(nodes$layout_y)),
+      igraph_x = suppressWarnings(as.numeric(nodes$igraph_x)),
+      igraph_y = suppressWarnings(as.numeric(nodes$igraph_y)),
+      display_order = suppressWarnings(as.integer(nodes$display_order)),
+      stringsAsFactors = FALSE
+    )
+    analysis_snapshot_append_rows("analysis_snapshot_network_node", node_rows, conn)
   }
 
   if (nrow(edges) > 0L) {
-    for (i in seq_len(nrow(edges))) {
-      edge <- edges[i, , drop = FALSE]
-      db_execute_statement(
-        "INSERT INTO analysis_snapshot_network_edge (
-           snapshot_id, edge_rank, source_hgnc_id, target_hgnc_id, confidence
-         ) VALUES (?, ?, ?, ?, ?)",
-        unname(list(
-          snapshot_id,
-          edge$edge_rank[[1]],
-          edge$source_hgnc_id[[1]],
-          edge$target_hgnc_id[[1]],
-          edge$confidence[[1]]
-        )),
-        conn = conn
-      )
-    }
+    edge_rows <- data.frame(
+      snapshot_id = rep(snapshot_id, nrow(edges)),
+      edge_rank = suppressWarnings(as.integer(edges$edge_rank)),
+      source_hgnc_id = as.character(edges$source_hgnc_id),
+      target_hgnc_id = as.character(edges$target_hgnc_id),
+      confidence = suppressWarnings(as.numeric(edges$confidence)),
+      stringsAsFactors = FALSE
+    )
+    analysis_snapshot_append_rows("analysis_snapshot_network_edge", edge_rows, conn)
   }
 
   invisible(list(nodes = nrow(nodes), edges = nrow(edges)))
@@ -188,47 +190,31 @@ analysis_snapshot_insert_cluster_rows <- function(snapshot_id, clusters, members
   members <- tibble::as_tibble(members %||% tibble::tibble())
 
   if (nrow(clusters) > 0L) {
-    for (i in seq_len(nrow(clusters))) {
-      cluster <- clusters[i, , drop = FALSE]
-      db_execute_statement(
-        "INSERT INTO analysis_snapshot_cluster (
-           snapshot_id, cluster_kind, cluster_id, cluster_hash,
-           cluster_size, label, metadata_json
-         ) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        unname(list(
-          snapshot_id,
-          cluster$cluster_kind[[1]],
-          cluster$cluster_id[[1]],
-          analysis_snapshot_scalar(cluster$cluster_hash, NA_character_),
-          analysis_snapshot_scalar(cluster$cluster_size, NA_integer_),
-          analysis_snapshot_scalar(cluster$label, NA_character_),
-          analysis_snapshot_scalar(cluster$metadata_json, NA_character_)
-        )),
-        conn = conn
-      )
-    }
+    cluster_rows <- data.frame(
+      snapshot_id = rep(snapshot_id, nrow(clusters)),
+      cluster_kind = as.character(clusters$cluster_kind),
+      cluster_id = as.character(clusters$cluster_id),
+      cluster_hash = as.character(clusters$cluster_hash),
+      cluster_size = suppressWarnings(as.integer(clusters$cluster_size)),
+      label = as.character(clusters$label),
+      metadata_json = as.character(clusters$metadata_json),
+      stringsAsFactors = FALSE
+    )
+    analysis_snapshot_append_rows("analysis_snapshot_cluster", cluster_rows, conn)
   }
 
   if (nrow(members) > 0L) {
-    for (i in seq_len(nrow(members))) {
-      member <- members[i, , drop = FALSE]
-      db_execute_statement(
-        "INSERT INTO analysis_snapshot_cluster_member (
-           snapshot_id, cluster_kind, cluster_id, member_rank,
-           entity_id, hgnc_id, symbol
-         ) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        unname(list(
-          snapshot_id,
-          member$cluster_kind[[1]],
-          member$cluster_id[[1]],
-          member$member_rank[[1]],
-          analysis_snapshot_scalar(member$entity_id, NA_integer_),
-          analysis_snapshot_scalar(member$hgnc_id, NA_character_),
-          analysis_snapshot_scalar(member$symbol, NA_character_)
-        )),
-        conn = conn
-      )
-    }
+    member_rows <- data.frame(
+      snapshot_id = rep(snapshot_id, nrow(members)),
+      cluster_kind = as.character(members$cluster_kind),
+      cluster_id = as.character(members$cluster_id),
+      member_rank = suppressWarnings(as.integer(members$member_rank)),
+      entity_id = suppressWarnings(as.integer(members$entity_id)),
+      hgnc_id = as.character(members$hgnc_id),
+      symbol = as.character(members$symbol),
+      stringsAsFactors = FALSE
+    )
+    analysis_snapshot_append_rows("analysis_snapshot_cluster_member", member_rows, conn)
   }
 
   invisible(list(clusters = nrow(clusters), members = nrow(members)))
@@ -240,26 +226,18 @@ analysis_snapshot_insert_correlation_rows <- function(snapshot_id, correlations,
     return(invisible(0L))
   }
 
-  for (i in seq_len(nrow(correlations))) {
-    row <- correlations[i, , drop = FALSE]
-    db_execute_statement(
-      "INSERT INTO analysis_snapshot_correlation (
-         snapshot_id, row_rank, correlation_kind, x_key, y_key,
-         value, abs_value, metadata_json
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      unname(list(
-        snapshot_id,
-        row$row_rank[[1]],
-        row$correlation_kind[[1]],
-        row$x_key[[1]],
-        row$y_key[[1]],
-        row$value[[1]],
-        row$abs_value[[1]],
-        analysis_snapshot_scalar(row$metadata_json, NA_character_)
-      )),
-      conn = conn
-    )
-  }
+  correlation_rows <- data.frame(
+    snapshot_id = rep(snapshot_id, nrow(correlations)),
+    row_rank = suppressWarnings(as.integer(correlations$row_rank)),
+    correlation_kind = as.character(correlations$correlation_kind),
+    x_key = as.character(correlations$x_key),
+    y_key = as.character(correlations$y_key),
+    value = suppressWarnings(as.numeric(correlations$value)),
+    abs_value = suppressWarnings(as.numeric(correlations$abs_value)),
+    metadata_json = as.character(correlations$metadata_json),
+    stringsAsFactors = FALSE
+  )
+  analysis_snapshot_append_rows("analysis_snapshot_correlation", correlation_rows, conn)
 
   invisible(nrow(correlations))
 }
@@ -316,7 +294,10 @@ analysis_snapshot_activate <- function(snapshot_id,
   DBI::dbWithTransaction(conn, tx(conn))
 }
 
-analysis_snapshot_get_public <- function(analysis_type, parameter_hash, conn = NULL) {
+analysis_snapshot_get_public <- function(analysis_type,
+                                         parameter_hash,
+                                         conn = NULL,
+                                         current_source_data_version = NULL) {
   manifest <- db_execute_query(
     "SELECT *
        FROM analysis_snapshot_manifest
@@ -334,10 +315,30 @@ analysis_snapshot_get_public <- function(analysis_type, parameter_hash, conn = N
     return(NULL)
   }
 
+  if (is.null(current_source_data_version) &&
+    exists("analysis_snapshot_source_data_version", mode = "function")) {
+    current_source_data_version <- tryCatch(
+      analysis_snapshot_source_data_version(conn = conn),
+      error = function(e) NULL
+    )
+  }
+  if (!is.null(current_source_data_version)) {
+    manifest$current_source_data_version <- as.character(current_source_data_version)[1]
+  }
+
+  manifest <- manifest[1, , drop = FALSE]
+  status_code <- analysis_snapshot_status_code(manifest)
+  if (!identical(status_code, "available")) {
+    return(list(
+      manifest = manifest,
+      status_code = status_code
+    ))
+  }
+
   snapshot_id <- manifest$snapshot_id[[1]]
   list(
-    manifest = manifest[1, , drop = FALSE],
-    status_code = analysis_snapshot_status_code(manifest[1, , drop = FALSE]),
+    manifest = manifest,
+    status_code = status_code,
     network_nodes = db_execute_query(
       "SELECT * FROM analysis_snapshot_network_node WHERE snapshot_id = ? ORDER BY display_order, hgnc_id",
       unname(list(snapshot_id)),
@@ -376,14 +377,18 @@ analysis_snapshot_status_code <- function(row) {
   }
 
   source_version <- analysis_snapshot_scalar(row$source_data_version, NA_character_)
-  current_version <- analysis_snapshot_scalar(row$current_source_data_version, NA_character_)
+  current_version <- if ("current_source_data_version" %in% names(row)) {
+    analysis_snapshot_scalar(row$current_source_data_version, NA_character_)
+  } else {
+    NA_character_
+  }
   if (is.na(current_version)) {
     current_version <- attr(row, "current_source_data_version", exact = TRUE)
   }
   if (!is.null(current_version) &&
-      !is.na(current_version) &&
-      !is.na(source_version) &&
-      !identical(as.character(source_version), as.character(current_version))) {
+    !is.na(current_version) &&
+    !is.na(source_version) &&
+    !identical(as.character(source_version), as.character(current_version))) {
     return("source_version_mismatch")
   }
 
@@ -446,7 +451,8 @@ analysis_snapshot_prune <- function(analysis_type,
   )
   keep_ids <- as.numeric(keep_rows$snapshot_id %||% numeric())
 
-  cutoff <- Sys.time() - (keep_superseded_days * 86400)
+  cutoff_time <- as.POSIXct(Sys.time() - (keep_superseded_days * 86400), tz = "UTC")
+  cutoff <- format(cutoff_time, "%Y-%m-%d %H:%M:%OS6", tz = "UTC")
   candidates <- db_execute_query(
     "SELECT snapshot_id
        FROM analysis_snapshot_manifest
