@@ -93,7 +93,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
         hits.config = true;
         return HttpResponse.json({
           gemini_configured: [true],
-          current_model: ['gemini-1.5-flash'],
+          current_model: ['gemini-3.5-flash'],
         });
       }),
       http.get('*/api/llm/prompts', ({ request }) => {
@@ -134,7 +134,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       http.get('*/api/llm/config', () =>
         HttpResponse.json({
           gemini_configured: [true],
-          current_model: ['gemini-1.5-flash'],
+          current_model: ['gemini-3.5-flash'],
         })
       ),
       http.get('*/api/llm/prompts', () =>
@@ -170,7 +170,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       http.get('*/api/llm/config', () =>
         HttpResponse.json({
           gemini_configured: [true],
-          current_model: ['gemini-1.5-flash'],
+          current_model: ['gemini-3.5-flash'],
         })
       ),
       http.get('*/api/llm/prompts', () =>
@@ -249,7 +249,7 @@ describe('ManageLLM — F2a Bearer-via-interceptor', () => {
       http.get('*/api/llm/config', () =>
         HttpResponse.json({
           gemini_configured: [true],
-          current_model: ['gemini-1.5-flash'],
+          current_model: ['gemini-3.5-flash'],
         })
       ),
       http.get('*/api/llm/prompts', () =>

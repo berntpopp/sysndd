@@ -60,6 +60,27 @@ Increment `CACHE_VERSION` when cached function behavior or cached result shape c
 
 External genomic proxy caches live under `/app/cache/external/{static,stable,dynamic}` by default and can be relocated with `EXTERNAL_PROXY_CACHE_DIR`. The proxy layer caches successful and true not-found responses, but transient upstream errors (`error = TRUE`, mapped to 503) are evicted immediately so a timeout does not poison the cache for the full 7/14/30-day source TTL.
 
+External provider request budgets default to short fail-fast values: `EXTERNAL_PROXY_TIMEOUT_SECONDS=6`, `EXTERNAL_PROXY_MAX_SECONDS=10`, `EXTERNAL_PROXY_MAX_TRIES=2`, and `EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS=12`. Override per source with names such as `EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS`, `EXTERNAL_PROXY_MGI_MAX_SECONDS`, and `EXTERNAL_PROXY_MGI_MAX_TRIES`. The aggregate external gene route remains serial and returns `partial = TRUE` with `skipped_sources` when the aggregate budget is exhausted.
+
+### Public analysis snapshots
+
+Public analysis endpoints and MCP analysis tools read public-ready rows from `analysis_snapshot_manifest` and normalized snapshot payload tables. They do not compute STRING networks, phenotype clusters, correlations, fCoSE layouts, external provider calls, or Gemini summaries on request-path miss.
+
+After curated public data changes, submit `analysis_snapshot_refresh` durable jobs for the supported presets and let the worker build and activate snapshots. Activation is scoped to one public-ready row per `(analysis_type, parameter_hash)`, so refreshing one preset does not replace another preset. Refresh jobs must use approved-public inputs only.
+
+Snapshot status meanings:
+
+- `unsupported_parameter`: the requested parameters are not in the fixed public preset matrix; change the request or predefine and refresh a new preset in code.
+- `snapshot_missing`: the preset is supported, but no public-ready snapshot is active yet; run the refresh job.
+- `snapshot_stale`: an active snapshot exists but is past `stale_after`; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
+- `source_version_mismatch`: the stored source data version no longer matches the cheap current source version; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
+
+### Gemini model configuration
+
+The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.
+
+Invalid or shut-down models are rejected before Gemini is called. If Google releases a model before the built-in catalog is updated, set `GEMINI_ALLOWED_MODELS_EXTRA` to a comma-separated allowlist of the new IDs; unknown allowlisted models are accepted but surfaced with an operator warning. The allowlist does not re-enable cataloged shut-down models.
+
 ### GeneNetworks layout artifacts
 
 GeneNetworks display layouts are precomputed derived-analysis artifacts, not request-path work. The API and worker images contain Node 24 plus the minimal `api/layout/` dependencies needed to run the headless Cytoscape/fCoSE helper. The worker should run the durable `network_layout_prewarm` job after data/cache refreshes that can change the displayed gene network.
@@ -84,7 +105,7 @@ Payload controls are exposed as `response_mode`, `abstract_mode`, `synopsis_mode
 
 The MCP sidecar must not write to the database, call write routes, execute raw SQL/R, expose admin/user/log/job data, expose draft reviews or re-review workflows, call live external providers, or trigger Gemini/LLM generation.
 
-Cache-backed MCP analysis sections depend on prewarmed API/worker-derived artifacts. The sidecar binds the same memoised wrapper names used by the API but must not call `bootstrap_init_cache_version()`, clear cache files, compute STRING networks, generate phenotype correlations, run phenotype clustering, or generate LLM summaries. If `dry_run` reports `temporarily_unavailable`, warm the corresponding API/admin analysis path before expecting MCP to return records.
+Snapshot-backed MCP analysis sections depend on public-ready API/worker-derived snapshots. The sidecar may inspect manifest status but must not call `bootstrap_init_cache_version()`, clear cache files, compute STRING networks, generate phenotype correlations, run phenotype clustering, or generate LLM summaries. If `dry_run` reports `snapshot_missing`, `snapshot_stale`, or `source_version_mismatch`, refresh the corresponding `analysis_snapshot_refresh` preset before expecting MCP to return current records.
 
 Large analysis calls default to `response_mode = "compact"` and `max_response_chars = "auto"`. Responses include `budget` metadata and may include `dropped_summary`, `recovery`, per-section status, `dry_run`, or `response_mode = "diagnostics"` output so clients can narrow broad requests. The recommended low-token path is `get_sysndd_analysis_catalog`, then `get_gene_research_context(dry_run = TRUE, response_mode = "compact")`, then focused analysis tools for the sections the client actually needs.
 
@@ -126,6 +147,7 @@ Add `mcp-auth` through the deployment's chosen authentication middleware before 
 - The worker service healthcheck should verify the worker process is alive, not probe an HTTP endpoint from the worker container.
 - The worker service needs both internal database access and outbound provider access. In Compose it should stay on `backend` for MySQL/API internals and on the egress-capable `proxy` network for Gemini, PubMed, PubTator, and other external calls. Do not attach it only to the internal `backend` network.
 - Keep the MCP service on internal/private access unless a protected route is deliberately configured. MCP tools and prompts are read-only and must not call Gemini/LLM generation, live external providers, raw SQL/R execution, write routes, admin/user/log/job routes, draft reviews, or re-review data. Analysis tools must remain cache-only for LLM summaries and bounded by compact defaults plus `max_response_chars`.
+- Refresh public analysis snapshots after curated data changes or analysis algorithm changes. Submit `analysis_snapshot_refresh` jobs for each supported preset, watch `/api/jobs/<job_id>/status`, and run `make test-mcp-smoke` against the MCP sidecar after activation.
 - Run NDDScore updates from the administrator `/ManageNDDScore` page: **Check Zenodo**, **Download & validate**, then **Import & activate latest release**. The worker needs outbound egress to Zenodo. The previous active release keeps serving until the new release validates and activates successfully. All imported releases are retained for history; there is no automatic pruning. On failure, inspect the release `import_status` and `last_error_message` in the admin view or database.
 - Configure the default NDDScore Zenodo source in the production `.env` file. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. The API and worker containers both receive these variables; if they are missing, `api/config.yml` provides the same defaults.
 - `publication.publication_date_source` records how each `Publication_date` was derived (`pubmed`, `pubmed_partial`, `medline_date`, `unknown`). New ingestions set it automatically. After deploying the migration, run the one-time operator backfill with PubMed egress: `Rscript db/updates/backfill_publication_dates.R --dry-run --limit=25` for a small rehearsal, `Rscript db/updates/backfill_publication_dates.R --dry-run` to preview the full run, then `Rscript db/updates/backfill_publication_dates.R --apply` to update historical rows. The script is dry-run by default, uses an advisory lock, limits PubMed fallback requests with `NCBI_REQUEST_DELAY_SECONDS`, skips unresolved IDs, and commits writes in batches controlled by `BACKFILL_UPDATE_BATCH_SIZE`.

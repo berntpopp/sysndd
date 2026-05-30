@@ -22,6 +22,11 @@ export interface LlmModelInfo {
   rpm_limit: number | null;
   rpd_limit: number | null;
   recommended_for: string;
+  status?: string;
+  allowed?: boolean;
+  default?: boolean;
+  operator_allowed?: boolean;
+  shutdown_date?: string | null;
 }
 
 export interface LlmRateLimit {
@@ -33,6 +38,11 @@ export interface LlmRateLimit {
 export interface LlmConfig {
   gemini_configured: boolean;
   current_model: string;
+  source: 'env' | 'config' | 'default' | string;
+  default_model: string;
+  valid: boolean;
+  operator_allowed: boolean;
+  warning: string | null;
   available_models: LlmModelInfo[];
   rate_limit: LlmRateLimit;
 }

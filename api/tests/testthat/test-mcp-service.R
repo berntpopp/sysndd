@@ -211,6 +211,7 @@ test_that("publication context includes citation, availability, and date semanti
       hgnc_id = c("18704", "30782"),
       disease_ontology_name = c("NAA10-related syndrome", "NAA15-related syndrome"),
       category = c("Definitive", "Moderate"),
+      publication_type = c("Original", "Review"),
       curation_review_date = as.Date(c("2023-04-12", "2024-02-01"))
     )
   }, envir = .GlobalEnv)
@@ -226,6 +227,8 @@ test_that("publication context includes citation, availability, and date semanti
   expect_match(result$recommended_citation, "Am J Med Genet A")
   expect_match(result$recommended_citation, "PMID:37130971")
   expect_equal(result$linked_entities[[1]]$sysndd_curation_date, "2023-04-12")
+  expect_equal(result$linked_entities[[1]]$publication_type, "Original")
+  expect_equal(result$publication_types, list("Original", "Review"))
   expect_equal(result$publication_date_confidence, "pubmed_verified")
 
   metadata <- mcp_get_publication_context("37130971", abstract_mode = "metadata")

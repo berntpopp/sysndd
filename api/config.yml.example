@@ -39,6 +39,7 @@ default:
     refresh: 3600
     base_url: "http://localhost"
     api_base_url: "http://localhost/api"
+    gemini_model: "gemini-3.5-flash"
     mail_noreply_user: "noreply@example.com"
     mail_noreply_host: "mailpit"
     mail_noreply_port: 1025
@@ -67,6 +68,7 @@ default:
     refresh: 3600
     base_url: "http://127.0.0.1"
     api_base_url: "http://127.0.0.1:7778"
+    gemini_model: "gemini-3.5-flash"
     mail_noreply_user: "noreply@example.com"
     mail_noreply_host: "127.0.0.1"
     mail_noreply_port: 1025
@@ -95,6 +97,7 @@ default:
     refresh: 3600
     base_url: "http://127.0.0.1"
     api_base_url: "http://127.0.0.1:7779"
+    gemini_model: "gemini-3.5-flash"
     mail_noreply_user: "noreply@example.com"
     mail_noreply_host: "127.0.0.1"
     mail_noreply_port: 1025
@@ -123,6 +126,7 @@ default:
     refresh: 3600
     base_url: "http://localhost"
     api_base_url: "http://localhost:7777"
+    gemini_model: "gemini-3.5-flash"
     mail_noreply_user: "noreply@example.com"
     mail_noreply_host: "mailpit"
     mail_noreply_port: 1025

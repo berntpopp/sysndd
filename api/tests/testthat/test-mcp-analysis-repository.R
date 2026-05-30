@@ -3,6 +3,16 @@ source_mcp_analysis_repository <- function() {
   source("../../functions/mcp-analysis-repository.R")
 }
 
+restore_binding <- function(name, old_value) {
+  if (is.null(old_value)) {
+    if (exists(name, envir = .GlobalEnv, inherits = FALSE)) {
+      rm(list = name, envir = .GlobalEnv)
+    }
+  } else {
+    assign(name, old_value, envir = .GlobalEnv)
+  }
+}
+
 test_that("MCP LLM summary repository is cache-only and validated by default", {
   source_mcp_analysis_repository()
 
@@ -25,9 +35,7 @@ test_that("MCP LLM summary repository is cache-only and validated by default", {
       validated_at = as.POSIXct("2026-05-02 00:00:00", tz = "UTC")
     )
   }, envir = .GlobalEnv)
-  withr::defer(
-    if (is.null(old_query)) rm("db_execute_query", envir = .GlobalEnv) else assign("db_execute_query", old_query, envir = .GlobalEnv)
-  )
+  withr::defer(restore_binding("db_execute_query", old_query))
 
   result <- mcp_analysis_repo_get_cached_llm_summaries("functional", cluster_hashes = "abc")
 
@@ -47,475 +55,217 @@ test_that("MCP NDDScore repository delegates to active current-view helpers", {
       hpo_predictions = tibble::tibble(phenotype_id = "HP:0001250", probability = 0.4)
     )
   }, envir = .GlobalEnv)
-  withr::defer(
-    if (is.null(old_detail)) rm("nddscore_repo_gene_detail", envir = .GlobalEnv) else assign("nddscore_repo_gene_detail", old_detail, envir = .GlobalEnv)
-  )
+  withr::defer(restore_binding("nddscore_repo_gene_detail", old_detail))
 
   result <- mcp_analysis_repo_get_nddscore_gene("HGNC:61")
+
   expect_equal(result$gene$gene_symbol[[1]], "ABCD1")
 })
 
-test_that("MCP phenotype repository degrades to unavailable when shared endpoint dependencies fail", {
+test_that("MCP analysis repository exposes only snapshot-backed derived analysis entrypoints", {
   source_mcp_analysis_repository()
 
-  old_corr <- get0("generate_phenotype_correlations", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("generate_phenotype_correlations", function(...) stop("missing endpoint dependency"), envir = .GlobalEnv)
-  withr::defer(
-    if (is.null(old_corr)) rm("generate_phenotype_correlations", envir = .GlobalEnv) else assign("generate_phenotype_correlations", old_corr, envir = .GlobalEnv)
-  )
+  expect_false(exists("mcp_analysis_repo_get_phenotype_correlations", mode = "function"))
+  expect_false(exists("mcp_analysis_repo_get_phenotype_clusters", mode = "function"))
+  expect_false(exists("mcp_analysis_repo_get_phenotype_functional_correlations", mode = "function"))
+  expect_false(exists("mcp_analysis_repo_get_network_edges_local", mode = "function"))
 
-  expect_null(mcp_analysis_repo_get_phenotype_correlations())
+  repo_source <- paste(readLines("../../functions/mcp-analysis-repository.R", warn = FALSE), collapse = "\n")
+  expect_false(grepl("generate_phenotype_correlations", repo_source, fixed = TRUE))
+  expect_false(grepl("generate_phenotype_clusters", repo_source, fixed = TRUE))
+  expect_false(grepl("generate_phenotype_functional_cluster_correlation", repo_source, fixed = TRUE))
+  expect_false(grepl("gen_network_edges_mem", repo_source, fixed = TRUE))
 })
 
-test_that("MCP phenotype correlations return NULL instead of cold-running analysis on cache miss", {
+test_that("MCP analysis availability probes use public snapshot manifests", {
+  source("../../functions/analysis-snapshot-presets.R")
+  source("../../functions/analysis-snapshot-repository.R")
   source_mcp_analysis_repository()
 
-  old_hit <- get0("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv, ifnotfound = NULL)
-  old_mem <- get0("generate_phenotype_correlations_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  old_live <- get0("generate_phenotype_correlations", envir = .GlobalEnv, ifnotfound = NULL)
-
-  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  assign("generate_phenotype_correlations", function(...) stop("cold phenotype correlations should not run"), envir = .GlobalEnv)
-  if (!is.null(old_mem)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
-
-  withr::defer({
-    if (is.null(old_hit)) rm("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv) else assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
-    if (is.null(old_mem)) {
-      if (exists("generate_phenotype_correlations_mem", envir = .GlobalEnv, inherits = FALSE)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
-    } else {
-      assign("generate_phenotype_correlations_mem", old_mem, envir = .GlobalEnv)
-    }
-    if (is.null(old_live)) rm("generate_phenotype_correlations", envir = .GlobalEnv) else assign("generate_phenotype_correlations", old_live, envir = .GlobalEnv)
-  })
-
-  expect_null(mcp_analysis_repo_get_phenotype_correlations())
-})
-
-test_that("MCP phenotype correlations read from memoised cache hit and apply limits", {
-  source_mcp_analysis_repository()
-
-  old_hit <- get0("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv, ifnotfound = NULL)
-  old_mem <- get0("generate_phenotype_correlations_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("generate_phenotype_correlations_mem", function(...) {
-    tibble::tibble(
-      x = c("Seizure", "Hypotonia"),
-      x_id = c("HP:0001250", "HP:0001252"),
-      y = c("Ataxia", "Seizure"),
-      y_id = c("HP:0001251", "HP:0001250"),
-      value = c(0.42, 0.1)
-    )
+  seen_types <- character()
+  old_query <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
+  old_source_version <- get0("analysis_snapshot_source_data_version", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+    seen_types <<- c(seen_types, params[[1]])
+    tibble::tibble(snapshot_id = 1L, source_data_version = "source-v1", stale_after = Sys.time() + 3600)
   }, envir = .GlobalEnv)
+  assign("analysis_snapshot_source_data_version", function(...) NULL, envir = .GlobalEnv)
   withr::defer({
-    if (is.null(old_hit)) rm("mcp_analysis_repo_phenotype_correlations_cache_hit", envir = .GlobalEnv) else assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
-    if (is.null(old_mem)) {
-      if (exists("generate_phenotype_correlations_mem", envir = .GlobalEnv, inherits = FALSE)) rm("generate_phenotype_correlations_mem", envir = .GlobalEnv)
-    } else {
-      assign("generate_phenotype_correlations_mem", old_mem, envir = .GlobalEnv)
-    }
+    restore_binding("db_execute_query", old_query)
+    restore_binding("analysis_snapshot_source_data_version", old_source_version)
   })
 
-  result <- mcp_analysis_repo_get_phenotype_correlations(phenotype = "HP:0001250", min_abs_correlation = 0.3, limit = 10L)
-
-  expect_equal(nrow(result), 1L)
-  expect_equal(result$x_id[[1]], "HP:0001250")
-})
-
-test_that("MCP phenotype cluster repositories degrade to unavailable when shared helpers fail", {
-  source_mcp_analysis_repository()
-
-  old_clusters <- get0("generate_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
-  old_functional_hit <- mcp_analysis_repo_functional_cluster_cache_hit
-  old_functional <- get0("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv, ifnotfound = NULL)
-
-  assign("generate_phenotype_clusters", function(...) stop("cluster helper unavailable"), envir = .GlobalEnv)
-  assign("mcp_analysis_repo_functional_cluster_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("generate_phenotype_functional_cluster_correlation", function(...) stop("functional helper unavailable"), envir = .GlobalEnv)
-
-  withr::defer({
-    if (is.null(old_clusters)) rm("generate_phenotype_clusters", envir = .GlobalEnv) else assign("generate_phenotype_clusters", old_clusters, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_functional_cluster_cache_hit", old_functional_hit, envir = .GlobalEnv)
-    if (is.null(old_functional)) rm("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv) else assign("generate_phenotype_functional_cluster_correlation", old_functional, envir = .GlobalEnv)
-  })
-
-  expect_null(mcp_analysis_repo_get_phenotype_clusters())
-  expect_null(mcp_analysis_repo_get_phenotype_functional_correlations())
-})
-
-test_that("MCP functional cluster cache probes degrade when gene lookup fails", {
-  source_mcp_analysis_repository()
-
-  old_genes <- get0("generate_ndd_hgnc_ids", envir = .GlobalEnv, ifnotfound = NULL)
-  old_cluster <- get0("gen_string_clust_obj_mem", envir = .GlobalEnv, ifnotfound = NULL)
-
-  assign("generate_ndd_hgnc_ids", function(...) stop("gene lookup unavailable"), envir = .GlobalEnv)
-  assign("gen_string_clust_obj_mem", memoise::memoise(function(...) tibble::tibble()), envir = .GlobalEnv)
-  withr::defer({
-    if (is.null(old_genes)) rm("generate_ndd_hgnc_ids", envir = .GlobalEnv) else assign("generate_ndd_hgnc_ids", old_genes, envir = .GlobalEnv)
-    if (is.null(old_cluster)) rm("gen_string_clust_obj_mem", envir = .GlobalEnv) else assign("gen_string_clust_obj_mem", old_cluster, envir = .GlobalEnv)
-  })
-
-  expect_false(mcp_analysis_repo_functional_cluster_cache_hit())
-  expect_null(mcp_analysis_repo_get_phenotype_functional_correlations())
-})
-
-test_that("MCP phenotype functional correlations exclude non-SysNDD pseudoclusters", {
-  source_mcp_analysis_repository()
-
-  old_functional_hit <- mcp_analysis_repo_functional_memoise_cache_hit
-  old_phenotype_hit <- mcp_analysis_repo_phenotype_memoise_cache_hit
-  old_functional <- get0("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv, ifnotfound = NULL)
-
-  include_sfari_seen <- NULL
-  assign("mcp_analysis_repo_functional_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_phenotype_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("generate_phenotype_functional_cluster_correlation", function(include_membership = FALSE,
-                                                                       include_sfari = TRUE,
-                                                                       ...) {
-    include_sfari_seen <<- include_sfari
-    list(
-      correlation_melted = tibble::tibble(x = "fc_1", y = "pc_1", value = 0.6),
-      cluster_membership = tibble::tibble(cluster = c("fc_1", "pc_1"), hgnc_id = c("HGNC:1", "HGNC:1"))
-    )
-  }, envir = .GlobalEnv)
-
-  withr::defer({
-    assign("mcp_analysis_repo_functional_memoise_cache_hit", old_functional_hit, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_phenotype_memoise_cache_hit", old_phenotype_hit, envir = .GlobalEnv)
-    if (is.null(old_functional)) rm("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv) else assign("generate_phenotype_functional_cluster_correlation", old_functional, envir = .GlobalEnv)
-  })
-
-  result <- mcp_analysis_repo_get_phenotype_functional_correlations()
-
-  expect_false(include_sfari_seen)
-  expect_equal(result$x[[1]], "fc_1")
-})
-
-test_that("MCP phenotype cluster repositories do not cold-run memoised analysis helpers", {
-  source_mcp_analysis_repository()
-
-  old_cluster_helper <- get0("generate_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
-  old_functional_hit <- mcp_analysis_repo_functional_cluster_cache_hit
-  old_functional <- get0("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv, ifnotfound = NULL)
-  old_mca <- get0("gen_mca_clust_obj_mem", envir = .GlobalEnv, ifnotfound = NULL)
-
-  cluster_called <- FALSE
-  functional_called <- FALSE
-  assign("generate_phenotype_clusters", function(...) {
-    cluster_called <<- TRUE
-    tibble::tibble(cluster = integer(), identifiers = list())
-  }, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_functional_cluster_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("generate_phenotype_functional_cluster_correlation", function(...) {
-    functional_called <<- TRUE
-    list(correlation_melted = tibble::tibble(), cluster_membership = tibble::tibble())
-  }, envir = .GlobalEnv)
-  assign("gen_mca_clust_obj_mem", function(...) tibble::tibble(), envir = .GlobalEnv)
-  withr::defer({
-    if (is.null(old_cluster_helper)) rm("generate_phenotype_clusters", envir = .GlobalEnv) else assign("generate_phenotype_clusters", old_cluster_helper, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_functional_cluster_cache_hit", old_functional_hit, envir = .GlobalEnv)
-    if (is.null(old_functional)) rm("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv) else assign("generate_phenotype_functional_cluster_correlation", old_functional, envir = .GlobalEnv)
-    if (is.null(old_mca)) rm("gen_mca_clust_obj_mem", envir = .GlobalEnv) else assign("gen_mca_clust_obj_mem", old_mca, envir = .GlobalEnv)
-  })
-
-  expect_null(mcp_analysis_repo_get_phenotype_clusters())
-  expect_false(cluster_called)
-  expect_null(mcp_analysis_repo_get_phenotype_functional_correlations())
-  expect_false(functional_called)
-})
-
-test_that("MCP phenotype cluster repository detects shared disk cache payloads when memoise key lookup misses", {
-  source_mcp_analysis_repository()
-
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(
-      value = tibble::tibble(
-        cluster = "3",
-        identifiers = list(tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "GENE1")),
-        hash_filter = "equals(hash,abc)",
-        cluster_size = 1L,
-        quali_inp_var = list(tibble::tibble(variable = "Seizures"))
-      )
-    ),
-    file.path(cache_dir, "phenotype-clusters.rds")
-  )
-
-  old_mca <- get0("gen_mca_clust_obj_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  if (exists("gen_mca_clust_obj_mem", envir = .GlobalEnv, inherits = FALSE)) {
-    rm("gen_mca_clust_obj_mem", envir = .GlobalEnv)
-  }
-  withr::defer(
-    if (is.null(old_mca)) {
-      if (exists("gen_mca_clust_obj_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_mca_clust_obj_mem", envir = .GlobalEnv)
-    } else {
-      assign("gen_mca_clust_obj_mem", old_mca, envir = .GlobalEnv)
-    }
-  )
-
+  expect_true(mcp_analysis_repo_phenotype_correlations_cache_hit())
   expect_true(mcp_analysis_repo_phenotype_cluster_cache_hit())
+  expect_true(mcp_analysis_repo_functional_cluster_cache_hit())
+  expect_true(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 400L))
+  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "subclusters", min_confidence = 400L))
+  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 700L))
+  expect_equal(
+    sort(unique(seen_types)),
+    sort(c("phenotype_correlations", "phenotype_clusters", "functional_clusters", "gene_network_edges"))
+  )
 })
 
-test_that("MCP phenotype cluster repository reads shared disk payloads without cold-running MCA", {
+test_that("MCP snapshot phenotype cluster repository filters shaped snapshot rows", {
   source_mcp_analysis_repository()
 
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(
-      value = tibble::tibble(
-        cluster = c("3", "4"),
-        identifiers = list(
-          tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "GENE1"),
-          tibble::tibble(entity_id = 2L, hgnc_id = "HGNC:2", symbol = "GENE2")
-        ),
-        hash_filter = c("equals(hash,abc)", "equals(hash,def)"),
-        cluster_size = c(1L, 1L),
-        quali_inp_var = list(tibble::tibble(variable = "Seizures"), tibble::tibble(variable = "Hypotonia"))
+  old_public <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("mcp_analysis_repo_shape_snapshot_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) list(snapshot = list()), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_shape_snapshot_phenotype_clusters", function(snapshot) {
+    list(clusters = tibble::tibble(
+      cluster = c("3", "4"),
+      identifiers = list(
+        tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "GENE1"),
+        tibble::tibble(entity_id = 2L, hgnc_id = "HGNC:2", symbol = "GENE2")
       )
-    ),
-    file.path(cache_dir, "phenotype-clusters.rds")
-  )
-
-  old_mca_hit <- mcp_analysis_repo_phenotype_memoise_cache_hit
-  old_clusters <- get0("generate_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_phenotype_memoise_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  assign("generate_phenotype_clusters", function(...) stop("cold MCA should not run"), envir = .GlobalEnv)
+    ))
+  }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_phenotype_memoise_cache_hit", old_mca_hit, envir = .GlobalEnv)
-    if (is.null(old_clusters)) rm("generate_phenotype_clusters", envir = .GlobalEnv) else assign("generate_phenotype_clusters", old_clusters, envir = .GlobalEnv)
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_public)
+    restore_binding("mcp_analysis_repo_shape_snapshot_phenotype_clusters", old_shape)
   })
 
-  result <- mcp_analysis_repo_get_phenotype_clusters(gene = "HGNC:1")
+  result <- mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = "GENE1", cluster_id = "3")
 
   expect_equal(nrow(result), 1L)
   expect_equal(result$cluster[[1]], "3")
   expect_equal(result$hgnc_id[[1]], "HGNC:1")
 })
 
-test_that("MCP phenotype cluster disk payloads are enriched with gene identifiers for filtering", {
+test_that("MCP snapshot functional cluster repository filters shaped snapshot rows", {
   source_mcp_analysis_repository()
 
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(
-      value = tibble::tibble(
-        cluster = "3",
-        identifiers = list(tibble::tibble(entity_id = 1L)),
-        hash_filter = "equals(hash,abc)",
-        cluster_size = 1L,
-        quali_inp_var = list(tibble::tibble(variable = "Seizures"))
+  old_public <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("service_analysis_snapshot_shape_functional", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) list(snapshot = list()), envir = .GlobalEnv)
+  assign("service_analysis_snapshot_shape_functional", function(snapshot) {
+    list(clusters = tibble::tibble(
+      cluster = c("7", "8"),
+      identifiers = list(
+        tibble::tibble(hgnc_id = "HGNC:1", symbol = "GENE1"),
+        tibble::tibble(hgnc_id = "HGNC:2", symbol = "GENE2")
       )
-    ),
-    file.path(cache_dir, "phenotype-clusters.rds")
-  )
-
-  old_input <- get0("generate_phenotype_cluster_input", envir = .GlobalEnv, ifnotfound = NULL)
-  old_mca_hit <- mcp_analysis_repo_phenotype_memoise_cache_hit
-  old_clusters <- get0("generate_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("generate_phenotype_cluster_input", function(...) {
-    list(
-      matrix = data.frame(),
-      entity_gene_map = tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "GENE1")
-    )
+    ))
   }, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_phenotype_memoise_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  assign("generate_phenotype_clusters", function(...) stop("cold MCA should not run"), envir = .GlobalEnv)
   withr::defer({
-    if (is.null(old_input)) rm("generate_phenotype_cluster_input", envir = .GlobalEnv) else assign("generate_phenotype_cluster_input", old_input, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_phenotype_memoise_cache_hit", old_mca_hit, envir = .GlobalEnv)
-    if (is.null(old_clusters)) rm("generate_phenotype_clusters", envir = .GlobalEnv) else assign("generate_phenotype_clusters", old_clusters, envir = .GlobalEnv)
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_public)
+    restore_binding("service_analysis_snapshot_shape_functional", old_shape)
   })
 
-  result <- mcp_analysis_repo_get_phenotype_clusters(gene = "GENE1")
+  result <- mcp_analysis_repo_get_snapshot_functional_clusters(gene = "HGNC:1", cluster_id = "7")
 
   expect_equal(nrow(result), 1L)
-  expect_equal(result$hgnc_id[[1]], "HGNC:1")
+  expect_equal(result$cluster[[1]], "7")
   expect_equal(result$symbol[[1]], "GENE1")
 })
 
-test_that("MCP phenotype functional correlations can be computed from shared disk cluster payloads", {
+test_that("MCP snapshot phenotype correlations filter by phenotype and limit results", {
   source_mcp_analysis_repository()
 
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(value = tibble::tibble(
-      cluster = "3",
-      identifiers = list(tibble::tibble(entity_id = 1L, hgnc_id = "HGNC:1", symbol = "GENE1")),
-      hash_filter = "equals(hash,abc)",
-      cluster_size = 1L,
-      quali_inp_var = list(tibble::tibble(variable = "Seizures"))
-    )),
-    file.path(cache_dir, "phenotype-clusters.rds")
-  )
-  saveRDS(
-    list(value = tibble::tibble(
-      cluster = 7L,
-      cluster_size = 1L,
-      identifiers = list(tibble::tibble(hgnc_id = "HGNC:1")),
-      hash_filter = "equals(hash,ghi)",
-      term_enrichment = list(tibble::tibble(term = "GO:1")),
-      subclusters = list(tibble::tibble())
-    )),
-    file.path(cache_dir, "functional-clusters.rds")
-  )
-
-  old_functional_hit <- mcp_analysis_repo_functional_memoise_cache_hit
-  old_phenotype_hit <- mcp_analysis_repo_phenotype_memoise_cache_hit
-  old_correlation <- get0("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_functional_memoise_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_phenotype_memoise_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  assign("generate_phenotype_functional_cluster_correlation", function(...) stop("cold correlation should not run"), envir = .GlobalEnv)
+  old_public <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("mcp_analysis_repo_shape_snapshot_correlations", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) list(snapshot = list()), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_shape_snapshot_correlations", function(snapshot,
+                                                                   min_abs_correlation = NULL,
+                                                                   drop_diagonal = TRUE,
+                                                                   triangle_only = FALSE) {
+    expect_equal(min_abs_correlation, 0.3)
+    expect_true(drop_diagonal)
+    list(correlation_melted = tibble::tibble(
+      x = c("HP:0001250", "HP:0001252", "HP:0001250"),
+      y = c("HP:0001251", "HP:0001253", "HP:0001254"),
+      value = c(0.7, 0.9, 0.5)
+    ))
+  }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_functional_memoise_cache_hit", old_functional_hit, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_phenotype_memoise_cache_hit", old_phenotype_hit, envir = .GlobalEnv)
-    if (is.null(old_correlation)) rm("generate_phenotype_functional_cluster_correlation", envir = .GlobalEnv) else assign("generate_phenotype_functional_cluster_correlation", old_correlation, envir = .GlobalEnv)
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_public)
+    restore_binding("mcp_analysis_repo_shape_snapshot_correlations", old_shape)
   })
 
-  result <- mcp_analysis_repo_get_phenotype_functional_correlations(gene = "HGNC:1")
+  result <- mcp_analysis_repo_get_snapshot_phenotype_correlations(
+    phenotype = "HP:0001250",
+    min_abs_correlation = 0.3,
+    limit = 1L
+  )
 
-  expect_true(nrow(result) > 0L)
-  expect_true(any(result$x == "fc_7" | result$y == "fc_7"))
-  expect_true(any(result$x == "pc_3" | result$y == "pc_3"))
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$value[[1]], 0.7)
 })
 
-
-test_that("MCP network repository filters cached edges to the requested gene neighborhood", {
+test_that("MCP snapshot phenotype functional filters use producer cluster key format", {
   source_mcp_analysis_repository()
 
-  old_hit <- mcp_analysis_repo_network_memoise_cache_hit
-  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_network_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("gen_network_edges_mem", function(...) {
+  old_public <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("mcp_analysis_repo_shape_snapshot_correlations", envir = .GlobalEnv, ifnotfound = NULL)
+  old_phenotype <- get0("mcp_analysis_repo_get_snapshot_phenotype_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+  old_functional <- get0("mcp_analysis_repo_get_snapshot_functional_clusters", envir = .GlobalEnv, ifnotfound = NULL)
+
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) list(snapshot = list()), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_shape_snapshot_correlations", function(...) {
+    list(correlation_melted = tibble::tibble(
+      x = c("pc_3", "phenotype_3", "fc_7", "7"),
+      y = c("fc_7", "pc_3", "other", "pc_3"),
+      value = c(0.8, 0.7, 0.6, 0.5)
+    ))
+  }, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_clusters", function(...) {
+    tibble::tibble(cluster = "3", hgnc_id = "HGNC:1", symbol = "GENE1")
+  }, envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_functional_clusters", function(...) {
+    tibble::tibble(cluster = "7", hgnc_id = "HGNC:1", symbol = "GENE1")
+  }, envir = .GlobalEnv)
+
+  withr::defer({
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_public)
+    restore_binding("mcp_analysis_repo_shape_snapshot_correlations", old_shape)
+    restore_binding("mcp_analysis_repo_get_snapshot_phenotype_clusters", old_phenotype)
+    restore_binding("mcp_analysis_repo_get_snapshot_functional_clusters", old_functional)
+  })
+
+  result <- mcp_analysis_repo_get_snapshot_phenotype_functional_correlations(gene = "HGNC:1", limit = 10L)
+
+  expect_equal(sort(unique(c(result$x, result$y))), sort(c("fc_7", "pc_3")))
+  expect_false(any(result$x == "phenotype_3" | result$y == "phenotype_3"))
+  expect_false(any(result$x == "7" | result$y == "7"))
+  expect_false(any(result$x == "other" | result$y == "other"))
+})
+
+test_that("MCP snapshot network repository filters and limits public snapshot edges", {
+  source_mcp_analysis_repository()
+
+  old_public <- get0("mcp_analysis_repo_get_public_snapshot", envir = .GlobalEnv, ifnotfound = NULL)
+  old_shape <- get0("mcp_analysis_repo_shape_snapshot_network", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) list(snapshot = list()), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_shape_snapshot_network", function(snapshot, max_edges = 10000L) {
     list(
       nodes = tibble::tibble(
         hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
         symbol = c("GENE1", "GENE2", "GENE3"),
-        cluster = c(1L, 1L, 2L),
+        cluster = c("1", "1", "2"),
         category = c("Definitive", "Moderate", "Limited")
       ),
       edges = tibble::tibble(
-        source = c("HGNC:1", "HGNC:2"),
-        target = c("HGNC:2", "HGNC:3"),
-        confidence = c(0.9, 0.8)
+        source = c("HGNC:1", "HGNC:1", "HGNC:2"),
+        target = c("HGNC:2", "HGNC:3", "HGNC:3"),
+        confidence = c(0.8, 0.9, 0.7)
       ),
-      metadata = list(
-        edge_count = 2L,
-        node_count = 3L,
-        cluster_count = 2L,
-        category_counts = list(Definitive = 1L, Moderate = 1L, Limited = 1L)
-      )
+      metadata = list(snapshot = list(analysis_type = "gene_network_edges"))
     )
   }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_network_memoise_cache_hit", old_hit, envir = .GlobalEnv)
-    if (is.null(old_network)) rm("gen_network_edges_mem", envir = .GlobalEnv) else assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
+    restore_binding("mcp_analysis_repo_get_public_snapshot", old_public)
+    restore_binding("mcp_analysis_repo_shape_snapshot_network", old_shape)
   })
 
-  result <- mcp_analysis_repo_get_network_edges_local(gene = "HGNC:1", max_edges = 10L)
-  expect_equal(nrow(result$edges), 1L)
-  expect_equal(result$edges$source[[1]], "HGNC:1")
-  expect_equal(sort(result$nodes$hgnc_id), c("HGNC:1", "HGNC:2"))
-  expect_true(result$metadata$gene_filtered)
-  expect_equal(result$metadata$cluster_count, 1L)
-  expect_false("Limited" %in% names(result$metadata$category_counts))
-})
-
-test_that("MCP network repository detects shared disk cache payloads when memoise key lookup misses", {
-  source_mcp_analysis_repository()
-
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(
-      value = list(
-        nodes = tibble::tibble(hgnc_id = "HGNC:1", symbol = "GENE1", cluster = 1L),
-        edges = tibble::tibble(source = character(), target = character(), confidence = numeric()),
-        metadata = list(min_confidence = 400L, cluster_type = "clusters")
-      )
-    ),
-    file.path(cache_dir, "network.rds")
-  )
-
-  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) {
-    rm("gen_network_edges_mem", envir = .GlobalEnv)
-  }
-  withr::defer(
-    if (is.null(old_network)) {
-      if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_network_edges_mem", envir = .GlobalEnv)
-    } else {
-      assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
-    }
-  )
-
-  expect_true(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 400L))
-  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "subclusters", min_confidence = 400L))
-  expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 700L))
-})
-
-test_that("MCP network repository reads and filters shared disk cache payloads without cold-running STRING", {
-  source_mcp_analysis_repository()
-
-  cache_dir <- withr::local_tempdir()
-  withr::local_envvar(c(MCP_CACHE_DIR = cache_dir))
-  saveRDS(
-    list(
-      value = list(
-        nodes = tibble::tibble(
-          hgnc_id = c("HGNC:1", "HGNC:2", "HGNC:3"),
-          symbol = c("GENE1", "GENE2", "GENE3"),
-          cluster = c(1L, 1L, 2L),
-          category = c("Definitive", "Moderate", "Limited")
-        ),
-        edges = tibble::tibble(
-          source = c("HGNC:1", "HGNC:2"),
-          target = c("HGNC:2", "HGNC:3"),
-          confidence = c(0.9, 0.8)
-        ),
-        metadata = list(min_confidence = 400L, cluster_type = "clusters")
-      )
-    ),
-    file.path(cache_dir, "network.rds")
-  )
-
-  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) {
-    rm("gen_network_edges_mem", envir = .GlobalEnv)
-  }
-  withr::defer(
-    if (is.null(old_network)) {
-      if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_network_edges_mem", envir = .GlobalEnv)
-    } else {
-      assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
-    }
-  )
-
-  result <- mcp_analysis_repo_get_network_edges_local(gene = "HGNC:1", max_edges = 10L)
+  result <- mcp_analysis_repo_get_snapshot_network(gene = "HGNC:1", max_edges = 1L)
 
   expect_equal(nrow(result$edges), 1L)
-  expect_equal(result$edges$source[[1]], "HGNC:1")
-  expect_equal(sort(result$nodes$hgnc_id), c("HGNC:1", "HGNC:2"))
+  expect_equal(result$edges$target[[1]], "HGNC:3")
+  expect_equal(sort(result$nodes$hgnc_id), c("HGNC:1", "HGNC:3"))
   expect_true(result$metadata$gene_filtered)
-  expect_equal(result$metadata$cache_source, "disk_payload_scan")
-})
-
-test_that("MCP network repository degrades to unavailable on cached-read errors", {
-  source_mcp_analysis_repository()
-
-  old_hit <- mcp_analysis_repo_network_memoise_cache_hit
-  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_network_memoise_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("gen_network_edges_mem", function(...) stop("cached read failed"), envir = .GlobalEnv)
-  withr::defer({
-    assign("mcp_analysis_repo_network_memoise_cache_hit", old_hit, envir = .GlobalEnv)
-    if (is.null(old_network)) rm("gen_network_edges_mem", envir = .GlobalEnv) else assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
-  })
-
-  expect_null(mcp_analysis_repo_get_network_edges_local(gene = "HGNC:1"))
+  expect_equal(result$metadata$cluster_count, 2L)
 })
 
 test_that("shared phenotype analysis helpers enforce approved and active review rows", {

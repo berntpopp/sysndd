@@ -197,7 +197,7 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
       pub$Publication_date, rows$curation_review_date, pub$publication_date_source
     )
     linked_cols <- intersect(
-      c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category", "curation_review_date"),
+      c("entity_id", "symbol", "hgnc_id", "disease_ontology_name", "category", "publication_type", "curation_review_date"),
       names(rows)
     )
     linked <- rows[!is.na(rows$entity_id), linked_cols, drop = FALSE]
@@ -206,11 +206,16 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
       item$curation_review_date <- NULL
       item
     })
+    publication_type_values <- if ("publication_type" %in% names(rows)) rows$publication_type else character()
     c(
       list(schema_version = MCP_SCHEMA_VERSION),
       mcp_publication_record(pub, abstract_mode = abstract_mode, abstract_max_chars = abstract_max_chars, include_keywords = TRUE, date_quality = date_quality),
       list(
         linked_entities = linked_records,
+        publication_types = unique(Filter(
+          function(value) !is.null(value) && nzchar(as.character(value)),
+          as.list(publication_type_values)
+        )),
         date_notes = list(
           publication_date_sysndd_record = date_quality$note,
           sysndd_curation_date = "Primary approved SysNDD review date on linked entities."

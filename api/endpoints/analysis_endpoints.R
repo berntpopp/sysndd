@@ -16,6 +16,99 @@
 ## Analyses endpoints
 ## -------------------------------------------------------------------##
 
+analysis_snapshot_endpoint_response <- function(snapshot_result, res) {
+  if (!is.null(snapshot_result$status) && snapshot_result$status >= 400L) {
+    res$status <- snapshot_result$status
+    if (!is.null(snapshot_result$retry_after)) {
+      res$setHeader("Retry-After", as.character(snapshot_result$retry_after))
+    }
+    return(snapshot_result$body)
+  }
+
+  snapshot_result$body
+}
+
+analysis_endpoint_scalar <- function(value, default = NULL) {
+  if (is.null(value) || length(value) == 0L) {
+    return(default)
+  }
+  value[[1]]
+}
+
+analysis_paginate_snapshot_clusters <- function(body, page_after_clean, page_size_int, res = NULL) {
+  clusters <- tibble::as_tibble(body$clusters %||% tibble::tibble())
+  if (nrow(clusters) == 0L) {
+    body$clusters <- clusters
+    body$pagination <- list(
+      page_size = page_size_int,
+      page_after = page_after_clean,
+      next_cursor = NULL,
+      total_count = 0L,
+      has_more = FALSE
+    )
+    return(body)
+  }
+
+  required_columns <- c("cluster", "hash_filter")
+  missing_columns <- setdiff(required_columns, names(clusters))
+  if (length(missing_columns) > 0L) {
+    if (!is.null(res)) {
+      res$status <- 500L
+    }
+    return(list(
+      code = "snapshot_payload_invalid",
+      message = "Functional cluster snapshot payload is missing required pagination fields.",
+      details = list(missing_columns = missing_columns)
+    ))
+  }
+
+  clusters_sorted <- clusters %>%
+    dplyr::arrange(cluster) %>%
+    dplyr::mutate(row_num = dplyr::row_number())
+
+  if (page_after_clean == "") {
+    start_idx <- 1L
+  } else {
+    cursor_pos <- which(clusters_sorted$hash_filter == page_after_clean)
+    start_idx <- if (length(cursor_pos) > 0L) cursor_pos[[1]] + 1L else 1L
+  }
+
+  if (start_idx > nrow(clusters_sorted)) {
+    body$clusters <- clusters_sorted[0L, setdiff(names(clusters_sorted), "row_num"), drop = FALSE]
+    body$pagination <- list(
+      page_size = page_size_int,
+      page_after = page_after_clean,
+      next_cursor = NULL,
+      total_count = nrow(clusters_sorted),
+      has_more = FALSE
+    )
+    return(body)
+  }
+
+  end_idx <- min(start_idx + page_size_int - 1L, nrow(clusters_sorted))
+  clusters_page <- clusters_sorted %>%
+    dplyr::slice(start_idx:end_idx) %>%
+    dplyr::select(-row_num)
+
+  next_cursor <- if (end_idx < nrow(clusters_sorted)) {
+    clusters_page %>%
+      dplyr::slice(dplyr::n()) %>%
+      dplyr::pull(hash_filter)
+  } else {
+    NULL
+  }
+
+  body$clusters <- clusters_page
+  body$pagination <- list(
+    page_size = page_size_int,
+    page_after = page_after_clean,
+    next_cursor = next_cursor,
+    total_count = nrow(clusters_sorted),
+    has_more = !is.null(next_cursor)
+  )
+  body
+}
+
 #* Retrieve Functional Clustering Data with Pagination
 #*
 #* This endpoint fetches functional clustering data for genes with NDD phenotype.
@@ -39,7 +132,7 @@
 #* @serializer json list(na="string")
 #* @param page_after:str Cursor for pagination (hash_filter of last item, empty for first page)
 #* @param page_size:str Number of clusters per page (default "10", max "50")
-#* @param algorithm:str Clustering algorithm: "leiden" (default, fast) or "walktrap" (slower, legacy)
+#* @param algorithm:str Supported public preset algorithm: "leiden" (default)
 #*
 #* @response 200 OK. Returns object with:
 #*   - categories: Full list of enrichment categories with links
@@ -48,48 +141,7 @@
 #*   - meta: {algorithm, cache_hit}
 #*
 #* @get functional_clustering
-function(page_after = "", page_size = "10", algorithm = "leiden") {
-  # Define link sources
-  value <- c(
-    "COMPARTMENTS",
-    "Component",
-    "DISEASES",
-    "Function",
-    "HPO",
-    "InterPro",
-    "KEGG",
-    "Keyword",
-    "NetworkNeighborAL",
-    "Pfam",
-    "PMID",
-    "Process",
-    "RCTM",
-    "SMART",
-    "TISSUES",
-    "WikiPathways"
-  )
-
-  link <- c(
-    "https://www.ebi.ac.uk/QuickGO/term/",
-    "https://www.ebi.ac.uk/QuickGO/term/",
-    "https://disease-ontology.org/term/",
-    "https://www.ebi.ac.uk/QuickGO/term/",
-    "https://hpo.jax.org/app/browse/term/",
-    "http://www.ebi.ac.uk/interpro/entry/InterPro/",
-    "https://www.genome.jp/dbget-bin/www_bget?",
-    "https://www.uniprot.org/keywords/",
-    "https://string-db.org/cgi/network?input_query_species=9606&network_cluster_id=",
-    "https://www.ebi.ac.uk/interpro/entry/pfam/",
-    "https://www.ncbi.nlm.nih.gov/search/all/?term=",
-    "https://www.ebi.ac.uk/QuickGO/term/",
-    "https://reactome.org/content/detail/R-",
-    "http://www.ebi.ac.uk/interpro/entry/smart/",
-    "https://ontobee.org/ontology/BTO?iri=http://purl.obolibrary.org/obo/",
-    "https://www.wikipathways.org/index.php/Pathway:"
-  )
-
-  links <- tibble(value, link)
-
+function(page_after = "", page_size = "10", algorithm = "leiden", res) {
   # NOTE: Backward compatibility
   # - Clients not using pagination get first 10 clusters (was all clusters)
   # - To get all clusters, iterate using next_cursor until has_more=false
@@ -99,120 +151,18 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
   page_size_int <- min(max(as.integer(page_size), 1), 50)
   page_after_clean <- if (is.null(page_after) || page_after == "") "" else page_after
 
-  # Validate algorithm parameter
-  algorithm_clean <- tolower(algorithm)
-  if (!algorithm_clean %in% c("leiden", "walktrap")) {
-    algorithm_clean <- "leiden" # Default to faster algorithm
-  }
+  algorithm_clean <- tolower(as.character(analysis_endpoint_scalar(algorithm, "leiden")))
 
-  # Track timing for performance monitoring
-  start_time <- Sys.time()
-
-  # Get data from database
-  genes_from_entity_table <- pool %>%
-    tbl("ndd_entity_view") %>%
-    arrange(entity_id) %>%
-    filter(ndd_phenotype == 1) %>%
-    select(hgnc_id) %>%
-    collect() %>%
-    unique()
-
-  # Generate clusters for the retrieved HGNC IDs with selected algorithm
-  functional_clusters <- gen_string_clust_obj_mem(
-    genes_from_entity_table$hgnc_id,
-    algorithm = algorithm_clean
+  snapshot_result <- service_analysis_snapshot_read(
+    "functional_clusters",
+    list(algorithm = algorithm_clean)
   )
-
-  # Handle empty clustering results (no STRING interactions for input genes)
-  if (nrow(functional_clusters) == 0) {
-    # Calculate elapsed time
-    elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-
-    return(list(
-      categories = tibble(value = character(), text = character(), link = character()),
-      clusters = functional_clusters,
-      pagination = list(
-        page_size = page_size_int,
-        page_after = page_after_clean,
-        next_cursor = NULL,
-        total_count = 0L,
-        has_more = FALSE
-      ),
-      meta = list(
-        algorithm = algorithm_clean,
-        elapsed_seconds = round(elapsed_seconds, 2),
-        gene_count = nrow(genes_from_entity_table),
-        cluster_count = 0L
-      )
-    ))
+  body <- analysis_snapshot_endpoint_response(snapshot_result, res)
+  if (!is.null(snapshot_result$status) && snapshot_result$status >= 400L) {
+    return(body)
   }
 
-  # Calculate elapsed time
-  elapsed_seconds <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
-
-  # Generate categories
-  categories <- functional_clusters %>%
-    select(term_enrichment) %>%
-    unnest(cols = c(term_enrichment)) %>%
-    select(category) %>%
-    unique() %>%
-    arrange(category) %>%
-    mutate(
-      text = case_when(
-        nchar(category) <= 5 ~ category,
-        nchar(category) > 5 ~ str_to_sentence(category)
-      )
-    ) %>%
-    select(value = category, text) %>%
-    left_join(links, by = c("value"))
-
-  # Sort clusters deterministically for stable pagination
-  # (prevents duplicates/gaps across pages)
-  clusters_sorted <- functional_clusters %>%
-    arrange(cluster) %>%
-    mutate(row_num = row_number())
-
-  # Find cursor position
-  if (page_after_clean == "") {
-    start_idx <- 1
-  } else {
-    cursor_pos <- which(clusters_sorted$hash_filter == page_after_clean)
-    start_idx <- if (length(cursor_pos) > 0) cursor_pos[1] + 1 else 1
-  }
-
-  # Extract page slice
-  end_idx <- min(start_idx + page_size_int - 1, nrow(clusters_sorted))
-  clusters_page <- clusters_sorted %>%
-    slice(start_idx:end_idx) %>%
-    select(-row_num) # Remove internal field
-
-  # Generate next cursor (hash_filter of last item in page)
-  next_cursor <- if (end_idx < nrow(clusters_sorted)) {
-    clusters_page %>%
-      slice(n()) %>%
-      pull(hash_filter)
-  } else {
-    NULL
-  }
-
-  # Generate the object to return with pagination metadata
-  list(
-    categories = categories,
-    clusters = clusters_page, # Paginated clusters (was functional_clusters)
-    pagination = list(
-      page_size = page_size_int,
-      page_after = page_after_clean,
-      next_cursor = next_cursor,
-      total_count = nrow(clusters_sorted),
-      has_more = !is.null(next_cursor)
-    ),
-    meta = list(
-      algorithm = algorithm_clean,
-      elapsed_seconds = round(elapsed_seconds, 2),
-      gene_count = nrow(genes_from_entity_table),
-      cluster_count = nrow(clusters_sorted)
-    )
-  )
+  analysis_paginate_snapshot_clusters(body, page_after_clean, page_size_int, res = res)
 }
 
 
@@ -233,8 +183,9 @@ function(page_after = "", page_size = "10", algorithm = "leiden") {
 #* @response 200 OK. Returns phenotype clustering data.
 #*
 #* @get phenotype_clustering
-function() {
-  generate_phenotype_clusters()
+function(res) {
+  snapshot_result <- service_analysis_snapshot_read("phenotype_clusters", list())
+  analysis_snapshot_endpoint_response(snapshot_result, res)
 }
 
 
@@ -255,8 +206,9 @@ function() {
 #* @response 200 OK. Returns correlation data among clusters.
 #*
 #* @get phenotype_functional_cluster_correlation
-function() {
-  generate_phenotype_functional_cluster_correlation()
+function(res) {
+  snapshot_result <- service_analysis_snapshot_read("phenotype_functional_correlations", list())
+  analysis_snapshot_endpoint_response(snapshot_result, res)
 }
 
 
@@ -270,47 +222,36 @@ function() {
 #* - Nodes contain hgnc_id, symbol, cluster assignment, and degree (connection count)
 #* - Edges contain source, target (HGNC IDs), and confidence (0-1 normalized)
 #* - Metadata includes node_count, edge_count, cluster_count, string_version
-#* - Results are cached via memoise for performance
+#* - Results are read from the fixed public snapshot preset
 #*
 #* # `Parameters`
-#* - cluster_type: Use "clusters" for main clusters or "subclusters" for nested
-#* - min_confidence: STRING confidence threshold (0-1000, higher = more stringent)
+#* - cluster_type: "clusters" fixed public preset
+#* - min_confidence: "400" fixed public preset
+#* - max_edges: "10000" fixed public preset
 #*
 #* @tag analysis
 #* @serializer json list(na="string", auto_unbox=TRUE)
-#* @param cluster_type:str Type of clusters: "clusters" (default) or "subclusters"
-#* @param min_confidence:str Minimum STRING confidence (0-1000, default "400")
-#* @param max_edges:str Maximum edges to return (default "10000", 0 for all). Higher confidence edges are prioritized.
+#* @param cluster_type:str Fixed public preset cluster type: "clusters"
+#* @param min_confidence:str Fixed public preset STRING confidence: "400"
+#* @param max_edges:str Fixed public preset maximum edges: "10000"
 #*
 #* @response 200 OK. Returns nodes, edges, and metadata
 #*
 #* @get network_edges
-function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000") {
-  # Validate cluster_type parameter
-  cluster_type_clean <- tolower(cluster_type)
-  if (!cluster_type_clean %in% c("clusters", "subclusters")) {
-    cluster_type_clean <- "clusters" # Default to main clusters
-  }
+function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000", res) {
+  cluster_type_clean <- tolower(as.character(analysis_endpoint_scalar(cluster_type, "clusters")))
+  min_confidence_value <- as.character(analysis_endpoint_scalar(min_confidence, "400"))
+  max_edges_value <- as.character(analysis_endpoint_scalar(max_edges, "10000"))
 
-  # Parse and validate min_confidence parameter
-  min_confidence_int <- as.integer(min_confidence)
-  if (is.na(min_confidence_int)) {
-    min_confidence_int <- 400 # Default if parsing fails
-  }
-  # Clamp to valid STRING confidence range (0-1000)
-  min_confidence_int <- min(max(min_confidence_int, 0), 1000)
-
-  # Parse max_edges parameter (0 = unlimited)
-  max_edges_int <- as.integer(max_edges)
-  if (is.na(max_edges_int) || max_edges_int < 0) {
-    max_edges_int <- 10000 # Default to 10000 for browser performance
-  }
-
-  generate_network_edges_response(
-    cluster_type = cluster_type_clean,
-    min_confidence = min_confidence_int,
-    max_edges = max_edges_int
+  snapshot_result <- service_analysis_snapshot_read(
+    "gene_network_edges",
+    list(
+      cluster_type = cluster_type_clean,
+      min_confidence = min_confidence_value,
+      max_edges = max_edges_value
+    )
   )
+  analysis_snapshot_endpoint_response(snapshot_result, res)
 }
 
 

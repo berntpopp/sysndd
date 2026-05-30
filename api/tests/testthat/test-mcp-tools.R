@@ -88,13 +88,16 @@ test_that("MCP initialize capabilities use SysNDD-specific instructions", {
   expect_false(is.null(capabilities$capabilities$resources))
 
   old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
-  on.exit({
-    if (is.na(old_prompts)) {
-      Sys.unsetenv("MCP_ENABLE_PROMPTS")
-    } else {
-      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
-    }
-  }, add = TRUE)
+  on.exit(
+    {
+      if (is.na(old_prompts)) {
+        Sys.unsetenv("MCP_ENABLE_PROMPTS")
+      } else {
+        Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+      }
+    },
+    add = TRUE
+  )
   Sys.setenv(MCP_ENABLE_PROMPTS = "true")
   capabilities <- get("capabilities", envir = asNamespace("mcptools"))()
   expect_false(is.null(capabilities$capabilities$prompts))
@@ -198,9 +201,13 @@ test_that("MCP analysis tools advertise labels and do not expose LLM generation"
     expect_true("include_diagnostics" %in% names(item$inputSchema$properties))
     expect_true("dry_run" %in% names(item$inputSchema$properties))
     expect_match(item$description, "compact", ignore.case = TRUE)
-    expect_match(item$description, "cache", ignore.case = TRUE)
+    expect_match(item$description, "snapshot|cache", ignore.case = TRUE)
     expect_false(is.null(item$outputSchema))
   }
+
+  network <- metadata[[which(names == "get_gene_network_context")]]
+  expect_match(network$inputSchema$properties$cluster_type$description, "Fixed stored snapshot key", fixed = TRUE)
+  expect_match(network$inputSchema$properties$min_confidence$description, "unsupported_parameter", fixed = TRUE)
 })
 
 test_that("MCP analysis output schemas expose budget and data-class fields", {
@@ -307,13 +314,16 @@ test_that("MCP prompt handlers list and render SysNDD workflow prompts", {
   source_mcp_tools()
 
   old_prompts <- Sys.getenv("MCP_ENABLE_PROMPTS", unset = NA_character_)
-  on.exit({
-    if (is.na(old_prompts)) {
-      Sys.unsetenv("MCP_ENABLE_PROMPTS")
-    } else {
-      Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
-    }
-  }, add = TRUE)
+  on.exit(
+    {
+      if (is.na(old_prompts)) {
+        Sys.unsetenv("MCP_ENABLE_PROMPTS")
+      } else {
+        Sys.setenv(MCP_ENABLE_PROMPTS = old_prompts)
+      }
+    },
+    add = TRUE
+  )
 
   Sys.unsetenv("MCP_ENABLE_PROMPTS")
   disabled <- mcp_handle_prompts_list(0L)
@@ -386,6 +396,7 @@ test_that("capabilities document analysis workflows and guardrails", {
   expect_false(is.null(caps$analysis_data_classes$ml_prediction))
   expect_true(caps$analysis_data_classes$ml_prediction$not_evidence_tier)
   expect_match(caps$analysis_data_classes$llm_generated_summary$note, "cache", ignore.case = TRUE)
+  expect_match(caps$analysis_tools$phenotype_correlations, "global snapshot context", ignore.case = TRUE)
   expect_true(caps$safety$live_external_calls_disabled)
   expect_true(caps$safety$llm_generation_disabled)
   expect_match(caps$analysis_tools$guardrails, "No Gemini", fixed = TRUE)

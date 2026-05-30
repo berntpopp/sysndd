@@ -6,6 +6,11 @@ import type { LlmConfig } from '@/types/llm';
 const config: LlmConfig = {
   gemini_configured: false,
   current_model: 'gemini-3.5-flash',
+  source: 'default',
+  default_model: 'gemini-3.5-flash',
+  valid: true,
+  operator_allowed: false,
+  warning: null,
   available_models: [
     {
       model_id: 'gemini-3.5-flash',
@@ -87,5 +92,30 @@ describe('LlmConfigPanel', () => {
     await wrapper.get('#model-select').trigger('change');
 
     expect(wrapper.emitted('update-model')).toEqual([['gemini-3.5-flash']]);
+  });
+
+  it('shows an invalid current model warning', () => {
+    const wrapper = mountPanel({
+      gemini_configured: true,
+      current_model: 'gemini-3-pro-preview',
+      valid: false,
+      warning: 'Gemini model gemini-3-pro-preview is shut down and is not allowed.',
+    });
+
+    expect(wrapper.text()).toContain('Current Gemini model is invalid');
+    expect(wrapper.text()).toContain('shut down');
+  });
+
+  it('shows an operator allowlist warning', () => {
+    const wrapper = mountPanel({
+      gemini_configured: true,
+      current_model: 'gemini-new-release',
+      valid: true,
+      operator_allowed: true,
+      warning: 'Gemini model gemini-new-release is allowed by operator override.',
+    });
+
+    expect(wrapper.text()).toContain('Operator-allowlisted Gemini model');
+    expect(wrapper.text()).toContain('operator override');
   });
 });

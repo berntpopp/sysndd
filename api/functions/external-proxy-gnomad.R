@@ -1,7 +1,7 @@
 # api/functions/external-proxy-gnomad.R
 #### gnomAD GraphQL proxy functions for constraint scores and ClinVar variants
 
-require(httr2)   # HTTP client for GraphQL queries
+require(httr2) # HTTP client for GraphQL queries
 require(jsonlite) # JSON parsing
 
 
@@ -57,6 +57,8 @@ fetch_gnomad_constraints <- function(gene_symbol) {
 
   tryCatch(
     {
+      budget <- external_proxy_budget("gnomad")
+
       # GraphQL query for gene-level constraint metrics
       query_string <- "
         query GeneConstraint($symbol: String!) {
@@ -99,13 +101,13 @@ fetch_gnomad_constraints <- function(gene_symbol) {
           rate = EXTERNAL_API_THROTTLE$gnomad$capacity / EXTERNAL_API_THROTTLE$gnomad$fill_time_s
         ) %>%
         req_retry(
-          max_tries = 3,
-          max_seconds = 120,
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
           backoff = ~ 2^.x,
           is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
         ) %>%
-        req_timeout(30) %>%
-        req_error(is_error = ~FALSE)  # Handle errors manually
+        req_timeout(budget$timeout_seconds) %>%
+        req_error(is_error = ~FALSE) # Handle errors manually
 
       # Perform request
       response <- req_perform(req)
@@ -206,6 +208,8 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
 
   tryCatch(
     {
+      budget <- external_proxy_budget("gnomad")
+
       # GraphQL query for ClinVar variants associated with gene
       query_string <- "
         query GeneClinvar($symbol: String!) {
@@ -239,13 +243,13 @@ fetch_gnomad_clinvar_variants <- function(gene_symbol) {
           rate = EXTERNAL_API_THROTTLE$gnomad$capacity / EXTERNAL_API_THROTTLE$gnomad$fill_time_s
         ) %>%
         req_retry(
-          max_tries = 3,
-          max_seconds = 120,
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
           backoff = ~ 2^.x,
           is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
         ) %>%
-        req_timeout(30) %>%
-        req_error(is_error = ~FALSE)  # Handle errors manually
+        req_timeout(budget$timeout_seconds) %>%
+        req_error(is_error = ~FALSE) # Handle errors manually
 
       # Perform request
       response <- req_perform(req)
@@ -375,15 +379,27 @@ normalize_clinvar_consequence <- function(consequence) {
   }
 
   key <- tolower(as.character(consequence))
-  if (key %in% c("missense_variant")) return("missense")
-  if (key %in% c("synonymous_variant")) return("synonymous")
-  if (key %in% c("frameshift_variant", "stop_gained", "start_lost", "stop_lost")) return("lof")
+  if (key %in% c("missense_variant")) {
+    return("missense")
+  }
+  if (key %in% c("synonymous_variant")) {
+    return("synonymous")
+  }
+  if (key %in% c("frameshift_variant", "stop_gained", "start_lost", "stop_lost")) {
+    return("lof")
+  }
   if (key %in% c("splice_donor_variant", "splice_acceptor_variant", "splice_region_variant")) {
     return("splice")
   }
-  if (key %in% c("inframe_insertion", "inframe_deletion")) return("inframe_indel")
-  if (key %in% c("intron_variant")) return("intronic")
-  if (grepl("utr_variant$", key)) return("utr")
+  if (key %in% c("inframe_insertion", "inframe_deletion")) {
+    return("inframe_indel")
+  }
+  if (key %in% c("intron_variant")) {
+    return("intronic")
+  }
+  if (grepl("utr_variant$", key)) {
+    return("utr")
+  }
   "other"
 }
 

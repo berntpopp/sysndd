@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "023_add_nddscore_prediction_release.sql"
-EXPECTED_MIGRATION_COUNT <- 24L
+EXPECTED_LATEST_MIGRATION <- "024_add_public_analysis_snapshots.sql"
+EXPECTED_MIGRATION_COUNT <- 25L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

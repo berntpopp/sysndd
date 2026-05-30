@@ -436,7 +436,7 @@ export default {
       this.error = null;
       try {
         const data = await getPhenotypeClustering();
-        this.itemsCluster = data;
+        this.itemsCluster = data.clusters;
         this.setActiveCluster();
         // Fetch LLM summary for initial cluster
         const clusterData = this.itemsCluster.find((item) => item.cluster === this.activeCluster);

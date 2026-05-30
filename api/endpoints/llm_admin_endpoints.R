@@ -2,22 +2,17 @@
 #
 # LLM Administration endpoints for managing configuration, prompts, cache, and logs.
 # All endpoints require Administrator role.
-#
-# Endpoints:
-#   GET  /config              - Get LLM model configuration
-#   PUT  /config              - Update model selection
-#   GET  /cache/stats         - Get cache statistics
-#   GET  /cache/summaries     - Get cached summaries (paginated)
-#   DELETE /cache             - Clear cache entries
-#   POST /regenerate          - Trigger batch LLM regeneration
-#   GET  /logs                - Get generation logs (paginated)
-#   POST /cache/:id/validate  - Manual validation of cache entry
-#   GET  /prompts             - Get all prompt templates
-#   PUT  /prompts/<type>      - Update a prompt template
 
 # Note: All required modules (db-helpers.R, middleware.R, llm-service.R)
 # are sourced by start_sysndd_api.R before endpoints are loaded.
 # Functions are available in the global environment.
+
+llm_admin_runtime_config <- function() {
+  if (exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    return(get("dw", envir = .GlobalEnv, inherits = FALSE))
+  }
+  NULL
+}
 
 
 ## -------------------------------------------------------------------##
@@ -26,23 +21,17 @@
 
 #* Get LLM configuration
 #*
-#* Returns current LLM model configuration including API status,
-#* current model, available models, and rate limit settings.
-#*
-#* # `Authorization`
-#* Restricted to Administrator role.
-#*
-#* # `Return`
-#* - gemini_configured: Boolean, TRUE if GEMINI_API_KEY is set to a non-placeholder value
-#* - current_model: String, current default model name
-#* - available_models: Array of model objects with model_id, display_name, etc.
-#* - rate_limit: Object with rate limit settings (capacity, fill_time_s, etc.)
+#* Returns API status, resolved model source, validation state, available
+#* models, and rate limits. Restricted to Administrator role.
 #*
 #* @tag llm-admin
 #* @serializer unboxedJSON
 #* @get /config
 function(req, res) {
   require_role(req, res, "Administrator")
+
+  runtime_config <- llm_admin_runtime_config()
+  resolved <- llm_model_config_resolve(config = runtime_config)
 
   available_models <- lapply(list_gemini_models(), function(name) {
     info <- get_gemini_model_metadata(name)
@@ -52,13 +41,20 @@ function(req, res) {
       description = info$description,
       rpm_limit = info$rpm_limit,
       rpd_limit = info$rpd_limit,
-      recommended_for = info$recommended_for
+      recommended_for = info$recommended_for,
+      status = info$status,
+      allowed = info$allowed
     )
   })
 
   list(
     gemini_configured = is_gemini_configured(),
-    current_model = get_default_gemini_model(),
+    current_model = resolved$model,
+    source = resolved$source,
+    default_model = resolved$default_model,
+    valid = resolved$valid,
+    operator_allowed = resolved$operator_allowed,
+    warning = resolved$warning,
     available_models = available_models,
     rate_limit = GEMINI_RATE_LIMIT
   )
@@ -67,21 +63,8 @@ function(req, res) {
 
 #* Update LLM model selection
 #*
-#* Changes the active Gemini model for summary generation.
-#* This is a session-only change; not persisted to config file.
-#*
-#* # `Request Body`
-#* {
-#*   "model": "gemini-3.5-flash"
-#* }
-#*
-#* # `Authorization`
+#* Changes the session-only Gemini model for summary generation.
 #* Restricted to Administrator role.
-#*
-#* # `Return`
-#* - success: Boolean
-#* - message: String confirmation
-#* - model: String, the new model name
 #*
 #* @tag llm-admin
 #* @serializer unboxedJSON
@@ -89,13 +72,15 @@ function(req, res) {
 function(req, res, model) {
   require_role(req, res, "Administrator")
 
-  # Validate model against available options
-  available <- list_gemini_models()
-  if (!model %in% available) {
+  runtime_config <- llm_admin_runtime_config()
+  validation <- llm_model_config_validate(model, config = runtime_config)
+  if (!isTRUE(validation$valid)) {
+    available <- list_gemini_models()
     res$status <- 400
     return(list(
       error = "INVALID_MODEL",
-      message = paste("Invalid model. Available models:", paste(available, collapse = ", ")),
+      error_code = validation$error_code,
+      message = validation$message,
       available_models = available
     ))
   }

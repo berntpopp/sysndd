@@ -113,7 +113,7 @@ Modify:
 - Modify: `api/functions/migration-manifest.R`
 - Modify: `api/bootstrap/load_modules.R`
 
-- [ ] **Step 1: Write migration manifest and DDL tests**
+- [x] **Step 1: Write migration manifest and DDL tests**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-migration.R`:
 
@@ -139,7 +139,7 @@ test_that("public analysis snapshot migration enforces scoped public-ready uniqu
 })
 ```
 
-- [ ] **Step 2: Write parameter preset tests**
+- [x] **Step 2: Write parameter preset tests**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-presets.R`:
 
@@ -199,7 +199,7 @@ test_that("snapshot presets define data_class for every public analysis type", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -213,7 +213,7 @@ Expected:
 - Migration test fails because migration `024_add_public_analysis_snapshots.sql` and manifest constants do not exist yet.
 - Preset test fails because `analysis-snapshot-presets.R` does not exist yet.
 
-- [ ] **Step 4: Add migration DDL**
+- [x] **Step 4: Add migration DDL**
 
 Create `db/migrations/024_add_public_analysis_snapshots.sql` with this table set:
 
@@ -342,7 +342,7 @@ CREATE TABLE IF NOT EXISTS `analysis_snapshot_correlation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-- [ ] **Step 5: Implement manifest constants and preset helpers**
+- [x] **Step 5: Implement manifest constants and preset helpers**
 
 Modify `api/functions/migration-manifest.R`:
 
@@ -399,7 +399,7 @@ Modify `api/bootstrap/load_modules.R`:
 
 - Add `"functions/analysis-snapshot-presets.R"` after `"functions/async-job-service.R"` and before repository files that will use it.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run:
 
@@ -412,7 +412,7 @@ Expected:
 
 - Both test files pass.
 
-- [ ] **Step 7: Commit Task 1**
+- [x] **Step 7: Commit Task 1**
 
 Run:
 
@@ -443,7 +443,7 @@ Expected:
 - Modify: `api/bootstrap/load_modules.R`
 - Modify: `api/functions/async-job-handlers.R`
 
-- [ ] **Step 1: Write repository tests first**
+- [x] **Step 1: Write repository tests first**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-repository.R`:
 
@@ -485,7 +485,7 @@ test_that("snapshot status helpers classify missing and stale rows", {
 })
 ```
 
-- [ ] **Step 2: Write builder tests first**
+- [x] **Step 2: Write builder tests first**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-builder.R`:
 
@@ -529,7 +529,7 @@ test_that("correlation snapshot builder supports triangle and diagonal shaping l
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -543,7 +543,7 @@ Expected:
 - Repository test fails because `analysis-snapshot-repository.R` does not exist.
 - Builder test fails because `analysis-snapshot-builder.R` does not exist.
 
-- [ ] **Step 4: Implement repository functions**
+- [x] **Step 4: Implement repository functions**
 
 Create `api/functions/analysis-snapshot-repository.R` with these functions:
 
@@ -570,7 +570,7 @@ Implementation constraints:
 - A row with `stale_after < Sys.time()` returns `snapshot_stale`.
 - A row whose stored `source_data_version` differs from a supplied current version returns `source_version_mismatch`.
 
-- [ ] **Step 5: Implement builder functions**
+- [x] **Step 5: Implement builder functions**
 
 Create `api/functions/analysis-snapshot-builder.R` with these functions:
 
@@ -594,7 +594,7 @@ Implementation constraints:
 - Builders preserve existing cluster hashes when the source payload has `hash_filter`.
 - Builders include only approved-public inputs by using the existing analysis helpers that already filter primary approved reviews, or by adding that filter before snapshot insert where the helper output is incomplete.
 
-- [ ] **Step 6: Add worker handler and registry entry**
+- [x] **Step 6: Add worker handler and registry entry**
 
 Create `api/functions/async-job-analysis-snapshot-handlers.R`:
 
@@ -638,7 +638,7 @@ Modify `api/bootstrap/load_modules.R`:
   - `functions/analysis-snapshot-builder.R`
   - `functions/async-job-analysis-snapshot-handlers.R`
 
-- [ ] **Step 7: Run focused tests**
+- [x] **Step 7: Run focused tests**
 
 Run:
 
@@ -653,7 +653,7 @@ Expected:
 - Snapshot repository and builder tests pass.
 - Existing NDDScore active-slot tests still pass.
 
-- [ ] **Step 8: Commit Task 2**
+- [x] **Step 8: Commit Task 2**
 
 Run:
 
@@ -689,7 +689,7 @@ Expected:
 - Modify: `app/src/composables/useNetworkData.ts`
 - Modify: `app/src/composables/useNetworkData.spec.ts`
 
-- [ ] **Step 1: Write API snapshot read tests first**
+- [x] **Step 1: Write API snapshot read tests first**
 
 Create `api/tests/testthat/test-endpoint-analysis-snapshot-read.R`:
 
@@ -723,7 +723,7 @@ test_that("analysis snapshot service returns snapshot_missing for supported miss
 })
 ```
 
-- [ ] **Step 2: Write job result mode tests first**
+- [x] **Step 2: Write job result mode tests first**
 
 Create `api/tests/testthat/test-unit-job-status-result-mode.R`:
 
@@ -781,7 +781,7 @@ test_that("get_job_status includes result only for full result mode", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -795,7 +795,7 @@ Expected:
 - Snapshot service test fails because `analysis-snapshot-service.R` does not exist.
 - Job result mode test fails because `get_job_status()` has no `result_mode` argument and always requests result JSON.
 
-- [ ] **Step 4: Implement snapshot service**
+- [x] **Step 4: Implement snapshot service**
 
 Create `api/services/analysis-snapshot-service.R` with:
 
@@ -833,7 +833,7 @@ Modify `api/bootstrap/load_modules.R`:
 
 - Add `"services/analysis-snapshot-service.R"` before MCP services that may call it.
 
-- [ ] **Step 5: Switch public analysis endpoints to snapshot service**
+- [x] **Step 5: Switch public analysis endpoints to snapshot service**
 
 Modify `api/endpoints/analysis_endpoints.R`:
 
@@ -846,7 +846,7 @@ Modify `api/endpoints/analysis_endpoints.R`:
 
 Keep the existing heavy helper functions available for worker/admin refresh; do not delete them.
 
-- [ ] **Step 6: Implement job result modes and remove public cache-hit LLM chaining**
+- [x] **Step 6: Implement job result modes and remove public cache-hit LLM chaining**
 
 Modify `api/functions/job-manager.R`:
 
@@ -867,7 +867,7 @@ Modify clustering and phenotype clustering cache-hit branches in `api/endpoints/
 - Add response field `llm_generation = "snapshot_refresh_owned"` in the accepted response metadata if a field is needed for clients.
 - Do not remove worker `after_success` chaining for actual queued clustering jobs in this task.
 
-- [ ] **Step 7: Update frontend analysis types and degraded network handling**
+- [x] **Step 7: Update frontend analysis types and degraded network handling**
 
 Modify `app/src/api/analysis.ts`:
 
@@ -899,7 +899,7 @@ Modify tests in `app/src/api/analysis.spec.ts` and `app/src/composables/useNetwo
 - Assert `metadata.snapshot.analysis_type` is accepted on network responses.
 - Assert a rejected snapshot problem sets `error.value` and leaves `networkData.value` null.
 
-- [ ] **Step 8: Run focused tests**
+- [x] **Step 8: Run focused tests**
 
 Run:
 
@@ -914,7 +914,7 @@ Expected:
 - API focused tests pass.
 - Vitest specs pass.
 
-- [ ] **Step 9: Commit Task 3**
+- [x] **Step 9: Commit Task 3**
 
 Run:
 
@@ -953,7 +953,7 @@ Expected:
 - Modify: `api/services/mcp-tool-analysis-registry.R`
 - Modify: `api/scripts/mcp-smoke.R`
 
-- [ ] **Step 1: Write MCP search tests first**
+- [x] **Step 1: Write MCP search tests first**
 
 Create `api/tests/testthat/test-mcp-search-ranking.R`:
 
@@ -996,7 +996,7 @@ test_that("MCP search zero-result response includes diagnostics", {
 })
 ```
 
-- [ ] **Step 2: Write MCP snapshot diagnostics tests first**
+- [x] **Step 2: Write MCP snapshot diagnostics tests first**
 
 Create `api/tests/testthat/test-mcp-snapshot-diagnostics.R`:
 
@@ -1025,7 +1025,7 @@ test_that("MCP phenotype correlations reject gene in global mode", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -1039,7 +1039,7 @@ Expected:
 - Search ranking test fails because token/scoring helpers are missing.
 - Snapshot diagnostics test fails because MCP still uses cache repository behavior and does not expose `unsupported_parameter`.
 
-- [ ] **Step 4: Implement deterministic MCP token search**
+- [x] **Step 4: Implement deterministic MCP token search**
 
 Modify `api/functions/mcp-repository.R`:
 
@@ -1068,7 +1068,7 @@ Modify `api/services/mcp-query-service.R`:
 - Use `score` from repository ranking when present.
 - Preserve `limit` max 25.
 
-- [ ] **Step 5: Switch MCP analysis to snapshot-backed reads**
+- [x] **Step 5: Switch MCP analysis to snapshot-backed reads**
 
 Modify `api/functions/mcp-analysis-repository.R`:
 
@@ -1105,7 +1105,7 @@ Modify `api/services/mcp-capabilities-service.R`:
 - Replace "cache-only analysis" text with "public-ready snapshot-only analysis".
 - Preserve MCP read-only/no-LLM/no-external-provider language.
 
-- [ ] **Step 6: Add publication type semantics**
+- [x] **Step 6: Add publication type semantics**
 
 Modify `api/functions/mcp-repository.R`:
 
@@ -1117,7 +1117,7 @@ Modify publication shaping in `api/services/mcp-record-service.R` if needed:
 - Include per-link `publication_type`.
 - If adding an envelope field, call it `publication_types` and make it a deduped array.
 
-- [ ] **Step 7: Extend MCP smoke**
+- [x] **Step 7: Extend MCP smoke**
 
 Modify `api/scripts/mcp-smoke.R`:
 
@@ -1127,7 +1127,7 @@ Modify `api/scripts/mcp-smoke.R`:
 - Add publication context assertion that linked publication rows include `publication_type` when links exist.
 - Add phenotype correlation call with `drop_diagonal = TRUE` and `triangle_only = TRUE`.
 
-- [ ] **Step 8: Run focused MCP tests**
+- [x] **Step 8: Run focused MCP tests**
 
 Run:
 
@@ -1142,7 +1142,7 @@ Expected:
 
 - All focused MCP tests pass.
 
-- [ ] **Step 9: Commit Task 4**
+- [x] **Step 9: Commit Task 4**
 
 Run:
 
@@ -1177,7 +1177,7 @@ Expected:
 - Modify: `api/functions/external-proxy-rgd.R`
 - Modify: `api/endpoints/external_endpoints.R`
 
-- [ ] **Step 1: Write budget tests first**
+- [x] **Step 1: Write budget tests first**
 
 Create `api/tests/testthat/test-unit-external-proxy-budgets.R`:
 
@@ -1205,7 +1205,7 @@ test_that("external proxy timing wrapper preserves result and records elapsed me
 })
 ```
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1217,7 +1217,7 @@ Expected:
 
 - Test fails because `external_proxy_budget()` and `external_proxy_with_timing()` do not exist.
 
-- [ ] **Step 3: Implement budget helpers**
+- [x] **Step 3: Implement budget helpers**
 
 Modify `api/functions/external-proxy-functions.R`:
 
@@ -1239,7 +1239,7 @@ list(
 - Change `make_external_request()` to use `external_proxy_budget(api_name)` by default.
 - Replace hardcoded `max_tries = 5`, `max_seconds = 120`, and `req_timeout(30)`.
 
-- [ ] **Step 4: Move MGI/RGD direct calls onto budgets**
+- [x] **Step 4: Move MGI/RGD direct calls onto budgets**
 
 Modify `api/functions/external-proxy-mgi.R`:
 
@@ -1250,7 +1250,7 @@ Modify `api/functions/external-proxy-mgi.R`:
 
 Modify `api/functions/external-proxy-rgd.R` the same way with `"rgd"`.
 
-- [ ] **Step 5: Scope aggregate endpoint**
+- [x] **Step 5: Scope aggregate endpoint**
 
 Modify `api/endpoints/external_endpoints.R`:
 
@@ -1260,7 +1260,7 @@ Modify `api/endpoints/external_endpoints.R`:
 - Return `partial = TRUE` and `skipped_sources` when the budget stops later sources.
 - Do not introduce parallel fanout.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run:
 
@@ -1274,7 +1274,7 @@ Expected:
 - Budget tests pass.
 - Existing external endpoint tests pass.
 
-- [ ] **Step 7: Commit Task 5**
+- [x] **Step 7: Commit Task 5**
 
 Run:
 
@@ -1315,7 +1315,7 @@ Expected:
 - Modify: `documentation/08-development.qmd`
 - Modify: `documentation/09-deployment.qmd`
 
-- [ ] **Step 1: Write model config tests first**
+- [x] **Step 1: Write model config tests first**
 
 Create `api/tests/testthat/test-unit-llm-model-config.R`:
 
@@ -1355,7 +1355,7 @@ test_that("Gemini model catalog marks shut-down preview model invalid", {
 })
 ```
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1367,7 +1367,7 @@ Expected:
 
 - Test fails because `llm-model-config.R` does not exist.
 
-- [ ] **Step 3: Implement central model config helper**
+- [x] **Step 3: Implement central model config helper**
 
 Create `api/functions/llm-model-config.R` with:
 
@@ -1403,7 +1403,7 @@ Operator allowlist:
 - Unknown model is valid only if included in the allowlist.
 - Return `operator_allowed = TRUE` and a warning.
 
-- [ ] **Step 4: Wire runtime paths to central config**
+- [x] **Step 4: Wire runtime paths to central config**
 
 Modify `api/bootstrap/load_modules.R`:
 
@@ -1430,7 +1430,7 @@ Modify `api/endpoints/llm_admin_endpoints.R`:
 - Config response includes `current_model`, `source`, `default_model`, `valid`, `operator_allowed`, `warning`, and `available_models`.
 - Update model mutation endpoint to reject invalid models unless operator allowlisted.
 
-- [ ] **Step 5: Update frontend LLM admin types and tests**
+- [x] **Step 5: Update frontend LLM admin types and tests**
 
 Modify `app/src/api/llm_admin.ts`:
 
@@ -1449,7 +1449,7 @@ Modify `app/src/components/llm/LlmConfigPanel.vue`:
 
 Update `app/src/api/llm_admin.spec.ts` and `app/src/components/llm/LlmConfigPanel.spec.ts` to use current valid model names and invalid/operator-allowed response fields.
 
-- [ ] **Step 6: Update config docs**
+- [x] **Step 6: Update config docs**
 
 Modify `api/config.yml.example`:
 
@@ -1463,7 +1463,7 @@ Modify `documentation/09-deployment.qmd`:
 
 - Document production config source order, invalid model behavior, and operator allowlist warning.
 
-- [ ] **Step 7: Run focused tests**
+- [x] **Step 7: Run focused tests**
 
 Run:
 
@@ -1478,7 +1478,7 @@ Expected:
 
 - All focused LLM tests pass.
 
-- [ ] **Step 8: Commit Task 6**
+- [x] **Step 8: Commit Task 6**
 
 Run:
 
@@ -1517,7 +1517,7 @@ Expected:
 - Modify: `documentation/09-deployment.qmd`
 - Modify: `.planning/superpowers/plans/2026-05-30-analysis-availability-mcp-snapshots-llm-config-plan.md` if execution notes are discovered during implementation
 
-- [ ] **Step 1: Update persistent agent guidance**
+- [x] **Step 1: Update persistent agent guidance**
 
 Modify `AGENTS.md`:
 
@@ -1529,7 +1529,7 @@ Modify `AGENTS.md`:
   - snapshot refresh jobs must use approved-public input gates;
   - snapshot activation is scoped by `(analysis_type, parameter_hash)`.
 
-- [ ] **Step 2: Update development docs**
+- [x] **Step 2: Update development docs**
 
 Modify `documentation/08-development.qmd`:
 
@@ -1540,7 +1540,7 @@ Modify `documentation/08-development.qmd`:
   - using `make test-mcp-smoke`;
   - LLM model env vars.
 
-- [ ] **Step 3: Update deployment docs**
+- [x] **Step 3: Update deployment docs**
 
 Modify `documentation/09-deployment.qmd`:
 
@@ -1550,7 +1550,7 @@ Modify `documentation/09-deployment.qmd`:
   - configuring external provider budgets;
   - configuring Gemini model defaults and operator allowlist.
 
-- [ ] **Step 4: Run file-size and static code-quality gate**
+- [x] **Step 4: Run file-size and static code-quality gate**
 
 Run:
 
@@ -1563,7 +1563,7 @@ Expected:
 - Command exits 0.
 - If a touched handwritten file exceeds the ratchet, split cohesive helpers before continuing.
 
-- [ ] **Step 5: Run fast API gate**
+- [x] **Step 5: Run fast API gate**
 
 Run:
 
@@ -1575,7 +1575,7 @@ Expected:
 
 - Command exits 0.
 
-- [ ] **Step 6: Run frontend checks**
+- [x] **Step 6: Run frontend checks**
 
 Run:
 
@@ -1589,7 +1589,7 @@ Expected:
 
 - All commands exit 0.
 
-- [ ] **Step 7: Run MCP smoke against a running MCP sidecar**
+- [x] **Step 7: Run MCP smoke against a running MCP sidecar**
 
 Start the local MCP stack using the repository's documented dev stack if it is not already running.
 
@@ -1603,7 +1603,7 @@ Expected:
 
 - Command exits 0 and reports MCP smoke complete.
 
-- [ ] **Step 8: Run final pre-commit gate**
+- [x] **Step 8: Run final pre-commit gate**
 
 Run:
 
@@ -1615,7 +1615,7 @@ Expected:
 
 - Command exits 0.
 
-- [ ] **Step 9: Run full local CI if the implementation touched every planned area**
+- [x] **Step 9: Run full local CI if the implementation touched every planned area**
 
 Run this because the sprint touches DB, API, worker, MCP, frontend, and docs:
 
@@ -1628,7 +1628,7 @@ Expected:
 - Command exits 0.
 - If any unrelated pre-existing failure appears, capture the exact failing test names and confirm they are pre-existing before handoff.
 
-- [ ] **Step 10: Commit Task 7**
+- [x] **Step 10: Commit Task 7**
 
 Run:
 
@@ -1645,19 +1645,18 @@ Expected:
 
 ## Final Handoff Checklist
 
-- [ ] `git status --short` shows only intentional changes or a clean tree.
-- [ ] `git log --oneline -n 7` shows the planned phase commits.
-- [ ] `make code-quality-audit` passed.
-- [ ] `make test-api-fast` passed.
-- [ ] `make test-mcp-smoke` passed against a running MCP sidecar.
-- [ ] `cd app && npm run type-check` passed.
-- [ ] `cd app && npm run test:unit` passed.
-- [ ] `make pre-commit` passed.
-- [ ] `make ci-local` passed or exact environment blocker is documented.
-- [ ] Public analysis endpoints do not call heavy analysis helpers on missing snapshots.
-- [ ] MCP analysis tools do not call disk RDS scans, live external providers, Gemini, or heavy analysis helpers.
-- [ ] Unsupported analysis parameters return `unsupported_parameter`.
-- [ ] Snapshot activation guarantees one public-ready row per `(analysis_type, parameter_hash)`.
-- [ ] LLM generation no longer happens from public cache-hit job submission.
-- [ ] LLM generation is handled by worker/admin snapshot refresh policy or reports `summary_available = false`.
-
+- [x] `git status --short` shows only intentional changes or a clean tree.
+- [x] `git log --oneline -n 7` shows the planned phase commits.
+- [x] `make code-quality-audit` passed.
+- [x] `make test-api-fast` passed.
+- [x] `make test-mcp-smoke` passed against a running MCP sidecar.
+- [x] `cd app && npm run type-check` passed.
+- [x] `cd app && npm run test:unit` passed.
+- [x] `make pre-commit` passed.
+- [x] `make ci-local` passed or exact environment blocker is documented.
+- [x] Public analysis endpoints do not call heavy analysis helpers on missing snapshots.
+- [x] MCP analysis tools do not call disk RDS scans, live external providers, Gemini, or heavy analysis helpers.
+- [x] Unsupported analysis parameters return `unsupported_parameter`.
+- [x] Snapshot activation guarantees one public-ready row per `(analysis_type, parameter_hash)`.
+- [x] LLM generation no longer happens from public cache-hit job submission.
+- [x] LLM generation is handled by worker/admin snapshot refresh policy or reports `summary_available = false`.

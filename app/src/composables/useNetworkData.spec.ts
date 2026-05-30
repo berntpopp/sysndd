@@ -26,18 +26,43 @@ describe('useNetworkData', () => {
         total_edges: 0,
         edges_filtered: false,
         elapsed_seconds: 0.1,
+        snapshot: {
+          analysis_type: 'gene_network_edges',
+        },
       },
     });
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('subclusters', 3000);
+    await state.fetchNetworkData();
 
     expect(getNetworkEdgesMock).toHaveBeenCalledWith({
-      cluster_type: 'subclusters',
-      max_edges: '3000',
+      cluster_type: 'clusters',
+      min_confidence: '400',
+      max_edges: '10000',
     });
     expect(state.error.value).toBeNull();
+    expect(state.metadata.value?.snapshot?.analysis_type).toBe('gene_network_edges');
+  });
+
+  it('keeps network data null and exposes snapshot problem codes on rejection', async () => {
+    getNetworkEdgesMock.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 503,
+        data: {
+          code: 'snapshot_missing',
+          message: 'No public analysis snapshot is currently available.',
+        },
+      },
+    });
+
+    const state = useNetworkData();
+
+    await state.fetchNetworkData();
+
+    expect(state.networkData.value).toBeNull();
+    expect(state.error.value?.message).toContain('snapshot_missing');
   });
 
   it('reuses an in-flight preload when fetching the same network payload', async () => {
@@ -55,9 +80,9 @@ describe('useNetworkData', () => {
     });
 
     const { preloadNetworkData } = await import('./useNetworkData');
-    const preload = preloadNetworkData('clusters', 10000);
+    const preload = preloadNetworkData();
     const state = useNetworkData();
-    await state.fetchNetworkData('clusters', 10000);
+    await state.fetchNetworkData();
     await preload;
 
     expect(getNetworkEdgesMock).toHaveBeenCalledTimes(1);
@@ -99,7 +124,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     await nextTick();
 
     const gene = state.cytoscapeElements.value.find((element) => element.data?.id === 'HGNC:1');
@@ -129,7 +154,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     await nextTick();
 
     const initialIds = state.cytoscapeInitialElements.value.map((element) => element.data?.id);
@@ -155,7 +180,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     await nextTick();
 
     const nodeOnlyIds = state.cytoscapeNodeElements.value.map((element) => element.data?.id);
@@ -181,7 +206,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     await nextTick();
 
     const gene = state.cytoscapeElements.value.find((element) => element.data?.id === 'HGNC:1');
@@ -205,7 +230,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     await nextTick();
 
     const gene = state.cytoscapeElements.value.find((element) => element.data?.id === 'HGNC:1');
@@ -228,7 +253,7 @@ describe('useNetworkData', () => {
 
     const state = useNetworkData();
 
-    await state.fetchNetworkData('clusters');
+    await state.fetchNetworkData();
     const originalGene = state.cytoscapeElements.value.find(
       (element) => element.data?.id === 'HGNC:1'
     );

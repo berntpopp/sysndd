@@ -1,8 +1,8 @@
 # functions/external-proxy-functions.R
 #### This file holds shared infrastructure for external API proxy layer
 
-require(httr2)   # Load httr2 for modern HTTP client functionality
-require(cachem)  # Load cachem for disk-based caching
+require(httr2) # Load httr2 for modern HTTP client functionality
+require(cachem) # Load cachem for disk-based caching
 
 #### Per-source cache backends with different TTLs
 
@@ -28,8 +28,8 @@ external_proxy_cache_dir <- function(name) {
 cache_static_dir <- external_proxy_cache_dir("static")
 cache_static <- cache_disk(
   dir = cache_static_dir,
-  max_age = 30 * 24 * 3600,  # 30 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 30 * 24 * 3600, # 30 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 # Stable cache for moderately-changing data (protein domains, gene structure, phenotypes)
@@ -37,8 +37,8 @@ cache_static <- cache_disk(
 cache_stable_dir <- external_proxy_cache_dir("stable")
 cache_stable <- cache_disk(
   dir = cache_stable_dir,
-  max_age = 14 * 24 * 3600,  # 14 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 14 * 24 * 3600, # 14 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 # Dynamic cache for frequently-changing data (ClinVar variants)
@@ -46,8 +46,8 @@ cache_stable <- cache_disk(
 cache_dynamic_dir <- external_proxy_cache_dir("dynamic")
 cache_dynamic <- cache_disk(
   dir = cache_dynamic_dir,
-  max_age = 7 * 24 * 3600,   # 7 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 7 * 24 * 3600, # 7 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 #### External proxy cache policy helpers
@@ -68,13 +68,24 @@ external_proxy_is_error <- function(result) {
 #' @param status Optional upstream or mapped status.
 #' @param detail Optional detail string.
 #' @noRd
-external_proxy_log_event <- function(source, event, status = NULL, detail = NULL) {
+external_proxy_log_event <- function(source,
+                                     event,
+                                     status = NULL,
+                                     detail = NULL,
+                                     elapsed_ms = NULL,
+                                     cache = NULL) {
   parts <- c(
     source = source %||% "unknown",
     event = event %||% "unknown"
   )
   if (!is.null(status)) {
     parts <- c(parts, status = as.character(status))
+  }
+  if (!is.null(elapsed_ms)) {
+    parts <- c(parts, elapsed_ms = as.character(as.integer(round(elapsed_ms))))
+  }
+  if (!is.null(cache)) {
+    parts <- c(parts, cache = as.character(cache))
   }
   if (!is.null(detail) && nzchar(detail)) {
     parts <- c(parts, detail = detail)
@@ -138,14 +149,90 @@ memoise_external_success_only <- function(f, cache) {
 #'
 #' @export
 EXTERNAL_API_THROTTLE <- list(
-  gnomad = list(capacity = 10, fill_time_s = 60),    # 10 req/min (conservative)
-  ensembl = list(capacity = 900, fill_time_s = 60),  # 15 req/sec (documented)
-  uniprot = list(capacity = 100, fill_time_s = 1),   # 100 req/sec (conservative)
+  gnomad = list(capacity = 10, fill_time_s = 60), # 10 req/min (conservative)
+  ensembl = list(capacity = 900, fill_time_s = 60), # 15 req/sec (documented)
+  uniprot = list(capacity = 100, fill_time_s = 1), # 100 req/sec (conservative)
   alphafold = list(capacity = 20, fill_time_s = 60), # 20 req/min (conservative)
-  mgi = list(capacity = 30, fill_time_s = 60),       # 30 req/min (conservative)
-  rgd = list(capacity = 30, fill_time_s = 60)        # 30 req/min (conservative)
+  mgi = list(capacity = 30, fill_time_s = 60), # 30 req/min (conservative)
+  rgd = list(capacity = 30, fill_time_s = 60) # 30 req/min (conservative)
 )
 
+external_proxy_budget <- function(api_name) {
+  api_name <- toupper(as.character(api_name %||% "default")[[1]])
+  timeout <- as.numeric(Sys.getenv(
+    paste0("EXTERNAL_PROXY_", api_name, "_TIMEOUT_SECONDS"),
+    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", "6")
+  ))
+  max_seconds <- as.numeric(Sys.getenv(
+    paste0("EXTERNAL_PROXY_", api_name, "_MAX_SECONDS"),
+    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", "10")
+  ))
+  max_tries <- as.integer(Sys.getenv(
+    paste0("EXTERNAL_PROXY_", api_name, "_MAX_TRIES"),
+    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", "2")
+  ))
+  list(
+    timeout_seconds = if (is.na(timeout) || timeout <= 0) 6 else timeout,
+    max_seconds = if (is.na(max_seconds) || max_seconds <= 0) 10 else max_seconds,
+    max_tries = if (is.na(max_tries) || max_tries < 1L) 1L else max_tries
+  )
+}
+
+external_proxy_with_timing <- function(source, expr_fn) {
+  start <- proc.time()[["elapsed"]]
+  result <- tryCatch(
+    expr_fn(),
+    error = function(e) {
+      list(
+        error = TRUE,
+        status = 503L,
+        source = source,
+        message = conditionMessage(e)
+      )
+    }
+  )
+  elapsed_ms <- as.numeric((proc.time()[["elapsed"]] - start) * 1000)
+
+  if (!is.list(result)) {
+    result <- list(value = result)
+  }
+  result$elapsed_ms <- elapsed_ms
+  if (is.null(result$source)) {
+    result$source <- source
+  }
+
+  status <- external_proxy_result_status(result)
+  external_proxy_log_event(
+    source = source,
+    event = "complete",
+    status = status,
+    elapsed_ms = elapsed_ms,
+    cache = result$cache_status %||% NULL
+  )
+  result
+}
+
+external_proxy_result_status <- function(result) {
+  if (!is.null(result$status)) {
+    return(result$status)
+  }
+  if (isTRUE(result$error)) {
+    return(503L)
+  }
+  if (isTRUE(result$found == FALSE)) {
+    return(404L)
+  }
+  200L
+}
+
+external_proxy_aggregate_budget <- function() {
+  max_seconds <- as.numeric(Sys.getenv("EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS", "12"))
+  if (is.na(max_seconds) || max_seconds <= 0) {
+    12
+  } else {
+    max_seconds
+  }
+}
 
 #' Make an external API request with retry and rate limiting
 #'
@@ -188,19 +275,20 @@ EXTERNAL_API_THROTTLE <- list(
 make_external_request <- function(url, api_name, throttle_config, method = "GET", body = NULL) {
   tryCatch(
     {
+      budget <- external_proxy_budget(api_name)
       # Build httr2 request with retry, throttle, and timeout
       req <- request(url) %>%
         req_throttle(
           rate = throttle_config$capacity / throttle_config$fill_time_s
         ) %>%
         req_retry(
-          max_tries = 5,
-          max_seconds = 120,
+          max_tries = budget$max_tries,
+          max_seconds = budget$max_seconds,
           backoff = ~ 2^.x,
           is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
         ) %>%
-        req_timeout(30) %>%
-        req_error(is_error = ~FALSE)  # Disable automatic error throwing
+        req_timeout(budget$timeout_seconds) %>%
+        req_error(is_error = ~FALSE) # Disable automatic error throwing
 
       # Add method and body if POST request
       if (method == "POST") {
@@ -289,6 +377,54 @@ create_external_error <- function(api_name, detail, status = 503L, instance = NU
   }
 
   return(error_response)
+}
+
+external_proxy_aggregate_sources <- function(symbol, sources, instance = NULL) {
+  results <- list(
+    gene_symbol = symbol,
+    sources = list(),
+    errors = list(),
+    timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ")
+  )
+  aggregate_started <- proc.time()[["elapsed"]]
+  aggregate_max_seconds <- external_proxy_aggregate_budget()
+  skipped_sources <- character()
+
+  source_names <- names(sources)
+  for (i in seq_along(source_names)) {
+    source_name <- source_names[[i]]
+    elapsed_seconds <- proc.time()[["elapsed"]] - aggregate_started
+    if (elapsed_seconds > aggregate_max_seconds) {
+      skipped_sources <- source_names[i:length(source_names)]
+      break
+    }
+
+    result <- tryCatch(
+      sources[[source_name]](),
+      error = function(e) {
+        list(error = TRUE, source = source_name, message = conditionMessage(e))
+      }
+    )
+
+    if (is.list(result) && isTRUE(result$error)) {
+      results$errors[[source_name]] <- create_external_error(
+        source_name,
+        result$message %||% paste(source_name, "unavailable"),
+        503L,
+        instance
+      )
+    } else if (is.list(result) && isTRUE(result$found == FALSE)) {
+      results$sources[[source_name]] <- list(found = FALSE)
+    } else {
+      results$sources[[source_name]] <- result
+    }
+  }
+
+  if (length(skipped_sources) > 0L) {
+    results$partial <- TRUE
+    results$skipped_sources <- as.list(skipped_sources)
+  }
+  results
 }
 
 

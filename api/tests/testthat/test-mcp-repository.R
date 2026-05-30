@@ -26,6 +26,7 @@ test_that("MCP repository queries use approved public views and primary approved
 })
 
 test_that("MCP repository search and lookup helpers use bounded SELECT queries", {
+  source("../../functions/mcp-search-repository.R")
   source("../../functions/mcp-repository.R")
   captured <- list()
 

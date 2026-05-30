@@ -105,7 +105,6 @@ describe('AnalyseGeneClusters', () => {
     const wrapper = mountComponent();
 
     expect(getFunctionalClusteringMock).toHaveBeenCalledWith({
-      algorithm: 'leiden',
       page_size: '50',
     });
     expect(submitClusteringMock).not.toHaveBeenCalled();

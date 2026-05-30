@@ -9,8 +9,8 @@
       <BPopover target="popover-badge-help-geneclusters" variant="info" triggers="focus">
         <template #title> Gene Clusters Information </template>
         This section provides insights into gene clusters that are enriched based on their
-        functional annotations. Users can explore various clusters/subclusters, and analyze the
-        associated genes and their properties.
+        functional annotations. Users can explore clusters and analyze the associated genes and
+        their properties.
       </BPopover>
     </template>
 
@@ -31,7 +31,6 @@
           </div>
           <NetworkVisualization
             ref="networkVisualization"
-            :cluster-type="selectType"
             @cluster-selected="handleClusterSelected"
             @clusters-changed="handleClustersChanged"
             @network-ready="handleNetworkReady"
@@ -488,7 +487,6 @@ export default {
        * ------------------------------------ */
       selectOptions: [
         { value: 'clusters', text: 'Clusters' },
-        { value: 'subclusters', text: 'Subclusters' },
       ],
       selectType: 'clusters',
       activeParentCluster: 1,
@@ -499,10 +497,9 @@ export default {
       loadingProgress: 0,
       estimatedSeconds: 15,
       jobId: null,
-      algorithm: 'leiden', // 'leiden' (fast) or 'walktrap' (legacy)
+      algorithm: 'leiden',
       algorithmOptions: [
-        { value: 'leiden', text: 'Leiden (Fast)' },
-        { value: 'walktrap', text: 'Walktrap (Legacy)' },
+        { value: 'leiden', text: 'Leiden' },
       ],
 
       // Resizable pane size (percentage)
@@ -692,11 +689,6 @@ export default {
         this.setActiveCluster();
       }
     },
-    activeSubCluster() {
-      if (this.selectType === 'subclusters') {
-        this.setActiveCluster();
-      }
-    },
     tableType() {
       // When user changes tableType, re-check totalRows with filters applied
       this.updateFilteredTotalRows();
@@ -772,7 +764,6 @@ export default {
 
       try {
         const data = await getFunctionalClustering({
-          algorithm: this.algorithm,
           page_size: '50',
         });
         this.itemsCluster = data.clusters;
@@ -824,21 +815,8 @@ export default {
         return;
       }
 
-      let match;
-      let subClusters;
-      let clusterNum;
-
-      if (this.selectType === 'clusters') {
-        match = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
-        clusterNum = this.activeParentCluster;
-      } else {
-        // subclusters
-        subClusters = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
-        if (subClusters) {
-          match = subClusters.subclusters.find((sub) => sub.cluster === this.activeSubCluster);
-        }
-        clusterNum = this.activeSubCluster;
-      }
+      const match = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
+      const clusterNum = this.activeParentCluster;
 
       // Add cluster_num to each row for consistent display
       if (match) {

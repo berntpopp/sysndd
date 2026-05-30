@@ -16,7 +16,7 @@ import { apiClient } from './client';
 // Types
 // ---------------------------------------------------------------------------
 
-export type ClusteringAlgorithm = 'leiden' | 'walktrap';
+export type ClusteringAlgorithm = 'leiden';
 
 export interface FunctionalClusteringParams {
   page_after?: string;
@@ -52,12 +52,24 @@ export interface PaginationMeta {
   has_more: boolean;
 }
 
+export interface AnalysisSnapshotMeta {
+  snapshot_id?: number;
+  analysis_type?: string;
+  parameter_hash?: string;
+  schema_version?: string;
+  data_class?: string;
+  generated_at?: string;
+  stale_after?: string;
+  source_data_version?: string;
+}
+
 export interface ClusteringMeta {
   algorithm: string;
   elapsed_seconds: number;
   gene_count: number;
   cluster_count: number;
   cache_hit?: boolean;
+  snapshot?: AnalysisSnapshotMeta;
 }
 
 export interface FunctionalClusteringResponse {
@@ -68,13 +80,21 @@ export interface FunctionalClusteringResponse {
 }
 
 /**
- * One element returned by `GET /api/analysis/phenotype_clustering` — a
- * cluster + the nested entity identifiers belonging to it.
+ * One phenotype cluster row returned in the `GET /api/analysis/phenotype_clustering`
+ * envelope.
  */
 export interface PhenotypeCluster {
   cluster: string | number;
   identifiers: Array<{ entity_id: number; hgnc_id: string; symbol: string }>;
   [key: string]: unknown;
+}
+
+export interface PhenotypeClusteringResponse {
+  clusters: PhenotypeCluster[];
+  meta: {
+    snapshot?: AnalysisSnapshotMeta;
+    [key: string]: unknown;
+  };
 }
 
 /**
@@ -92,13 +112,12 @@ export interface CorrelationResponse {
   correlation_melted: CorrelationCell[];
 }
 
-export type ClusterType = 'clusters' | 'subclusters';
+export type ClusterType = 'clusters';
 
 export interface NetworkEdgesParams {
-  cluster_type?: ClusterType;
-  min_confidence?: string;
-  /** "0" returns all edges; default "10000". */
-  max_edges?: string;
+  cluster_type?: 'clusters';
+  min_confidence?: '400';
+  max_edges?: '10000';
 }
 
 export interface NetworkNode {
@@ -144,6 +163,7 @@ export interface NetworkMetadata {
   total_ndd_genes?: number;
   genes_with_string?: number;
   genes_in_clusters?: number;
+  snapshot?: AnalysisSnapshotMeta;
   [key: string]: unknown;
 }
 
@@ -181,7 +201,7 @@ export interface ClusterSummary {
  * GET /api/analysis/functional_clustering
  * Mirrors api/endpoints/analysis_endpoints.R:51 (handler `@get functional_clustering`).
  *
- * Cursor-paginated functional clusters (STRINGdb + Leiden/Walktrap).
+ * Cursor-paginated public functional clusters (STRINGdb + Leiden preset).
  * Public — no auth.
  */
 export async function getFunctionalClustering(
@@ -202,8 +222,8 @@ export async function getFunctionalClustering(
  */
 export async function getPhenotypeClustering(
   config?: AxiosRequestConfig
-): Promise<PhenotypeCluster[]> {
-  return apiClient.get<PhenotypeCluster[]>('/api/analysis/phenotype_clustering', config);
+): Promise<PhenotypeClusteringResponse> {
+  return apiClient.get<PhenotypeClusteringResponse>('/api/analysis/phenotype_clustering', config);
 }
 
 /**
@@ -227,8 +247,8 @@ export async function getPhenotypeFunctionalCorrelation(
  * Mirrors api/endpoints/analysis_endpoints.R:612 (handler `@get network_edges`).
  *
  * Returns Cytoscape.js-shaped node/edge payload for the protein-protein
- * interaction network. Uses `@serializer json list(auto_unbox=TRUE)`, so no
- * scalar-array wrapping.
+ * interaction network for the fixed public preset:
+ * cluster_type="clusters", min_confidence="400", max_edges="10000".
  */
 export async function getNetworkEdges(
   params: NetworkEdgesParams = {},

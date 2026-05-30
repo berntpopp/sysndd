@@ -36,7 +36,7 @@ mcp_get_sysndd_capabilities <- function() {
     ),
     payload_efficiency = list(
       minimal_mode = "response_mode=minimal drops default prose by setting synopsis_mode=none and abstract_mode=none unless explicitly overridden.",
-      analysis_controls = "Use dry_run=true and include_diagnostics=true to inspect availability before broad exploration. Analysis payloads echo budget metadata, and dropped_summary records sections or rows omitted by max_response_chars.",
+      analysis_controls = "Use dry_run=true and include_diagnostics=true to inspect public-ready snapshot availability before broad exploration. Analysis payloads echo budget metadata, and dropped_summary records sections or rows omitted by max_response_chars.",
       phenotype_shape = "Entity phenotypes are grouped as phenotypes.<modifier> = [HPO IDs] to avoid repeating entity_id and modifier on every row.",
       nested_schema_versions = "Batch and expanded payloads keep schema_version only at the outer envelope."
     ),
@@ -54,7 +54,7 @@ mcp_get_sysndd_capabilities <- function() {
       get_nddscore_context = list(default_page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
       get_curation_comparison_context = list(default_page_size = 25L, max_page_size = 50L, max_response_chars = "auto"),
       get_phenotype_analysis_context = list(default_limit = 25L, max_limit = 50L, max_response_chars = "auto"),
-      get_gene_network_context = list(default_max_edges = 100L, max_edges = 250L, max_response_chars = "auto"),
+      get_gene_network_context = list(default_max_edges = 100L, max_edges = 250L, stored_snapshot = list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L), max_response_chars = "auto"),
       list_gene_entities = list(default_limit = 25L, max_limit = 50L),
       get_entity_context = list(default_publication_limit = 10L, max_publication_limit = 25L),
       get_entities_context = list(max_entity_ids = 20L, default_dedupe_publications = TRUE),
@@ -70,7 +70,7 @@ mcp_get_sysndd_capabilities <- function() {
       get_sysndd_analysis_catalog = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
       get_gene_research_context = list(cache_ttl_seconds = 0L, cost_tier = "moderate", cheap_path = "dry_run=true"),
       get_nddscore_context = list(cache_ttl_seconds = 0L, cost_tier = "cheap"),
-      get_gene_network_context = list(cache_ttl_seconds = 0L, cost_tier = "cache_hit_only"),
+      get_gene_network_context = list(cache_ttl_seconds = 0L, cost_tier = "snapshot_only"),
       get_sysndd_capabilities = list(cache_ttl_seconds = 0L, cost_tier = "cheap")
     ),
     citation_contract = list(
@@ -100,8 +100,10 @@ mcp_get_sysndd_capabilities <- function() {
     ),
     analysis_tools = list(
       catalog = "get_sysndd_analysis_catalog documents available analysis sections, data classes, and limits.",
-      gene_research = "get_gene_research_context aggregates curated, ML prediction, derived analysis, local-cache network, cache-only LLM summaries, and stored external identifiers with section_status labels.",
-      network_cache = "get_gene_network_context returns cache_hit status on dry_run and a recoverable temporarily_unavailable error when local network cache is absent.",
+      gene_research = "get_gene_research_context aggregates curated, ML prediction, public-ready snapshot analysis, cache-only LLM summaries, and stored external identifiers with section_status labels.",
+      snapshot_reads = "Derived analysis tools read public-ready snapshots only and never compute STRING, phenotype clustering, fCoSE layouts, or correlations on request.",
+      phenotype_correlations = "MCP phenotype correlations are global snapshot context; omit gene for mode='correlations' and use phenotype or clusters for focused follow-up.",
+      network_snapshot = "get_gene_network_context supports only the stored clusters/min_confidence=400/max_edges=10000 snapshot key; max_edges is a response trim cap.",
       guardrails = "No Gemini, no prompt/query exposure, no live external providers, no writes, no raw SQL/R tools."
     ),
     resources = list(
@@ -115,17 +117,34 @@ mcp_get_sysndd_capabilities <- function() {
       enable_with = "MCP_ENABLE_PROMPTS=true",
       note = "MCP prompts are disabled by default because Claude and other agentic hosts do not invoke prompt templates during normal tool-calling flows; advertising unused prompts creates recurring client-quality warnings. Enable them only when a deployment intentionally wants user-invoked slash-command templates.",
       available_when_enabled = list(
-        list(name = "sysndd_gene_evidence_summary",
-             arguments = list(list(name = "gene", required = TRUE), list(name = "depth", required = FALSE))),
-        list(name = "sysndd_entity_evidence_brief",
-             arguments = list(list(name = "entity_id", required = TRUE), list(name = "depth", required = FALSE))),
-        list(name = "sysndd_publication_citation_pack",
-             arguments = list(list(name = "pmids", required = TRUE))),
-        list(name = "sysndd_phenotype_entity_discovery",
-             arguments = list(list(name = "phenotype", required = TRUE), list(name = "category", required = FALSE)))
+        list(
+          name = "sysndd_gene_evidence_summary",
+          arguments = list(list(name = "gene", required = TRUE), list(name = "depth", required = FALSE))
+        ),
+        list(
+          name = "sysndd_entity_evidence_brief",
+          arguments = list(list(name = "entity_id", required = TRUE), list(name = "depth", required = FALSE))
+        ),
+        list(
+          name = "sysndd_publication_citation_pack",
+          arguments = list(list(name = "pmids", required = TRUE))
+        ),
+        list(
+          name = "sysndd_phenotype_entity_discovery",
+          arguments = list(list(name = "phenotype", required = TRUE), list(name = "category", required = FALSE))
+        )
       )
     ),
-    error_codes = c("invalid_input", "not_found", "ambiguous_query", "temporarily_unavailable"),
+    error_codes = c(
+      "invalid_input",
+      "not_found",
+      "ambiguous_query",
+      "temporarily_unavailable",
+      "unsupported_parameter",
+      "snapshot_missing",
+      "snapshot_stale",
+      "source_version_mismatch"
+    ),
     error_examples = list(
       invalid_input = list(schema_version = MCP_SCHEMA_VERSION, error = list(
         code = "invalid_input", message = "Unknown parameter 'symbol'. Expected: gene, include_entities, ...",
@@ -143,6 +162,19 @@ mcp_get_sysndd_capabilities <- function() {
       )),
       temporarily_unavailable = list(schema_version = MCP_SCHEMA_VERSION, error = list(
         code = "temporarily_unavailable", message = "MCP tool failed"
+      )),
+      unsupported_parameter = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "unsupported_parameter", message = "Unsupported parameters for analysis snapshot type: gene_network_edges"
+      )),
+      snapshot_missing = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "snapshot_missing", message = "Supported public-ready analysis snapshot is not currently available."
+      )),
+      snapshot_stale = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "snapshot_stale", message = "The active public analysis snapshot is stale and should be refreshed."
+      )),
+      source_version_mismatch = list(schema_version = MCP_SCHEMA_VERSION, error = list(
+        code = "source_version_mismatch",
+        message = "The active public analysis snapshot was built from a different public source-data version."
       ))
     ),
     error_handling_note = "Recoverable errors arrive as a tool result with isError=true and an error.code; retry ambiguous_query by calling again with one of error.choices.",

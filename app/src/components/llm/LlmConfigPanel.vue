@@ -10,6 +10,16 @@
       Set the <code>GEMINI_API_KEY</code> environment variable to enable LLM features.
     </BAlert>
 
+    <BAlert v-if="invalidModelMessage" variant="danger" :model-value="true">
+      <strong>Current Gemini model is invalid.</strong>
+      {{ invalidModelMessage }}
+    </BAlert>
+
+    <BAlert v-if="operatorAllowedMessage" variant="warning" :model-value="true">
+      <strong>Operator-allowlisted Gemini model.</strong>
+      {{ operatorAllowedMessage }}
+    </BAlert>
+
     <BForm @submit.prevent>
       <BFormGroup label="Current Model" label-for="model-select">
         <BFormSelect
@@ -138,6 +148,16 @@ const selectedModelInfo = computed(() =>
 );
 
 const modelSelectDisabled = computed(() => props.loading || !props.config?.gemini_configured);
+
+const invalidModelMessage = computed(() => {
+  if (!props.config || props.config.valid) return '';
+  return props.config.warning || `${props.config.current_model} is not allowed.`;
+});
+
+const operatorAllowedMessage = computed(() => {
+  if (!props.config?.operator_allowed || !props.config.valid) return '';
+  return props.config.warning || `${props.config.current_model} is allowed by operator override.`;
+});
 
 function handleModelChange() {
   if (modelSelectDisabled.value) return;
