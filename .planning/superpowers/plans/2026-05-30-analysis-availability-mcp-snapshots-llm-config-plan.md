@@ -1177,7 +1177,7 @@ Expected:
 - Modify: `api/functions/external-proxy-rgd.R`
 - Modify: `api/endpoints/external_endpoints.R`
 
-- [ ] **Step 1: Write budget tests first**
+- [x] **Step 1: Write budget tests first**
 
 Create `api/tests/testthat/test-unit-external-proxy-budgets.R`:
 
@@ -1205,7 +1205,7 @@ test_that("external proxy timing wrapper preserves result and records elapsed me
 })
 ```
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1217,7 +1217,7 @@ Expected:
 
 - Test fails because `external_proxy_budget()` and `external_proxy_with_timing()` do not exist.
 
-- [ ] **Step 3: Implement budget helpers**
+- [x] **Step 3: Implement budget helpers**
 
 Modify `api/functions/external-proxy-functions.R`:
 
@@ -1239,7 +1239,7 @@ list(
 - Change `make_external_request()` to use `external_proxy_budget(api_name)` by default.
 - Replace hardcoded `max_tries = 5`, `max_seconds = 120`, and `req_timeout(30)`.
 
-- [ ] **Step 4: Move MGI/RGD direct calls onto budgets**
+- [x] **Step 4: Move MGI/RGD direct calls onto budgets**
 
 Modify `api/functions/external-proxy-mgi.R`:
 
@@ -1250,7 +1250,7 @@ Modify `api/functions/external-proxy-mgi.R`:
 
 Modify `api/functions/external-proxy-rgd.R` the same way with `"rgd"`.
 
-- [ ] **Step 5: Scope aggregate endpoint**
+- [x] **Step 5: Scope aggregate endpoint**
 
 Modify `api/endpoints/external_endpoints.R`:
 
@@ -1260,7 +1260,7 @@ Modify `api/endpoints/external_endpoints.R`:
 - Return `partial = TRUE` and `skipped_sources` when the budget stops later sources.
 - Do not introduce parallel fanout.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run:
 
@@ -1274,7 +1274,7 @@ Expected:
 - Budget tests pass.
 - Existing external endpoint tests pass.
 
-- [ ] **Step 7: Commit Task 5**
+- [x] **Step 7: Commit Task 5**
 
 Run:
 
@@ -1315,7 +1315,7 @@ Expected:
 - Modify: `documentation/08-development.qmd`
 - Modify: `documentation/09-deployment.qmd`
 
-- [ ] **Step 1: Write model config tests first**
+- [x] **Step 1: Write model config tests first**
 
 Create `api/tests/testthat/test-unit-llm-model-config.R`:
 
@@ -1355,7 +1355,7 @@ test_that("Gemini model catalog marks shut-down preview model invalid", {
 })
 ```
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1367,7 +1367,7 @@ Expected:
 
 - Test fails because `llm-model-config.R` does not exist.
 
-- [ ] **Step 3: Implement central model config helper**
+- [x] **Step 3: Implement central model config helper**
 
 Create `api/functions/llm-model-config.R` with:
 
@@ -1403,7 +1403,7 @@ Operator allowlist:
 - Unknown model is valid only if included in the allowlist.
 - Return `operator_allowed = TRUE` and a warning.
 
-- [ ] **Step 4: Wire runtime paths to central config**
+- [x] **Step 4: Wire runtime paths to central config**
 
 Modify `api/bootstrap/load_modules.R`:
 
@@ -1430,7 +1430,7 @@ Modify `api/endpoints/llm_admin_endpoints.R`:
 - Config response includes `current_model`, `source`, `default_model`, `valid`, `operator_allowed`, `warning`, and `available_models`.
 - Update model mutation endpoint to reject invalid models unless operator allowlisted.
 
-- [ ] **Step 5: Update frontend LLM admin types and tests**
+- [x] **Step 5: Update frontend LLM admin types and tests**
 
 Modify `app/src/api/llm_admin.ts`:
 
@@ -1449,7 +1449,7 @@ Modify `app/src/components/llm/LlmConfigPanel.vue`:
 
 Update `app/src/api/llm_admin.spec.ts` and `app/src/components/llm/LlmConfigPanel.spec.ts` to use current valid model names and invalid/operator-allowed response fields.
 
-- [ ] **Step 6: Update config docs**
+- [x] **Step 6: Update config docs**
 
 Modify `api/config.yml.example`:
 
@@ -1463,7 +1463,7 @@ Modify `documentation/09-deployment.qmd`:
 
 - Document production config source order, invalid model behavior, and operator allowlist warning.
 
-- [ ] **Step 7: Run focused tests**
+- [x] **Step 7: Run focused tests**
 
 Run:
 
@@ -1478,7 +1478,7 @@ Expected:
 
 - All focused LLM tests pass.
 
-- [ ] **Step 8: Commit Task 6**
+- [x] **Step 8: Commit Task 6**
 
 Run:
 
@@ -1517,7 +1517,7 @@ Expected:
 - Modify: `documentation/09-deployment.qmd`
 - Modify: `.planning/superpowers/plans/2026-05-30-analysis-availability-mcp-snapshots-llm-config-plan.md` if execution notes are discovered during implementation
 
-- [ ] **Step 1: Update persistent agent guidance**
+- [x] **Step 1: Update persistent agent guidance**
 
 Modify `AGENTS.md`:
 
@@ -1529,7 +1529,7 @@ Modify `AGENTS.md`:
   - snapshot refresh jobs must use approved-public input gates;
   - snapshot activation is scoped by `(analysis_type, parameter_hash)`.
 
-- [ ] **Step 2: Update development docs**
+- [x] **Step 2: Update development docs**
 
 Modify `documentation/08-development.qmd`:
 
@@ -1540,7 +1540,7 @@ Modify `documentation/08-development.qmd`:
   - using `make test-mcp-smoke`;
   - LLM model env vars.
 
-- [ ] **Step 3: Update deployment docs**
+- [x] **Step 3: Update deployment docs**
 
 Modify `documentation/09-deployment.qmd`:
 
@@ -1550,7 +1550,7 @@ Modify `documentation/09-deployment.qmd`:
   - configuring external provider budgets;
   - configuring Gemini model defaults and operator allowlist.
 
-- [ ] **Step 4: Run file-size and static code-quality gate**
+- [x] **Step 4: Run file-size and static code-quality gate**
 
 Run:
 
@@ -1563,7 +1563,7 @@ Expected:
 - Command exits 0.
 - If a touched handwritten file exceeds the ratchet, split cohesive helpers before continuing.
 
-- [ ] **Step 5: Run fast API gate**
+- [x] **Step 5: Run fast API gate**
 
 Run:
 
@@ -1575,7 +1575,7 @@ Expected:
 
 - Command exits 0.
 
-- [ ] **Step 6: Run frontend checks**
+- [x] **Step 6: Run frontend checks**
 
 Run:
 
@@ -1589,7 +1589,7 @@ Expected:
 
 - All commands exit 0.
 
-- [ ] **Step 7: Run MCP smoke against a running MCP sidecar**
+- [x] **Step 7: Run MCP smoke against a running MCP sidecar**
 
 Start the local MCP stack using the repository's documented dev stack if it is not already running.
 
@@ -1603,7 +1603,7 @@ Expected:
 
 - Command exits 0 and reports MCP smoke complete.
 
-- [ ] **Step 8: Run final pre-commit gate**
+- [x] **Step 8: Run final pre-commit gate**
 
 Run:
 
@@ -1615,7 +1615,7 @@ Expected:
 
 - Command exits 0.
 
-- [ ] **Step 9: Run full local CI if the implementation touched every planned area**
+- [x] **Step 9: Run full local CI if the implementation touched every planned area**
 
 Run this because the sprint touches DB, API, worker, MCP, frontend, and docs:
 
@@ -1628,7 +1628,7 @@ Expected:
 - Command exits 0.
 - If any unrelated pre-existing failure appears, capture the exact failing test names and confirm they are pre-existing before handoff.
 
-- [ ] **Step 10: Commit Task 7**
+- [x] **Step 10: Commit Task 7**
 
 Run:
 
@@ -1645,18 +1645,18 @@ Expected:
 
 ## Final Handoff Checklist
 
-- [ ] `git status --short` shows only intentional changes or a clean tree.
-- [ ] `git log --oneline -n 7` shows the planned phase commits.
-- [ ] `make code-quality-audit` passed.
-- [ ] `make test-api-fast` passed.
-- [ ] `make test-mcp-smoke` passed against a running MCP sidecar.
-- [ ] `cd app && npm run type-check` passed.
-- [ ] `cd app && npm run test:unit` passed.
-- [ ] `make pre-commit` passed.
-- [ ] `make ci-local` passed or exact environment blocker is documented.
-- [ ] Public analysis endpoints do not call heavy analysis helpers on missing snapshots.
-- [ ] MCP analysis tools do not call disk RDS scans, live external providers, Gemini, or heavy analysis helpers.
-- [ ] Unsupported analysis parameters return `unsupported_parameter`.
-- [ ] Snapshot activation guarantees one public-ready row per `(analysis_type, parameter_hash)`.
-- [ ] LLM generation no longer happens from public cache-hit job submission.
-- [ ] LLM generation is handled by worker/admin snapshot refresh policy or reports `summary_available = false`.
+- [x] `git status --short` shows only intentional changes or a clean tree.
+- [x] `git log --oneline -n 7` shows the planned phase commits.
+- [x] `make code-quality-audit` passed.
+- [x] `make test-api-fast` passed.
+- [x] `make test-mcp-smoke` passed against a running MCP sidecar.
+- [x] `cd app && npm run type-check` passed.
+- [x] `cd app && npm run test:unit` passed.
+- [x] `make pre-commit` passed.
+- [x] `make ci-local` passed or exact environment blocker is documented.
+- [x] Public analysis endpoints do not call heavy analysis helpers on missing snapshots.
+- [x] MCP analysis tools do not call disk RDS scans, live external providers, Gemini, or heavy analysis helpers.
+- [x] Unsupported analysis parameters return `unsupported_parameter`.
+- [x] Snapshot activation guarantees one public-ready row per `(analysis_type, parameter_hash)`.
+- [x] LLM generation no longer happens from public cache-hit job submission.
+- [x] LLM generation is handled by worker/admin snapshot refresh policy or reports `summary_available = false`.

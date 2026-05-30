@@ -292,12 +292,24 @@ analysis_snapshot_build_payload <- function(analysis_type, params, conn = NULL) 
         algorithm = params$algorithm
       )
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "functional")
-      list(kind = "clusters", raw = clusters, clusters = built$clusters, members = built$members, row_counts = built$row_counts)
+      list(
+        kind = "clusters",
+        raw = clusters,
+        clusters = built$clusters,
+        members = built$members,
+        row_counts = built$row_counts
+      )
     },
     phenotype_clusters = {
       clusters <- generate_phenotype_clusters()
       built <- analysis_snapshot_build_cluster_rows(clusters, cluster_kind = "phenotype")
-      list(kind = "clusters", raw = clusters, clusters = built$clusters, members = built$members, row_counts = built$row_counts)
+      list(
+        kind = "clusters",
+        raw = clusters,
+        clusters = built$clusters,
+        members = built$members,
+        row_counts = built$row_counts
+      )
     },
     phenotype_correlations = {
       rows <- generate_phenotype_correlations_mem(

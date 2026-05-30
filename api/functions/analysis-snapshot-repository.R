@@ -354,7 +354,11 @@ analysis_snapshot_get_public <- function(analysis_type, parameter_hash, conn = N
       conn = conn
     ),
     cluster_members = db_execute_query(
-      "SELECT * FROM analysis_snapshot_cluster_member WHERE snapshot_id = ? ORDER BY cluster_kind, cluster_id, member_rank",
+      paste(
+        "SELECT * FROM analysis_snapshot_cluster_member",
+        "WHERE snapshot_id = ?",
+        "ORDER BY cluster_kind, cluster_id, member_rank"
+      ),
       unname(list(snapshot_id)),
       conn = conn
     ),

@@ -193,7 +193,12 @@ mcp_analysis_repo_get_snapshot_network <- function(gene = NULL, max_edges = 100L
   network$metadata$snapshot <- network$metadata$snapshot %||% (network$meta$snapshot %||% NULL)
   network <- mcp_analysis_repo_filter_network_gene(network, gene)
   if (!is.null(network$edges) && nrow(network$edges) > max_edges) {
-    network$edges <- network$edges[order(-network$edges$confidence, network$edges$source, network$edges$target), , drop = FALSE]
+    edge_order <- order(
+      -network$edges$confidence,
+      network$edges$source,
+      network$edges$target
+    )
+    network$edges <- network$edges[edge_order, , drop = FALSE]
     network$edges <- utils::head(network$edges, max_edges)
     connected_nodes <- unique(c(network$edges$source, network$edges$target))
     network$nodes <- network$nodes[network$nodes$hgnc_id %in% connected_nodes, , drop = FALSE]

@@ -100,7 +100,37 @@ make test-api-fast
 
 For MCP 1.2 analysis changes, also check that the analysis tools remain read-only and bounded: `get_sysndd_analysis_catalog` -> `get_gene_research_context(dry_run = TRUE, response_mode = "compact")` -> focused follow-up tools. Analysis responses should use compact defaults, `max_response_chars = "auto"`, `budget` metadata, and `dry_run`/`diagnostics` recovery hints for broad result sets. Cached LLM summaries are validated admin-generated cache reads only, NDDScore is an ML prediction layer rather than a curated evidence tier, and stored external IDs should be treated only as `external_reference_identifier`.
 
-Cache-backed analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require prewarmed API cache entries. The MCP sidecar mounts the shared API cache read-only and reports `temporarily_unavailable` when the exact cache key is missing; use the API/admin analysis path to warm those artifacts during development.
+Public and MCP analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require public-ready analysis snapshots. MCP reports snapshot diagnostics such as `snapshot_missing` or `snapshot_stale`; it does not compute heavy analysis or read draft/admin data on miss.
+
+### Public Analysis Snapshots
+
+When adding a snapshot table or shape change, create a numbered migration under `db/migrations/`, update `api/functions/migration-manifest.R`, and add or update the migration and preset tests. Snapshot presets live in `api/functions/analysis-snapshot-presets.R`; unsupported public parameters should fail there before any repository or analysis work starts.
+
+Run focused snapshot checks while iterating:
+
+```bash
+cd api
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-migration.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-presets.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-repository.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-analysis-snapshot-builder.R')"
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-endpoint-analysis-snapshot-read.R')"
+```
+
+To refresh a snapshot in a local API or worker R session with DB configuration loaded, submit the durable worker job:
+
+```r
+async_job_service_submit(
+  job_type = "analysis_snapshot_refresh",
+  request_payload = list(
+    analysis_type = "functional_clusters",
+    params = list(algorithm = "leiden")
+  ),
+  queue_name = "analysis"
+)
+```
+
+Use `analysis_snapshot_refresh("functional_clusters", list(algorithm = "leiden"))` only for a deliberate local one-off where the R session owns a valid DB connection. After snapshot or MCP analysis changes, run `make test-mcp-smoke` against a running MCP sidecar in addition to the focused MCP unit tests.
 
 ### LLM Model Configuration
 

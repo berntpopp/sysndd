@@ -10,11 +10,31 @@ analysis_snapshot_unsupported_parameter <- function(message, fields = list()) {
 
 analysis_snapshot_supported_presets <- function() {
   list(
-    list(analysis_type = "functional_clusters", data_class = "curated_derived_analysis", params = list(algorithm = "leiden")),
-    list(analysis_type = "phenotype_clusters", data_class = "curated_derived_analysis", params = list()),
-    list(analysis_type = "phenotype_correlations", data_class = "curated_derived_analysis", params = list(filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)")),
-    list(analysis_type = "phenotype_functional_correlations", data_class = "curated_derived_analysis", params = list(algorithm = "leiden")),
-    list(analysis_type = "gene_network_edges", data_class = "curated_derived_analysis", params = list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L))
+    list(
+      analysis_type = "functional_clusters",
+      data_class = "curated_derived_analysis",
+      params = list(algorithm = "leiden")
+    ),
+    list(
+      analysis_type = "phenotype_clusters",
+      data_class = "curated_derived_analysis",
+      params = list()
+    ),
+    list(
+      analysis_type = "phenotype_correlations",
+      data_class = "curated_derived_analysis",
+      params = list(filter = "contains(ndd_phenotype_word,Yes),any(category,Definitive)")
+    ),
+    list(
+      analysis_type = "phenotype_functional_correlations",
+      data_class = "curated_derived_analysis",
+      params = list(algorithm = "leiden")
+    ),
+    list(
+      analysis_type = "gene_network_edges",
+      data_class = "curated_derived_analysis",
+      params = list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L)
+    )
   )
 }
 

@@ -87,7 +87,7 @@ test_that("get_job_status translates durable rows into the legacy polling contra
     )
   }
 
-  completed <- runtime$get_job_status("job-completed")
+  completed <- runtime$get_job_status("job-completed", result_mode = "full")
   expect_equal(completed$status, "completed")
   expect_true(isTRUE(completed$result$ok))
 
