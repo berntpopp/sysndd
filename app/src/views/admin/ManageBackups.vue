@@ -465,10 +465,10 @@ const { makeToast } = useToast();
 
 // Create job instances for backup and restore operations
 const backupJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+  (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`
 );
 const restoreJob = useAsyncJob(
-  (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`
+  (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`
 );
 
 // Reactive state

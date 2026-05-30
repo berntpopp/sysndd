@@ -22,6 +22,42 @@ describe('useEntityInfo', () => {
     expect(e.entity_info.value.symbol).toBe('GRIN2B');
   });
 
+  test('loadEntity requests fields required by entity mutation endpoints', async () => {
+    let requestedFields: string | null = null;
+    server.use(
+      http.get('*/api/entity/*', ({ request }) => {
+        requestedFields = new URL(request.url).searchParams.get('fields');
+        return HttpResponse.json({
+          data: [
+            {
+              entity_id: 3367,
+              symbol: 'FGF13',
+              hgnc_id: 'HGNC:3670',
+              hpo_mode_of_inheritance_term: 'HP:0001417',
+              hpo_mode_of_inheritance_term_name: 'X-linked inheritance',
+              disease_ontology_id_version: 'OMIM:300070',
+              disease_ontology_name: 'developmental and epileptic encephalopathy',
+              ndd_phenotype: 1,
+              is_active: 1,
+              replaced_by: null,
+            },
+          ],
+        });
+      })
+    );
+
+    const e = useEntityInfo();
+    await e.loadEntity(3367);
+
+    expect(requestedFields).toContain('hgnc_id');
+    expect(requestedFields).toContain('hpo_mode_of_inheritance_term');
+    expect(requestedFields).toContain('disease_ontology_id_version');
+    expect(requestedFields).toContain('ndd_phenotype');
+    expect(requestedFields).toContain('is_active');
+    expect(requestedFields).toContain('replaced_by');
+    expect(e.entity_info.value.hgnc_id).toBe('HGNC:3670');
+  });
+
   test('loadEntity surfaces a not-found toast and clears entity_info', async () => {
     server.use(http.get('*/api/entity/*', () => HttpResponse.json({ data: [] })));
     const toasts: any[] = [];

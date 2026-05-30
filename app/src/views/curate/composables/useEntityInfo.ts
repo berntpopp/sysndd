@@ -28,6 +28,22 @@ interface ReviewSnapshot {
   genereviews: string[];
 }
 
+const ENTITY_MUTATION_FIELDS = [
+  'entity_id',
+  'symbol',
+  'hgnc_id',
+  'disease_ontology_name',
+  'disease_ontology_id_version',
+  'hpo_mode_of_inheritance_term',
+  'hpo_mode_of_inheritance_term_name',
+  'category',
+  'ndd_phenotype',
+  'ndd_phenotype_word',
+  'is_active',
+  'replaced_by',
+  'details',
+].join(',');
+
 const arrEqual = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false;
   const sa = [...a].sort();
@@ -64,7 +80,12 @@ export function useEntityInfo(options: UseEntityInfoOptions = {}) {
 
   async function loadEntity(entityId: number): Promise<void> {
     try {
-      const response: any = await listEntities({ filter: `equals(entity_id,${entityId})` });
+      const response: any = await listEntities({
+        filter: `equals(entity_id,${entityId})`,
+        fields: ENTITY_MUTATION_FIELDS,
+        page_size: '1',
+        compact: true,
+      });
       const data = response?.data;
       if (!Array.isArray(data) || data.length === 0) {
         onToast?.(`Entity ${entityId} not found`, 'Error', 'danger');

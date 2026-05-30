@@ -217,6 +217,92 @@ test_that("mixed scenario: some auto-fixable, some critical", {
   expect_equal(result$critical$disease_ontology_id_version[1], "OMIM:400002_1")
 })
 
+test_that("process_combine_ontology max_file_age = 0 bypasses cached combined ontology CSV", {
+  if (!source_ontology()) skip("ontology-functions.R requires additional dependencies")
+
+  ontology_cache <- withr::local_tempdir()
+  data_dir <- file.path(ontology_cache, "data")
+  dir.create(data_dir)
+  output_path <- paste0(data_dir, "/")
+
+  cached <- tibble(
+    disease_ontology_id_version = "OMIM:CACHED",
+    disease_ontology_id = "OMIM:CACHED",
+    disease_ontology_name = "Cached Disease",
+    disease_ontology_source = "omim",
+    disease_ontology_date = as.character(Sys.Date()),
+    disease_ontology_is_specific = TRUE,
+    hgnc_id = "HGNC:1",
+    hpo_mode_of_inheritance_term = "HP:0000006"
+  )
+  readr::write_csv(
+    cached,
+    file.path(data_dir, paste0("disease_ontology_set.", Sys.Date(), ".csv")),
+    na = "NULL"
+  )
+
+  regenerated_omim <- tibble(
+    disease_ontology_id_version = "OMIM:FRESH",
+    disease_ontology_id = "OMIM:FRESH",
+    disease_ontology_name = "Fresh Disease",
+    disease_ontology_source = "omim",
+    disease_ontology_date = as.character(Sys.Date()),
+    disease_ontology_is_specific = TRUE,
+    hgnc_id = "HGNC:1",
+    hpo_mode_of_inheritance_term = "HP:0000006"
+  )
+  empty_mondo <- tibble(
+    disease_ontology_id_version = character(0),
+    disease_ontology_id = character(0),
+    disease_ontology_name = character(0),
+    disease_ontology_source = character(0),
+    disease_ontology_date = character(0),
+    disease_ontology_is_specific = logical(0),
+    hgnc_id = character(0),
+    hpo_mode_of_inheritance_term = character(0)
+  )
+  empty_mappings <- tibble(
+    OMIM = character(0),
+    MONDO = character(0),
+    DOID = character(0),
+    Orphanet = character(0),
+    EFO = character(0)
+  )
+
+  mock_bindings <- list(
+    process_mondo_ontology = function(...) empty_mondo,
+    process_omim_ontology = function(...) regenerated_omim,
+    get_ontology_object = function(...) list(),
+    get_mondo_mappings = function(...) empty_mappings,
+    download_mondo_sssom = function(...) "mock.sssom.tsv",
+    parse_mondo_sssom = function(...) tibble(omim_id = character(0), mondo_id = character(0)),
+    add_mondo_mappings_to_ontology = function(disease_ontology_set, ...) disease_ontology_set
+  )
+  mock_names <- names(mock_bindings)
+  old_exists <- vapply(mock_names, exists, logical(1), envir = globalenv(), inherits = FALSE)
+  old_values <- mget(mock_names[old_exists], envir = globalenv(), inherits = FALSE)
+  withr::defer({
+    for (name in mock_names) {
+      if (isTRUE(old_exists[[name]])) {
+        assign(name, old_values[[name]], envir = globalenv())
+      } else if (exists(name, envir = globalenv(), inherits = FALSE)) {
+        rm(list = name, envir = globalenv())
+      }
+    }
+  })
+  list2env(mock_bindings, envir = globalenv())
+
+  result <- process_combine_ontology(
+    hgnc_list = tibble(hgnc_id = "HGNC:1", symbol = "GENE1"),
+    mode_of_inheritance_list = tibble(),
+    max_file_age = 0,
+    output_path = output_path
+  )
+
+  expect_true("OMIM:FRESH" %in% result$disease_ontology_id_version)
+  expect_false("OMIM:CACHED" %in% result$disease_ontology_id_version)
+})
+
 # =============================================================================
 # Pure transformation tests (without external data)
 # =============================================================================

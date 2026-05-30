@@ -224,8 +224,8 @@ identify_critical_ontology_changes <- function(disease_ontology_set_update, dise
 #'
 #' @param hgnc_list A tibble containing non-alternative loci gene data (columns: hgnc_id, symbol).
 #' @param mode_of_inheritance_list A tibble containing mode of inheritance data.
-#' @param max_file_age Numeric, maximum age in months for OMIM mim2gene
-#'   deprecation cache reuse. Use 0 to force a fresh mim2gene download.
+#' @param max_file_age Numeric, maximum age in months for combined ontology and
+#'   OMIM mim2gene cache reuse. Use 0 to force fresh source downloads.
 #' @param output_path String, the path where the output CSV file will be stored.
 #' @param progress_callback Optional function for async progress reporting.
 #'   Called with (step, message, current, total) parameters.
@@ -252,8 +252,9 @@ process_combine_ontology <- function(hgnc_list, mode_of_inheritance_list, max_fi
 # nolint end
   csv_file_name <- paste0(output_path, "disease_ontology_set.", format(Sys.Date(), "%Y-%m-%d"), ".csv")
 
-  # Check if file exists and is not too old
-  if (check_file_age("disease_ontology_set", output_path, 1)) {
+  # Check if file exists and is not too old. max_file_age = 0 is the manual
+  # refresh path and must bypass the combined ontology CSV cache.
+  if (max_file_age > 0 && check_file_age("disease_ontology_set", output_path, max_file_age)) {
     return(read_csv(get_newest_file("disease_ontology_set", output_path), na = "NULL")) # Load and return the existing tibble # nolint: line_length_linter
   } else {
     # Process ontology if file is too old or doesn't exist

@@ -21,3 +21,10 @@ test_that(".async_job_run_force_apply_ontology uses helper-managed transaction l
   expect_false(grepl("\\bTRUNCATE\\b", body_txt, ignore.case = TRUE))
   expect_false(grepl("DBI::dbRollback\\(sysndd_db\\)", body_txt))
 })
+
+test_that(".async_job_run_omim_update forces a fresh combined ontology build", {
+  body_txt <- handler_body(.async_job_run_omim_update)
+
+  expect_match(body_txt, "process_combine_ontology")
+  expect_match(body_txt, "max_file_age\\s*=\\s*0")
+})

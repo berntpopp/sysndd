@@ -149,8 +149,7 @@ import JobHistoryCard, { type JobHistoryItem } from '@/components/annotations/Jo
 const route = useRoute();
 const { makeToast } = useToast();
 
-const jobStatusUrl = (jobId: string): string =>
-  `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`;
+const jobStatusUrl = (jobId: string): string => `/api/jobs/${encodeURIComponent(jobId)}/status`;
 
 const ontologyJob = useAsyncJob(jobStatusUrl);
 const forceApplyJob = useAsyncJob(jobStatusUrl);

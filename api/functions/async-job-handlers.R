@@ -514,10 +514,10 @@
   progress("prepare", "Processing OMIM ontology update...", 0, 5)
 
   disease_ontology_set_update <- process_combine_ontology(
-    payload$non_alt_loci_set,
-    payload$mode_of_inheritance_list,
-    3,
-    "data/",
+    hgnc_list = payload$non_alt_loci_set,
+    mode_of_inheritance_list = payload$mode_of_inheritance_list,
+    max_file_age = 0,
+    output_path = "data/",
     progress_callback = progress
   )
 

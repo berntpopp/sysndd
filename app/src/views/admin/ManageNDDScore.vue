@@ -287,7 +287,7 @@ import {
 
 type AdminRecord = Record<string, unknown>;
 
-const jobStatusUrl = (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`;
+const jobStatusUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`;
 const importJob = useAsyncJob(jobStatusUrl);
 
 const status = ref<NddScoreAdminStatus | null>(null);

@@ -369,7 +369,7 @@ const {
   updateValidationStatus,
 } = useLlmAdmin();
 
-const jobStatusUrl = (jobId: string) => `${import.meta.env.VITE_API_URL}/api/jobs/${jobId}/status`;
+const jobStatusUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`;
 
 // Async job tracking for regeneration. The LLM endpoint can submit one child
 // job per cluster type, so each type gets its own visible tracker.
