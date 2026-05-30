@@ -224,7 +224,8 @@ test_that("MCP phenotype cluster repositories do not cold-run memoised analysis 
   expect_false(functional_called)
 })
 
-test_that("MCP phenotype cluster repository detects shared disk cache payloads when memoise key lookup misses", {
+test_that("MCP phenotype cluster cache hit checks public snapshot manifests", {
+  source("../../functions/analysis-snapshot-presets.R")
   source_mcp_analysis_repository()
 
   cache_dir <- withr::local_tempdir()
@@ -242,19 +243,33 @@ test_that("MCP phenotype cluster repository detects shared disk cache payloads w
     file.path(cache_dir, "phenotype-clusters.rds")
   )
 
-  old_mca <- get0("gen_mca_clust_obj_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  if (exists("gen_mca_clust_obj_mem", envir = .GlobalEnv, inherits = FALSE)) {
-    rm("gen_mca_clust_obj_mem", envir = .GlobalEnv)
-  }
-  withr::defer(
-    if (is.null(old_mca)) {
-      if (exists("gen_mca_clust_obj_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_mca_clust_obj_mem", envir = .GlobalEnv)
+  old_query <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
+  old_source_version <- get0("analysis_snapshot_source_data_version", envir = .GlobalEnv, ifnotfound = NULL)
+  old_get_public <- get0("analysis_snapshot_get_public", envir = .GlobalEnv, ifnotfound = NULL)
+  seen_sql <- NULL
+  assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+    seen_sql <<- sql
+    expect_equal(params[[1]], "phenotype_clusters")
+    tibble::tibble(snapshot_id = 1L, source_data_version = "source-v1", stale_after = Sys.time() + 3600)
+  }, envir = .GlobalEnv)
+  assign("analysis_snapshot_source_data_version", function(...) NULL, envir = .GlobalEnv)
+  assign("analysis_snapshot_get_public", function(...) stop("full snapshot getter called"), envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_query)) rm("db_execute_query", envir = .GlobalEnv) else assign("db_execute_query", old_query, envir = .GlobalEnv)
+    if (is.null(old_source_version)) {
+      rm("analysis_snapshot_source_data_version", envir = .GlobalEnv)
     } else {
-      assign("gen_mca_clust_obj_mem", old_mca, envir = .GlobalEnv)
+      assign("analysis_snapshot_source_data_version", old_source_version, envir = .GlobalEnv)
     }
-  )
+    if (is.null(old_get_public)) {
+      rm("analysis_snapshot_get_public", envir = .GlobalEnv)
+    } else {
+      assign("analysis_snapshot_get_public", old_get_public, envir = .GlobalEnv)
+    }
+  })
 
   expect_true(mcp_analysis_repo_phenotype_cluster_cache_hit())
+  expect_true(grepl("analysis_snapshot_manifest", seen_sql, fixed = TRUE))
 })
 
 test_that("MCP phenotype cluster repository reads shared disk payloads without cold-running MCA", {
@@ -424,7 +439,8 @@ test_that("MCP network repository filters cached edges to the requested gene nei
   expect_false("Limited" %in% names(result$metadata$category_counts))
 })
 
-test_that("MCP network repository detects shared disk cache payloads when memoise key lookup misses", {
+test_that("MCP network cache hit checks public snapshot manifests", {
+  source("../../functions/analysis-snapshot-presets.R")
   source_mcp_analysis_repository()
 
   cache_dir <- withr::local_tempdir()
@@ -440,21 +456,35 @@ test_that("MCP network repository detects shared disk cache payloads when memois
     file.path(cache_dir, "network.rds")
   )
 
-  old_network <- get0("gen_network_edges_mem", envir = .GlobalEnv, ifnotfound = NULL)
-  if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) {
-    rm("gen_network_edges_mem", envir = .GlobalEnv)
-  }
-  withr::defer(
-    if (is.null(old_network)) {
-      if (exists("gen_network_edges_mem", envir = .GlobalEnv, inherits = FALSE)) rm("gen_network_edges_mem", envir = .GlobalEnv)
+  old_query <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
+  old_source_version <- get0("analysis_snapshot_source_data_version", envir = .GlobalEnv, ifnotfound = NULL)
+  old_get_public <- get0("analysis_snapshot_get_public", envir = .GlobalEnv, ifnotfound = NULL)
+  seen_params <- list()
+  assign("db_execute_query", function(sql, params = list(), conn = NULL) {
+    seen_params <<- params
+    expect_equal(params[[1]], "gene_network_edges")
+    tibble::tibble(snapshot_id = 1L, source_data_version = "source-v1", stale_after = Sys.time() + 3600)
+  }, envir = .GlobalEnv)
+  assign("analysis_snapshot_source_data_version", function(...) NULL, envir = .GlobalEnv)
+  assign("analysis_snapshot_get_public", function(...) stop("full snapshot getter called"), envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_query)) rm("db_execute_query", envir = .GlobalEnv) else assign("db_execute_query", old_query, envir = .GlobalEnv)
+    if (is.null(old_source_version)) {
+      rm("analysis_snapshot_source_data_version", envir = .GlobalEnv)
     } else {
-      assign("gen_network_edges_mem", old_network, envir = .GlobalEnv)
+      assign("analysis_snapshot_source_data_version", old_source_version, envir = .GlobalEnv)
     }
-  )
+    if (is.null(old_get_public)) {
+      rm("analysis_snapshot_get_public", envir = .GlobalEnv)
+    } else {
+      assign("analysis_snapshot_get_public", old_get_public, envir = .GlobalEnv)
+    }
+  })
 
   expect_true(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 400L))
   expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "subclusters", min_confidence = 400L))
   expect_false(mcp_analysis_repo_network_cache_hit(cluster_type = "clusters", min_confidence = 700L))
+  expect_equal(seen_params[[1]], "gene_network_edges")
 })
 
 test_that("MCP network repository reads and filters shared disk cache payloads without cold-running STRING", {

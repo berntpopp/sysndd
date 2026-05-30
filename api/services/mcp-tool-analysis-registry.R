@@ -7,7 +7,7 @@ mcp_analysis_tool_description <- function(label, extra = NULL) {
     "Read-only", label,
     "Default response_mode is compact; use dry_run or diagnostics before broad exploration.",
     "max_response_chars defaults to auto and payloads may return dropped_summary.",
-    "Cache-safe and no LLM generation.",
+    "Derived analysis reads use public-ready snapshots only; no LLM generation.",
     extra %||% "",
     sep = " "
   )
@@ -108,6 +108,8 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
                                                  gene = NULL,
                                                  phenotype = NULL,
                                                  min_abs_correlation = 0.3,
+                                                 drop_diagonal = TRUE,
+                                                 triangle_only = FALSE,
                                                  cluster_id = NULL,
                                                  limit = 25L,
                                                  include_cached_llm_summaries = TRUE,
@@ -122,6 +124,8 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
         gene = gene,
         phenotype = phenotype,
         min_abs_correlation = min_abs_correlation,
+        drop_diagonal = drop_diagonal,
+        triangle_only = triangle_only,
         cluster_id = cluster_id,
         limit = limit,
         include_cached_llm_summaries = include_cached_llm_summaries,
@@ -159,7 +163,7 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
   tools <- list(
     ellmer::tool(
       get_sysndd_analysis_catalog_fun,
-      mcp_analysis_tool_description("analysis catalog.", "Use this first to inspect workflows, data classes, limits, and unavailable cache-only sections."),
+      mcp_analysis_tool_description("analysis catalog.", "Use this first to inspect workflows, data classes, limits, and unavailable snapshot-only sections."),
       arguments = list(
         include_unavailable = ellmer::type_boolean("Include unavailable analysis entries; default false.", required = FALSE),
         response_mode = ellmer::type_string("minimal or compact; default compact.", required = FALSE)
@@ -223,35 +227,37 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
     ),
     ellmer::tool(
       get_phenotype_analysis_context_fun,
-      mcp_analysis_tool_description("phenotype analysis context.", "Cached LLM summaries are admin-generated cache-only when included."),
+      mcp_analysis_tool_description("phenotype analysis context.", "Correlation and cluster rows come from public-ready snapshots; cached LLM summaries are admin-generated cache-only when included."),
       arguments = list(
         mode = ellmer::type_string("correlations, clusters, or phenotype_functional_correlations."),
         gene = ellmer::type_string("Optional gene identifier.", required = FALSE),
         phenotype = ellmer::type_string("Optional HPO ID or phenotype search.", required = FALSE),
         min_abs_correlation = ellmer::type_number("Correlation threshold from 0 to 1; default 0.3.", required = FALSE),
+        drop_diagonal = ellmer::type_boolean("For correlation mode, omit self-correlations; default true.", required = FALSE),
+        triangle_only = ellmer::type_boolean("For correlation mode, return one matrix triangle only; default false.", required = FALSE),
         cluster_id = ellmer::type_integer("Optional cluster identifier.", required = FALSE),
         limit = ellmer::type_integer("Record cap, default 25, max 50.", required = FALSE),
         include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
         response_mode = ellmer::type_string("minimal, compact, standard, full, or diagnostics; default compact.", required = FALSE),
         max_response_chars = ellmer::type_string("auto or an integer character budget; default auto.", required = FALSE),
         include_diagnostics = ellmer::type_boolean("Include diagnostics metadata; default false.", required = FALSE),
-        dry_run = ellmer::type_boolean("Preflight mode/cache state without rows; default false.", required = FALSE)
+        dry_run = ellmer::type_boolean("Preflight mode/snapshot state without rows; default false.", required = FALSE)
       ),
       name = "get_phenotype_analysis_context"
     ),
     ellmer::tool(
       get_gene_network_context_fun,
-      mcp_analysis_tool_description("gene network context.", "Network data is local-cache only; cache-unavailable returns a recoverable tool error or dry-run status."),
+      mcp_analysis_tool_description("gene network context.", "Network data is public-ready snapshot-only; missing snapshots return a recoverable tool error or dry-run status."),
       arguments = list(
         gene = ellmer::type_string("Optional gene identifier.", required = FALSE),
-        cluster_type = ellmer::type_string("clusters or subclusters; default clusters.", required = FALSE),
-        min_confidence = ellmer::type_integer("STRING confidence threshold 0-1000; default 400.", required = FALSE),
-        max_edges = ellmer::type_integer("Edge cap, default 100, max 250.", required = FALSE),
+        cluster_type = ellmer::type_string("Supported stored snapshot key is clusters only; default clusters.", required = FALSE),
+        min_confidence = ellmer::type_integer("Supported stored snapshot key is 400 only; default 400.", required = FALSE),
+        max_edges = ellmer::type_integer("Response edge trim cap, default 100, max 250.", required = FALSE),
         include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
         response_mode = ellmer::type_string("minimal, compact, standard, full, or diagnostics; default compact.", required = FALSE),
         max_response_chars = ellmer::type_string("auto or an integer character budget; default auto.", required = FALSE),
         include_diagnostics = ellmer::type_boolean("Include diagnostics metadata; default false.", required = FALSE),
-        dry_run = ellmer::type_boolean("Preflight local network cache state without rows; default false.", required = FALSE)
+        dry_run = ellmer::type_boolean("Preflight network snapshot state without rows; default false.", required = FALSE)
       ),
       name = "get_gene_network_context"
     )

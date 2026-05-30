@@ -1,7 +1,8 @@
 # functions/mcp-analysis-cache-repository.R
 #
-# Read-only disk-cache discovery for MCP analysis payloads. These helpers only
-# read existing memoise/cachem RDS values and never compute or refresh analyses.
+# Legacy read-only disk-cache discovery for MCP analysis payloads. Normal MCP
+# analysis service paths read public-ready snapshots; these helpers remain only
+# for older tests and migration fallback code.
 
 `%||%` <- function(x, y) {
   if (is.null(x)) y else x
@@ -42,6 +43,70 @@ mcp_analysis_repo_find_disk_payload <- function(matches,
   }
 
   NULL
+}
+
+mcp_analysis_repo_public_snapshot_status <- function(analysis_type,
+                                                     params = list(),
+                                                     conn = NULL,
+                                                     current_source_data_version = NULL) {
+  if (!exists("analysis_snapshot_normalize_params", mode = "function") ||
+      !exists("db_execute_query", mode = "function")) {
+    return("snapshot_missing")
+  }
+  normalized <- tryCatch(
+    analysis_snapshot_normalize_params(analysis_type, params),
+    error = function(e) NULL
+  )
+  if (is.null(normalized)) {
+    return("snapshot_missing")
+  }
+  rows <- tryCatch(
+    db_execute_query(
+      "SELECT snapshot_id, source_data_version, stale_after
+         FROM analysis_snapshot_manifest
+        WHERE analysis_type = ?
+          AND parameter_hash = ?
+          AND public_ready = 1
+          AND status = 'public_ready'
+        ORDER BY activated_at DESC, snapshot_id DESC
+        LIMIT 1",
+      unname(list(normalized$analysis_type, normalized$parameter_hash)),
+      conn = conn
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(rows) || nrow(rows) == 0L) {
+    return("snapshot_missing")
+  }
+
+  status_row <- rows[1, , drop = FALSE]
+  if (is.null(current_source_data_version) &&
+      exists("analysis_snapshot_source_data_version", mode = "function")) {
+    current_source_data_version <- tryCatch(
+      analysis_snapshot_source_data_version(conn = conn),
+      error = function(e) NULL
+    )
+  }
+  if (!is.null(current_source_data_version)) {
+    status_row$current_source_data_version <- as.character(current_source_data_version)[1]
+  }
+
+  if (exists("analysis_snapshot_status_code", mode = "function")) {
+    return(analysis_snapshot_status_code(status_row))
+  }
+
+  stale_after <- (status_row$stale_after %||% NA)[[1]]
+  if (!is.na(stale_after)) {
+    stale_at <- as.POSIXct(stale_after, tz = "UTC")
+    if (!is.na(stale_at) && stale_at < Sys.time()) {
+      return("snapshot_stale")
+    }
+  }
+  "available"
+}
+
+mcp_analysis_repo_public_snapshot_available <- function(analysis_type, params = list(), conn = NULL) {
+  identical(mcp_analysis_repo_public_snapshot_status(analysis_type, params, conn = conn), "available")
 }
 
 mcp_analysis_repo_network_payload_matches <- function(network,
@@ -165,34 +230,23 @@ mcp_analysis_repo_phenotype_memoise_cache_hit <- function() {
 MCP_PHENOTYPE_CORRELATION_FILTER <- "contains(ndd_phenotype_word,Yes),any(category,Definitive)"
 
 mcp_analysis_repo_phenotype_correlations_cache_hit <- function(filter = MCP_PHENOTYPE_CORRELATION_FILTER) {
-  if (!requireNamespace("memoise", quietly = TRUE)) return(FALSE)
-  if (!exists("generate_phenotype_correlations_mem", mode = "function")) return(FALSE)
-  if (!memoise::is.memoised(generate_phenotype_correlations_mem)) return(FALSE)
-
-  checker <- memoise::has_cache(generate_phenotype_correlations_mem)
-  isTRUE(checker(filter = filter, min_abs_correlation = NULL))
+  mcp_analysis_repo_public_snapshot_available("phenotype_correlations", list())
 }
 
 mcp_analysis_repo_network_cache_hit <- function(cluster_type = "clusters",
                                                 min_confidence = 400L) {
-  mcp_analysis_repo_network_memoise_cache_hit(
-    cluster_type = cluster_type,
-    min_confidence = min_confidence
-  ) ||
-    !is.null(mcp_analysis_repo_find_network_disk_payload(
-      cluster_type = cluster_type,
-      min_confidence = min_confidence
-    ))
+  mcp_analysis_repo_public_snapshot_available(
+    "gene_network_edges",
+    list(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = 10000L)
+  )
 }
 
 mcp_analysis_repo_functional_cluster_cache_hit <- function(algorithm = "leiden") {
-  mcp_analysis_repo_functional_memoise_cache_hit(algorithm = algorithm) ||
-    !is.null(mcp_analysis_repo_find_functional_cluster_disk_payload())
+  mcp_analysis_repo_public_snapshot_available("functional_clusters", list(algorithm = algorithm))
 }
 
 mcp_analysis_repo_phenotype_cluster_cache_hit <- function() {
-  mcp_analysis_repo_phenotype_memoise_cache_hit() ||
-    !is.null(mcp_analysis_repo_find_phenotype_cluster_disk_payload())
+  mcp_analysis_repo_public_snapshot_available("phenotype_clusters", list())
 }
 
 mcp_analysis_repo_cluster_membership <- function(clusters, prefix) {

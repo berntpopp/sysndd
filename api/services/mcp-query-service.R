@@ -8,6 +8,13 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
   if (is.null(types)) types <- MCP_ALLOWED_SEARCH_TYPES
   types <- unique(as.character(types))
   invisible(lapply(types, mcp_validate_enum, allowed = MCP_ALLOWED_SEARCH_TYPES, argument = "types"))
+  query_tokens <- if (exists("mcp_search_tokens", mode = "function")) {
+    mcp_search_tokens(query)
+  } else {
+    tokens <- unlist(strsplit(toupper(query), "[^A-Z0-9]+", perl = TRUE), use.names = FALSE)
+    tokens <- tokens[!is.na(tokens) & nzchar(tokens)]
+    unique(utils::head(tokens[nchar(tokens) > 1L | grepl("^[0-9]+$", tokens)], 6L))
+  }
 
   mcp_cached("search_sysndd", list(query = query, types = types, limit = limit), MCP_CACHE_TTLS$search_sysndd, function() {
     rows_all <- mcp_repo_search(query, types, limit + 1L)
@@ -19,16 +26,16 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
       c(
         item[c("type", "id", "label", "description")],
         list(
-          score = mcp_score_for_tier(item$match_tier %||% "contains"),
+          score = item$score %||% mcp_score_for_tier(item$match_tier %||% "contains"),
           rank_reason = item$match_tier %||% "contains",
-          matched_field = switch(type,
-            gene = "symbol_or_hgnc_id",
-            entity = "entity_id_symbol_or_disease",
-            disease = "disease_id_or_name",
-            phenotype = "hpo_id_or_term",
-            variant = "variation_id_or_name",
-            "label_or_identifier"
-          ),
+          matched_field = item$matched_field %||% switch(type,
+              gene = "symbol_or_hgnc_id",
+              entity = "entity_id_symbol_or_disease",
+              disease = "disease_id_or_name",
+              phenotype = "hpo_id_or_term",
+              variant = "variation_id_or_name",
+              "label_or_identifier"
+            ),
           resource_uri = mcp_resource_uri(type, id),
           suggested_tools = switch(type,
             gene = list("get_gene_context", "list_gene_entities"),
@@ -50,7 +57,18 @@ mcp_search_sysndd <- function(query, types = NULL, limit = 10L) {
         offset = 0L,
         returned = length(records),
         total = total,
-        has_more = total > limit
+        has_more = total > limit,
+        query_tokens = query_tokens,
+        searched_types = types,
+        zero_result_guidance = if (length(records) == 0L) {
+          list(
+            "Try an HGNC symbol or HGNC ID for genes.",
+            "Try a MONDO/HPO identifier or fewer phrase terms.",
+            "Broaden types or call get_sysndd_capabilities for discovery workflows."
+          )
+        } else {
+          NULL
+        }
       )
     )
   })

@@ -31,30 +31,71 @@ mcp_repo_resolve_gene <- function(normalized_gene) {
 mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit = 10L) {
   like <- paste0("%", query, "%")
   prefix <- paste0(query, "%")
+  tokens <- mcp_search_tokens(query)
+  token_like <- paste0("%", tokens, "%")
+  candidate_limit <- min(max(as.integer(limit) * 5L, as.integer(limit)), 125L)
   results <- list()
 
   if ("gene" %in% types) {
+    token_filter <- mcp_search_token_filter(c("nal.name", "hsl.lookup_symbol"), token_like)
+    token_sql <- if (nzchar(token_filter$sql)) {
+      paste0(" OR ", token_filter$sql)
+    } else {
+      ""
+    }
     results$gene <- db_execute_query(
-      "
+      paste0(
+        "
         SELECT 'gene' AS type,
-               symbol AS id,
-               symbol AS label,
-               name AS description,
+               nal.symbol AS id,
+               nal.symbol AS label,
+               nal.name AS description,
                CASE
-                 WHEN UPPER(symbol) = UPPER(?) OR hgnc_id = ? THEN 'exact_identifier'
-                 WHEN UPPER(symbol) LIKE UPPER(?) THEN 'prefix'
+                 WHEN hsl.symbol_type = 'alias' THEN 'alias'
+                 WHEN hsl.symbol_type = 'previous' THEN 'previous'
+                 WHEN hsl.symbol_type = 'current' THEN 'symbol'
+                 WHEN UPPER(nal.name) LIKE UPPER(?) THEN 'name'
+                 ELSE 'symbol_or_name'
+               END AS matched_field,
+               CASE
+                 WHEN UPPER(nal.symbol) = UPPER(?) OR nal.hgnc_id = ? THEN 'exact_identifier'
+                 WHEN UPPER(nal.symbol) = UPPER(?) THEN 'exact_label'
+                 WHEN hsl.symbol_type IN ('alias', 'previous') AND hsl.lookup_symbol = UPPER(?) THEN hsl.symbol_type
+                 WHEN UPPER(nal.name) = UPPER(?) THEN 'exact_label'
+                 WHEN UPPER(nal.name) LIKE UPPER(?) THEN 'phrase'
+                 WHEN UPPER(nal.symbol) LIKE UPPER(?) OR UPPER(hsl.lookup_symbol) LIKE UPPER(?) THEN 'prefix'
                  ELSE 'contains'
-               END AS match_tier
-        FROM search_non_alt_loci_view
-        WHERE UPPER(result) LIKE UPPER(?) OR hgnc_id = ?
-        LIMIT ?",
-      list(query, query, prefix, like, query, limit)
+               END AS match_tier,
+               0 AS token_matches
+          FROM non_alt_loci_set nal
+          LEFT JOIN hgnc_symbol_lookup hsl
+            ON hsl.hgnc_id = nal.hgnc_id
+         WHERE UPPER(nal.symbol) LIKE UPPER(?)
+            OR nal.hgnc_id = ?
+            OR UPPER(nal.name) LIKE UPPER(?)
+            OR UPPER(hsl.lookup_symbol) LIKE UPPER(?)",
+        token_sql,
+        "
+         GROUP BY nal.hgnc_id, nal.symbol, nal.name, matched_field, match_tier
+         LIMIT ?"
+      ),
+      c(
+        list(like, query, query, query, query, query, like, prefix, prefix, like, query, like, like),
+        token_filter$params,
+        list(candidate_limit)
+      )
     )
   }
 
   if ("entity" %in% types) {
+    token_filter <- mcp_search_token_filter(
+      c("CAST(entity_id AS CHAR)", "symbol", "disease_ontology_name", "category", "hpo_mode_of_inheritance_term_name"),
+      token_like
+    )
+    token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
     results$entity <- db_execute_query(
-      "
+      paste0(
+        "
         SELECT 'entity' AS type,
                CAST(entity_id AS CHAR) AS id,
                CONCAT(symbol, ' / ', disease_ontology_name) AS label,
@@ -69,14 +110,22 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
         WHERE CAST(entity_id AS CHAR) = ?
            OR UPPER(symbol) LIKE UPPER(?)
            OR UPPER(disease_ontology_name) LIKE UPPER(?)
-        LIMIT ?",
-      list(query, query, prefix, query, like, like, limit)
+           ", token_sql, "
+        LIMIT ?"
+      ),
+      c(list(query, query, prefix, query, like, like), token_filter$params, list(candidate_limit))
     )
   }
 
   if ("disease" %in% types) {
+    token_filter <- mcp_search_token_filter(
+      c("result", "disease_ontology_id_version", "disease_ontology_name"),
+      token_like
+    )
+    token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
     results$disease <- db_execute_query(
-      "
+      paste0(
+        "
         SELECT 'disease' AS type,
                disease_ontology_id_version AS id,
                disease_ontology_name AS label,
@@ -89,35 +138,79 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                END AS match_tier
         FROM search_disease_ontology_set
         WHERE UPPER(result) LIKE UPPER(?)
-        LIMIT ?",
-      list(query, query, prefix, like, limit)
+           ", token_sql, "
+        LIMIT ?"
+      ),
+      c(list(query, query, prefix, like), token_filter$params, list(candidate_limit))
     )
   }
 
   if ("phenotype" %in% types) {
+    synonym_enabled <- mcp_repo_table_has_column("phenotype_list", "HPO_term_synonyms")
+    synonym_select <- if (isTRUE(synonym_enabled)) {
+      "WHEN UPPER(HPO_term_synonyms) LIKE UPPER(?) THEN 'synonym'"
+    } else {
+      ""
+    }
+    synonym_where <- if (isTRUE(synonym_enabled)) {
+      "OR UPPER(HPO_term_synonyms) LIKE UPPER(?)"
+    } else {
+      ""
+    }
+    token_columns <- c("phenotype_id", "HPO_term")
+    if (isTRUE(synonym_enabled)) {
+      token_columns <- c(token_columns, "HPO_term_synonyms")
+    }
+    token_filter <- mcp_search_token_filter(token_columns, token_like)
+    token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
+    synonym_case_params <- if (isTRUE(synonym_enabled)) list(like) else list()
+    synonym_where_params <- if (isTRUE(synonym_enabled)) list(like) else list()
     results$phenotype <- db_execute_query(
-      "
+      paste0(
+        "
         SELECT 'phenotype' AS type,
                phenotype_id AS id,
                HPO_term AS label,
                HPO_term_definition AS description,
                CASE
+                 WHEN UPPER(phenotype_id) = UPPER(?) THEN 'phenotype_id'
+                 WHEN UPPER(HPO_term) LIKE UPPER(?) THEN 'term'
+                 ", synonym_select, "
+                 ELSE 'term'
+               END AS matched_field,
+               CASE
                  WHEN UPPER(phenotype_id) = UPPER(?) THEN 'exact_identifier'
                  WHEN UPPER(HPO_term) = UPPER(?) THEN 'exact_label'
                  WHEN UPPER(HPO_term) LIKE UPPER(?) THEN 'prefix'
+                 ", synonym_select, "
                  ELSE 'contains'
                END AS match_tier
         FROM phenotype_list
         WHERE UPPER(phenotype_id) LIKE UPPER(?)
            OR UPPER(HPO_term) LIKE UPPER(?)
-        LIMIT ?",
-      list(query, query, prefix, like, like, limit)
+           ", synonym_where, "
+           ", token_sql, "
+        LIMIT ?"
+      ),
+      c(
+        list(query, prefix),
+        synonym_case_params,
+        list(query, query, prefix),
+        synonym_case_params,
+        list(like, like),
+        synonym_where_params,
+        token_filter$params,
+        list(candidate_limit)
+      )
     )
   }
 
   if ("variant" %in% types) {
+    token_filter <- mcp_search_token_filter(c("vario_id", "vario_name", "definition"), token_like)
+    token_sql <- if (nzchar(token_filter$sql)) paste0(" OR ", token_filter$sql) else ""
     results$variant <- db_execute_query(
-      "
+      paste0(
+        "
         SELECT 'variant' AS type,
                vario_id AS id,
                vario_name AS label,
@@ -130,13 +223,17 @@ mcp_repo_search <- function(query, types = c("gene", "entity", "disease"), limit
                END AS match_tier
         FROM variation_ontology_list
         WHERE is_active <> 0
-          AND (UPPER(vario_id) LIKE UPPER(?) OR UPPER(vario_name) LIKE UPPER(?))
-        LIMIT ?",
-      list(query, query, prefix, like, like, limit)
+          AND (UPPER(vario_id) LIKE UPPER(?) OR UPPER(vario_name) LIKE UPPER(?)
+               ", token_sql, ")
+        LIMIT ?"
+      ),
+      c(list(query, query, prefix, like, like), token_filter$params, list(candidate_limit))
     )
   }
 
-  dplyr::bind_rows(results)
+  rows <- dplyr::bind_rows(results)
+  ranked <- mcp_rank_search_candidates(rows, query_tokens = tokens, query = query)
+  utils::head(ranked, limit)
 }
 
 mcp_repo_get_gene_entities <- function(hgnc_id,
@@ -297,7 +394,7 @@ mcp_repo_get_publication_context <- function(publication_id) {
       SELECT p.publication_id, p.Title, p.Abstract, p.Journal, p.Publication_date,
              p.publication_date_source, p.Lastname, p.Firstname, p.Keywords,
              ev.entity_id, ev.symbol, ev.hgnc_id, ev.disease_ontology_name,
-             ev.category, er.review_date AS curation_review_date
+             ev.category, rpj.publication_type, er.review_date AS curation_review_date
       FROM publication p
       JOIN ndd_review_publication_join rpj
         ON rpj.publication_id = p.publication_id

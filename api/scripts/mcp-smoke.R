@@ -143,6 +143,12 @@ for (property in c("response_mode", "max_response_chars", "include_diagnostics",
     stop("get_nddscore_context schema is missing ", property)
   }
 }
+phenotype_analysis_tool <- tool_by_name("get_phenotype_analysis_context")
+for (property in c("drop_diagonal", "triangle_only")) {
+  if (is.null(phenotype_analysis_tool$inputSchema$properties[[property]])) {
+    stop("get_phenotype_analysis_context schema is missing ", property)
+  }
+}
 
 resources <- rpc("resources/list", id = 3L)
 if (!is.null(resources$error)) stop("MCP resources/list failed: ", resources$error$message)
@@ -210,6 +216,36 @@ if (length(matches) == 0L) {
 }
 gene <- matches[[1]]$id %||% matches[[1]]$label %||% "PNKP"
 
+nmda_search <- call_tool("search_sysndd", list(query = "NMDA receptor", limit = 5L), id = 451L)
+if (!is.null(nmda_search$error)) stop("NMDA receptor search returned JSON-RPC error: ", nmda_search$error$message)
+nmda_payload <- jsonlite::fromJSON(nmda_search$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(nmda_payload$meta$query_tokens, list("NMDA", "RECEPTOR"))) {
+  stop("NMDA receptor search did not report expected query tokens")
+}
+if (length(nmda_payload$matches %||% list()) > 1L) {
+  scores <- vapply(nmda_payload$matches, function(x) as.numeric(x$score %||% 0), numeric(1))
+  if (is.unsorted(rev(scores))) {
+    stop("NMDA receptor search scores are not sorted descending")
+  }
+}
+
+epilepsy_search <- call_tool("search_sysndd", list(query = "epilepsy aphasia", limit = 5L), id = 452L)
+if (!is.null(epilepsy_search$error)) stop("epilepsy aphasia search returned JSON-RPC error: ", epilepsy_search$error$message)
+epilepsy_payload <- jsonlite::fromJSON(epilepsy_search$result$content[[1]]$text, simplifyVector = FALSE)
+if (is.null(epilepsy_payload$meta$query_tokens) || is.null(epilepsy_payload$meta$searched_types)) {
+  stop("epilepsy aphasia search did not report diagnostics")
+}
+epilepsy_matches <- epilepsy_payload$matches %||% list()
+if (length(epilepsy_matches) > 1L) {
+  scores <- vapply(epilepsy_matches, function(x) as.numeric(x$score %||% 0), numeric(1))
+  if (is.unsorted(rev(scores))) {
+    stop("epilepsy aphasia search scores are not sorted descending")
+  }
+}
+if (length(epilepsy_matches) == 0L && is.null(epilepsy_payload$meta$zero_result_guidance)) {
+  stop("epilepsy aphasia search did not return matches or zero-result guidance")
+}
+
 catalog <- call_tool("get_sysndd_analysis_catalog", list(), id = 46L)
 if (!is.null(catalog$error)) stop("Analysis catalog returned JSON-RPC error: ", catalog$error$message)
 catalog_payload <- jsonlite::fromJSON(catalog$result$content[[1]]$text, simplifyVector = FALSE)
@@ -258,6 +294,48 @@ if (!isTRUE(bad_mode$result$isError)) stop("Invalid phenotype mode did not retur
 bad_mode_payload <- jsonlite::fromJSON(bad_mode$result$content[[1]]$text, simplifyVector = FALSE)
 if (!identical(bad_mode_payload$error$code, "invalid_input")) {
   stop("Invalid phenotype mode did not return invalid_input")
+}
+
+phenotype_corr <- call_tool(
+  "get_phenotype_analysis_context",
+  list(mode = "correlations", drop_diagonal = TRUE, triangle_only = TRUE, dry_run = TRUE),
+  id = 501L
+)
+if (!is.null(phenotype_corr$error)) stop("Phenotype correlation dry-run returned JSON-RPC error: ", phenotype_corr$error$message)
+phenotype_corr_payload <- jsonlite::fromJSON(phenotype_corr$result$content[[1]]$text, simplifyVector = FALSE)
+if (isTRUE(phenotype_corr$result$isError)) {
+  if (!identical(phenotype_corr_payload$error$code, "snapshot_missing")) {
+    stop("Phenotype correlation dry-run returned unexpected error code")
+  }
+} else if (!isTRUE(phenotype_corr_payload$meta$drop_diagonal) || !isTRUE(phenotype_corr_payload$meta$triangle_only)) {
+  stop("Phenotype correlation dry-run did not echo drop_diagonal/triangle_only")
+}
+
+network_dry <- call_tool(
+  "get_gene_network_context",
+  list(gene = gene, dry_run = TRUE, response_mode = "diagnostics"),
+  id = 502L
+)
+if (!is.null(network_dry$error)) stop("Gene network diagnostics returned JSON-RPC error: ", network_dry$error$message)
+network_dry_payload <- jsonlite::fromJSON(network_dry$result$content[[1]]$text, simplifyVector = FALSE)
+if (isTRUE(network_dry$result$isError)) {
+  if (!identical(network_dry_payload$error$code, "snapshot_missing")) {
+    stop("Gene network diagnostics returned unexpected tool error")
+  }
+} else if (!network_dry_payload$section_status %in% c("available", "snapshot_missing")) {
+  stop("Gene network diagnostics did not report available or snapshot_missing")
+}
+
+unsupported_network <- call_tool(
+  "get_gene_network_context",
+  list(cluster_type = "clusters", min_confidence = 700L, max_edges = 100L),
+  id = 503L
+)
+if (!is.null(unsupported_network$error)) stop("Unsupported network parameter returned JSON-RPC error: ", unsupported_network$error$message)
+if (!isTRUE(unsupported_network$result$isError)) stop("Unsupported network parameter did not return a tool error result")
+unsupported_network_payload <- jsonlite::fromJSON(unsupported_network$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(unsupported_network_payload$error$code, "unsupported_parameter")) {
+  stop("Unsupported network parameter did not return unsupported_parameter")
 }
 
 malformed_pmid <- call_tool("get_publication_context", list(pmid = "notapmid"), id = 5L)
@@ -336,6 +414,21 @@ if (length(entity_ids) > 0L) {
   }
   if (length(batch_payload$publications) > 0L && !is.null(batch_payload$publications[[1]]$abstract_excerpt)) {
     stop("abstract_mode=metadata returned abstract_excerpt in batch payload")
+  }
+  if (length(batch_payload$publications) > 0L) {
+    publication_id <- batch_payload$publications[[1]]$publication_id
+    publication_detail <- call_tool(
+      "get_publication_context",
+      list(pmid = publication_id, abstract_mode = "metadata"),
+      id = 821L
+    )
+    if (!is.null(publication_detail$error)) stop("get_publication_context returned JSON-RPC error: ", publication_detail$error$message)
+    publication_payload <- jsonlite::fromJSON(publication_detail$result$content[[1]]$text, simplifyVector = FALSE)
+    linked_entities <- publication_payload$linked_entities %||% list()
+    if (length(linked_entities) > 0L &&
+      any(!vapply(linked_entities, function(x) !is.null(x$publication_type), logical(1)))) {
+      stop("publication linked entity rows did not include publication_type")
+    }
   }
   expanded_gene <- call_tool(
     "get_gene_context",

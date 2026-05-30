@@ -7,7 +7,7 @@ mcp_section_call <- function(name, fn) {
     list(status = "available", value = fn()),
     mcp_tool_error = function(e) {
       payload <- mcp_error_payload(e)
-      status <- if (identical(payload$error$code, "temporarily_unavailable")) {
+      status <- if (payload$error$code %in% c("temporarily_unavailable", "snapshot_missing")) {
         "temporarily_unavailable"
       } else {
         "error"
@@ -40,10 +40,11 @@ mcp_research_phenotype_status <- function(mode) {
       correlations = if (isTRUE(mcp_analysis_repo_phenotype_correlations_cache_hit())) available else unavailable,
       clusters = if (isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit())) available else unavailable,
       phenotype_functional_correlations = {
-        has_helper <- exists("generate_phenotype_functional_cluster_correlation", mode = "function")
-        has_functional <- isTRUE(mcp_analysis_repo_functional_cluster_cache_hit(algorithm = "leiden"))
-        has_phenotype <- isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit())
-        if (has_helper && has_functional && has_phenotype) available else unavailable
+        if (isTRUE(mcp_analysis_repo_public_snapshot_available("phenotype_functional_correlations", list()))) {
+          available
+        } else {
+          unavailable
+        }
       },
       unavailable
     ),
@@ -214,7 +215,7 @@ mcp_get_gene_research_context <- function(gene,
   }
   if ("phenotype_correlations" %in% sections) {
     phenotype <- mcp_section_call("phenotype_correlations", function() {
-      mcp_get_phenotype_analysis_context(mode = "correlations", gene = gene, limit = 25L, response_mode = response_mode)
+      mcp_get_phenotype_analysis_context(mode = "correlations", limit = 25L, response_mode = response_mode)
     })
     section_status$phenotype_correlations <- phenotype$status
     output_sections$phenotype_correlations <- phenotype$value

@@ -45,8 +45,8 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       analysis_id = "phenotype_analysis",
       tool = "get_phenotype_analysis_context",
       data_class = "curated_derived_analysis",
-      availability = "cache_hit_only",
-      estimated_latency_class = "fast_on_cache_hit",
+      availability = "public_ready_snapshot_only",
+      estimated_latency_class = "fast_on_snapshot_hit",
       default_limits = list(limit = 25L, max_limit = 50L, max_response_chars = "auto"),
       example_call = list(mode = "correlations", phenotype = "HP:0001250", response_mode = "compact")
     ),
@@ -54,8 +54,8 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       analysis_id = "gene_network",
       tool = "get_gene_network_context",
       data_class = "curated_derived_analysis",
-      availability = "cache_hit_only",
-      estimated_latency_class = "fast_on_cache_hit",
+      availability = "public_ready_snapshot_only",
+      estimated_latency_class = "fast_on_snapshot_hit",
       default_limits = list(max_edges = 100L, hard_max_edges = 250L, max_response_chars = "auto"),
       example_call = list(gene = "HGNC:61", dry_run = TRUE)
     ),
@@ -87,6 +87,7 @@ mcp_get_sysndd_analysis_catalog <- function(include_unavailable = FALSE,
       llm_generation = "never",
       llm_summaries = "current validated cache only",
       live_external_providers = "never",
+      analysis_reads = "public_ready_snapshots_only",
       evidence_boundary = "ML and LLM outputs do not change curated SysNDD evidence"
     ),
     meta = list(
@@ -349,10 +350,49 @@ mcp_get_cached_llm_summaries <- function(cluster_type,
   })
 }
 
+mcp_analysis_snapshot_status <- function(analysis_type, params = list()) {
+  status <- if (exists("mcp_analysis_repo_public_snapshot_status", mode = "function")) {
+    tryCatch(
+      mcp_analysis_repo_public_snapshot_status(analysis_type, params),
+      error = function(e) "snapshot_missing"
+    )
+  } else if (exists("mcp_analysis_repo_public_snapshot_available", mode = "function")) {
+    if (isTRUE(tryCatch(
+      mcp_analysis_repo_public_snapshot_available(analysis_type, params),
+      error = function(e) FALSE
+    ))) {
+      "available"
+    } else {
+      "snapshot_missing"
+    }
+  } else {
+    "snapshot_missing"
+  }
+  as.character(status %||% "snapshot_missing")[1]
+}
+
+mcp_analysis_snapshot_error_message <- function(status, label) {
+  switch(status,
+    snapshot_stale = sprintf("%s snapshot exists but is past its freshness policy.", label),
+    source_version_mismatch = sprintf("%s snapshot exists but was built from a different public source-data version.", label),
+    sprintf("%s is supported but no public-ready snapshot is available.", label)
+  )
+}
+
+mcp_stop_analysis_snapshot_unavailable <- function(status, label, argument, retry_with = NULL) {
+  stop(mcp_error(
+    status,
+    mcp_analysis_snapshot_error_message(status, label),
+    list(argument = argument, retry_with = retry_with %||% list(dry_run = TRUE, response_mode = "diagnostics"))
+  ))
+}
+
 mcp_get_phenotype_analysis_context <- function(mode,
                                                gene = NULL,
                                                phenotype = NULL,
                                                min_abs_correlation = 0.3,
+                                               drop_diagonal = TRUE,
+                                               triangle_only = FALSE,
                                                cluster_id = NULL,
                                                limit = 25L,
                                                include_cached_llm_summaries = TRUE,
@@ -367,24 +407,31 @@ mcp_get_phenotype_analysis_context <- function(mode,
   if (is.na(min_abs_correlation) || min_abs_correlation < 0 || min_abs_correlation > 1) {
     stop(mcp_error("invalid_input", "min_abs_correlation must be between 0 and 1", list(argument = "min_abs_correlation")))
   }
+  if (identical(mode, "correlations") && !is.null(gene) && nzchar(trimws(as.character(gene)[1]))) {
+    stop(mcp_error(
+      "invalid_input",
+      "Phenotype correlations are global in MCP; omit gene or use phenotype/clusters follow-up tools.",
+      list(argument = "gene")
+    ))
+  }
   envelope <- mcp_analysis_provenance(
     "curated_derived_analysis",
     "SysNDD phenotype analysis",
-    "approved primary review phenotypes",
-    "deterministic_analysis"
+    "public-ready analysis snapshots",
+    "snapshot_worker"
   )
-  cache_hit <- switch(
+  snapshot_status <- switch(
     mode,
-    correlations = isTRUE(mcp_analysis_repo_phenotype_correlations_cache_hit()),
-    clusters = isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit()),
-    phenotype_functional_correlations = isTRUE(mcp_analysis_repo_functional_cluster_cache_hit(algorithm = "leiden")) &&
-      isTRUE(mcp_analysis_repo_phenotype_cluster_cache_hit()),
-    FALSE
+    correlations = mcp_analysis_snapshot_status("phenotype_correlations", list()),
+    clusters = mcp_analysis_snapshot_status("phenotype_clusters", list()),
+    phenotype_functional_correlations = mcp_analysis_snapshot_status("phenotype_functional_correlations", list()),
+    "snapshot_missing"
   )
+  snapshot_available <- identical(snapshot_status, "available")
 
   if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
     return(c(envelope, list(
-      section_status = if (isTRUE(cache_hit)) "available" else "temporarily_unavailable",
+      section_status = snapshot_status,
       mode = mode,
       records = list(),
       cached_llm_summaries = list(),
@@ -392,39 +439,40 @@ mcp_get_phenotype_analysis_context <- function(mode,
         limit = limit,
         diagnostics_only = TRUE,
         min_abs_correlation = min_abs_correlation,
+        drop_diagonal = isTRUE(drop_diagonal),
+        triangle_only = isTRUE(triangle_only),
         include_diagnostics = include_diagnostics,
-        cache_hit = cache_hit
+        snapshot_available = snapshot_available,
+        snapshot_status = snapshot_status
       ),
-      budget = mcp_analysis_finalize_budget(list(cache_hit = cache_hit, mode = mode, limit = limit), budget),
+      budget = mcp_analysis_finalize_budget(list(snapshot_available = snapshot_available, mode = mode, limit = limit), budget),
       recovery = list(retry_with = list(mode = mode, response_mode = "compact", limit = min(limit, 25L)))
     )))
   }
 
-  if (!isTRUE(cache_hit)) {
-    stop(mcp_error(
-      "temporarily_unavailable",
-      "Requested phenotype analysis is not available from a warmed cache entry.",
-      list(argument = "mode", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
-    ))
+  if (!isTRUE(snapshot_available)) {
+    mcp_stop_analysis_snapshot_unavailable(snapshot_status, "Requested phenotype analysis", "mode")
   }
 
   records <- tryCatch(
     switch(
       mode,
-      correlations = mcp_analysis_repo_get_phenotype_correlations(
+      correlations = mcp_analysis_repo_get_snapshot_phenotype_correlations(
         phenotype = phenotype,
         min_abs_correlation = min_abs_correlation,
+        drop_diagonal = drop_diagonal,
+        triangle_only = triangle_only,
         limit = limit
       ),
-      clusters = mcp_analysis_repo_get_phenotype_clusters(gene = gene, cluster_id = cluster_id, limit = limit),
-      phenotype_functional_correlations = mcp_analysis_repo_get_phenotype_functional_correlations(gene = gene, limit = limit)
+      clusters = mcp_analysis_repo_get_snapshot_phenotype_clusters(gene = gene, cluster_id = cluster_id, limit = limit),
+      phenotype_functional_correlations = mcp_analysis_repo_get_snapshot_phenotype_functional_correlations(gene = gene, limit = limit)
     ),
     error = function(e) NULL
   )
   if (is.null(records)) {
     stop(mcp_error(
-      "temporarily_unavailable",
-      "Requested phenotype analysis mode is not available from shared helper/cache-safe data.",
+      "snapshot_missing",
+      "Requested phenotype analysis is supported but no public-ready snapshot is available.",
       list(argument = "mode", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
     ))
   }
@@ -439,8 +487,11 @@ mcp_get_phenotype_analysis_context <- function(mode,
       limit = limit,
       returned = length(trimmed$records),
       min_abs_correlation = min_abs_correlation,
+      drop_diagonal = isTRUE(drop_diagonal),
+      triangle_only = isTRUE(triangle_only),
       include_cached_llm_summaries = include_cached_llm_summaries,
-      cache_hit = cache_hit
+      snapshot_available = snapshot_available,
+      snapshot_status = snapshot_status
     ),
     budget = trimmed$budget
   ))
@@ -455,56 +506,67 @@ mcp_get_gene_network_context <- function(gene = NULL,
                                          max_response_chars = "auto",
                                          include_diagnostics = FALSE,
                                          dry_run = FALSE) {
-  cluster_type <- mcp_validate_enum(cluster_type, c("clusters", "subclusters"), "cluster_type")
   budget <- mcp_analysis_response_budget(response_mode, max_response_chars)
+  cluster_type <- as.character(cluster_type %||% "clusters")[1]
   min_confidence <- suppressWarnings(as.integer(min_confidence))
   max_edges <- mcp_validate_limit(max_edges, default = 100L, max = 250L, name = "max_edges")
-  if (is.na(min_confidence) || min_confidence < 0L || min_confidence > 1000L) {
-    stop(mcp_error("invalid_input", "min_confidence must be between 0 and 1000", list(argument = "min_confidence")))
+  normalized <- tryCatch(
+    analysis_snapshot_normalize_params(
+      "gene_network_edges",
+      list(cluster_type = cluster_type, min_confidence = min_confidence, max_edges = 10000L)
+    ),
+    analysis_snapshot_unsupported_parameter_error = function(e) e
+  )
+  if (inherits(normalized, "analysis_snapshot_unsupported_parameter_error")) {
+    stop(mcp_error(
+      "unsupported_parameter",
+      conditionMessage(normalized),
+      list(argument = "gene_network_parameters")
+    ))
   }
   envelope <- mcp_analysis_provenance(
     "curated_derived_analysis",
     "SysNDD STRING-derived network analysis",
-    "local STRING/memoise cache",
-    "deterministic_analysis"
+    "public-ready analysis snapshots",
+    "snapshot_worker"
   )
-  cache_hit <- mcp_analysis_repo_network_cache_hit(cluster_type = cluster_type, min_confidence = min_confidence)
+  snapshot_status <- mcp_analysis_snapshot_status(
+    "gene_network_edges",
+    list(cluster_type = "clusters", min_confidence = 400L, max_edges = 10000L)
+  )
+  snapshot_available <- identical(snapshot_status, "available")
   if (isTRUE(dry_run) || identical(response_mode, "diagnostics")) {
     return(c(envelope, list(
-      section_status = if (isTRUE(cache_hit)) "available" else "temporarily_unavailable",
+      section_status = snapshot_status,
       nodes = list(),
       edges = list(),
       meta = list(
         cluster_type = cluster_type,
         min_confidence = min_confidence,
         max_edges = max_edges,
-        cache_hit = cache_hit,
+        stored_snapshot_params = normalized$params,
+        snapshot_available = snapshot_available,
+        snapshot_status = snapshot_status,
         include_diagnostics = include_diagnostics
       ),
-      budget = mcp_analysis_finalize_budget(list(cache_hit = cache_hit, cluster_type = cluster_type), budget),
+      budget = mcp_analysis_finalize_budget(list(snapshot_available = snapshot_available, cluster_type = cluster_type), budget),
       recovery = list(retry_with = list(response_mode = "compact", max_edges = min(max_edges, 100L)))
     )))
   }
-  if (!isTRUE(cache_hit)) {
-    stop(mcp_error(
-      "temporarily_unavailable",
-      "Gene network context is not available from local cache without initializing STRINGdb.",
-      list(argument = "gene_network", retry_with = list(dry_run = TRUE, response_mode = "diagnostics"))
-    ))
+  if (!isTRUE(snapshot_available)) {
+    mcp_stop_analysis_snapshot_unavailable(snapshot_status, "Gene network context", "gene_network")
   }
   network <- tryCatch(
-    mcp_analysis_repo_get_network_edges_local(
+    mcp_analysis_repo_get_snapshot_network(
       gene = gene,
-      cluster_type = cluster_type,
-      min_confidence = min_confidence,
       max_edges = max_edges
     ),
     error = function(e) NULL
   )
   if (is.null(network)) {
     stop(mcp_error(
-      "temporarily_unavailable",
-      "Gene network context is not available from local cache without initializing STRINGdb.",
+      "snapshot_missing",
+      "Gene network context is supported but no public-ready snapshot is available.",
       list(argument = "gene_network")
     ))
   }
@@ -517,6 +579,8 @@ mcp_get_gene_network_context <- function(gene = NULL,
       cluster_type = cluster_type,
       min_confidence = min_confidence,
       max_edges = max_edges,
+      stored_snapshot_params = normalized$params,
+      snapshot_status = snapshot_status,
       include_cached_llm_summaries = include_cached_llm_summaries
     ))
   )

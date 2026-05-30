@@ -1,4 +1,5 @@
 source("../../services/mcp-service.R")
+source("../../functions/analysis-snapshot-presets.R")
 source("../../services/mcp-analysis-shaping.R")
 source("../../services/mcp-query-service.R")
 source("../../services/mcp-record-service.R")
@@ -228,15 +229,15 @@ test_that("phenotype analysis context validates mode and labels derived analyses
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
-  old_corr <- mcp_analysis_repo_get_phenotype_correlations
-  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_get_phenotype_correlations", function(...) {
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_corr <- mcp_analysis_repo_get_snapshot_phenotype_correlations
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", function(...) {
     tibble::tibble(x = "Seizure", x_id = "HP:0001250", y = "Ataxia", y_id = "HP:0001251", value = 0.42)
   }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", old_corr, envir = .GlobalEnv)
   })
 
   result <- mcp_get_phenotype_analysis_context(mode = "correlations", phenotype = "HP:0001250")
@@ -250,59 +251,114 @@ test_that("phenotype analysis context validates mode and labels derived analyses
   expect_equal(err$error$code, "invalid_input")
 })
 
-test_that("phenotype correlations raise temporarily_unavailable when cache hit is absent", {
+test_that("phenotype correlations raise snapshot_missing when public snapshot is absent", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
-  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  withr::defer(assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv))
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "snapshot_missing", envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv))
 
   err <- tryCatch(
     mcp_get_phenotype_analysis_context(mode = "correlations"),
     mcp_tool_error = function(e) unclass(e)
   )
 
-  expect_equal(err$error$code, "temporarily_unavailable")
+  expect_equal(err$error$code, "snapshot_missing")
 })
 
-test_that("phenotype analysis dry_run reports correlation cache miss as unavailable", {
+test_that("phenotype analysis dry_run reports missing public snapshot", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_hit <- mcp_analysis_repo_phenotype_correlations_cache_hit
-  assign("mcp_analysis_repo_phenotype_correlations_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  withr::defer(assign("mcp_analysis_repo_phenotype_correlations_cache_hit", old_hit, envir = .GlobalEnv))
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "snapshot_missing", envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv))
 
   result <- mcp_get_phenotype_analysis_context(mode = "correlations", dry_run = TRUE)
-  expect_equal(result$section_status, "temporarily_unavailable")
-  expect_false(result$meta$cache_hit)
+  expect_equal(result$section_status, "snapshot_missing")
+  expect_false(result$meta$snapshot_available)
 })
 
-test_that("gene network context raises temporarily_unavailable when disk cache hit is absent", {
+test_that("phenotype dry_run uses manifest availability without loading payloads", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_has <- mcp_analysis_repo_network_cache_hit
-  assign("mcp_analysis_repo_network_cache_hit", function(...) FALSE, envir = .GlobalEnv)
-  withr::defer(assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv))
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_snapshot <- mcp_analysis_repo_get_public_snapshot
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_public_snapshot", function(...) stop("full snapshot getter called"), envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_public_snapshot", old_snapshot, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_phenotype_analysis_context(mode = "correlations", dry_run = TRUE)
+
+  expect_equal(result$section_status, "available")
+  expect_true(result$meta$snapshot_available)
+})
+
+test_that("public snapshot availability reads manifest only", {
+  source_mcp_analysis_repository()
+
+  old_db <- get0("db_execute_query", envir = .GlobalEnv, ifnotfound = NULL)
+  old_get_public <- get0("analysis_snapshot_get_public", envir = .GlobalEnv, ifnotfound = NULL)
+  old_source_version <- get0("analysis_snapshot_source_data_version", envir = .GlobalEnv, ifnotfound = NULL)
+  seen_query <- NULL
+  assign("db_execute_query", function(query, params = list(), conn = NULL) {
+    seen_query <<- query
+    expect_equal(params[[1]], "phenotype_correlations")
+    tibble::tibble(snapshot_id = 1L, source_data_version = "source-v1", stale_after = Sys.time() + 3600)
+  }, envir = .GlobalEnv)
+  assign("analysis_snapshot_get_public", function(...) stop("full snapshot getter called"), envir = .GlobalEnv)
+  assign("analysis_snapshot_source_data_version", function(...) NULL, envir = .GlobalEnv)
+  withr::defer({
+    if (is.null(old_db)) {
+      rm("db_execute_query", envir = .GlobalEnv)
+    } else {
+      assign("db_execute_query", old_db, envir = .GlobalEnv)
+    }
+    if (is.null(old_get_public)) {
+      rm("analysis_snapshot_get_public", envir = .GlobalEnv)
+    } else {
+      assign("analysis_snapshot_get_public", old_get_public, envir = .GlobalEnv)
+    }
+    if (is.null(old_source_version)) {
+      rm("analysis_snapshot_source_data_version", envir = .GlobalEnv)
+    } else {
+      assign("analysis_snapshot_source_data_version", old_source_version, envir = .GlobalEnv)
+    }
+  })
+
+  expect_true(mcp_analysis_repo_public_snapshot_available("phenotype_correlations", list()))
+  expect_true(grepl("analysis_snapshot_manifest", seen_query, fixed = TRUE))
+})
+
+test_that("gene network context raises snapshot_missing when public snapshot is absent", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "snapshot_missing", envir = .GlobalEnv)
+  withr::defer(assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv))
 
   err <- tryCatch(
     mcp_get_gene_network_context(gene = "HGNC:61"),
     mcp_tool_error = function(e) unclass(e)
   )
-  expect_equal(err$error$code, "temporarily_unavailable")
+  expect_equal(err$error$code, "snapshot_missing")
 })
 
-test_that("gene network context passes the requested gene into cache-safe repository reads", {
+test_that("gene network context passes the requested gene into snapshot repository reads", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
   seen_gene <- NULL
-  old_has <- mcp_analysis_repo_network_cache_hit
-  old_network <- get0("mcp_analysis_repo_get_network_edges_local", envir = .GlobalEnv, ifnotfound = NULL)
-  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_get_network_edges_local", function(gene = NULL, ...) {
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_network <- get0("mcp_analysis_repo_get_snapshot_network", envir = .GlobalEnv, ifnotfound = NULL)
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_network", function(gene = NULL, ...) {
     seen_gene <<- gene
     list(
       nodes = tibble::tibble(hgnc_id = "HGNC:61", symbol = "ABCD1"),
@@ -311,8 +367,8 @@ test_that("gene network context passes the requested gene into cache-safe reposi
     )
   }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
-    if (is.null(old_network)) rm("mcp_analysis_repo_get_network_edges_local", envir = .GlobalEnv) else assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    if (is.null(old_network)) rm("mcp_analysis_repo_get_snapshot_network", envir = .GlobalEnv) else assign("mcp_analysis_repo_get_snapshot_network", old_network, envir = .GlobalEnv)
   })
 
   result <- mcp_get_gene_network_context(gene = "HGNC:61")
@@ -320,20 +376,20 @@ test_that("gene network context passes the requested gene into cache-safe reposi
   expect_true(result$meta$gene_filtered)
 })
 
-test_that("phenotype and network services convert cache-safe helper errors to temporary unavailability", {
+test_that("phenotype and network services convert snapshot helper errors to snapshot_missing", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_corr <- mcp_analysis_repo_get_phenotype_correlations
-  old_has <- mcp_analysis_repo_network_cache_hit
-  old_network <- mcp_analysis_repo_get_network_edges_local
-  assign("mcp_analysis_repo_get_phenotype_correlations", function(...) stop("helper failed"), envir = .GlobalEnv)
-  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_get_network_edges_local", function(...) stop("network failed"), envir = .GlobalEnv)
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_corr <- mcp_analysis_repo_get_snapshot_phenotype_correlations
+  old_network <- mcp_analysis_repo_get_snapshot_network
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", function(...) stop("helper failed"), envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_network", function(...) stop("network failed"), envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_get_phenotype_correlations", old_corr, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", old_corr, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_snapshot_network", old_network, envir = .GlobalEnv)
   })
 
   phenotype_err <- tryCatch(
@@ -345,18 +401,18 @@ test_that("phenotype and network services convert cache-safe helper errors to te
     mcp_tool_error = function(e) unclass(e)
   )
 
-  expect_equal(phenotype_err$error$code, "temporarily_unavailable")
-  expect_equal(network_err$error$code, "temporarily_unavailable")
+  expect_equal(phenotype_err$error$code, "snapshot_missing")
+  expect_equal(network_err$error$code, "snapshot_missing")
 })
 
 test_that("gene network context budget accounts for nodes and metadata", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")
 
-  old_has <- mcp_analysis_repo_network_cache_hit
-  old_network <- mcp_analysis_repo_get_network_edges_local
-  assign("mcp_analysis_repo_network_cache_hit", function(...) TRUE, envir = .GlobalEnv)
-  assign("mcp_analysis_repo_get_network_edges_local", function(...) {
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_network <- mcp_analysis_repo_get_snapshot_network
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_network", function(...) {
     list(
       nodes = tibble::tibble(hgnc_id = "HGNC:61", symbol = paste(rep("A", 500), collapse = "")),
       edges = tibble::tibble(source = "HGNC:61", target = "HGNC:62", confidence = 0.9),
@@ -364,8 +420,8 @@ test_that("gene network context budget accounts for nodes and metadata", {
     )
   }, envir = .GlobalEnv)
   withr::defer({
-    assign("mcp_analysis_repo_network_cache_hit", old_has, envir = .GlobalEnv)
-    assign("mcp_analysis_repo_get_network_edges_local", old_network, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_snapshot_network", old_network, envir = .GlobalEnv)
   })
 
   result <- mcp_get_gene_network_context(gene = "HGNC:61", max_response_chars = 1000L)
@@ -415,6 +471,34 @@ test_that("gene research context aggregates requested sections with explicit sec
   expect_false(is.null(result$sections$nddscore))
   expect_false(is.null(result$budget))
   expect_equal(result$meta$response_mode, "compact")
+})
+
+test_that("gene research phenotype correlations use global snapshot context", {
+  source("../../functions/mcp-repository.R")
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_gene <- mcp_get_gene_context
+  old_phenotype <- mcp_get_phenotype_analysis_context
+  seen_gene <- "not-called"
+  assign("mcp_get_gene_context", function(gene, ...) {
+    list(schema_version = MCP_SCHEMA_VERSION, gene = list(hgnc_id = "HGNC:61", symbol = "ABCD1"), entities = list())
+  }, envir = .GlobalEnv)
+  assign("mcp_get_phenotype_analysis_context", function(mode, gene = NULL, ...) {
+    expect_equal(mode, "correlations")
+    seen_gene <<- gene
+    list(section_status = "available", records = list(list(x = "Seizure", y = "Ataxia", value = 0.42)))
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_get_gene_context", old_gene, envir = .GlobalEnv)
+    assign("mcp_get_phenotype_analysis_context", old_phenotype, envir = .GlobalEnv)
+  })
+
+  result <- mcp_get_gene_research_context(gene = "HGNC:61", sections = "phenotype_correlations")
+
+  expect_null(seen_gene)
+  expect_equal(result$section_status$phenotype_correlations, "available")
+  expect_equal(result$sections$phenotype_correlations$records[[1]]$value, 0.42)
 })
 
 test_that("gene research dry-run returns statuses and budget without bulky section rows", {

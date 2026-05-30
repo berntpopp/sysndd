@@ -953,7 +953,7 @@ Expected:
 - Modify: `api/services/mcp-tool-analysis-registry.R`
 - Modify: `api/scripts/mcp-smoke.R`
 
-- [ ] **Step 1: Write MCP search tests first**
+- [x] **Step 1: Write MCP search tests first**
 
 Create `api/tests/testthat/test-mcp-search-ranking.R`:
 
@@ -996,7 +996,7 @@ test_that("MCP search zero-result response includes diagnostics", {
 })
 ```
 
-- [ ] **Step 2: Write MCP snapshot diagnostics tests first**
+- [x] **Step 2: Write MCP snapshot diagnostics tests first**
 
 Create `api/tests/testthat/test-mcp-snapshot-diagnostics.R`:
 
@@ -1025,7 +1025,7 @@ test_that("MCP phenotype correlations reject gene in global mode", {
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -1039,7 +1039,7 @@ Expected:
 - Search ranking test fails because token/scoring helpers are missing.
 - Snapshot diagnostics test fails because MCP still uses cache repository behavior and does not expose `unsupported_parameter`.
 
-- [ ] **Step 4: Implement deterministic MCP token search**
+- [x] **Step 4: Implement deterministic MCP token search**
 
 Modify `api/functions/mcp-repository.R`:
 
@@ -1068,7 +1068,7 @@ Modify `api/services/mcp-query-service.R`:
 - Use `score` from repository ranking when present.
 - Preserve `limit` max 25.
 
-- [ ] **Step 5: Switch MCP analysis to snapshot-backed reads**
+- [x] **Step 5: Switch MCP analysis to snapshot-backed reads**
 
 Modify `api/functions/mcp-analysis-repository.R`:
 
@@ -1105,7 +1105,7 @@ Modify `api/services/mcp-capabilities-service.R`:
 - Replace "cache-only analysis" text with "public-ready snapshot-only analysis".
 - Preserve MCP read-only/no-LLM/no-external-provider language.
 
-- [ ] **Step 6: Add publication type semantics**
+- [x] **Step 6: Add publication type semantics**
 
 Modify `api/functions/mcp-repository.R`:
 
@@ -1117,7 +1117,7 @@ Modify publication shaping in `api/services/mcp-record-service.R` if needed:
 - Include per-link `publication_type`.
 - If adding an envelope field, call it `publication_types` and make it a deduped array.
 
-- [ ] **Step 7: Extend MCP smoke**
+- [x] **Step 7: Extend MCP smoke**
 
 Modify `api/scripts/mcp-smoke.R`:
 
@@ -1127,7 +1127,7 @@ Modify `api/scripts/mcp-smoke.R`:
 - Add publication context assertion that linked publication rows include `publication_type` when links exist.
 - Add phenotype correlation call with `drop_diagonal = TRUE` and `triangle_only = TRUE`.
 
-- [ ] **Step 8: Run focused MCP tests**
+- [x] **Step 8: Run focused MCP tests**
 
 Run:
 
@@ -1142,7 +1142,7 @@ Expected:
 
 - All focused MCP tests pass.
 
-- [ ] **Step 9: Commit Task 4**
+- [x] **Step 9: Commit Task 4**
 
 Run:
 
