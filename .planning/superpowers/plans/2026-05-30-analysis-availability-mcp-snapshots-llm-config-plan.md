@@ -443,7 +443,7 @@ Expected:
 - Modify: `api/bootstrap/load_modules.R`
 - Modify: `api/functions/async-job-handlers.R`
 
-- [ ] **Step 1: Write repository tests first**
+- [x] **Step 1: Write repository tests first**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-repository.R`:
 
@@ -485,7 +485,7 @@ test_that("snapshot status helpers classify missing and stale rows", {
 })
 ```
 
-- [ ] **Step 2: Write builder tests first**
+- [x] **Step 2: Write builder tests first**
 
 Create `api/tests/testthat/test-unit-analysis-snapshot-builder.R`:
 
@@ -529,7 +529,7 @@ test_that("correlation snapshot builder supports triangle and diagonal shaping l
 })
 ```
 
-- [ ] **Step 3: Run tests and verify they fail**
+- [x] **Step 3: Run tests and verify they fail**
 
 Run:
 
@@ -543,7 +543,7 @@ Expected:
 - Repository test fails because `analysis-snapshot-repository.R` does not exist.
 - Builder test fails because `analysis-snapshot-builder.R` does not exist.
 
-- [ ] **Step 4: Implement repository functions**
+- [x] **Step 4: Implement repository functions**
 
 Create `api/functions/analysis-snapshot-repository.R` with these functions:
 
@@ -570,7 +570,7 @@ Implementation constraints:
 - A row with `stale_after < Sys.time()` returns `snapshot_stale`.
 - A row whose stored `source_data_version` differs from a supplied current version returns `source_version_mismatch`.
 
-- [ ] **Step 5: Implement builder functions**
+- [x] **Step 5: Implement builder functions**
 
 Create `api/functions/analysis-snapshot-builder.R` with these functions:
 
@@ -594,7 +594,7 @@ Implementation constraints:
 - Builders preserve existing cluster hashes when the source payload has `hash_filter`.
 - Builders include only approved-public inputs by using the existing analysis helpers that already filter primary approved reviews, or by adding that filter before snapshot insert where the helper output is incomplete.
 
-- [ ] **Step 6: Add worker handler and registry entry**
+- [x] **Step 6: Add worker handler and registry entry**
 
 Create `api/functions/async-job-analysis-snapshot-handlers.R`:
 
@@ -638,7 +638,7 @@ Modify `api/bootstrap/load_modules.R`:
   - `functions/analysis-snapshot-builder.R`
   - `functions/async-job-analysis-snapshot-handlers.R`
 
-- [ ] **Step 7: Run focused tests**
+- [x] **Step 7: Run focused tests**
 
 Run:
 
@@ -653,7 +653,7 @@ Expected:
 - Snapshot repository and builder tests pass.
 - Existing NDDScore active-slot tests still pass.
 
-- [ ] **Step 8: Commit Task 2**
+- [x] **Step 8: Commit Task 2**
 
 Run:
 

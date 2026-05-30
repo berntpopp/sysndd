@@ -115,6 +115,10 @@ bootstrap_setup_workers <- function() {
     # Source durable async-job runtime helpers before the compatibility shim
     source("/app/functions/async-job-progress.R", local = FALSE)
     source("/app/functions/async-job-network-layout-handlers.R", local = FALSE)
+    source("/app/functions/analysis-snapshot-presets.R", local = FALSE)
+    source("/app/functions/analysis-snapshot-repository.R", local = FALSE)
+    source("/app/functions/analysis-snapshot-builder.R", local = FALSE)
+    source("/app/functions/async-job-analysis-snapshot-handlers.R", local = FALSE)
     source("/app/functions/async-job-handlers.R", local = FALSE)
     source("/app/functions/async-job-worker.R", local = FALSE)
     # Source transitional progress shim for legacy mirai async code paths

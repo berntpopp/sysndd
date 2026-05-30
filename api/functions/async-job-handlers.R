@@ -846,6 +846,11 @@ async_job_handler_registry <- list(
     run = function(...) .async_job_run_network_layout_prewarm(...),
     after_success = .async_job_after_success_noop
   ),
+  analysis_snapshot_refresh = list(
+    cancel_mode = "best_effort",
+    run = function(...) .async_job_run_analysis_snapshot_refresh(...),
+    after_success = .async_job_after_success_noop
+  ),
   backup_create = list(
     cancel_mode = "non_interruptible",
     run = .async_job_run_backup_create,
