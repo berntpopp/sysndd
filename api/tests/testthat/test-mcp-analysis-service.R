@@ -251,6 +251,49 @@ test_that("phenotype analysis context validates mode and labels derived analyses
   expect_equal(err$error$code, "invalid_input")
 })
 
+test_that("phenotype correlation controls propagate to snapshot repository reads", {
+  source_mcp_analysis_repository()
+  source("../../services/mcp-service.R")
+
+  old_status <- mcp_analysis_repo_public_snapshot_status
+  old_corr <- mcp_analysis_repo_get_snapshot_phenotype_correlations
+  seen <- list()
+  assign("mcp_analysis_repo_public_snapshot_status", function(...) "available", envir = .GlobalEnv)
+  assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", function(phenotype,
+                                                                           min_abs_correlation,
+                                                                           drop_diagonal,
+                                                                           triangle_only,
+                                                                           limit) {
+    seen <<- list(
+      phenotype = phenotype,
+      min_abs_correlation = min_abs_correlation,
+      drop_diagonal = drop_diagonal,
+      triangle_only = triangle_only,
+      limit = limit
+    )
+    tibble::tibble(x = "Seizure", y = "Ataxia", value = 0.42)
+  }, envir = .GlobalEnv)
+  withr::defer({
+    assign("mcp_analysis_repo_public_snapshot_status", old_status, envir = .GlobalEnv)
+    assign("mcp_analysis_repo_get_snapshot_phenotype_correlations", old_corr, envir = .GlobalEnv)
+  })
+
+  mcp_get_phenotype_analysis_context(
+    mode = "correlations",
+    phenotype = "HP:0001250",
+    min_abs_correlation = 0.5,
+    drop_diagonal = FALSE,
+    triangle_only = TRUE,
+    limit = 7L
+  )
+
+  expect_equal(seen$phenotype, "HP:0001250")
+  expect_equal(seen$min_abs_correlation, 0.5)
+  expect_false(seen$drop_diagonal)
+  expect_true(seen$triangle_only)
+  expect_equal(seen$limit, 7L)
+})
+
 test_that("phenotype correlations raise snapshot_missing when public snapshot is absent", {
   source_mcp_analysis_repository()
   source("../../services/mcp-service.R")

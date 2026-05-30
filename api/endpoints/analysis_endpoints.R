@@ -35,7 +35,7 @@ analysis_endpoint_scalar <- function(value, default = NULL) {
   value[[1]]
 }
 
-analysis_paginate_snapshot_clusters <- function(body, page_after_clean, page_size_int) {
+analysis_paginate_snapshot_clusters <- function(body, page_after_clean, page_size_int, res = NULL) {
   clusters <- tibble::as_tibble(body$clusters %||% tibble::tibble())
   if (nrow(clusters) == 0L) {
     body$clusters <- clusters
@@ -47,6 +47,19 @@ analysis_paginate_snapshot_clusters <- function(body, page_after_clean, page_siz
       has_more = FALSE
     )
     return(body)
+  }
+
+  required_columns <- c("cluster", "hash_filter")
+  missing_columns <- setdiff(required_columns, names(clusters))
+  if (length(missing_columns) > 0L) {
+    if (!is.null(res)) {
+      res$status <- 500L
+    }
+    return(list(
+      code = "snapshot_payload_invalid",
+      message = "Functional cluster snapshot payload is missing required pagination fields.",
+      details = list(missing_columns = missing_columns)
+    ))
   }
 
   clusters_sorted <- clusters %>%
@@ -149,7 +162,7 @@ function(page_after = "", page_size = "10", algorithm = "leiden", res) {
     return(body)
   }
 
-  analysis_paginate_snapshot_clusters(body, page_after_clean, page_size_int)
+  analysis_paginate_snapshot_clusters(body, page_after_clean, page_size_int, res = res)
 }
 
 

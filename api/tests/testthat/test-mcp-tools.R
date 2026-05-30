@@ -204,6 +204,10 @@ test_that("MCP analysis tools advertise labels and do not expose LLM generation"
     expect_match(item$description, "snapshot|cache", ignore.case = TRUE)
     expect_false(is.null(item$outputSchema))
   }
+
+  network <- metadata[[which(names == "get_gene_network_context")]]
+  expect_match(network$inputSchema$properties$cluster_type$description, "Fixed stored snapshot key", fixed = TRUE)
+  expect_match(network$inputSchema$properties$min_confidence$description, "unsupported_parameter", fixed = TRUE)
 })
 
 test_that("MCP analysis output schemas expose budget and data-class fields", {
@@ -392,6 +396,7 @@ test_that("capabilities document analysis workflows and guardrails", {
   expect_false(is.null(caps$analysis_data_classes$ml_prediction))
   expect_true(caps$analysis_data_classes$ml_prediction$not_evidence_tier)
   expect_match(caps$analysis_data_classes$llm_generated_summary$note, "cache", ignore.case = TRUE)
+  expect_match(caps$analysis_tools$phenotype_correlations, "global snapshot context", ignore.case = TRUE)
   expect_true(caps$safety$live_external_calls_disabled)
   expect_true(caps$safety$llm_generation_disabled)
   expect_match(caps$analysis_tools$guardrails, "No Gemini", fixed = TRUE)

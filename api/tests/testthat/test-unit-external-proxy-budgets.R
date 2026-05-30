@@ -39,11 +39,36 @@ test_that("gnomAD proxy fetchers use central external request budgets", {
 test_that("external proxy timing wrapper preserves result and records elapsed metadata", {
   source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
 
-  result <- external_proxy_with_timing("mgi", function() list(source = "mgi", found = FALSE))
+  messages <- character()
+  result <- withCallingHandlers(
+    external_proxy_with_timing("mgi", function() list(source = "mgi", found = FALSE)),
+    message = function(m) {
+      messages <<- c(messages, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
 
   expect_false(isTRUE(result$error))
   expect_equal(result$source, "mgi")
   expect_true(is.numeric(result$elapsed_ms))
+  expect_true(any(grepl("status=404", messages, fixed = TRUE)))
+  expect_false(any(grepl("cache=unknown", messages, fixed = TRUE)))
+})
+
+test_that("external proxy timing wrapper logs result cache status when supplied", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+
+  messages <- character()
+  result <- withCallingHandlers(
+    external_proxy_with_timing("mgi", function() list(source = "mgi", cache_status = "hit")),
+    message = function(m) {
+      messages <<- c(messages, conditionMessage(m))
+      invokeRestart("muffleMessage")
+    }
+  )
+
+  expect_equal(result$cache_status, "hit")
+  expect_true(any(grepl("cache=hit", messages, fixed = TRUE)))
 })
 
 test_that("external proxy aggregate budget is bounded and configurable", {

@@ -102,6 +102,7 @@ mcp_get_sysndd_capabilities <- function() {
       catalog = "get_sysndd_analysis_catalog documents available analysis sections, data classes, and limits.",
       gene_research = "get_gene_research_context aggregates curated, ML prediction, public-ready snapshot analysis, cache-only LLM summaries, and stored external identifiers with section_status labels.",
       snapshot_reads = "Derived analysis tools read public-ready snapshots only and never compute STRING, phenotype clustering, fCoSE layouts, or correlations on request.",
+      phenotype_correlations = "MCP phenotype correlations are global snapshot context; omit gene for mode='correlations' and use phenotype or clusters for focused follow-up.",
       network_snapshot = "get_gene_network_context supports only the stored clusters/min_confidence=400/max_edges=10000 snapshot key; max_edges is a response trim cap.",
       guardrails = "No Gemini, no prompt/query exposure, no live external providers, no writes, no raw SQL/R tools."
     ),

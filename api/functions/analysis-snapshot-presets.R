@@ -100,6 +100,13 @@ analysis_snapshot_normalize_params <- function(analysis_type, params = list()) {
     normalized_params[[name]] <- params[[name]]
   }
 
+  if (identical(analysis_type, "phenotype_correlations") && "filter" %in% supplied_names) {
+    normalized_params$filter <- analysis_snapshot_normalize_filter_param(
+      normalized_params$filter,
+      preset$params$filter
+    )
+  }
+
   if (identical(analysis_type, "gene_network_edges")) {
     normalized_params$min_confidence <- analysis_snapshot_coerce_integer(
       normalized_params$min_confidence,
@@ -118,7 +125,8 @@ analysis_snapshot_normalize_params <- function(analysis_type, params = list()) {
       sprintf(
         paste(
           "Unsupported parameters for analysis snapshot type: %s.",
-          "Only supported public preset values are accepted."
+          "Only supported public preset values are accepted.",
+          "Phenotype correlation filters tolerate case and whitespace differences only."
         ),
         analysis_type
       ),
@@ -138,6 +146,20 @@ analysis_snapshot_normalize_params <- function(analysis_type, params = list()) {
     parameters_json = parameters_json,
     parameter_hash = analysis_snapshot_parameter_hash(analysis_type, normalized_params)
   )
+}
+
+analysis_snapshot_normalize_filter_param <- function(value, supported_value) {
+  if (is.null(value) || length(value) == 0L || is.null(value[[1]])) {
+    return(value)
+  }
+  value <- as.character(value[[1]])
+  normalize <- function(x) {
+    gsub("\\s+", "", tolower(trimws(as.character(x[[1]]))))
+  }
+  if (identical(normalize(value), normalize(supported_value))) {
+    return(supported_value)
+  }
+  value
 }
 
 analysis_snapshot_coerce_integer <- function(value, field, analysis_type) {

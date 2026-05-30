@@ -325,6 +325,19 @@ test_that("snapshot pagination returns empty page after final cursor", {
   expect_false(result$pagination$has_more)
 })
 
+test_that("snapshot pagination rejects malformed cluster payloads instead of restarting pages", {
+  source(file.path("endpoints", "analysis_endpoints.R"), local = TRUE)
+
+  res <- analysis_snapshot_fake_res()
+  body <- list(clusters = tibble::tibble(cluster = c(1L, 2L)))
+
+  result <- analysis_paginate_snapshot_clusters(body, "hash-2", 10L, res = res)
+
+  expect_equal(res$status, 500L)
+  expect_equal(result$code, "snapshot_payload_invalid")
+  expect_equal(result$details$missing_columns, "hash_filter")
+})
+
 test_that("network endpoint success preserves snapshot metadata and missing snapshots set Retry-After", {
   source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path("services", "analysis-snapshot-service.R"), local = TRUE)

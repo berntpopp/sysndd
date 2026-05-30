@@ -101,6 +101,10 @@ CREATE TABLE IF NOT EXISTS `analysis_snapshot_cluster_member` (
   KEY `idx_analysis_snapshot_cluster_member_entity` (`snapshot_id`, `entity_id`),
   CONSTRAINT `fk_analysis_snapshot_cluster_member_manifest`
       FOREIGN KEY (`snapshot_id`) REFERENCES `analysis_snapshot_manifest` (`snapshot_id`)
+      ON DELETE CASCADE,
+  CONSTRAINT `fk_analysis_snapshot_cluster_member_cluster`
+      FOREIGN KEY (`snapshot_id`, `cluster_kind`, `cluster_id`)
+      REFERENCES `analysis_snapshot_cluster` (`snapshot_id`, `cluster_kind`, `cluster_id`)
       ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

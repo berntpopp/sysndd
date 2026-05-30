@@ -250,8 +250,8 @@ mcp_build_analysis_tool_entries <- function(output_mode = Sys.getenv("MCP_OUTPUT
       mcp_analysis_tool_description("gene network context.", "Network data is public-ready snapshot-only; missing snapshots return a recoverable tool error or dry-run status."),
       arguments = list(
         gene = ellmer::type_string("Optional gene identifier.", required = FALSE),
-        cluster_type = ellmer::type_string("Supported stored snapshot key is clusters only; default clusters.", required = FALSE),
-        min_confidence = ellmer::type_integer("Supported stored snapshot key is 400 only; default 400.", required = FALSE),
+        cluster_type = ellmer::type_string("Fixed stored snapshot key: clusters. Omit unless confirming fixed-key compatibility.", required = FALSE),
+        min_confidence = ellmer::type_integer("Fixed stored snapshot key: 400. Other values return unsupported_parameter.", required = FALSE),
         max_edges = ellmer::type_integer("Response edge trim cap, default 100, max 250.", required = FALSE),
         include_cached_llm_summaries = ellmer::type_boolean("Use admin-generated validated cache only; default true.", required = FALSE),
         response_mode = ellmer::type_string("minimal, compact, standard, full, or diagnostics; default compact.", required = FALSE),

@@ -319,8 +319,13 @@ test_that("cluster snapshot refresh delegates LLM summary generation to the work
     list(job_id = "llm-job")
   }
 
-  result <- env$analysis_snapshot_refresh("phenotype_clusters", list(), job_id = "snapshot-job")
+  phenotype_result <- env$analysis_snapshot_refresh("phenotype_clusters", list(), job_id = "phenotype-snapshot-job")
+  functional_result <- env$analysis_snapshot_refresh("functional_clusters", list(algorithm = "leiden"), job_id = "functional-snapshot-job")
 
-  expect_equal(events, "phenotype:snapshot-job:1")
-  expect_equal(result$llm_generation$job_id, "llm-job")
+  expect_equal(
+    events,
+    c("phenotype:phenotype-snapshot-job:1", "functional:functional-snapshot-job:1")
+  )
+  expect_equal(phenotype_result$llm_generation$job_id, "llm-job")
+  expect_equal(functional_result$llm_generation$job_id, "llm-job")
 })

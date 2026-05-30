@@ -20,6 +20,15 @@ test_that("snapshot presets canonicalize supported parameters", {
     list(algorithm = "leiden")
   )
   expect_equal(functional$params$algorithm, "leiden")
+
+  phenotype <- analysis_snapshot_normalize_params(
+    "phenotype_correlations",
+    list(filter = " Contains( ndd_phenotype_word, yes ), ANY( category, definitive ) ")
+  )
+  expect_equal(
+    phenotype$params$filter,
+    "contains(ndd_phenotype_word,Yes),any(category,Definitive)"
+  )
 })
 
 test_that("snapshot presets reject unsupported analysis parameters", {

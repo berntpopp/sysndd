@@ -1,8 +1,8 @@
 # functions/external-proxy-functions.R
 #### This file holds shared infrastructure for external API proxy layer
 
-require(httr2)   # Load httr2 for modern HTTP client functionality
-require(cachem)  # Load cachem for disk-based caching
+require(httr2) # Load httr2 for modern HTTP client functionality
+require(cachem) # Load cachem for disk-based caching
 
 #### Per-source cache backends with different TTLs
 
@@ -28,8 +28,8 @@ external_proxy_cache_dir <- function(name) {
 cache_static_dir <- external_proxy_cache_dir("static")
 cache_static <- cache_disk(
   dir = cache_static_dir,
-  max_age = 30 * 24 * 3600,  # 30 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 30 * 24 * 3600, # 30 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 # Stable cache for moderately-changing data (protein domains, gene structure, phenotypes)
@@ -37,8 +37,8 @@ cache_static <- cache_disk(
 cache_stable_dir <- external_proxy_cache_dir("stable")
 cache_stable <- cache_disk(
   dir = cache_stable_dir,
-  max_age = 14 * 24 * 3600,  # 14 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 14 * 24 * 3600, # 14 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 # Dynamic cache for frequently-changing data (ClinVar variants)
@@ -46,8 +46,8 @@ cache_stable <- cache_disk(
 cache_dynamic_dir <- external_proxy_cache_dir("dynamic")
 cache_dynamic <- cache_disk(
   dir = cache_dynamic_dir,
-  max_age = 7 * 24 * 3600,   # 7 days in seconds
-  max_size = 200 * 1024^2    # 200 MB
+  max_age = 7 * 24 * 3600, # 7 days in seconds
+  max_size = 200 * 1024^2 # 200 MB
 )
 
 #### External proxy cache policy helpers
@@ -149,12 +149,12 @@ memoise_external_success_only <- function(f, cache) {
 #'
 #' @export
 EXTERNAL_API_THROTTLE <- list(
-  gnomad = list(capacity = 10, fill_time_s = 60),    # 10 req/min (conservative)
-  ensembl = list(capacity = 900, fill_time_s = 60),  # 15 req/sec (documented)
-  uniprot = list(capacity = 100, fill_time_s = 1),   # 100 req/sec (conservative)
+  gnomad = list(capacity = 10, fill_time_s = 60), # 10 req/min (conservative)
+  ensembl = list(capacity = 900, fill_time_s = 60), # 15 req/sec (documented)
+  uniprot = list(capacity = 100, fill_time_s = 1), # 100 req/sec (conservative)
   alphafold = list(capacity = 20, fill_time_s = 60), # 20 req/min (conservative)
-  mgi = list(capacity = 30, fill_time_s = 60),       # 30 req/min (conservative)
-  rgd = list(capacity = 30, fill_time_s = 60)        # 30 req/min (conservative)
+  mgi = list(capacity = 30, fill_time_s = 60), # 30 req/min (conservative)
+  rgd = list(capacity = 30, fill_time_s = 60) # 30 req/min (conservative)
 )
 
 external_proxy_budget <- function(api_name) {
@@ -201,21 +201,28 @@ external_proxy_with_timing <- function(source, expr_fn) {
     result$source <- source
   }
 
-  status <- result$status %||% if (isTRUE(result$error)) {
-    503L
-  } else if (isTRUE(result$found == FALSE)) {
-    404L
-  } else {
-    200L
-  }
+  status <- external_proxy_result_status(result)
   external_proxy_log_event(
     source = source,
     event = "complete",
     status = status,
     elapsed_ms = elapsed_ms,
-    cache = "unknown"
+    cache = result$cache_status %||% NULL
   )
   result
+}
+
+external_proxy_result_status <- function(result) {
+  if (!is.null(result$status)) {
+    return(result$status)
+  }
+  if (isTRUE(result$error)) {
+    return(503L)
+  }
+  if (isTRUE(result$found == FALSE)) {
+    return(404L)
+  }
+  200L
 }
 
 external_proxy_aggregate_budget <- function() {
@@ -281,7 +288,7 @@ make_external_request <- function(url, api_name, throttle_config, method = "GET"
           is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
         ) %>%
         req_timeout(budget$timeout_seconds) %>%
-        req_error(is_error = ~FALSE)  # Disable automatic error throwing
+        req_error(is_error = ~FALSE) # Disable automatic error throwing
 
       # Add method and body if POST request
       if (method == "POST") {

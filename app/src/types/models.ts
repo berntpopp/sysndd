@@ -279,9 +279,9 @@ export interface NetworkEdgesParams {
   /** Public snapshot preset cluster type. */
   cluster_type?: 'clusters';
   /** Public snapshot preset STRING confidence threshold. */
-  min_confidence?: 400 | '400';
+  min_confidence?: '400';
   /** Public snapshot preset edge cap. */
-  max_edges?: 10000 | '10000';
+  max_edges?: '10000';
 }
 
 // ============================================================================
