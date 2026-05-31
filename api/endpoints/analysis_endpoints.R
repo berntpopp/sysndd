@@ -275,7 +275,7 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000",
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found, summary rejected, or not yet cached (generation requires Curator or higher)
+#* @response 404 Not Found. Cluster not found, summary rejected, or not cached (generation needs Curator+)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
@@ -305,7 +305,7 @@ function(cluster_hash = NULL, cluster_number = NULL, req, res) {
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found, summary rejected, or not yet cached (generation requires Curator or higher)
+#* @response 404 Not Found. Cluster not found, summary rejected, or not cached (generation needs Curator+)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
