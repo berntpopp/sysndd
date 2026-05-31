@@ -2,11 +2,11 @@ analysis_snapshot_test_wd <- getwd()
 setwd(get_api_dir())
 withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 
-test_that("migration manifest expects public analysis snapshot migration", {
+test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "024_add_public_analysis_snapshots.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 25L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "025_create_core_views.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 26L)
 })
 
 test_that("public analysis snapshot migration enforces scoped public-ready uniqueness", {
