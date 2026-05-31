@@ -136,7 +136,6 @@ get_db_connection <- function() {
 #'
 #' @export
 db_execute_query <- function(sql, params = list(), conn = NULL) {
-  message("[db_execute_query] ENTRY - sql: ", substr(sql, 1, 50))
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.character(p) && nchar(p) > 50) {
@@ -256,7 +255,6 @@ db_execute_query <- function(sql, params = list(), conn = NULL) {
 #'
 #' @export
 db_execute_statement <- function(sql, params = list(), conn = NULL) {
-  message("[db_execute_statement] ENTRY - sql: ", substr(sql, 1, 50))
   # Sanitize parameters for logging (redact long strings)
   sanitized_params <- lapply(params, function(p) {
     if (is.null(p) || (length(p) == 1 && is.na(p))) {

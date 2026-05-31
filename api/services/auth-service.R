@@ -185,7 +185,7 @@ auth_generate_token <- function(user, config) {
     abbreviation = user$abbreviation,
     orcid = user$orcid,
     iat = as.numeric(Sys.time()),
-    exp = as.numeric(Sys.time()) + (config$refresh %||% 86400)
+    exp = as.numeric(Sys.time()) + (config$token_expiry %||% 3600)
   )
 
   # Encode JWT

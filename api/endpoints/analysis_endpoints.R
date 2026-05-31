@@ -148,7 +148,9 @@ function(page_after = "", page_size = "10", algorithm = "leiden", res) {
   # - Categories still returned in full (not paginated)
 
   # Validate and parse pagination parameters
-  page_size_int <- min(max(as.integer(page_size), 1), 50)
+  n <- suppressWarnings(as.integer(page_size))
+  if (is.na(n)) n <- 10L
+  page_size_int <- min(max(n, 1L), 50L)
   page_after_clean <- if (is.null(page_after) || page_after == "") "" else page_after
 
   algorithm_clean <- tolower(as.character(analysis_endpoint_scalar(algorithm, "leiden")))
