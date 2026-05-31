@@ -927,6 +927,30 @@ function(job_id, result_mode = "summary", req, res) {
     ))
   }
 
+  if (identical(result_mode, "full")) {
+    job_row <- tryCatch(
+      async_job_repository_get(job_id),
+      error = function(e) NULL
+    )
+    if (is.null(job_row)) {
+      res$status <- 503
+      return(list(
+        error = "SERVICE_UNAVAILABLE",
+        message = "Unable to verify job access at this time."
+      ))
+    }
+    # Only gate jobs that exist; unknown ids fall through to JOB_NOT_FOUND (404)
+    # so we never disclose more (or less) than the unauthenticated summary path.
+    if (nrow(job_row) > 0 &&
+          !can_read_full_job_result(job_row$job_type[[1]], req$user_role)) {
+      res$status <- 403
+      return(list(
+        error = "FORBIDDEN",
+        message = "Full job results for this operation are not available at your access level."
+      ))
+    }
+  }
+
   status <- get_job_status(job_id, result_mode = result_mode)
 
   if (identical(status$error, "JOB_NOT_FOUND")) {
