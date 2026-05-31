@@ -175,6 +175,26 @@ function(req, res) {
     ))
   }
 
+  # Guard: refuse if the queue is already at capacity (soft, fail-open on DB error).
+  # "default" matches the queue create_job() enqueues on via async_job_service_submit.
+  if (async_job_capacity_exceeded(
+        tryCatch(
+          async_job_active_count("default"),
+          error = function(e) {
+            log_warn("async_job_active_count failed (capacity check fail-open): {e$message}")
+            0L
+          }
+        )
+      )) {
+    res$status <- 503
+    res$setHeader("Retry-After", "60")
+    return(list(
+      error = "CAPACITY_EXCEEDED",
+      message = "Analysis queue is at capacity. Please retry shortly.",
+      retry_after = 60
+    ))
+  }
+
   # Cache miss - create async job
   result <- create_job(
     operation = "clustering",
@@ -388,6 +408,26 @@ function(req, res) {
       estimated_seconds = 0,
       status_url = paste0("/api/jobs/", job_id, "/status"),
       meta = list(llm_generation = "snapshot_refresh_owned")
+    ))
+  }
+
+  # Guard: refuse if the queue is already at capacity (soft, fail-open on DB error).
+  # "default" matches the queue create_job() enqueues on via async_job_service_submit.
+  if (async_job_capacity_exceeded(
+        tryCatch(
+          async_job_active_count("default"),
+          error = function(e) {
+            log_warn("async_job_active_count failed (capacity check fail-open): {e$message}")
+            0L
+          }
+        )
+      )) {
+    res$status <- 503
+    res$setHeader("Retry-After", "60")
+    return(list(
+      error = "CAPACITY_EXCEEDED",
+      message = "Analysis queue is at capacity. Please retry shortly.",
+      retry_after = 60
     ))
   }
 

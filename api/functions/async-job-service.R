@@ -1,3 +1,43 @@
+# ---------------------------------------------------------------------------
+# Queue-depth capacity cap
+# ---------------------------------------------------------------------------
+
+# Max simultaneously queued+running jobs allowed on the public submit queue.
+# Read once at source/startup time; changing the env var requires an API
+# restart to take effect.
+ASYNC_PUBLIC_JOB_CAP <- as.integer(Sys.getenv("ASYNC_PUBLIC_JOB_CAP", "8"))
+
+#' TRUE when the active (queued+running) job count is at or over the cap.
+#'
+#' Soft cap: the check-then-submit sequence in the endpoints is not atomic, so
+#' two concurrent requests may both pass and transiently push the queue one or
+#' two over the cap. That is acceptable for a back-pressure guard.
+#'
+#' @param active_count Integer count of currently in-flight jobs.
+#' @param cap Integer maximum allowed. Defaults to ASYNC_PUBLIC_JOB_CAP.
+#' @return Logical.
+#' @export
+async_job_capacity_exceeded <- function(active_count, cap = ASYNC_PUBLIC_JOB_CAP) {
+  isTRUE(as.integer(active_count) >= as.integer(cap))
+}
+
+#' Count queued+running jobs for a given queue.
+#'
+#' @param queue_name Character queue name to inspect.
+#' @param conn Optional DB connection or pool. NULL uses global pool.
+#' @return Integer count of active (queued / running / cancel_requested) jobs.
+#' @export
+async_job_active_count <- function(queue_name = "default", conn = NULL) {
+  sql <- paste(
+    "SELECT COUNT(*) AS n FROM async_jobs",
+    "WHERE queue_name = ? AND status IN ('queued', 'running', 'cancel_requested')"
+  )
+  row <- db_execute_query(sql, params = list(queue_name), conn = conn)
+  if (nrow(row) == 0) 0L else as.integer(row$n[[1]])
+}
+
+# ---------------------------------------------------------------------------
+
 .async_job_service_scalar <- function(value, default = NULL) {
   if (is.null(value) || length(value) == 0) {
     return(default)
