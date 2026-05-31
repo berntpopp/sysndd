@@ -9,6 +9,67 @@
 ####   pool global (used by generate_filter_expressions for hash lookups)
 
 
+#' Assert a column identifier is a bare identifier and (optionally) allowlisted.
+#'
+#' Rejects anything that is not a simple column token (letters/digits/underscore)
+#' or, when `allowed_columns` is non-NULL, is absent from it. Special cross-column
+#' tokens "any"/"all" are always permitted. When `allowed_columns` is NULL the
+#' allowlist check is skipped (legacy callers) but the bare-identifier check still
+#' applies, so syntax like `system(`, backticks, `)`, `~`, `::` can never reach
+#' parse_exprs().
+#'
+#' @param column A character string with the column token to validate.
+#' @param allowed_columns A character vector of permitted column names, or NULL
+#'   to skip the allowlist check (bare-identifier check still applies).
+#'
+#' @return Invisibly TRUE on success; stops with an informative message on failure.
+#'
+#' @export
+validate_query_column <- function(column, allowed_columns = NULL) {
+  if (column %in% c("any", "all")) {
+    return(invisible(TRUE))
+  }
+  if (!grepl("^[A-Za-z][A-Za-z0-9_]*$", column)) {
+    stop_for_bad_request(sprintf("Invalid filter/sort column token: '%s'", column))
+  }
+  if (!is.null(allowed_columns) && !(column %in% allowed_columns)) {
+    stop_for_bad_request(sprintf("Column not allowed for this resource: '%s'", column))
+  }
+  invisible(TRUE)
+}
+
+
+#' Columns a public list endpoint may sort/filter on, derived from the view.
+#'
+#' Queries the view via the global `pool` connection and returns its column
+#' names, extended with the always-permitted cross-column tokens "any" and
+#' "all". The result is memoised per view name for the process lifetime.
+#'
+#' Returns NULL on any pool/DB error so that call sites can pass the result
+#' directly to `generate_filter_expressions(allowed_columns = ...)` or
+#' `generate_sort_expressions(allowed_columns = ...)` without additional
+#' checking — NULL disables the allowlist check (legacy behavior) while the
+#' bare-identifier guard still applies.
+#'
+#' @param view_name A character string naming the database view or table.
+#'
+#' @return A character vector of permitted column names (always includes "any"
+#'   and "all"), or NULL on error (disables allowlist, bare-identifier check
+#'   still applies).
+#'
+#' @export
+allowed_columns_for_view <- memoise::memoise(function(view_name) {
+  cols <- tryCatch(
+    colnames(pool %>% dplyr::tbl(view_name) %>% utils::head(0) %>% dplyr::collect()),
+    error = function(e) NULL
+  )
+  if (is.null(cols) || length(cols) == 0L) {
+    return(NULL)
+  }
+  unique(c(cols, "any", "all"))
+})
+
+
 #' Generate sort expressions to parse
 #'
 #' @description
@@ -22,6 +83,8 @@
 #'   "-" for descending order.
 #' @param unique_id A character string representing the unique ID column name,
 #'   with a default value of "entity_id".
+#' @param allowed_columns A character vector of permitted column names, or NULL
+#'   to skip the allowlist check while still enforcing the bare-identifier rule.
 #'
 #' @return
 #' A character vector containing sort expressions based on the input sort
@@ -37,7 +100,7 @@
 #' resources:
 #' \url{https://dplyr.tidyverse.org/reference/desc.html} for details on how
 #' the "desc()" function is used to sort in descending order.
-generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
+generate_sort_expressions <- function(sort_string, unique_id = "entity_id", allowed_columns = NULL) {
   # split the sort input by comma and compute
   # directions based on presence of + or - in front of the string
   sort_tibble <- as_tibble(str_split(
@@ -53,7 +116,15 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
       str_sub(column, 1, 1) == "+" ~ str_sub(column, 2, -1),
       str_sub(column, 1, 1) == "-" ~ str_sub(column, 2, -1),
       TRUE ~ column,
-    )) %>%
+    ))
+
+  # Validate every parsed column BEFORE building paste0 expressions that reach
+  # parse_exprs(). This rejects injected tokens regardless of allowlist state.
+  for (col in sort_tibble$column) {
+    validate_query_column(col, allowed_columns)
+  }
+
+  sort_tibble <- sort_tibble %>%
     mutate(exprs = case_when(
       direction == "asc" ~ column,
       direction == "desc" ~ paste0("desc(", column, ")"),
@@ -107,7 +178,8 @@ generate_sort_expressions <- function(sort_string, unique_id = "entity_id") {
 generate_filter_expressions <- function(
   filter_string,
   operations_allowed =
-    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual,lessThanOrEqual,greaterThanOrEqual"
+    "equals,contains,any,all,lessThan,greaterThan,lessOrEqual,greaterOrEqual,lessThanOrEqual,greaterThanOrEqual",
+  allowed_columns = NULL
 ) {
   # define supported operations
   operations_supported <- paste0(
@@ -180,6 +252,17 @@ generate_filter_expressions <- function(
           stop(paste("Failed to parse filter expression:", e$message))
         }
       )
+
+      # Validate every non-hash column BEFORE building paste0 expressions that
+      # reach parse_exprs(). Hash columns use a separate DB-lookup path and
+      # their expression columns come from colnames(fromJSON(...)), not from
+      # the user-supplied column token, so they are excluded from this check.
+      non_hash_columns <- filter_string_tibble %>%
+        dplyr::filter(!stringr::str_detect(column, "hash")) %>%
+        dplyr::pull(column)
+      for (col in non_hash_columns) {
+        validate_query_column(col, allowed_columns)
+      }
 
       # check if hash is in filter expression
       filter_string_hash <- filter_string_tibble %>%
