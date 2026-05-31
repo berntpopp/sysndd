@@ -273,16 +273,15 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000",
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found or summary rejected
+#* @response 404 Not Found. Cluster not found, summary rejected, or not yet cached (generation requires Curator or higher)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
 #* @get functional_cluster_summary
-function(cluster_hash = NULL, cluster_number = NULL, res) {
-  source("functions/llm-cache-repository.R", local = TRUE)
-  source("functions/llm-service.R", local = TRUE)
+function(cluster_hash = NULL, cluster_number = NULL, req, res) {
   source("functions/llm-endpoint-helpers.R", local = TRUE)
-  get_cluster_summary(cluster_hash, cluster_number, "functional", res)
+  allow_gen <- !is.null(req$user_role) && req$user_role %in% c("Curator", "Administrator")
+  get_cluster_summary(cluster_hash, cluster_number, "functional", res, allow_generation = allow_gen)
 }
 
 
@@ -304,16 +303,15 @@ function(cluster_hash = NULL, cluster_number = NULL, res) {
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found or summary rejected
+#* @response 404 Not Found. Cluster not found, summary rejected, or not yet cached (generation requires Curator or higher)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
 #* @get phenotype_cluster_summary
-function(cluster_hash = NULL, cluster_number = NULL, res) {
-  source("functions/llm-cache-repository.R", local = TRUE)
-  source("functions/llm-service.R", local = TRUE)
+function(cluster_hash = NULL, cluster_number = NULL, req, res) {
   source("functions/llm-endpoint-helpers.R", local = TRUE)
-  get_cluster_summary(cluster_hash, cluster_number, "phenotype", res)
+  allow_gen <- !is.null(req$user_role) && req$user_role %in% c("Curator", "Administrator")
+  get_cluster_summary(cluster_hash, cluster_number, "phenotype", res, allow_generation = allow_gen)
 }
 
 ## Analyses endpoints

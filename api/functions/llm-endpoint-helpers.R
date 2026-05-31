@@ -32,7 +32,7 @@ library(jsonlite)
 #' @return List with summary data or error message
 #'
 #' @export
-get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res) {
+get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res, allow_generation = FALSE) {
   # Extract raw hash from equals(hash,...) format if present
   raw_hash <- extract_raw_hash(cluster_hash)
 
@@ -67,6 +67,14 @@ get_cluster_summary <- function(cluster_hash, cluster_number, cluster_type, res)
 
   # Cache miss - attempt generation
   log_info("Cache miss for {cluster_type} cluster hash: {substr(raw_hash, 1, 16)}...")
+
+  # Public path is cache-hit-only: never run Gemini synchronously for an
+  # unauthenticated request. Generation is opt-in for Curator+ callers.
+  if (!isTRUE(allow_generation)) {
+    log_info("Cache miss on cache-only path for {cluster_type} cluster - generation not permitted")
+    res$status <- 404L
+    return(list(message = "Summary not yet available for this cluster"))
+  }
 
   # Check if generation is possible
   if (!is_gemini_configured()) {
