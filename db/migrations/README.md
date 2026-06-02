@@ -91,9 +91,12 @@ already-applied file will not re-run it and will desync envs. Write a new
 migration instead.
 
 Current high-level additions include `020_add_mcp_http_transport_artifacts.sql`
-for MCP HTTP transport support and `023_add_nddscore_prediction_release.sql`
+for MCP HTTP transport support, `023_add_nddscore_prediction_release.sql`
 for the NDDScore prediction-layer release, gene, HPO-term, and prediction
-tables plus current-release views.
+tables plus current-release views, and `025_create_core_views.sql` which
+codifies the four core views (`ndd_entity_view`, `users_view`,
+`search_non_alt_loci_view`, `search_disease_ontology_set`) that were
+previously missing from migrations, ensuring a pristine DB boots fully.
 
 ## 4. Adding a new migration
 

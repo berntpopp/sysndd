@@ -37,6 +37,7 @@ default:
     # from the ops vault in any environment that processes real logins.
     secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
     refresh: 3600
+    token_expiry: 3600
     base_url: "http://localhost"
     api_base_url: "http://localhost/api"
     gemini_model: "gemini-3.5-flash"
@@ -66,6 +67,7 @@ default:
     port_self: "7778"
     secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
     refresh: 3600
+    token_expiry: 3600
     base_url: "http://127.0.0.1"
     api_base_url: "http://127.0.0.1:7778"
     gemini_model: "gemini-3.5-flash"
@@ -95,6 +97,7 @@ default:
     port_self: "7779"
     secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
     refresh: 3600
+    token_expiry: 3600
     base_url: "http://127.0.0.1"
     api_base_url: "http://127.0.0.1:7779"
     gemini_model: "gemini-3.5-flash"
@@ -124,6 +127,7 @@ default:
     port_self: "7777"
     secret: "ci_dummy_jwt_secret_replace_me_with_64_random_chars_xxxxxxxxxxxx"
     refresh: 3600
+    token_expiry: 3600
     base_url: "http://localhost"
     api_base_url: "http://localhost:7777"
     gemini_model: "gemini-3.5-flash"

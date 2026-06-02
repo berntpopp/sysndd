@@ -355,3 +355,28 @@ if (file.exists("functions/llm-batch-generator.R")) {
 } else {
   message("[job-manager] llm-batch-generator.R NOT FOUND")
 }
+
+## -------------------------------------------------------------------##
+# Job-Result Access Predicate
+## -------------------------------------------------------------------##
+
+# Job operations whose full result JSON is safe for anonymous retrieval
+# (public, user-initiated analysis that returns the caller's own output).
+PUBLIC_FULL_RESULT_JOB_TYPES <- c("clustering", "phenotype_clustering")
+
+#' May this requester read the full result JSON for a job of `job_type`?
+#'
+#' Anonymous/Viewer callers may read full results only for public-operation
+#' jobs; Reviewer and above may read any job's full result.
+#'
+#' @param job_type Character job operation/type.
+#' @param user_role Character role from req$user_role, or NULL if anonymous.
+#' @return Logical.
+can_read_full_job_result <- function(job_type, user_role = NULL) {
+  privileged <- !is.null(user_role) &&
+    user_role %in% c("Reviewer", "Curator", "Administrator")
+  if (privileged) {
+    return(TRUE)
+  }
+  !is.null(job_type) && job_type %in% PUBLIC_FULL_RESULT_JOB_TYPES
+}

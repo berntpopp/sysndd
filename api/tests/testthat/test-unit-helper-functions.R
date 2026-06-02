@@ -14,6 +14,12 @@ library(tidyr)
 # Source the functions being tested using the helper
 # Use local = FALSE to make functions available in test scope
 source_api_file("functions/helper-functions.R", local = FALSE)
+# errors.R provides stop_for_bad_request(), which select_tibble_fields() uses to
+# signal a recoverable 400. Source into the global env so select_tibble_fields()
+# (also global) resolves the LOCAL stop_for_bad_request() rather than the
+# httpproblems package export — this mirrors the production bootstrap
+# (load_modules.R sources into .GlobalEnv).
+source_api_file("core/errors.R", local = FALSE, envir = globalenv())
 
 # =============================================================================
 # is_valid_email() tests
@@ -367,6 +373,24 @@ test_that("select_tibble_fields throws error for non-existent columns", {
     select_tibble_fields(test_data, "nonexistent_column", unique_id = "entity_id"),
     "not in the column names"
   )
+})
+
+test_that("select_tibble_fields signals a 400 (not a 500) for unknown fields", {
+  # Regression guard for the Modify Entity 500: a request for fields absent from
+  # the queried view is a client error. The error must carry the error_400 class
+  # so errorHandler maps it to HTTP 400 (mount_endpoints.R now routes every
+  # endpoint sub-router through errorHandler), and must name the offending field.
+  test_data <- tibble(entity_id = 1:3, name = letters[1:3])
+
+  err <- tryCatch(
+    select_tibble_fields(test_data, "is_active,replaced_by", unique_id = "entity_id"),
+    error = function(e) e
+  )
+
+  expect_s3_class(err, "error_400")
+  expect_equal(err$status, 400)
+  expect_match(conditionMessage(err), "is_active")
+  expect_match(conditionMessage(err), "replaced_by")
 })
 
 

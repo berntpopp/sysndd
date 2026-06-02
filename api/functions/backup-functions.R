@@ -457,6 +457,26 @@ execute_restore <- function(db_config, restore_file, progress_fn = NULL) {
 }
 
 
+#' Validate a backup filename for safe filesystem use.
+#'
+#' Rejects path separators (traversal) and any extension other than
+#' `.sql` / `.sql.gz`. Shared by the /download, /delete, and /restore backup
+#' endpoints to enforce a consistent filename safety policy.
+#'
+#' @param filename Character scalar candidate filename.
+#' @return TRUE if safe, FALSE otherwise.
+#' @export
+is_valid_backup_filename <- function(filename) {
+  if (is.null(filename) || length(filename) != 1L || is.na(filename) || filename == "") {
+    return(FALSE)
+  }
+  if (grepl("[/\\\\]", filename)) {
+    return(FALSE)
+  }
+  grepl("\\.(sql|sql\\.gz)$", filename)
+}
+
+
 #' Check if a backup operation is currently running
 #'
 #' Queries the durable async job table for any active backup_create or

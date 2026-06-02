@@ -65,14 +65,20 @@ function(req,
   # Plumber returns scalars as length-1 character vectors; coerce to a real bool.
   is_compact <- isTRUE(tolower(as.character(compact[[1]])) %in% c("true", "1", "yes"))
 
+  # Derive allowlist from ndd_entity_view; returns NULL on transient DB error
+  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
+  entity_allowed_cols <- allowed_columns_for_view("ndd_entity_view")
+
   # Generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id")
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "entity_id",
+    allowed_columns = entity_allowed_cols)
 
   # Extract vario_id filter (handled separately due to join table)
   vario_filter_result <- extract_vario_filter(filter)
 
   # Generate filter expression for non-vario filters
-  filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario)
+  filter_exprs <- generate_filter_expressions(vario_filter_result$filter_without_vario,
+    allowed_columns = entity_allowed_cols)
 
   has_text_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
   has_vario_filter <- isTRUE(vario_filter_result$has_vario_filter)

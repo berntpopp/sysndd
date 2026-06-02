@@ -197,11 +197,17 @@ function(req,
   # Start time calculation
   start_time <- Sys.time()
 
+  # Derive allowlist from publication table; returns NULL on transient DB error
+  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
+  pub_allowed_cols <- allowed_columns_for_view("publication")
+
   # Generate sort expression based on sort input
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "publication_id")
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "publication_id",
+    allowed_columns = pub_allowed_cols)
 
   # Generate filter expression based on filter input
-  filter_exprs <- generate_filter_expressions(filter)
+  filter_exprs <- generate_filter_expressions(filter,
+    allowed_columns = pub_allowed_cols)
 
   # Get publication data from database. Push the filter expression to SQL when
   # possible so we don't collect ~4,700 rows just to throw most away in R.
@@ -384,9 +390,15 @@ function(req,
 
   start_time <- Sys.time()
 
+  # Derive allowlist from pubtator_search_cache; returns NULL on transient DB error
+  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
+  pubtator_cache_allowed_cols <- allowed_columns_for_view("pubtator_search_cache")
+
   # Generate sort & filter expressions
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "search_id")
-  filter_exprs <- generate_filter_expressions(filter)
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "search_id",
+    allowed_columns = pubtator_cache_allowed_cols)
+  filter_exprs <- generate_filter_expressions(filter,
+    allowed_columns = pubtator_cache_allowed_cols)
 
   # Collect from DB - gene_symbols is now pre-computed during pubtator_db_update.
   # The gene_symbols column contains comma-separated human gene symbols from HGNC.
@@ -537,9 +549,16 @@ function(req,
   # 2) Start time
   start_time <- Sys.time()
 
-  # 3) Generate sort/filter expressions
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol")
-  filter_exprs <- generate_filter_expressions(filter)
+  # 3) Generate sort/filter expressions.
+  # TODO allowlist: Filtering here operates on computed post-collect fields
+  # (publication_count, entities_count, is_novel, oldest_pub_date, pmids) that
+  # do not exist in the underlying view; the view-derived allowlist would reject
+  # them. Pass NULL to preserve legacy behavior (bare-identifier check still
+  # applies). Wire a real allowlist once the computed column set is stabilised.
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol",
+    allowed_columns = NULL)
+  filter_exprs <- generate_filter_expressions(filter,
+    allowed_columns = NULL)
 
   # 4) Fetch from DB (no filter yet - computed fields don't exist)
   df_raw <- pool %>%

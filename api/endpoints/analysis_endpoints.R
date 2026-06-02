@@ -148,7 +148,9 @@ function(page_after = "", page_size = "10", algorithm = "leiden", res) {
   # - Categories still returned in full (not paginated)
 
   # Validate and parse pagination parameters
-  page_size_int <- min(max(as.integer(page_size), 1), 50)
+  n <- suppressWarnings(as.integer(page_size))
+  if (is.na(n)) n <- 10L
+  page_size_int <- min(max(n, 1L), 50L)
   page_after_clean <- if (is.null(page_after) || page_after == "") "" else page_after
 
   algorithm_clean <- tolower(as.character(analysis_endpoint_scalar(algorithm, "leiden")))
@@ -273,16 +275,15 @@ function(cluster_type = "clusters", min_confidence = "400", max_edges = "10000",
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found or summary rejected
+#* @response 404 Not Found. Cluster not found, summary rejected, or not cached (generation needs Curator+)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
 #* @get functional_cluster_summary
-function(cluster_hash = NULL, cluster_number = NULL, res) {
-  source("functions/llm-cache-repository.R", local = TRUE)
-  source("functions/llm-service.R", local = TRUE)
+function(cluster_hash = NULL, cluster_number = NULL, req, res) {
   source("functions/llm-endpoint-helpers.R", local = TRUE)
-  get_cluster_summary(cluster_hash, cluster_number, "functional", res)
+  allow_gen <- !is.null(req$user_role) && req$user_role %in% c("Curator", "Administrator")
+  get_cluster_summary(cluster_hash, cluster_number, "functional", res, allow_generation = allow_gen)
 }
 
 
@@ -304,16 +305,15 @@ function(cluster_hash = NULL, cluster_number = NULL, res) {
 #*
 #* @response 200 OK. Returns summary with metadata
 #* @response 400 Bad Request. Missing required parameters
-#* @response 404 Not Found. Cluster not found or summary rejected
+#* @response 404 Not Found. Cluster not found, summary rejected, or not cached (generation needs Curator+)
 #* @response 500 Internal Server Error. Generation failed
 #* @response 503 Service Unavailable. LLM not configured
 #*
 #* @get phenotype_cluster_summary
-function(cluster_hash = NULL, cluster_number = NULL, res) {
-  source("functions/llm-cache-repository.R", local = TRUE)
-  source("functions/llm-service.R", local = TRUE)
+function(cluster_hash = NULL, cluster_number = NULL, req, res) {
   source("functions/llm-endpoint-helpers.R", local = TRUE)
-  get_cluster_summary(cluster_hash, cluster_number, "phenotype", res)
+  allow_gen <- !is.null(req$user_role) && req$user_role %in% c("Curator", "Administrator")
+  get_cluster_summary(cluster_hash, cluster_number, "phenotype", res, allow_generation = allow_gen)
 }
 
 ## Analyses endpoints

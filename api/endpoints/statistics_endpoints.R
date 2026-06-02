@@ -104,8 +104,13 @@ function(res,
     return(res)
   }
 
+  # Derive allowlist from ndd_entity_view; returns NULL on transient DB error
+  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
+  stats_allowed_cols <- allowed_columns_for_view("ndd_entity_view")
+
   # Generate filter expressions
-  filter_exprs <- generate_filter_expressions(filter)
+  filter_exprs <- generate_filter_expressions(filter,
+    allowed_columns = stats_allowed_cols)
   has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
   # Push filter to SQL when present; aggregations stay post-collect.
@@ -466,8 +471,11 @@ function(req,
   min_lastname_count <- as.integer(min_lastname_count)
   min_keyword_count <- as.integer(min_keyword_count)
 
-  # 1) Generate filter expressions from the user-provided 'filter' string
-  filter_exprs <- generate_filter_expressions(filter)
+  # 1) Generate filter expressions from the user-provided 'filter' string.
+  #    Allowlist columns against the publication view this endpoint queries so
+  #    a user token cannot reach parse_exprs as code.
+  pub_allowed_cols <- allowed_columns_for_view("publication")
+  filter_exprs <- generate_filter_expressions(filter, allowed_columns = pub_allowed_cols)
   has_text_filter <- length(filter_exprs) > 0L && nzchar(trimws(filter))
 
   # 2) Push filter to SQL where possible; fall back to in-R if dbplyr can't translate.

@@ -83,6 +83,15 @@ backup_file_path <- function() {
   file.path(get_api_dir(), "endpoints", "backup_endpoints.R")
 }
 
+# is_valid_backup_filename() was extracted into functions/backup-functions.R as
+# a shared validator (used by /restore, /download, /delete). The extracted
+# handlers call it, so load the REAL (pure, no-DB) validator once into an
+# isolated env and inject only that function into each sandbox below — sourcing
+# the whole module into globalenv would also pull in DB-touching backup
+# functions the sandbox deliberately stubs.
+.backup_functions_env <- new.env()
+source_api_file("functions/backup-functions.R", local = FALSE, envir = .backup_functions_env)
+
 # Build a sandbox with the stubs every backup handler tends to reach for.
 # Individual tests can override fields on the returned env before calling
 # the handler.
@@ -153,6 +162,9 @@ make_backup_sandbox <- function(role = "Administrator") {
   env$get_backup_metadata <- function(dir) {
     list(total_count = 0L, total_size_bytes = 0L)
   }
+
+  # Real shared filename validator (path-traversal / extension policy).
+  env$is_valid_backup_filename <- .backup_functions_env$is_valid_backup_filename
 
   env
 }

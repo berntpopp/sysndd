@@ -175,6 +175,26 @@ function(req, res) {
     ))
   }
 
+  # Guard: refuse if the queue is already at capacity (soft, fail-open on DB error).
+  # "default" matches the queue create_job() enqueues on via async_job_service_submit.
+  if (async_job_capacity_exceeded(
+        tryCatch(
+          async_job_active_count("default"),
+          error = function(e) {
+            log_warn("async_job_active_count failed (capacity check fail-open): {e$message}")
+            0L
+          }
+        )
+      )) {
+    res$status <- 503
+    res$setHeader("Retry-After", "60")
+    return(list(
+      error = "CAPACITY_EXCEEDED",
+      message = "Analysis queue is at capacity. Please retry shortly.",
+      retry_after = 60
+    ))
+  }
+
   # Cache miss - create async job
   result <- create_job(
     operation = "clustering",
@@ -388,6 +408,26 @@ function(req, res) {
       estimated_seconds = 0,
       status_url = paste0("/api/jobs/", job_id, "/status"),
       meta = list(llm_generation = "snapshot_refresh_owned")
+    ))
+  }
+
+  # Guard: refuse if the queue is already at capacity (soft, fail-open on DB error).
+  # "default" matches the queue create_job() enqueues on via async_job_service_submit.
+  if (async_job_capacity_exceeded(
+        tryCatch(
+          async_job_active_count("default"),
+          error = function(e) {
+            log_warn("async_job_active_count failed (capacity check fail-open): {e$message}")
+            0L
+          }
+        )
+      )) {
+    res$status <- 503
+    res$setHeader("Retry-After", "60")
+    return(list(
+      error = "CAPACITY_EXCEEDED",
+      message = "Analysis queue is at capacity. Please retry shortly.",
+      retry_after = 60
     ))
   }
 
@@ -925,6 +965,30 @@ function(job_id, result_mode = "summary", req, res) {
       error = "INVALID_RESULT_MODE",
       message = "result_mode must be one of: summary, full"
     ))
+  }
+
+  if (identical(result_mode, "full")) {
+    job_row <- tryCatch(
+      async_job_repository_get(job_id),
+      error = function(e) NULL
+    )
+    if (is.null(job_row)) {
+      res$status <- 503
+      return(list(
+        error = "SERVICE_UNAVAILABLE",
+        message = "Unable to verify job access at this time."
+      ))
+    }
+    # Only gate jobs that exist; unknown ids fall through to JOB_NOT_FOUND (404)
+    # so we never disclose more (or less) than the unauthenticated summary path.
+    if (nrow(job_row) > 0 &&
+          !can_read_full_job_result(job_row$job_type[[1]], req$user_role)) {
+      res$status <- 403
+      return(list(
+        error = "FORBIDDEN",
+        message = "Full job results for this operation are not available at your access level."
+      ))
+    }
   }
 
   status <- get_job_status(job_id, result_mode = result_mode)

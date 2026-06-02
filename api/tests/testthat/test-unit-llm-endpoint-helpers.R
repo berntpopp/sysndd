@@ -281,15 +281,35 @@ db_available <- function() {
   )
 }
 
-test_that("get_cluster_summary returns 503 when Gemini not configured", {
+test_that("get_cluster_summary returns 404 on cache miss when generation not allowed (public path)", {
+  skip_if(!db_available(), "Database not available")
+
+  res <- new.env()
+  res$status <- 200L
+
+  # Use a hash that definitely won't be in cache. allow_generation defaults to
+  # FALSE (public path), so the security gate returns 404 before Gemini is
+  # consulted — regardless of Gemini configuration.
+  result <- get_cluster_summary("nonexistent_hash_xyz789", "999", "functional", res)
+
+  expect_equal(res$status, 404L)
+  expect_match(result$message, "not yet available", ignore.case = TRUE)
+})
+
+test_that("get_cluster_summary returns 503 when Gemini not configured (Curator+ path)", {
   skip_if(!db_available(), "Database not available")
   skip_if(is_gemini_configured(), "Test requires Gemini to NOT be configured")
 
   res <- new.env()
   res$status <- 200L
 
-  # Use a hash that definitely won't be in cache
-  result <- get_cluster_summary("nonexistent_hash_xyz789", "999", "functional", res)
+  # Use a hash that definitely won't be in cache. With allow_generation = TRUE
+  # (Curator+ caller), the function proceeds past the public gate and reaches
+  # the Gemini configuration check.
+  result <- get_cluster_summary(
+    "nonexistent_hash_xyz789", "999", "functional", res,
+    allow_generation = TRUE
+  )
 
   # Should return 503 since Gemini is not configured and cache miss
   expect_equal(res$status, 503L)

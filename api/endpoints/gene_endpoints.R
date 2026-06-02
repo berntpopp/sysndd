@@ -60,11 +60,17 @@ function(req,
   # Start time calculation
   start_time <- Sys.time()
 
+  # Derive allowlist from ndd_entity_view; returns NULL on transient DB error
+  # (legacy behavior: allowlist disabled, bare-identifier check still applies).
+  gene_allowed_cols <- allowed_columns_for_view("ndd_entity_view")
+
   # Generate sort expression
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol")
+  sort_exprs <- generate_sort_expressions(sort, unique_id = "symbol",
+    allowed_columns = gene_allowed_cols)
 
   # Generate filter expression
-  filter_exprs <- generate_filter_expressions(filter)
+  filter_exprs <- generate_filter_expressions(filter,
+    allowed_columns = gene_allowed_cols)
 
   is_compact <- isTRUE(tolower(as.character(compact[[1]])) %in% c("true", "1", "yes"))
 

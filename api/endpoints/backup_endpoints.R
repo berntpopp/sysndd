@@ -296,6 +296,15 @@ function(req, res) {
     ))
   }
 
+  # Path-traversal + extension guard (parity with /download and /delete)
+  if (!is_valid_backup_filename(filename)) {
+    res$status <- 400
+    return(list(
+      error = "INVALID_FILENAME",
+      message = "Filename contains invalid characters or has an unsupported extension"
+    ))
+  }
+
   # Validate file exists
   backup_path <- file.path("/backup", filename)
   if (!file.exists(backup_path)) {
@@ -456,23 +465,12 @@ function(req, res, filename) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Path traversal protection: reject any path separators
-  if (grepl("[/\\\\]", filename)) {
+  if (!is_valid_backup_filename(filename)) {
     res$status <- 400
     res$serializer <- serializer_json()
     return(list(
       error = "INVALID_FILENAME",
-      message = "Filename contains invalid characters"
-    ))
-  }
-
-  # Validate file extension: only .sql or .sql.gz allowed
-  if (!grepl("\\.(sql|sql\\.gz)$", filename)) {
-    res$status <- 400
-    res$serializer <- serializer_json()
-    return(list(
-      error = "INVALID_FILENAME",
-      message = "Filename must end with .sql or .sql.gz"
+      message = "Filename contains invalid characters or has an unsupported extension"
     ))
   }
 
@@ -556,21 +554,12 @@ function(req, res, filename) {
   # Require Administrator role
   require_role(req, res, "Administrator")
 
-  # Path traversal protection: reject any path separators
-  if (grepl("[/\\\\]", filename)) {
+  if (!is_valid_backup_filename(filename)) {
     res$status <- 400
+    res$serializer <- serializer_json()
     return(list(
       error = "INVALID_FILENAME",
-      message = "Filename contains invalid characters"
-    ))
-  }
-
-  # Validate file extension: only .sql or .sql.gz allowed
-  if (!grepl("\\.(sql|sql\\.gz)$", filename)) {
-    res$status <- 400
-    return(list(
-      error = "INVALID_FILENAME",
-      message = "Filename must end with .sql or .sql.gz"
+      message = "Filename contains invalid characters or has an unsupported extension"
     ))
   }
 

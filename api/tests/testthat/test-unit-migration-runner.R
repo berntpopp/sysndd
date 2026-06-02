@@ -243,8 +243,8 @@ describe("validate_migration_manifest", {
     migrations_dir <- file.path(api_dir, "..", "db", "migrations")
     result <- validate_migration_manifest(migrations_dir)
     expect_true(result$ok)
-    expect_equal(result$expected_latest, "024_add_public_analysis_snapshots.sql")
-    expect_true(result$count >= 25L)
+    expect_equal(result$expected_latest, "025_create_core_views.sql")
+    expect_true(result$count >= 26L)
   })
 })
 

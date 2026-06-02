@@ -56,7 +56,7 @@ nddscore_endpoint_not_found <- function(
     message = "No active NDDScore release is available.") {
   res$status <- 404L
   if (is.function(res$setHeader)) {
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
   }
   list(
     error = "not_found",

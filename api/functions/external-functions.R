@@ -1,6 +1,32 @@
 # functions/exernal-functions.R
 #### This file holds function for interaction with external resources
 
+#' Validate a URL is an https URL whose host exactly matches the archive base.
+#'
+#' Parses both URLs and compares scheme+host exactly (no substring/regex
+#' matching) to prevent host-spoofing of the archive credential.
+#'
+#' @param parameter_url Candidate URL string.
+#' @param archive_base_url Trusted base URL (dw$archive_base_url).
+#' @return Logical TRUE only for an https URL on the exact archive host.
+#' @export
+is_valid_archive_url <- function(parameter_url, archive_base_url) {
+  if (is.null(parameter_url) || length(parameter_url) != 1L ||
+        is.na(parameter_url) || parameter_url == "") {
+    return(FALSE)
+  }
+  parsed <- tryCatch(httr2::url_parse(parameter_url), error = function(e) NULL)
+  base <- tryCatch(httr2::url_parse(archive_base_url), error = function(e) NULL)
+  if (is.null(parsed) || is.null(base)) {
+    return(FALSE)
+  }
+  # Hostnames are case-insensitive; compare lower-cased to avoid false negatives
+  # on legitimate mixed-case URLs while keeping an exact (non-substring) match.
+  identical(parsed$scheme, "https") &&
+    !is.null(parsed$hostname) && !is.null(base$hostname) &&
+    identical(tolower(parsed$hostname), tolower(base$hostname))
+}
+
 #' Post URL to the Internet Archive using their SPN2 API
 #'
 #' @description
@@ -28,10 +54,9 @@ post_url_archive <- function(
   parameter_url,
   parameter_capture_screenshot = "on"
 ) {
-  # Validate URL is from SysNDD domain
-  # Additional checks: URL format, protocol (https), domain whitelist
-  url_valid <- str_detect(parameter_url, dw$archive_base_url) &&
-    str_starts(parameter_url, "https://") &&
+  # Validate URL is from SysNDD domain using exact-host check.
+  # Delegates to is_valid_archive_url() for consistent validation.
+  url_valid <- is_valid_archive_url(parameter_url, dw$archive_base_url) &&
     nchar(parameter_url) < 2048 # URL length sanity check
 
   if (url_valid) {

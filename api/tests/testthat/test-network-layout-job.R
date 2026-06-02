@@ -108,8 +108,10 @@ test_that("async worker binds shared memoise cache before starting", {
 test_that("network layout submit endpoint is mounted under jobs", {
   mount_script <- readLines(file.path(get_api_dir(), "bootstrap", "mount_endpoints.R"), warn = FALSE)
 
+  # Mounted via the mount_endpoint() helper so the sub-router inherits the
+  # RFC 9457 error/404 handlers (see bootstrap/mount_endpoints.R).
   expect_true(any(grepl(
-    'pr_mount\\("/api/jobs/network_layout", plumber::pr\\("endpoints/jobs_network_layout_endpoints.R"\\)\\)',
+    'pr_mount\\("/api/jobs/network_layout", mount_endpoint\\("endpoints/jobs_network_layout_endpoints.R"\\)\\)',
     mount_script
   )))
 })
