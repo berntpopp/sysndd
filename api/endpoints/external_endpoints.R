@@ -75,7 +75,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -90,7 +90,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       sprintf("Gene %s not found in gnomAD", symbol),
@@ -102,7 +102,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       result$message %||% "gnomAD API unavailable",
@@ -139,7 +139,7 @@ function(symbol, res, summary = "false") {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -156,7 +156,7 @@ function(symbol, res, summary = "false") {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       sprintf("Gene %s not found in gnomAD", symbol),
@@ -168,7 +168,7 @@ function(symbol, res, summary = "false") {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "gnomad",
       result$message %||% "gnomAD API unavailable",
@@ -210,7 +210,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "uniprot",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -225,7 +225,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "uniprot",
       sprintf("Gene %s not found in UniProt", symbol),
@@ -237,7 +237,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "uniprot",
       result$message %||% "UniProt API unavailable",
@@ -267,7 +267,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "ensembl",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -282,7 +282,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "ensembl",
       sprintf("Gene %s not found in Ensembl", symbol),
@@ -294,7 +294,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "ensembl",
       result$message %||% "Ensembl API unavailable",
@@ -324,7 +324,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "alphafold",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -339,7 +339,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "alphafold",
       sprintf("Gene %s not found in AlphaFold database", symbol),
@@ -351,7 +351,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "alphafold",
       result$message %||% "AlphaFold API unavailable",
@@ -381,7 +381,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "mgi",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -396,7 +396,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "mgi",
       sprintf("Gene %s not found in MGI", symbol),
@@ -408,7 +408,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "mgi",
       result$message %||% "MGI API unavailable",
@@ -440,7 +440,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "rgd",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -473,7 +473,7 @@ function(symbol, res) {
   # If no RGD ID in database, return not found
   if (is.null(rgd_id) || nchar(rgd_id) == 0) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "rgd",
       sprintf("No RGD ID available for gene %s", symbol),
@@ -488,7 +488,7 @@ function(symbol, res) {
   # Handle not found
   if (is.list(result) && isTRUE(result$found == FALSE)) {
     res$status <- 404L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "rgd",
       sprintf("Gene %s not found in RGD", symbol),
@@ -500,7 +500,7 @@ function(symbol, res) {
   # Handle error
   if (is.list(result) && isTRUE(result$error)) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "rgd",
       result$message %||% "RGD API unavailable",
@@ -531,7 +531,7 @@ function(symbol, res) {
   # Validate input
   if (!validate_gene_symbol(symbol)) {
     res$status <- 400L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(create_external_error(
       "external_aggregation",
       sprintf("Invalid gene symbol: %s", symbol),
@@ -561,7 +561,7 @@ function(symbol, res) {
   successful_sources <- Filter(function(s) !isTRUE(s$found == FALSE), results$sources)
   if (!isTRUE(results$partial) && length(successful_sources) == 0 && length(results$errors) > 0) {
     res$status <- 503L
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(list(
       type = "https://sysndd.org/problems/all-sources-failed",
       title = "All external data sources unavailable",

@@ -19,10 +19,12 @@ mount_path <- file.path(get_api_dir(), "bootstrap", "mount_endpoints.R")
 mount_src <- readLines(mount_path, warn = FALSE)
 mount_blob <- paste(mount_src, collapse = "\n")
 
-test_that("mount_endpoint helper attaches the RFC 9457 errorHandler", {
+test_that("mount_endpoint helper attaches the RFC 9457 error + 404 handlers", {
   expect_match(mount_blob, "mount_endpoint\\s*<-\\s*function\\(file\\)")
-  # The helper body must wire pr_set_error(errorHandler).
+  # The helper body must wire pr_set_error(errorHandler) ...
   expect_match(mount_blob, "plumber::pr\\(file\\)\\s*%>%\\s*\\n\\s*plumber::pr_set_error\\(errorHandler\\)")
+  # ... and pr_set_404(notFoundHandler) so sub-path 404s are RFC 9457 too.
+  expect_match(mount_blob, "plumber::pr_set_404\\(notFoundHandler\\)")
 })
 
 test_that("every endpoint sub-router is mounted through mount_endpoint()", {

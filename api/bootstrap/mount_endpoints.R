@@ -43,16 +43,18 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
   }
 
   # Build a mounted endpoint sub-router that inherits the API's RFC 9457 error
-  # handling. Plumber does NOT propagate the root router's error handler to
-  # mounted sub-routers (each router keeps its own), so a thrown classed error
-  # (e.g. stop_for_bad_request() -> error_400) inside an endpoint would
-  # otherwise fall back to plumber's default opaque `{"error":"500 ..."}`
-  # instead of being mapped to the correct status + problem+json by
-  # errorHandler. Attaching it here keeps error responses consistent across
-  # every /api/<subpath>. Static guard: tests/testthat/test-unit-endpoint-error-handler.R
+  # and 404 handling. Plumber does NOT propagate the root router's error/404
+  # handlers to mounted sub-routers (each router keeps its own), so a thrown
+  # classed error (e.g. stop_for_bad_request() -> error_400) or an unknown
+  # sub-path would otherwise fall back to plumber's default opaque
+  # `{"error":"500 ..."}` / `{"error":"404 ..."}` instead of being mapped to the
+  # correct status + problem+json by errorHandler / notFoundHandler. Attaching
+  # them here keeps error and not-found responses consistent across every
+  # /api/<subpath>. Static guard: tests/testthat/test-unit-endpoint-error-handler.R
   mount_endpoint <- function(file) {
     plumber::pr(file) %>%
-      plumber::pr_set_error(errorHandler)
+      plumber::pr_set_error(errorHandler) %>%
+      plumber::pr_set_404(notFoundHandler)
   }
 
   plumber::pr() %>%

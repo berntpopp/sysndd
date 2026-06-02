@@ -106,7 +106,7 @@ corsFilter <- function(req, res) {
              origin = origin,
              allowed = paste(allowed_origins, collapse = ", "))
     res$status <- 403
-    res$setHeader("Content-Type", "application/problem+json")
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     return(list(
       type = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403",
       title = "Forbidden",
@@ -206,8 +206,9 @@ checkSignInFilter <- function(req, res) {
 #' @return RFC 9457 problem details response
 notFoundHandler <- function(req, res) {
   res$status <- 404
-  res$setHeader("Content-Type", "application/problem+json")
-  res$serializer <- plumber::serializer_unboxed_json()
+  # Let the serializer set Content-Type so problem+json is emitted exactly once
+  # (a manual setHeader plus the serializer's own type yields a duplicate header).
+  res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
   list(
     type = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
     title = "Not Found",
@@ -249,9 +250,6 @@ errorHandler <- function(req, res, err) {
     cat(sprintf("[ERROR] %s: %s\n", class(err)[1], err_msg), file = stderr())
   })
 
-  # Set content type for all error responses
-  res$setHeader("Content-Type", "application/problem+json")
-
   # Get request path for 'instance' field (RFC 9457)
   instance <- tryCatch(req$PATH_INFO, error = function(e) NULL)
 
@@ -259,8 +257,9 @@ errorHandler <- function(req, res, err) {
   # Uses unbox() wrapper for proper scalar serialization
   make_problem_response <- function(title, status_code, detail_msg) {
     res$status <- status_code
-    # Use serializer_unboxed_json for proper scalar values
-    res$serializer <- plumber::serializer_unboxed_json()
+    # serializer_unboxed_json sets Content-Type to problem+json exactly once;
+    # a manual setHeader plus the serializer's own type yields a duplicate header.
+    res$serializer <- plumber::serializer_unboxed_json(type = "application/problem+json")
     list(
       type = paste0("https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/", status_code),
       title = title,
