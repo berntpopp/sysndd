@@ -126,8 +126,10 @@ test.describe('curate: Modify Entity', () => {
     expect(Array.isArray(body.data)).toBeTruthy();
     expect(body.data[0]?.entity_id).toBe(123);
 
-    // Documents WHY the fields were trimmed: requesting is_active/replaced_by/
-    // details (absent from the view) is a hard error, never a 200.
+    // Documents WHY the fields were trimmed AND that mounted sub-routers now
+    // inherit the RFC 9457 error handler: requesting is_active/replaced_by/
+    // details (absent from the view) is a client error -> 400 problem+json,
+    // not the old opaque 500.
     const regressed = await request.get('/api/entity/', {
       params: {
         filter: 'equals(entity_id,123)',
@@ -136,6 +138,10 @@ test.describe('curate: Modify Entity', () => {
         compact: 'true',
       },
     });
-    expect(regressed.ok()).toBeFalsy();
+    expect(regressed.status(), await regressed.text()).toBe(400);
+    expect(regressed.headers()['content-type']).toContain('problem+json');
+    const problem = await regressed.json();
+    expect(problem.status).toBe(400);
+    expect(typeof problem.detail).toBe('string');
   });
 });

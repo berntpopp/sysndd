@@ -590,7 +590,16 @@ select_tibble_fields <- function(
     selection_tibble <- selection_tibble %>%
       dplyr::select(all_of(fields_requested))
   } else {
-    stop("Some requested fields are not in the column names.")
+    # A request for fields the queried view/tibble does not expose is a client
+    # error (400), not a server fault (500). With mount_endpoints.R now routing
+    # every sub-router through errorHandler, this error_400 maps to a proper
+    # 400 + problem+json. Name the offending columns so a frontend/view schema
+    # mismatch is debuggable.
+    missing_fields <- setdiff(fields_requested, tibble_colnames)
+    stop_for_bad_request(sprintf(
+      "Some requested fields are not in the column names: %s",
+      paste(missing_fields, collapse = ", ")
+    ))
   }
   return(selection_tibble)
 }

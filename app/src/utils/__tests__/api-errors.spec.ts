@@ -36,9 +36,24 @@ describe('extractApiErrorMessage', () => {
   it('returns fallback for nullish and unrecognized errors', () => {
     expect(extractApiErrorMessage(undefined, fallback)).toBe(fallback);
     expect(extractApiErrorMessage(null, fallback)).toBe(fallback);
+    expect(extractApiErrorMessage({ response: { data: {} } }, fallback)).toBe(fallback);
+  });
+
+  it('reads RFC 9457 problem+json detail, then title', () => {
+    // The API's errorHandler returns application/problem+json
+    // ({type,title,status,detail,instance}) for thrown errors — no message/error
+    // keys — so detail is the human-readable explanation to surface.
     expect(
-      extractApiErrorMessage({ response: { data: { detail: 'not supported' } } }, fallback)
-    ).toBe(fallback);
+      extractApiErrorMessage(
+        { response: { data: { title: 'Bad Request', detail: 'Column not allowed: foo' } } },
+        fallback
+      )
+    ).toBe('Column not allowed: foo');
+
+    // title is used when detail is absent.
+    expect(
+      extractApiErrorMessage({ response: { data: { title: 'Not Found' } } }, fallback)
+    ).toBe('Not Found');
   });
 
   it('returns the first string from array-shaped message and error values', () => {

@@ -42,6 +42,19 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
       })
   }
 
+  # Build a mounted endpoint sub-router that inherits the API's RFC 9457 error
+  # handling. Plumber does NOT propagate the root router's error handler to
+  # mounted sub-routers (each router keeps its own), so a thrown classed error
+  # (e.g. stop_for_bad_request() -> error_400) inside an endpoint would
+  # otherwise fall back to plumber's default opaque `{"error":"500 ..."}`
+  # instead of being mapped to the correct status + problem+json by
+  # errorHandler. Attaching it here keeps error responses consistent across
+  # every /api/<subpath>. Static guard: tests/testthat/test-unit-endpoint-error-handler.R
+  mount_endpoint <- function(file) {
+    plumber::pr(file) %>%
+      plumber::pr_set_error(errorHandler)
+  }
+
   plumber::pr() %>%
     # Install error handler middleware
     plumber::pr_set_error(errorHandler) %>%
@@ -96,42 +109,42 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     ####################################################################
     # Mount health endpoint for Docker HEALTHCHECK
     ####################################################################
-    plumber::pr_mount("/api/health", plumber::pr("endpoints/health_endpoints.R")) %>%
+    plumber::pr_mount("/api/health", mount_endpoint("endpoints/health_endpoints.R")) %>%
     ####################################################################
     # Mount version endpoint for API version discovery
     ####################################################################
-    plumber::pr_mount("/api/version", plumber::pr("endpoints/version_endpoints.R")) %>%
+    plumber::pr_mount("/api/version", mount_endpoint("endpoints/version_endpoints.R")) %>%
     ####################################################################
     # Mount each endpoint file at /api/<subpath>
     ####################################################################
-    plumber::pr_mount("/api/entity", plumber::pr("endpoints/entity_endpoints.R")) %>%
-    plumber::pr_mount("/api/review", plumber::pr("endpoints/review_endpoints.R")) %>%
-    plumber::pr_mount("/api/re_review", plumber::pr("endpoints/re_review_endpoints.R")) %>%
-    plumber::pr_mount("/api/publication", plumber::pr("endpoints/publication_endpoints.R")) %>%
-    plumber::pr_mount("/api/gene", plumber::pr("endpoints/gene_endpoints.R")) %>%
-    plumber::pr_mount("/api/ontology", plumber::pr("endpoints/ontology_endpoints.R")) %>%
-    plumber::pr_mount("/api/phenotype", plumber::pr("endpoints/phenotype_endpoints.R")) %>%
-    plumber::pr_mount("/api/status", plumber::pr("endpoints/status_endpoints.R")) %>%
-    plumber::pr_mount("/api/panels", plumber::pr("endpoints/panels_endpoints.R")) %>%
-    plumber::pr_mount("/api/comparisons", plumber::pr("endpoints/comparisons_endpoints.R")) %>%
-    plumber::pr_mount("/api/analysis", plumber::pr("endpoints/analysis_endpoints.R")) %>%
-    plumber::pr_mount("/api/jobs/network_layout", plumber::pr("endpoints/jobs_network_layout_endpoints.R")) %>%
-    plumber::pr_mount("/api/jobs", plumber::pr("endpoints/jobs_endpoints.R")) %>%
-    plumber::pr_mount("/api/hash", plumber::pr("endpoints/hash_endpoints.R")) %>%
-    plumber::pr_mount("/api/search", plumber::pr("endpoints/search_endpoints.R")) %>%
-    plumber::pr_mount("/api/list", plumber::pr("endpoints/list_endpoints.R")) %>%
-    plumber::pr_mount("/api/logs", plumber::pr("endpoints/logging_endpoints.R")) %>%
-    plumber::pr_mount("/api/user", plumber::pr("endpoints/user_endpoints.R")) %>%
-    plumber::pr_mount("/api/auth", plumber::pr("endpoints/authentication_endpoints.R")) %>%
-    plumber::pr_mount("/api/about", plumber::pr("endpoints/about_endpoints.R")) %>%
-    plumber::pr_mount("/api/seo", plumber::pr("endpoints/seo_endpoints.R")) %>%
-    plumber::pr_mount("/api/admin", plumber::pr("endpoints/admin_endpoints.R")) %>%
-    plumber::pr_mount("/api/llm", plumber::pr("endpoints/llm_admin_endpoints.R")) %>%
-    plumber::pr_mount("/api/backup", plumber::pr("endpoints/backup_endpoints.R")) %>%
-    plumber::pr_mount("/api/external", plumber::pr("endpoints/external_endpoints.R")) %>%
-    plumber::pr_mount("/api/statistics", plumber::pr("endpoints/statistics_endpoints.R")) %>%
-    plumber::pr_mount("/api/variant", plumber::pr("endpoints/variant_endpoints.R")) %>%
-    plumber::pr_mount("/api/nddscore", plumber::pr("endpoints/nddscore_endpoints.R")) %>%
+    plumber::pr_mount("/api/entity", mount_endpoint("endpoints/entity_endpoints.R")) %>%
+    plumber::pr_mount("/api/review", mount_endpoint("endpoints/review_endpoints.R")) %>%
+    plumber::pr_mount("/api/re_review", mount_endpoint("endpoints/re_review_endpoints.R")) %>%
+    plumber::pr_mount("/api/publication", mount_endpoint("endpoints/publication_endpoints.R")) %>%
+    plumber::pr_mount("/api/gene", mount_endpoint("endpoints/gene_endpoints.R")) %>%
+    plumber::pr_mount("/api/ontology", mount_endpoint("endpoints/ontology_endpoints.R")) %>%
+    plumber::pr_mount("/api/phenotype", mount_endpoint("endpoints/phenotype_endpoints.R")) %>%
+    plumber::pr_mount("/api/status", mount_endpoint("endpoints/status_endpoints.R")) %>%
+    plumber::pr_mount("/api/panels", mount_endpoint("endpoints/panels_endpoints.R")) %>%
+    plumber::pr_mount("/api/comparisons", mount_endpoint("endpoints/comparisons_endpoints.R")) %>%
+    plumber::pr_mount("/api/analysis", mount_endpoint("endpoints/analysis_endpoints.R")) %>%
+    plumber::pr_mount("/api/jobs/network_layout", mount_endpoint("endpoints/jobs_network_layout_endpoints.R")) %>%
+    plumber::pr_mount("/api/jobs", mount_endpoint("endpoints/jobs_endpoints.R")) %>%
+    plumber::pr_mount("/api/hash", mount_endpoint("endpoints/hash_endpoints.R")) %>%
+    plumber::pr_mount("/api/search", mount_endpoint("endpoints/search_endpoints.R")) %>%
+    plumber::pr_mount("/api/list", mount_endpoint("endpoints/list_endpoints.R")) %>%
+    plumber::pr_mount("/api/logs", mount_endpoint("endpoints/logging_endpoints.R")) %>%
+    plumber::pr_mount("/api/user", mount_endpoint("endpoints/user_endpoints.R")) %>%
+    plumber::pr_mount("/api/auth", mount_endpoint("endpoints/authentication_endpoints.R")) %>%
+    plumber::pr_mount("/api/about", mount_endpoint("endpoints/about_endpoints.R")) %>%
+    plumber::pr_mount("/api/seo", mount_endpoint("endpoints/seo_endpoints.R")) %>%
+    plumber::pr_mount("/api/admin", mount_endpoint("endpoints/admin_endpoints.R")) %>%
+    plumber::pr_mount("/api/llm", mount_endpoint("endpoints/llm_admin_endpoints.R")) %>%
+    plumber::pr_mount("/api/backup", mount_endpoint("endpoints/backup_endpoints.R")) %>%
+    plumber::pr_mount("/api/external", mount_endpoint("endpoints/external_endpoints.R")) %>%
+    plumber::pr_mount("/api/statistics", mount_endpoint("endpoints/statistics_endpoints.R")) %>%
+    plumber::pr_mount("/api/variant", mount_endpoint("endpoints/variant_endpoints.R")) %>%
+    plumber::pr_mount("/api/nddscore", mount_endpoint("endpoints/nddscore_endpoints.R")) %>%
     ####################################################################
     # preroute / postroute hooks for timing & logging
     ####################################################################

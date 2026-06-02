@@ -3,6 +3,10 @@ interface AxiosLikeError {
     data?: {
       message?: unknown;
       error?: unknown;
+      // RFC 9457 problem+json (application/problem+json) returned by the API's
+      // errorHandler for thrown errors — these carry no message/error key.
+      detail?: unknown;
+      title?: unknown;
     };
   };
   message?: unknown;
@@ -34,6 +38,8 @@ export function extractApiErrorMessage(err: unknown, fallback: string): string {
   return (
     unwrapMessageValue(apiError.response?.data?.message) ??
     unwrapMessageValue(apiError.response?.data?.error) ??
+    unwrapMessageValue(apiError.response?.data?.detail) ??
+    unwrapMessageValue(apiError.response?.data?.title) ??
     unwrapMessageValue(apiError.message) ??
     fallback
   );
