@@ -28,6 +28,15 @@ interface ReviewSnapshot {
   genereviews: string[];
 }
 
+// Fields loadEntity() asks the entity-LIST endpoint (GET /api/entity/) for.
+// This list MUST be a subset of the columns `ndd_entity_view` exposes
+// (db/migrations/025_create_core_views.sql) + `synopsis` from the review
+// left-join: the API's select_tibble_fields() hard-fails (HTTP 500) when any
+// requested field is absent from the view. `is_active`, `replaced_by` and
+// `details` are NOT in that view, so they must not be requested here:
+//   - `details` is never read by the rename/deactivate handlers.
+//   - `is_active`/`replaced_by` are set explicitly by the deactivate mutation
+//     (useEntityMutations) before submit, so they don't need to be loaded.
 const ENTITY_MUTATION_FIELDS = [
   'entity_id',
   'symbol',
@@ -39,9 +48,6 @@ const ENTITY_MUTATION_FIELDS = [
   'category',
   'ndd_phenotype',
   'ndd_phenotype_word',
-  'is_active',
-  'replaced_by',
-  'details',
 ].join(',');
 
 const arrEqual = (a: string[], b: string[]) => {
