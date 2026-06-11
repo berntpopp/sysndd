@@ -239,13 +239,33 @@ ci-local: ## [quality] Run CI checks locally (lint + test with DB - mirrors GitH
 		SECONDS=$$((SECONDS+1)); \
 	done
 	@printf "$(CYAN)Resetting test database for CI parity...$(RESET)\n"
-	@cd $(ROOT_DIR) && { \
+	@# Reset strategy (issue #360): try root first so we can GRANT to the
+	@# `bernt` test user, then fall back to the regular MYSQL_USER. In the
+	@# default local profile the root-over-TCP attempt is EXPECTED to fail
+	@# (`ERROR 1045 (28000): Access denied for user 'root'@...`) because the
+	@# dev MySQL container does not grant root over the 127.0.0.1 host; the
+	@# fallback path is the one that normally succeeds. We capture both
+	@# attempts and only surface the captured output when the WHOLE reset
+	@# genuinely fails, so a successful run no longer prints an alarming
+	@# access-denied error. A real connectivity/permission failure (both
+	@# attempts down) still prints the diagnostics and still fails the run.
+	@# NB: `if ! VAR=$$(...)` keeps the capture safe under `set -e` — a failing
+	@# substitution is consumed by the `if` test instead of aborting the recipe
+	@# before we can print diagnostics.
+	@cd $(ROOT_DIR); \
+	if RESET_LOG=$$( { \
 		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
 			'mysql -h127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON sysndd_db_test.* TO '\''bernt'\''@'\''%'\'';"' || \
 		$(COMPOSE_DB_DEV) exec -T mysql-test sh -c \
 			'mysql -h127.0.0.1 -u"$$MYSQL_USER" -p"$$MYSQL_PASSWORD" -e "DROP DATABASE IF EXISTS sysndd_db_test; CREATE DATABASE sysndd_db_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"'; \
-	} && printf "$(GREEN)✓ Test database reset$(RESET)\n" || \
-		($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
+	} 2>&1 ); then \
+		printf "$(GREEN)✓ Test database reset$(RESET)\n"; \
+	else \
+		printf "$(RED)✗ Test database reset failed (both root and fallback user)$(RESET)\n"; \
+		printf '%s\n' "$$RESET_LOG"; \
+		$(MAKE) -C $(ROOT_DIR) _ci-cleanup; \
+		exit 1; \
+	fi
 	@printf "\n$(CYAN)[3/7] Linting R code...$(RESET)\n"
 	@$(MAKE) lint-api || ($(MAKE) -C $(ROOT_DIR) _ci-cleanup && exit 1)
 	@printf "\n$(CYAN)[4/7] Linting frontend code...$(RESET)\n"
