@@ -1065,6 +1065,9 @@ export default {
 
         this.makeToast(message, 'Logs Deleted', 'success');
         this.showDeleteModal = false;
+        // Reset mode explicitly: with v-if the modal unmounts before @hidden fires,
+        // so the child's hidden-reset never runs in this usage
+        this.deleteMode = 'all';
         // Reset and reload
         this.currentItemID = 0;
         this.loadData();
