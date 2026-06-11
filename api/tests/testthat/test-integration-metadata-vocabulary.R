@@ -19,7 +19,42 @@ source_api_file("services/metadata-vocabulary-service.R", local = FALSE)
 modifier_descriptor <- metadata_vocabulary_descriptor("modifier")
 status_descriptor <- metadata_vocabulary_descriptor("status_category")
 
+# The CI test database starts minimal — tests create only the schema they need
+# rather than loading the full application schema (see helper-db.R). These
+# vocabulary + reference tables come from the base migration; skip when they are
+# not present so the suite stays green on a minimal DB and runs fully against a
+# complete one (mirrors skip_if_missing_entity_rename_schema).
+skip_if_missing_metadata_vocab_schema <- function() {
+  conn <- tryCatch(get_test_db_connection(), error = function(e) NULL)
+  if (is.null(conn)) {
+    return(invisible(FALSE))
+  }
+  on.exit(DBI::dbDisconnect(conn), add = TRUE)
+  required_tables <- c(
+    "modifier_list",
+    "ndd_entity_status_categories_list",
+    "mode_of_inheritance_list",
+    "variation_ontology_list",
+    "ndd_review_phenotype_connect",
+    "ndd_review_variation_ontology_connect",
+    "ndd_entity_status"
+  )
+  missing_tables <- required_tables[!vapply(
+    required_tables,
+    function(table) DBI::dbExistsTable(conn, table),
+    logical(1)
+  )]
+  if (length(missing_tables) > 0) {
+    testthat::skip(paste0(
+      "metadata vocabulary schema not present in test DB (missing: ",
+      paste(missing_tables, collapse = ", "), ")"
+    ))
+  }
+  invisible(TRUE)
+}
+
 test_that("modifier round-trip: create, update, soft-delete unused value", {
+  skip_if_missing_metadata_vocab_schema()
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
 
@@ -53,6 +88,7 @@ test_that("modifier round-trip: create, update, soft-delete unused value", {
 })
 
 test_that("status category in-use delete is blocked with a 400", {
+  skip_if_missing_metadata_vocab_schema()
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
 
@@ -82,6 +118,7 @@ test_that("status category in-use delete is blocked with a 400", {
 })
 
 test_that("anchored inheritance vocabulary lists and updates curated fields", {
+  skip_if_missing_metadata_vocab_schema()
   with_test_db_transaction({
     conn <- getOption(".test_db_con")
 
