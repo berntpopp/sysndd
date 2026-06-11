@@ -506,7 +506,8 @@ summarise_gnomad_clinvar_variants <- function(variants) {
 #' @export
 fetch_gnomad_constraints_mem <- memoise_external_success_only(
   fetch_gnomad_constraints,
-  cache = cache_static
+  cache = cache_static,
+  source = "gnomad"
 )
 
 
@@ -522,5 +523,6 @@ fetch_gnomad_constraints_mem <- memoise_external_success_only(
 #' @export
 fetch_gnomad_clinvar_variants_mem <- memoise_external_success_only(
   fetch_gnomad_clinvar_variants,
-  cache = cache_dynamic
+  cache = cache_dynamic,
+  source = "gnomad"
 )

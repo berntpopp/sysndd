@@ -217,5 +217,6 @@ fetch_uniprot_domains <- function(gene_symbol) {
 #' @export
 fetch_uniprot_domains_mem <- memoise_external_success_only(
   fetch_uniprot_domains,
-  cache = cache_stable
+  cache = cache_stable,
+  source = "uniprot"
 )
