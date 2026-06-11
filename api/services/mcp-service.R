@@ -203,6 +203,21 @@ mcp_drop_nested_schema_version <- function(item) {
   item
 }
 
+# Return the first non-NA, non-empty value from a column-like vector, or NULL.
+# Used to promote per-link scalar attributes (e.g. publication_type) to a
+# top-level field without being defeated by a NULL leading join row (issue #353).
+mcp_first_nonempty_value <- function(values) {
+  if (is.null(values) || length(values) == 0L) {
+    return(NULL)
+  }
+  values <- values[!is.na(values)]
+  values <- values[nzchar(trimws(as.character(values)))]
+  if (length(values) == 0L) {
+    return(NULL)
+  }
+  values[[1]]
+}
+
 mcp_compact_phenotypes <- function(rows) {
   if (is.null(rows) || nrow(rows) == 0L) {
     return(list())
