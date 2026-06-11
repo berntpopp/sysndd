@@ -12,46 +12,51 @@ library(config)     ## needed to read config file
 
 
 ############################################
-## define relative script path
-project_topic <- "sysndd"
-project_name <- "R"
-
-## read configs
-config_vars_proj <- config::get(file = Sys.getenv("CONFIG_FILE"),
-    config = project_topic)
-
-## set working directory
-setwd(paste0(config_vars_proj$projectsdir, project_name))
-
-## set global options
-options(scipen = 999)
+## SysNDD data-prep bootstrap (issue #33): locate db/config, then db_bootstrap()
+## sets SYSNDD_DB_DIR, anchors CWD to db/, sources db_sysid_source.R, sets db_src.
+.f <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+if (is.null(.f)) .f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+.cfg <- if (nzchar(Sys.getenv("SYSNDD_DB_DIR"))) {
+  file.path(Sys.getenv("SYSNDD_DB_DIR"), "config")
+} else {
+  file.path(dirname(normalizePath(.f[1])), "config")
+}
+source(file.path(.cfg, "db_config.R"))
+config_vars_proj <- db_bootstrap()
 ############################################
 
 
 
 ############################################
-##connect to online sysid database
-## make ssh connection
-cmd <- paste0('ssh::ssh_tunnel(ssh::ssh_connect(host = "',
-  config_vars_proj$host_sysid,
-  ', passwd = "',
-  config_vars_proj$passwd_sysid,
-  '"), port = ',
-  config_vars_proj$port_sysid_local,
-  ', target = "',
-  config_vars_proj$server_sysid_local,
-  ':',
-  config_vars_proj$port_sysid_local,
-  '")')
+## connect to the SysID source (issue #33: reproducible import)
+## db_sysid_source_mode() selects "sqlite" (a local, reproducible snapshot —
+## recommended) or "mysql" (the legacy upstream SysID DB over an SSH tunnel).
+## See db/config/db_sysid_source.R and db/README.md "Reproducible SysID import".
+sysid_mode <- db_sysid_source_mode(config_vars_proj)
 
-pid <- sys::r_background(
-    std_out = FALSE,
-    std_err = FALSE,
-    args = c("-e", cmd)
-)
+if (sysid_mode == "mysql") {
+  ## legacy path: open an SSH tunnel to the upstream SysID MySQL instance.
+  cmd <- paste0('ssh::ssh_tunnel(ssh::ssh_connect(host = "',
+    config_vars_proj$host_sysid,
+    ', passwd = "',
+    config_vars_proj$passwd_sysid,
+    '"), port = ',
+    config_vars_proj$port_sysid_local,
+    ', target = "',
+    config_vars_proj$server_sysid_local,
+    ':',
+    config_vars_proj$port_sysid_local,
+    '")')
 
-## connect to the database
-sysid_db <- dbConnect(RMariaDB::MariaDB(), dbname = config_vars_proj$dbname_sysid, user = config_vars_proj$user_sysid, password = config_vars_proj$password_sysid, server = config_vars_proj$server_sysid_local, port = config_vars_proj$port_sysid_local)
+  pid <- sys::r_background(
+      std_out = FALSE,
+      std_err = FALSE,
+      args = c("-e", cmd)
+  )
+}
+
+## open a source-agnostic connection (SQLite snapshot or tunnelled MySQL)
+sysid_db <- db_sysid_connect(config_vars_proj, mode = sysid_mode)
 ############################################
 
 

@@ -1,0 +1,38 @@
+## db/config/db_sources.yml.example
+##
+## OPTIONAL override file for the external data-source URLs used by the SysNDD
+## data-prep scripts. Copy this to `db/config/db_sources.yml` ONLY if you need
+## to point a script at a mirror or a pinned upstream version. If this file is
+## absent, the built-in defaults in `db/config/db_config.R`
+## (`.db_source_defaults`) are used.
+##
+## These are public, non-secret base URLs. Do NOT put API keys or credentials
+## here — credentials belong in `db/config/sysndd_db.yml` (gitignored).
+##
+## Any key you omit falls back to its built-in default. Keys may be nested under
+## a top-level `sources:` block (shown here) or placed at the top level.
+
+sources:
+  # HGNC complete gene set (TSV) — script 01.
+  hgnc_non_alt_loci_set: "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt"
+
+  # genenames.org REST search base — scripts 02, 04, 11.
+  # Full URLs are built as "<base>/<field>/<value>".
+  genenames_rest_base: "http://rest.genenames.org/search"
+
+  # Human Phenotype Ontology term API base — scripts 02, 03, 04, 11.
+  # Full URLs are built as "<base>/<url-encoded term id>".
+  hpo_term_api_base: "https://hpo.jax.org/api/hpo/term"
+
+  # EBI OxO cross-ontology mappings API — scripts 02, 04.
+  # Full URLs are built as "<base>?fromId=<id>".
+  oxo_mappings_api: "https://www.ebi.ac.uk/spot/oxo/api/mappings"
+
+  # NCBI E-utilities efetch endpoint — script 08.
+  ncbi_eutils_efetch: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+
+  # NCBI Bookshelf / GeneReviews base — script 08.
+  ncbi_books_base: "https://www.ncbi.nlm.nih.gov/books"
+
+  # Variation Ontology OBO download — script 12.
+  vario_obo: "http://www.variationontology.org/vario_download/vario.obo"

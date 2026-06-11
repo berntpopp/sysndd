@@ -7,19 +7,17 @@ library(config)     ## needed to read config file
 
 
 ############################################
-## define relative script path
-project_topic <- "sysndd"
-project_name <- "R"
-
-## read configs
-config_vars_proj <- config::get(file = Sys.getenv("CONFIG_FILE"),
-    config = project_topic)
-
-## set working directory
-setwd(paste0(config_vars_proj$projectsdir, project_name))
-
-## set global options
-options(scipen = 999)
+## SysNDD data-prep bootstrap (issue #33): locate db/config, then db_bootstrap()
+## sets SYSNDD_DB_DIR, anchors CWD to db/, sources db_sysid_source.R, sets db_src.
+.f <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+if (is.null(.f)) .f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+.cfg <- if (nzchar(Sys.getenv("SYSNDD_DB_DIR"))) {
+  file.path(Sys.getenv("SYSNDD_DB_DIR"), "config")
+} else {
+  file.path(dirname(normalizePath(.f[1])), "config")
+}
+source(file.path(.cfg, "db_config.R"))
+config_vars_proj <- db_bootstrap()
 ############################################
 
 
@@ -27,7 +25,7 @@ options(scipen = 999)
 ## define functions
 
 hgnc_id_from_prevsymbol <- function(symbol_input)  {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/prev_symbol/", symbol_input))
+  symbol_request <- fromJSON(db_genenames_search_url("prev_symbol", symbol_input, db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -42,7 +40,7 @@ hgnc_id_from_prevsymbol <- function(symbol_input)  {
 }
 
 hgnc_id_from_aliassymbol <- function(symbol_input)  {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/alias_symbol/", symbol_input))
+  symbol_request <- fromJSON(db_genenames_search_url("alias_symbol", symbol_input, db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -59,7 +57,7 @@ hgnc_id_from_aliassymbol <- function(symbol_input)  {
 hgnc_id_from_symbol <- function(symbol_tibble) {
   symbol_list_tibble <- as_tibble(symbol_tibble) %>% select(symbol = value) %>% mutate(symbol = toupper(symbol))
   
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(symbol_list_tibble$symbol, collapse = "+OR+")))
+  symbol_request <- fromJSON(db_genenames_search_url("symbol", str_c(symbol_list_tibble$symbol, collapse = "+OR+"), db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -107,7 +105,7 @@ hgnc_id_from_symbol_grouped <- function(input_tibble, request_max = 150) {
 ## to do: make this recursive and independent of global variable
 
 HPO_name_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_name <- as_tibble(hpo_term_response$details$name) %>%
   select(hpo_mode_of_inheritance_term_name = value)
 
@@ -116,7 +114,7 @@ HPO_name_from_term <- function(term_input_id) {
 
 
 HPO_definition_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_definition <- as_tibble(hpo_term_response$details$definition) %>%
   select(hpo_mode_of_inheritance_term_definition = value)
 
@@ -125,7 +123,7 @@ HPO_definition_from_term <- function(term_input_id) {
 
 
 HPO_children_count_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_children_count <- as_tibble(hpo_term_response$relations$children)
 
   return(length(hpo_term_children_count))
@@ -133,7 +131,7 @@ HPO_children_count_from_term <- function(term_input_id) {
 
 
 HPO_children_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_children <- as_tibble(hpo_term_response$relations$children)
 
   return(hpo_term_children)
@@ -162,7 +160,7 @@ HPO_all_children_from_term <- function(term_input) {
 
 oxo_mapping_from_ontology_id <- function(ontology_id)  {
 
-  url <- paste0("https://www.ebi.ac.uk/spot/oxo/api/mappings?fromId=", ontology_id)
+  url <- db_oxo_mappings_url(ontology_id, db_src)
   
   # try again while error
   # implemented in April 2023 because of

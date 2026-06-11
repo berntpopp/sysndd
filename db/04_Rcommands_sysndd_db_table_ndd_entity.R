@@ -12,19 +12,17 @@ library(config)     ## needed to read config file
 
 
 ############################################
-## define relative script path
-project_topic <- "sysndd"
-project_name <- "R"
-
-## read configs
-config_vars_proj <- config::get(file = Sys.getenv("CONFIG_FILE"),
-    config = project_topic)
-
-## set working directory
-setwd(paste0(config_vars_proj$projectsdir, project_name))
-
-## set global options
-options(scipen = 999)
+## SysNDD data-prep bootstrap (issue #33): locate db/config, then db_bootstrap()
+## sets SYSNDD_DB_DIR, anchors CWD to db/, sources db_sysid_source.R, sets db_src.
+.f <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+if (is.null(.f)) .f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+.cfg <- if (nzchar(Sys.getenv("SYSNDD_DB_DIR"))) {
+  file.path(Sys.getenv("SYSNDD_DB_DIR"), "config")
+} else {
+  file.path(dirname(normalizePath(.f[1])), "config")
+}
+source(file.path(.cfg, "db_config.R"))
+config_vars_proj <- db_bootstrap()
 ############################################
 
 
@@ -32,7 +30,7 @@ options(scipen = 999)
 ## define functions
 
 hgnc_id_from_prevsymbol <- function(symbol_input)  {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/prev_symbol/", symbol_input))
+  symbol_request <- fromJSON(db_genenames_search_url("prev_symbol", symbol_input, db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -47,7 +45,7 @@ hgnc_id_from_prevsymbol <- function(symbol_input)  {
 }
 
 hgnc_id_from_aliassymbol <- function(symbol_input)  {
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/alias_symbol/", symbol_input))
+  symbol_request <- fromJSON(db_genenames_search_url("alias_symbol", symbol_input, db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -64,7 +62,7 @@ hgnc_id_from_aliassymbol <- function(symbol_input)  {
 hgnc_id_from_symbol <- function(symbol_tibble) {
   symbol_list_tibble <- as_tibble(symbol_tibble) %>% select(symbol = value) %>% mutate(symbol = toupper(symbol))
   
-  symbol_request <- fromJSON(paste0("http://rest.genenames.org/search/symbol/", str_c(symbol_list_tibble$symbol, collapse = "+OR+")))
+  symbol_request <- fromJSON(db_genenames_search_url("symbol", str_c(symbol_list_tibble$symbol, collapse = "+OR+"), db_src))
 
   hgnc_id_from_symbol <- as_tibble(symbol_request$response$docs)
   
@@ -86,7 +84,7 @@ symbol_from_hgnc_id <- function(hgnc_id_tibble) {
     select(hgnc_id = value) %>%
     mutate(hgnc_id = as.integer(hgnc_id))
   
-  hgnc_id_request <- fromJSON(paste0("http://rest.genenames.org/search/hgnc_id/", str_c(hgnc_id_list_tibble$hgnc_id, collapse = "+OR+")))
+  hgnc_id_request <- fromJSON(db_genenames_search_url("hgnc_id", str_c(hgnc_id_list_tibble$hgnc_id, collapse = "+OR+"), db_src))
 
   hgnc_id_from_hgnc_id <- as_tibble(hgnc_id_request$response$docs)
   
@@ -135,7 +133,7 @@ hgnc_id_from_symbol_grouped <- function(input_tibble, request_max = 150) {
 ## to do: make this recursive and independent of global variable
 
 HPO_name_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_name <- as_tibble(hpo_term_response$details$name) %>%
   select(hpo_mode_of_inheritance_term_name = value)
 
@@ -144,7 +142,7 @@ HPO_name_from_term <- function(term_input_id) {
 
 
 HPO_definition_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_definition <- as_tibble(hpo_term_response$details$definition) %>%
   select(hpo_mode_of_inheritance_term_definition = value)
 
@@ -153,7 +151,7 @@ HPO_definition_from_term <- function(term_input_id) {
 
 
 HPO_children_count_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_children_count <- as_tibble(hpo_term_response$relations$children)
 
   return(length(hpo_term_children_count))
@@ -161,7 +159,7 @@ HPO_children_count_from_term <- function(term_input_id) {
 
 
 HPO_children_from_term <- function(term_input_id) {
-  hpo_term_response <- fromJSON(paste0("https://hpo.jax.org/api/hpo/term/", URLencode(term_input_id, reserved=T)))
+  hpo_term_response <- fromJSON(db_hpo_term_url(term_input_id, db_src))
   hpo_term_children <- as_tibble(hpo_term_response$relations$children)
 
   return(hpo_term_children)
@@ -190,28 +188,35 @@ HPO_all_children_from_term <- function(term_input) {
 
 
 ############################################
-##connect to online sysid database
-## make ssh connection
-cmd <- paste0('ssh::ssh_tunnel(ssh::ssh_connect(host = "',
-  config_vars_proj$host_sysid,
-  ', passwd = "',
-  config_vars_proj$passwd_sysid,
-  '"), port = ',
-  config_vars_proj$port_sysid_local,
-  ', target = "',
-  config_vars_proj$server_sysid_local,
-  ':',
-  config_vars_proj$port_sysid_local,
-  '")')
+## connect to the SysID source (issue #33: reproducible import)
+## db_sysid_source_mode() selects "sqlite" (a local, reproducible snapshot —
+## recommended) or "mysql" (the legacy upstream SysID DB over an SSH tunnel).
+## See db/config/db_sysid_source.R and db/README.md "Reproducible SysID import".
+sysid_mode <- db_sysid_source_mode(config_vars_proj)
 
-pid <- sys::r_background(
-    std_out = FALSE,
-    std_err = FALSE,
-    args = c("-e", cmd)
-)
+if (sysid_mode == "mysql") {
+  ## legacy path: open an SSH tunnel to the upstream SysID MySQL instance.
+  cmd <- paste0('ssh::ssh_tunnel(ssh::ssh_connect(host = "',
+    config_vars_proj$host_sysid,
+    ', passwd = "',
+    config_vars_proj$passwd_sysid,
+    '"), port = ',
+    config_vars_proj$port_sysid_local,
+    ', target = "',
+    config_vars_proj$server_sysid_local,
+    ':',
+    config_vars_proj$port_sysid_local,
+    '")')
 
-## connect to the database
-sysid_db <- dbConnect(RMariaDB::MariaDB(), dbname = config_vars_proj$dbname_sysid, user = config_vars_proj$user_sysid, password = config_vars_proj$password_sysid, server = config_vars_proj$server_sysid_local, port = config_vars_proj$port_sysid_local)
+  pid <- sys::r_background(
+      std_out = FALSE,
+      std_err = FALSE,
+      args = c("-e", cmd)
+  )
+}
+
+## open a source-agnostic connection (SQLite snapshot or tunnelled MySQL)
+sysid_db <- db_sysid_connect(config_vars_proj, mode = sysid_mode)
 ############################################
 
 
