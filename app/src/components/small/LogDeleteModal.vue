@@ -75,9 +75,9 @@ export default {
     return { deleteConfirmText: '' };
   },
   methods: {
-    // Only effective when the parent keeps this component mounted: under
-    // v-if the modal unmounts before @hidden fires, so the parent must
-    // reset deleteMode explicitly (TablesLogs does, after a delete).
+    // Owns the reset for every close path (cancel, dismiss, successful
+    // delete). Requires the parent to keep this component mounted: under
+    // v-if the modal would unmount before @hidden fires.
     onHidden() {
       this.deleteConfirmText = '';
       this.$emit('update:deleteMode', 'all');

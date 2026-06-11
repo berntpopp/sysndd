@@ -415,9 +415,9 @@
         @navigate-next="navigateToNextLog"
       />
 
-      <!-- Delete Logs Confirmation Modal -->
+      <!-- Delete Logs Confirmation Modal: stays mounted (no v-if) so the
+           modal's @hidden lifecycle fires and owns the state reset -->
       <LogDeleteModal
-        v-if="showDeleteModal"
         v-model="showDeleteModal"
         v-model:delete-mode="deleteMode"
         :total-rows="totalRows"
@@ -1059,10 +1059,8 @@ export default {
             : `Successfully deleted ${deletedCount.toLocaleString()} log entries older than ${this.deleteMode} days`;
 
         this.makeToast(message, 'Logs Deleted', 'success');
+        // Closing the modal triggers its @hidden reset (confirm text + mode)
         this.showDeleteModal = false;
-        // Reset mode explicitly: with v-if the modal unmounts before @hidden fires,
-        // so the child's hidden-reset never runs in this usage
-        this.deleteMode = 'all';
         // Reset and reload
         this.currentItemID = 0;
         this.loadData();
