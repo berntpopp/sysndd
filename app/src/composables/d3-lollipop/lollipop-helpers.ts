@@ -8,7 +8,7 @@
 
 import type { LollipopFilterState, PathogenicityClass, EffectType } from '@/types/protein';
 import { normalizeEffectType } from '@/types/protein';
-import type { PlotMargin } from '../useD3Lollipop';
+import type { PlotMargin } from './useD3Lollipop';
 
 // Default options
 export const DEFAULT_WIDTH = 800;
