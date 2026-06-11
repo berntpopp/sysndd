@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- **Public analysis snapshot responses now expose full provenance lineage.** The `meta.snapshot` block returned by public REST and MCP analysis reads now includes `input_hash`, `payload_hash`, and `record_counts` alongside the existing `snapshot_id`, `schema_version`, `generated_at`, and `source_data_version` fields, completing the W3C-PROV / FAIR output contract from issue #347 so clients can audit lineage and completeness without a second query.
 
 ## [0.19.1] — 2026-05-15
 

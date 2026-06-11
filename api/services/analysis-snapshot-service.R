@@ -331,9 +331,45 @@ service_analysis_snapshot_meta <- function(snapshot) {
       ),
       source_data_version = service_analysis_snapshot_json_scalar(
         service_analysis_snapshot_scalar_value(row$source_data_version)
-      )
+      ),
+      # Lineage hashes (W3C-PROV / FAIR provenance per issue #347 output
+      # contract): input_hash binds the snapshot to its supported parameter set
+      # plus the public source-data version; payload_hash binds it to the
+      # materialized result. record_counts exposes the stored row counts so
+      # callers can audit completeness without a second query. All come from the
+      # public-ready manifest row already selected by analysis_snapshot_get_public().
+      input_hash = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_column_value(row, "input_hash")
+      ),
+      payload_hash = service_analysis_snapshot_json_scalar(
+        service_analysis_snapshot_column_value(row, "payload_hash")
+      ),
+      record_counts = service_analysis_snapshot_record_counts(row)
     )
   )
+}
+
+# Safe single-row column accessor that tolerates manifests missing optional
+# columns without emitting tibble "unknown column" warnings.
+service_analysis_snapshot_column_value <- function(row, name, default = NULL) {
+  if (!name %in% names(row)) {
+    return(default)
+  }
+  service_analysis_snapshot_scalar_value(row[[name]], default)
+}
+
+service_analysis_snapshot_record_counts <- function(row) {
+  if (!"row_counts_json" %in% names(row)) {
+    return(NULL)
+  }
+  counts <- service_analysis_snapshot_parse_json_object(row$row_counts_json[[1]])
+  # network_metadata is generated metadata, not a row count; keep the
+  # record_counts block scoped to the materialized payload tables.
+  counts$network_metadata <- NULL
+  if (length(counts) == 0L) {
+    return(NULL)
+  }
+  counts
 }
 
 service_analysis_snapshot_parse_json_object <- function(value) {
