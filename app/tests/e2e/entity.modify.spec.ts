@@ -102,6 +102,35 @@ test.describe('curate: Modify Entity', () => {
     ).toHaveLength(0);
   });
 
+  test('combined Status & Review modal opens with the curator direct-approval toggle (#36/#37)', async ({
+    loggedInAs,
+  }) => {
+    const page = await loggedInAs('curator');
+
+    test.skip(
+      !(await seededEntityPresent(page.request)),
+      `requires seeded entity ${SEEDED_ENTITY_ID} (${SEEDED_ENTITY_SYMBOL}); run \`make _playwright-seed-docs-data\``,
+    );
+
+    await page.goto('/ModifyEntity');
+
+    const input = page.locator('#entity-select');
+    await input.click();
+    await input.fill('CHD8');
+    const option = page.getByRole('option', { name: /CHD8/i }).first();
+    await expect(option).toBeVisible({ timeout: 15_000 });
+    await option.click();
+    await expect(page.getByText('Selected entity 123')).toBeVisible({ timeout: 15_000 });
+
+    // Open the combined workflow.
+    await page.getByRole('button', { name: /Modify status and review together/i }).click();
+
+    // Both surfaces render in one panel, and the Curator sees the direct-approval toggle.
+    await expect(page.locator('#combined-status-select')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#combined-review-synopsis')).toBeVisible();
+    await expect(page.getByText('Direct approval')).toBeVisible();
+  });
+
   test('entity-list endpoint serves the Modify Entity field set (contract)', async ({
     request,
   }) => {

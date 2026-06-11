@@ -10,7 +10,7 @@ import Literature from '@/assets/js/classes/submission/submissionLiterature';
 
 const apiBase = import.meta.env.VITE_API_URL ?? '';
 
-export type SubmittingState = 'rename' | 'deactivate' | 'review' | 'status' | null;
+export type SubmittingState = 'rename' | 'deactivate' | 'review' | 'status' | 'combined' | null;
 
 export interface UseEntityMutationsOptions {
   onToast?: (...args: unknown[]) => void;
@@ -34,6 +34,12 @@ export interface SubmitReviewArgs {
   select_variation: string[];
   select_additional_references: string[];
   select_gene_reviews: string[];
+  /**
+   * Curator+ only. Forwarded to the API as `?direct_approval=true` so the
+   * freshly created review is approved in the same request. The server
+   * re-checks the role; a non-Curator flag is rejected with 403.
+   */
+  direct_approval?: boolean;
 }
 
 export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
@@ -121,9 +127,15 @@ export function useEntityMutations(options: UseEntityMutationsOptions = {}) {
     args.review_info.variation_ontology = replace_variation;
 
     try {
-      const response = await apiClient.raw.post(`${apiBase}/api/review/create`, {
-        review_json: args.review_info,
-      });
+      // direct_approval is appended as a query param so the wire shape stays
+      // `POST /api/review/create` (the spec pins this path). The server
+      // re-validates Curator role before approving — the flag is never trusted
+      // on its own.
+      const response = await apiClient.raw.post(
+        `${apiBase}/api/review/create`,
+        { review_json: args.review_info },
+        args.direct_approval ? { params: { direct_approval: true } } : undefined
+      );
       onToast?.(
         `The new review for this entity has been submitted (status ${response.status} (${response.statusText})).`,
         'Success',

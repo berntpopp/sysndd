@@ -253,17 +253,33 @@ function(page_after = 0, page_size = "all") {
 #* Allows creating a new status or updating an existing one for a given entity.
 #* Accessible by Admin, Curator, Reviewer.
 #*
+#* # `Details`
+#* When `direct_approval=TRUE` the freshly written status is approved in the
+#* same request (mirrors the entity-create direct-approval flow). Direct
+#* approval is a Curator+ action, so the handler escalates the role gate to
+#* Curator before approving; Reviewer callers that request direct approval are
+#* rejected with 403.
+#*
 #* @tag status
 #* @serializer json list(na="string")
 #*
 #* @param re_review Boolean indicating a re-review scenario.
+#* @param direct_approval Boolean for Curator+ direct approval. Defaults to FALSE.
 #*
 #* @post /create
 #* @put /update
-function(req, res, re_review = FALSE) {
+function(req, res, re_review = FALSE, direct_approval = FALSE) {
   require_role(req, res, "Reviewer")
 
   re_review <- as.logical(re_review)
+  direct_approval <- as.logical(direct_approval)
+  if (is.na(direct_approval)) direct_approval <- FALSE
+
+  # Direct approval is a Curator+ action; never trust the client's flag alone.
+  if (isTRUE(direct_approval)) {
+    require_role(req, res, "Curator")
+  }
+
   status_data <- req$argsBody$status_json
   status_data$status_user_id <- req$user_id
 
@@ -271,6 +287,16 @@ function(req, res, re_review = FALSE) {
     req$REQUEST_METHOD,
     status_data,
     re_review
+  )
+
+  # On a successful write, optionally approve the resulting status row using
+  # the same approval service the /approve endpoint uses (sibling-reset
+  # semantics). The status_id comes back in response$entry.
+  response <- svc_status_apply_direct_approval(
+    response,
+    user_id = req$user_id,
+    direct_approval = direct_approval,
+    pool = pool
   )
 
   res$status <- response$status

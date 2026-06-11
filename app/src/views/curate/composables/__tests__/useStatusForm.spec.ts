@@ -272,5 +272,32 @@ describe('useStatusForm', () => {
       expect(body).toHaveProperty('status_json');
       expect(params).toEqual({ re_review: true });
     });
+
+    // Issue #37 — direct approval is threaded as a query param so the server
+    // can approve the freshly written status in the same request.
+    it('createStatus is called with direct_approval=true when requested', async () => {
+      const { loadStatusData, submitForm } = useStatusForm();
+
+      await loadStatusData(1, 0);
+      await flushPromises();
+      await submitForm(false, false, true);
+      await flushPromises();
+
+      expect(statusApiMocks.createStatus).toHaveBeenCalledTimes(1);
+      const [, params] = statusApiMocks.createStatus.mock.calls[0];
+      expect(params).toEqual({ direct_approval: true });
+    });
+
+    it('createStatus omits direct_approval when the flag is false', async () => {
+      const { loadStatusData, submitForm } = useStatusForm();
+
+      await loadStatusData(1, 0);
+      await flushPromises();
+      await submitForm(false, false, false);
+      await flushPromises();
+
+      const [, params] = statusApiMocks.createStatus.mock.calls[0];
+      expect(params).toEqual({});
+    });
   });
 });

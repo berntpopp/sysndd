@@ -74,6 +74,22 @@
               </div>
               <div class="modify-entity-actions" aria-label="Edit workflow options">
                 <BButton
+                  class="modify-entity-actions__primary"
+                  size="sm"
+                  :variant="activeWorkflow === 'combined' ? 'primary' : 'outline-primary'"
+                  :disabled="!entity_loaded || !!submitting"
+                  aria-label="Modify status and review together"
+                  @click="showCombinedModify"
+                >
+                  <BSpinner v-if="submitting === 'combined'" small class="me-1" />
+                  <template v-else>
+                    <i class="bi bi-stoplights" aria-hidden="true" />
+                    <i class="bi bi-clipboard-plus" aria-hidden="true" />
+                  </template>
+                  Status &amp; Review
+                </BButton>
+
+                <BButton
                   size="sm"
                   :variant="activeWorkflow === 'rename' ? 'primary' : 'outline-primary'"
                   :disabled="!entity_loaded || !!submitting"
@@ -135,7 +151,7 @@
               </div>
 
               <InlineEntityWorkflow
-                v-if="activeWorkflow"
+                v-if="activeWorkflow && activeWorkflow !== 'combined'"
                 :workflow="activeWorkflow"
                 :loading="activeWorkflowLoading"
                 :submitting="submitting"
@@ -179,6 +195,33 @@
                 @submit-status="onSubmitStatus"
                 @cancel="clearActiveWorkflow"
               />
+
+              <CombinedStatusReviewWorkflow
+                v-if="activeWorkflow === 'combined'"
+                :loading="activeWorkflowLoading"
+                :submitting="submitting"
+                :review="review_info"
+                :select-phenotype="select_phenotype"
+                :select-variation="select_variation"
+                :select-additional-references="select_additional_references"
+                :select-gene-reviews="select_gene_reviews"
+                :phenotype-options="phenotypes_options ?? []"
+                :variation-options="variation_ontology_options ?? []"
+                :status-options="status_options"
+                :status-options-loading="status_options_loading"
+                :form-data="statusFormData"
+                :direct-approval="combinedDirectApproval"
+                :can-direct-approve="isCurator"
+                @update:review="review_info = $event"
+                @update:select-phenotype="select_phenotype = $event"
+                @update:select-variation="select_variation = $event"
+                @update:select-additional-references="select_additional_references = $event"
+                @update:select-gene-reviews="select_gene_reviews = $event"
+                @update:form-data="Object.assign(statusFormData, $event)"
+                @update:direct-approval="combinedDirectApproval = $event"
+                @submit="onSubmitCombined"
+                @cancel="clearActiveWorkflow"
+              />
             </div>
 
             <p
@@ -208,42 +251,23 @@
 
 <script lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
-import { computed, defineComponent, onMounted, ref, watch } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
 import { useToast, useColorAndSymbols, useAriaLive } from '@/composables';
+import { useAuth } from '@/composables/useAuth';
 import useStatusForm from './composables/useStatusForm';
 import { useEntityAutocomplete } from './composables/useEntityAutocomplete';
 import { useEntityInfo } from './composables/useEntityInfo';
 import { useEntityMutations } from './composables/useEntityMutations';
 import { useEntityModifyModals } from './composables/useEntityModifyModals';
-
-import {
-  listPhenotypesTree,
-  listVariationOntologyTree,
-  listStatusCategoriesTree,
-} from '@/api/list';
+import { useModifyEntityLookups } from './composables/useModifyEntityLookups';
+import { useModifyEntityWorkflows } from './composables/useModifyEntityWorkflows';
 
 import EntityInfoHeader from './components/EntityInfoHeader.vue';
 import EntitySearchPanel from './components/EntitySearchPanel.vue';
 import InlineEntityWorkflow from './components/InlineEntityWorkflow.vue';
+import CombinedStatusReviewWorkflow from './components/CombinedStatusReviewWorkflow.vue';
 import AriaLiveRegion from '@/components/accessibility/AriaLiveRegion.vue';
 import ConfirmDiscardDialog from '@/components/ui/ConfirmDiscardDialog.vue';
-
-const transformModifierTree = (nodes: any[]) =>
-  nodes.map((node) => {
-    const phenotypeName = node.label.replace(/^present:\s*/, '');
-    const ontologyCode = node.id.replace(/^\d+-/, '');
-    return {
-      id: `parent-${ontologyCode}`,
-      label: phenotypeName,
-      children: [
-        { id: node.id, label: `present: ${phenotypeName}` },
-        ...(node.children || []).map((child: any) => {
-          const modifier = child.label.replace(/:\s*.*$/, '');
-          return { id: child.id, label: `${modifier}: ${phenotypeName}` };
-        }),
-      ],
-    };
-  });
 
 export default defineComponent({
   name: 'ModifyEntity',
@@ -252,6 +276,7 @@ export default defineComponent({
     EntityInfoHeader,
     EntitySearchPanel,
     InlineEntityWorkflow,
+    CombinedStatusReviewWorkflow,
     AriaLiveRegion,
     ConfirmDiscardDialog,
   },
@@ -272,31 +297,37 @@ export default defineComponent({
     const mutations = useEntityMutations({ onToast: toastFn, onAnnounce: announce });
     const modals = useEntityModifyModals();
     const statusForm = useStatusForm();
-    const activeWorkflow = ref<'rename' | 'deactivate' | 'review' | 'status' | null>(null);
-    const activeWorkflowLoading = computed(() => {
-      switch (activeWorkflow.value) {
-        case 'rename':
-          return modals.loadingRename.value;
-        case 'deactivate':
-          return modals.loadingDeactivate.value;
-        case 'review':
-          return modals.loadingReview.value;
-        case 'status':
-          return modals.loadingStatus.value;
-        default:
-          return false;
-      }
-    });
+    const { hasMinRole } = useAuth();
+
+    // Direct approval is a Curator+ action (mirrors entity-create + the
+    // /approve endpoints). The toggle is hidden for non-permitted roles and
+    // re-checked server-side, so this is visibility only — never trust it.
+    const isCurator = computed(() => hasMinRole('Curator'));
 
     // Local modal-specific state not owned by composables
     const deactivate_check = ref(false);
     const replace_check = ref(false);
 
-    // Tree options (app-global lookup data loaded once)
-    const phenotypes_options = ref<any[] | null>(null);
-    const variation_ontology_options = ref<any[] | null>(null);
-    const status_options = ref<any[] | null>(null);
-    const status_options_loading = ref(false);
+    // Workflow orchestration (rename / deactivate / review / status / combined).
+    const workflows = useModifyEntityWorkflows({
+      info,
+      search,
+      mutations,
+      modals,
+      statusForm,
+      deactivate_check,
+      replace_check,
+      onToast: toastFn,
+      announce,
+    });
+
+    // Tree options (app-global lookup data loaded once on mount)
+    const {
+      phenotypes_options,
+      variation_ontology_options,
+      status_options,
+      status_options_loading,
+    } = useModifyEntityLookups({ onToast: toastFn });
 
     // ConfirmDiscardDialog ref — needed to programmatically show it
     const confirmDiscardDialogRef = ref<any>(null);
@@ -313,181 +344,6 @@ export default defineComponent({
       }
     );
 
-    onMounted(async () => {
-      status_options_loading.value = true;
-      try {
-        const [phenotypes_data, variation_data, status_data] = await Promise.all([
-          listPhenotypesTree(),
-          listVariationOntologyTree(),
-          listStatusCategoriesTree(),
-        ]);
-        const raw1: any = Array.isArray(phenotypes_data)
-          ? phenotypes_data
-          : (phenotypes_data as any)?.data || [];
-        phenotypes_options.value = transformModifierTree(raw1);
-
-        const raw2: any = Array.isArray(variation_data)
-          ? variation_data
-          : (variation_data as any)?.data || [];
-        variation_ontology_options.value = transformModifierTree(raw2);
-
-        status_options.value = Array.isArray(status_data)
-          ? status_data
-          : (status_data as any)?.data || [];
-      } catch (e) {
-        makeToast(e, 'Error', 'danger');
-        // Set deterministic empty defaults so downstream modals render
-        // their empty-state alerts instead of staying in the null/loading
-        // limbo (StatusModifyModal hides both the select and the empty
-        // alert while statusOptions is null).
-        if (phenotypes_options.value === null) phenotypes_options.value = [];
-        if (variation_ontology_options.value === null) variation_ontology_options.value = [];
-        if (status_options.value === null) status_options.value = [];
-      } finally {
-        status_options_loading.value = false;
-      }
-    });
-
-    function clearActiveWorkflow(): void {
-      activeWorkflow.value = null;
-      modals.close();
-    }
-
-    // Inline workflow show handlers
-    async function showEntityRename(): Promise<void> {
-      activeWorkflow.value = 'rename';
-      modals.setLoading('rename', true);
-      search.ontology_input.value = null;
-      search.ontology_display.value = '';
-      search.ontology_search_results.value = [];
-      modals.setLoading('rename', false);
-    }
-
-    async function showEntityDeactivate(): Promise<void> {
-      deactivate_check.value = false;
-      replace_check.value = false;
-      search.replace_entity_input.value = null;
-      search.replace_entity_display.value = '';
-      // Clear stale autocomplete results so the dropdown doesn't open
-      // with leftover suggestions from a previous deactivation attempt.
-      search.replace_entity_search_results.value = [];
-      search.replace_entity_search_loading.value = false;
-      activeWorkflow.value = 'deactivate';
-      modals.setLoading('deactivate', false);
-    }
-
-    async function showReviewModify(): Promise<void> {
-      activeWorkflow.value = 'review';
-      modals.setLoading('review', true);
-      await info.loadReview(info.entity_info.value.entity_id);
-      modals.setLoading('review', false);
-    }
-
-    async function showStatusModify(): Promise<void> {
-      statusForm.resetForm();
-      activeWorkflow.value = 'status';
-      modals.setLoading('status', true);
-      await statusForm.loadStatusByEntity(info.entity_info.value.entity_id);
-      modals.setLoading('status', false);
-    }
-
-    // Submit handlers
-    async function onSubmitRename(): Promise<void> {
-      try {
-        await mutations.rename({
-          entity_info: info.entity_info.value,
-          ontology_input: search.ontology_input.value,
-        });
-        clearActiveWorkflow();
-        info.reset();
-        search.clearAll();
-      } catch {
-        // error already toasted in composable
-      }
-    }
-
-    async function onSubmitDeactivate(): Promise<void> {
-      try {
-        await mutations.deactivate({
-          entity_info: info.entity_info.value,
-          deactivate_check: deactivate_check.value,
-          replace_entity_input: search.replace_entity_input.value,
-        });
-        clearActiveWorkflow();
-        info.reset();
-        search.clearAll();
-        deactivate_check.value = false;
-        replace_check.value = false;
-      } catch {
-        // error already toasted in composable
-      }
-    }
-
-    async function onSubmitReview(): Promise<void> {
-      if (!info.hasReviewChanges.value) {
-        clearActiveWorkflow();
-        return;
-      }
-      try {
-        await mutations.submitReview({
-          review_info: info.review_info.value,
-          select_phenotype: info.select_phenotype.value,
-          select_variation: info.select_variation.value,
-          select_additional_references: info.select_additional_references.value,
-          select_gene_reviews: info.select_gene_reviews.value,
-        });
-        clearActiveWorkflow();
-        info.reset();
-        search.clearAll();
-      } catch {
-        // error already toasted in composable
-      }
-    }
-
-    async function onSubmitStatus(): Promise<void> {
-      if (!statusForm.hasChanges.value) {
-        clearActiveWorkflow();
-        return;
-      }
-      mutations.setSubmittingState('status');
-      try {
-        await statusForm.submitForm(false, false);
-        makeToast('Status submitted successfully', 'Success', 'success');
-        announce('Status submitted successfully');
-        statusForm.resetForm();
-        clearActiveWorkflow();
-        info.reset();
-        search.clearAll();
-      } catch (e) {
-        makeToast(e, 'Error', 'danger');
-        announce('Failed to submit status', 'assertive');
-      } finally {
-        mutations.setSubmittingState(null);
-      }
-    }
-
-    async function onEntitySelected(entityId: number | null): Promise<void> {
-      search.onEntitySelected(entityId);
-      if (!entityId) {
-        info.reset();
-        clearActiveWorkflow();
-        return;
-      }
-      await info.loadEntity(entityId);
-      if (info.entity_info.value?.entity_id) {
-        search.entity_loaded.value = true;
-      }
-    }
-
-    const legendItems = [
-      { icon: 'bi bi-stoplights-fill', color: '#4caf50', label: 'Definitive' },
-      { icon: 'bi bi-stoplights-fill', color: '#2196f3', label: 'Moderate' },
-      { icon: 'bi bi-stoplights-fill', color: '#ff9800', label: 'Limited' },
-      { icon: 'bi bi-stoplights-fill', color: '#f44336', label: 'Refuted' },
-      { icon: 'bi bi-check', color: '#198754', label: 'NDD: Yes' },
-      { icon: 'bi bi-x', color: '#ffc107', label: 'NDD: No' },
-    ];
-
     return {
       // entity info composable
       ...info,
@@ -497,14 +353,16 @@ export default defineComponent({
       ...mutations,
       // modals composable
       ...modals,
+      // workflow orchestration (rename/deactivate/review/status/combined)
+      ...workflows,
       // statusForm composable
       statusFormData: statusForm.formData,
       hasStatusChanges: statusForm.hasChanges,
+      // combined status & review workflow (#36/#37)
+      isCurator,
       // local state
       deactivate_check,
       replace_check,
-      activeWorkflow,
-      activeWorkflowLoading,
       // tree options
       phenotypes_options,
       variation_ontology_options,
@@ -516,41 +374,12 @@ export default defineComponent({
       announce,
       // color/symbols
       ...colorAndSymbols,
-      // event handlers
-      showEntityRename,
-      showEntityDeactivate,
-      showReviewModify,
-      showStatusModify,
-      clearActiveWorkflow,
-      onSubmitRename,
-      onSubmitDeactivate,
-      onSubmitReview,
-      onSubmitStatus,
-      onEntitySelected,
       // backward-compat aliases (used by existing specs)
-      submitEntityRename: onSubmitRename,
-      submitEntityDeactivation: onSubmitDeactivate,
-      // submitReviewChange bypasses the hasReviewChanges guard (spec compat)
-      submitReviewChange: async () => {
-        try {
-          await mutations.submitReview({
-            review_info: info.review_info.value,
-            select_phenotype: info.select_phenotype.value,
-            select_variation: info.select_variation.value,
-            select_additional_references: info.select_additional_references.value,
-            select_gene_reviews: info.select_gene_reviews.value,
-          });
-          clearActiveWorkflow();
-          info.reset();
-          search.clearAll();
-        } catch {
-          // error already toasted in composable
-        }
-      },
+      submitEntityRename: workflows.onSubmitRename,
+      submitEntityDeactivation: workflows.onSubmitDeactivate,
       // ref for confirm dialog
       confirmDiscardDialogRef,
       // static data
-      legendItems,
       makeToast,
     };
   },
@@ -704,6 +533,13 @@ export default defineComponent({
   justify-content: flex-start;
   gap: 0.35rem;
   min-height: 2.25rem;
+}
+
+/* The combined Status & Review action is the streamlined primary path; it
+   spans the full row above the four focused single-task actions. */
+.modify-entity-actions__primary {
+  grid-column: 1 / -1;
+  justify-content: center !important;
 }
 
 .btn-group-xs > .btn,

@@ -229,8 +229,18 @@ export default function useStatusForm(entityId?: string | number) {
 
   /**
    * Submit form to API (create or update)
+   *
+   * @param isUpdate  PUT when true, POST otherwise.
+   * @param reReview  Forwards `?re_review=true` for re-review scenarios.
+   * @param directApproval Curator+ only. Forwards `?direct_approval=true` so
+   *   the freshly written status is approved in the same request. The server
+   *   re-checks the role; a non-Curator flag is rejected with 403.
    */
-  const submitForm = async (isUpdate: boolean, reReview: boolean): Promise<void> => {
+  const submitForm = async (
+    isUpdate: boolean,
+    reReview: boolean,
+    directApproval = false
+  ): Promise<void> => {
     // Touch all fields to show validation errors
     touchField('category_id');
 
@@ -264,7 +274,9 @@ export default function useStatusForm(entityId?: string | number) {
     const body = {
       status_json: statusObj as unknown as Parameters<typeof createStatus>[0]['status_json'],
     };
-    const params = reReview ? { re_review: true } : {};
+    const params: { re_review?: true; direct_approval?: true } = {};
+    if (reReview) params.re_review = true;
+    if (directApproval) params.direct_approval = true;
 
     try {
       if (isUpdate) {

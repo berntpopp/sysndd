@@ -94,6 +94,26 @@ make_status_sandbox <- function(require_role_fn = function(req, res, min_role) i
   env$svc_approval_status_approve <- svc_approval_status_approve_fn
   env$generate_cursor_pag_inf_safe <- generate_cursor_pag_inf_safe_fn
   env$`%||%` <- function(a, b) if (is.null(a)) b else a
+  # Direct-approval helper (issues #36/#37). Faithful copy of
+  # approval-service.R::svc_status_apply_direct_approval that delegates to the
+  # sandbox's status-approve stub. Calls `svc_approval_status_approve_fn`
+  # directly (closed over here) rather than by name, so it always hits the
+  # injected stub regardless of lexical scope. Keeps the handler test
+  # self-contained without sourcing the service layer.
+  env$svc_status_apply_direct_approval <- function(write_response, user_id,
+                                                   direct_approval, pool) {
+    if (!isTRUE(direct_approval)) return(write_response)
+    if (is.null(write_response$status) || write_response$status != 200) return(write_response)
+    status_id <- write_response$entry
+    if (is.null(status_id) || length(status_id) == 0 || is.na(status_id[[1]])) {
+      return(write_response)
+    }
+    approval <- svc_approval_status_approve_fn(status_id, user_id, TRUE, pool)
+    if (is.null(approval$status) || approval$status != 200) {
+      write_response$status <- approval$status %||% 500
+    }
+    write_response
+  }
   env
 }
 
@@ -314,6 +334,120 @@ test_that("POST /create status: permission — non-Reviewer role blocked with 40
     expect_error(handler(req = req, res = res), "forbidden")
     expect_equal(res$status, 403L)
     expect_false(svc_called)
+  })
+})
+
+
+# =============================================================================
+# POST /create direct_approval -- Curator-gated approval (issues #36 / #37)
+# =============================================================================
+
+# require_role that allows Reviewer (the write gate) but denies Curator (the
+# direct-approval escalation). Mirrors the real role hierarchy where a
+# Reviewer can write but not approve.
+deny_curator_allow_reviewer <- function(req, res, min_role) {
+  if (identical(min_role, "Curator")) {
+    res$status <- 403L
+    stop("forbidden: Curator required")
+  }
+  invisible(TRUE)
+}
+
+test_that("POST /create direct_approval=TRUE: Curator approves the new status", {
+  with_test_db_transaction({
+    approve_args <- list()
+    fake_put_post <- function(method, status_data, re_review) {
+      list(status = 200, message = "OK. Status created.", entry = 77L)
+    }
+    fake_approve <- function(status_id, user_id, approve, pool) {
+      approve_args <<- list(status_id = status_id, user_id = user_id, approve = approve)
+      list(status = 200, message = "OK. Status approved.", entry = status_id)
+    }
+    env <- make_status_sandbox(
+      put_post_db_status_fn = fake_put_post,
+      svc_approval_status_approve_fn = fake_approve
+    )
+    handler <- extract_status_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 11L,
+      argsBody = list(status_json = list(entity_id = 101L, category_id = 2L))
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = FALSE, direct_approval = TRUE)
+
+    expect_equal(result$status, 200)
+    # The freshly created status (entry=77) is approved by the calling user.
+    expect_equal(approve_args$status_id, 77L)
+    expect_equal(approve_args$user_id, 11L)
+    expect_true(isTRUE(approve_args$approve))
+  })
+})
+
+test_that("POST /create direct_approval=FALSE: approval service is NOT called", {
+  with_test_db_transaction({
+    approve_called <- FALSE
+    fake_put_post <- function(method, status_data, re_review) {
+      list(status = 200, message = "OK. Status created.", entry = 77L)
+    }
+    fake_approve <- function(...) {
+      approve_called <<- TRUE
+      list(status = 200, message = "OK.")
+    }
+    env <- make_status_sandbox(
+      put_post_db_status_fn = fake_put_post,
+      svc_approval_status_approve_fn = fake_approve
+    )
+    handler <- extract_status_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 11L,
+      argsBody = list(status_json = list(entity_id = 101L, category_id = 2L))
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = FALSE, direct_approval = FALSE)
+
+    expect_equal(result$status, 200)
+    expect_false(approve_called)
+  })
+})
+
+test_that("POST /create direct_approval=TRUE: Reviewer (non-Curator) blocked with 403", {
+  with_test_db_transaction({
+    write_called <- FALSE
+    approve_called <- FALSE
+    fake_put_post <- function(...) {
+      write_called <<- TRUE
+      list(status = 200, message = "OK.", entry = 77L)
+    }
+    fake_approve <- function(...) {
+      approve_called <<- TRUE
+      list(status = 200, message = "OK.")
+    }
+    env <- make_status_sandbox(
+      require_role_fn = deny_curator_allow_reviewer,
+      put_post_db_status_fn = fake_put_post,
+      svc_approval_status_approve_fn = fake_approve
+    )
+    handler <- extract_status_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 11L,
+      argsBody = list(status_json = list(entity_id = 101L, category_id = 2L))
+    )
+    res <- make_mock_res()
+    # The Curator escalation fires BEFORE any write, so a Reviewer requesting
+    # direct approval is rejected and nothing is written or approved.
+    expect_error(
+      handler(req = req, res = res, re_review = FALSE, direct_approval = TRUE),
+      "forbidden"
+    )
+    expect_equal(res$status, 403L)
+    expect_false(write_called)
+    expect_false(approve_called)
   })
 })
 
