@@ -75,6 +75,8 @@ Snapshot status meanings:
 - `snapshot_stale`: an active snapshot exists but is past `stale_after`; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
 - `source_version_mismatch`: the stored source data version no longer matches the cheap current source version; public REST and MCP analysis reads report it unavailable until the preset is refreshed.
 
+Available snapshot responses carry a `meta.snapshot` provenance block sourced from the public-ready manifest row: `snapshot_id`, `analysis_type`, `parameter_hash`, `schema_version`, `data_class`, `generated_at`, `stale_after`, `source_data_version`, `input_hash`, `payload_hash`, and `record_counts`. `input_hash` binds the snapshot to its supported parameter set plus the public source-data version; `payload_hash` binds it to the materialized result; `record_counts` reports the stored payload row counts (it excludes generated network metadata). These fields let operators and downstream clients audit lineage and completeness without a second query.
+
 ### Gemini model configuration
 
 The effective Gemini model resolves in this order: `GEMINI_MODEL`, `api/config.yml` key `gemini_model`, then the SysNDD default `gemini-3.5-flash`. The admin LLM configuration endpoint reports the source, default model, validity, and any warning so operators can see when an environment override is active.
