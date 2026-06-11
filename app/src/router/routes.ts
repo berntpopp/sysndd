@@ -459,6 +459,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
+  {
+    path: '/GeneReviews',
+    name: 'GeneReviews',
+    component: () => import('@/views/curate/GeneReviewsCoverage.vue'),
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
+  },
   ...['ManageUser', 'ManageAnnotations', 'ManageOntology', 'ManageAbout'].map(simpleAdminRoute),
   {
     path: '/ViewLogs',

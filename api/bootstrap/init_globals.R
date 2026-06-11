@@ -5,7 +5,7 @@
 #
 # Produces the small set of top-level values that endpoints and
 # filters still look up by bare name in .GlobalEnv:
-#   - serializers (json + xlsx response serializers)
+#   - serializers (json + xlsx + csv response serializers)
 #   - inheritance_input_allowed (allow-list used by /entity routes)
 #   - output_columns_allowed (allow-list used by list/search routes)
 #   - user_status_allowed (allow-list used by admin/user routes)
@@ -25,7 +25,10 @@ bootstrap_init_globals <- function(version_spec_path = "version_spec.json") {
     "json" = plumber::serializer_json(),
     "xlsx" = plumber::serializer_content_type(
       type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    ),
+    # CSV export serializer (GeneReviews coverage export, #46). The handler is
+    # responsible for producing a ready CSV string (e.g. readr::format_csv).
+    "csv" = plumber::serializer_content_type(type = "text/csv; charset=UTF-8")
   )
 
   inheritance_input_allowed <- c(
