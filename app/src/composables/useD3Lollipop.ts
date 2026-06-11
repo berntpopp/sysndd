@@ -82,102 +82,22 @@ export interface D3LollipopState {
   exportPNG: (scale?: number) => Promise<string | null>;
 }
 
-// Default options
-const DEFAULT_WIDTH = 800;
-const DEFAULT_HEIGHT = 250;
-const DEFAULT_MARGIN: PlotMargin = { top: 60, right: 30, bottom: 60, left: 50 };
-
-// Visual constants
-const BACKBONE_HEIGHT = 14;
-const STEM_BASE_HEIGHT = 18;
-const STEM_STACK_OFFSET = 8;
-const MARKER_RADIUS = 5;
-const MARKER_STROKE_WIDTH = 1;
-
-// Adaptive rendering thresholds
-const AGGREGATION_THRESHOLD = 500; // Switch to aggregated mode above this count
-const MAX_STACK_DEPTH = 8; // Maximum stacking in individual mode
-const MIN_OPACITY = 0.25; // Minimum opacity for markers
-const MAX_OPACITY = 0.95; // Maximum opacity for markers
-const DENSITY_THRESHOLD = 200; // Reference count for density calculation
-const MIN_MARKER_RADIUS = 3; // Minimum marker size in aggregated mode
-const MAX_MARKER_RADIUS = 12; // Maximum marker size for high-count positions
-
-/**
- * Map pathogenicity class to filter state key
- */
-function isClassificationVisible(
-  classification: PathogenicityClass,
-  filterState: LollipopFilterState
-): boolean {
-  switch (classification) {
-    case 'Pathogenic':
-      return filterState.pathogenic;
-    case 'Likely pathogenic':
-      return filterState.likelyPathogenic;
-    case 'Uncertain significance':
-      return filterState.vus;
-    case 'Likely benign':
-      return filterState.likelyBenign;
-    case 'Benign':
-      return filterState.benign;
-    default:
-      return true; // Show 'other' by default
-  }
-}
-
-/**
- * Check if effect type is visible based on filter state
- */
-function isEffectTypeVisible(majorConsequence: string, filterState: LollipopFilterState): boolean {
-  // Safety check: if effectFilters is not defined, show all effect types
-  if (!filterState.effectFilters) return true;
-
-  const effectType: EffectType = normalizeEffectType(majorConsequence);
-  return filterState.effectFilters[effectType];
-}
-
-/**
- * Calculate dynamic opacity based on zoom level and variant density
- *
- * @param visibleCount - Number of variants currently visible
- * @param zoomRatio - Ratio of visible range to total range (1.0 = full view)
- * @returns Opacity value between MIN_OPACITY and MAX_OPACITY
- */
-function calculateDynamicOpacity(visibleCount: number, zoomRatio: number): number {
-  // Base opacity from density (fewer variants = higher opacity)
-  const densityFactor = Math.min(1, DENSITY_THRESHOLD / Math.max(visibleCount, 1));
-
-  // Zoom factor (more zoomed in = higher opacity)
-  const zoomFactor = 1 - zoomRatio * 0.6;
-
-  // Combined opacity with bounds
-  const opacity = 0.5 * densityFactor + 0.5 * zoomFactor;
-  return Math.max(MIN_OPACITY, Math.min(MAX_OPACITY, opacity));
-}
-
-/**
- * Calculate marker radius for aggregated variant based on count
- *
- * @param count - Number of variants at this position
- * @param maxCount - Maximum count at any position
- * @returns Marker radius scaled by count
- */
-function calculateAggregatedRadius(count: number, maxCount: number): number {
-  // Use square root scaling so area is proportional to count
-  const scale = Math.sqrt(count / Math.max(maxCount, 1));
-  return MIN_MARKER_RADIUS + scale * (MAX_MARKER_RADIUS - MIN_MARKER_RADIUS);
-}
-
-/**
- * Determine rendering mode based on visible variant count
- *
- * @param visibleCount - Number of variants to render
- * @returns 'aggregated' if above threshold, 'individual' otherwise
- */
-function determineRenderingMode(visibleCount: number): 'aggregated' | 'individual' {
-  return visibleCount > AGGREGATION_THRESHOLD ? 'aggregated' : 'individual';
-}
+import {
+  DEFAULT_WIDTH,
+  DEFAULT_HEIGHT,
+  DEFAULT_MARGIN,
+  BACKBONE_HEIGHT,
+  STEM_BASE_HEIGHT,
+  STEM_STACK_OFFSET,
+  MARKER_RADIUS,
+  MARKER_STROKE_WIDTH,
+  MAX_STACK_DEPTH,
+  isClassificationVisible,
+  isEffectTypeVisible,
+  calculateDynamicOpacity,
+  calculateAggregatedRadius,
+  determineRenderingMode,
+} from './d3-lollipop/lollipop-helpers';
 
 /**
  * Composable for managing D3.js lollipop plot lifecycle
