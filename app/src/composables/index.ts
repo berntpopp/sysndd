@@ -103,8 +103,8 @@ export { useSearchSuggestions } from './useSearchSuggestions';
 export type { SearchSuggestion, UseSearchSuggestionsReturn } from './useSearchSuggestions';
 
 // D3 lollipop plot composable for protein domain visualization
-export { useD3Lollipop } from './useD3Lollipop';
-export type { LollipopOptions, D3LollipopState, PlotMargin } from './useD3Lollipop';
+export { useD3Lollipop } from './d3-lollipop';
+export type { LollipopOptions, D3LollipopState, PlotMargin } from './d3-lollipop';
 
 // D3 gene structure composable
 export { useD3GeneStructure } from './useD3GeneStructure';

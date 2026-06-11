@@ -415,66 +415,15 @@
         @navigate-next="navigateToNextLog"
       />
 
-      <!-- Delete Logs Confirmation Modal -->
-      <BModal
-        v-if="showDeleteModal"
+      <!-- Delete Logs Confirmation Modal: stays mounted (no v-if) so the
+           modal's @hidden lifecycle fires and owns the state reset -->
+      <LogDeleteModal
         v-model="showDeleteModal"
-        title="Delete Logs"
-        header-bg-variant="danger"
-        header-text-variant="light"
-        centered
-        @hidden="resetDeleteModal"
-      >
-        <div class="text-center mb-3">
-          <i class="bi bi-exclamation-triangle-fill text-danger fs-1" />
-        </div>
-
-        <!-- Delete mode selection -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold">What to delete:</label>
-          <BFormSelect v-model="deleteMode" class="mb-2">
-            <option value="all">All logs ({{ totalRows.toLocaleString() }} entries)</option>
-            <option value="3">Logs older than 3 days</option>
-            <option value="7">Logs older than 7 days</option>
-            <option value="14">Logs older than 14 days</option>
-            <option value="30">Logs older than 30 days</option>
-          </BFormSelect>
-        </div>
-
-        <p class="text-center">
-          <strong>Warning:</strong>
-          <span v-if="deleteMode === 'all'">
-            This will permanently delete all {{ totalRows.toLocaleString() }} log entries.
-          </span>
-          <span v-else> This will permanently delete logs older than {{ deleteMode }} days. </span>
-        </p>
-        <p class="text-center text-muted small">
-          This action cannot be undone. Type <code>DELETE</code> to confirm.
-        </p>
-        <BFormInput
-          v-model="deleteConfirmText"
-          placeholder="Type DELETE to confirm"
-          class="text-center"
-          :state="deleteConfirmText === 'DELETE' ? true : deleteConfirmText ? false : null"
-        />
-        <template #footer>
-          <BButton variant="secondary" @click="showDeleteModal = false"> Cancel </BButton>
-          <BButton
-            variant="danger"
-            :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
-            @click="deleteLogs"
-          >
-            <BSpinner v-if="isDeleting" small class="me-1" />
-            {{
-              isDeleting
-                ? 'Deleting...'
-                : deleteMode === 'all'
-                  ? 'Delete All Logs'
-                  : `Delete Old Logs`
-            }}
-          </BButton>
-        </template>
-      </BModal>
+        v-model:delete-mode="deleteMode"
+        :total-rows="totalRows"
+        :is-deleting="isDeleting"
+        @confirm="deleteLogs"
+      />
     </BContainer>
   </div>
 </template>
@@ -499,6 +448,7 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
+import LogDeleteModal from '@/components/small/LogDeleteModal.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import LogMobileRows from '@/views/admin/components/LogMobileRows.vue';
 
@@ -513,6 +463,7 @@ import {
   getLogMethodVariant,
   getLogStatusVariant,
 } from './logTableFormatters';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
 import { listLogs, listLogsXlsx, deleteLogs as deleteLogsApi } from '@/api/logging';
 import { listUsersByRole } from '@/api/user';
 import { createLogTableRequestCache } from './logTableRequests';
@@ -527,6 +478,7 @@ export default {
     TableSearchInput,
     GenericTable,
     LogDetailDrawer,
+    LogDeleteModal,
     TableShell,
     LogMobileRows,
   },
@@ -702,7 +654,6 @@ export default {
       ],
       // Delete confirmation modal state
       showDeleteModal: false,
-      deleteConfirmText: '',
       deleteMode: 'all', // 'all', '3', '7', '14', '30' (days)
       isDeleting: false,
     };
@@ -1082,15 +1033,9 @@ export default {
     getMethodVariant(method) {
       return getLogMethodVariant(method);
     },
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    // Normalize select options for BFormSelect (shared util)
     normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
+      return normalizeSelectOptions(options);
     },
     // Format duration with appropriate unit
     formatDuration(duration) {
@@ -1099,12 +1044,6 @@ export default {
     // Get CSS class for duration based on performance
     getDurationClass(duration) {
       return getLogDurationClass(duration);
-    },
-    // Delete all logs with confirmation
-    // Reset delete modal state
-    resetDeleteModal() {
-      this.deleteConfirmText = '';
-      this.deleteMode = 'all';
     },
     // Delete logs with optional age filter
     async deleteLogs() {
@@ -1120,8 +1059,8 @@ export default {
             : `Successfully deleted ${deletedCount.toLocaleString()} log entries older than ${this.deleteMode} days`;
 
         this.makeToast(message, 'Logs Deleted', 'success');
+        // Closing the modal triggers its @hidden reset (confirm text + mode)
         this.showDeleteModal = false;
-        this.resetDeleteModal();
         // Reset and reload
         this.currentItemID = 0;
         this.loadData();

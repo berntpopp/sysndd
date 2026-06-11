@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.1] — 2026-06-11
+
+Patch release for Sprint 1 of the continuous oversized-file refactor (#346, PR #403).
+
+### Changed
+
+- **Oversized-file refactor program structured.** Issue #346 is broken into nine workpackage sub-issues (#394–#402) with a sprint plan; the file-size ratchet baseline is tightened to current actuals (three entries removed, ~14 lowered) and only moves downward.
+- **`useD3Lollipop` split into a module directory.** The 1125-line composable now lives in `app/src/composables/d3-lollipop/` (context/helpers/tooltip/render/export modules, largest 388 lines) with unchanged public API and new unit tests for the pure helpers.
+- **`TablesLogs` slimmed.** The delete-confirmation modal is extracted to `LogDeleteModal.vue` (with component tests) and the duplicated select-option normalizer is centralized in `app/src/utils/selectOptions.ts`.
+- **Strict type-check D3 cohort retired.** `@types/d3` is installed; the d3-lollipop modules, `useD3GeneStructure.ts`, `ProteinDomainLollipopPlot.vue`, and `PubtatorNDDStats.vue` are now strict-clean and removed from the strict-scope exclusion lists.
+
+### Fixed
+
+- **Log delete-modal state reset.** The modal stays mounted so the hidden lifecycle reliably resets the confirmation text and delete mode on every close path (previously the reset handler never fired under `v-if`, leaving the mode stale).
+- **`log-cleanup` container no longer reports unhealthy.** The service inherited the API image's Plumber-port healthcheck it could never satisfy; the healthcheck is disabled for the scheduler-only container.
+
 ## [0.21.0] — 2026-06-11
 
 Feature release integrating 16 pull requests across the API, app, and database (issues #14, #22, #25, #32, #33, #36, #37, #46, #54, #89, #98, #105, #175, #344, #347, #348, #353, #360).
