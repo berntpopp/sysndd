@@ -55,8 +55,7 @@
           :class="chip.className"
           :aria-label="`${chip.shortLabel} ${chip.count} ${chip.label} variants`"
           @click="toggleChip(chip.key)"
-          @keydown.enter.prevent="toggleChip(chip.key)"
-          @keydown.space.prevent="toggleChip(chip.key)"
+          @keydown.enter.space.prevent="toggleChip(chip.key)"
         >
           <span class="clinvar-chip__text">{{ chip.shortLabel }} {{ chip.count }}</span>
         </BButton>
