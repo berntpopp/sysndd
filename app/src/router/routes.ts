@@ -127,10 +127,12 @@ export const routes: RouteRecordRaw[] = [
       },
       {
         path: 'Similarity',
+        name: 'CurationComparisonsSimilarity',
         component: () => import('@/components/analyses/AnalysesCurationMatrixPlot.vue'),
       },
       {
         path: 'Table',
+        name: 'CurationComparisonsTable',
         component: () => import('@/components/analyses/AnalysesCurationComparisonsTable.vue'),
       },
     ],
