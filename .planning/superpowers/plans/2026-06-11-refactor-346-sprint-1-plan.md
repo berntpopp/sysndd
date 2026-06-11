@@ -534,6 +534,12 @@ git commit -m "refactor(app): extract LogDeleteModal from TablesLogs (#346)"
 
 ### Task 6: TablesLogs — move normalizeSelectOptions to the formatters module
 
+> **As shipped:** during execution the function turned out to be duplicated across 8
+> components, so it was centralized as `normalizeSelectOptions` in a new shared
+> `app/src/utils/selectOptions.ts` (with `app/src/utils/__tests__/selectOptions.spec.ts`)
+> instead of the log-specific `logTableFormatters.ts` below. TablesLogs delegates to it;
+> the 7 remaining duplicate copies migrate in WP2/WP3 (#395/#396).
+
 **Files:**
 - Modify: `app/src/components/tables/logTableFormatters.ts`
 - Modify: `app/src/components/tables/TablesLogs.vue` (method at 1086–1094)
