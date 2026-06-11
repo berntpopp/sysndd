@@ -10,6 +10,16 @@ vi.mock('@/api/about', () => ({
   getPublishedAbout: vi.fn().mockRejectedValue(new Error('CMS unavailable')),
 }));
 
+vi.mock('@/api/version', () => ({
+  getVersion: vi.fn().mockResolvedValue({
+    version: '0.20.18',
+    commit: 'abcdef1',
+    title: 'SysNDD API',
+    description: 'desc',
+    database: { version: '1.0.0', commit: '7532ab5', available: true },
+  }),
+}));
+
 vi.mock('@/composables', () => ({
   renderMarkdown: (value: string) => value,
 }));

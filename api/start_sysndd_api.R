@@ -91,6 +91,11 @@ log_appender(appender_file(logging_temp_file))
 pool <- bootstrap_create_pool(dw)
 migration_status <- bootstrap_run_migrations(pool)
 
+# Issue #22: refresh the human-facing db_version row (id = 1) from
+# deployment-injected DB_VERSION / DB_COMMIT env vars when present. No-op and
+# non-fatal otherwise; the migration seeds the baseline row.
+db_version_sync_from_env(conn = pool)
+
 ## -------------------------------------------------------------------##
 # 6) Top-level constants (serializers, allow-lists, version).
 ## -------------------------------------------------------------------##

@@ -102,6 +102,20 @@ For MCP 1.2 analysis changes, also check that the analysis tools remain read-onl
 
 Public and MCP analysis sections such as phenotype correlations, phenotype clusters, and STRING-derived gene networks require current public-ready analysis snapshots. Public REST and MCP paths report snapshot diagnostics such as `snapshot_missing`, `snapshot_stale`, or `source_version_mismatch`; they do not compute heavy analysis or read draft/admin data on miss.
 
+### Database Version (issue #22)
+
+The human-facing DB semantic version lives in the single-row `db_version` table (migration `028_add_db_version.sql`) and is read by `api/functions/db-version.R`. It is exposed in the `database` block of `GET /api/version` and rendered on the About page via `app/src/components/AppVersionInfo.vue` (typed client `app/src/api/version.ts`).
+
+- Bump the seeded semantic version in a new numbered migration when the DB schema or core seed data changes meaningfully; do not edit an applied migration.
+- At release time, capture the last `db/`-folder git commit and the version with `./db/scripts/update-db-version.sh` and inject `DB_VERSION` / `DB_COMMIT` into the API container; `db_version_sync_from_env()` updates the row at startup (non-fatal no-op when unset). See `documentation/09-deployment.qmd`.
+- Run focused checks while iterating:
+
+```bash
+cd api
+Rscript --no-init-file -e "testthat::test_file('tests/testthat/test-unit-db-version.R')"
+cd ../app && npx vitest run src/api/version.spec.ts src/components/AppVersionInfo.spec.ts
+```
+
 ### Public Analysis Snapshots
 
 When adding a snapshot table or shape change, create a numbered migration under `db/migrations/`, update `api/functions/migration-manifest.R`, and add or update the migration and preset tests. Snapshot presets live in `api/functions/analysis-snapshot-presets.R`; unsupported public parameters should fail there before any repository or analysis work starts.

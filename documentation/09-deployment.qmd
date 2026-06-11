@@ -62,6 +62,21 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 
 External provider request budgets default to short fail-fast values: `EXTERNAL_PROXY_TIMEOUT_SECONDS=6`, `EXTERNAL_PROXY_MAX_SECONDS=10`, `EXTERNAL_PROXY_MAX_TRIES=2`, and `EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS=12`. Override per source with names such as `EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS`, `EXTERNAL_PROXY_MGI_MAX_SECONDS`, and `EXTERNAL_PROXY_MGI_MAX_TRIES`. The aggregate external gene route remains serial and returns `partial = TRUE` with `skipped_sources` when the aggregate budget is exhausted.
 
+### Database version (`DB_VERSION` / `DB_COMMIT`)
+
+The human-facing database version (issue #22) is tracked in the single-row `db_version` table (migration `028_add_db_version.sql`), separate from the migration runner's `schema_version` apply ledger and from `about_content.version`. The migration seeds a baseline semantic version, and the API exposes it in the `database` block of the public `GET /api/version` response (semantic `version`, last `db/`-folder git `commit`, optional `description`/`updated_at`, and an `available` flag). The App surfaces it on the About page. The endpoint degrades gracefully: if the DB or table is unreachable it reports `version`/`commit` as `"unknown"` and `available: false` instead of failing.
+
+To stamp the deployed values at release time, set `DB_VERSION` (semantic `major.minor.patch`) and/or `DB_COMMIT` (last `db/`-folder git short hash) in the API container environment. The running container has no git checkout, so capture them on a host that has the repo:
+
+```sh
+# Prints DB_VERSION=<semver> and DB_COMMIT=<short-hash> for the current checkout.
+./db/scripts/update-db-version.sh            # version from the seeded migration
+./db/scripts/update-db-version.sh 1.1.0      # pin a specific semantic version
+./db/scripts/update-db-version.sh 1.1.0 >> .env   # inject, then redeploy
+```
+
+`docker-compose.yml` passes `DB_VERSION` and `DB_COMMIT` through to the `api` service. On startup, after migrations, `db_version_sync_from_env()` updates the `db_version` row (id = 1) when either variable is set; it is a non-fatal no-op otherwise. Bump the seeded version (in a new `NNN_*.sql` migration) when the DB schema or core seed data changes meaningfully.
+
 ### Public analysis snapshots
 
 Public analysis endpoints and MCP analysis tools read public-ready rows from `analysis_snapshot_manifest` and normalized snapshot payload tables. They do not compute STRING networks, phenotype clusters, correlations, fCoSE layouts, external provider calls, or Gemini summaries on request-path miss.
