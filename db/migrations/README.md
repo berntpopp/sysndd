@@ -99,7 +99,11 @@ codifies the four core views (`ndd_entity_view`, `users_view`,
 previously missing from migrations, ensuring a pristine DB boots fully, and
 `026_add_entity_last_update.sql` which adds a derived `last_update` freshness
 column to `ndd_entity_view` (GREATEST of entry date, approved status date, and
-primary-approved review date).
+primary-approved review date), and
+`033_add_metadata_lookup_admin_columns.sql` which adds `is_active`/`sort`
+lifecycle columns to the SysNDD-managed curation lookups (`modifier_list`,
+`ndd_entity_status_categories_list`) so the admin `/ManageMetadata` surface can
+order and soft-delete entries.
 
 ## 4. Adding a new migration
 

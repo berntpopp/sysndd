@@ -9,16 +9,16 @@
 source_api_file("functions/migration-manifest.R", local = FALSE)
 source_api_file("functions/migration-runner.R", local = FALSE)
 
-test_that("manifest expects migration 026 as latest", {
-  expect_equal(EXPECTED_LATEST_MIGRATION, "026_add_entity_last_update.sql")
-  expect_gte(EXPECTED_MIGRATION_COUNT, 27L)
+test_that("manifest expects migration 033 as latest", {
+  expect_equal(EXPECTED_LATEST_MIGRATION, "033_add_metadata_lookup_admin_columns.sql")
+  expect_gte(EXPECTED_MIGRATION_COUNT, 28L)
 })
 
 test_that("migration manifest validates against db/migrations", {
   migrations_dir <- file.path(get_api_dir(), "..", "db", "migrations")
   res <- validate_migration_manifest(migrations_dir = migrations_dir)
   expect_true(res$ok)
-  expect_identical(res$latest, "026_add_entity_last_update.sql")
+  expect_identical(res$latest, "033_add_metadata_lookup_admin_columns.sql")
 })
 
 test_that("migration 026 adds a last_update column derived from curation dates", {

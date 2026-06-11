@@ -228,6 +228,14 @@ NDDScore import work runs in the worker service. Restart the worker container af
 
 The default Zenodo source is configured through the same environment-file path as other deployment settings. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. If those environment variables are absent, the API falls back to `api/config.yml`; the built-in literal defaults are only a final safety net for tests and local development.
 
+### Managing curation metadata vocabularies
+
+Use the administrator `/ManageMetadata` page to administer the small SysNDD-managed curation controlled vocabularies (status categories, modifiers) and to curate display fields on the ontology-anchored sets (inheritance modes, variation ontology). The page renders one tab and table per vocabulary backed by `/api/metadata`.
+
+Editability is tiered deliberately: status categories and modifiers support full create / edit / deactivate; inheritance modes and variation-ontology terms expose curated-field edits and activation toggles only, because their terms are sourced from HPO and VariO and may be overwritten on the next ontology refresh. HPO phenotypes, the disease ontology, and gene nomenclature are refreshed from source elsewhere and are not editable here.
+
+Deletes are soft-deletes: an entry still referenced by curation data is blocked with a clear error and must be deactivated rather than removed. The vocabulary catalog, editability tiers, and in-use reference lists are defined in `metadata_vocabulary_registry()` (`api/functions/metadata-vocabulary-repository.R`); extend that registry when adding a managed vocabulary or a new referencing table.
+
 Offline importer fixtures live under `api/tests/testthat/fixtures/nddscore/`. The committed fixture generator, `make-fixture-archive.R`, rebuilds the small `.tar.gz` archives used by tests; those generated archives are ignored because they can be regenerated on demand.
 
 ## Common Gotchas
