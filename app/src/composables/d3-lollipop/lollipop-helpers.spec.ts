@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeEffectType } from '@/types/protein';
-import type { LollipopFilterState } from '@/types/protein';
+import type { LollipopFilterState, PathogenicityClass } from '@/types/protein';
 import {
   AGGREGATION_THRESHOLD,
   MIN_MARKER_RADIUS,
@@ -31,6 +31,7 @@ describe('lollipop-helpers', () => {
     expect(isClassificationVisible('Uncertain significance', fs)).toBe(true);
     expect(isClassificationVisible('Likely benign', fs)).toBe(false);
     expect(isClassificationVisible('Benign', fs)).toBe(true);
+    expect(isClassificationVisible('other' as PathogenicityClass, fs)).toBe(true);
   });
 
   it('isEffectTypeVisible shows all when effectFilters is missing', () => {
@@ -54,6 +55,11 @@ describe('lollipop-helpers', () => {
   it('calculateAggregatedRadius scales by sqrt of count share within bounds', () => {
     expect(calculateAggregatedRadius(9, 9)).toBeCloseTo(MAX_MARKER_RADIUS, 5);
     expect(calculateAggregatedRadius(0, 9)).toBeCloseTo(MIN_MARKER_RADIUS, 5);
+    // sqrt scaling: quarter share -> half range (linear would give quarter range)
+    expect(calculateAggregatedRadius(1, 4)).toBeCloseTo(
+      MIN_MARKER_RADIUS + 0.5 * (MAX_MARKER_RADIUS - MIN_MARKER_RADIUS),
+      5
+    );
   });
 
   it('determineRenderingMode switches at the aggregation threshold', () => {
