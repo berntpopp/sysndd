@@ -59,13 +59,9 @@ const MAIN_NAV = {
       align: 'left',
       items: [
         { text: 'Compare curations', path: '/CurationComparisons' },
-        { text: 'Curation matrix', path: '/CurationComparisons/Similarity', icons: ['grid-3x3'] },
+        { text: 'Curation matrix', path: '/CurationComparisons/Similarity' },
         { text: 'Correlate phenotypes', path: '/PhenotypeCorrelations' },
-        {
-          text: 'Correlation matrix',
-          path: '/PhenotypeFunctionalCorrelation',
-          icons: ['grid-3x3-gap'],
-        },
+        { text: 'Correlation matrix', path: '/PhenotypeFunctionalCorrelation' },
         { text: 'Correlate variants', path: '/VariantCorrelations' },
         { text: 'Entries over time', path: '/EntriesOverTime' },
         { text: 'NDD Publications', path: '/PublicationsNDD' },
