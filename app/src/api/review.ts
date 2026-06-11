@@ -53,6 +53,13 @@ export interface ReviewListRow {
 export interface ReviewMutationParams {
   /** R coerces "TRUE"/"FALSE". */
   re_review?: boolean;
+  /**
+   * Curator+ only. When true the server approves the freshly written review
+   * in the same request (mirrors the entity-create `direct_approval` flow in
+   * `entity_endpoints.R`). R coerces "TRUE"/"FALSE"; non-Curator callers are
+   * rejected with 403 server-side regardless of this flag.
+   */
+  direct_approval?: boolean | string;
 }
 
 /**

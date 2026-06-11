@@ -126,6 +126,25 @@ make_review_sandbox <- function(require_role_fn = function(req, res, min_role) i
   env$put_post_db_var_ont_con <- put_post_db_var_ont_con_fn
   env$genereviews_from_pmid <- genereviews_from_pmid_fn
   env$`%||%` <- function(a, b) if (is.null(a)) b else a
+  # Direct-approval helper (issues #36/#37). Faithful copy of
+  # approval-service.R::review_apply_direct_approval that delegates to the
+  # sandbox's review-approve stub. Calls `svc_approval_review_approve_fn`
+  # directly (closed over here) rather than by name, so it always hits the
+  # injected stub regardless of lexical scope. Keeps the handler test
+  # self-contained without sourcing the service layer.
+  env$review_apply_direct_approval <- function(write_response, review_id, user_id,
+                                               direct_approval, pool) {
+    if (!isTRUE(direct_approval)) return(write_response)
+    if (is.null(write_response$status) || !all(write_response$status == 200)) return(write_response)
+    if (is.null(review_id) || length(review_id) == 0 || is.na(review_id[[1]])) {
+      return(write_response)
+    }
+    approval <- svc_approval_review_approve_fn(review_id, user_id, TRUE, pool)
+    if (is.null(approval$status) || approval$status != 200) {
+      write_response$status <- approval$status %||% 500
+    }
+    write_response
+  }
   # `compact` is a purrr helper used by the review handler's literature /
   # phenotypes / variation branches. setup.R does not attach purrr, so
   # stub a deterministic pure-R implementation here to keep tests
@@ -326,6 +345,124 @@ test_that("POST /create review: permission — non-Reviewer role blocked with 40
     res <- make_mock_res()
     expect_error(handler(req = req, res = res), "forbidden")
     expect_equal(res$status, 403L)
+  })
+})
+
+
+# =============================================================================
+# POST /create direct_approval -- Curator-gated approval (issues #36 / #37)
+# =============================================================================
+
+# require_role that allows Reviewer (the write gate) but denies Curator (the
+# direct-approval escalation).
+deny_curator_allow_reviewer <- function(req, res, min_role) {
+  if (identical(min_role, "Curator")) {
+    res$status <- 403L
+    stop("forbidden: Curator required")
+  }
+  invisible(TRUE)
+}
+
+test_that("POST /create review direct_approval=TRUE: Curator approves the new review", {
+  with_test_db_transaction({
+    approve_args <- list()
+    fake_approve <- function(review_id, user_id, approve, pool) {
+      approve_args <<- list(review_id = review_id, user_id = user_id, approve = approve)
+      list(status = 200, message = "OK. Review approved.", entry = review_id)
+    }
+    env <- make_review_sandbox(svc_approval_review_approve_fn = fake_approve)
+    handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 7L,
+      argsBody = list(
+        review_json = list(
+          entity_id = 123L,
+          synopsis = "Non-empty synopsis text.",
+          literature = list(),
+          phenotypes = list(),
+          variation_ontology = list()
+        )
+      )
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = FALSE, direct_approval = TRUE)
+
+    expect_true(all(result$status == 200L))
+    # The freshly created review (entry$review_id = 42 from the sandbox default)
+    # is approved by the calling user.
+    expect_equal(approve_args$review_id, 42L)
+    expect_equal(approve_args$user_id, 7L)
+    expect_true(isTRUE(approve_args$approve))
+  })
+})
+
+test_that("POST /create review direct_approval=FALSE: approval service is NOT called", {
+  with_test_db_transaction({
+    approve_called <- FALSE
+    fake_approve <- function(...) {
+      approve_called <<- TRUE
+      list(status = 200, message = "OK.")
+    }
+    env <- make_review_sandbox(svc_approval_review_approve_fn = fake_approve)
+    handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 7L,
+      argsBody = list(
+        review_json = list(
+          entity_id = 123L,
+          synopsis = "Non-empty synopsis text.",
+          literature = list(),
+          phenotypes = list(),
+          variation_ontology = list()
+        )
+      )
+    )
+    res <- make_mock_res()
+    result <- handler(req = req, res = res, re_review = FALSE, direct_approval = FALSE)
+
+    expect_true(all(result$status == 200L))
+    expect_false(approve_called)
+  })
+})
+
+test_that("POST /create review direct_approval=TRUE: Reviewer (non-Curator) blocked with 403", {
+  with_test_db_transaction({
+    write_called <- FALSE
+    approve_called <- FALSE
+    fake_approve <- function(...) {
+      approve_called <<- TRUE
+      list(status = 200, message = "OK.")
+    }
+    env <- make_review_sandbox(
+      require_role_fn = deny_curator_allow_reviewer,
+      put_post_db_review_fn = function(...) {
+        write_called <<- TRUE
+        list(status = 200, message = "OK.", entry = list(review_id = 42L))
+      },
+      svc_approval_review_approve_fn = fake_approve
+    )
+    handler <- extract_review_handler("^#\\*\\s+@post\\s+/create\\s*$", env)
+
+    req <- list(
+      REQUEST_METHOD = "POST",
+      user_id = 7L,
+      argsBody = list(
+        review_json = list(entity_id = 1L, synopsis = "text")
+      )
+    )
+    res <- make_mock_res()
+    # The Curator escalation fires BEFORE any write.
+    expect_error(
+      handler(req = req, res = res, re_review = FALSE, direct_approval = TRUE),
+      "forbidden"
+    )
+    expect_equal(res$status, 403L)
+    expect_false(write_called)
+    expect_false(approve_called)
   })
 })
 

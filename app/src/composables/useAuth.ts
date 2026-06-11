@@ -121,7 +121,26 @@ export interface UseAuthReturn {
   handle401: () => void;
   syncFromStorage: () => void;
   hasRole: (role: string) => boolean;
+  /**
+   * Hierarchy-aware role check (Viewer < Reviewer < Curator < Administrator).
+   * Returns true when the current user's role is at least `role`. Mirrors the
+   * server-side `role_levels` ladder in `api/core/middleware.R` so frontend
+   * gating and the API rights check agree. Unlike `hasRole` (exact match),
+   * `hasMinRole('Curator')` is also true for an Administrator.
+   */
+  hasMinRole: (role: string) => boolean;
 }
+
+/**
+ * Role hierarchy mirroring `role_levels` in `api/core/middleware.R`. Higher
+ * number == more privilege. Used by `hasMinRole` for hierarchy-aware gating.
+ */
+const ROLE_LEVELS: Record<string, number> = {
+  Viewer: 1,
+  Reviewer: 2,
+  Curator: 3,
+  Administrator: 4,
+};
 
 // ---------------------------------------------------------------------------
 // Module-level singleton state
@@ -488,6 +507,13 @@ export function useAuth(): UseAuthReturn {
       const roles = userRef.value?.user_role;
       if (!Array.isArray(roles)) return false;
       return roles[0] === role;
+    },
+    hasMinRole: (role: string): boolean => {
+      const roles = userRef.value?.user_role;
+      if (!Array.isArray(roles) || roles.length === 0) return false;
+      const required = ROLE_LEVELS[role] ?? Number.POSITIVE_INFINITY;
+      const current = ROLE_LEVELS[roles[0]] ?? 0;
+      return current >= required;
     },
   };
 }

@@ -201,6 +201,32 @@ describe('useAuth', () => {
       expect(auth.hasRole('Administrator')).toBe(false);
       expect(auth.hasRole('Viewer')).toBe(false);
     });
+
+    it('exposes hasMinRole() with hierarchy-aware checks (mirrors API role_levels)', () => {
+      const auth = useAuth();
+
+      // Curator satisfies Reviewer/Curator but not Administrator.
+      auth.login(FRESH_TOKEN, makeFreshUser({ user_role: ['Curator'] }));
+      expect(auth.hasMinRole('Reviewer')).toBe(true);
+      expect(auth.hasMinRole('Curator')).toBe(true);
+      expect(auth.hasMinRole('Administrator')).toBe(false);
+
+      // Administrator outranks Curator — direct-approval gating must pass.
+      auth.login(FRESH_TOKEN, makeFreshUser({ user_role: ['Administrator'] }));
+      expect(auth.hasMinRole('Curator')).toBe(true);
+      expect(auth.hasMinRole('Administrator')).toBe(true);
+
+      // Reviewer is below Curator — direct-approval gating must fail.
+      auth.login(FRESH_TOKEN, makeFreshUser({ user_role: ['Reviewer'] }));
+      expect(auth.hasMinRole('Curator')).toBe(false);
+      expect(auth.hasMinRole('Reviewer')).toBe(true);
+    });
+
+    it('hasMinRole() returns false when there is no authenticated user', () => {
+      const auth = useAuth();
+      auth.logout();
+      expect(auth.hasMinRole('Curator')).toBe(false);
+    });
   });
 
   // -------------------------------------------------------------------------

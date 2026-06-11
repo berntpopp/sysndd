@@ -149,6 +149,100 @@ svc_approval_status_approve <- function(status_id, user_id, approve = FALSE, poo
 }
 
 # ---------------------------------------------------------------------------
+# Direct-approval helpers for the modify path (issues #36 / #37)
+# ---------------------------------------------------------------------------
+# These fold an optional "approve in the same request" step onto the status /
+# review create+update handlers, mirroring the entity-create direct-approval
+# flow. They reuse svc_approval_*_approve so the sibling-reset semantics
+# (one active status / one primary review per entity) stay identical to the
+# /approve endpoints. Role gating (Curator+) is enforced by the endpoint
+# BEFORE these run; they only act when `direct_approval` is TRUE and the
+# preceding write succeeded.
+
+#' Fold a direct-approval step onto a status write response
+#'
+#' @param write_response List returned by the status write (`status`,
+#'   `message`, `entry` = status_id).
+#' @param user_id Integer user id performing the approval.
+#' @param direct_approval Logical; when FALSE the write_response is returned
+#'   unchanged.
+#' @param pool Database connection pool.
+#' @return The (possibly augmented) write_response list.
+svc_status_apply_direct_approval <- function(write_response,
+                                             user_id,
+                                             direct_approval,
+                                             pool) {
+  if (!isTRUE(direct_approval)) {
+    return(write_response)
+  }
+  if (is.null(write_response$status) || write_response$status != 200) {
+    return(write_response)
+  }
+  status_id <- write_response$entry
+  if (is.null(status_id) || length(status_id) == 0 || is.na(status_id[[1]])) {
+    return(write_response)
+  }
+
+  approval <- svc_approval_status_approve(status_id, user_id, TRUE, pool)
+  if (is.null(approval$status) || approval$status != 200) {
+    write_response$status <- approval$status %||% 500
+    write_response$message <- paste(
+      write_response$message,
+      "Direct approval failed:",
+      approval$message %||% approval$error %||% "unknown error"
+    )
+  } else {
+    write_response$message <- paste(write_response$message, "Status approved.")
+  }
+  write_response
+}
+
+#' Fold a direct-approval step onto a review write response
+#'
+#' @param write_response List returned by the review handler (`status`,
+#'   `message`).
+#' @param review_id Integer review id to approve (from the write result).
+#' @param user_id Integer user id performing the approval.
+#' @param direct_approval Logical; when FALSE the write_response is returned
+#'   unchanged.
+#' @param pool Database connection pool.
+#' @return The (possibly augmented) write_response list.
+review_apply_direct_approval <- function(write_response,
+                                         review_id,
+                                         user_id,
+                                         direct_approval,
+                                         pool) {
+  if (!isTRUE(direct_approval)) {
+    return(write_response)
+  }
+  # The review handler may return a vectorized status (one element per distinct
+  # downstream message), so collapse to a single "all OK" check.
+  if (is.null(write_response$status) || !all(write_response$status == 200)) {
+    return(write_response)
+  }
+  if (is.null(review_id) || length(review_id) == 0 || is.na(review_id[[1]])) {
+    write_response$message <- paste(
+      write_response$message,
+      "Direct approval skipped: review id unavailable."
+    )
+    return(write_response)
+  }
+
+  approval <- svc_approval_review_approve(review_id, user_id, TRUE, pool)
+  if (is.null(approval$status) || approval$status != 200) {
+    write_response$status <- approval$status %||% 500
+    write_response$message <- paste(
+      write_response$message,
+      "Direct approval failed:",
+      approval$message %||% approval$error %||% "unknown error"
+    )
+  } else {
+    write_response$message <- paste(write_response$message, "Review approved.")
+  }
+  write_response
+}
+
+# ---------------------------------------------------------------------------
 # Migrated from legacy-wrappers.R (Phase D, D4)
 # ---------------------------------------------------------------------------
 
