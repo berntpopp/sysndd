@@ -86,7 +86,8 @@ const scopes = [
     tsconfig: 'tsconfig.global.json',
     prefix: 'src/',
     // Exclusions are grouped by root cause so each cohort can be retired
-    // together. Categories: (D3) needs @types/d3 or local ambient types;
+    // together. Categories: (D3) residual d3 typing errors (@types/d3 is
+    // installed since #346 Sprint 1);
     // (CYTO-EXT) cytoscape-fcose / cytoscape-svg ship no published types;
     // (FS) file-saver needs @types/file-saver; (BV3-OVERLOAD) bootstrap-
     // vue-next BFormSelect overload incompatibility with our setup() shape;
@@ -95,12 +96,9 @@ const scopes = [
     // PARAM) implicit-any callback params; (INDEX) index-type narrowing;
     // (TOAST-SHIM) toast wrapper type misalignment with consumers.
     excludePrefixes: [
-      // D3
-      'src/components/analyses/PubtatorNDDStats.vue',
+      // D3 — @types/d3 is installed; the cohort is retired except this
+      // file, whose remaining errors are its own (fix in WP1/S5, #394)
       'src/components/gene/GeneStructurePlotWithVariants.vue',
-      'src/components/gene/ProteinDomainLollipopPlot.vue',
-      'src/composables/useD3GeneStructure.ts',
-      'src/composables/useD3Lollipop.ts',
       // CYTO-EXT
       'src/composables/useCytoscape.ts',
       'src/composables/usePhenotypeCytoscape.ts',
