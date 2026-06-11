@@ -416,65 +416,14 @@
       />
 
       <!-- Delete Logs Confirmation Modal -->
-      <BModal
+      <LogDeleteModal
         v-if="showDeleteModal"
         v-model="showDeleteModal"
-        title="Delete Logs"
-        header-bg-variant="danger"
-        header-text-variant="light"
-        centered
-        @hidden="resetDeleteModal"
-      >
-        <div class="text-center mb-3">
-          <i class="bi bi-exclamation-triangle-fill text-danger fs-1" />
-        </div>
-
-        <!-- Delete mode selection -->
-        <div class="mb-3">
-          <label class="form-label fw-semibold">What to delete:</label>
-          <BFormSelect v-model="deleteMode" class="mb-2">
-            <option value="all">All logs ({{ totalRows.toLocaleString() }} entries)</option>
-            <option value="3">Logs older than 3 days</option>
-            <option value="7">Logs older than 7 days</option>
-            <option value="14">Logs older than 14 days</option>
-            <option value="30">Logs older than 30 days</option>
-          </BFormSelect>
-        </div>
-
-        <p class="text-center">
-          <strong>Warning:</strong>
-          <span v-if="deleteMode === 'all'">
-            This will permanently delete all {{ totalRows.toLocaleString() }} log entries.
-          </span>
-          <span v-else> This will permanently delete logs older than {{ deleteMode }} days. </span>
-        </p>
-        <p class="text-center text-muted small">
-          This action cannot be undone. Type <code>DELETE</code> to confirm.
-        </p>
-        <BFormInput
-          v-model="deleteConfirmText"
-          placeholder="Type DELETE to confirm"
-          class="text-center"
-          :state="deleteConfirmText === 'DELETE' ? true : deleteConfirmText ? false : null"
-        />
-        <template #footer>
-          <BButton variant="secondary" @click="showDeleteModal = false"> Cancel </BButton>
-          <BButton
-            variant="danger"
-            :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
-            @click="deleteLogs"
-          >
-            <BSpinner v-if="isDeleting" small class="me-1" />
-            {{
-              isDeleting
-                ? 'Deleting...'
-                : deleteMode === 'all'
-                  ? 'Delete All Logs'
-                  : `Delete Old Logs`
-            }}
-          </BButton>
-        </template>
-      </BModal>
+        v-model:delete-mode="deleteMode"
+        :total-rows="totalRows"
+        :is-deleting="isDeleting"
+        @confirm="deleteLogs"
+      />
     </BContainer>
   </div>
 </template>
@@ -499,6 +448,7 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import LogDetailDrawer from '@/components/small/LogDetailDrawer.vue';
+import LogDeleteModal from '@/components/small/LogDeleteModal.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import LogMobileRows from '@/views/admin/components/LogMobileRows.vue';
 
@@ -527,6 +477,7 @@ export default {
     TableSearchInput,
     GenericTable,
     LogDetailDrawer,
+    LogDeleteModal,
     TableShell,
     LogMobileRows,
   },
@@ -702,7 +653,6 @@ export default {
       ],
       // Delete confirmation modal state
       showDeleteModal: false,
-      deleteConfirmText: '',
       deleteMode: 'all', // 'all', '3', '7', '14', '30' (days)
       isDeleting: false,
     };
@@ -1100,12 +1050,6 @@ export default {
     getDurationClass(duration) {
       return getLogDurationClass(duration);
     },
-    // Delete all logs with confirmation
-    // Reset delete modal state
-    resetDeleteModal() {
-      this.deleteConfirmText = '';
-      this.deleteMode = 'all';
-    },
     // Delete logs with optional age filter
     async deleteLogs() {
       this.isDeleting = true;
@@ -1121,7 +1065,6 @@ export default {
 
         this.makeToast(message, 'Logs Deleted', 'success');
         this.showDeleteModal = false;
-        this.resetDeleteModal();
         // Reset and reload
         this.currentItemID = 0;
         this.loadData();
