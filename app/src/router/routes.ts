@@ -33,6 +33,30 @@ function createAuthGuard(allowed_roles: readonly string[]) {
   };
 }
 
+/**
+ * Build a role-guarded, sitemap-ignored route record.
+ *
+ * Collapses the repeated 5-line `{ path, name, component, meta, beforeEnter }`
+ * shape used by every authenticated curate/admin page into one call, so adding
+ * a curator page no longer adds a six-line block.
+ */
+function protectedRoute(
+  path: string,
+  name: string,
+  component: () => Promise<RouteComponent>,
+  allowed_roles: readonly string[]
+): RouteRecordRaw {
+  return {
+    path,
+    name,
+    component,
+    meta: { sitemap: { ignoreRoute: true } },
+    beforeEnter: createAuthGuard(allowed_roles),
+  };
+}
+
+const CURATOR_ROLES = ['Administrator', 'Curator'] as const;
+
 const nddScoreComponents = import.meta.glob('../components/nddscore/*.vue');
 const adminViews = import.meta.glob('../views/admin/*.vue');
 
@@ -443,48 +467,13 @@ export const routes: RouteRecordRaw[] = [
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: createAuthGuard(['Administrator', 'Curator', 'Reviewer']),
   },
-  {
-    path: '/CreateEntity',
-    name: 'CreateEntity',
-    component: () => import('@/views/curate/CreateEntity.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
-  {
-    path: '/ModifyEntity',
-    name: 'ModifyEntity',
-    component: () => import('@/views/curate/ModifyEntity.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
-  {
-    path: '/ApproveReview',
-    name: 'ApproveReview',
-    component: () => import('@/views/curate/ApproveReview.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
-  {
-    path: '/ApproveStatus',
-    name: 'ApproveStatus',
-    component: () => import('@/views/curate/ApproveStatus.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
-  {
-    path: '/ApproveUser',
-    name: 'ApproveUser',
-    component: () => import('@/views/curate/ApproveUser.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
-  {
-    path: '/ManageReReview',
-    name: 'ManageReReview',
-    component: () => import('@/views/curate/ManageReReview.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator', 'Curator']),
-  },
+  protectedRoute('/CreateEntity', 'CreateEntity', () => import('@/views/curate/CreateEntity.vue'), CURATOR_ROLES),
+  protectedRoute('/ModifyEntity', 'ModifyEntity', () => import('@/views/curate/ModifyEntity.vue'), CURATOR_ROLES),
+  protectedRoute('/ApproveReview', 'ApproveReview', () => import('@/views/curate/ApproveReview.vue'), CURATOR_ROLES),
+  protectedRoute('/ApproveStatus', 'ApproveStatus', () => import('@/views/curate/ApproveStatus.vue'), CURATOR_ROLES),
+  protectedRoute('/ApproveUser', 'ApproveUser', () => import('@/views/curate/ApproveUser.vue'), CURATOR_ROLES),
+  protectedRoute('/ManageReReview', 'ManageReReview', () => import('@/views/curate/ManageReReview.vue'), CURATOR_ROLES),
+  protectedRoute('/GeneReviews', 'GeneReviews', () => import('@/views/curate/GeneReviewsCoverage.vue'), CURATOR_ROLES),
   {
     path: '/ManageUser',
     name: 'ManageUser',

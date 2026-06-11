@@ -62,6 +62,8 @@ External genomic proxy caches live under `/app/cache/external/{static,stable,dyn
 
 External provider request budgets default to short fail-fast values: `EXTERNAL_PROXY_TIMEOUT_SECONDS=6`, `EXTERNAL_PROXY_MAX_SECONDS=10`, `EXTERNAL_PROXY_MAX_TRIES=2`, and `EXTERNAL_PROXY_AGGREGATE_MAX_SECONDS=12`. Override per source with names such as `EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS`, `EXTERNAL_PROXY_MGI_MAX_SECONDS`, and `EXTERNAL_PROXY_MGI_MAX_TRIES`. The aggregate external gene route remains serial and returns `partial = TRUE` with `skipped_sources` when the aggregate budget is exhausted.
 
+The curator GeneReviews coverage feature (`/api/genereviews`, Curator+) resolves GeneReviews availability through NCBI E-utilities and caches it in the same success-only external cache (30-day static TTL). The API container therefore needs outbound egress to `eutils.ncbi.nlm.nih.gov` when curators run the live availability pass or attach a GeneReviews reference. NCBI credentials are optional: set `NCBI_API_KEY` and `NCBI_EUTILS_EMAIL` to raise NCBI rate limits; anonymous low-volume use works without them. The cheap (already-linked) coverage view and CSV export make no external calls.
+
 ### Public analysis snapshots
 
 Public analysis endpoints and MCP analysis tools read public-ready rows from `analysis_snapshot_manifest` and normalized snapshot payload tables. They do not compute STRING networks, phenotype clusters, correlations, fCoSE layouts, external provider calls, or Gemini summaries on request-path miss.
