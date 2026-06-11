@@ -183,7 +183,76 @@ Add `mcp-auth` through the deployment's chosen authentication middleware before 
 - Run NDDScore updates from the administrator `/ManageNDDScore` page: **Check Zenodo**, **Download & validate**, then **Import & activate latest release**. The worker needs outbound egress to Zenodo. The previous active release keeps serving until the new release validates and activates successfully. All imported releases are retained for history; there is no automatic pruning. On failure, inspect the release `import_status` and `last_error_message` in the admin view or database.
 - Configure the default NDDScore Zenodo source in the production `.env` file. `NDDSCORE_ZENODO_RECORD_ID` defaults to `20258027`, and `NDDSCORE_ZENODO_API_BASE_URL` defaults to `https://zenodo.org/api/records`. The API and worker containers both receive these variables; if they are missing, `api/config.yml` provides the same defaults.
 - `publication.publication_date_source` records how each `Publication_date` was derived (`pubmed`, `pubmed_partial`, `medline_date`, `unknown`). New ingestions set it automatically. After deploying the migration, run the one-time operator backfill with PubMed egress: `Rscript db/updates/backfill_publication_dates.R --dry-run --limit=25` for a small rehearsal, `Rscript db/updates/backfill_publication_dates.R --dry-run` to preview the full run, then `Rscript db/updates/backfill_publication_dates.R --apply` to update historical rows. The script is dry-run by default, uses an advisory lock, limits PubMed fallback requests with `NCBI_REQUEST_DELAY_SECONDS`, skips unresolved IDs, and commits writes in batches controlled by `BACKFILL_UPDATE_BATCH_SIZE`.
-- Use HTTPS in production.
+- Use HTTPS in production. See **TLS Certificate Renewal** below for the yearly certificate workflow and the dry-run-safe CSR helper.
+
+## TLS Certificate Renewal
+
+> Design rationale and the full decision record live in `.planning/decisions/2026-06-11-tls-certificate-renewal-automation.md` (issue #25). This section is the operator runbook.
+
+### How TLS is served today
+
+The application Compose stack (`docker-compose.yml`) runs Traefik on the `web` (`:80`) entrypoint only; it has **no `:443` entrypoint and no ACME resolver**, so HTTPS for the public host `sysndd.dbmr.unibe.ch` is terminated by an **upstream institutional reverse proxy**. A legacy standalone nginx TLS config also exists (`app/docker/nginx/prod.conf`, terminating `:443` from a `cert.pem`/`key.pem` mount at `/etc/nginx/certificates/`); it is retained but not wired into the current stack. Confirm which terminator is active in your deployment before installing a new certificate.
+
+### Two paths
+
+**Option A — ACME / Let's Encrypt (preferred if a public CA is acceptable).** If the institution allows a public CA for this host, add a `:443` entrypoint plus an ACME resolver to Traefik (or to the upstream proxy). Traefik then issues and auto-renews certificates with **no CSR, no email, and no restart** — this eliminates the manual yearly process entirely. Confirm public-CA acceptability and inbound `:80`/`:443` reachability for the ACME challenge first.
+
+**Option B — scripted CSR for an institutional CA (current default).** Keep the institutional/internal CA but remove the manual openssl step. Use the helper to produce a reproducible key + CSR, submit it to the authority, install the returned certificate, and reload the terminator.
+
+### CSR helper (`scripts/cert/generate-csr.sh`)
+
+The helper is **dry-run by default** and **refuses to write key material inside the repository tree**. Configure it via `scripts/cert/cert-renewal.conf` (copied from `cert-renewal.conf.example`; the real config and any local key/CSR output are gitignored) or `CERT_*` environment variables.
+
+```bash
+# 1. Configure (one-time): copy the example and edit subject/SAN/output dir.
+cp scripts/cert/cert-renewal.conf.example scripts/cert/cert-renewal.conf
+$EDITOR scripts/cert/cert-renewal.conf      # CERT_OUT_DIR must be OUTSIDE the repo
+
+# 2. Inspect resolved config and the exact openssl command (writes nothing).
+scripts/cert/generate-csr.sh --print-config
+scripts/cert/generate-csr.sh                # DRY-RUN: prints the openssl command
+
+# 3. Generate the real key + CSR (the only live operation in this helper).
+scripts/cert/generate-csr.sh --apply --out-dir /etc/sysndd/certs
+```
+
+The private key is written under `umask 077` + `chmod 600`; the CSR is safe to share with the signing authority.
+
+### Remaining operator steps (TODO hooks — CA-/deployment-specific)
+
+The helper intentionally does **not** submit, install, or reload — those depend on your CA and active terminator. It prints guidance for each:
+
+1. **Submit** the CSR to the authority (portal upload, CA API, or email).
+2. **Install** the returned certificate (+ intermediate chain). Validate it matches the key — these two MD5s must be identical:
+   ```bash
+   openssl x509 -noout -modulus -in cert.pem | openssl md5
+   openssl rsa  -noout -modulus -in key.pem  | openssl md5
+   ```
+   Keep the previous `cert.pem`/`key.pem` as `.bak` for rollback, then place the new pair at the active terminator's mount.
+3. **Reload** the terminator without dropping connections:
+   - nginx: `docker compose exec <proxy> nginx -s reload`
+   - Traefik file-provider: dynamic cert files hot-reload automatically on change.
+   Verify afterward:
+   ```bash
+   echo | openssl s_client -connect sysndd.dbmr.unibe.ch:443 \
+     -servername sysndd.dbmr.unibe.ch 2>/dev/null | openssl x509 -noout -dates
+   ```
+
+### Yearly schedule
+
+Run the generator on a yearly cadence from host `cron` or a `systemd` timer (never inside the nginx app container) and notify an operator that a fresh CSR is ready to submit. Allow round-trip slack (e.g. ~6 weeks before expiry):
+
+```cron
+# 06:00 on Oct 1 each year — generate the renewal CSR and log the result.
+0 6 1 10 * /opt/sysndd/scripts/cert/generate-csr.sh --apply \
+  --out-dir /etc/sysndd/certs >> /var/log/sysndd-cert-renew.log 2>&1
+```
+
+For ACME (Option A) no schedule is needed; Traefik renews automatically.
+
+### Rollback
+
+The generated key/CSR are inert until a signed certificate is installed, so generation carries no production risk. If a freshly installed certificate breaks TLS, restore the `.bak` `cert.pem`/`key.pem` and reload again — fast and connection-preserving.
 
 ## SEO Prerender Operations
 

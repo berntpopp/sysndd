@@ -8,6 +8,15 @@
 app/docker/nginx/cert.pem
 app/docker/nginx/key.pem
 
+# TLS certificate renewal (issue #25): real site-specific config + any
+# accidentally-local key/CSR output must never be committed. Only the
+# *.example template is tracked.
+scripts/cert/cert-renewal.conf
+scripts/cert/*.key.pem
+scripts/cert/*.csr.pem
+scripts/cert/*.crt
+scripts/cert/*.pem
+
 # testing files
 TESTING.md
 

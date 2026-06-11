@@ -1,0 +1,47 @@
+# cert-renewal.conf.example
+#
+# Example operator configuration for scripts/cert/generate-csr.sh.
+#
+# HOW TO USE
+#   cp scripts/cert/cert-renewal.conf.example scripts/cert/cert-renewal.conf
+#   # edit the values below, then run a dry-run first:
+#   scripts/cert/generate-csr.sh --print-config
+#   scripts/cert/generate-csr.sh           # dry-run, prints the openssl command
+#   scripts/cert/generate-csr.sh --apply   # generate key + CSR for real
+#
+# SECURITY
+#   * This file contains NO secret material — only certificate subject metadata.
+#   * The generated PRIVATE KEY is the secret and is written to CERT_OUT_DIR,
+#     which MUST be an operator-managed path OUTSIDE this repository.
+#   * scripts/cert/cert-renewal.conf (without .example) is gitignored so a real,
+#     site-specific config never lands in version control. Keep it that way.
+#
+# Every value below can also be supplied as an environment variable of the same
+# name; environment values override this file, and --out-dir overrides both.
+
+# --- Identity (subject) ---------------------------------------------------
+# Primary hostname (Common Name). Must match the public site hostname.
+CERT_COMMON_NAME="sysndd.dbmr.unibe.ch"
+
+# Subject Alternative Names: space- or comma-separated DNS names. The Common
+# Name is always added automatically, so only list ADDITIONAL names here.
+# Example for an apex + www deployment: "sysndd.org www.sysndd.org"
+CERT_SAN="sysndd.dbmr.unibe.ch"
+
+# --- Organisation metadata (for the CSR subject) --------------------------
+CERT_COUNTRY="CH"
+CERT_STATE="Bern"
+CERT_LOCALITY="Bern"
+CERT_ORG="Universitaet Bern"
+CERT_ORG_UNIT="DBMR"
+# Optional contact email embedded in the subject. Leave empty to omit.
+CERT_EMAIL=""
+
+# --- Key parameters -------------------------------------------------------
+# RSA key size in bits: one of 2048, 3072, 4096.
+CERT_KEY_BITS="4096"
+
+# --- Output location (MUST be outside the repo) ---------------------------
+# Operator-managed directory where the private key + CSR are written. The
+# script refuses to write anywhere inside the git working tree.
+CERT_OUT_DIR="/etc/sysndd/certs"
