@@ -5,7 +5,7 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "028_add_db_version.sql")
+  expect_equal(EXPECTED_LATEST_MIGRATION, "029_add_rereview_refusal.sql")
   expect_equal(EXPECTED_MIGRATION_COUNT, 28L)
 })
 

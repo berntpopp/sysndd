@@ -213,6 +213,21 @@
           <i class="bi bi-send-check" aria-hidden="true" />
         </BButton>
 
+        <!-- Refuse / decline (needs specialist) — issue #54. Visually separated
+             from the success Submit action; warning, not destructive. -->
+        <BButton
+          v-if="!curationSelected"
+          v-b-tooltip.hover.top
+          size="sm"
+          class="ms-2 btn-xs"
+          variant="outline-warning"
+          title="Refuse / decline (needs specialist)"
+          :aria-label="`Refuse re-review for sysndd:${row.item.entity_id}`"
+          @click="$emit('info-refuse', row.item, row.index, $event.target)"
+        >
+          <i class="bi bi-flag" aria-hidden="true" />
+        </BButton>
+
         <BButton
           v-if="curationSelected"
           v-b-tooltip.hover.right
@@ -387,6 +402,7 @@ export default {
     'info-status',
     'info-submit',
     'info-approve',
+    'info-refuse',
     'filtered',
     'update:filter',
     'update:categoryFilter',

@@ -2,7 +2,7 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "028_add_db_version.sql"
+EXPECTED_LATEST_MIGRATION <- "029_add_rereview_refusal.sql"
 EXPECTED_MIGRATION_COUNT <- 28L
 
 #' Validate the migration manifest for strict startup/readiness checks

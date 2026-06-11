@@ -3,21 +3,23 @@
 // W6 of v11.1 finish-hardening — re-review mutation composable for
 // `Review.vue`.
 //
-// Owns the four `/api/re_review/*` mutations:
+// Owns the `/api/re_review/*` mutations:
 //   - `submitReReviewEntity(id)`        → `PUT /api/re_review/submit`
 //   - `approveEntity(id, params)`       → `PUT /api/re_review/approve/:id`
 //   - `unsubmitEntity(id)`              → `PUT /api/re_review/unsubmit/:id`
+//   - `refuseEntity(id, reason)`        → `PUT /api/re_review/refuse/:id`
 //   - `applyForBatch()`                 → `GET /api/re_review/batch/apply`
 //
 // Does NOT own the wizard's form submissions — those stay in the
 // `useReviewForm` / `useStatusForm` composables. Those have their own
 // loading/saving state. This composable only exposes a single `mutating`
-// flag covering the four re-review-level mutations.
+// flag covering the re-review-level mutations.
 
 import { ref, type Ref } from 'vue';
 import {
   applyForReReviewBatch,
   approveReReview,
+  refuseReReview,
   submitReReview,
   unsubmitReReview,
 } from '@/api/re_review';
@@ -37,7 +39,7 @@ export interface UseReviewActionsOptions {
 }
 
 export interface UseReviewActions {
-  /** True while any of the four mutations is in flight. */
+  /** True while any mutation is in flight. */
   mutating: Ref<boolean>;
 
   /** PUT /api/re_review/submit with submit_json. */
@@ -48,6 +50,13 @@ export interface UseReviewActions {
 
   /** PUT /api/re_review/unsubmit/:id. */
   unsubmitEntity: (re_review_entity_id: number | string) => Promise<void>;
+
+  /**
+   * PUT /api/re_review/refuse/:id with an optional reason (issue #54).
+   * Resolves true on success and false when the mutation was reported as
+   * failed, so the caller can keep the confirm modal open on failure.
+   */
+  refuseEntity: (re_review_entity_id: number | string, reason?: string | null) => Promise<boolean>;
 
   /** GET /api/re_review/batch/apply (email send). */
   applyForBatch: () => Promise<void>;
@@ -109,6 +118,23 @@ export function useReviewActions(options: UseReviewActionsOptions = {}): UseRevi
     }
   }
 
+  async function refuseEntity(
+    re_review_entity_id: number | string,
+    reason?: string | null
+  ): Promise<boolean> {
+    mutating.value = true;
+    try {
+      const trimmed = typeof reason === 'string' ? reason.trim() : '';
+      await refuseReReview(re_review_entity_id, { reason: trimmed.length ? trimmed : null });
+      return true;
+    } catch (err) {
+      reportError(err);
+      return false;
+    } finally {
+      mutating.value = false;
+    }
+  }
+
   async function applyForBatch(): Promise<void> {
     mutating.value = true;
     try {
@@ -125,6 +151,7 @@ export function useReviewActions(options: UseReviewActionsOptions = {}): UseRevi
     submitReReviewEntity,
     approveEntity,
     unsubmitEntity,
+    refuseEntity,
     applyForBatch,
   };
 }

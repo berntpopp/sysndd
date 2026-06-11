@@ -757,6 +757,51 @@ describe('Review.vue — classification wizard (functional)', () => {
     expect(vm.categoryFilter).toBe('Definitive');
     expect(vm.userFilter).toBe('alice_admin');
   });
+
+  // Issue #54: refusing a re-review item PUTs to /refuse/:id with a body
+  // reason, then resets the refuse modal so the next entity opens clean.
+  it('refuses a re-review item via /api/re_review/refuse/:id with the body reason', async () => {
+    const axiosMock = await getSharedAxiosMock();
+    wireHappyPathResponses(axiosMock);
+    axiosMock.put.mockResolvedValue({ data: { message: 'refused' } });
+
+    const wrapper = await mountReview();
+    const vm = wrapper.vm as unknown as ReviewVm & {
+      reviewModals: {
+        refuseModal: { id: string; title: string };
+        entity: { value: Array<{ entity_id: number }> };
+        refuse_reason: { value: string };
+      };
+      refuse_reason: string;
+      infoRefuse: (item: ReReviewRow) => void;
+      handleRefuseOk: () => Promise<void>;
+    };
+    await flushPromises();
+
+    vm.infoRefuse(sampleRow);
+    await flushPromises();
+
+    expect(vm.reviewModals.entity.value).toHaveLength(1);
+    expect(vm.reviewModals.refuseModal.title).toBe('sysndd:501');
+
+    // User types a reason, then confirms.
+    vm.reviewModals.refuse_reason.value = 'Too complex; needs specialist';
+    await flushPromises();
+
+    await vm.handleRefuseOk();
+    await flushPromises();
+
+    const refuseCall = axiosMock.put.mock.calls.find(
+      (c: unknown[]) => (c[0] as string) === `/api/re_review/refuse/${sampleRow.re_review_entity_id}`
+    );
+    expect(refuseCall).toBeDefined();
+    expect((refuseCall as [string, { reason?: string }])[1].reason).toBe(
+      'Too complex; needs specialist'
+    );
+
+    // Reason is reset for the next entity.
+    expect(vm.reviewModals.refuse_reason.value).toBe('');
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -44,6 +44,7 @@
         @info-status="infoStatus"
         @info-submit="infoSubmit"
         @info-approve="infoApprove"
+        @info-refuse="infoRefuse"
         @filtered="onFiltered"
         @update:filter="filter = $event"
         @update:category-filter="categoryFilter = $event"
@@ -95,6 +96,14 @@
         @ok="handleSubmitOk"
       />
 
+      <RefuseConfirmModal
+        ref="refuseModalRef"
+        :modal-descriptor="refuseModal"
+        :reason="refuse_reason"
+        @ok="handleRefuseOk"
+        @update:reason="refuse_reason = $event"
+      />
+
       <ApproveDecisionModal
         ref="approveModalRef"
         :modal-descriptor="approveModal"
@@ -130,6 +139,7 @@ import ReviewQueueTable from './components/ReviewQueueTable.vue';
 import ReviewEditModal from './components/ReviewEditModal.vue';
 import StatusEditModal from './components/StatusEditModal.vue';
 import SubmitConfirmModal from './components/SubmitConfirmModal.vue';
+import RefuseConfirmModal from './components/RefuseConfirmModal.vue';
 import ApproveDecisionModal from './components/ApproveDecisionModal.vue';
 
 // Import the utilities file
@@ -214,6 +224,7 @@ export default {
     ReviewEditModal,
     StatusEditModal,
     SubmitConfirmModal,
+    RefuseConfirmModal,
     ApproveDecisionModal,
   },
   setup() {
@@ -333,9 +344,11 @@ export default {
       statusModal: modals.statusModal,
       submitModal: modals.submitModal,
       approveModal: modals.approveModal,
+      refuseModal: modals.refuseModal,
       entity: modals.entity,
       review_approved: modals.review_approved,
       status_approved: modals.status_approved,
+      refuse_reason: modals.refuse_reason,
       reviewModals: modals,
 
       // useReviewActions handle (used by the on*/handle* methods)
@@ -404,6 +417,10 @@ export default {
       this.reviewModals.openApprove(item);
       this.$refs.approveModalRef?.show();
     },
+    infoRefuse(item) {
+      this.reviewModals.openRefuse(item);
+      this.$refs.refuseModalRef?.show();
+    },
 
     // ---- Wizard form submissions (BModal @ok wiring) -----------------------
 
@@ -450,6 +467,20 @@ export default {
       });
       this.reviewModals.resetApproveModal();
       await this.loadReReviewData();
+    },
+    async handleRefuseOk() {
+      const ok = await this.reviewActions.refuseEntity(
+        this.entity[0].re_review_entity_id,
+        this.refuse_reason
+      );
+      if (ok) {
+        this.makeToast('Re-review refused and flagged for specialist', 'Success', 'success');
+        this.announce('Re-review refused and flagged for specialist');
+        this.reviewModals.resetRefuseModal();
+        await this.loadReReviewData();
+      } else {
+        this.announce('Failed to refuse re-review', 'assertive');
+      }
     },
     async handleUnsetSubmission() {
       await this.reviewActions.unsubmitEntity(this.entity[0].re_review_entity_id);
@@ -500,6 +531,7 @@ export default {
         [this.reviewModal.id]: this.$refs.reviewModalRef,
         [this.statusModal.id]: this.$refs.statusModalRef,
         [this.submitModal.id]: this.$refs.submitModalRef,
+        [this.refuseModal.id]: this.$refs.refuseModalRef,
         [this.approveModal.id]: this.$refs.approveModalRef,
       };
       refMap[id]?.hide();

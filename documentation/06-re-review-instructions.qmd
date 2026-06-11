@@ -174,7 +174,25 @@ After clicking this button, the entity disappears from your list. You can then p
 <br/>
 <br/>
 
+### Refusing a re-review (needs specialist)
+
+Some entries are too complex or fall outside your area of expertise. Instead of forcing a review, you can **decline / refuse** the entry so it is flagged for specialist or curator attention. Use the flag button (`Refuse / decline (needs specialist)`) in the action column of your re-review queue.
+
+A confirmation window lets you add an optional short reason (for example, "complex inheritance / outside my expertise"). After you confirm:
+
+- the entry leaves your active queue, so you can continue with the rest of your batch; and
+- it is recorded as **refused** — a distinct state that is neither "approved" nor "rejected" and that does **not** change the curated SysNDD classification.
+
+Refusing is reversible by a curator (see below); if you refuse an entry by mistake, ask a curator to return it to the queue.
+
+<br/>
+<br/>
+
 ## Re-review curation
+
+### Handling refused entries
+
+The "Manage Re-review" page shows a **Refused / needs specialist** panel listing every entry a re-reviewer declined, together with the optional reason, who refused it, and when. From there a curator can reassign the entry to a specialist or click **Return to queue** to clear the refusal so the entry re-enters the normal re-review flow. Clearing a refusal does not change any curated status or review.
 
 ### Definitive association status
 

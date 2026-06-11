@@ -715,6 +715,20 @@ export const handlers = [
   // Returns the `{links, meta, data}` cursor envelope.
   http.get('/api/re_review/table', () => HttpResponse.json(reReviewTableOk)),
 
+  // OpenAPI: PUT /api/re_review/refuse/<re_review_id>
+  // api/endpoints/re_review_endpoints.R @put refuse/<re_review_id>
+  // Issue #54: a re-reviewer declines an item for specialist attention.
+  http.put('/api/re_review/refuse/:id', () =>
+    HttpResponse.json({ message: 'Re-review item refused and flagged for specialist attention' })
+  ),
+
+  // OpenAPI: PUT /api/re_review/refuse/clear/<re_review_id>
+  // api/endpoints/re_review_endpoints.R @put refuse/clear/<re_review_id>
+  // Issue #54: a curator clears a refusal so the item re-enters the queue.
+  http.put('/api/re_review/refuse/clear/:id', () =>
+    HttpResponse.json({ message: 'Re-review refusal cleared' })
+  ),
+
   // ---------------------------------------------------------------------------
   // ManageAnnotations.vue aux endpoints (non-B1, onMounted + action handlers)
   // ---------------------------------------------------------------------------

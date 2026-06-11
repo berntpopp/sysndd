@@ -8,6 +8,8 @@ import { http, HttpResponse } from 'msw';
 import {
   submitReReview,
   unsubmitReReview,
+  refuseReReview,
+  clearReReviewRefusal,
   approveReReview,
   getReReviewTable,
   applyForReReviewBatch,
@@ -55,6 +57,60 @@ describe('api/re_review — unsubmitReReview', () => {
 
     await unsubmitReReview(7);
     expect(observedPath).toBe('/api/re_review/unsubmit/7');
+  });
+});
+
+describe('api/re_review — refuseReReview (issue #54)', () => {
+  it('PUTs the optional reason as a body, not a query string', async () => {
+    let observedPath: string | null = null;
+    let observedQuery: string | null = null;
+    let receivedBody: unknown = null;
+    server.use(
+      http.put('/api/re_review/refuse/:id', async ({ request }) => {
+        const url = new URL(request.url);
+        observedPath = url.pathname;
+        observedQuery = url.search;
+        receivedBody = await request.json();
+        return HttpResponse.json({ message: 'refused' });
+      })
+    );
+
+    const res = await refuseReReview(42, { reason: 'Needs specialist' });
+    expect(observedPath).toBe('/api/re_review/refuse/42');
+    expect(observedQuery).toBe('');
+    expect((receivedBody as { reason?: string }).reason).toBe('Needs specialist');
+    expect(res.message).toBe('refused');
+  });
+
+  it('throws an API error on 404 (item not found)', async () => {
+    server.use(
+      http.put('/api/re_review/refuse/:id', () =>
+        HttpResponse.json({ detail: 'Re-review item not found' }, { status: 404 })
+      )
+    );
+
+    let caught: unknown;
+    try {
+      await refuseReReview(999, { reason: 'x' });
+    } catch (err) {
+      caught = err;
+    }
+    expect(isApiError(caught)).toBe(true);
+  });
+});
+
+describe('api/re_review — clearReReviewRefusal (issue #54)', () => {
+  it('PUTs `/api/re_review/refuse/clear/:id`', async () => {
+    let observedPath: string | null = null;
+    server.use(
+      http.put('/api/re_review/refuse/clear/:id', ({ request }) => {
+        observedPath = new URL(request.url).pathname;
+        return HttpResponse.json({ message: 'cleared' });
+      })
+    );
+
+    await clearReReviewRefusal(42);
+    expect(observedPath).toBe('/api/re_review/refuse/clear/42');
   });
 });
 

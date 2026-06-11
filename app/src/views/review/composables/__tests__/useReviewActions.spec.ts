@@ -155,6 +155,57 @@ describe('useReviewActions', () => {
     });
   });
 
+  describe('refuseEntity', () => {
+    it('PUTs `/api/re_review/refuse/:id` with a body reason and resolves true', async () => {
+      const axios = await getAxiosMock();
+      axios.put.mockResolvedValueOnce({ data: { message: 'refused' } });
+
+      const a = useReviewActions();
+      const promise = a.refuseEntity(701, '  Too complex  ');
+      expect(a.mutating.value).toBe(true);
+      const result = await promise;
+      await flushPromises();
+
+      expect(result).toBe(true);
+      expect(axios.put).toHaveBeenCalledWith(
+        '/api/re_review/refuse/701',
+        { reason: 'Too complex' },
+        undefined
+      );
+      expect(a.mutating.value).toBe(false);
+    });
+
+    it('sends reason=null when blank/whitespace-only', async () => {
+      const axios = await getAxiosMock();
+      axios.put.mockResolvedValueOnce({ data: { message: 'refused' } });
+
+      const a = useReviewActions();
+      await a.refuseEntity(701, '   ');
+      await flushPromises();
+
+      expect(axios.put).toHaveBeenCalledWith(
+        '/api/re_review/refuse/701',
+        { reason: null },
+        undefined
+      );
+    });
+
+    it('routes errors through onError and resolves false', async () => {
+      const axios = await getAxiosMock();
+      const err = new Error('409 already refused');
+      axios.put.mockRejectedValueOnce(err);
+
+      const onError = vi.fn();
+      const a = useReviewActions({ onError });
+      const result = await a.refuseEntity(701, 'x');
+      await flushPromises();
+
+      expect(onError).toHaveBeenCalledWith(err);
+      expect(result).toBe(false);
+      expect(a.mutating.value).toBe(false);
+    });
+  });
+
   describe('applyForBatch', () => {
     it('GETs `/api/re_review/batch/apply`', async () => {
       const axios = await getAxiosMock();

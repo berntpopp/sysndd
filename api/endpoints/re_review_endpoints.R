@@ -72,6 +72,62 @@ function(req, res, re_review_id) {
 }
 
 
+#* Refuse / decline a Re-Review Entry (needs specialist)
+#*
+#* Reviewer+ declines a complex / out-of-scope item (issue #54). Sets
+#* re_review_refused = 1 with the optional body reason, refusing user, and
+#* timestamp; the item leaves the reviewer queue and curator approve queue and
+#* surfaces in the curator "refused" view. Curated status/review unchanged.
+#* The optional reason is body-only: `{ "reason": "..." }`, never a query string.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @put refuse/<re_review_id>
+function(req, res, re_review_id) {
+  require_role(req, res, "Reviewer")
+
+  re_review_id <- as.integer(re_review_id)
+  if (is.na(re_review_id)) {
+    stop_for_bad_request("re_review_id must be an integer")
+  }
+
+  result <- refuse_re_review_entity(
+    re_review_entity_id = re_review_id,
+    user_id = req$user_id,
+    reason = req$argsBody$reason,
+    pool = pool
+  )
+  stop_for_rereview_result_error(result)
+
+  list(message = result$message, entry = result$entry)
+}
+
+
+#* Clear a Re-Review refusal (curator triage)
+#*
+#* Curator+ reverses a refusal so the item re-enters the normal re-review flow
+#* (issue #54). 200 on success, problem+json 404 when the item is not found.
+#*
+#* @tag re_review
+#* @serializer json list(na="string")
+#*
+#* @put refuse/clear/<re_review_id>
+function(req, res, re_review_id) {
+  require_role(req, res, "Curator")
+
+  re_review_id <- as.integer(re_review_id)
+  if (is.na(re_review_id)) {
+    stop_for_bad_request("re_review_id must be an integer")
+  }
+
+  result <- clear_re_review_refusal(re_review_entity_id = re_review_id, pool = pool)
+  stop_for_rereview_result_error(result)
+
+  list(message = result$message, entry = result$entry)
+}
+
+
 #* Approve a Re-Review Entry
 #*
 #* Allows (Administrator, Curator) to approve a re-review entry.
@@ -128,9 +184,12 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #* Returns the re-review overview table for the authenticated user.
 #*
 #* # `Details`
-#* The function filters the re-review data based on the provided `filter` and
-#* `curate` parameters. Admin/Curators can see curated or uncurated sets.
-#* Reviewers see only unsubmitted sets assigned to them.
+#* The function filters the re-review data based on the provided `filter`,
+#* `curate`, and `refused` parameters. Admin/Curators can see curated or
+#* uncurated sets. Reviewers see only unsubmitted, non-refused sets assigned to
+#* them. When `refused = TRUE` (Curator+), the table lists items a re-reviewer
+#* declined for specialist attention (issue #54) — these are excluded from both
+#* the reviewer queue and the curator approve queue.
 #* Supports cursor pagination for large re-review lists.
 #*
 #* # `Return`
@@ -141,6 +200,7 @@ function(req, res, re_review_id, status_ok = FALSE, review_ok = FALSE) {
 #*
 #* @param filter Condition for the re-review data.
 #* @param curate Boolean indicating whether to see curated or not.
+#* @param refused Boolean. When TRUE (Curator+), list refused items only.
 #* @param page_after Cursor after which entries are shown (default: 0)
 #* @param page_size Page size in cursor pagination (default: "all")
 #*
@@ -149,12 +209,15 @@ function(req,
          res,
          filter = "equals(re_review_approved,0)",
          curate = FALSE,
+         refused = FALSE,
          page_after = 0,
          page_size = "all") {
   curate <- as.logical(curate)
+  refused <- as.logical(refused)
 
-  # Curate mode requires Curator+, non-curate requires Reviewer+
-  if (curate) {
+  # Refused mode is a curator surface; otherwise curate -> Curator+,
+  # plain reviewer queue -> Reviewer+.
+  if (curate || refused) {
     require_role(req, res, "Curator")
   } else {
     require_role(req, res, "Reviewer")
@@ -167,17 +230,21 @@ function(req,
     tbl("re_review_entity_connect") %>%
     filter(re_review_approved == 0) %>%
     {
-      if (curate) {
-        filter(., re_review_submitted == 1)
+      if (refused) {
+        # Curator surface: refused / needs-specialist items only.
+        filter(., re_review_refused == 1)
+      } else if (curate) {
+        filter(., re_review_submitted == 1, re_review_refused == 0)
       } else {
-        filter(., re_review_submitted == 0)
+        # Reviewer queue: hide refused items so they leave the active queue.
+        filter(., re_review_submitted == 0, re_review_refused == 0)
       }
     }
 
   re_review_assignment <- pool %>%
     tbl("re_review_assignment") %>%
     {
-      if (!curate) {
+      if (!curate && !refused) {
         filter(., user_id == user)
       } else {
         .
@@ -226,6 +293,13 @@ function(req,
   # provided so we don't collect the full 6-table join just to drop most rows
   # in R. Falls back to the legacy collect-then-filter path on translation
   # errors. No fspec contract on this endpoint, so unconditional pushdown is safe.
+  refused_user_collected <- pool %>%
+    tbl("user") %>%
+    select(
+      re_review_refused_user_id = user_id,
+      re_review_refused_user_name = user_name
+    )
+
   re_review_user_list_lazy <- re_review_entity_connect %>%
     inner_join(re_review_assignment, by = c("re_review_batch")) %>%
     select(
@@ -235,9 +309,14 @@ function(req,
       re_review_status_saved,
       re_review_submitted,
       re_review_approved,
+      re_review_refused,
+      re_review_refusal_comment,
+      re_review_refused_user_id,
+      re_review_refused_date,
       status_id,
       review_id
     ) %>%
+    left_join(refused_user_collected, by = c("re_review_refused_user_id")) %>%
     inner_join(ndd_entity_view, by = c("entity_id")) %>%
     select(-category_id, -category) %>%
     inner_join(ndd_entity_status_category, by = c("status_id")) %>%
