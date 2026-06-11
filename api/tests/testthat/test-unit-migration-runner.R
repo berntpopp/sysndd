@@ -243,7 +243,7 @@ describe("validate_migration_manifest", {
     migrations_dir <- file.path(api_dir, "..", "db", "migrations")
     result <- validate_migration_manifest(migrations_dir)
     expect_true(result$ok)
-    expect_equal(result$expected_latest, "029_add_rereview_refusal.sql")
+    expect_equal(result$expected_latest, "033_add_metadata_lookup_admin_columns.sql")
     expect_true(result$count >= 28L)
   })
 })

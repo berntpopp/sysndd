@@ -120,6 +120,7 @@ const MAIN_NAV = {
         { text: 'Manage PubTator', path: '/ManagePubtator', icons: ['gear', 'journal-medical'] },
         { text: 'LLM Management', path: '/ManageLLM', icons: ['gear', 'robot'] },
         { text: 'Manage NDDScore', path: '/ManageNDDScore', icons: ['gear', 'graph-up-arrow'] },
+        { text: 'Manage metadata', path: '/ManageMetadata', icons: ['gear', 'list-check'] },
       ],
     },
     {

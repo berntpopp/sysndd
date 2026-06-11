@@ -8,6 +8,17 @@ import {
   adminViews,
 } from './guards';
 
+// Most admin views are simple Administrator-guarded, sitemap-ignored routes
+// that differ only by name. Generating them keeps routes.ts DRY (and under the
+// file-size ratchet) while preserving the exact per-route shape tests assert.
+const simpleAdminRoute = (name: string): RouteRecordRaw => ({
+  path: `/${name}`,
+  name,
+  component: lazyRouteComponent(adminViews, `../views/admin/${name}.vue`),
+  meta: { sitemap: { ignoreRoute: true } },
+  beforeEnter: createAuthGuard(['Administrator']),
+});
+
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -448,34 +459,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: createAuthGuard(['Administrator', 'Curator']),
   },
-  {
-    path: '/ManageUser',
-    name: 'ManageUser',
-    component: () => import('@/views/admin/ManageUser.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageAnnotations',
-    name: 'ManageAnnotations',
-    component: () => import('@/views/admin/ManageAnnotations.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageOntology',
-    name: 'ManageOntology',
-    component: () => import('@/views/admin/ManageOntology.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageAbout',
-    name: 'ManageAbout',
-    component: () => import('@/views/admin/ManageAbout.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
+  ...['ManageUser', 'ManageAnnotations', 'ManageOntology', 'ManageAbout'].map(simpleAdminRoute),
   {
     path: '/ViewLogs',
     name: 'ViewLogs',
@@ -491,41 +475,14 @@ export const routes: RouteRecordRaw[] = [
     meta: { sitemap: { ignoreRoute: true } },
     beforeEnter: createAuthGuard(['Administrator']),
   },
-  {
-    path: '/AdminStatistics',
-    name: 'AdminStatistics',
-    component: () => import('@/views/admin/AdminStatistics.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageBackups',
-    name: 'ManageBackups',
-    component: () => import('@/views/admin/ManageBackups.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManagePubtator',
-    name: 'ManagePubtator',
-    component: () => import('@/views/admin/ManagePubtator.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageLLM',
-    name: 'ManageLLM',
-    component: () => import('@/views/admin/ManageLLM.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
-  {
-    path: '/ManageNDDScore',
-    name: 'ManageNDDScore',
-    component: lazyRouteComponent(adminViews, '../views/admin/ManageNDDScore.vue'),
-    meta: { sitemap: { ignoreRoute: true } },
-    beforeEnter: createAuthGuard(['Administrator']),
-  },
+  ...[
+    'AdminStatistics',
+    'ManageBackups',
+    'ManagePubtator',
+    'ManageLLM',
+    'ManageNDDScore',
+    'ManageMetadata',
+  ].map(simpleAdminRoute),
   {
     path: '/Entities/:entity_id',
     name: 'Entity',
