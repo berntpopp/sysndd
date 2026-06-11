@@ -152,6 +152,33 @@ curl -sS 'http://localhost/api/analysis/network_edges?cluster_type=clusters&max_
 
 If the status is `missing`, `invalid`, or `error`, the frontend falls back to browser fCoSE. The frontend only uses Cytoscape `preset` when the API reports `display_layout_status = "available"` and every displayed gene node has finite artifact coordinates.
 
+### PubtatorNDD Gene-Count Enrichment Normalization
+
+The PubtatorNDD gene-prioritization table normalizes raw NDD co-occurrence counts for research-popularity bias (issue #175). The raw count conflates true NDD relevance with how heavily a gene is studied, so heavily-studied genes (TP53, APP, MAPT, APOE) surface in the top 10 with no specific NDD role. Each gene's NDD co-occurrence count is normalized by its total PubTator publication count and scored with three metrics:
+
+- **Enrichment ratio** — `observed / (ndd_corpus_size * background_count / total_corpus_size)` (fold change).
+- **NPMI** — Normalized Pointwise Mutual Information, bounded `[-1, 1]`.
+- **Fisher exact p-value** (one-sided, enrichment) + **Benjamini-Hochberg FDR** across all genes.
+
+The metric math lives in `api/functions/pubtator-enrichment-metrics.R` (pure, unit-tested in `tests/testthat/test-unit-pubtator-enrichment.R`). Background-count collection and DB persistence live in `api/functions/pubtator-enrichment-collector.R`.
+
+Collection makes one external PubTator call per gene plus two corpus-size probes, so it runs only in the durable async worker (`pubtator_enrichment_refresh` job; needs PubTator egress), never on a public request. The external fetcher uses `memoise_external_success_only()` (7-day cache, transient errors not cached). Intended cadence: monthly. Snapshots are stored in `pubtator_corpus_stats` / `pubtator_gene_enrichment` (migration `027`) with exactly one current row; the API serves them via `pubtator_gene_enrichment_view`, LEFT-joined onto the gene listing so genes without a metric yet still appear.
+
+Admins submit a refresh and read status with:
+
+```bash
+curl -sS -X POST 'http://localhost/api/publication/pubtator/enrichment/refresh' -H "Authorization: Bearer <admin-token>"
+curl -sS 'http://localhost/api/publication/pubtator/enrichment/status' | jq
+```
+
+Or, in a worker/API R session with a DB connection:
+
+```r
+async_job_service_submit(job_type = "pubtator_enrichment_refresh", request_payload = list(refresh = "all"))
+```
+
+The default gene-table sort is `-enrichment_ratio,-npmi,publication_count`; the raw NDD publication count remains sortable. Restart the worker container after changing `api/functions/pubtator-enrichment-*.R` or `api/functions/async-job-handlers.R` before testing job behavior in Docker.
+
 ## End-to-End Tests (Playwright)
 
 The Playwright suite is **local-only**, used for ad-hoc pre-PR regression sanity checks against a real API+DB stack via a Docker Compose overlay isolated from `make dev`. There is no Playwright CI workflow — the official lane (lint, type-check, vitest, R API, smoke) covers automated regression. The Playwright spec files live in `app/tests/e2e/` for manual invocation when a refactor warrants a full-flow check.

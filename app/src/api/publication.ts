@@ -126,12 +126,58 @@ export interface PubtatorGenesParams {
   format?: PubtatorGenesFormat;
 }
 
-export type PubtatorGeneRow = Record<string, unknown>;
+/**
+ * One row of the gene-prioritization listing. Beyond the legacy raw-count
+ * fields, issue #175 adds normalized enrichment metrics computed by the
+ * `pubtator_enrichment_refresh` worker job. These are `null` until the first
+ * refresh runs (LEFT JOIN on the server).
+ */
+export interface PubtatorGeneRow extends Record<string, unknown> {
+  gene_symbol?: string;
+  gene_name?: string;
+  gene_normalized_id?: string;
+  hgnc_id?: string;
+  publication_count?: number;
+  entities_count?: number;
+  is_novel?: 0 | 1;
+  oldest_pub_date?: string;
+  pmids?: string;
+  /** NDD-corpus publications mentioning the gene (the co-occurrence count). */
+  observed?: number | null;
+  /** Total PubTator publications mentioning the gene (popularity denominator). */
+  background_count?: number | null;
+  /** observed / expected fold change; > 1 means NDD-enriched. */
+  enrichment_ratio?: number | null;
+  /** Normalized pointwise mutual information, range [-1, 1]. */
+  npmi?: number | null;
+  /** One-sided (enrichment) Fisher exact p-value. */
+  fisher_p?: number | null;
+  /** Benjamini-Hochberg adjusted q-value across all genes. */
+  fdr_bh?: number | null;
+}
 
 export interface PubtatorGenesResponse {
   links?: unknown;
   meta?: unknown;
   data: PubtatorGeneRow[];
+}
+
+export interface PubtatorEnrichmentRefreshResponse {
+  job_id: string;
+  status: string;
+  job_status?: string;
+  status_url: string;
+}
+
+export interface PubtatorEnrichmentStatus {
+  available: boolean;
+  message?: string;
+  corpus_stats_id?: number;
+  ndd_corpus_size?: number;
+  total_corpus_size?: number;
+  total_is_fallback?: boolean;
+  genes_scored?: number;
+  refreshed_at?: string;
 }
 
 export interface PubtatorBackfillResponse {
@@ -435,6 +481,40 @@ export async function clearPubtatorCache(
   return apiClient.post<PubtatorClearCacheResponse>(
     '/api/publication/pubtator/clear-cache',
     undefined,
+    config
+  );
+}
+
+/**
+ * POST /api/publication/pubtator/enrichment/refresh
+ * Mirrors api/endpoints/publication_endpoints.R (handler `@post /pubtator/enrichment/refresh`).
+ *
+ * Admin: submits the durable `pubtator_enrichment_refresh` worker job that
+ * normalizes raw NDD co-occurrence counts for research-popularity bias
+ * (issue #175). Returns 202 with the job_id; poll the status_url.
+ */
+export async function refreshPubtatorEnrichment(
+  config?: AxiosRequestConfig
+): Promise<PubtatorEnrichmentRefreshResponse> {
+  return apiClient.post<PubtatorEnrichmentRefreshResponse>(
+    '/api/publication/pubtator/enrichment/refresh',
+    undefined,
+    config
+  );
+}
+
+/**
+ * GET /api/publication/pubtator/enrichment/status
+ * Mirrors api/endpoints/publication_endpoints.R (handler `@get /pubtator/enrichment/status`).
+ *
+ * Public read: the current enrichment snapshot summary (corpus sizes, genes
+ * scored, when it was computed).
+ */
+export async function getPubtatorEnrichmentStatus(
+  config?: AxiosRequestConfig
+): Promise<PubtatorEnrichmentStatus> {
+  return apiClient.get<PubtatorEnrichmentStatus>(
+    '/api/publication/pubtator/enrichment/status',
     config
   );
 }

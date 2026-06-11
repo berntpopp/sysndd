@@ -536,12 +536,12 @@ function(req,
 #* @get /pubtator/genes
 function(req,
          res,
-         sort = "-is_novel,oldest_pub_date",
+         sort = "-enrichment_ratio,-npmi,publication_count",
          filter = "",
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,pmids,publications,entities", # nolint: line_length_linter
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,observed,background_count,enrichment_ratio,npmi,fisher_p,fdr_bh,pmids,publications,entities", # nolint: line_length_linter
          format = "json") {
   # 1) Set serializer
   res$serializer <- serializers[[format]]
@@ -596,6 +596,11 @@ function(req,
         paste(valid_pubs$pmid, collapse = ",")
       })
     )
+
+  # 6b) Left-join normalized enrichment metrics (issue #175): normalize raw NDD
+  #     co-occurrence for research-popularity bias. Worker-precomputed; LEFT JOIN
+  #     so genes without a metric yet still appear. See helper for details.
+  df_counts <- pubtator_join_enrichment_metrics(df_counts, pool)
 
   # 7) Apply filter AFTER computed fields exist
   df_filtered <- df_counts %>%
@@ -1190,4 +1195,40 @@ function(req, res) {
       )
     }
   )
+}
+
+
+#* Submit a PubtatorNDD gene-enrichment refresh job
+#*
+#* Normalizes raw NDD co-occurrence counts for research-popularity bias
+#* (issue #175). Fetches each gene's total PubTator publication count plus the
+#* NDD/total corpus sizes, computes enrichment ratio, NPMI, and Fisher p-value +
+#* BH-FDR, and persists a new current snapshot. This makes one external PubTator
+#* call per gene, so it runs in the durable async worker (network egress), never
+#* synchronously on a public request. Intended cadence: monthly.
+#*
+#* @tag publication
+#* @serializer json list(na="null")
+#*
+#* @response 202 Accepted. Returns job_id; poll the status_url.
+#* @response 409 A refresh is already running.
+#* @post /pubtator/enrichment/refresh
+function(req, res) {
+  require_role(req, res, "Administrator")
+  pubtator_enrichment_refresh_submit(res, submitted_by = req$user_id %||% NULL)
+}
+
+
+#* PubtatorNDD enrichment snapshot status
+#*
+#* Reports the current enrichment snapshot: when it was computed, the corpus
+#* sizes used, and how many genes were scored. Public read.
+#*
+#* @tag publication
+#* @serializer json list(na="null", auto_unbox=TRUE)
+#*
+#* @response 200 OK. Returns the current snapshot summary (or available=false).
+#* @get /pubtator/enrichment/status
+function(req, res) {
+  pubtator_enrichment_status_response()
 }

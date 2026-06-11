@@ -765,6 +765,30 @@ dbClearResult(rs)
 
 
 ############################################
+## create pubtator_gene_enrichment_view
+## Mirrors db/migrations/027_add_pubtator_gene_enrichment.sql; keep in sync.
+rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`pubtator_gene_enrichment_view` AS
+    SELECT
+      ge.gene_symbol AS gene_symbol,
+      ge.hgnc_id AS hgnc_id,
+      ge.observed AS observed,
+      ge.background_count AS background_count,
+      ge.enrichment_ratio AS enrichment_ratio,
+      ge.npmi AS npmi,
+      ge.fisher_p AS fisher_p,
+      ge.fdr_bh AS fdr_bh,
+      cs.ndd_corpus_size AS ndd_corpus_size,
+      cs.total_corpus_size AS total_corpus_size,
+      cs.total_is_fallback AS total_is_fallback,
+      cs.created_at AS enrichment_refreshed_at
+    FROM `sysndd_db`.`pubtator_gene_enrichment` ge
+    JOIN `sysndd_db`.`pubtator_corpus_stats` cs
+      ON ge.corpus_stats_id = cs.corpus_stats_id
+     AND cs.is_current = 1;")
+dbClearResult(rs)
+
+
+############################################
 ## close database connection
 rm_con()
 ############################################
