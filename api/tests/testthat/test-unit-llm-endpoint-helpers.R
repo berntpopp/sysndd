@@ -28,9 +28,27 @@ setwd(api_dir)
 tryCatch(
   {
     register_test_stub <- function(name, fn) {
-      if (!exists(name, mode = "function")) {
-        base::assign(name, fn, envir = .GlobalEnv)
-      }
+      # Force the stub for the duration of THIS test file, regardless of whether
+      # a prior test file already defined `name` in the global env. The previous
+      # `if (!exists())` guard made these stubs order-dependent: in a broad
+      # test_dir run, a stub registered by another file (or the real function)
+      # could shadow ours, so the get_cluster_summary tests below hit a foreign
+      # `get_cached_summary` whose result lacked a `validation_status` column and
+      # crashed (`argument is of length zero`). Restore the prior binding at file
+      # teardown so we do not pollute later files.
+      had_prev <- exists(name, envir = .GlobalEnv, inherits = FALSE)
+      prev <- if (had_prev) base::get(name, envir = .GlobalEnv, inherits = FALSE) else NULL
+      base::assign(name, fn, envir = .GlobalEnv)
+      withr::defer(
+        {
+          if (had_prev) {
+            base::assign(name, prev, envir = .GlobalEnv)
+          } else if (exists(name, envir = .GlobalEnv, inherits = FALSE)) {
+            base::rm(list = name, envir = .GlobalEnv)
+          }
+        },
+        envir = testthat::teardown_env()
+      )
     }
 
     if (!exists("%||%", mode = "function")) {

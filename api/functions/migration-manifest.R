@@ -2,7 +2,7 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "027_add_pubtator_gene_enrichment.sql"
+EXPECTED_LATEST_MIGRATION <- "028_add_db_version.sql"
 EXPECTED_MIGRATION_COUNT <- 28L
 
 #' Validate the migration manifest for strict startup/readiness checks

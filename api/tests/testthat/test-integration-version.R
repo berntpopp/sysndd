@@ -49,6 +49,14 @@ test_that("version endpoint returns correct structure", {
   expect_true("commit" %in% names(body))
   expect_true("title" %in% names(body))
   expect_true("description" %in% names(body))
+
+  # Issue #22: database version block is present and well-formed.
+  expect_true("database" %in% names(body))
+  db <- body$database
+  expect_true("version" %in% names(db))
+  expect_true("commit" %in% names(db))
+  expect_true("available" %in% names(db))
+  expect_true(is.character(db$version))
 })
 
 test_that("version endpoint returns semantic version format", {

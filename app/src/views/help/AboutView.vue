@@ -328,6 +328,11 @@
             </div>
           </BAccordionItem>
         </BAccordion>
+
+        <!-- Version information: App, API and Database (issue #22) -->
+        <div class="d-flex justify-content-center mt-4">
+          <AppVersionInfo />
+        </div>
       </section>
     </div>
   </div>
@@ -339,6 +344,7 @@ import { useHead } from '@unhead/vue';
 import { renderMarkdown } from '@/composables';
 import type { AboutSection } from '@/types';
 import { getPublishedAbout } from '@/api/about';
+import AppVersionInfo from '@/components/AppVersionInfo.vue';
 
 useHead({
   title: 'About',

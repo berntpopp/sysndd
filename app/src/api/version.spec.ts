@@ -22,6 +22,44 @@ describe('api/version — getVersion', () => {
     expect(result).toEqual(expected);
   });
 
+  it('exposes the database version block when present (issue #22)', async () => {
+    const expected: ApiVersion = {
+      version: '0.20.18',
+      commit: 'abcdef1',
+      title: 'SysNDD API',
+      description: 'desc',
+      database: {
+        version: '1.0.0',
+        commit: '7532ab5',
+        description: 'release note',
+        updated_at: '2026-06-11 10:00:00',
+        available: true,
+      },
+    };
+    server.use(http.get('/api/version', () => HttpResponse.json(expected)));
+
+    const result = await getVersion();
+    expect(result.database?.version).toBe('1.0.0');
+    expect(result.database?.commit).toBe('7532ab5');
+    expect(result.database?.available).toBe(true);
+  });
+
+  it('tolerates a missing database block (older API)', async () => {
+    server.use(
+      http.get('/api/version', () =>
+        HttpResponse.json({
+          version: '0.11.14',
+          commit: 'abcdef1',
+          title: 'SysNDD API',
+          description: 'desc',
+        })
+      )
+    );
+
+    const result = await getVersion();
+    expect(result.database).toBeUndefined();
+  });
+
   it('throws AxiosError on 500', async () => {
     server.use(
       http.get('/api/version', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
