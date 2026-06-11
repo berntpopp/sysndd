@@ -6,9 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-06-11
+
+Feature release integrating 16 pull requests across the API, app, and database (issues #14, #22, #25, #32, #33, #36, #37, #46, #54, #89, #98, #105, #175, #344, #347, #348, #353, #360).
+
 ### Added
 
-- **Public analysis snapshot responses now expose full provenance lineage.** The `meta.snapshot` block returned by public REST and MCP analysis reads now includes `input_hash`, `payload_hash`, and `record_counts` alongside the existing `snapshot_id`, `schema_version`, `generated_at`, and `source_data_version` fields, completing the W3C-PROV / FAIR output contract from issue #347 so clients can audit lineage and completeness without a second query.
+- **Curation and correlation matrix navigation links.** The curation matrix and phenotype correlation matrix are now discoverable from the Analyses navigation and cross-linked between related analysis pages (#89).
+- **Scheduled database log cleanup.** A `log-cleanup` Compose service prunes old rows from the operational `logging` table on a daily, configurable schedule (`LOG_RETENTION_DAYS`, `LOG_CLEANUP_AT`, dry-run), reusing the API image (#105).
+- **Research-popularity-normalized PubtatorNDD ranking.** Gene NDD co-occurrence counts are normalized with enrichment ratio, NPMI, and Fisher's exact test + Benjamini-Hochberg FDR, with the table defaulting to the enrichment ranking (migration 027, #175).
+- **Semantic database version.** A single-row `db_version` table tracks the semantic DB version and last `db/`-folder commit, surfaced in `GET /api/version` and on the About page (migration 028, #22).
+- **Re-review refusal action.** Re-reviewers can decline a complex / out-of-scope entry, flagging it for specialist attention as a distinct state surfaced to curators (migration 029, #54).
+- **Analysis snapshot provenance lineage.** The `meta.snapshot` block returned by public REST and MCP analysis reads now includes `input_hash`, `payload_hash`, and `record_counts`, completing the provenance/FAIR output contract from issue #347.
+- **External-provider isolation coverage.** Added a slow-provider regression test asserting cheap routes stay responsive, and structured per-provider timing logs (upstream duration, timeout, cache hit/miss, status); deep worker-pool isolation remains tracked in #154 (#344).
+- **Combined status & review modal with role-gated direct approval.** Modify Entity gains a single status+review workflow and a Curator+ direct-approval toggle enforced on both the client and the API (#36, #37).
+- **Admin metadata vocabulary management.** A new Administrator `/ManageMetadata` view administers SysNDD-managed curation vocabularies with tiered editability and in-use-protected soft deletes (migration 033, #32).
+- **GeneReviews coverage.** A curator view looks up GeneReviews availability per gene via NCBI E-utilities, attaches chapters to entities, and exports coverage; flags genes lacking a chapter (#14, #46).
+- **Centralized Gemini model configuration.** Model selection resolves through a single validated source of truth, dropping the shut-down `gemini-3-pro-preview` default in favor of a current Gemini 3.x model (#348).
+- **CSR / certificate renewal automation design.** An ADR plus a dry-run-safe CSR-generation skeleton and operator runbook (ACME vs scripted-CSR), pending the institutional CA decision (#25).
+- **Reproducible database-creation scripts.** The `db/` data-prep scripts are config-ized (no hardcoded URLs/secrets), working-directory independent, orchestrated by a master runner, documented, and support a reproducible SQLite SysID source (#33).
+
+### Fixed
+
+- **VariO ontology links repaired.** Broken VariO term links now resolve via EBI OLS4 and the base URL is configurable; the larger ontology data migration is documented for curator sign-off (#98).
+- **MCP search and analysis defects.** Fixed `publication_type` aggregation, `null` serialization in `structuredContent`, zero-result query echo, and snapshot-unavailable status mapping in the read-only MCP layer, with a spec/plan for the remaining benchmark items (#353).
+
+### Changed
+
+- **Quieter local CI.** `make ci-local` no longer prints an alarming expected MySQL access error on the success path and emits a classified skip summary, with verification strength unchanged (#360).
 
 ## [0.19.1] — 2026-05-15
 
