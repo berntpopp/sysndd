@@ -14,6 +14,7 @@ const sample = {
   ndd_phenotype_word: 'Yes',
   modifier_phenotype_id: 'HP:0001249',
   entry_date: '2025-02-12',
+  last_update: '2026-03-20',
 };
 
 describe('PhenotypesMobileRows', () => {
@@ -45,6 +46,8 @@ describe('PhenotypesMobileRows', () => {
 
     expect(wrapper.get('button').attributes('aria-expanded')).toBe('true');
     expect(wrapper.text()).toContain('2025-02-12');
+    expect(wrapper.text()).toContain('Last updated');
+    expect(wrapper.text()).toContain('2026-03-20');
   });
 
   it('summarizes long phenotype id lists in the collapsed row', () => {

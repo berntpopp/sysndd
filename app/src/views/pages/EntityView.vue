@@ -81,6 +81,10 @@
                   <NddIcon :status="nddStatus" :show-title="false" size="sm" />
                   <span>NDD {{ nddStatus || 'unknown' }}</span>
                 </span>
+                <EntityFreshnessPills
+                  :entry-date="entityRow?.entry_date"
+                  :last-update="entityRow?.last_update"
+                />
               </div>
             </div>
           </SectionCard>
@@ -269,6 +273,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import EntityFreshnessPills from '@/components/ui/EntityFreshnessPills.vue';
 import SectionCard from '@/components/ui/SectionCard.vue';
 import { useText } from '@/composables';
 import { useEntityRecord } from '@/composables/useEntityRecord';

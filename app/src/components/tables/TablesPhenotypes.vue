@@ -519,6 +519,7 @@ export default {
           class: 'text-start',
         },
         { key: 'entry_date', label: 'Entry date', class: 'text-start' },
+        { key: 'last_update', label: 'Last updated', class: 'text-start' },
       ],
       totalRows: 0,
       currentPage: 1,
