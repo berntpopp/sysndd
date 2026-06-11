@@ -1,0 +1,23 @@
+# VariO -> replacement-ontology mapping TEMPLATE (issue #98)
+#
+# This is a SCAFFOLD, not an applied migration. It exists so a future
+# CURATOR-APPROVED migration off the orphaned VariO ontology has a defined,
+# reviewable shape. Filling and applying it changes the meaning of curated
+# variant records and MUST be reviewed/signed off by curators (see
+# documentation/12-ontology-link-config.md). Nothing reads this file today.
+#
+# Columns:
+#   vario_id        Existing SysNDD VariO id (variation_ontology_list PK), e.g. VariO:0001
+#   vario_name      Existing curated label, for reviewer context
+#   new_ontology    Target ontology prefix (e.g. SO for Sequence Ontology)
+#   new_id          Proposed replacement term id (e.g. SO:0001583), blank if none
+#   new_name        Proposed replacement label, blank if none
+#   mapping_status  one of: exact | broad | narrow | related | no_equivalent
+#   reviewed_by     Curator initials/handle once reviewed (blank until reviewed)
+#   notes           Free-text rationale / caveats
+#
+# Rows below are ILLUSTRATIVE EXAMPLES ONLY — delete before real use.
+vario_id,vario_name,new_ontology,new_id,new_name,mapping_status,reviewed_by,notes
+VariO:0001,variation,SO,,,no_equivalent,,"Root 'variation' term; SO has no direct top-level equivalent — curator decision needed"
+VariO:0002,variation affecting protein,SO,,,related,,"Effect-level term; SO describes feature types, not effects — likely needs SO + a separate consequence vocabulary"
+VariO:0133,protein truncation,SO,SO:0001906,feature_truncation,broad,,"SysNDD-local id (not in published VARIO); SO:0001906 is broader — confirm with curators"

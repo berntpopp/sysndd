@@ -284,6 +284,7 @@ import { useEntityPhenotypes } from '@/composables/useEntityPhenotypes';
 import { useEntityVariation } from '@/composables/useEntityVariation';
 import { useGeneRecord } from '@/composables/useGeneRecord';
 import { returnToFromRoute } from '@/utils/returnNavigation';
+import { varioTermUrl } from '@/assets/js/constants/ontology_links';
 
 const route = useRoute();
 const router = useRouter();
@@ -427,12 +428,11 @@ function hpoUrl(phenotype: EntityRowMap): string {
   return `https://hpo.jax.org/app/browse/term/${asString(phenotype.phenotype_id)}`;
 }
 
+// VariO links are built from the configurable EBI OLS4 base (the previous
+// aber-owl.net target no longer reliably resolves to a term page). The base is
+// overridable via VITE_VARIO_BASE_URL — see assets/js/constants/ontology_links.ts.
 function varioUrl(variant: EntityRowMap): string {
-  return (
-    'http://aber-owl.net/ontology/VARIO/#/Browse/%3Chttp%3A%2F%2Fpurl.obolibrary.org%2Fobo%2F' +
-    asString(variant.vario_id).replace(':', '_') +
-    '%3E'
-  );
+  return varioTermUrl(variant.vario_id);
 }
 
 function termTitle(item: EntityRowMap, idKey: string): string {
