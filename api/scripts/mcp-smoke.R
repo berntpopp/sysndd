@@ -358,6 +358,37 @@ if (!identical(category_payload$error$code, "invalid_input") || !identical(categ
   stop("Invalid phenotype category did not return invalid_input for category")
 }
 
+# issue #353: find_entities_by_* must echo the requested term + resolution flag even
+# on zero results so callers distinguish an unmatched term from a valid empty result.
+zero_disease <- call_tool(
+  "find_entities_by_disease",
+  list(disease = "zzzz nonexistent disorder zzzz", limit = 1L),
+  id = 61L
+)
+if (!is.null(zero_disease$error)) stop("zero-result disease search returned JSON-RPC error: ", zero_disease$error$message)
+if (isTRUE(zero_disease$result$isError)) stop("zero-result disease search returned an unexpected tool error")
+zero_disease_payload <- jsonlite::fromJSON(zero_disease$result$content[[1]]$text, simplifyVector = FALSE)
+if (!identical(zero_disease_payload$disease, "zzzz nonexistent disorder zzzz") ||
+  !identical(zero_disease_payload$meta$query_echo, "zzzz nonexistent disorder zzzz")) {
+  stop("zero-result disease search did not echo the requested term")
+}
+if (!identical(zero_disease_payload$meta$query_resolved, FALSE)) {
+  stop("zero-result disease search did not report query_resolved = false")
+}
+
+zero_phenotype <- call_tool(
+  "find_entities_by_phenotype",
+  list(phenotype = "HP:0000000", limit = 1L),
+  id = 62L
+)
+if (!is.null(zero_phenotype$error)) stop("zero-result phenotype search returned JSON-RPC error: ", zero_phenotype$error$message)
+if (!isTRUE(zero_phenotype$result$isError)) {
+  zero_phenotype_payload <- jsonlite::fromJSON(zero_phenotype$result$content[[1]]$text, simplifyVector = FALSE)
+  if (!identical(zero_phenotype_payload$meta$query_echo, "HP:0000000")) {
+    stop("zero-result phenotype search did not echo the requested term")
+  }
+}
+
 symbol_alias <- call_tool("get_gene_context", list(symbol = "NAA10", entity_limit = 1L), id = 7L)
 if (!is.null(symbol_alias$error)) stop("symbol alias returned JSON-RPC error: ", symbol_alias$error$message)
 if (!isTRUE(symbol_alias$result$isError)) stop("symbol alias did not return a tool error result")
@@ -428,6 +459,16 @@ if (length(entity_ids) > 0L) {
     if (length(linked_entities) > 0L &&
       any(!vapply(linked_entities, function(x) !is.null(x$publication_type), logical(1)))) {
       stop("publication linked entity rows did not include publication_type")
+    }
+    # issue #353: structuredContent must mirror content[].text (no `{}` for nulls),
+    # and the top-level publication_type must never serialize as an empty object.
+    structured_text <- publication_detail$result$structuredContent
+    if (is.null(structured_text)) {
+      stop("get_publication_context response missing structuredContent despite outputSchema")
+    }
+    if (is.list(structured_text$publication_type) &&
+      length(structured_text$publication_type) == 0L) {
+      stop("get_publication_context publication_type serialized as an empty object instead of null/string")
     }
   }
   expanded_gene <- call_tool(

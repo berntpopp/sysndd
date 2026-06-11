@@ -3,12 +3,26 @@
 # MCP protocol patches for resources, prompts, tool schemas, and structured results.
 
 mcp_tool_result_response <- function(id, payload, is_error = FALSE, output_mode = Sys.getenv("MCP_OUTPUT_MODE", "json_text")) {
+  text <- jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null")
   body <- list(
-    content = list(list(type = "text", text = jsonlite::toJSON(payload, auto_unbox = TRUE, null = "null", na = "null"))),
+    content = list(list(type = "text", text = text)),
     isError = isTRUE(is_error),
-    structuredContent = payload
+    # structuredContent is serialized later by the mcptools HTTP transport, whose
+    # toJSON call does not pass `null = "null"`, so raw R NULL scalars would render
+    # as `{}` instead of JSON `null`. Round-trip the already null-safe text so the
+    # structured form mirrors content[].text exactly (issue #353).
+    structuredContent = mcp_structured_content(text, payload)
   )
   mcp_jsonrpc_response(id, body)
+}
+
+# Parse the null-safe JSON text back into an R list for structuredContent so the
+# field mirrors content[].text. Falls back to the raw payload if parsing fails.
+mcp_structured_content <- function(text, payload) {
+  tryCatch(
+    jsonlite::fromJSON(text, simplifyVector = FALSE),
+    error = function(e) payload
+  )
 }
 
 mcp_tool_property_names <- function(tool) {

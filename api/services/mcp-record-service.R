@@ -193,6 +193,13 @@ mcp_get_publication_context <- function(pmid, abstract_max_chars = 2000L, abstra
     rows <- mcp_repo_get_publication_context(publication_id)
     first <- mcp_first_row(rows, "Publication not found")
     pub <- mcp_row_to_list(first)
+    # publication_type is a per-link attribute that varies per linked entity, so the
+    # first join row may be NULL even when other links carry a type. Promote the first
+    # non-empty value to the top-level scalar so it is not dropped/serialized as `{}`
+    # (issue #353). Per-link values stay in linked_entities and publication_types.
+    pub$publication_type <- mcp_first_nonempty_value(
+      if ("publication_type" %in% names(rows)) rows$publication_type else NULL
+    )
     date_quality <- mcp_publication_date_quality(
       pub$Publication_date, rows$curation_review_date, pub$publication_date_source
     )
@@ -281,12 +288,21 @@ mcp_find_entities_by_phenotype <- function(phenotype,
   offset <- mcp_validate_offset(offset)
   rows <- mcp_repo_find_entities_by_phenotype(phenotype, modifier, category, limit, offset)
   total <- mcp_repo_count_entities_by_phenotype(phenotype, modifier, category)
+  resolved_phenotypes <- unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")]))
   list(
     schema_version = MCP_SCHEMA_VERSION,
     phenotype = phenotype,
-    resolved_phenotypes = unique(mcp_rows_to_records(rows[c("phenotype_id", "HPO_term")])),
+    resolved_phenotypes = resolved_phenotypes,
     entities = mcp_decorate_entity_records(rows),
-    meta = list(limit = limit, offset = offset, returned = nrow(rows), total = total, has_more = offset + nrow(rows) < total)
+    meta = list(
+      limit = limit, offset = offset, returned = nrow(rows), total = total,
+      has_more = offset + nrow(rows) < total,
+      # Always echo the requested term and whether it resolved to any records so callers
+      # can distinguish an unmatched/invalid term from a valid term with zero entities
+      # (issue #353). resolved_phenotypes is derived from result rows and is [] on miss.
+      query_echo = phenotype,
+      query_resolved = length(resolved_phenotypes) > 0L
+    )
   )
 }
 
@@ -296,11 +312,20 @@ mcp_find_entities_by_disease <- function(disease, limit = 25L, offset = 0L) {
   offset <- mcp_validate_offset(offset)
   rows <- mcp_repo_find_entities_by_disease(disease, limit, offset)
   total <- mcp_repo_count_entities_by_disease(disease)
+  resolved_diseases <- unique(mcp_rows_to_records(rows[c("disease_ontology_id_version", "disease_ontology_name")]))
   list(
     schema_version = MCP_SCHEMA_VERSION,
-    resolved_diseases = unique(mcp_rows_to_records(rows[c("disease_ontology_id_version", "disease_ontology_name")])),
+    # Echo the requested disease term at top level (previously only present in meta-less
+    # form), so zero-result callers still see what was searched (issue #353).
+    disease = disease,
+    resolved_diseases = resolved_diseases,
     entities = mcp_decorate_entity_records(rows),
-    meta = list(limit = limit, offset = offset, returned = nrow(rows), total = total, has_more = offset + nrow(rows) < total)
+    meta = list(
+      limit = limit, offset = offset, returned = nrow(rows), total = total,
+      has_more = offset + nrow(rows) < total,
+      query_echo = disease,
+      query_resolved = length(resolved_diseases) > 0L
+    )
   )
 }
 

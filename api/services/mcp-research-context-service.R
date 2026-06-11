@@ -2,12 +2,24 @@
 #
 # Gene-level MCP research context aggregation over curated and analysis sections.
 
+# Recoverable snapshot-unavailability codes that should surface as a single
+# "temporarily_unavailable" section status in the research-context aggregator.
+# The specific code (snapshot_missing | snapshot_stale | source_version_mismatch)
+# stays in the section value payload's error.code for callers that need it
+# (issue #353: previously stale/mismatch fell through to a generic "error").
+MCP_SECTION_UNAVAILABLE_CODES <- c(
+  "temporarily_unavailable",
+  "snapshot_missing",
+  "snapshot_stale",
+  "source_version_mismatch"
+)
+
 mcp_section_call <- function(name, fn) {
   tryCatch(
     list(status = "available", value = fn()),
     mcp_tool_error = function(e) {
       payload <- mcp_error_payload(e)
-      status <- if (payload$error$code %in% c("temporarily_unavailable", "snapshot_missing")) {
+      status <- if (payload$error$code %in% MCP_SECTION_UNAVAILABLE_CODES) {
         "temporarily_unavailable"
       } else {
         "error"
