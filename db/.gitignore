@@ -1,9 +1,18 @@
 # R files
 .Rhistory
 
-# config files
+# config files (real credentials / source overrides — never commit)
 sysndd_db.yml
+config/sysndd_db.yml
+config/db_sources.yml
 initial_users.csv
 
-# omim files
+# omim files (account-specific download links embed a secret token)
 omim_links.txt
+data/omim_links/
+
+# SysID reproducible snapshot (large, operator-generated artifact)
+data/sysid/
+
+# generated outputs
+results/

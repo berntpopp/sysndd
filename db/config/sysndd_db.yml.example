@@ -1,0 +1,64 @@
+## db/config/sysndd_db.yml.example
+##
+## Credentials + connection config for the OUT-OF-BAND SysNDD data-prep /
+## database-creation scripts (the `NN_Rcommands_*.R` files and the
+## `A/B/C_Rcommands_*.R` finalizers).
+##
+## Copy this file to `db/config/sysndd_db.yml` and fill in REAL values before
+## running the scripts. The real file is gitignored (see `db/.gitignore`) so
+## secrets are never committed. NOTHING in this template is a real credential.
+##
+## How it is loaded: `db/config/db_config.R::db_load_config()` reads this file
+## via the `config` package. You can also point at a different file with the
+## `CONFIG_FILE` environment variable; if neither is set this default path is
+## used.
+##
+## NOTE: this is separate from `api/config.yml` (the runtime API config). These
+## scripts only need the SysNDD target DB credentials, the (legacy) SysID source
+## credentials, and a base directory.
+
+default:
+  sysndd:
+    ## ---- Working directory / repo anchor -------------------------------
+    ## Legacy scripts did `setwd(paste0(projectsdir, "R"))`. The refactored
+    ## scripts resolve paths relative to the `db/` directory automatically
+    ## (see db_config.R), so `projectsdir` is only kept for backward compat
+    ## with any unconverted script and is otherwise unused.
+    projectsdir: "/path/to/your/projects/"
+
+    ## ---- SysNDD target database (MySQL 8.0) ----------------------------
+    dbname_sysndd: "sysndd_db"
+    user_sysndd: "your_username_here"
+    password_sysndd: "your_secure_password_here"
+    server_sysndd_local: "127.0.0.1"
+    port_sysndd_local: "3306"
+    ## Some scripts use these alternate key names for the same target DB.
+    server_sysid_sysndd: "127.0.0.1"
+    port_sysid_sysndd: "3306"
+
+    ## ---- Initial SysID import source -----------------------------------
+    ## Choose how the one-time SysID import reads its source tables:
+    ##   "sqlite" — read a local, reproducible snapshot (recommended; see
+    ##              db/README.md "Reproducible SysID import").
+    ##   "mysql"  — read the live upstream SysID DB over an SSH tunnel
+    ##              (legacy; requires the credentials below).
+    ## If unset, the scripts auto-select "sqlite" when a snapshot file exists.
+    sysid_source: "sqlite"
+    ## Path to the local SQLite snapshot (absolute, or relative to db/).
+    sysid_sqlite_path: "data/sysid/sysid_snapshot.sqlite"
+
+    ## ---- Legacy live SysID source (only needed when sysid_source: mysql) -
+    host_sysid: "sysid.example.org"
+    passwd_sysid: "your_ssh_password_here"
+    port_sysid_local: "3307"
+    server_sysid_local: "127.0.0.1"
+    dbname_sysid: "sysid_db"
+    user_sysid: "your_sysid_username_here"
+    password_sysid: "your_sysid_password_here"
+
+    ## ---- OMIM ----------------------------------------------------------
+    ## OMIM downloads are access-controlled. Do NOT hardcode the per-account
+    ## download URLs (which embed a secret token) in scripts. Instead, place
+    ## the authorized OMIM download links — one per line — in:
+    ##   db/data/omim_links/omim_links.txt   (gitignored)
+    ## The scripts read that file at runtime. See db/README.md.

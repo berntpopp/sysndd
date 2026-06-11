@@ -8,19 +8,17 @@ library(config)     ## needed to read config file
 
 
 ############################################
-## define relative script path
-project_topic <- "sysndd"
-project_name <- "R"
-
-## read configs
-config_vars_proj <- config::get(file = Sys.getenv("CONFIG_FILE"),
-    config = project_topic)
-
-## set working directory
-setwd(paste0(config_vars_proj$projectsdir, project_name))
-
-## set global options
-options(scipen = 999)
+## SysNDD data-prep bootstrap (issue #33): locate db/config, then db_bootstrap()
+## sets SYSNDD_DB_DIR, anchors CWD to db/, sources db_sysid_source.R, sets db_src.
+.f <- tryCatch(sys.frame(1)$ofile, error = function(e) NULL)
+if (is.null(.f)) .f <- sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE))
+.cfg <- if (nzchar(Sys.getenv("SYSNDD_DB_DIR"))) {
+  file.path(Sys.getenv("SYSNDD_DB_DIR"), "config")
+} else {
+  file.path(dirname(normalizePath(.f[1])), "config")
+}
+source(file.path(.cfg, "db_config.R"))
+config_vars_proj <- db_bootstrap()
 ############################################
 
 
@@ -95,8 +93,8 @@ gene_coordinates_from_ensembl <- function(ensembl_id, reference = "hg19") {
 ############################################
 ## download HGNC file
 file_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
-hgnc_link <- "http://ftp.ebi.ac.uk/pub/databases/genenames/hgnc/tsv/non_alt_loci_set.txt"
-hgnc_file <- "data/non_alt_loci_set.txt"
+hgnc_link <- db_source_url("hgnc_non_alt_loci_set", db_src)
+hgnc_file <- db_data_path("non_alt_loci_set.txt", create_dir = TRUE)
 download.file(hgnc_link, hgnc_file, mode = "wb")
 ############################################
 
@@ -104,7 +102,7 @@ download.file(hgnc_link, hgnc_file, mode = "wb")
 
 ############################################
 ## load STRINGdb database
-string_db <- STRINGdb$new( version="11.5", species=9606, score_threshold=200, input_directory="data/")
+string_db <- STRINGdb$new( version="11.5", species=9606, score_threshold=200, input_directory=db_data_path())
 ############################################
 
 
@@ -161,5 +159,5 @@ non_alt_loci_set_coordinates <- non_alt_loci_set_string %>%
 ############################################
 ## export table as csv with date of creation
 creation_date <- strftime(as.POSIXlt(Sys.time(), "UTC", "%Y-%m-%dT%H:%M:%S"), "%Y-%m-%d")
-write_csv(non_alt_loci_set_coordinates, file = paste0("results/non_alt_loci_set.",creation_date,".csv"))
+write_csv(non_alt_loci_set_coordinates, file = db_results_path(paste0("non_alt_loci_set.", creation_date, ".csv")))
 ############################################

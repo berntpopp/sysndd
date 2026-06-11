@@ -1,0 +1,21 @@
+linters: linters_with_defaults(
+    # Codebase mixes %>% and |>
+    pipe_consistency_linter = NULL,
+    # 120-char lines (matches api/.lintr); URLs/SQL are often long
+    line_length_linter = line_length_linter(120L),
+    # Allow explicit returns
+    return_linter = NULL,
+    # Allow SCREAMING_SNAKE_CASE constants and longer object names
+    object_name_linter = NULL,
+    object_length_linter = NULL,
+    # NSE / sourced-into-global symbols confuse usage analysis
+    object_usage_linter = NULL,
+    # File-path header comments and roxygen examples trip this
+    commented_code_linter = NULL,
+    # styler handles formatting
+    indentation_linter = NULL
+  )
+exclusions: list(
+    "data/", "results/", "migrations/", "fixtures/", "updates/"
+  )
+encoding: "UTF-8"
