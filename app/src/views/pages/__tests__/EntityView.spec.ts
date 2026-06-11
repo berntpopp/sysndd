@@ -481,6 +481,17 @@ describe('EntityView (v11.3 W3)', () => {
     expect(w.get('[data-testid="variation-chip-VariO:0133"]').attributes('data-tooltip')).toBe(
       'variable | VariO:0133'
     );
+    // Issue #98: VariO chip links to the configurable EBI OLS4 term browser
+    // (not the dead aber-owl.net fragment URL), with the id encoded as an OBO
+    // PURL IRI (VariO:0133 -> VariO_0133).
+    const varioHref = w
+      .get('[data-testid="variation-chip-VariO:0133"]')
+      .attributes('href') as string;
+    expect(varioHref.startsWith('https://www.ebi.ac.uk/ols4/ontologies/vario/classes?iri=')).toBe(
+      true
+    );
+    expect(varioHref).toContain(encodeURIComponent('http://purl.obolibrary.org/obo/VariO_0133'));
+    expect(varioHref).not.toContain('aber-owl.net');
     w.unmount();
   });
 
