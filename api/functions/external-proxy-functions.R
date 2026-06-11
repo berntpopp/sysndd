@@ -102,27 +102,59 @@ external_proxy_log_event <- function(source,
 #' This wrapper keeps normal successful/not-found caching, but immediately
 #' clears the memoised cache after an error result so a later request can retry.
 #'
+#' When a `source` label is supplied the wrapper also emits one structured
+#' timing log per call (`event=complete`) covering cache hit/miss, the wall
+#' time spent serving the request (upstream duration on a miss, cache lookup on
+#' a hit), and the mapped response status. This gives every external provider
+#' the same observability without each fetcher having to wrap itself, and keeps
+#' the hot path cheap: the cache-hit probe is a single key lookup and the timing
+#' is two `proc.time()` reads.
+#'
 #' @param f Function to memoise.
 #' @param cache cachem backend.
+#' @param source Optional source label used for structured timing logs. When
+#'   `NULL` (default) no per-call timing log is emitted (legacy behaviour).
 #' @return Function with the same call shape as `f`.
 #' @export
-memoise_external_success_only <- function(f, cache) {
+memoise_external_success_only <- function(f, cache, source = NULL) {
   memoised <- memoise::memoise(f, cache = cache)
 
   function(...) {
+    cache_status <- NULL
+    if (!is.null(source)) {
+      cache_status <- tryCatch(
+        if (isTRUE(memoise::has_cache(memoised)(...))) "hit" else "miss",
+        error = function(e) NULL
+      )
+    }
+
+    start <- proc.time()[["elapsed"]]
     result <- memoised(...)
+    elapsed_ms <- as.numeric((proc.time()[["elapsed"]] - start) * 1000)
+
     if (external_proxy_is_error(result)) {
       tryCatch(
         memoise::forget(memoised),
         error = function(e) FALSE
       )
       external_proxy_log_event(
-        source = result$source %||% "unknown",
+        source = result$source %||% source %||% "unknown",
         event = "error_not_cached",
         status = result$status %||% 503L,
         detail = result$message %||% NULL
       )
     }
+
+    if (!is.null(source)) {
+      external_proxy_log_event(
+        source = result$source %||% source,
+        event = "complete",
+        status = external_proxy_result_status(result),
+        elapsed_ms = elapsed_ms,
+        cache = cache_status
+      )
+    }
+
     result
   }
 }
