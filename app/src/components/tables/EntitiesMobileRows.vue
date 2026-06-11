@@ -93,6 +93,10 @@
             <dt>Entry date</dt>
             <dd>{{ displayValue(item.entry_date) }}</dd>
           </div>
+          <div v-if="hasValue(item.last_update)" class="mobile-record-row__detail">
+            <dt>Last updated</dt>
+            <dd>{{ displayValue(item.last_update) }}</dd>
+          </div>
           <div v-if="hasValue(item.synopsis)" class="mobile-record-row__detail">
             <dt>Synopsis</dt>
             <dd>{{ displayValue(item.synopsis) }}</dd>

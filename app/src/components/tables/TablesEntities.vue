@@ -456,6 +456,7 @@ export default {
           class: 'text-start',
         },
         { key: 'entry_date', label: 'Entry date', class: 'text-start' },
+        { key: 'last_update', label: 'Last updated', class: 'text-start' },
         { key: 'synopsis', label: 'Clinical Synopsis', class: 'text-start' },
       ],
       infoModal: {

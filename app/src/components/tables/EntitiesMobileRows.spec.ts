@@ -23,6 +23,7 @@ describe('EntitiesMobileRows', () => {
             category: 'Definitive',
             ndd_phenotype_word: 'Yes',
             entry_date: '2024-02-10',
+            last_update: '2026-02-10',
             synopsis: 'Developmental delay with speech involvement.',
           },
         ],
@@ -59,6 +60,8 @@ describe('EntitiesMobileRows', () => {
     expect(wrapper.text()).toContain('HGNC:18040');
     expect(wrapper.text()).toContain('OMIM:135900_2024-01-01');
     expect(wrapper.text()).toContain('2024-02-10');
+    expect(wrapper.text()).toContain('Last updated');
+    expect(wrapper.text()).toContain('2026-02-10');
     expect(wrapper.text()).toContain('Developmental delay with speech involvement.');
   });
 });

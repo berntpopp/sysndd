@@ -357,6 +357,11 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_entity_vie
         `sysndd_db`.`ndd_entity`.`ndd_phenotype` AS `ndd_phenotype`,
         `sysndd_db`.`boolean_list`.`word_english` AS `ndd_phenotype_word`,
         `sysndd_db`.`ndd_entity`.`entry_date` AS `entry_date`,
+        GREATEST(
+            `sysndd_db`.`ndd_entity`.`entry_date`,
+            `sysndd_db`.`ndd_entity_status_approved_view`.`status_date`,
+            COALESCE(`primary_review_date`.`review_date`, `sysndd_db`.`ndd_entity`.`entry_date`)
+        ) AS `last_update`,
         `sysndd_db`.`ndd_entity_status_categories_list`.`category` AS `category`,
         `sysndd_db`.`ndd_entity_status_categories_list`.`category_id` AS `category_id`
     FROM
@@ -367,6 +372,15 @@ rs <- dbSendQuery(sysndd_db, "CREATE OR REPLACE VIEW `sysndd_db`.`ndd_entity_vie
         JOIN `sysndd_db`.`ndd_entity_status_approved_view` ON (`sysndd_db`.`ndd_entity`.`entity_id` = `ndd_entity_status_approved_view`.`entity_id`))
         JOIN `sysndd_db`.`ndd_entity_status_categories_list` ON (`ndd_entity_status_approved_view`.`category_id` = `sysndd_db`.`ndd_entity_status_categories_list`.`category_id`))
         JOIN `sysndd_db`.`boolean_list` ON (`sysndd_db`.`ndd_entity`.`ndd_phenotype` = `sysndd_db`.`boolean_list`.`logical`))
+        LEFT JOIN (
+            SELECT
+                `sysndd_db`.`ndd_entity_review`.`entity_id` AS `entity_id`,
+                MAX(`sysndd_db`.`ndd_entity_review`.`review_date`) AS `review_date`
+            FROM `sysndd_db`.`ndd_entity_review`
+            WHERE `sysndd_db`.`ndd_entity_review`.`is_primary` = 1
+              AND `sysndd_db`.`ndd_entity_review`.`review_approved` = 1
+            GROUP BY `sysndd_db`.`ndd_entity_review`.`entity_id`
+        ) `primary_review_date` ON (`sysndd_db`.`ndd_entity`.`entity_id` = `primary_review_date`.`entity_id`)
     WHERE
         `sysndd_db`.`ndd_entity`.`is_active` = 1;")
 dbClearResult(rs)

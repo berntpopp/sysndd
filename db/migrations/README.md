@@ -93,10 +93,13 @@ migration instead.
 Current high-level additions include `020_add_mcp_http_transport_artifacts.sql`
 for MCP HTTP transport support, `023_add_nddscore_prediction_release.sql`
 for the NDDScore prediction-layer release, gene, HPO-term, and prediction
-tables plus current-release views, and `025_create_core_views.sql` which
+tables plus current-release views, `025_create_core_views.sql` which
 codifies the four core views (`ndd_entity_view`, `users_view`,
 `search_non_alt_loci_view`, `search_disease_ontology_set`) that were
-previously missing from migrations, ensuring a pristine DB boots fully.
+previously missing from migrations, ensuring a pristine DB boots fully, and
+`026_add_entity_last_update.sql` which adds a derived `last_update` freshness
+column to `ndd_entity_view` (GREATEST of entry date, approved status date, and
+primary-approved review date).
 
 ## 4. Adding a new migration
 

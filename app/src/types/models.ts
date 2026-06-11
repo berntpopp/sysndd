@@ -97,6 +97,13 @@ export interface Entity {
   ndd_phenotype: 0 | 1;
   ndd_phenotype_word: NddPhenotypeWord;
   entry_date: string;
+  /**
+   * Most recent curation touch for the entity: GREATEST of entry_date, the
+   * approved status date, and the primary-approved review date. Derived in
+   * `ndd_entity_view` (migration 026). Use it as a freshness signal alongside
+   * `entry_date`; unlike entry_date it advances when the record is re-curated.
+   */
+  last_update: string;
   category: EntityCategory;
   category_id: number;
 }

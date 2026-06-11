@@ -533,4 +533,92 @@ describe('EntityView (v11.3 W3)', () => {
     expect(w.text()).toContain('No variation ontology terms linked.');
     w.unmount();
   });
+
+  it('renders entry date and last-updated freshness pills (date-only)', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+              entry_date: '2014-03-04 00:00:00',
+              last_update: '2026-02-10 12:29:49',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () => HttpResponse.json([{ synopsis: '', comment: '' }])),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    const entry = w.get('[data-testid="entity-entry-date"]');
+    expect(entry.text()).toContain('Entered 2014-03-04');
+    expect(entry.text()).not.toContain('00:00:00');
+
+    const updated = w.get('[data-testid="entity-last-update"]');
+    expect(updated.text()).toContain('Last updated 2026-02-10');
+    // Date-only: the time component is trimmed off.
+    expect(updated.text()).not.toContain('12:29:49');
+    w.unmount();
+  });
+
+  it('omits the freshness pills when the entity record has no dates', async () => {
+    server.use(
+      http.get('*/api/entity/', () =>
+        HttpResponse.json({
+          data: [
+            {
+              entity_id: 57,
+              symbol: 'ARID1B',
+              hgnc_id: 'HGNC:18040',
+              disease_ontology_name: 'Coffin-Siris syndrome 1',
+              disease_ontology_id_version: 'OMIM:135900',
+              hpo_mode_of_inheritance_term_name: 'Autosomal dominant inheritance',
+              hpo_mode_of_inheritance_term: 'HP:0000006',
+              ndd_phenotype_word: 'Yes',
+            },
+          ],
+          links: [],
+          meta: [{}],
+        })
+      ),
+      http.get('*/api/entity/57/status', () => HttpResponse.json([{ category: 'Definitive' }])),
+      http.get('*/api/entity/57/review', () => HttpResponse.json([{ synopsis: '', comment: '' }])),
+      http.get('*/api/entity/57/publications', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/phenotypes', () => HttpResponse.json([])),
+      http.get('*/api/entity/57/variation', () => HttpResponse.json([])),
+      http.get('*/api/gene/HGNC%3A18040', () => HttpResponse.json([{ symbol: ['ARID1B'] }]))
+    );
+
+    const router = makeRouter('/Entities/57');
+    await router.isReady();
+    const w = mount(EntityView, {
+      global: { plugins: [router], stubs: heavyChildStubs },
+    });
+    await flushPromises();
+
+    expect(w.find('[data-testid="entity-entry-date"]').exists()).toBe(false);
+    expect(w.find('[data-testid="entity-last-update"]').exists()).toBe(false);
+    w.unmount();
+  });
 });

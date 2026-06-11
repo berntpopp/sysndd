@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "025_create_core_views.sql"
-EXPECTED_MIGRATION_COUNT <- 26L
+EXPECTED_LATEST_MIGRATION <- "026_add_entity_last_update.sql"
+EXPECTED_MIGRATION_COUNT <- 27L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'

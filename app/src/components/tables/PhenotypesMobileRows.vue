@@ -82,6 +82,8 @@
           <dd>{{ getText(item, 'disease_ontology_id_version') || '-' }}</dd>
           <dt>Entry date</dt>
           <dd>{{ getText(item, 'entry_date') || '-' }}</dd>
+          <dt>Last updated</dt>
+          <dd>{{ getText(item, 'last_update') || '-' }}</dd>
           <dt>Phenotype</dt>
           <dd>{{ getText(item, 'modifier_phenotype_id') || '-' }}</dd>
         </dl>
