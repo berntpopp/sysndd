@@ -21,10 +21,21 @@
           </p>
           <p><strong>Prioritization criteria:</strong></p>
           <ul class="mb-2">
-            <li><em>Literature first:</em> Uncurated genes surface at the top</li>
-            <li><em>Oldest publication:</em> Long-overlooked genes prioritized</li>
-            <li><em>Publication count:</em> More mentions = more evidence</li>
+            <li>
+              <em>Enrichment (default):</em> NDD co-mentions normalized by the gene's total
+              publication count, so popularity bias (e.g. heavily-studied genes) does not
+              dominate the raw count.
+            </li>
+            <li>
+              <em>FDR significance:</em> Benjamini-Hochberg adjusted Fisher exact test
+              (* q&lt;0.05, ** q&lt;0.01, *** q&lt;0.001).
+            </li>
+            <li><em>NDD Pubs:</em> Raw co-occurrence count (still sortable).</li>
           </ul>
+          <p class="small text-muted mb-0">
+            Background (total) publication counts and enrichment metrics are refreshed
+            periodically; genes show “—” until the first refresh.
+          </p>
         </BPopover>
         <BButton
           variant="outline-success"
@@ -175,6 +186,42 @@
             <i class="bi bi-check-circle me-1" />
             Curated
           </BBadge>
+        </template>
+
+        <!-- Background (total) publication count -->
+        <template #cell(background_count)="data">
+          <span v-if="(data.item as GeneItem).background_count != null">
+            {{ formatCount((data.item as GeneItem).background_count) }}
+          </span>
+          <span v-else class="text-muted">—</span>
+        </template>
+
+        <!-- Enrichment ratio - color-coded, never color-alone (label + tooltip) -->
+        <template #cell(enrichment_ratio)="data">
+          <BBadge
+            v-if="(data.item as GeneItem).enrichment_ratio != null"
+            v-b-tooltip.hover.top
+            :variant="enrichmentVariant((data.item as GeneItem).enrichment_ratio)"
+            :title="enrichmentTooltip(data.item as GeneItem)"
+            pill
+          >
+            {{ formatEnrichment((data.item as GeneItem).enrichment_ratio) }}×
+          </BBadge>
+          <span v-else class="text-muted">—</span>
+        </template>
+
+        <!-- FDR significance: stars + label, paired with tooltip (not color-alone) -->
+        <template #cell(fdr_bh)="data">
+          <span
+            v-if="(data.item as GeneItem).fdr_bh != null"
+            v-b-tooltip.hover.top
+            :title="fdrTooltip((data.item as GeneItem).fdr_bh)"
+          >
+            <span :class="fdrClass((data.item as GeneItem).fdr_bh)">
+              {{ fdrStars((data.item as GeneItem).fdr_bh) || 'ns' }}
+            </span>
+          </span>
+          <span v-else class="text-muted">—</span>
         </template>
 
         <!-- PMIDs as clickable chips -->
@@ -370,6 +417,17 @@ import {
   createDefaultPubtatorGeneFilter,
   type PubtatorGeneFilter,
 } from './pubtatorGeneFilters';
+import {
+  formatCount,
+  formatEnrichment,
+  enrichmentVariant,
+  enrichmentTooltip,
+  fdrStars,
+  fdrClass,
+  fdrTooltip,
+  createPubtatorGeneFields,
+  type PubtatorGeneFieldDefinition as FieldDefinition,
+} from './pubtatorEnrichmentDisplay';
 
 import { useUiStore } from '@/stores/ui';
 import { useRoute } from 'vue-router';
@@ -384,6 +442,13 @@ interface GeneItem {
   oldest_pub_date?: string;
   is_novel: number;
   pmids?: string;
+  // Normalized enrichment metrics (issue #175); null until first refresh.
+  observed?: number | null;
+  background_count?: number | null;
+  enrichment_ratio?: number | null;
+  npmi?: number | null;
+  fisher_p?: number | null;
+  fdr_bh?: number | null;
 }
 
 interface PublicationData {
@@ -396,17 +461,6 @@ interface PublicationData {
   score?: number;
   gene_symbols?: string;
   text_hl?: string;
-}
-
-interface FieldDefinition {
-  key: string;
-  label: string;
-  sortable?: boolean;
-  sortDirection?: string;
-  class?: string;
-  filterable?: boolean;
-  count?: number;
-  count_filtered?: number;
 }
 
 // Props
@@ -426,13 +480,14 @@ const props = withDefaults(
     showFilterControls: true,
     showPaginationControls: true,
     headerLabel: 'Pubtator Genes table',
-    sortInput: '-is_novel,oldest_pub_date',
+    // Default rank by enrichment (issue #175): normalize for popularity bias.
+    sortInput: '-enrichment_ratio,-npmi,publication_count',
     filterInput: null,
     fieldsInput: null,
     pageAfterInput: '',
     pageSizeInput: 10,
     fspecInput:
-      'gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,oldest_pub_date,is_novel,pmids',
+      'gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,background_count,enrichment_ratio,npmi,fdr_bh,oldest_pub_date,is_novel,pmids',
   }
 );
 
@@ -474,58 +529,8 @@ const {
   removeFiltersButtonVariant,
 } = tableData;
 
-// Table fields definition
-const fields = ref<FieldDefinition[]>([
-  {
-    key: 'gene_symbol',
-    label: 'Gene',
-    sortable: true,
-    class: 'text-start',
-    filterable: true,
-  },
-  {
-    key: 'gene_name',
-    label: 'Name',
-    sortable: true,
-    class: 'text-start',
-    filterable: true,
-  },
-  {
-    key: 'publication_count',
-    label: 'Pubs',
-    sortable: true,
-    class: 'text-center',
-    filterable: false,
-  },
-  {
-    key: 'oldest_pub_date',
-    label: 'Oldest Pub',
-    sortable: true,
-    class: 'text-center',
-    filterable: false,
-  },
-  {
-    key: 'is_novel',
-    label: 'Source',
-    sortable: true,
-    class: 'text-center',
-    filterable: false,
-  },
-  {
-    key: 'pmids',
-    label: 'PMIDs',
-    sortable: false,
-    class: 'text-start',
-    filterable: false,
-  },
-  {
-    key: 'actions',
-    label: '',
-    sortable: false,
-    class: 'text-center',
-    filterable: false,
-  },
-]);
+// Table fields definition (includes issue #175 enrichment columns)
+const fields = ref<FieldDefinition[]>(createPubtatorGeneFields());
 
 // Component-specific filter
 const filter = ref<PubtatorGeneFilter>(createDefaultPubtatorGeneFilter());
@@ -836,6 +841,11 @@ const handleExcelExport = async () => {
     gene_symbol: gene.gene_symbol,
     gene_name: gene.gene_name,
     publication_count: gene.publication_count,
+    background_count: gene.background_count ?? '',
+    enrichment_ratio: gene.enrichment_ratio ?? '',
+    npmi: gene.npmi ?? '',
+    fisher_p: gene.fisher_p ?? '',
+    fdr_bh: gene.fdr_bh ?? '',
     oldest_pub_date: gene.oldest_pub_date || '',
     source: gene.is_novel === 1 ? 'Literature Only' : 'Curated',
     pmids: gene.pmids || '',
@@ -848,7 +858,12 @@ const handleExcelExport = async () => {
       headers: {
         gene_symbol: 'Gene Symbol',
         gene_name: 'Gene Name',
-        publication_count: 'Publication Count',
+        publication_count: 'NDD Publication Count',
+        background_count: 'Background (Total) Publications',
+        enrichment_ratio: 'Enrichment Ratio',
+        npmi: 'NPMI',
+        fisher_p: 'Fisher p-value',
+        fdr_bh: 'FDR (BH q-value)',
         oldest_pub_date: 'Oldest Publication',
         source: 'Source',
         pmids: 'PMIDs',

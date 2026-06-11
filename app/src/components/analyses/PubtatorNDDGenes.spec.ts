@@ -104,7 +104,7 @@ async function mountSubject(props = {}) {
           props: ['items'],
           emits: ['update:sort-by'],
           template:
-            '<table><tbody><template v-for="item in items" :key="item.gene_symbol"><tr><td>{{ item.gene_symbol }}</td><td>{{ item.gene_name }}</td><td>{{ item.publication_count }}</td><td>{{ item.oldest_pub_date }}</td><td>{{ item.is_novel === 1 ? "Literature Only" : "Curated" }}</td><td>{{ item.pmids }}</td><td><slot name="cell(actions)" :item="item" :expansion-showing="false" :toggle-expansion="() => {}" /></td></tr><tr><td colspan="7"><slot name="row-expansion" :item="item" /></td></tr></template></tbody></table>',
+            '<table><tbody><template v-for="item in items" :key="item.gene_symbol"><tr><td>{{ item.gene_symbol }}</td><td>{{ item.gene_name }}</td><td>{{ item.publication_count }}</td><td><slot name="cell(background_count)" :item="item" /></td><td><slot name="cell(enrichment_ratio)" :item="item" /></td><td><slot name="cell(fdr_bh)" :item="item" /></td><td>{{ item.oldest_pub_date }}</td><td>{{ item.is_novel === 1 ? "Literature Only" : "Curated" }}</td><td>{{ item.pmids }}</td><td><slot name="cell(actions)" :item="item" :expansion-showing="false" :toggle-expansion="() => {}" /></td></tr><tr><td colspan="10"><slot name="row-expansion" :item="item" /></td></tr></template></tbody></table>',
         },
       },
     },
@@ -158,9 +158,59 @@ describe('PubtatorNDDGenes', () => {
     expect(wrapper.text()).toContain('MECP2');
     expect(wrapper.text()).toContain('Literature Only');
     expect(wrapper.emitted('novel-count')?.at(-1)).toEqual([1]);
-    expect((observed as URLSearchParams).get('sort')).toBe('-is_novel,oldest_pub_date');
+    // issue #175: default ranking is enrichment-based, not raw count.
+    expect((observed as URLSearchParams).get('sort')).toBe(
+      '-enrichment_ratio,-npmi,publication_count'
+    );
     expect((observed as URLSearchParams).get('page_size')).toBe('10');
     expect((observed as URLSearchParams).get('format')).toBe('json');
+  });
+
+  it('renders normalized enrichment metrics and separates true NDD genes from noise', async () => {
+    server.use(
+      http.get('/api/publication/pubtator/genes', () =>
+        HttpResponse.json({
+          meta: [{ totalItems: 2, totalPages: 1, currentPage: 1, currentItemID: 0, fspec: [] }],
+          data: [
+            {
+              gene_symbol: 'GRIN2B',
+              gene_name: 'glutamate receptor',
+              publication_count: 86,
+              background_count: 13459,
+              enrichment_ratio: 17.6,
+              npmi: 0.32,
+              fisher_p: 1e-40,
+              fdr_bh: 1e-38,
+              is_novel: 0,
+              pmids: '1,2',
+            },
+            {
+              gene_symbol: 'TP53',
+              gene_name: 'tumor protein p53',
+              publication_count: 8,
+              background_count: 282103,
+              enrichment_ratio: 0.08,
+              npmi: -0.2,
+              fisher_p: 0.9,
+              fdr_bh: 0.95,
+              is_novel: 1,
+              pmids: '3',
+            },
+          ],
+        })
+      )
+    );
+
+    const wrapper = await mountSubject();
+    const text = wrapper.text();
+    // Background count is compacted (e.g. 13459 -> "13.5k", 282103 -> "282.1k").
+    expect(text).toContain('13.5k');
+    expect(text).toContain('282.1k');
+    // Enrichment ratio rendered with the multiplication marker.
+    expect(text).toContain('18×'); // 17.6 rounds to 18 for display
+    // FDR significance: GRIN2B significant (stars), TP53 not significant (ns).
+    expect(text).toContain('***');
+    expect(text).toContain('ns');
   });
 
   it('loads expanded publication details through the PubTator table endpoint', async () => {
@@ -241,18 +291,23 @@ describe('PubtatorNDDGenes', () => {
 
     expect(exportToExcelSpy).toHaveBeenCalledWith(
       [
-        {
+        expect.objectContaining({
           gene_symbol: 'MECP2',
           gene_name: 'methyl CpG binding protein 2',
           publication_count: 2,
           oldest_pub_date: '2001-01-01',
           source: 'Literature Only',
           pmids: '123,456',
-        },
+        }),
       ],
       expect.objectContaining({
         sheetName: 'Gene Prioritization',
-        headers: expect.objectContaining({ gene_symbol: 'Gene Symbol', pmids: 'PMIDs' }),
+        headers: expect.objectContaining({
+          gene_symbol: 'Gene Symbol',
+          pmids: 'PMIDs',
+          enrichment_ratio: 'Enrichment Ratio',
+          fdr_bh: 'FDR (BH q-value)',
+        }),
       })
     );
     expect(makeToastSpy).toHaveBeenCalledWith('Excel file downloaded', 'Success', 'success');
