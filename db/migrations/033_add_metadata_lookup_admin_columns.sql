@@ -10,23 +10,25 @@
 -- already carry their own lifecycle columns and are refreshed from source, so
 -- they are NOT touched here.
 --
--- `ADD COLUMN IF NOT EXISTS` keeps this migration idempotent on MariaDB.
+-- Columns are added with plain `ADD COLUMN`: the migration runner applies each
+-- migration at most once (schema_version ledger) and the target DB is MySQL 8.4,
+-- which does NOT support the MariaDB-only `ADD COLUMN IF NOT EXISTS` shortcut.
 
 -- modifier_list: phenotype/variation modifiers (present, uncertain, ...).
 -- SysNDD-managed; previously had no soft-delete or ordering column.
 ALTER TABLE `modifier_list`
-  ADD COLUMN IF NOT EXISTS `is_active` tinyint NOT NULL DEFAULT 1 AFTER `allowed_variation`;
+  ADD COLUMN `is_active` tinyint NOT NULL DEFAULT 1 AFTER `allowed_variation`;
 
 ALTER TABLE `modifier_list`
-  ADD COLUMN IF NOT EXISTS `sort` int DEFAULT NULL AFTER `is_active`;
+  ADD COLUMN `sort` int DEFAULT NULL AFTER `is_active`;
 
 -- ndd_entity_status_categories_list: classification categories
 -- (Definitive, Moderate, Limited, Refuted, not applicable). SysNDD-managed.
 ALTER TABLE `ndd_entity_status_categories_list`
-  ADD COLUMN IF NOT EXISTS `is_active` tinyint NOT NULL DEFAULT 1 AFTER `category`;
+  ADD COLUMN `is_active` tinyint NOT NULL DEFAULT 1 AFTER `category`;
 
 ALTER TABLE `ndd_entity_status_categories_list`
-  ADD COLUMN IF NOT EXISTS `sort` int DEFAULT NULL AFTER `is_active`;
+  ADD COLUMN `sort` int DEFAULT NULL AFTER `is_active`;
 
 -- Backfill `sort` from the existing primary keys so the admin table has a
 -- stable initial ordering (NULLs sort last in the API query otherwise).
