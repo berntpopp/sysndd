@@ -48,7 +48,6 @@ app/src/components/tables/TablesLogs.vue	1221
 app/src/components/tables/TablesPhenotypes.vue	1155
 app/src/composables/useCytoscape.ts	637
 app/src/composables/useD3Lollipop.ts	1125
-app/src/router/routes.ts	618
 app/src/views/admin/ManageAnnotations.vue	691
 app/src/views/admin/ManageBackups.vue	1115
 app/src/views/admin/ManageLLM.vue	938

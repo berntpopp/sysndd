@@ -20,7 +20,7 @@ describe('tabbed analysis route shells', () => {
       PhenotypeCorrelations,
       'Phenotype correlations',
       'Phenotype correlation views',
-      ['Phenotype correlogram', 'Phenotype counts', 'Phenotype clustering'],
+      ['Phenotype correlogram', 'Phenotype counts', 'Phenotype clustering', 'Correlation matrix'],
     ],
     [
       VariantCorrelations,

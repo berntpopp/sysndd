@@ -37,6 +37,7 @@ export default {
       { label: 'Phenotype correlogram', to: '/PhenotypeCorrelations' },
       { label: 'Phenotype counts', to: '/PhenotypeCorrelations/PhenotypeCounts' },
       { label: 'Phenotype clustering', to: '/PhenotypeCorrelations/PhenotypeClusters' },
+      { label: 'Correlation matrix', to: { name: 'PhenotypeFunctionalCorrelation' } },
     ];
 
     return { makeToast, tabs };
