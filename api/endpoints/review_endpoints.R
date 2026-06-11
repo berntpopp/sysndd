@@ -353,7 +353,10 @@ function(req, res, re_review = FALSE, direct_approval = FALSE) {
       review_id = review_id,
       user_id = review_user_id, direct_approval = direct_approval, pool = pool
     )
-    res$status <- final$status
+    # final$status is a length-N vector (the aggregation pipeline above sets
+    # every unique row's status to max(status)); the HTTP status must be a
+    # scalar, so collapse to the max (matches the existing aggregate semantics).
+    res$status <- max(final$status)
     return(final)
   } else {
     res$status <- 400
