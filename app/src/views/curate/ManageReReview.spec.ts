@@ -175,6 +175,9 @@ const mountManageReReview = async (): Promise<VueWrapper> => {
         BatchCriteriaForm: { template: '<div />' },
         AriaLiveRegion: { template: '<div />' },
         IconLegend: { template: '<div />' },
+        // Issue #54: refused-items surface owns its own data load; stub it so
+        // this spec doesn't also drive its table render.
+        RefusedReReviewPanel: { template: '<div data-testid="refused-panel" />' },
       },
     },
   });

@@ -99,7 +99,11 @@ codifies the four core views (`ndd_entity_view`, `users_view`,
 previously missing from migrations, ensuring a pristine DB boots fully, and
 `026_add_entity_last_update.sql` which adds a derived `last_update` freshness
 column to `ndd_entity_view` (GREATEST of entry date, approved status date, and
-primary-approved review date).
+primary-approved review date), and `029_add_rereview_refusal.sql` which adds the
+re-reviewer refusal state to `re_review_entity_connect`
+(`re_review_refused` flag plus `re_review_refusal_comment`,
+`re_review_refused_user_id`, and `re_review_refused_date`) so a re-reviewer can
+decline a complex / out-of-scope item for specialist attention (issue #54).
 
 ## 4. Adding a new migration
 

@@ -412,6 +412,13 @@
               </GenericTable>
             </div>
           </TableShell>
+
+          <!-- Refused / needs-specialist surface (issue #54). Self-contained
+               panel so this view does not grow past its size budget. -->
+          <RefusedReReviewPanel
+            class="re-review-section--refused"
+            @cleared="loadReReviewTableData"
+          />
         </div>
       </BContainer>
 
@@ -519,6 +526,7 @@ import GenericTable from '@/components/small/GenericTable.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import ManualEntityAssignmentPanel from '@/views/curate/components/ManualEntityAssignmentPanel.vue';
+import RefusedReReviewPanel from '@/views/curate/components/RefusedReReviewPanel.vue';
 import { filterReReviewBatches, sortReReviewBatches } from '@/views/curate/utils/reReviewFilters';
 import {
   assignReReviewBatch,
@@ -547,6 +555,7 @@ export default {
     TableSearchInput,
     TablePaginationControls,
     ManualEntityAssignmentPanel,
+    RefusedReReviewPanel,
   },
   setup() {
     const { makeToast } = useToast();

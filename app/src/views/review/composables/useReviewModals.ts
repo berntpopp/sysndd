@@ -34,19 +34,25 @@ export interface UseReviewModals {
   statusModal: ModalDescriptor;
   submitModal: ModalDescriptor;
   approveModal: ModalDescriptor;
+  refuseModal: ModalDescriptor;
 
-  /** Single-element queue Approve/Submit confirm handlers read on `@ok`. */
+  /** Single-element queue Approve/Submit/Refuse confirm handlers read on `@ok`. */
   entity: Ref<ModalTargetRow[]>;
 
   status_approved: Ref<boolean>;
   review_approved: Ref<boolean>;
 
+  /** Optional reason captured in the refuse-confirm modal (issue #54). */
+  refuse_reason: Ref<string>;
+
   setReviewTarget: (row: ModalTargetRow) => void;
   setStatusTarget: (row: ModalTargetRow) => void;
   openSubmit: (row: ModalTargetRow) => void;
   openApprove: (row: ModalTargetRow) => void;
+  openRefuse: (row: ModalTargetRow) => void;
 
   resetApproveModal: () => void;
+  resetRefuseModal: () => void;
   clearTarget: () => void;
 }
 
@@ -63,10 +69,12 @@ export function useReviewModals(): UseReviewModals {
   const statusModal = reactive(makeDescriptor('status-modal'));
   const submitModal = reactive(makeDescriptor('submit-modal'));
   const approveModal = reactive(makeDescriptor('approve-modal'));
+  const refuseModal = reactive(makeDescriptor('refuse-modal'));
 
   const entity = ref<ModalTargetRow[]>([]);
   const status_approved = ref(false);
   const review_approved = ref(false);
+  const refuse_reason = ref('');
 
   function setReviewTarget(row: ModalTargetRow): void {
     reviewModal.title = `sysndd:${row.entity_id}`;
@@ -86,9 +94,19 @@ export function useReviewModals(): UseReviewModals {
     entity.value = [row];
   }
 
+  function openRefuse(row: ModalTargetRow): void {
+    refuseModal.title = `sysndd:${row.entity_id}`;
+    refuse_reason.value = '';
+    entity.value = [row];
+  }
+
   function resetApproveModal(): void {
     status_approved.value = false;
     review_approved.value = false;
+  }
+
+  function resetRefuseModal(): void {
+    refuse_reason.value = '';
   }
 
   function clearTarget(): void {
@@ -100,14 +118,18 @@ export function useReviewModals(): UseReviewModals {
     statusModal,
     submitModal,
     approveModal,
+    refuseModal,
     entity,
     status_approved,
     review_approved,
+    refuse_reason,
     setReviewTarget,
     setStatusTarget,
     openSubmit,
     openApprove,
+    openRefuse,
     resetApproveModal,
+    resetRefuseModal,
     clearTarget,
   };
 }

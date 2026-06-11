@@ -243,8 +243,8 @@ describe("validate_migration_manifest", {
     migrations_dir <- file.path(api_dir, "..", "db", "migrations")
     result <- validate_migration_manifest(migrations_dir)
     expect_true(result$ok)
-    expect_equal(result$expected_latest, "026_add_entity_last_update.sql")
-    expect_true(result$count >= 27L)
+    expect_equal(result$expected_latest, "029_add_rereview_refusal.sql")
+    expect_true(result$count >= 28L)
   })
 })
 

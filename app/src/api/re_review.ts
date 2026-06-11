@@ -27,6 +27,16 @@ export interface ApproveReReviewParams {
   review_ok?: boolean;
 }
 
+/** Optional reason recorded when a re-reviewer declines an item (issue #54). */
+export interface RefuseReReviewRequest {
+  reason?: string | null;
+}
+
+export interface RefuseReReviewResponse {
+  message: string;
+  entry?: { re_review_entity_id: number };
+}
+
 export interface ApproveReReviewResponse {
   message: string;
 }
@@ -34,6 +44,8 @@ export interface ApproveReReviewResponse {
 export interface ReReviewTableParams {
   filter?: string;
   curate?: boolean;
+  /** Curator+ only. When true, list refused / needs-specialist items (issue #54). */
+  refused?: boolean;
   page_after?: string | number;
   page_size?: string;
 }
@@ -185,6 +197,40 @@ export async function unsubmitReReview(
 ): Promise<unknown> {
   const path = `/api/re_review/unsubmit/${encodeURIComponent(String(re_review_id))}`;
   return apiClient.put<unknown>(path, undefined, config);
+}
+
+/**
+ * PUT /api/re_review/refuse/<re_review_id>
+ * Mirrors api/endpoints/re_review_endpoints.R (handler `@put refuse/<re_review_id>`).
+ *
+ * Reviewer+ only. Declines a re-review item that is too complex / out of scope
+ * (issue #54), flagging it for specialist/curator attention. The optional
+ * reason is sent body-only (auth-sensitive/free-text inputs are never put on
+ * the query string). Throws AxiosError on non-2xx (404 not found, 400 already
+ * refused).
+ */
+export async function refuseReReview(
+  re_review_id: number | string,
+  body: RefuseReReviewRequest = {},
+  config?: AxiosRequestConfig
+): Promise<RefuseReReviewResponse> {
+  const path = `/api/re_review/refuse/${encodeURIComponent(String(re_review_id))}`;
+  return apiClient.put<RefuseReReviewResponse, RefuseReReviewRequest>(path, body, config);
+}
+
+/**
+ * PUT /api/re_review/refuse/clear/<re_review_id>
+ * Mirrors api/endpoints/re_review_endpoints.R (handler `@put refuse/clear/<re_review_id>`).
+ *
+ * Curator+ only. Reverses a refusal so the item re-enters the normal re-review
+ * flow. Throws AxiosError on non-2xx (404 not found).
+ */
+export async function clearReReviewRefusal(
+  re_review_id: number | string,
+  config?: AxiosRequestConfig
+): Promise<RefuseReReviewResponse> {
+  const path = `/api/re_review/refuse/clear/${encodeURIComponent(String(re_review_id))}`;
+  return apiClient.put<RefuseReReviewResponse>(path, undefined, config);
 }
 
 /**
