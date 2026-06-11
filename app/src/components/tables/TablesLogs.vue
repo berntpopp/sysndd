@@ -463,6 +463,7 @@ import {
   getLogMethodVariant,
   getLogStatusVariant,
 } from './logTableFormatters';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
 import { listLogs, listLogsXlsx, deleteLogs as deleteLogsApi } from '@/api/logging';
 import { listUsersByRole } from '@/api/user';
 import { createLogTableRequestCache } from './logTableRequests';
@@ -1032,15 +1033,9 @@ export default {
     getMethodVariant(method) {
       return getLogMethodVariant(method);
     },
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    // Normalize select options for BFormSelect (shared util)
     normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
+      return normalizeSelectOptions(options);
     },
     // Format duration with appropriate unit
     formatDuration(duration) {
