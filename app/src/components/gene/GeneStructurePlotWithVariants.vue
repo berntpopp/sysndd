@@ -178,20 +178,17 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import * as d3 from 'd3';
-import type { GeneStructureRenderData, ClassifiedExon } from '@/types/ensembl';
+import type { GeneStructureRenderData } from '@/types/ensembl';
 import { formatGenomicCoordinate } from '@/types/ensembl';
 import type { EffectType, ColoringMode } from '@/types/protein';
 import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS, normalizeEffectType } from '@/types/protein';
 import type { GenomicVariant } from './GenomicVisualizationTabs.vue';
+import { isGeneStructureVariantVisible } from './geneStructureVariantPlotUtils';
 import {
-  aggregateVariantsByGenomicPosition,
-  calculateAggregatedRadius,
-  calculateDynamicOpacity,
-  determineRenderingMode,
-  isGeneStructureVariantVisible,
-  type AggregatedGeneStructureVariant,
-} from './geneStructureVariantPlotUtils';
+  useGeneStructurePlot,
+  type AggregatedGenomicVariant,
+  type GeneStructurePlotInputs,
+} from './gene-structure-plot';
 
 interface Props {
   geneData: GeneStructureRenderData;
@@ -205,24 +202,11 @@ const emit = defineEmits<{
   (e: 'variant-click', variant: GenomicVariant): void;
 }>();
 
-// Template refs
+// Template ref for the D3 container element
 const plotContainer = ref<HTMLElement | null>(null);
 
-// Non-reactive D3 state (critical: do not use ref())
-let svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
-let mainGroup: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
-let tooltipDiv: d3.Selection<HTMLDivElement, unknown, null, undefined> | null = null;
-let brush: d3.BrushBehavior<unknown> | null = null;
-let xScale: d3.ScaleLinear<number, number> | null = null;
-
-// Tooltip lock state for click-to-pin
-let isTooltipLocked = false;
-let lockedVariant: GenomicVariant | null = null;
-
-// Reactive state
+// Reactive UI state
 const showVariants = ref(true);
-const isInitialized = ref(false);
-const zoomDomain = ref<[number, number] | null>(null); // Current zoom range
 
 // Filter state for pathogenicity and effect type
 // Default: Only show Pathogenic and Likely Pathogenic for clinical focus
@@ -244,26 +228,6 @@ const filterState = reactive({
   } as Record<EffectType, boolean>,
   coloringMode: 'acmg' as ColoringMode,
 });
-
-// Constants (matching ProteinDomainLollipopPlot proportions)
-const WIDTH = 800;
-const HEIGHT = 140;
-const MARGIN = { top: 15, right: 20, bottom: 28, left: 40 };
-
-// Exon/intron styling
-const CODING_HEIGHT = 12;
-const UTR_HEIGHT = 7;
-const CODING_COLOR = '#2563eb';
-const UTR_COLOR = '#93c5fd';
-const INTRON_COLOR = '#9ca3af';
-const EXON_STROKE = '#1e40af';
-
-// Variant styling (matching lollipop)
-const STEM_BASE_HEIGHT = 18;
-const MARKER_RADIUS = 5;
-const MARKER_STROKE_WIDTH = 1;
-
-type AggregatedGenomicVariant = AggregatedGeneStructureVariant<GenomicVariant>;
 
 /**
  * Format coordinate for display
@@ -467,74 +431,6 @@ function selectAllEffectTypes(): void {
 }
 
 /**
- * Reset zoom to full gene view
- */
-function resetZoom(): void {
-  zoomDomain.value = null;
-  render();
-}
-
-/**
- * Setup brush for zoom selection
- * Brush is added BEFORE variant markers so markers receive click events (higher z-order)
- */
-function setupBrush(innerWidth: number, innerHeight: number): void {
-  if (!mainGroup) return;
-
-  brush = d3
-    .brushX()
-    .extent([
-      [0, 0],
-      [innerWidth, innerHeight],
-    ])
-    .on('end', (event: d3.D3BrushEvent<unknown>) => {
-      if (!event.selection || !xScale) return;
-
-      const [x0, x1] = event.selection as [number, number];
-      const newDomain: [number, number] = [xScale.invert(x0), xScale.invert(x1)];
-
-      // Only zoom if selection is meaningful (at least 1kb)
-      if (newDomain[1] - newDomain[0] > 1000) {
-        zoomDomain.value = newDomain;
-        // Clear the brush selection visually
-        mainGroup?.select('.brush').call(brush!.move as unknown as never, null);
-        render();
-      } else {
-        mainGroup?.select('.brush').call(brush!.move as unknown as never, null);
-      }
-    });
-
-  // Add brush to main group (variants will be added after, on top)
-  mainGroup.append('g').attr('class', 'brush').call(brush);
-
-  // Add double-click to reset zoom
-  svg?.on('dblclick', () => {
-    if (zoomDomain.value) {
-      resetZoom();
-    }
-  });
-}
-
-/**
- * Hide tooltip (respects lock state)
- * Note: Kept for potential future use with hover interactions
- */
-function _hideTooltipIfUnlocked(): void {
-  if (!tooltipDiv || isTooltipLocked) return;
-  tooltipDiv.style('opacity', 0);
-}
-
-/**
- * Force hide tooltip (used when clicking elsewhere)
- */
-function forceHideTooltip(): void {
-  if (!tooltipDiv) return;
-  isTooltipLocked = false;
-  lockedVariant = null;
-  tooltipDiv.style('opacity', 0).style('pointer-events', 'none');
-}
-
-/**
  * Check if variant is visible based on filters (AND logic: both pathogenicity AND effect type)
  */
 function isVariantVisible(variant: GenomicVariant): boolean {
@@ -590,566 +486,44 @@ function getAggregatedColor(agg: AggregatedGenomicVariant): string {
 }
 
 /**
- * Initialize and render the visualization
+ * D3 lifecycle is owned by the gene-structure-plot composable. The component
+ * keeps the reactive filter/coloring state and feeds the latest snapshot into
+ * each render via getInputs(). Layout constants match ProteinDomainLollipopPlot
+ * proportions.
  */
-function render(): void {
-  if (!plotContainer.value) return;
-
-  // Reset tooltip lock on re-render
-  forceHideTooltip();
-
-  const innerWidth = WIDTH - MARGIN.left - MARGIN.right;
-  const innerHeight = HEIGHT - MARGIN.top - MARGIN.bottom;
-
-  // Clear previous render
-  d3.select(plotContainer.value).select('svg').remove();
-  d3.select(plotContainer.value).select('.gene-tooltip').remove();
-
-  // Create responsive SVG with viewBox
-  svg = d3
-    .select(plotContainer.value)
-    .append('svg')
-    .attr('viewBox', `0 0 ${WIDTH} ${HEIGHT}`)
-    .attr('preserveAspectRatio', 'xMinYMin meet')
-    .attr('role', 'group')
-    .attr('aria-label', `Gene structure diagram for ${props.geneSymbol}`)
-    .style('width', '100%')
-    .style('height', 'auto');
-
-  // Click on SVG background to dismiss locked tooltip
-  svg.on('click', (event: MouseEvent) => {
-    // Only dismiss if clicking on SVG background (not on markers)
-    if ((event.target as Element).tagName === 'svg') {
-      forceHideTooltip();
-    }
-  });
-
-  // Create main group with margin transform
-  mainGroup = svg
-    .append('g')
-    .attr('class', 'main-group')
-    .attr('transform', `translate(${MARGIN.left}, ${MARGIN.top})`);
-
-  // Determine domain (use zoom or full gene)
-  const domain: [number, number] = zoomDomain.value ?? [
-    props.geneData.geneStart,
-    props.geneData.geneEnd,
-  ];
-
-  // Create x scale (genomic coordinates)
-  xScale = d3.scaleLinear().domain(domain).range([0, innerWidth]);
-
-  // Y positions
-  const exonY = innerHeight - 30;
-  const variantBaseY = exonY - CODING_HEIGHT / 2 - 5;
-
-  // Create strand arrow marker
-  const defs = svg.append('defs');
-  const marker = defs
-    .append('marker')
-    .attr('id', 'gene-strand-arrow')
-    .attr('markerWidth', 6)
-    .attr('markerHeight', 6)
-    .attr('refX', props.geneData.strand === '+' ? 6 : 0)
-    .attr('refY', 3)
-    .attr('orient', 'auto');
-
-  marker
-    .append('path')
-    .attr('d', props.geneData.strand === '+' ? 'M 0 0 L 6 3 L 0 6 Z' : 'M 6 0 L 0 3 L 6 6 Z')
-    .attr('fill', INTRON_COLOR)
-    .attr('aria-hidden', 'true');
-
-  // Render intron lines (back layer)
-  props.geneData.introns.forEach((intron) => {
-    mainGroup
-      .append('line')
-      .attr('class', 'intron')
-      .attr('x1', xScale(intron.start))
-      .attr('y1', exonY)
-      .attr('x2', xScale(intron.end))
-      .attr('y2', exonY)
-      .attr('stroke', INTRON_COLOR)
-      .attr('stroke-width', 1)
-      .attr('marker-end', 'url(#gene-strand-arrow)')
-      .attr('aria-hidden', 'true');
-  });
-
-  // Render exon rectangles
-  props.geneData.exons.forEach((exon: ClassifiedExon) => {
-    const exonWidth = Math.max(xScale(exon.end) - xScale(exon.start), 2);
-    const height = exon.type === 'coding' ? CODING_HEIGHT : UTR_HEIGHT;
-    const fillColor = exon.type === 'coding' ? CODING_COLOR : UTR_COLOR;
-
-    mainGroup
-      .append('rect')
-      .attr('class', 'exon')
-      .attr('x', xScale(exon.start))
-      .attr('y', exonY - height / 2)
-      .attr('width', exonWidth)
-      .attr('height', height)
-      .attr('fill', fillColor)
-      .attr('stroke', EXON_STROKE)
-      .attr('stroke-width', 0.5)
-      .attr('cursor', 'pointer')
-      .attr('aria-hidden', 'true')
-      .on('mouseover', (event: MouseEvent) => {
-        showExonTooltip(event, exon);
-      })
-      .on('mouseout', hideTooltip);
-  });
-
-  // Setup brush-to-zoom BEFORE variants (so variants are on top and can receive clicks)
-  setupBrush(innerWidth, innerHeight);
-
-  // Create a variant group that will be on top of the brush
-  const variantGroup = mainGroup.append('g').attr('class', 'variant-group');
-
-  // Render variants (if enabled) with adaptive density-aware rendering
-  if (showVariants.value && props.variants.length > 0) {
-    // Filter by pathogenicity and by visible domain
-    const visibleVariants = props.variants.filter((v) => {
-      if (!isVariantVisible(v)) return false;
-      // Filter by zoom domain
-      if (zoomDomain.value) {
-        return v.genomicPosition >= zoomDomain.value[0] && v.genomicPosition <= zoomDomain.value[1];
-      }
-      return true;
-    });
-    const geneLength = domain[1] - domain[0];
-    const renderMode = determineRenderingMode(visibleVariants.length);
-    const opacity = calculateDynamicOpacity(visibleVariants.length);
-
-    if (renderMode === 'aggregated') {
-      // Aggregated mode for dense regions
-      const aggregated = aggregateVariantsByGenomicPosition(visibleVariants, geneLength);
-      const maxCount = Math.max(...aggregated.map((a) => a.count), 1);
-
-      aggregated.forEach((agg) => {
-        const x = xScale(agg.genomicPosition);
-        const radius = calculateAggregatedRadius(agg.count, maxCount);
-        const stemHeight = STEM_BASE_HEIGHT;
-        const markerY = variantBaseY - stemHeight;
-
-        // Stem line
-        variantGroup
-          .append('line')
-          .attr('class', 'variant-stem')
-          .attr('x1', x)
-          .attr('y1', variantBaseY)
-          .attr('x2', x)
-          .attr('y2', markerY)
-          .attr('stroke', '#999')
-          .attr('stroke-width', 1)
-          .attr('opacity', 0.4)
-          .attr('aria-hidden', 'true');
-
-        // Aggregated marker circle (size = count)
-        const color = getAggregatedColor(agg);
-
-        variantGroup
-          .append('circle')
-          .attr('class', 'variant-marker aggregated')
-          .attr('cx', x)
-          .attr('cy', markerY)
-          .attr('r', radius)
-          .attr('fill', color)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', MARKER_STROKE_WIDTH)
-          .attr('opacity', opacity)
-          .attr('cursor', 'pointer')
-          .attr('aria-hidden', 'true')
-          .on('mouseover', (event: MouseEvent) => {
-            showAggregatedTooltip(event, agg);
-          })
-          .on('mouseout', hideTooltip);
-      });
-    } else {
-      // Individual mode for sparse regions
-      // Group by genomic position to handle stacking
-      const variantGroups = d3.group(
-        visibleVariants,
-        (v) => Math.round(v.genomicPosition / 100) * 100
-      );
-
-      // Render stems and markers
-      variantGroups.forEach((group) => {
-        group.forEach((variant, index) => {
-          const x = xScale(variant.genomicPosition);
-          const stemHeight = STEM_BASE_HEIGHT + Math.min(index, 8) * 10;
-          const markerY = variantBaseY - stemHeight;
-
-          // Stem line
-          variantGroup
-            .append('line')
-            .attr('class', 'variant-stem')
-            .attr('x1', x)
-            .attr('y1', variantBaseY)
-            .attr('x2', x)
-            .attr('y2', markerY)
-            .attr('stroke', '#999')
-            .attr('stroke-width', 1)
-            .attr('opacity', 0.6)
-            .attr('aria-hidden', 'true');
-
-          // Marker circle
-          const color = getVariantColor(variant);
-
-          variantGroup
-            .append('circle')
-            .attr('class', 'variant-marker')
-            .attr('role', 'button')
-            .attr('tabindex', '0')
-            .attr('aria-label', getVariantMarkerLabel(variant))
-            .attr('cx', x)
-            .attr('cy', markerY)
-            .attr('r', MARKER_RADIUS)
-            .attr('fill', color)
-            .attr('stroke', '#fff')
-            .attr('stroke-width', MARKER_STROKE_WIDTH)
-            .attr('opacity', opacity)
-            .attr('cursor', 'pointer')
-            .on('mouseover', (event: MouseEvent) => {
-              if (!isTooltipLocked) {
-                showVariantTooltip(event, variant);
-              }
-            })
-            .on('mouseout', hideTooltip)
-            .on('click', (event: MouseEvent) => {
-              event.stopPropagation(); // Prevent SVG click handler
-              activateVariantMarker(event, variant);
-            })
-            .on('keydown', (event: KeyboardEvent) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              event.stopPropagation();
-              activateVariantMarker(event, variant);
-            });
-        });
-      });
-    }
-  }
-
-  // Render X axis
-  const xAxis = d3
-    .axisBottom(xScale)
-    .ticks(6)
-    .tickFormat((d) => formatGenomicCoordinate(d as number));
-
-  const axisGroup = mainGroup
-    .append('g')
-    .attr('class', 'x-axis')
-    .attr('transform', `translate(0, ${innerHeight})`)
-    .call(xAxis);
-
-  axisGroup.selectAll('line, path').attr('aria-hidden', 'true');
-
-  axisGroup
-    .append('text')
-    .attr('x', innerWidth / 2)
-    .attr('y', 30)
-    .attr('fill', '#666')
-    .attr('text-anchor', 'middle')
-    .style('font-size', '11px')
-    .text(`Genomic Position (chr${props.geneData.chromosome})`);
-
-  // Style axis
-  mainGroup.selectAll('.x-axis text').style('font-size', '9px');
-
-  // Create tooltip
-  tooltipDiv = d3
-    .select(plotContainer.value)
-    .append('div')
-    .attr('class', 'gene-tooltip')
-    .style('position', 'absolute')
-    .style('padding', '8px 12px')
-    .style('background', 'rgba(0, 0, 0, 0.85)')
-    .style('color', '#fff')
-    .style('border-radius', '4px')
-    .style('font-size', '12px')
-    .style('pointer-events', 'none')
-    .style('opacity', 0)
-    .style('z-index', '1000')
-    .style('max-width', '280px')
-    .style('line-height', '1.4');
-
-  isInitialized.value = true;
-}
-
-function getVariantMarkerLabel(variant: GenomicVariant): string {
-  return `${variant.proteinHGVS}, ${variant.classification} variant`;
-}
-
-type TooltipTriggerEvent = MouseEvent | KeyboardEvent;
-
-function activateVariantMarker(event: TooltipTriggerEvent, variant: GenomicVariant): void {
-  showVariantTooltip(event, variant, true);
-  emit('variant-click', variant);
-}
-
-/**
- * Show exon tooltip
- */
-function showExonTooltip(event: MouseEvent, exon: ClassifiedExon): void {
-  if (!tooltipDiv || !plotContainer.value) return;
-
-  const typeLabel =
-    exon.type === 'coding' ? 'Coding exon' : exon.type === '5_utr' ? "5' UTR" : "3' UTR";
-  const exonSize = exon.end - exon.start;
-
-  const html = `
-    <div style="font-weight: bold; margin-bottom: 4px;">Exon ${exon.exonNumber}</div>
-    <div style="color: #ccc; margin-bottom: 4px;">${typeLabel}</div>
-    <div style="color: #aaa; font-size: 11px;">
-      Size: ${formatGenomicCoordinate(exonSize)}
-    </div>
-    <div style="color: #aaa; font-size: 11px;">
-      ${exon.start.toLocaleString()} - ${exon.end.toLocaleString()}
-    </div>
-  `;
-
-  showTooltipAt(event, html);
-}
-
-/**
- * Show variant tooltip (with optional click-to-pin)
- */
-function showVariantTooltip(
-  event: TooltipTriggerEvent,
-  variant: GenomicVariant,
-  locked = false
-): void {
-  if (!tooltipDiv || !plotContainer.value) return;
-
-  // If clicking to lock, check if already locked on this variant
-  if (locked && isTooltipLocked && lockedVariant === variant) {
-    forceHideTooltip();
-    return;
-  }
-
-  if (locked) {
-    isTooltipLocked = true;
-    lockedVariant = variant;
-  }
-
-  const colorStyle = `color: ${PATHOGENICITY_COLORS[variant.classification as keyof typeof PATHOGENICITY_COLORS]};`;
-  const starsDisplay = '★'.repeat(variant.goldStars) + '☆'.repeat(4 - variant.goldStars);
-
-  // ClinVar link (only shown when locked)
-  const clinvarLink =
-    locked && variant.clinvarId
-      ? `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
-         <a href="https://www.ncbi.nlm.nih.gov/clinvar/variation/${variant.clinvarId}/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="color: #6ea8fe; text-decoration: none;">
-           View in ClinVar →
-         </a>
-       </div>`
-      : '';
-
-  // Dismiss hint
-  const dismissHint = locked
-    ? '<div style="margin-top: 6px; font-size: 10px; color: #888;">Click elsewhere to dismiss</div>'
-    : '<div style="margin-top: 6px; font-size: 10px; color: #888;">Click to pin</div>';
-
-  const html = `
-    <div style="font-weight: bold; margin-bottom: 4px;">${variant.proteinHGVS}</div>
-    <div style="color: #ccc;">${variant.codingHGVS}</div>
-    <div style="${colorStyle} margin-top: 4px;">${variant.classification}</div>
-    <div style="margin-top: 4px;">Review: ${starsDisplay}</div>
-    <div style="color: #aaa; font-size: 11px;">${variant.reviewStatus}</div>
-    <div style="margin-top: 4px; color: #aaa; font-size: 11px;">
-      Genomic pos: ${variant.genomicPosition.toLocaleString()}
-    </div>
-    ${clinvarLink}
-    ${dismissHint}
-  `;
-
-  showTooltipAt(event, html, locked);
-}
-
-/**
- * Show tooltip for aggregated variants (dense region)
- */
-function showAggregatedTooltip(event: MouseEvent, agg: AggregatedGenomicVariant): void {
-  if (!tooltipDiv || !plotContainer.value) return;
-
-  // Build classification breakdown
-  const classificationLines = Object.entries(agg.classifications)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5) // Show top 5 classifications
-    .map(([cls, count]) => {
-      const color = PATHOGENICITY_COLORS[cls as keyof typeof PATHOGENICITY_COLORS] || '#888';
-      return `<div style="color: ${color}; font-size: 11px;">${cls}: ${count}</div>`;
-    })
-    .join('');
-
-  const html = `
-    <div style="font-weight: bold; margin-bottom: 4px;">${agg.count} variants at this position</div>
-    <div style="color: #aaa; font-size: 11px; margin-bottom: 4px;">
-      Genomic pos: ${agg.genomicPosition.toLocaleString()}
-    </div>
-    <div style="margin-top: 4px; border-top: 1px solid #444; padding-top: 4px;">
-      ${classificationLines}
-    </div>
-    <div style="margin-top: 4px; color: #888; font-size: 10px;">
-      (Aggregated view - zoom to see individual variants)
-    </div>
-  `;
-
-  showTooltipAt(event, html);
-}
-
-/**
- * Position tooltip with edge detection
- */
-function showTooltipAt(event: TooltipTriggerEvent, html: string, locked = false): void {
-  if (!tooltipDiv || !plotContainer.value) return;
-
-  tooltipDiv
-    .html(html)
-    .style('opacity', 1)
-    .style('pointer-events', locked ? 'auto' : 'none');
-
-  const tooltipNode = tooltipDiv.node();
-  if (!tooltipNode) return;
-
-  const tooltipRect = tooltipNode.getBoundingClientRect();
-  const containerRect = plotContainer.value.getBoundingClientRect();
-  const point = getTooltipClientPoint(event);
-
-  let left = point.clientX - containerRect.left + 15;
-  let top = point.clientY - containerRect.top - 10;
-
-  if (left + tooltipRect.width > containerRect.width) {
-    left = point.clientX - containerRect.left - tooltipRect.width - 15;
-  }
-  if (top + tooltipRect.height > containerRect.height) {
-    top = point.clientY - containerRect.top - tooltipRect.height - 10;
-  }
-
-  left = Math.max(0, left);
-  top = Math.max(0, top);
-
-  tooltipDiv.style('left', `${left}px`).style('top', `${top}px`);
-}
-
-function getTooltipClientPoint(event: TooltipTriggerEvent): { clientX: number; clientY: number } {
-  if (event instanceof MouseEvent) {
-    return { clientX: event.clientX, clientY: event.clientY };
-  }
-
-  const target = event.target instanceof Element ? event.target : null;
-  const rect = target?.getBoundingClientRect();
-  if (rect) {
-    return {
-      clientX: rect.left + rect.width / 2,
-      clientY: rect.top + rect.height / 2,
-    };
-  }
-
-  const containerRect = plotContainer.value?.getBoundingClientRect();
+function getInputs(): GeneStructurePlotInputs {
   return {
-    clientX: containerRect ? containerRect.left : 0,
-    clientY: containerRect ? containerRect.top : 0,
+    geneData: props.geneData,
+    variants: props.variants,
+    geneSymbol: props.geneSymbol,
+    showVariants: showVariants.value,
+    isVariantVisible,
+    getVariantColor,
+    getAggregatedColor,
+    onVariantClick: (variant) => emit('variant-click', variant),
   };
 }
 
-/**
- * Hide tooltip (respects lock state)
- */
-function hideTooltip(): void {
-  if (!tooltipDiv || isTooltipLocked) return;
-  tooltipDiv.style('opacity', 0);
-}
-
-/**
- * Export as SVG
- */
-function downloadSVG(): void {
-  if (!svg) return;
-
-  const svgNode = svg.node();
-  if (!svgNode) return;
-
-  const clonedSvg = svgNode.cloneNode(true) as SVGSVGElement;
-  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(clonedSvg);
-  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${props.geneSymbol}_gene_structure.svg`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * Export as PNG
- */
-async function downloadPNG(): Promise<void> {
-  if (!svg) return;
-
-  const svgNode = svg.node();
-  if (!svgNode) return;
-
-  const scale = 2;
-  const clonedSvg = svgNode.cloneNode(true) as SVGSVGElement;
-  clonedSvg.setAttribute('width', String(WIDTH));
-  clonedSvg.setAttribute('height', String(HEIGHT));
-  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(clonedSvg);
-  const base64 = btoa(unescape(encodeURIComponent(svgString)));
-  const dataUrl = `data:image/svg+xml;base64,${base64}`;
-
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = WIDTH * scale;
-    canvas.height = HEIGHT * scale;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(scale, scale);
-    ctx.drawImage(img, 0, 0, WIDTH, HEIGHT);
-
-    const pngUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = pngUrl;
-    link.download = `${props.geneSymbol}_gene_structure.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  img.src = dataUrl;
-}
-
-/**
- * Cleanup
- */
-function cleanup(): void {
-  if (svg) {
-    svg.selectAll('*').remove();
-    svg.remove();
-    svg = null;
-  }
-  if (tooltipDiv) {
-    tooltipDiv.remove();
-    tooltipDiv = null;
-  }
-  isInitialized.value = false;
-}
+const { zoomDomain, render, resetZoom, downloadSVG, downloadPNG, cleanup } = useGeneStructurePlot({
+  container: plotContainer,
+  layout: {
+    width: 800,
+    height: 140,
+    margin: { top: 15, right: 20, bottom: 28, left: 40 },
+    // Exon/intron styling
+    codingHeight: 12,
+    utrHeight: 7,
+    codingColor: '#2563eb',
+    utrColor: '#93c5fd',
+    intronColor: '#9ca3af',
+    exonStroke: '#1e40af',
+    // Variant styling (matching lollipop)
+    stemBaseHeight: 18,
+    markerRadius: 5,
+    markerStrokeWidth: 1,
+  },
+  getInputs,
+});
 
 // Lifecycle
 onMounted(() => {

@@ -155,50 +155,22 @@ import { getEnsemblStructure } from '@/api/external';
 import ProteinDomainLollipopPlot from './ProteinDomainLollipopPlot.vue';
 import GeneStructurePlotWithVariants from './GeneStructurePlotWithVariants.vue';
 import ProteinStructure3D from './ProteinStructure3D.vue';
-import type { ProteinPlotData, ProcessedVariant, ProteinDomain } from '@/types/protein';
-import { normalizeClassification, parseProteinPosition } from '@/types/protein';
+import type { ProteinPlotData, ProcessedVariant } from '@/types/protein';
 import type { ClinVarVariant } from '@/types/external';
 import type { EnsemblGeneStructure, GeneStructureRenderData } from '@/types/ensembl';
 import { processEnsemblResponse, formatGenomicCoordinate } from '@/types/ensembl';
 import type { AlphaFoldMetadata } from '@/types/alphafold';
+import {
+  buildProteinPlotData,
+  buildGenomicVariants,
+  type GenomicVariant,
+  type UniProtData,
+} from './genomicVisualizationData';
 
-/**
- * UniProt domain feature from the API response
- */
-interface UniProtDomainFeature {
-  type: string;
-  description?: string;
-  begin: number | string;
-  end: number | string;
-}
-
-/**
- * UniProt API response structure
- */
-interface UniProtData {
-  source: string;
-  gene_symbol: string;
-  accession: string;
-  protein_name: string;
-  protein_length: number | string;
-  domains: UniProtDomainFeature[];
-}
-
-/**
- * Genomic variant for gene structure plot
- */
-export interface GenomicVariant {
-  genomicPosition: number;
-  proteinPosition: number;
-  proteinHGVS: string;
-  codingHGVS: string;
-  classification: string;
-  goldStars: number;
-  reviewStatus: string;
-  clinvarId: string;
-  variantId: string;
-  majorConsequence: string;
-}
+// Re-export GenomicVariant so existing consumers keep importing it from this
+// component file (import-preserving). The implementation lives in the
+// genomicVisualizationData module alongside the builders that produce it.
+export type { GenomicVariant } from './genomicVisualizationData';
 
 interface Props {
   geneSymbol: string;
@@ -310,195 +282,22 @@ function formatCount(count: number): string {
 /**
  * Process variants for protein lollipop plot
  */
-const proteinPlotData = computed<ProteinPlotData | null>(() => {
-  const hasUniprot = props.uniprotData && !props.uniprotError;
-  const hasClinvar = props.clinvarVariants && !props.clinvarError;
-
-  if (!hasUniprot && !hasClinvar) return null;
-
-  // Process domains from UniProt response
-  const domains: ProteinDomain[] = hasUniprot
-    ? (props.uniprotData?.domains || []).map((d) => ({
-        type: d.type,
-        description: d.description || '',
-        begin: Number(d.begin),
-        end: Number(d.end),
-      }))
-    : [];
-
-  // Process variants from ClinVar response
-  const variants: ProcessedVariant[] = hasClinvar
-    ? (props.clinvarVariants || [])
-        .map((v) => {
-          const parsed = parseProteinPosition(v.hgvsp, v.hgvsc);
-          if (!parsed) return null;
-          return {
-            proteinPosition: parsed.position,
-            proteinHGVS: typeof v.hgvsp === 'string' ? v.hgvsp : 'N/A',
-            codingHGVS: typeof v.hgvsc === 'string' ? v.hgvsc : 'N/A',
-            classification: normalizeClassification(v.clinical_significance),
-            goldStars: v.gold_stars,
-            reviewStatus: v.review_status,
-            clinvarId: String(v.clinvar_variation_id),
-            variantId: v.variant_id,
-            majorConsequence: v.major_consequence,
-            isSpliceVariant: parsed.isSplice,
-            inGnomad: v.in_gnomad,
-          } as ProcessedVariant;
-        })
-        .filter((v): v is ProcessedVariant => v !== null)
-    : [];
-
-  // Calculate protein length
-  const uniprotLength = hasUniprot ? Number(props.uniprotData?.protein_length) : 0;
-  const maxVariantPosition =
-    variants.length > 0 ? Math.max(...variants.map((v) => v.proteinPosition)) : 0;
-  const proteinLength = Math.max(uniprotLength, maxVariantPosition);
-  const proteinName = hasUniprot ? props.uniprotData?.protein_name || '' : '';
-  const accession = hasUniprot ? props.uniprotData?.accession || '' : '';
-
-  return {
-    proteinLength,
-    proteinName,
-    accession,
-    domains,
-    variants,
-  };
-});
+const proteinPlotData = computed<ProteinPlotData | null>(() =>
+  buildProteinPlotData({
+    uniprotData: props.uniprotData,
+    uniprotError: props.uniprotError,
+    clinvarVariants: props.clinvarVariants,
+    clinvarError: props.clinvarError,
+  })
+);
 
 /**
- * Build exon coordinate map from Ensembl data
- * Maps cumulative exon positions to genomic coordinates (accounting for strand)
- *
- * Since we don't have CDS boundaries, we map across all exons
- * This ensures variants only appear on exons, not introns
+ * Process variants with genomic positions for gene structure plot.
+ * Uses exon-aware mapping (variants only appear on exons, NOT introns).
  */
-interface ExonMapEntry {
-  genomicStart: number;
-  genomicEnd: number;
-  cumulativeStart: number; // Cumulative base position start
-  cumulativeEnd: number; // Cumulative base position end
-}
-
-function buildExonMap(ensemblData: EnsemblGeneStructure): ExonMapEntry[] {
-  const transcript = ensemblData.canonical_transcript;
-  if (!transcript?.exons || transcript.exons.length === 0) return [];
-
-  const isReverse = ensemblData.strand === -1;
-
-  // Sort exons by genomic order (5' to 3' in gene direction)
-  const sortedExons = [...transcript.exons].sort((a, b) =>
-    isReverse ? b.start - a.start : a.start - b.start
-  );
-
-  const exonMap: ExonMapEntry[] = [];
-  let cumulativePosition = 0;
-
-  for (const exon of sortedExons) {
-    const exonLength = exon.end - exon.start;
-
-    exonMap.push({
-      genomicStart: isReverse ? exon.end : exon.start,
-      genomicEnd: isReverse ? exon.start : exon.end,
-      cumulativeStart: cumulativePosition,
-      cumulativeEnd: cumulativePosition + exonLength,
-    });
-
-    cumulativePosition += exonLength;
-  }
-
-  return exonMap;
-}
-
-/**
- * Map protein position to genomic coordinate using exon-aware mapping
- * Only maps to exonic regions (NOT introns)
- */
-function proteinToGenomic(
-  proteinPosition: number,
-  exonMap: ExonMapEntry[],
-  isReverse: boolean,
-  totalExonLength: number
-): number | null {
-  if (exonMap.length === 0 || totalExonLength === 0) return null;
-
-  // Estimate protein length from total exon length (roughly 3 bp per amino acid)
-  const estimatedProteinLength = Math.floor(totalExonLength / 3);
-
-  // Convert protein position to cumulative exon position
-  // Use fraction-based mapping: position in exons proportional to protein position
-  const fraction = Math.min(proteinPosition / Math.max(estimatedProteinLength, 1), 1);
-  const cumulativePosition = Math.floor(fraction * totalExonLength);
-
-  // Find which exon contains this cumulative position
-  for (const exon of exonMap) {
-    if (cumulativePosition >= exon.cumulativeStart && cumulativePosition < exon.cumulativeEnd) {
-      const offsetInExon = cumulativePosition - exon.cumulativeStart;
-      if (isReverse) {
-        // Reverse strand: genomic coordinates decrease
-        return exon.genomicStart - offsetInExon;
-      } else {
-        // Forward strand: genomic coordinates increase
-        return exon.genomicStart + offsetInExon;
-      }
-    }
-  }
-
-  // Position beyond exons - return last exon position
-  const lastExon = exonMap[exonMap.length - 1];
-  return isReverse ? lastExon.genomicEnd : lastExon.genomicEnd;
-}
-
-/**
- * Process variants with genomic positions for gene structure plot
- * Uses exon-aware mapping (variants only appear on exons, NOT introns)
- */
-const genomicVariants = computed<GenomicVariant[]>(() => {
-  if (!props.clinvarVariants || !ensemblRawData.value) return [];
-
-  const isReverse = ensemblRawData.value.strand === -1;
-  const exonMap = buildExonMap(ensemblRawData.value);
-
-  if (exonMap.length === 0) {
-    console.warn('[GenomicVisualizationTabs] No exons found for variant mapping');
-    return [];
-  }
-
-  // Calculate total exon length
-  const totalExonLength = exonMap.reduce(
-    (sum, e) => sum + (e.cumulativeEnd - e.cumulativeStart),
-    0
-  );
-
-  return props.clinvarVariants
-    .map((v) => {
-      const parsed = parseProteinPosition(v.hgvsp, v.hgvsc);
-      if (!parsed) return null;
-
-      // Map protein position to genomic coordinate using exon-aware mapping
-      const genomicPosition = proteinToGenomic(
-        parsed.position,
-        exonMap,
-        isReverse,
-        totalExonLength
-      );
-      if (genomicPosition === null) return null;
-
-      return {
-        genomicPosition,
-        proteinPosition: parsed.position,
-        proteinHGVS: typeof v.hgvsp === 'string' ? v.hgvsp : 'N/A',
-        codingHGVS: typeof v.hgvsc === 'string' ? v.hgvsc : 'N/A',
-        classification: normalizeClassification(v.clinical_significance),
-        goldStars: v.gold_stars,
-        reviewStatus: v.review_status,
-        clinvarId: String(v.clinvar_variation_id),
-        variantId: v.variant_id,
-        majorConsequence: v.major_consequence,
-      } as GenomicVariant;
-    })
-    .filter((v): v is GenomicVariant => v !== null);
-});
+const genomicVariants = computed<GenomicVariant[]>(() =>
+  buildGenomicVariants(props.clinvarVariants, ensemblRawData.value)
+);
 
 /**
  * Fetch Ensembl gene structure data (lazy loaded on tab activation)

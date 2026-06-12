@@ -172,7 +172,19 @@ import type {
   EffectType,
   ColoringMode,
 } from '@/types';
-import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS, normalizeEffectType } from '@/types/protein';
+import { PATHOGENICITY_COLORS, EFFECT_TYPE_COLORS } from '@/types/protein';
+import {
+  EFFECT_TYPE_ORDER,
+  EFFECT_TYPE_LABELS,
+  formatDomainType,
+  countByClassification,
+  countByEffectType,
+  selectOnlyPathogenicity as selectOnlyPathogenicityFor,
+  selectAllPathogenicity as selectAllPathogenicityFor,
+  selectOnlyEffectType as selectOnlyEffectTypeFor,
+  selectAllEffectTypes as selectAllEffectTypesFor,
+  type PathogenicityFilterKey,
+} from './proteinLollipopControls';
 
 /**
  * Component props
@@ -231,81 +243,10 @@ const { isInitialized, renderPlot, exportSVG, exportPNG } = useD3Lollipop({
 });
 
 /**
- * Count variants by pathogenicity classification
- */
-function countByClassification(variants: ProcessedVariant[]): Record<string, number> {
-  const counts: Record<string, number> = {};
-  for (const variant of variants) {
-    const key = variant.classification;
-    counts[key] = (counts[key] || 0) + 1;
-  }
-  return counts;
-}
-
-/**
- * Count variants by effect type
- */
-function countByEffectType(variants: ProcessedVariant[]): Record<EffectType, number> {
-  const counts: Record<EffectType, number> = {
-    missense: 0,
-    frameshift: 0,
-    stop_gained: 0,
-    splice: 0,
-    inframe_indel: 0,
-    synonymous: 0,
-    other: 0,
-  };
-  for (const variant of variants) {
-    const effectType = normalizeEffectType(variant.majorConsequence);
-    counts[effectType]++;
-  }
-  return counts;
-}
-
-/**
  * Set the coloring mode (acmg or effect)
  */
 function setColoringMode(mode: ColoringMode): void {
   filterState.coloringMode = mode;
-}
-
-/**
- * Format domain type code to human-readable label
- * e.g., 'DOMAIN' -> 'Domain', 'ZN_FING' -> 'Zinc finger', 'DNA_BIND' -> 'DNA binding'
- */
-function formatDomainType(type: string): string {
-  const typeMap: Record<string, string> = {
-    DOMAIN: 'Domain',
-    REGION: 'Region',
-    MOTIF: 'Motif',
-    ZN_FING: 'Zinc finger',
-    DNA_BIND: 'DNA binding',
-    REPEAT: 'Repeat',
-    COILED: 'Coiled coil',
-    TRANSMEM: 'Transmembrane',
-    SIGNAL: 'Signal peptide',
-    PROPEP: 'Propeptide',
-    TRANSIT: 'Transit peptide',
-    CHAIN: 'Chain',
-    ACT_SITE: 'Active site',
-    BINDING: 'Binding site',
-    SITE: 'Site',
-    DISULFID: 'Disulfide bond',
-    CARBOHYD: 'Glycosylation',
-    LIPID: 'Lipidation',
-    CROSSLNK: 'Cross-link',
-    VAR_SEQ: 'Variant sequence',
-  };
-
-  if (typeMap[type]) {
-    return typeMap[type];
-  }
-
-  // Fall back to title case with underscore replacement
-  return type
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -353,33 +294,11 @@ const legendItems = computed(() => {
 });
 
 /**
- * Human-readable labels for effect types
- */
-const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
-  missense: 'Missense',
-  frameshift: 'Frameshift',
-  stop_gained: 'Stop gained',
-  splice: 'Splice',
-  inframe_indel: 'In-frame indel',
-  synonymous: 'Synonymous',
-  other: 'Other',
-};
-
-/**
  * Computed legend items for effect type filter buttons
  */
 const effectLegendItems = computed(() => {
   const counts = countByEffectType(props.data.variants);
-  const effectTypes: EffectType[] = [
-    'missense',
-    'frameshift',
-    'stop_gained',
-    'splice',
-    'inframe_indel',
-    'synonymous',
-    'other',
-  ];
-  return effectTypes.map((effectType) => ({
+  return EFFECT_TYPE_ORDER.map((effectType) => ({
     key: effectType,
     label: EFFECT_TYPE_LABELS[effectType],
     color: EFFECT_TYPE_COLORS[effectType],
@@ -413,9 +332,7 @@ const domainLegendItems = computed(() => {
 /**
  * Toggle filter visibility for a pathogenicity class
  */
-function toggleFilter(
-  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
-): void {
+function toggleFilter(key: PathogenicityFilterKey): void {
   filterState[key] = !filterState[key];
 }
 
@@ -429,61 +346,29 @@ function toggleEffectFilter(effectType: EffectType): void {
 /**
  * Select only one pathogenicity class (deselect all others)
  */
-function selectOnlyPathogenicity(
-  key: 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign'
-): void {
-  filterState.pathogenic = key === 'pathogenic';
-  filterState.likelyPathogenic = key === 'likelyPathogenic';
-  filterState.vus = key === 'vus';
-  filterState.likelyBenign = key === 'likelyBenign';
-  filterState.benign = key === 'benign';
+function selectOnlyPathogenicity(key: PathogenicityFilterKey): void {
+  selectOnlyPathogenicityFor(filterState, key);
 }
 
 /**
  * Select all pathogenicity classes
  */
 function selectAllPathogenicity(): void {
-  filterState.pathogenic = true;
-  filterState.likelyPathogenic = true;
-  filterState.vus = true;
-  filterState.likelyBenign = true;
-  filterState.benign = true;
+  selectAllPathogenicityFor(filterState);
 }
 
 /**
  * Select only one effect type (deselect all others)
  */
 function selectOnlyEffectType(effectType: EffectType): void {
-  const effectTypes: EffectType[] = [
-    'missense',
-    'frameshift',
-    'stop_gained',
-    'splice',
-    'inframe_indel',
-    'synonymous',
-    'other',
-  ];
-  for (const et of effectTypes) {
-    filterState.effectFilters[et] = et === effectType;
-  }
+  selectOnlyEffectTypeFor(filterState, effectType);
 }
 
 /**
  * Select all effect types
  */
 function selectAllEffectTypes(): void {
-  const effectTypes: EffectType[] = [
-    'missense',
-    'frameshift',
-    'stop_gained',
-    'splice',
-    'inframe_indel',
-    'synonymous',
-    'other',
-  ];
-  for (const et of effectTypes) {
-    filterState.effectFilters[et] = true;
-  }
+  selectAllEffectTypesFor(filterState);
 }
 
 /**
