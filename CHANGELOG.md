@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.2] — 2026-06-13
+
+Patch release for Sprint 2 of the continuous oversized-file refactor (#346) — all nine workpackages (#394–#402, WP1–WP9), each landed as a behavior-preserving PR (#404–#412) and merged after integration validation (type-check, strict type-check, full Vitest suite, ESLint/MSW, SEO, R API unit tests, and a Playwright E2E parity check against `master`). Every reduction moves the file-size ratchet baseline downward only.
+
+### Changed
+
+- **WP1 — D3/visualization (#406).** `GeneStructurePlotWithVariants.vue` 1306→680 via a new `components/gene/gene-structure-plot/` module directory (context/render/tooltip/export); `GenomicVisualizationTabs`, `ProteinDomainLollipopPlot`, `VariantPanel`, and `useCytoscape` also reduced (four under the 600-line ceiling), with new unit tests for the extracted pure transforms.
+- **WP2 — tables (#409).** `TablesPhenotypes.vue` 1153→873 via a new `PhenotypeFilterToolbar.vue`; the duplicated `normalizeSelectOptions` copies migrate onto the shared `utils/selectOptions.ts`; `TablesLogs` cancel-path hardening.
+- **WP3 — analyses (#410).** Six pure-logic modules extracted (`usePubtatorParser`, publications/gene-cluster/curation-comparison/upset/phenotype-cluster helpers), each with specs; `NetworkVisualization` left untouched to preserve the GeneNetworks preset-layout invariant.
+- **WP4 — NDDScore + LLM (#412).** `ManageLLM`, `ManageNDDScore`, `LlmSummaryCard`, and `NddScoreGeneDetail` drop under 600 via composables (`useLlm*`, `useNddScore*`) and a new `LlmOverviewPanel.vue`; the "ML prediction, separate from curated evidence" copy invariants are preserved.
+- **WP5 — curation views (#411).** `CreateEntity.vue` 637→540 via `useEntityCreateOptions`; `ManageReReview.vue` 1579→1514 via static `reReviewTableConfig` extraction (no workflow/soft-LIMIT/batch logic touched). Deeper Options→composition decomposition of the curation views is deferred to a dedicated follow-up.
+- **WP6 — admin views (#408).** `ManageBackups.vue` 1115→579 and `ManagePubtator.vue` under the ceiling via job-polling/upload/confirm-modal composables reusing `useAsyncJob` and the `LogDeleteModal` confirm pattern.
+- **WP7 — API endpoints (#405).** `publication_endpoints.R` 1234→1141 (shared `collect_with_filter_pushdown`/`build_cursor_meta`/`build_cursor_links` helpers) and `user_endpoints.R` 1128→1117 (DRY'd password-complexity rule), with paired `test-unit-*-endpoint-helpers.R`.
+- **WP8 — API services/functions (#407).** `response-helpers.R` 860→535 and `logging-repository.R` 744→237, splitting cohesive query-builder/field-selection layers into sibling files registered in `load_modules.R`.
+
+### Documented
+
+- **WP9 — DB prep scripts (#404).** `db/11_Rcommands_..._comparisons.R` 636→474 via a sourced helper file; `db/C_Rcommands_set-table-connections.R` recorded in `AGENTS.md` as an intentional size exception (its `ndd_entity_view` body must stay mirrored with migration 026).
+
 ## [0.21.1] — 2026-06-11
 
 Patch release for Sprint 1 of the continuous oversized-file refactor (#346, PR #403).
