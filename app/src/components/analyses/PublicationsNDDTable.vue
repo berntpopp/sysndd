@@ -229,6 +229,14 @@ import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
+import {
+  getPubMedUrl,
+  formatDate,
+  formatAuthors,
+  parseKeywords,
+  mergePublicationFields,
+} from '@/components/analyses/publicationsTableFormatters';
 
 // Typed API client (W5)
 import { listPublications, listPublicationsXlsx } from '@/api/publication';
@@ -740,41 +748,10 @@ export default {
     /**
      * mergeFields
      * Filters and processes inbound fspec from the backend.
-     * Only includes columns that should be visible in the main table view.
-     * Uses API sortable/filterable values which are already correct.
-     * Details-only fields (Abstract, Lastname, Firstname, Keywords) are excluded.
+     * Delegates to the pure mergePublicationFields formatter.
      */
     mergeFields(inboundFields) {
-      // Fields we want to show as columns (in order)
-      const visibleColumnKeys = ['publication_id', 'Title', 'Publication_date', 'Journal'];
-      // Short labels for cleaner display
-      const shortLabels = {
-        publication_id: 'PMID',
-        Publication_date: 'Date',
-      };
-
-      // Build merged array in the correct order
-      const merged = visibleColumnKeys
-        .map((key) => {
-          const apiField = inboundFields.find((f) => f.key === key);
-          if (!apiField) return null;
-          return {
-            ...apiField,
-            label: shortLabels[key] || apiField.label,
-            class: 'text-start',
-          };
-        })
-        .filter(Boolean); // Remove nulls
-
-      // Always add details column at the end
-      merged.push({
-        key: 'details',
-        label: 'Details',
-        class: 'text-center',
-        sortable: false,
-      });
-
-      return merged;
+      return mergePublicationFields(inboundFields);
     },
 
     /**
@@ -787,78 +764,41 @@ export default {
 
     /**
      * getPubMedUrl
-     * Constructs PubMed URL from publication ID
-     * @param {string} pubId - Publication ID (e.g., "PMID:12345678")
-     * @returns {string} - PubMed URL
+     * Constructs PubMed URL from publication ID (delegates to formatter).
      */
     getPubMedUrl(pubId) {
-      // Extract numeric ID from formats like "PMID:12345678" or just "12345678"
-      const numericId = pubId?.replace(/^PMID:/i, '') || pubId;
-      return `https://pubmed.ncbi.nlm.nih.gov/${numericId}`;
+      return getPubMedUrl(pubId);
     },
 
     /**
      * formatDate
-     * Formats date string for display
-     * @param {string} dateStr - Date string (e.g., "2024-01-15")
-     * @returns {string} - Formatted date
+     * Formats date string for display (delegates to formatter).
      */
     formatDate(dateStr) {
-      if (!dateStr) return '';
-      try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-        });
-      } catch {
-        return dateStr;
-      }
+      return formatDate(dateStr);
     },
 
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    // Normalize select options for BFormSelect (delegates to shared util)
     normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
+      return normalizeSelectOptions(options);
     },
 
     /**
      * formatAuthors
      * Combines last names and first names into a readable author list
-     * @param {string} lastNames - Semicolon-separated last names
-     * @param {string} firstNames - Semicolon-separated first names
-     * @returns {string} - Formatted author list
+     * (delegates to formatter).
      */
     formatAuthors(lastNames, firstNames) {
-      if (!lastNames) return '';
-      const lasts = lastNames.split(';').map((s) => s.trim());
-      const firsts = firstNames ? firstNames.split(';').map((s) => s.trim()) : [];
-      return lasts
-        .map((last, i) => {
-          const first = firsts[i] || '';
-          return first ? `${last} ${first}` : last;
-        })
-        .join(', ');
+      return formatAuthors(lastNames, firstNames);
     },
 
     /**
      * parseKeywords
-     * Splits keyword string into array, handles semicolon-separated values
-     * @param {string} keywords - Semicolon-separated keywords
-     * @returns {Array} - Array of keyword strings
+     * Splits keyword string into a trimmed, non-empty array
+     * (delegates to formatter).
      */
     parseKeywords(keywords) {
-      if (!keywords) return [];
-      return keywords
-        .split(';')
-        .map((k) => k.trim())
-        .filter((k) => k.length > 0);
+      return parseKeywords(keywords);
     },
   },
 };
