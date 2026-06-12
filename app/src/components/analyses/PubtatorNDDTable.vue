@@ -256,8 +256,11 @@ import {
   useText,
   useTableData,
   parsePubtatorText,
+  getSegmentClass,
+  getSegmentTooltip,
 } from '@/composables';
 import type { ParsedSegment } from '@/composables';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
 
 // Typed API client (W5)
 import { listPubtatorTable, listPubtatorTableXlsx } from '@/api/publication';
@@ -697,49 +700,23 @@ export default {
     },
 
     /**
-     * Get CSS class for a parsed segment based on its type
+     * Get CSS class for a parsed segment based on its type.
+     * Delegates to the shared PubTator parser helper.
      */
     getSegmentClass(segment: ParsedSegment): string {
-      switch (segment.type) {
-        case 'gene':
-          return 'pubtator-gene';
-        case 'disease':
-          return 'pubtator-disease';
-        case 'variant':
-          return 'pubtator-variant';
-        case 'species':
-          return 'pubtator-species';
-        case 'chemical':
-          return 'pubtator-chemical';
-        case 'match':
-          return 'pubtator-match';
-        default:
-          return '';
-      }
+      return getSegmentClass(segment);
     },
 
     /**
-     * Get tooltip text for annotated segments
+     * Get tooltip text for annotated segments.
+     * Delegates to the shared PubTator parser helper.
      */
     getSegmentTooltip(segment: ParsedSegment): string {
-      if (segment.type === 'plain' || segment.type === 'match') {
-        return '';
-      }
-      const typeLabel = segment.type.charAt(0).toUpperCase() + segment.type.slice(1);
-      if (segment.entityId) {
-        return `${typeLabel}: ${segment.text} (ID: ${segment.entityId})`;
-      }
-      return `${typeLabel}: ${segment.text}`;
+      return getSegmentTooltip(segment);
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
+      return normalizeSelectOptions(options);
     },
   },
 };

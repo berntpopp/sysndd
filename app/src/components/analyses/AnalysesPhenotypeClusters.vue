@@ -223,6 +223,13 @@ import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
 import { getPhenotypeClustering, getPhenotypeClusterSummary } from '@/api/analysis';
 import { isApiError } from '@/api/client';
+import {
+  sortPhenotypeClusterRows,
+  filterPhenotypeClusterRows,
+  buildPhenotypeClusterExportFilename,
+  phenotypeClusterExportSheetName,
+  PHENOTYPE_CLUSTER_EXPORT_HEADERS,
+} from './phenotypeClusterTable';
 
 export default {
   name: 'AnalysesPhenotypeClusters',
@@ -366,34 +373,8 @@ export default {
       // 2. Apply filtering
       dataArray = this.applyFilters(dataArray);
 
-      // 3. Apply sorting
-      if (this.sortBy) {
-        dataArray = [...dataArray].sort((a, b) => {
-          let aVal = a[this.sortBy];
-          let bVal = b[this.sortBy];
-
-          // Handle null/undefined - push to end
-          if (aVal == null && bVal == null) return 0;
-          if (aVal == null) return 1;
-          if (bVal == null) return -1;
-
-          // Handle numeric comparison (including scientific notation)
-          const aNum = typeof aVal === 'number' ? aVal : parseFloat(aVal);
-          const bNum = typeof bVal === 'number' ? bVal : parseFloat(bVal);
-
-          if (!isNaN(aNum) && !isNaN(bNum)) {
-            const diff = aNum - bNum;
-            return this.sortDesc ? -diff : diff;
-          }
-
-          // String comparison for non-numeric values
-          const aStr = String(aVal).toLowerCase();
-          const bStr = String(bVal).toLowerCase();
-          if (aStr < bStr) return this.sortDesc ? 1 : -1;
-          if (aStr > bStr) return this.sortDesc ? -1 : 1;
-          return 0;
-        });
-      }
+      // 3. Apply sorting (numeric / scientific-notation aware)
+      dataArray = sortPhenotypeClusterRows(dataArray, this.sortBy, this.sortDesc);
 
       // 4. Paginate (client-side)
       const start = (this.currentPage - 1) * this.perPage;
@@ -522,31 +503,8 @@ export default {
      * Searching + Filtering (client-side example)
      * ------------------------------------ */
     applyFilters(items) {
-      const anyFilterValue = (this.filter.any.content || '').toLowerCase();
-
-      // Return items that match the global "any" filter AND column-specific filters
-      return items.filter((row) => {
-        // 1. Global "any" filter
-        if (anyFilterValue) {
-          const rowString = Object.values(row).join(' ').toLowerCase();
-          if (!rowString.includes(anyFilterValue)) {
-            return false;
-          }
-        }
-        // 2. Column-specific filters
-        const filterKeys = Object.keys(this.filter).filter((f) => f !== 'any');
-        let keepRow = true;
-        filterKeys.forEach((fieldKey) => {
-          const colFilterVal = (this.filter[fieldKey].content || '').toLowerCase();
-          if (colFilterVal) {
-            const rowVal = String(row[fieldKey] || '').toLowerCase();
-            if (!rowVal.includes(colFilterVal)) {
-              keepRow = false;
-            }
-          }
-        });
-        return keepRow;
-      });
+      // Delegates to the pure global "any" + per-column filter helper.
+      return filterPhenotypeClusterRows(items, this.filter);
     },
     onFilterChange() {
       // Reset page to 1 to see the updated first page
@@ -636,31 +594,13 @@ export default {
         return;
       }
 
-      // Define column headers based on table type
-      const tableTypeLabels = {
-        quali_inp_var: 'Qualitative Input Variables',
-        quali_sup_var: 'Qualitative Supplementary Variables',
-        quanti_sup_var: 'Quantitative Supplementary Variables',
-      };
-
-      const headers = {
-        variable: 'Variable',
-        'p.value': 'p-value',
-        'v.test': 'v-test',
-        // Additional columns that might be present
-        Mean_in_category: 'Mean in Category',
-        Overall_mean: 'Overall Mean',
-        sd_in_category: 'SD in Category',
-        Overall_sd: 'Overall SD',
-      };
-
       // Generate filename with context
-      const filename = `sysndd_phenotype_cluster_${this.activeCluster}_${this.tableType}`;
+      const filename = buildPhenotypeClusterExportFilename(this.activeCluster, this.tableType);
 
       this.exportToExcel(dataArray, {
         filename,
-        sheetName: tableTypeLabels[this.tableType] || 'Data',
-        headers,
+        sheetName: phenotypeClusterExportSheetName(this.tableType),
+        headers: PHENOTYPE_CLUSTER_EXPORT_HEADERS,
       });
     },
   },

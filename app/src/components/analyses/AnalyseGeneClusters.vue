@@ -380,6 +380,16 @@ import { getClusterColor } from '@/utils/clusterColors';
 import { getFunctionalClustering, getFunctionalClusterSummary } from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import { filterFunctionalClusterRows, sortFunctionalClusterRows } from './functionalClusterTable';
+import {
+  combineClusterData,
+  clusterRowsWithNumber,
+  buildClusterTableFields,
+  findCategoryText as findCategoryTextHelper,
+  findCategoryLink as findCategoryLinkHelper,
+  buildClusterExportFilename,
+  clusterExportSheetName,
+  CLUSTER_EXPORT_HEADERS,
+} from './geneClusterTableData';
 
 export default {
   name: 'AnalyseGeneClusters',
@@ -580,80 +590,10 @@ export default {
 
     /**
      * fieldsComputed: Return fields array based on tableType
-     * with thClass/tdClass for styling
-     * Adds cluster column when showing combined data from multiple clusters
+     * with thClass/tdClass for styling. Delegates to the pure field builder.
      */
     fieldsComputed() {
-      const clusterColumn = {
-        key: 'cluster_num',
-        label: 'Cluster',
-        sortable: true,
-        thClass: 'text-start bg-light',
-        tdClass: 'text-start',
-      };
-
-      if (this.tableType === 'term_enrichment') {
-        const fields = [
-          {
-            key: 'category',
-            label: 'Category',
-            sortable: true,
-            thClass: 'text-start bg-light', // header cell class
-            tdClass: 'text-start', // data cell class
-          },
-          {
-            key: 'number_of_genes',
-            label: '#Genes',
-            sortable: true,
-            thClass: 'text-start bg-light',
-            tdClass: 'text-start',
-          },
-          {
-            key: 'fdr',
-            label: 'FDR',
-            sortable: true,
-            // Sort by numeric value (scientific notation strings like "1.23e-20")
-            sortByFormatted: false,
-            sortCompare: (aRow, bRow, key) => {
-              const a = parseFloat(aRow[key]) || 0;
-              const b = parseFloat(bRow[key]) || 0;
-              return a - b;
-            },
-            thClass: 'text-start bg-light',
-            tdClass: 'text-start',
-          },
-          {
-            key: 'description',
-            label: 'Description',
-            sortable: true,
-            thClass: 'text-start bg-light',
-            tdClass: 'text-start',
-          },
-        ];
-        // Always show cluster column for consistency between table and network
-        fields.unshift(clusterColumn);
-        return fields;
-      }
-      // 'identifiers' case
-      const fields = [
-        {
-          key: 'symbol',
-          label: 'Symbol',
-          sortable: true,
-          thClass: 'text-start bg-light',
-          tdClass: 'text-start',
-        },
-        {
-          key: 'STRING_id',
-          label: 'STRING ID',
-          sortable: true,
-          thClass: 'text-start bg-light',
-          tdClass: 'text-start',
-        },
-      ];
-      // Always show cluster column for consistency between table and network
-      fields.unshift(clusterColumn);
-      return fields;
+      return buildClusterTableFields(this.tableType);
     },
 
     /**
@@ -720,17 +660,17 @@ export default {
   methods: {
     /**
      * Helper method: find category text from valueCategories
+     * (delegates to the pure helper).
      */
     findCategoryText(categoryVal) {
-      const found = this.valueCategories.find((cat) => cat.value === categoryVal);
-      return found ? found.text : categoryVal; // fallback to raw category if not found
+      return findCategoryTextHelper(this.valueCategories, categoryVal);
     },
     /**
      * Helper method: build link from valueCategories
+     * (delegates to the pure helper).
      */
     findCategoryLink(categoryVal, termVal) {
-      const found = this.valueCategories.find((cat) => cat.value === categoryVal);
-      return found ? found.link + termVal : '#';
+      return findCategoryLinkHelper(this.valueCategories, categoryVal, termVal);
     },
 
     /**
@@ -819,20 +759,7 @@ export default {
       const clusterNum = this.activeParentCluster;
 
       // Add cluster_num to each row for consistent display
-      if (match) {
-        this.selectedCluster = {
-          term_enrichment: (match.term_enrichment || []).map((row) => ({
-            ...row,
-            cluster_num: clusterNum,
-          })),
-          identifiers: (match.identifiers || []).map((row) => ({
-            ...row,
-            cluster_num: clusterNum,
-          })),
-        };
-      } else {
-        this.selectedCluster = { term_enrichment: [], identifiers: [] };
-      }
+      this.selectedCluster = clusterRowsWithNumber(match, clusterNum);
 
       const arr = this.selectedCluster[this.tableType] || [];
       this.totalRows = arr.length;
@@ -1048,35 +975,10 @@ export default {
 
     /**
      * Combine data from multiple clusters into a single object
-     * Adds cluster number to each row so users can see which cluster it belongs to
+     * (delegates to the pure helper).
      */
     combineClusterData(clusterArray) {
-      const combined = {
-        term_enrichment: [],
-        identifiers: [],
-      };
-
-      clusterArray.forEach((cluster) => {
-        const clusterNum = cluster.cluster;
-        if (cluster.term_enrichment) {
-          // Add cluster number to each enrichment row
-          const enrichmentWithCluster = cluster.term_enrichment.map((row) => ({
-            ...row,
-            cluster_num: clusterNum,
-          }));
-          combined.term_enrichment = combined.term_enrichment.concat(enrichmentWithCluster);
-        }
-        if (cluster.identifiers) {
-          // Add cluster number to each identifier row
-          const identifiersWithCluster = cluster.identifiers.map((row) => ({
-            ...row,
-            cluster_num: clusterNum,
-          }));
-          combined.identifiers = combined.identifiers.concat(identifiersWithCluster);
-        }
-      });
-
-      return combined;
+      return combineClusterData(clusterArray);
     },
 
     /**
@@ -1104,32 +1006,18 @@ export default {
       }
 
       // Define column headers based on table type
-      const headers =
-        this.tableType === 'term_enrichment'
-          ? {
-              cluster_num: 'Cluster',
-              category: 'Category',
-              number_of_genes: '# Genes',
-              fdr: 'FDR',
-              description: 'Description',
-              term: 'Term ID',
-            }
-          : {
-              cluster_num: 'Cluster',
-              symbol: 'Gene Symbol',
-              hgnc_id: 'HGNC ID',
-              STRING_id: 'STRING ID',
-            };
+      const headers = CLUSTER_EXPORT_HEADERS[this.tableType];
 
       // Generate filename with context
-      const clusterLabel = this.showAllClustersInTable
-        ? 'all_clusters'
-        : `clusters_${this.displayedClusters.join('_')}`;
-      const filename = `sysndd_gene_${this.tableType}_${clusterLabel}`;
+      const filename = buildClusterExportFilename(
+        this.tableType,
+        this.showAllClustersInTable,
+        this.displayedClusters
+      );
 
       this.exportToExcel(dataArray, {
         filename,
-        sheetName: this.tableType === 'term_enrichment' ? 'Enrichment' : 'Identifiers',
+        sheetName: clusterExportSheetName(this.tableType),
         headers,
       });
     },

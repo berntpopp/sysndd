@@ -175,6 +175,17 @@ import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 // Typed API client (W5)
 import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
 
+import {
+  SOURCE_COLORS,
+  SYSNDD_HIGHLIGHT_COLOR,
+  CORE_OVERLAP_COLOR,
+  DEFAULT_SELECTED_SOURCES,
+  computeUpsetPlotDimensions,
+  normalizeUpsetSelectOptions,
+  formatSourceName,
+  getSourceVariant,
+} from './curationUpsetDisplay';
+
 export default {
   name: 'AnalysesCurationUpset',
   // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
@@ -202,22 +213,10 @@ export default {
       definitiveOnly: false,
       highlightSysNDD: true,
       highlightCoreOverlap: true,
-      // Color palette - Wong/Okabe-Ito color blind friendly palette
-      // Reference: Wong, B. (2011) Nature Methods 8:441
-      // https://www.nature.com/articles/nmeth.1618
-      sourceColors: {
-        SysNDD: '#0072B2', // Blue - our main source, highly visible
-        panelapp: '#009E73', // Bluish Green
-        gene2phenotype: '#56B4E9', // Sky Blue
-        orphanet_id: '#F0E442', // Yellow
-        radboudumc_ID: '#CC79A7', // Reddish Purple
-        sfari: '#E69F00', // Orange
-        geisinger_DBD: '#D55E00', // Vermilion
-        omim_ndd: '#000000', // Black
-      },
-      // Highlight colors for queries - also from Okabe-Ito palette
-      sysnddHighlightColor: '#0072B2', // Blue - matches SysNDD source
-      coreOverlapColor: '#D55E00', // Vermilion - high contrast with blue
+      // Color palette + highlight colors (Wong/Okabe-Ito, see curationUpsetDisplay.ts)
+      sourceColors: SOURCE_COLORS,
+      sysnddHighlightColor: SYSNDD_HIGHLIGHT_COLOR,
+      coreOverlapColor: CORE_OVERLAP_COLOR,
     };
   },
   computed: {
@@ -371,10 +370,7 @@ export default {
       const containerWidth = this.upsetContainer?.clientWidth || this.upsetContainer?.offsetWidth;
       const viewportWidth =
         typeof window !== 'undefined' ? Math.max(window.innerWidth - 64, 300) : this.width;
-      const availableWidth = containerWidth || viewportWidth;
-      const width = Math.max(300, Math.min(Math.floor(availableWidth), 1320));
-      const height = width < 520 ? 430 : width < 900 ? 500 : 560;
-      return { width, height };
+      return computeUpsetPlotDimensions(containerWidth, viewportWidth);
     },
     attachResizeObserver() {
       if (!this.upsetContainer) {
@@ -401,18 +397,9 @@ export default {
     hover(s) {
       this.selection = s;
     },
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
+    // Normalize select options for BFormSelect (delegates to the upset helper)
     normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return {
-            value: opt.list || opt.id || opt.value,
-            text: opt.list || opt.label || opt.text || opt.id,
-          };
-        }
-        return { value: opt, text: opt };
-      });
+      return normalizeUpsetSelectOptions(options);
     },
     // Toggle a source selection
     toggleSource(source) {
@@ -439,37 +426,15 @@ export default {
     },
     // Reset to default selection
     resetToDefault() {
-      this.selected_columns = ['SysNDD', 'panelapp', 'gene2phenotype'];
+      this.selected_columns = [...DEFAULT_SELECTED_SOURCES];
     },
-    // Format source name for display (capitalize, replace underscores)
+    // Format source name for display (delegates to the upset helper)
     formatSourceName(name) {
-      if (!name) return '';
-      // Handle special cases
-      const nameMap = {
-        SysNDD: 'SysNDD',
-        panelapp: 'PanelApp',
-        gene2phenotype: 'Gene2Phenotype',
-        orphanet_id: 'Orphanet',
-        radboudumc_ID: 'Radboudumc',
-        sfari: 'SFARI',
-        geisinger_DBD: 'Geisinger DBD',
-        omim_ndd: 'OMIM NDD',
-      };
-      return nameMap[name] || name.replace(/_/g, ' ');
+      return formatSourceName(name);
     },
-    // Get variant color for source chip
+    // Get variant color for source chip (delegates to the upset helper)
     getSourceVariant(source) {
-      const variantMap = {
-        SysNDD: 'primary',
-        panelapp: 'success',
-        gene2phenotype: 'info',
-        orphanet_id: 'warning',
-        radboudumc_ID: 'secondary',
-        sfari: 'danger',
-        geisinger_DBD: 'dark',
-        omim_ndd: 'light',
-      };
-      return variantMap[source] || 'secondary';
+      return getSourceVariant(source);
     },
   },
 };
