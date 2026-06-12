@@ -143,3 +143,93 @@ pubtator_enrichment_status_response <- function(query_fn = db_execute_query) {
     refreshed_at = as.character(rows$created_at[[1]])
   )
 }
+
+#' Collect a lazy table, pushing a user filter down to SQL when possible
+#'
+#' Shared list-endpoint pattern: when a non-empty filter expression is present,
+#' push it to SQL and collect; on a dbplyr translation error fall back to
+#' collect-then-filter in R (emitting one diagnostic). Sorting is intentionally
+#' left to the caller so endpoints can apply custom (e.g. numeric) ordering
+#' after collection.
+#'
+#' @param lazy_tbl A dbplyr lazy table (e.g. `pool %>% dplyr::tbl("publication")`).
+#' @param filter_exprs Character vector from `generate_filter_expressions()`.
+#' @param source_label Short label used in the fallback diagnostic message.
+#' @return A collected tibble (unsorted).
+#' @export
+collect_with_filter_pushdown <- function(lazy_tbl, filter_exprs, source_label) {
+  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
+  if (!has_filter) {
+    return(dplyr::collect(lazy_tbl))
+  }
+  tryCatch(
+    lazy_tbl %>%
+      dplyr::filter(!!!rlang::parse_exprs(filter_exprs)) %>%
+      dplyr::collect(),
+    error = function(e) {
+      message(sprintf(
+        "[%s] SQL filter pushdown failed (%s); falling back",
+        source_label, conditionMessage(e)
+      ))
+      dplyr::collect(lazy_tbl) %>%
+        dplyr::filter(!!!rlang::parse_exprs(filter_exprs))
+    }
+  )
+}
+
+#' Build the standard cursor-pagination meta tibble for list endpoints
+#'
+#' @param pag_meta The `meta` tibble from `generate_cursor_pag_inf()`.
+#' @param sort,filter,fields Raw query parameters echoed back to the client.
+#' @param fspec_obj Field-spec object from `generate_tibble_fspec_mem()`.
+#' @param execution_time Human-readable execution-time string.
+#' @return `pag_meta` with the standard echo columns appended.
+#' @export
+build_cursor_meta <- function(pag_meta, sort, filter, fields, fspec_obj,
+                              execution_time) {
+  pag_meta %>%
+    tibble::add_column(
+      tibble::as_tibble(list(
+        sort = sort,
+        filter = filter,
+        fields = fields,
+        fspec = fspec_obj,
+        executionTime = execution_time
+      ))
+    )
+}
+
+#' Build cursor-pagination next/prev links for a list endpoint
+#'
+#' @param pag_links The `links` tibble from `generate_cursor_pag_inf()`.
+#' @param resource_path API resource path without query string
+#'   (e.g. "/publication", "/pubtator/genes").
+#' @param sort,filter,fields Raw query parameters carried into the links.
+#' @param api_base_url Base URL prefix; defaults to the global `dw$api_base_url`.
+#' @return A one-row tibble of named links.
+#' @export
+build_cursor_links <- function(pag_links, resource_path, sort, filter, fields,
+                               api_base_url = dw$api_base_url) {
+  pag_links %>%
+    tidyr::pivot_longer(
+      dplyr::everything(),
+      names_to = "type", values_to = "link"
+    ) %>%
+    dplyr::mutate(
+      link = dplyr::case_when(
+        link != "null" ~ paste0(
+          api_base_url,
+          resource_path, "?",
+          "sort=", sort,
+          ifelse(filter != "", paste0("&filter=", filter), ""),
+          ifelse(fields != "", paste0("&fields=", fields), ""),
+          link
+        ),
+        TRUE ~ "null"
+      )
+    ) %>%
+    tidyr::pivot_wider(
+      id_cols = dplyr::everything(),
+      names_from = "type", values_from = "link"
+    )
+}
