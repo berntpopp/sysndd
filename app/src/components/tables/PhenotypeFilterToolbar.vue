@@ -160,4 +160,138 @@ export default {
 };
 </script>
 
-<style scoped src="./PhenotypeFilterToolbar.css"></style>
+<style scoped>
+/* Styles for PhenotypeFilterToolbar.vue (extracted from TablesPhenotypes.vue). */
+
+/* Phenotype Select Container - Treeselect-like styling */
+.phenotype-select-container {
+  display: flex;
+  align-items: center;
+}
+
+.phenotype-select-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 4px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  flex: 1;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+.phenotype-select-control:hover {
+  border-color: #80bdff;
+}
+
+.phenotype-select-control:focus-within {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.phenotype-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  align-items: center;
+}
+
+.phenotype-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #e9f5ff;
+  border: 1px solid #b8daff;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  color: #004085;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.phenotype-tag .tag-remove {
+  margin-left: 6px;
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: 0.75rem;
+}
+
+.phenotype-tag .tag-remove:hover {
+  opacity: 1;
+  color: #dc3545;
+}
+
+.phenotype-placeholder {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.phenotype-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.control-icon {
+  color: #6c757d;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px;
+}
+
+.control-icon:hover {
+  color: #495057;
+}
+
+.clear-icon:hover {
+  color: #dc3545;
+}
+
+.phenotype-dropdown-trigger {
+  padding: 0;
+  margin: 0;
+}
+
+.phenotype-dropdown-trigger :deep(.btn) {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.phenotype-dropdown-trigger :deep(.btn:focus) {
+  box-shadow: none;
+}
+
+:deep(.phenotype-dropdown-menu) {
+  min-width: 350px;
+  max-width: 450px;
+  margin-top: 4px;
+}
+
+.phenotype-options-list {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.phenotype-options-list :deep(.dropdown-item) {
+  font-size: 0.875rem;
+  white-space: normal;
+  word-wrap: break-word;
+  padding: 8px 16px;
+}
+
+.phenotype-options-list :deep(.dropdown-item.active) {
+  background-color: #e9f5ff;
+  color: #004085;
+}
+</style>

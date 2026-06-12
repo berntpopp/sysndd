@@ -1,7 +1,0 @@
-/* Unscoped global styles for GenericTable.vue (extracted from the SFC).
-   Overrides Bootstrap-Vue-Next's overflow:hidden on sortable <th> so tooltips
-   rendered inside column headers are not clipped. */
-
-.entities-table th.b-table-sortable-column {
-  overflow: visible !important;
-}
