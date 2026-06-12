@@ -529,6 +529,11 @@ import ManualEntityAssignmentPanel from '@/views/curate/components/ManualEntityA
 import RefusedReReviewPanel from '@/views/curate/components/RefusedReReviewPanel.vue';
 import { filterReReviewBatches, sortReReviewBatches } from '@/views/curate/utils/reReviewFilters';
 import {
+  reReviewTableFields,
+  reReviewEntitySelectFields,
+  reReviewLegendItems,
+} from '@/views/curate/reReviewTableConfig';
+import {
   assignReReviewBatch,
   assignReReviewEntities,
   getAssignmentTable,
@@ -573,64 +578,7 @@ export default {
       user_id_assignment: 0,
       items_ReReviewTable: [],
       sortBy: [{ key: 'user_name', order: 'asc' }],
-      fields_ReReviewTable: [
-        {
-          key: 'user_name',
-          label: 'User',
-          sortable: true,
-          sortDirection: 'desc',
-          class: 'text-start',
-          thStyle: { width: '140px' },
-        },
-        {
-          key: 're_review_batch',
-          label: 'Batch',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '80px' },
-        },
-        {
-          key: 're_review_review_saved',
-          label: 'Saved',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '70px' },
-        },
-        {
-          key: 're_review_status_saved',
-          label: 'Status',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '70px' },
-        },
-        {
-          key: 're_review_submitted',
-          label: 'Submitted',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '85px' },
-        },
-        {
-          key: 're_review_approved',
-          label: 'Approved',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '85px' },
-        },
-        {
-          key: 'entity_count',
-          label: 'Total',
-          sortable: true,
-          class: 'text-center',
-          thStyle: { width: '70px' },
-        },
-        {
-          key: 'actions',
-          label: 'Actions',
-          class: 'text-center',
-          thStyle: { width: '100px' },
-        },
-      ],
+      fields_ReReviewTable: reReviewTableFields,
       currentPage: 1,
       perPage: 25,
       totalRows: 0,
@@ -652,14 +600,7 @@ export default {
       previewBoundaryGene: null,
       previewGeneCount: 0,
       previewEntityCount: 0,
-      entitySelectFields: [
-        { key: 'selected', label: '', thStyle: { width: '44px' } },
-        { key: 'entity_id', label: 'ID', sortable: true },
-        { key: 'gene_symbol', label: 'Gene', sortable: true },
-        { key: 'disease_ontology_name', label: 'Disease', sortable: true },
-        { key: 'review_date', label: 'Last Review', sortable: true },
-        { key: 'status_name', label: 'Status', sortable: true },
-      ],
+      entitySelectFields: reReviewEntitySelectFields,
 
       // Reassignment
       reassignModalShow: false,
@@ -681,13 +622,7 @@ export default {
       status_options: [],
 
       // Icon legend items for ManageReReview
-      legendItems: [
-        { icon: 'bi bi-person-fill', color: '#0d6efd', label: 'Assigned user' },
-        { icon: 'bi bi-person', color: '#6c757d', label: 'Unassigned batch' },
-        { icon: 'bi bi-calculator', color: '#6c757d', label: 'Recalculate batch' },
-        { icon: 'bi bi-person-lines-fill', color: '#b45309', label: 'Reassign batch' },
-        { icon: 'bi bi-person-dash-fill', color: '#dc3545', label: 'Unassign batch' },
-      ],
+      legendItems: reReviewLegendItems,
     };
   },
   computed: {
