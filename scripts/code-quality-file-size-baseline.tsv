@@ -30,7 +30,7 @@ app/src/components/analyses/NetworkVisualization.vue	1218
 app/src/components/analyses/PublicationsNDDTable.vue	1059
 app/src/components/analyses/PubtatorNDDGenes.vue	1163
 app/src/components/analyses/PubtatorNDDTable.vue	945
-app/src/components/ApprovalTableView.vue	689
+app/src/components/ApprovalTableView.vue	638
 app/src/components/forms/BatchCriteriaForm.vue	747
 app/src/components/gene/GeneStructurePlotWithVariants.vue	1306
 app/src/components/gene/GenomicVisualizationTabs.vue	748
@@ -39,11 +39,11 @@ app/src/components/gene/VariantPanel.vue	671
 app/src/components/llm/LlmSummaryCard.vue	706
 app/src/components/nddscore/NddScoreGeneDetail.vue	750
 app/src/components/nddscore/NddScoreGeneTable.vue	1156
-app/src/components/small/GenericTable.vue	923
-app/src/components/tables/TablesEntities.vue	843
-app/src/components/tables/TablesGenes.vue	782
-app/src/components/tables/TablesLogs.vue	1162
-app/src/components/tables/TablesPhenotypes.vue	1153
+app/src/components/small/GenericTable.vue	707
+app/src/components/tables/TablesEntities.vue	760
+app/src/components/tables/TablesGenes.vue	775
+app/src/components/tables/TablesLogs.vue	1076
+app/src/components/tables/TablesPhenotypes.vue	822
 app/src/composables/useCytoscape.ts	603
 app/src/views/admin/ManageAnnotations.vue	690
 app/src/views/admin/ManageBackups.vue	1115
