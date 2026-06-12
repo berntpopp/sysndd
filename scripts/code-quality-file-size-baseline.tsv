@@ -41,7 +41,6 @@ app/src/views/admin/ManageOntology.vue	721
 app/src/views/admin/ManageUser.vue	602
 app/src/views/curate/ApproveReview.vue	841
 app/src/views/curate/ApproveUser.vue	842
-app/src/views/curate/CreateEntity.vue	540
 app/src/views/curate/ManageReReview.vue	1514
 app/src/views/pages/EntityView.vue	811
 db/C_Rcommands_set-table-connections.R	791
