@@ -75,3 +75,73 @@ test_that("publication_stats_response ignores invalid optional date filter", {
   expect_null(result$filtered_count)
   expect_null(result$filter_date)
 })
+
+test_that("collect_with_filter_pushdown returns all rows when no filter", {
+  df <- tibble::tibble(id = 1:3, val = c("a", "b", "c"))
+
+  expect_equal(nrow(collect_with_filter_pushdown(df, character(0), "t")), 3L)
+  expect_equal(nrow(collect_with_filter_pushdown(df, "", "t")), 3L)
+})
+
+test_that("collect_with_filter_pushdown applies a valid filter", {
+  df <- tibble::tibble(id = 1:3, val = c("a", "b", "c"))
+
+  out <- collect_with_filter_pushdown(df, "id == 2", "t")
+
+  expect_equal(out$val, "b")
+})
+
+test_that("build_cursor_meta appends the standard echo columns", {
+  meta <- tibble::tibble(perpage = 10L, currentItemCount = 3L)
+
+  out <- build_cursor_meta(
+    meta, "publication_id", "Title=='x'", "a,b", "FSPEC", "0.12 secs"
+  )
+
+  expect_equal(out$sort, "publication_id")
+  expect_equal(out$filter, "Title=='x'")
+  expect_equal(out$fields, "a,b")
+  expect_equal(out$fspec, "FSPEC")
+  expect_equal(out$executionTime, "0.12 secs")
+  expect_equal(out$perpage, 10L)
+})
+
+test_that("build_cursor_links builds absolute URLs and preserves null", {
+  links <- tibble::tibble(
+    prev = "null",
+    `next` = "&page_after=20&page_size=10",
+    self = "&page_after=0&page_size=10"
+  )
+
+  out <- build_cursor_links(
+    links, "/publication", "publication_id", "", "",
+    api_base_url = "https://api.test"
+  )
+
+  expect_equal(out$prev, "null")
+  expect_equal(
+    out$`next`,
+    "https://api.test/publication?sort=publication_id&page_after=20&page_size=10"
+  )
+  expect_equal(
+    out$self,
+    "https://api.test/publication?sort=publication_id&page_after=0&page_size=10"
+  )
+})
+
+test_that("build_cursor_links carries filter and fields when present", {
+  links <- tibble::tibble(
+    prev = "null",
+    `next` = "&page_after=0"
+  )
+
+  out <- build_cursor_links(
+    links, "/pubtator/genes", "-is_novel",
+    "gene_symbol=='BRCA1'", "gene_symbol,pmids",
+    api_base_url = "https://api.test"
+  )
+
+  expect_match(out$`next`, "&filter=gene_symbol=='BRCA1'", fixed = TRUE)
+  expect_match(out$`next`, "&fields=gene_symbol,pmids", fixed = TRUE)
+  expect_equal(out$prev, "null")
+})
