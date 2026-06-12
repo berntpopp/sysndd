@@ -142,25 +142,18 @@ import { ref, reactive, computed, watch } from 'vue';
 import { BButton } from 'bootstrap-vue-next';
 import VariantTooltip from './VariantTooltip.vue';
 import type { ClinVarVariant } from '@/types/external';
+import { ACMG_COLORS, type AcmgClassification } from '@/types/alphafold';
 import {
-  ACMG_COLORS,
-  ACMG_LABELS,
-  parseResidueNumber,
-  classifyClinicalSignificance,
-  type AcmgClassification,
-} from '@/types/alphafold';
-
-/** Filter state key type matching ACMG classifications */
-type FilterKey = 'pathogenic' | 'likelyPathogenic' | 'vus' | 'likelyBenign' | 'benign';
-
-/** Mapping from AcmgClassification to FilterKey */
-const classificationToFilterKey: Record<AcmgClassification, FilterKey> = {
-  pathogenic: 'pathogenic',
-  likely_pathogenic: 'likelyPathogenic',
-  vus: 'vus',
-  likely_benign: 'likelyBenign',
-  benign: 'benign',
-};
+  buildMappableVariants,
+  countByClassification,
+  filterMappableVariants,
+  getHiddenClassifications,
+  selectAll as selectAllFor,
+  selectOnly as selectOnlyFor,
+  toggleFilter as toggleFilterFor,
+  type MappableVariant,
+  type VariantFilterKey,
+} from './variantPanelData';
 
 interface Props {
   variants: ClinVarVariant[];
@@ -205,67 +198,18 @@ const tooltipData = ref<TooltipData | null>(null);
 const tooltipVisible = ref(false);
 const tooltipPosition = ref({ top: 0, left: 0 });
 
-// Processable variant item (variant + parsed residue + ACMG info)
-interface MappableVariant {
-  variant: ClinVarVariant;
-  residue: number;
-  classification: AcmgClassification | null;
-  color: string;
-  label: string;
-}
-
 // Filter variants to only those with parseable protein positions (missense/inframe only)
 // parseResidueNumber returns null for frameshift, stop, and splice variants
 // Sorted by residue number for spatial ordering
-const mappableVariants = computed<MappableVariant[]>(() => {
-  const items: MappableVariant[] = [];
-
-  for (const variant of props.variants) {
-    const residue = parseResidueNumber(variant.hgvsp);
-    if (residue === null) continue; // Skip non-mappable variants (frameshift, stop, splice)
-
-    const classification = classifyClinicalSignificance(variant.clinical_significance);
-    items.push({
-      variant,
-      residue,
-      classification,
-      color: classification ? ACMG_COLORS[classification] : '#999999',
-      label: classification ? ACMG_LABELS[classification] : variant.clinical_significance,
-    });
-  }
-
-  // Sort by residue number (ascending) for spatial ordering in list
-  items.sort((a, b) => a.residue - b.residue);
-  return items;
-});
-
-/**
- * Count variants by ACMG classification
- */
-function countByClassification(): Record<FilterKey, number> {
-  const counts: Record<FilterKey, number> = {
-    pathogenic: 0,
-    likelyPathogenic: 0,
-    vus: 0,
-    likelyBenign: 0,
-    benign: 0,
-  };
-
-  for (const item of mappableVariants.value) {
-    if (item.classification) {
-      const key = classificationToFilterKey[item.classification];
-      counts[key]++;
-    }
-  }
-
-  return counts;
-}
+const mappableVariants = computed<MappableVariant[]>(() =>
+  buildMappableVariants(props.variants)
+);
 
 /**
  * Legend items for ACMG filter chips with counts
  */
 const legendItems = computed(() => {
-  const counts = countByClassification();
+  const counts = countByClassification(mappableVariants.value);
   return [
     {
       key: 'pathogenic' as const,
@@ -308,74 +252,29 @@ const legendItems = computed(() => {
 /**
  * Filtered variants based on search query and ACMG filter state
  */
-const filteredVariants = computed<MappableVariant[]>(() => {
-  const query = searchQuery.value.toLowerCase().trim();
-
-  return mappableVariants.value.filter((item) => {
-    // Check ACMG filter
-    if (item.classification) {
-      const filterKey = classificationToFilterKey[item.classification];
-      if (!filterState[filterKey]) return false;
-    } else {
-      // If no classification, show only if all filters are enabled (unknown classification)
-      // This is a fallback - most variants should have a classification
-    }
-
-    // Check search query (case-insensitive across hgvsp, hgvsc, variant_id)
-    if (query) {
-      const hgvsp = (item.variant.hgvsp || '').toLowerCase();
-      const hgvsc = (item.variant.hgvsc || '').toLowerCase();
-      const variantId = (item.variant.variant_id || '').toLowerCase();
-
-      if (!hgvsp.includes(query) && !hgvsc.includes(query) && !variantId.includes(query)) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-});
+const filteredVariants = computed<MappableVariant[]>(() =>
+  filterMappableVariants(mappableVariants.value, filterState, searchQuery.value)
+);
 
 /**
  * Toggle filter visibility for an ACMG classification
  */
-function toggleFilter(key: FilterKey): void {
-  filterState[key] = !filterState[key];
+function toggleFilter(key: VariantFilterKey): void {
+  toggleFilterFor(filterState, key);
 }
 
 /**
  * Select only one ACMG classification (deselect all others)
  */
-function selectOnly(key: FilterKey): void {
-  filterState.pathogenic = key === 'pathogenic';
-  filterState.likelyPathogenic = key === 'likelyPathogenic';
-  filterState.vus = key === 'vus';
-  filterState.likelyBenign = key === 'likelyBenign';
-  filterState.benign = key === 'benign';
+function selectOnly(key: VariantFilterKey): void {
+  selectOnlyFor(filterState, key);
 }
 
 /**
  * Select all ACMG classifications
  */
 function selectAll(): void {
-  filterState.pathogenic = true;
-  filterState.likelyPathogenic = true;
-  filterState.vus = true;
-  filterState.likelyBenign = true;
-  filterState.benign = true;
-}
-
-/**
- * Get list of hidden ACMG classifications based on current filter state
- */
-function getHiddenClassifications(): AcmgClassification[] {
-  const hidden: AcmgClassification[] = [];
-  if (!filterState.pathogenic) hidden.push('pathogenic');
-  if (!filterState.likelyPathogenic) hidden.push('likely_pathogenic');
-  if (!filterState.vus) hidden.push('vus');
-  if (!filterState.likelyBenign) hidden.push('likely_benign');
-  if (!filterState.benign) hidden.push('benign');
-  return hidden;
+  selectAllFor(filterState);
 }
 
 /**
@@ -391,7 +290,7 @@ watch(
     benign: filterState.benign,
   }),
   () => {
-    emit('filter-change', { hiddenClassifications: getHiddenClassifications() });
+    emit('filter-change', { hiddenClassifications: getHiddenClassifications(filterState) });
   },
   { deep: true }
 );
