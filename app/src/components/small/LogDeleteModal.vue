@@ -46,7 +46,13 @@
       :state="deleteConfirmText === 'DELETE' ? true : deleteConfirmText ? false : null"
     />
     <template #footer>
-      <BButton variant="secondary" @click="$emit('update:modelValue', false)"> Cancel </BButton>
+      <BButton
+        variant="secondary"
+        :disabled="isDeleting"
+        @click="$emit('update:modelValue', false)"
+      >
+        Cancel
+      </BButton>
       <BButton
         variant="danger"
         :disabled="deleteConfirmText !== 'DELETE' || isDeleting"
