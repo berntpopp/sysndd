@@ -19,8 +19,10 @@ export interface VisibleRegenerationJob {
 }
 
 export interface UseLlmRegenerationJobsOptions {
-  // Toast helper from the host view; kept generic to avoid a hard dependency.
-  makeToast: (message: string, title: string, variant: string) => void;
+  // Toast helper from the host view. Typed from useToast so it accepts the real
+  // makeToast (whose `variant` is `ToastVariant`, not a plain string) under
+  // strict function types. Type-only import — erased at runtime.
+  makeToast: ReturnType<typeof import('@/composables/useToast').default>['makeToast'];
   // Refreshes cache statistics after a job completes.
   fetchCacheStats: () => Promise<unknown>;
 }
