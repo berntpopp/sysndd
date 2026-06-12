@@ -9,7 +9,7 @@ export interface UseBackupJobsOptions {
    * Called after a backup/restore/delete completes so the inventory can refresh.
    */
   onRefresh: () => void | Promise<void>;
-  onToast?: (...args: unknown[]) => void;
+  onToast?: ReturnType<typeof import('@/composables/useToast').default>['makeToast'];
 }
 
 /**

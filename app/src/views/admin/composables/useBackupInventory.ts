@@ -21,7 +21,7 @@ export interface BackupMeta {
 }
 
 export interface UseBackupInventoryOptions {
-  onToast?: (...args: unknown[]) => void;
+  onToast?: ReturnType<typeof import('@/composables/useToast').default>['makeToast'];
 }
 
 /**

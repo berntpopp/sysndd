@@ -23,7 +23,7 @@ import {
 import type { JobHistoryItem } from '@/components/annotations/JobHistoryCard.vue';
 
 export interface UseJobHistoryPanelOptions {
-  onToast: (message: string, title: string, variant: string) => void;
+  onToast: ReturnType<typeof import('@/composables/useToast').default>['makeToast'];
 }
 
 export interface UseJobHistoryPanelReturn extends JobHistoryUrlStateReturn {
