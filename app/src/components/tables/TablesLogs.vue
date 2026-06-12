@@ -568,6 +568,8 @@ export default {
       ...tableData,
       ...restTableMethods,
       filter,
+      // Shared select-option normalizer used by the table-header filter row.
+      normalizeSelectOptions,
     };
   },
   data() {
@@ -1033,10 +1035,6 @@ export default {
     getMethodVariant(method) {
       return getLogMethodVariant(method);
     },
-    // Normalize select options for BFormSelect (shared util)
-    normalizeSelectOptions(options) {
-      return normalizeSelectOptions(options);
-    },
     // Format duration with appropriate unit
     formatDuration(duration) {
       return formatLogDuration(duration);
@@ -1076,6 +1074,8 @@ export default {
 </script>
 
 <style scoped>
+/* Scoped styles for TablesLogs.vue (extracted from the SFC). */
+
 /* Button styles */
 .btn-group-xs > .btn,
 .btn-xs {

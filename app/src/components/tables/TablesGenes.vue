@@ -358,6 +358,7 @@ import { useUiStore } from '@/stores/ui';
 // Typed API client
 import { listGenes } from '@/api/genes';
 import { createTableRequestCoordinator } from '@/utils/tableRequestCoordinator';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
 
 // Module-level variables to track API calls across component remounts
 // This survives when Vue Router remounts the component on URL changes
@@ -464,6 +465,8 @@ export default {
       ...restTableMethods,
       filter,
       axios,
+      // Shared select-option normalizer used by the table-header filter row.
+      normalizeSelectOptions,
     };
   },
   data() {
@@ -738,16 +741,6 @@ export default {
 
       const uiStore = useUiStore();
       uiStore.requestScrollbarUpdate();
-    },
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
-    normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
     },
   },
 };

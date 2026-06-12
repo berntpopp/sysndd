@@ -59,84 +59,14 @@
       <template v-if="!loading" #toolbar>
         <BRow class="align-items-center gx-2">
           <BCol class="my-1" sm="6">
-            <div v-if="showFilterControls" class="phenotype-select-container">
-              <div class="phenotype-select-control" @click="openPhenotypeDropdown">
-                <div class="phenotype-tags">
-                  <span
-                    v-for="phenotypeId in filter.modifier_phenotype_id.content"
-                    :key="phenotypeId"
-                    class="phenotype-tag"
-                  >
-                    {{ getPhenotypeName(phenotypeId) }}
-                    <i class="bi bi-x tag-remove" @click.stop="removePhenotype(phenotypeId)" />
-                  </span>
-                  <span
-                    v-if="filter.modifier_phenotype_id.content.length === 0"
-                    class="phenotype-placeholder"
-                  >
-                    Select phenotypes...
-                  </span>
-                </div>
-
-                <div class="phenotype-controls">
-                  <i
-                    v-if="filter.modifier_phenotype_id.content.length > 0"
-                    v-b-tooltip.hover
-                    class="bi bi-x-lg control-icon clear-icon"
-                    title="Clear all"
-                    @click.stop="clearAllPhenotypes"
-                  />
-                  <BDropdown
-                    ref="phenotypeDropdownRef"
-                    no-caret
-                    variant="link"
-                    size="sm"
-                    class="phenotype-dropdown-trigger"
-                    menu-class="phenotype-dropdown-menu"
-                    @shown="focusSearchInput"
-                  >
-                    <template #button-content>
-                      <i class="bi bi-chevron-down control-icon" />
-                    </template>
-                    <BDropdownForm @submit.prevent>
-                      <BFormInput
-                        ref="phenotypeSearchInput"
-                        v-model="phenotypeSearch"
-                        placeholder="Search phenotypes..."
-                        size="sm"
-                        class="mb-2"
-                        autocomplete="off"
-                      />
-                    </BDropdownForm>
-                    <BDropdownDivider />
-                    <div class="phenotype-options-list">
-                      <BDropdownItemButton
-                        v-for="option in filteredPhenotypeOptions"
-                        :key="option.phenotype_id"
-                        :active="isPhenotypeSelected(option.phenotype_id)"
-                        @click="togglePhenotype(option.phenotype_id)"
-                      >
-                        <i
-                          v-if="isPhenotypeSelected(option.phenotype_id)"
-                          class="bi bi-check-square me-2 text-primary"
-                        />
-                        <i v-else class="bi bi-square me-2 text-muted" />
-                        {{ option.HPO_term }}
-                      </BDropdownItemButton>
-                      <BDropdownText v-if="filteredPhenotypeOptions.length === 0">
-                        No matching phenotypes
-                      </BDropdownText>
-                    </div>
-                  </BDropdown>
-                </div>
-              </div>
-              <BSpinner
-                v-if="phenotypes_options.length === 0"
-                small
-                class="ms-2"
-                label="Loading..."
-              />
-            </div>
+            <PhenotypeFilterToolbar
+              v-if="showFilterControls"
+              :phenotype-options="phenotypes_options"
+              :selected-ids="filter.modifier_phenotype_id.content"
+              @toggle="togglePhenotype"
+              @remove="removePhenotype"
+              @clear-all="clearAllPhenotypes"
+            />
           </BCol>
 
           <BCol class="my-1 d-flex align-items-center" sm="2">
@@ -382,9 +312,11 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableShell from '@/components/table/TableShell.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import PhenotypesMobileRows from '@/components/tables/PhenotypesMobileRows.vue';
+import PhenotypeFilterToolbar from '@/components/tables/PhenotypeFilterToolbar.vue';
 
 // Import the utilities file
 import Utils from '@/assets/js/utils';
+import { normalizeSelectOptions } from '@/utils/selectOptions';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -415,6 +347,7 @@ export default {
     TableShell,
     TableLoadingState,
     PhenotypesMobileRows,
+    PhenotypeFilterToolbar,
   },
   props: {
     showFilterControls: { type: Boolean, default: true },
@@ -450,6 +383,8 @@ export default {
       ...colorAndSymbols,
       ...text,
       axios,
+      // Shared select-option normalizer used by the table-header filter row.
+      normalizeSelectOptions,
     };
   },
   data() {
@@ -460,8 +395,6 @@ export default {
       loadDataDebounceTimer: null,
       switch_text: { true: 'OR', false: 'AND' },
       phenotypes_options: [],
-      // Search term for phenotype dropdown filter
-      phenotypeSearch: '',
       items: [],
       fields: [
         {
@@ -541,29 +474,6 @@ export default {
       loading: true,
       isBusy: true,
     };
-  },
-  computed: {
-    /**
-     * Filter phenotype options based on search term.
-     * Shows first 50 results for performance.
-     */
-    filteredPhenotypeOptions() {
-      if (!Array.isArray(this.phenotypes_options) || this.phenotypes_options.length === 0) {
-        return [];
-      }
-      const search = this.phenotypeSearch.toLowerCase().trim();
-      if (!search) {
-        // Return first 50 when no search term
-        return this.phenotypes_options.slice(0, 50);
-      }
-      return this.phenotypes_options
-        .filter(
-          (opt) =>
-            opt.HPO_term.toLowerCase().includes(search) ||
-            opt.phenotype_id.toLowerCase().includes(search)
-        )
-        .slice(0, 50);
-    },
   },
   watch: {
     // Watch for filter changes (deep required for Vue 3 behavior)
@@ -745,14 +655,6 @@ export default {
       }
     },
     /**
-     * Check if a phenotype is currently selected.
-     * @param {string} phenotypeId - HPO ID to check
-     * @returns {boolean} True if selected
-     */
-    isPhenotypeSelected(phenotypeId) {
-      return this.filter.modifier_phenotype_id.content.includes(phenotypeId);
-    },
-    /**
      * Toggle phenotype selection.
      * @param {string} phenotypeId - HPO ID to toggle
      */
@@ -775,30 +677,12 @@ export default {
       this.filtered();
     },
     /**
-     * Open the phenotype dropdown programmatically.
-     */
-    openPhenotypeDropdown() {
-      if (this.$refs.phenotypeDropdownRef) {
-        this.$refs.phenotypeDropdownRef.show();
-      }
-    },
-    /**
      * Set the logic mode (AND/OR) for phenotype filtering.
      * @param {boolean} isOr - True for OR mode, false for AND mode
      */
     setLogicMode(isOr) {
       this.checked = isOr;
       this.filtered();
-    },
-    /**
-     * Focus the search input when dropdown opens.
-     */
-    focusSearchInput() {
-      this.$nextTick(() => {
-        if (this.$refs.phenotypeSearchInput) {
-          this.$refs.phenotypeSearchInput.focus();
-        }
-      });
     },
     /**
      * Remove a phenotype from selection.
@@ -810,24 +694,6 @@ export default {
         this.filter.modifier_phenotype_id.content.splice(index, 1);
         this.filtered();
       }
-    },
-    /**
-     * Get phenotype display name from ID.
-     * @param {string} phenotypeId - HPO ID
-     * @returns {string} HPO term name or the ID if not found
-     */
-    getPhenotypeName(phenotypeId) {
-      if (!Array.isArray(this.phenotypes_options) || this.phenotypes_options.length === 0) {
-        return phenotypeId;
-      }
-      const phenotype = this.phenotypes_options.find((opt) => opt.phenotype_id === phenotypeId);
-      return phenotype ? phenotype.HPO_term : phenotypeId;
-    },
-    normalizer(node) {
-      return {
-        id: node,
-        label: node,
-      };
     },
     loadEntitiesFromPhenotypes() {
       // Debounce to prevent duplicate calls from multiple triggers
@@ -949,29 +815,15 @@ export default {
       // Use the utility function here
       return Utils.truncate(str, n);
     },
-    // Normalize select options for BFormSelect (replacement for treeselect normalizer)
-    normalizeSelectOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => {
-        if (typeof opt === 'object' && opt !== null) {
-          return { value: opt.id || opt.value, text: opt.label || opt.text || opt.id };
-        }
-        return { value: opt, text: opt };
-      });
-    },
-    // Normalize phenotypes options for BFormSelect
-    normalizePhenotypesOptions(options) {
-      if (!options || !Array.isArray(options)) return [];
-      return options.map((opt) => ({
-        value: opt.phenotype_id,
-        text: opt.HPO_term,
-      }));
-    },
   },
 };
 </script>
 
 <style scoped>
+/* Styles for TablesPhenotypes.vue.
+   The phenotype multi-select control styles live in PhenotypeFilterToolbar.css;
+   this file keeps the table-shell / logic-toggle styles owned by the parent. */
+
 .btn-group-xs > .btn,
 .btn-xs {
   padding: 0.25rem 0.4rem;
@@ -984,138 +836,6 @@ export default {
 }
 .input-group .input-group-text {
   width: 100%;
-}
-
-/* Phenotype Select Container - Treeselect-like styling */
-.phenotype-select-container {
-  display: flex;
-  align-items: center;
-}
-
-.phenotype-select-control {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 38px;
-  padding: 4px 8px;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
-  flex: 1;
-  transition:
-    border-color 0.15s ease-in-out,
-    box-shadow 0.15s ease-in-out;
-}
-
-.phenotype-select-control:hover {
-  border-color: #80bdff;
-}
-
-.phenotype-select-control:focus-within {
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-.phenotype-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  flex: 1;
-  align-items: center;
-}
-
-.phenotype-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  background: #e9f5ff;
-  border: 1px solid #b8daff;
-  border-radius: 3px;
-  font-size: 0.85rem;
-  color: #004085;
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.phenotype-tag .tag-remove {
-  margin-left: 6px;
-  cursor: pointer;
-  opacity: 0.6;
-  font-size: 0.75rem;
-}
-
-.phenotype-tag .tag-remove:hover {
-  opacity: 1;
-  color: #dc3545;
-}
-
-.phenotype-placeholder {
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-.phenotype-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-}
-
-.control-icon {
-  color: #6c757d;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 2px;
-}
-
-.control-icon:hover {
-  color: #495057;
-}
-
-.clear-icon:hover {
-  color: #dc3545;
-}
-
-.phenotype-dropdown-trigger {
-  padding: 0;
-  margin: 0;
-}
-
-.phenotype-dropdown-trigger :deep(.btn) {
-  padding: 0 4px;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.phenotype-dropdown-trigger :deep(.btn:focus) {
-  box-shadow: none;
-}
-
-:deep(.phenotype-dropdown-menu) {
-  min-width: 350px;
-  max-width: 450px;
-  margin-top: 4px;
-}
-
-.phenotype-options-list {
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.phenotype-options-list :deep(.dropdown-item) {
-  font-size: 0.875rem;
-  white-space: normal;
-  word-wrap: break-word;
-  padding: 8px 16px;
-}
-
-.phenotype-options-list :deep(.dropdown-item.active) {
-  background-color: #e9f5ff;
-  color: #004085;
 }
 
 /* AND/OR Toggle - Pill Button Group */

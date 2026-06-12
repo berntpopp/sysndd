@@ -66,4 +66,12 @@ describe('LogDeleteModal', () => {
     await wrapper.find('input').setValue('DELETE');
     expect(wrapper.findAll('button')[1].attributes('disabled')).toBeDefined();
   });
+
+  it('disables Cancel while a delete is in flight, but enables it otherwise', () => {
+    const idle = mountModal({ isDeleting: false });
+    expect(idle.findAll('button')[0].attributes('disabled')).toBeUndefined();
+
+    const deleting = mountModal({ isDeleting: true });
+    expect(deleting.findAll('button')[0].attributes('disabled')).toBeDefined();
+  });
 });
