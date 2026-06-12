@@ -265,6 +265,12 @@ import GeneBadge from '@/components/ui/GeneBadge.vue';
 // Typed API client (W5)
 import { browseComparisons, browseComparisonsXlsx } from '@/api/comparisons';
 
+import {
+  createComparisonFields,
+  createComparisonFilter,
+  COMPARISON_SOURCE_COLUMNS,
+} from './curationComparisonsTableConfig';
+
 export default {
   name: 'AnalysesCurationComparisonsTable',
   // register the GenericTable component (Treeselect temporarily disabled)
@@ -311,71 +317,7 @@ export default {
   data() {
     return {
       items: [],
-      fields: [
-        {
-          key: 'symbol',
-          label: 'Symbol',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'SysNDD',
-          label: 'SysNDD',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'gene2phenotype',
-          label: 'Gene2Phenotype',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'panelapp',
-          label: 'PanelApp',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'radboudumc_ID',
-          label: 'Radboudumc',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'sfari',
-          label: 'SFARI',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'geisinger_DBD',
-          label: 'Geisinger DBD',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'orphanet_id',
-          label: 'Orphanet',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-        {
-          key: 'omim_ndd',
-          label: 'OMIM NDD',
-          sortable: true,
-          filterable: true,
-          class: 'text-start',
-        },
-      ],
+      fields: createComparisonFields(),
       totalRows: 0,
       currentPage: 1,
       currentItemID: this.pageAfterInput,
@@ -388,18 +330,7 @@ export default {
       sortBy: 'symbol',
       sortDesc: false,
       sort: this.sortInput,
-      filter: {
-        any: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        SysNDD: { content: null, join_char: ',', operator: 'any' },
-        gene2phenotype: { content: null, join_char: ',', operator: 'any' },
-        panelapp: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
-        sfari: { content: null, join_char: ',', operator: 'any' },
-        geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        orphanet_id: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
-      },
+      filter: createComparisonFilter(),
       filter_string: '',
       filterOn: [],
       loadingTable: true,
@@ -429,20 +360,9 @@ export default {
       deep: true, // Vue 3 requires deep:true for object mutation watching
     },
     definitiveOnly(newValue) {
-      // Define source columns (exclude symbol which is a text search input)
-      const sourceColumns = [
-        'SysNDD',
-        'gene2phenotype',
-        'panelapp',
-        'radboudumc_ID',
-        'sfari',
-        'geisinger_DBD',
-        'orphanet_id',
-        'omim_ndd',
-      ];
-
       // Set all source column filters to "Definitive" when enabled, or null when disabled
-      sourceColumns.forEach((col) => {
+      // (source columns exclude `symbol`, which is a text search input)
+      COMPARISON_SOURCE_COLUMNS.forEach((col) => {
         this.filter[col].content = newValue ? 'Definitive' : null;
       });
 
@@ -579,18 +499,7 @@ export default {
       this.loadTableData();
     },
     removeFilters() {
-      this.filter = {
-        any: { content: null, join_char: null, operator: 'contains' },
-        symbol: { content: null, join_char: null, operator: 'contains' },
-        SysNDD: { content: null, join_char: ',', operator: 'any' },
-        gene2phenotype: { content: null, join_char: ',', operator: 'any' },
-        panelapp: { content: null, join_char: ',', operator: 'any' },
-        radboudumc_ID: { content: null, join_char: null, operator: 'contains' },
-        sfari: { content: null, join_char: ',', operator: 'any' },
-        geisinger_DBD: { content: null, join_char: null, operator: 'contains' },
-        orphanet_id: { content: null, join_char: null, operator: 'contains' },
-        omim_ndd: { content: null, join_char: null, operator: 'contains' },
-      };
+      this.filter = createComparisonFilter();
     },
     removeSearch() {
       this.filter.any.content = null;
