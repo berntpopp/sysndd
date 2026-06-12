@@ -217,10 +217,18 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { BBadge, BCol, BContainer, BRow } from 'bootstrap-vue-next';
-import type { ColorVariant } from 'bootstrap-vue-next';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
-import { fetchGeneDetail, type NddScoreGeneDetail } from '@/api/nddscore';
-import { useResource } from '@/composables/useResource';
+import {
+  useNddScoreGeneDetail,
+  readField,
+  displayValue,
+  formatScore,
+  formatProbability,
+  formatPercentile,
+  formatSigned,
+  riskVariant,
+  confidenceVariant,
+} from './useNddScoreGeneDetail';
 
 defineOptions({
   name: 'NddScoreGeneDetail',
@@ -230,113 +238,20 @@ const props = defineProps<{
   hgncIdOrSymbol: string;
 }>();
 
-type GeneDetailRow = NddScoreGeneDetail & {
-  hgnc_id?: string | number;
-  gene_symbol?: string;
-};
-
-type HpoPrediction = {
-  key: string;
-  id: string;
-  name: string;
-  probability: unknown;
-};
-
-const geneResource = useResource<GeneDetailRow>(
-  computed(() => `nddscore:gene:${props.hgncIdOrSymbol}`),
-  (signal) => fetchGeneDetail(props.hgncIdOrSymbol, { signal }) as Promise<GeneDetailRow>,
-  { ttlMs: 60_000, staleWhileRevalidate: true }
-);
-
-const gene = computed<GeneDetailRow | null>(() => {
-  const row = geneResource.data.value;
-  return row && Object.keys(row).length > 0 ? row : null;
-});
-
-const loaded = computed(() => !geneResource.loading.value);
-
-const geneSymbol = computed(() =>
-  displayValue(readField(gene.value, 'gene_symbol', 'symbol') ?? props.hgncIdOrSymbol)
-);
-
-const hgncId = computed(() => {
-  const value = readField(gene.value, 'hgnc_id', 'hgnc');
-  return value == null || value === '' ? '' : String(value);
-});
-
-const ensemblId = computed(() => {
-  const value = readField(gene.value, 'ensembl_gene_id');
-  return value == null || value === '' ? '' : String(value);
-});
-
-const modelSplit = computed(() => {
-  const value = readField(gene.value, 'model_split');
-  return value == null || value === '' ? '' : String(value);
-});
-
-const ensemblUrl = computed(() =>
-  ensemblId.value ? `https://www.ensembl.org/Homo_sapiens/Gene/Summary?g=${ensemblId.value}` : ''
-);
-
-const modelSplitTooltip = computed(() => {
-  switch (modelSplit.value.toLowerCase()) {
-    case 'train':
-      return 'This gene was present in the model-training split.';
-    case 'test':
-      return 'This gene was held out for model testing.';
-    case 'unseen':
-      return 'This gene was not in the model-training split; interpret the prediction as an unseen-gene estimate.';
-    default:
-      return 'Dataset split used by the NDDScore model release.';
-  }
-});
-
-const knownSysnddGene = computed(() => booleanValue(readField(gene.value, 'known_sysndd_gene')));
-
-const inheritance = computed(() =>
-  parseObject(readField(gene.value, 'inheritance_probabilities_json', 'inheritance_probabilities'))
-);
-
-const inheritanceModes = computed(() =>
-  ['AD', 'AR', 'XLD', 'XLR'].map((key) => ({
-    key,
-    label: key,
-    value: inheritance.value[key],
-  }))
-);
-
-const hpoPredictions = computed<HpoPrediction[]>(() =>
-  parseArray(readField(gene.value, 'hpo_predictions', 'top_hpo_predictions_json'))
-    .slice(0, 8)
-    .map((entry, index) => {
-      const id = displayValue(readField(entry, 'phenotype_id', 'hpo_id', 'term_id'));
-      const name = displayValue(readField(entry, 'phenotype_name', 'term_name', 'name') ?? id);
-      return {
-        key: `${id}-${index}`,
-        id,
-        name,
-        probability: readField(entry, 'probability', 'score'),
-      };
-    })
-);
-
-const shapGroups = computed(() => {
-  const raw = readField(gene.value, 'shap_group_contributions_json', 'shap_groups');
-  const parsed = Array.isArray(raw) ? raw : parseObject(raw);
-  const entries = Array.isArray(parsed)
-    ? parsed.map((entry) => ({
-        label: displayValue(readField(entry, 'group', 'label', 'name')),
-        value: numericValue(readField(entry, 'value', 'contribution', 'shap_value')) ?? 0,
-      }))
-    : Object.entries(parsed).map(([label, value]) => ({
-        label,
-        value: numericValue(value) ?? 0,
-      }));
-
-  return entries
-    .filter((entry) => entry.label !== 'NA')
-    .sort((left, right) => Math.abs(right.value) - Math.abs(left.value));
-});
+const {
+  gene,
+  loaded,
+  geneSymbol,
+  hgncId,
+  ensemblId,
+  modelSplit,
+  ensemblUrl,
+  modelSplitTooltip,
+  knownSysnddGene,
+  inheritanceModes,
+  hpoPredictions,
+  shapGroups,
+} = useNddScoreGeneDetail(computed(() => props.hgncIdOrSymbol));
 
 const metricHelp = {
   nddScore:
@@ -360,121 +275,6 @@ const shapHelp =
   'Signed contribution of each feature group to the model score. Positive values pushed the score higher; negative values pushed it lower.';
 const hpoHelp =
   'Predicted phenotype association for this gene in the active NDDScore release, shown with model probability.';
-
-function readField(row: Record<string, unknown> | null | undefined, ...keys: string[]): unknown {
-  if (!row) {
-    return undefined;
-  }
-
-  for (const key of keys) {
-    if (row[key] != null && row[key] !== '') {
-      return row[key];
-    }
-  }
-
-  return undefined;
-}
-
-function parseObject(value: unknown): Record<string, unknown> {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-
-  if (typeof value !== 'string' || value.length === 0) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? (parsed as Record<string, unknown>)
-      : {};
-  } catch {
-    return {};
-  }
-}
-
-function parseArray(value: unknown): Array<Record<string, unknown>> {
-  if (Array.isArray(value)) {
-    return value.filter((entry): entry is Record<string, unknown> => Boolean(entry));
-  }
-
-  if (typeof value !== 'string' || value.length === 0) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function displayValue(value: unknown): string {
-  if (value == null || value === '') {
-    return 'NA';
-  }
-  return String(value);
-}
-
-function numericValue(value: unknown): number | null {
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function formatScore(value: unknown): string {
-  const numberValue = numericValue(value);
-  return numberValue == null ? 'NA' : numberValue.toFixed(3);
-}
-
-function formatProbability(value: unknown): string {
-  const numberValue = numericValue(value);
-  return numberValue == null ? 'NA' : `${(numberValue * 100).toFixed(1)}%`;
-}
-
-function formatPercentile(value: unknown): string {
-  const numberValue = numericValue(value);
-  return numberValue == null ? 'NA' : `${numberValue.toFixed(1)}%`;
-}
-
-function formatSigned(value: unknown): string {
-  const numberValue = numericValue(value);
-  if (numberValue == null) {
-    return 'NA';
-  }
-  return `${numberValue >= 0 ? '+' : ''}${numberValue.toFixed(3)}`;
-}
-
-function booleanValue(value: unknown): boolean {
-  return value === true || value === 1 || value === '1' || value === 'true';
-}
-
-function riskVariant(value: unknown): ColorVariant {
-  switch (String(value).toLowerCase()) {
-    case 'very high':
-      return 'danger';
-    case 'high':
-      return 'warning';
-    case 'moderate':
-      return 'info';
-    default:
-      return 'light';
-  }
-}
-
-function confidenceVariant(value: unknown): ColorVariant {
-  switch (String(value).toLowerCase()) {
-    case 'high':
-      return 'success';
-    case 'medium':
-      return 'info';
-    default:
-      return 'light';
-  }
-}
 </script>
 
 <style scoped>
