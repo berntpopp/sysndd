@@ -36,11 +36,9 @@ app/src/components/tables/TablesEntities.vue	843
 app/src/components/tables/TablesGenes.vue	782
 app/src/components/tables/TablesLogs.vue	1160
 app/src/components/tables/TablesPhenotypes.vue	1153
-app/src/views/admin/ManageAnnotations.vue	690
-app/src/views/admin/ManageBackups.vue	1115
-app/src/views/admin/ManageOntology.vue	825
-app/src/views/admin/ManagePubtator.vue	638
-app/src/views/admin/ManageUser.vue	675
+app/src/views/admin/ManageAnnotations.vue	613
+app/src/views/admin/ManageOntology.vue	721
+app/src/views/admin/ManageUser.vue	602
 app/src/views/curate/ApproveReview.vue	841
 app/src/views/curate/ApproveUser.vue	842
 app/src/views/curate/CreateEntity.vue	637

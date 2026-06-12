@@ -122,7 +122,7 @@ import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
 import { unwrapValue } from '@/composables/annotations/useAnnotationFormatters';
 import * as api from '@/composables/annotations/useAnnotationsApi';
-import { useJobHistoryUrlState } from '@/composables/annotations/useJobHistoryUrlState';
+import { useJobHistoryPanel } from '@/composables/annotations/useJobHistoryPanel';
 import OntologyAnnotationsCard, {
   type OntologyBlockedState,
   type UserOption,
@@ -141,7 +141,7 @@ import PublicationRefreshCard, {
 import DeprecatedEntitiesCard, {
   type DeprecatedData,
 } from '@/components/annotations/DeprecatedEntitiesCard.vue';
-import JobHistoryCard, { type JobHistoryItem } from '@/components/annotations/JobHistoryCard.vue';
+import JobHistoryCard from '@/components/annotations/JobHistoryCard.vue';
 
 // ---------------------------------------------------------------------------
 // Composables
@@ -230,7 +230,8 @@ const notUpdatedSince = computed<string | null>(() => {
   }
 });
 
-// Job history / table-controls state (URL sync extracted to composable)
+// Job history panel: URL-synced table controls + data, derived views, CSV
+// download, copy-link, and clear-all — all extracted to one composable.
 const {
   currentPage,
   pageSize,
@@ -243,40 +244,15 @@ const {
   handleSortUpdate,
   handleSearchChange,
   clearSearch,
-  clearAllFilters: resetTableState,
-} = useJobHistoryUrlState(route);
-
-const jobHistory = ref<JobHistoryItem[]>([]);
-const jobHistoryLoading = ref(false);
-
-const jobHistoryFields = [
-  { key: 'operation', label: 'Job Type', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'submitted_at', label: 'Started', sortable: true },
-  { key: 'duration_seconds', label: 'Duration', sortable: true },
-  { key: 'error_message', label: 'Error', sortable: false },
-];
-
-function clearAllFilters(): void {
-  resetTableState();
-  makeToast('All filters cleared', 'Filters Reset', 'info');
-}
-
-const filteredJobHistory = computed<JobHistoryItem[]>(() => {
-  if (!searchFilter.value.trim()) return jobHistory.value;
-  const search = searchFilter.value.toLowerCase();
-  return jobHistory.value.filter(
-    (job) =>
-      job.operation.toLowerCase().includes(search) ||
-      job.status.toLowerCase().includes(search) ||
-      (job.error_message && job.error_message.toLowerCase().includes(search))
-  );
-});
-
-const paginatedJobHistory = computed<JobHistoryItem[]>(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  return filteredJobHistory.value.slice(start, start + pageSize.value);
-});
+  clearAllFilters,
+  jobHistoryLoading,
+  jobHistoryFields,
+  filteredJobHistory,
+  paginatedJobHistory,
+  loadJobHistory,
+  downloadJobHistory,
+  copyPageLink,
+} = useJobHistoryPanel(route, { onToast: makeToast });
 
 // ---------------------------------------------------------------------------
 // Toast-and-history wiring for each job watcher
@@ -410,18 +386,6 @@ async function loadAnnotationDates(): Promise<void> {
     annotationDates.value = await api.fetchAnnotationDates();
   } catch (error) {
     console.warn('Failed to fetch annotation dates:', error);
-  }
-}
-
-async function loadJobHistory(): Promise<void> {
-  jobHistoryLoading.value = true;
-  try {
-    jobHistory.value = await api.fetchJobHistory(20);
-  } catch (error) {
-    console.warn('Failed to fetch job history:', error);
-    jobHistory.value = [];
-  } finally {
-    jobHistoryLoading.value = false;
   }
 }
 
@@ -633,47 +597,6 @@ async function onRefreshAllPublications(): Promise<void> {
     toastFail('Failed to start publication refresh');
     console.error('Publication refresh error:', error);
   }
-}
-
-async function downloadJobHistory(): Promise<void> {
-  try {
-    const rows = await api.fetchJobHistoryRaw(1000);
-    if (rows.length === 0) {
-      makeToast('No job history to download', 'Info', 'info');
-      return;
-    }
-    const headers = ['Job ID', 'Operation', 'Status', 'Started', 'Duration (s)', 'Error'];
-    const csvRows = rows.map((job) => [
-      unwrapValue(job.job_id),
-      unwrapValue(job.operation),
-      unwrapValue(job.status),
-      unwrapValue(job.submitted_at),
-      unwrapValue(job.duration_seconds) ?? '',
-      unwrapValue(job.error_message) ?? '',
-    ]);
-    const csv = [
-      headers.join(','),
-      ...csvRows.map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `job_history_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toastDone('Job history downloaded');
-  } catch (error) {
-    toastFail('Failed to download job history');
-    console.error('Download error:', error);
-  }
-}
-
-function copyPageLink(): void {
-  navigator.clipboard
-    .writeText(window.location.href)
-    .then(() => makeToast('Page link copied to clipboard', 'Copied', 'success'))
-    .catch(() => toastFail('Failed to copy link'));
 }
 
 // ---------------------------------------------------------------------------

@@ -247,7 +247,6 @@ ManagePubtator */
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
-import { ref, computed } from 'vue';
 import {
   BContainer,
   BFormGroup,
@@ -262,142 +261,53 @@ import {
   BProgressBar,
   BModal,
 } from 'bootstrap-vue-next';
-import { usePubtatorAdmin } from '@/composables/usePubtatorAdmin';
+import { usePubtatorAdminPanel } from '@/composables/usePubtatorAdminPanel';
 
-// Composable
+// View-level orchestration: wraps usePubtatorAdmin (cache/job state) and adds
+// the page's form state, feedback banner, modal flag, and action handlers.
 const {
-  // Local state
-  error,
+  // Cache/job state
   lastStatus,
   isCheckingStatus,
   isClearing,
   isBackfilling,
-
-  // Async job state
   jobId,
   jobStatus,
   jobStep,
   jobProgress,
   jobError,
-
-  // Async job computed
   hasRealProgress,
   progressPercent,
   elapsedTimeDisplay,
   progressVariant,
   statusBadgeClass,
   isJobLoading,
+  cacheProgress,
+  stopPolling,
+
+  // Form state
+  query,
+  maxPages,
+  clearOld,
+
+  // UI state
+  showClearAllModal,
+
+  // Feedback
+  feedbackMessage,
+  feedbackVariant,
+  feedbackIcon,
 
   // Local computed
-  cacheProgress,
+  cacheStateLabel,
 
   // Methods
-  getCacheStatus,
-  submitFetchJob,
-  clearCache,
-  backfillGeneSymbols,
-
-  // Async job controls
-  stopPolling,
-  resetJob,
-} = usePubtatorAdmin();
-
-// Form state
-const query = ref(
-  '("intellectual disability" OR "mental retardation" OR "autism" OR "epilepsy" OR "neurodevelopmental disorder" OR "neurodevelopmental disease" OR "epileptic encephalopathy") AND (gene OR syndrome) AND (variant OR mutation)'
-);
-const maxPages = ref(50);
-const clearOld = ref(false);
-
-// UI state
-const showClearAllModal = ref(false);
-
-// Feedback
-const feedbackMessage = ref('');
-const feedbackVariant = ref<'success' | 'danger' | 'info' | 'warning'>('info');
-
-// Computed
-const feedbackIcon = computed(() => {
-  switch (feedbackVariant.value) {
-    case 'success':
-      return 'bi bi-check-circle-fill';
-    case 'danger':
-      return 'bi bi-exclamation-triangle-fill';
-    case 'warning':
-      return 'bi bi-exclamation-circle-fill';
-    default:
-      return 'bi bi-info-circle-fill';
-  }
-});
-
-const cacheStateLabel = computed(() => {
-  if (!lastStatus.value) return 'No status';
-  return lastStatus.value.cached ? 'Cached' : 'Not cached';
-});
-
-// Methods
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'N/A';
-  const date = new Date(dateStr);
-  return date.toLocaleString();
-}
-
-async function checkStatus() {
-  if (!query.value.trim()) return;
-  feedbackMessage.value = '';
-
-  try {
-    await getCacheStatus(query.value);
-  } catch (_err) {
-    feedbackMessage.value = `Error checking status: ${error.value}`;
-    feedbackVariant.value = 'danger';
-  }
-}
-
-async function submitFetch() {
-  if (!query.value.trim()) return;
-  feedbackMessage.value = '';
-  resetJob(); // Clear any previous job state
-
-  try {
-    await submitFetchJob(query.value, maxPages.value, clearOld.value);
-    feedbackMessage.value = `Job submitted! Fetching ${maxPages.value} pages (~${Math.round((maxPages.value * 2.5) / 60)} min)`;
-    feedbackVariant.value = 'info';
-  } catch (_err) {
-    feedbackMessage.value = `Error submitting job: ${error.value}`;
-    feedbackVariant.value = 'danger';
-  }
-}
-
-async function backfillGenes() {
-  if (!lastStatus.value?.query_id) return;
-  feedbackMessage.value = '';
-
-  try {
-    const backfillResult = await backfillGeneSymbols(lastStatus.value.query_id);
-    feedbackMessage.value = backfillResult.message;
-    feedbackVariant.value = 'success';
-  } catch (_err) {
-    feedbackMessage.value = `Error backfilling: ${error.value}`;
-    feedbackVariant.value = 'danger';
-  }
-}
-
-async function clearAllCache() {
-  feedbackMessage.value = '';
-
-  try {
-    const clearResult = await clearCache();
-    feedbackMessage.value = clearResult.message;
-    feedbackVariant.value = 'success';
-    lastStatus.value = null;
-  } catch (_err) {
-    feedbackMessage.value = `Error clearing cache: ${error.value}`;
-    feedbackVariant.value = 'danger';
-  } finally {
-    showClearAllModal.value = false;
-  }
-}
+  formatDate,
+  checkStatus,
+  submitFetch,
+  backfillGenes,
+  clearAllCache,
+} = usePubtatorAdminPanel();
 </script>
 
 <style scoped>
