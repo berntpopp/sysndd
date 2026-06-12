@@ -472,13 +472,7 @@ function(req, res) {
   user_id_pass_change_approved <- as.logical(user_table$approved[1])
   # Use verify_password to support both plaintext and hashed passwords
   old_pass_match <- verify_password(user_table$password[1], old_pass)
-  new_pass_match_and_valid <- (new_pass_1 == new_pass_2) &&
-    (new_pass_1 != old_pass) &&
-    nchar(new_pass_1) > 7 &&
-    grepl("[a-z]", new_pass_1) &&
-    grepl("[A-Z]", new_pass_1) &&
-    grepl("\\d", new_pass_1) &&
-    grepl("[!@#$%^&*]", new_pass_1)
+  new_pass_match_and_valid <- new_password_valid(new_pass_1, new_pass_2, old_pass)
 
   if (length(user) == 0) {
     res$status <- 401
@@ -764,12 +758,7 @@ function(req, res) {
       (user_jwt$hash == user_table$hash[[1]]) &&
       iat_tolerance
 
-    new_pass_match_and_valid <- (new_pass_1 == new_pass_2) &&
-      nchar(new_pass_1) > 7 &&
-      grepl("[a-z]", new_pass_1) &&
-      grepl("[A-Z]", new_pass_1) &&
-      grepl("\\d", new_pass_1) &&
-      grepl("[!@#$%^&*]", new_pass_1)
+    new_pass_match_and_valid <- new_password_valid(new_pass_1, new_pass_2)
 
     if (jwt_claims_valid && new_pass_match_and_valid) {
       # Hash new password with Argon2id before storing

@@ -211,29 +211,14 @@ function(req,
 
   # Get publication data from database. Push the filter expression to SQL when
   # possible so we don't collect ~4,700 rows just to throw most away in R.
-  # `count` and `count_filtered` already coincide on this endpoint (line ~301),
-  # so unconditional pushdown is safe — no `compact` flag needed. Falls back
-  # to the legacy collect-then-filter path on dbplyr translation errors.
-  publication_lazy <- pool %>% tbl("publication")
-  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
-  publication_tbl <- if (has_filter) {
-    tryCatch(
-      publication_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        collect(),
-      error = function(e) {
-        message(sprintf(
-          "[publication-list] SQL filter pushdown failed (%s); falling back",
-          conditionMessage(e)
-        ))
-        publication_lazy %>%
-          collect() %>%
-          filter(!!!rlang::parse_exprs(filter_exprs))
-      }
-    )
-  } else {
-    publication_lazy %>% collect()
-  }
+  # `count` and `count_filtered` already coincide on this endpoint, so
+  # unconditional pushdown is safe — no `compact` flag needed. Falls back to
+  # the legacy collect-then-filter path on dbplyr translation errors.
+  publication_tbl <- collect_with_filter_pushdown(
+    pool %>% tbl("publication"),
+    filter_exprs,
+    "publication-list"
+  )
 
   # Handle numeric sorting for publication_id (PMID:12345 format)
   # Extract the sort column and direction
@@ -290,38 +275,18 @@ function(req,
   )
 
   # Build the meta object
-  meta <- publication_pag_info$meta %>%
-    add_column(
-      tibble::as_tibble(list(
-        "sort" = sort,
-        "filter" = filter,
-        "fields" = fields,
-        "fspec" = publication_fspec,
-        "executionTime" = execution_time
-      ))
-    )
+  meta <- build_cursor_meta(
+    publication_pag_info$meta,
+    sort, filter, fields,
+    publication_fspec, execution_time
+  )
 
-  # Add host, port, etc. to the links (if needed). Adjust to your environment:
-  links <- publication_pag_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "/publication?",
-          "sort=", sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        link == "null" ~ "null"
-      )
-    ) %>%
-    pivot_wider(
-      id_cols = everything(),
-      names_from = "type",
-      values_from = "link"
-    )
+  # Build the cursor next/prev links for this resource
+  links <- build_cursor_links(
+    publication_pag_info$links,
+    "/publication",
+    sort, filter, fields
+  )
 
   # Return final list
   publications_list <- list(
@@ -403,32 +368,14 @@ function(req,
   # Collect from DB - gene_symbols is now pre-computed during pubtator_db_update.
   # The gene_symbols column contains comma-separated human gene symbols from HGNC.
   # Push the user filter to SQL when possible (no fspec global/filtered split on
-  # this endpoint, so unconditional pushdown is safe). Fallback to in-R filter
-  # if dbplyr can't translate the expression.
-  pubtator_lazy <- pool %>% tbl("pubtator_search_cache")
-  has_filter <- length(filter_exprs) > 0 && nzchar(filter_exprs[[1]])
-  table_data <- if (has_filter) {
-    tryCatch(
-      pubtator_lazy %>%
-        filter(!!!rlang::parse_exprs(filter_exprs)) %>%
-        collect() %>%
-        arrange(!!!rlang::parse_exprs(sort_exprs)),
-      error = function(e) {
-        message(sprintf(
-          "[pubtator-table] SQL filter pushdown failed (%s); falling back",
-          conditionMessage(e)
-        ))
-        pubtator_lazy %>%
-          collect() %>%
-          arrange(!!!rlang::parse_exprs(sort_exprs)) %>%
-          filter(!!!rlang::parse_exprs(filter_exprs))
-      }
-    )
-  } else {
-    pubtator_lazy %>%
-      collect() %>%
-      arrange(!!!rlang::parse_exprs(sort_exprs))
-  }
+  # this endpoint, so unconditional pushdown is safe), then sort in R. Filtering
+  # before or after the sort yields the same ordered result set.
+  table_data <- collect_with_filter_pushdown(
+    pool %>% tbl("pubtator_search_cache"),
+    filter_exprs,
+    "pubtator-table"
+  ) %>%
+    arrange(!!!rlang::parse_exprs(sort_exprs))
 
   # Select columns
   table_data <- select_tibble_fields(
@@ -449,38 +396,18 @@ function(req,
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
   # Build meta
-  meta <- pag_info$meta %>%
-    add_column(
-      tibble::as_tibble(list(
-        sort = sort,
-        filter = filter,
-        fields = fields,
-        fspec = fspec_obj,
-        executionTime = execution_time
-      ))
-    )
+  meta <- build_cursor_meta(
+    pag_info$meta,
+    sort, filter, fields,
+    fspec_obj, execution_time
+  )
 
-  # Build links (here we assume something like dw$api_base_url plus path)
-  links <- pag_info$links %>%
-    pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    mutate(
-      link = case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "/pubtator/table?",
-          "sort=", sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        TRUE ~ "null"
-      )
-    ) %>%
-    pivot_wider(
-      id_cols = everything(),
-      names_from = "type",
-      values_from = "link"
-    )
+  # Build the cursor next/prev links for this resource
+  links <- build_cursor_links(
+    pag_info$links,
+    "/pubtator/table",
+    sort, filter, fields
+  )
 
   final_list <- list(
     links = links,
@@ -634,38 +561,18 @@ function(req,
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
   # 13) Build meta
-  meta <- pag_info$meta %>%
-    add_column(
-      tibble::as_tibble(list(
-        sort = sort,
-        filter = filter,
-        fields = fields,
-        fspec = tbl_fspec,
-        executionTime = execution_time
-      ))
-    )
+  meta <- build_cursor_meta(
+    pag_info$meta,
+    sort, filter, fields,
+    tbl_fspec, execution_time
+  )
 
-  # 13) Build links for next/prev
-  links <- pag_info$links %>%
-    tidyr::pivot_longer(everything(), names_to = "type", values_to = "link") %>%
-    dplyr::mutate(
-      link = dplyr::case_when(
-        link != "null" ~ paste0(
-          dw$api_base_url,
-          "/pubtator/genes?",
-          "sort=", sort,
-          ifelse(filter != "", paste0("&filter=", filter), ""),
-          ifelse(fields != "", paste0("&fields=", fields), ""),
-          link
-        ),
-        TRUE ~ "null"
-      )
-    ) %>%
-    tidyr::pivot_wider(
-      id_cols = dplyr::everything(),
-      names_from = "type",
-      values_from = "link"
-    )
+  # 14) Build the cursor next/prev links for this resource
+  links <- build_cursor_links(
+    pag_info$links,
+    "/pubtator/genes",
+    sort, filter, fields
+  )
 
   final_list <- list(
     links = links,
