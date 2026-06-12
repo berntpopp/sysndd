@@ -1,21 +1,5 @@
 
 ############################################
-## SIZE EXCEPTION (WP9 / #346, #402): this out-of-band DB-prep script
-## intentionally exceeds the 600-line soft ceiling and is allowlisted in
-## scripts/code-quality-file-size-baseline.tsv. It is a flat, sequential
-## schema-bootstrap: ALTER TABLE / foreign-key / index DDL followed by ~10 large
-## `CREATE OR REPLACE VIEW` definitions inlined as dbSendQuery() strings.
-## Splitting it would reduce clarity (the SQL must read top-to-bottom in
-## dependency order) and is unsafe: the `ndd_entity_view` body below must stay
-## mirrored byte-for-byte (modulo the `sysndd_db.` schema prefix and the
-## migration's ALGORITHM/SQL SECURITY INVOKER clause) with the latest
-## `CREATE OR REPLACE VIEW ndd_entity_view` migration, currently
-## db/migrations/026_add_entity_last_update.sql, which is the SOURCE OF TRUTH.
-## Keep the two in sync; do not extract or reformat the view SQL.
-############################################
-
-
-############################################
 ## load libraries
 library(tidyverse)  ##needed for general table operations
 library(DBI)    ##needed for MySQL data export

@@ -57,4 +57,4 @@ app/src/views/curate/ApproveUser.vue	842
 app/src/views/curate/CreateEntity.vue	637
 app/src/views/curate/ManageReReview.vue	1579
 app/src/views/pages/EntityView.vue	811
-db/C_Rcommands_set-table-connections.R	807
+db/C_Rcommands_set-table-connections.R	791
