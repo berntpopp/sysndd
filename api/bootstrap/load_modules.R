@@ -98,6 +98,7 @@ bootstrap_load_modules <- function() {
     "functions/data-helpers.R",
     "functions/entity-helpers.R",
     "functions/response-helpers.R",
+    "functions/response-fields-helpers.R",
     "functions/email-templates.R",
     "functions/pagination-helpers.R",
     "functions/external-functions.R",
