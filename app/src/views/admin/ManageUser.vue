@@ -333,6 +333,7 @@ import { useUserData } from './composables/useUserData';
 import { useUserMutations } from './composables/useUserMutations';
 import { useBulkUserActions } from './composables/useBulkUserActions';
 import { useUserModals } from './composables/useUserModals';
+import { useUserTablePresentation } from './composables/useUserTablePresentation';
 
 export default defineComponent({
   name: 'ManageUser',
@@ -377,62 +378,8 @@ export default defineComponent({
     });
 
     // ── Derived state ──────────────────────────────────────────────────────────
-    const fields = [
-      {
-        key: 'select',
-        label: '',
-        class: 'text-center',
-        thStyle: { width: '40px' },
-        sortable: false,
-      },
-      {
-        key: 'user_name',
-        label: 'User name',
-        sortable: true,
-        filterable: true,
-        sortDirection: 'asc',
-        class: 'text-start',
-      },
-      {
-        key: 'email',
-        label: 'E-mail',
-        sortable: true,
-        filterable: true,
-        sortDirection: 'asc',
-        class: 'text-start',
-      },
-      {
-        key: 'user_role',
-        label: 'Role',
-        sortable: true,
-        selectable: true,
-        sortDirection: 'asc',
-        class: 'text-start',
-      },
-      {
-        key: 'approved',
-        label: 'Status',
-        sortable: true,
-        selectable: true,
-        sortDirection: 'asc',
-        class: 'text-center',
-      },
-      {
-        key: 'abbreviation',
-        label: 'Abbrev.',
-        sortable: true,
-        sortDirection: 'asc',
-        class: 'text-start',
-      },
-      {
-        key: 'created_at',
-        label: 'Created',
-        sortable: true,
-        sortDirection: 'asc',
-        class: 'text-start',
-      },
-      { key: 'actions', label: 'Actions', sortable: false, class: 'text-center' },
-    ];
+    // Table column config + role badge/icon lookups (pure presentation seam).
+    const { fields, getRoleBadgeVariant, getRoleIcon } = useUserTablePresentation();
 
     const hasActiveFilters = computed(() =>
       Object.values(data.filter.value).some((f) => f.content !== null && f.content !== '')
@@ -496,26 +443,6 @@ export default defineComponent({
     }
 
     // ── Utility helpers ────────────────────────────────────────────────────────
-    function getRoleBadgeVariant(role: string): string {
-      const variants: Record<string, string> = {
-        Administrator: 'danger',
-        Curator: 'primary',
-        Reviewer: 'info',
-        Viewer: 'secondary',
-      };
-      return variants[role] || 'secondary';
-    }
-
-    function getRoleIcon(role: string): string {
-      const icons: Record<string, string> = {
-        Administrator: 'bi bi-shield-fill-check',
-        Curator: 'bi bi-pencil-fill',
-        Reviewer: 'bi bi-eye-fill',
-        Viewer: 'bi bi-person-fill',
-      };
-      return icons[role] || 'bi bi-person-fill';
-    }
-
     function showSavePresetPrompt(): void {
       const name = prompt('Enter a name for this filter preset:');
       if (name && name.trim()) {
