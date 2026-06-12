@@ -634,56 +634,5 @@ defineExpose({
 });
 </script>
 
-<style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
-
-.text-truncate-multiline {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-
-.text-popover-trigger {
-  cursor: help;
-  border-bottom: 1px dotted #6c757d;
-}
-
-.text-popover-trigger:hover {
-  background-color: rgba(0, 123, 255, 0.05);
-  border-radius: 2px;
-}
-</style>
-
-<style>
-.wide-popover {
-  max-width: 400px !important;
-}
-
-.wide-popover .popover-header {
-  font-size: 0.85rem;
-  font-weight: 600;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.wide-popover .popover-body {
-  max-height: 250px;
-  overflow-y: auto;
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
-.popover-text-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-</style>
+<style scoped src="./ApprovalTableView.css"></style>
+<style src="./ApprovalTableView.global.css"></style>
