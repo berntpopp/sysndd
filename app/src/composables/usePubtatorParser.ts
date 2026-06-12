@@ -237,6 +237,34 @@ export function getEntityClass(type: ParsedSegment['type']): string {
 }
 
 /**
+ * Get CSS class for a parsed segment based on its entity type.
+ *
+ * Thin wrapper over {@link getEntityClass} that dispatches on `segment.type`.
+ * Shared by the PubTator table/genes components so the annotated-text
+ * highlighting stays in a single source of truth.
+ */
+export function getSegmentClass(segment: ParsedSegment): string {
+  return getEntityClass(segment.type);
+}
+
+/**
+ * Get the tooltip text for an annotated PubTator segment.
+ *
+ * Plain text and bare match segments have no tooltip; typed entities show a
+ * capitalized type label, the matched text, and the entity id when present.
+ */
+export function getSegmentTooltip(segment: ParsedSegment): string {
+  if (segment.type === 'plain' || segment.type === 'match') {
+    return '';
+  }
+  const typeLabel = segment.type.charAt(0).toUpperCase() + segment.type.slice(1);
+  if (segment.entityId) {
+    return `${typeLabel}: ${segment.text} (ID: ${segment.entityId})`;
+  }
+  return `${typeLabel}: ${segment.text}`;
+}
+
+/**
  * Composable for PubTator parsing
  */
 export function usePubtatorParser() {
@@ -245,6 +273,8 @@ export function usePubtatorParser() {
     extractEntities,
     extractGeneSymbols,
     getEntityClass,
+    getSegmentClass,
+    getSegmentTooltip,
   };
 }
 

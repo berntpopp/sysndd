@@ -120,6 +120,9 @@ export {
   parsePubtatorText,
   extractEntities,
   extractGeneSymbols,
+  getEntityClass,
+  getSegmentClass,
+  getSegmentTooltip,
 } from './usePubtatorParser';
 export type { ParsedSegment, ExtractedEntity } from './usePubtatorParser';
 

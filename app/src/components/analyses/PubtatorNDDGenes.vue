@@ -401,7 +401,14 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { listPubtatorGenes, listPubtatorTable } from '@/api/publication';
 
 // Import composables
-import { useToast, useUrlParsing, useTableData, parsePubtatorText } from '@/composables';
+import {
+  useToast,
+  useUrlParsing,
+  useTableData,
+  parsePubtatorText,
+  getSegmentClass,
+  getSegmentTooltip,
+} from '@/composables';
 import type { ParsedSegment } from '@/composables/usePubtatorParser';
 import { useExcelExport } from '@/composables/useExcelExport';
 
@@ -671,37 +678,8 @@ const parseAnnotations = (text: string | null | undefined): ParsedSegment[] => {
   return parsePubtatorText(text);
 };
 
-// Get CSS class for a parsed segment based on its type
-const getSegmentClass = (segment: ParsedSegment): string => {
-  switch (segment.type) {
-    case 'gene':
-      return 'pubtator-gene';
-    case 'disease':
-      return 'pubtator-disease';
-    case 'variant':
-      return 'pubtator-variant';
-    case 'species':
-      return 'pubtator-species';
-    case 'chemical':
-      return 'pubtator-chemical';
-    case 'match':
-      return 'pubtator-match';
-    default:
-      return '';
-  }
-};
-
-// Get tooltip text for annotated segments
-const getSegmentTooltip = (segment: ParsedSegment): string => {
-  if (segment.type === 'plain' || segment.type === 'match') {
-    return '';
-  }
-  const typeLabel = segment.type.charAt(0).toUpperCase() + segment.type.slice(1);
-  if (segment.entityId) {
-    return `${typeLabel}: ${segment.text} (ID: ${segment.entityId})`;
-  }
-  return `${typeLabel}: ${segment.text}`;
-};
+// Segment display helpers (getSegmentClass / getSegmentTooltip) are imported
+// from the shared PubTator parser composable above and used directly in the template.
 
 // Apply prioritization filters
 const applyPrioritizationFilters = () => {
