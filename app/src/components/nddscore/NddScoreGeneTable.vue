@@ -314,13 +314,7 @@ import {
   BFormSelect,
   BRow,
 } from 'bootstrap-vue-next';
-import type { ColorVariant } from 'bootstrap-vue-next';
-import {
-  fetchGenePredictions,
-  fetchHpoTerms,
-  type NddScoreGenePrediction,
-  type NddScoreHpoTerm,
-} from '@/api/nddscore';
+import { fetchGenePredictions, fetchHpoTerms, type NddScoreGenePrediction } from '@/api/nddscore';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
@@ -335,6 +329,33 @@ import {
   parseNddScoreGeneFilterClauses,
   type NddScoreGeneRangeOperator,
 } from './nddScoreGeneTableFilters';
+import {
+  nddScoreGeneFields,
+  nddScoreGeneColumnHelp,
+  nddScoreRangeOperatorOptions,
+  type NddScoreGeneFieldDefinition,
+  type NddScoreGeneFieldKey,
+} from './nddScoreGeneTableColumns';
+import {
+  displayValue,
+  formatDecimal,
+  formatPercentile,
+  riskVariant,
+  confidenceVariant,
+  isKnownGene,
+  topHpoLabel,
+  topHpoTooltip,
+} from './nddScoreGeneTableFormatters';
+import {
+  nddScoreSelectOptionsFor,
+  nddScoreRangeValuePlaceholder,
+  nddScoreRangeFilterLabel,
+  nddScoreFilterDropdownToggleClass,
+  nddScoreFilterDropdownClass,
+  nddScoreFilterControlClass,
+  nddScoreHpoTermOption,
+  type NddScoreSelectOption,
+} from './nddScoreGeneTableFilterUi';
 
 defineOptions({
   name: 'NddScoreGeneTable',
@@ -361,26 +382,8 @@ type SortEvent = {
   sortDesc: boolean;
 };
 
-type FieldKey =
-  | 'gene_symbol'
-  | 'ndd_score'
-  | 'rank'
-  | 'percentile'
-  | 'risk_tier'
-  | 'confidence_tier'
-  | 'known_sysndd_gene'
-  | 'model_split'
-  | 'top_inheritance_mode'
-  | 'top_hpo_predictions_json';
-
-type FieldDefinition = {
-  key: FieldKey;
-  label: string;
-  sortable?: boolean;
-  filterType?: 'text' | 'select' | 'range' | 'multi-select';
-  selectOptions?: Array<{ value: string; text: string }>;
-  numericStep?: string;
-};
+type FieldKey = NddScoreGeneFieldKey;
+type FieldDefinition = NddScoreGeneFieldDefinition;
 
 type RangeOperator = NddScoreGeneRangeOperator;
 type RangeFieldKey = 'ndd_score' | 'rank' | 'percentile';
@@ -405,111 +408,13 @@ const loadError = ref('');
 const search = ref('');
 const sort = ref('rank');
 const hpoTermFilter = ref<string[]>([]);
-const hpoTermOptions = ref<Array<{ value: string; text: string }>>([]);
+const hpoTermOptions = ref<NddScoreSelectOption[]>([]);
 const hpoTermSearch = ref('');
 let requestSerial = 0;
 const { isExporting, exportToExcel } = useExcelExport();
 
-const rangeOperatorOptions = [
-  { value: 'any', text: 'Any' },
-  { value: 'gte', text: '>=' },
-  { value: 'lte', text: '<=' },
-  { value: 'eq', text: '=' },
-  { value: 'range', text: 'Range' },
-];
-
-const riskTierOptions = [
-  { value: 'Very High', text: 'Very High' },
-  { value: 'High', text: 'High' },
-  { value: 'Moderate', text: 'Moderate' },
-  { value: 'Low', text: 'Low' },
-  { value: 'Very Low', text: 'Very Low' },
-];
-
-const confidenceTierOptions = [
-  { value: 'High', text: 'High' },
-  { value: 'Medium', text: 'Medium' },
-  { value: 'Low', text: 'Low' },
-];
-
-const knownSysnddOptions = [
-  { value: 'true', text: 'Known SysNDD gene' },
-  { value: 'false', text: 'Not known in SysNDD' },
-];
-
-const modelSplitOptions = [
-  { value: 'train', text: 'Train' },
-  { value: 'validation', text: 'Validation' },
-  { value: 'test', text: 'Test' },
-  { value: 'unseen', text: 'Unseen' },
-];
-
-const inheritanceModeOptions = [
-  { value: 'AD', text: 'AD' },
-  { value: 'AR', text: 'AR' },
-  { value: 'XLD', text: 'XLD' },
-  { value: 'XLR', text: 'XLR' },
-];
-
-const fields: FieldDefinition[] = [
-  { key: 'gene_symbol', label: 'Gene', sortable: true, filterType: 'text' },
-  {
-    key: 'ndd_score',
-    label: 'NDD score',
-    sortable: true,
-    filterType: 'range',
-    numericStep: '0.001',
-  },
-  { key: 'rank', label: 'Rank', sortable: true, filterType: 'range', numericStep: '1' },
-  {
-    key: 'percentile',
-    label: 'Percentile',
-    sortable: true,
-    filterType: 'range',
-    numericStep: '0.1',
-  },
-  {
-    key: 'risk_tier',
-    label: 'Risk tier',
-    sortable: true,
-    filterType: 'select',
-    selectOptions: riskTierOptions,
-  },
-  {
-    key: 'confidence_tier',
-    label: 'Confidence',
-    sortable: true,
-    filterType: 'select',
-    selectOptions: confidenceTierOptions,
-  },
-  {
-    key: 'known_sysndd_gene',
-    label: 'SysNDD',
-    sortable: true,
-    filterType: 'select',
-    selectOptions: knownSysnddOptions,
-  },
-  {
-    key: 'model_split',
-    label: 'Split',
-    sortable: false,
-    filterType: 'select',
-    selectOptions: modelSplitOptions,
-  },
-  {
-    key: 'top_inheritance_mode',
-    label: 'Top inheritance',
-    sortable: false,
-    filterType: 'select',
-    selectOptions: inheritanceModeOptions,
-  },
-  {
-    key: 'top_hpo_predictions_json',
-    label: 'Predicted HPO',
-    sortable: false,
-    filterType: 'multi-select',
-  },
-];
+const rangeOperatorOptions = nddScoreRangeOperatorOptions;
+const fields: FieldDefinition[] = nddScoreGeneFields;
 
 const columnFilters = reactive<Record<string, string>>({
   gene_symbol: '',
@@ -532,19 +437,7 @@ const rangeFilters = reactive<Record<RangeFieldKey, RangeFilterState>>({
   percentile: { operator: 'any', value: '', valueMax: '' },
 });
 
-const columnHelp: Record<string, string> = {
-  gene_symbol: 'Gene symbol linked to the NDDScore prediction detail page.',
-  ndd_score:
-    'Model probability-like score for NDD gene candidacy; higher is stronger model support.',
-  rank: 'Position of this gene in the active NDDScore release after sorting by NDD score.',
-  percentile: 'Relative position among all genes in the active release.',
-  risk_tier: 'Bucketed interpretation of the model score.',
-  confidence_tier: 'Model confidence tier based on ensemble consistency and score stability.',
-  known_sysndd_gene: 'Whether this HGNC identifier already has a curated SysNDD gene page.',
-  model_split: 'Dataset split assigned in the active NDDScore release.',
-  top_inheritance_mode: 'Highest-probability inheritance mode predicted by the model.',
-  top_hpo_predictions_json: 'Top predicted phenotype association for this gene.',
-};
+const columnHelp = nddScoreGeneColumnHelp;
 
 const totalLabel = computed(() => `${total.value.toLocaleString()} genes`);
 const tableShellLoading = computed(() => loading.value && !hasLoadedOnce.value);
@@ -582,41 +475,29 @@ const hpoFilterLabel = computed(() => {
 });
 
 const hpoFilterToggleClass = computed(() =>
-  filterDropdownToggleClass(hpoTermFilter.value.length === 0)
+  nddScoreFilterDropdownToggleClass(hpoTermFilter.value.length === 0)
 );
 
 const hpoFilterDropdownClass = computed(() =>
-  filterDropdownClass(hpoTermFilter.value.length === 0)
+  nddScoreFilterDropdownClass(hpoTermFilter.value.length === 0)
 );
 
 function normalizeRows(data: NddScoreGenePrediction[] | undefined): GenePredictionRow[] {
   return (data ?? []).map((row) => row as GenePredictionRow);
 }
 
-function hpoTermOption(term: NddScoreHpoTerm): { value: string; text: string } | null {
-  const phenotypeId = displayValue(term.phenotype_id);
-  if (phenotypeId === 'NA') {
-    return null;
-  }
-  const phenotypeName = displayValue(term.phenotype_name);
-  return {
-    value: phenotypeId,
-    text: phenotypeName === 'NA' ? phenotypeId : `${phenotypeId} ${phenotypeName}`,
-  };
-}
-
 async function loadHpoTermOptions() {
   try {
     hpoTermOptions.value = (await fetchHpoTerms())
-      .map(hpoTermOption)
-      .filter((option): option is { value: string; text: string } => option != null);
+      .map(nddScoreHpoTermOption)
+      .filter((option): option is NddScoreSelectOption => option != null);
   } catch {
     hpoTermOptions.value = [];
   }
 }
 
-function selectOptionsFor(field: FieldDefinition): Array<{ value: string; text: string }> {
-  return [{ value: '', text: `.. ${field.label} ..` }, ...(field.selectOptions ?? [])];
+function selectOptionsFor(field: FieldDefinition): NddScoreSelectOption[] {
+  return nddScoreSelectOptionsFor(field);
 }
 
 function rangeKey(key: FieldKey): RangeFieldKey {
@@ -624,60 +505,23 @@ function rangeKey(key: FieldKey): RangeFieldKey {
 }
 
 function rangeValuePlaceholder(field: FieldDefinition): string {
-  const operator = rangeFilters[rangeKey(field.key)].operator;
-  if (operator === 'range') {
-    return 'from';
-  }
-  return 'value';
+  return nddScoreRangeValuePlaceholder(rangeFilters[rangeKey(field.key)].operator);
 }
 
 function rangeFilterLabel(field: FieldDefinition): string {
-  const state = rangeFilters[rangeKey(field.key)];
-  if (state.operator === 'any') {
-    return `Any ${field.label}`;
-  }
-  if (state.operator === 'range') {
-    return state.value && state.valueMax
-      ? `${state.value}-${state.valueMax}`
-      : `${field.label} range`;
-  }
-  const operatorLabel = rangeOperatorOptions.find(
-    (option) => option.value === state.operator
-  )?.text;
-  return state.value ? `${operatorLabel} ${state.value}` : `${field.label} ${operatorLabel}`;
-}
-
-function filterDropdownToggleClass(isEmpty: boolean): string {
-  return [
-    'nddscore-gene-table__filter-toggle',
-    isEmpty
-      ? 'nddscore-gene-table__filter-toggle--empty nddscore-gene-table__filter-dropdown--empty'
-      : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
-
-function filterDropdownClass(isEmpty: boolean): Record<string, boolean> {
-  return {
-    'nddscore-gene-table__filter-dropdown': true,
-    'nddscore-gene-table__filter-dropdown--empty': isEmpty,
-  };
+  return nddScoreRangeFilterLabel(field, rangeFilters[rangeKey(field.key)]);
 }
 
 function rangeFilterToggleClass(field: FieldDefinition): string {
-  return filterDropdownToggleClass(rangeFilters[rangeKey(field.key)].operator === 'any');
+  return nddScoreFilterDropdownToggleClass(rangeFilters[rangeKey(field.key)].operator === 'any');
 }
 
 function rangeFilterDropdownClass(field: FieldDefinition): Record<string, boolean> {
-  return filterDropdownClass(rangeFilters[rangeKey(field.key)].operator === 'any');
+  return nddScoreFilterDropdownClass(rangeFilters[rangeKey(field.key)].operator === 'any');
 }
 
 function filterControlClass(key: FieldKey): Record<string, boolean> {
-  return {
-    'nddscore-gene-table__filter-control': true,
-    'nddscore-gene-table__filter-control--empty': !columnFilters[key],
-  };
+  return nddScoreFilterControlClass(!columnFilters[key]);
 }
 
 function handleRangeOperatorChange(key: FieldKey) {
@@ -913,108 +757,6 @@ function removeSearch() {
 
 function detailPath(row: GenePredictionRow): string {
   return withReturnTo(`/NDDScore/Gene/${encodeURIComponent(displayValue(row.hgnc_id))}`);
-}
-
-function displayValue(value: unknown): string {
-  if (value == null || value === '') {
-    return 'NA';
-  }
-  return String(value);
-}
-
-function numericValue(value: unknown): number | null {
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numberValue) ? numberValue : null;
-}
-
-function formatDecimal(value: unknown, digits: number): string {
-  const numberValue = numericValue(value);
-  return numberValue == null ? 'NA' : numberValue.toFixed(digits);
-}
-
-function formatPercentile(value: unknown): string {
-  const numberValue = numericValue(value);
-  return numberValue == null ? 'NA' : `${numberValue.toFixed(1)}%`;
-}
-
-function riskVariant(value: unknown): ColorVariant {
-  switch (String(value).toLowerCase()) {
-    case 'very high':
-      return 'danger';
-    case 'high':
-      return 'warning';
-    case 'moderate':
-      return 'info';
-    default:
-      return 'light';
-  }
-}
-
-function confidenceVariant(value: unknown): ColorVariant {
-  switch (String(value).toLowerCase()) {
-    case 'high':
-      return 'success';
-    case 'medium':
-    case 'moderate':
-      return 'info';
-    default:
-      return 'light';
-  }
-}
-
-function isKnownGene(value: unknown): boolean {
-  return value === true || value === 1 || value === '1' || value === 'true';
-}
-
-function parseHpoPredictions(value: unknown): Array<Record<string, unknown>> {
-  if (Array.isArray(value)) {
-    return value.filter((entry): entry is Record<string, unknown> => Boolean(entry));
-  }
-
-  if (typeof value !== 'string' || value.length === 0) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((entry): entry is Record<string, unknown> => Boolean(entry))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function topHpoLabel(value: unknown, count: unknown): string {
-  const predictions = parseHpoPredictions(value);
-  const first = predictions[0];
-  const label = first?.phenotype_name ?? first?.term_name ?? first?.phenotype_id ?? first?.hpo_id;
-  const totalPredicted = numericValue(count);
-
-  if (label) {
-    return totalPredicted && totalPredicted > 1
-      ? `${String(label)} +${totalPredicted - 1}`
-      : String(label);
-  }
-
-  return totalPredicted ? String(totalPredicted) : 'NA';
-}
-
-function topHpoTooltip(value: unknown): string {
-  const predictions = parseHpoPredictions(value);
-  if (!predictions.length) {
-    return 'No predicted HPO terms available.';
-  }
-
-  return predictions
-    .map((entry) => {
-      const label = entry.phenotype_name ?? entry.term_name ?? entry.phenotype_id ?? entry.hpo_id;
-      const probability = numericValue(entry.probability ?? entry.score);
-      return probability == null
-        ? String(label)
-        : `${String(label)} (${formatDecimal(probability, 3)})`;
-    })
-    .join('; ');
 }
 
 onMounted(() => {

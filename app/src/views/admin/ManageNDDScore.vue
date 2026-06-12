@@ -284,8 +284,20 @@ import {
   BProgressBar,
   BSpinner,
 } from 'bootstrap-vue-next';
+import {
+  normalizeRecord,
+  firstValue,
+  displayValue,
+  formatDate,
+  statusClass,
+  jobMode,
+  jobReleaseId,
+  jobKey,
+  type NddScoreAdminRecord,
+} from './nddScoreAdminFormatters';
+import { useNddScoreAdminDerivedRows } from './useNddScoreAdminDerivedRows';
 
-type AdminRecord = Record<string, unknown>;
+type AdminRecord = NddScoreAdminRecord;
 
 const jobStatusUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`;
 const importJob = useAsyncJob(jobStatusUrl);
@@ -311,99 +323,14 @@ const recentJobs = computed<AdminRecord[]>(() =>
 );
 const submittingJob = computed(() => submittingValidate.value || submittingImport.value);
 
-const activeReleaseStatus = computed(() => {
-  if (loadingStatus.value) return 'Loading';
-  if (!activeRelease.value) return 'No active release';
-  return displayValue(activeRelease.value.import_status);
-});
-
-const countItems = computed(() => [
-  {
-    key: 'genes',
-    label: 'Genes',
-    value: formatInteger(activeRelease.value?.n_genes),
-  },
-  {
-    key: 'hpo-predictions',
-    label: 'HPO predictions',
-    value: formatInteger(activeRelease.value?.n_hpo_predictions),
-  },
-  {
-    key: 'hpo-terms',
-    label: 'HPO terms',
-    value: formatInteger(activeRelease.value?.n_hpo_terms),
-  },
-]);
-
-const releaseRows = computed(() => [
-  {
-    label: 'Version DOI',
-    value: displayValue(activeRelease.value?.version_doi),
-    mono: true,
-  },
-  {
-    label: 'Concept DOI',
-    value: displayValue(activeRelease.value?.concept_doi),
-    mono: true,
-  },
-  {
-    label: 'Archive',
-    value: firstValue(activeRelease.value, [
-      'source_archive_name',
-      'archive_name',
-      'zenodo_archive_name',
-    ]),
-    mono: true,
-  },
-  {
-    label: 'Checksum',
-    value: firstValue(activeRelease.value, [
-      'source_archive_checksum',
-      'archive_checksum',
-      'checksum',
-    ]),
-    mono: true,
-  },
-  {
-    label: 'Activated',
-    value: formatDate(activeRelease.value?.activated_at),
-    mono: false,
-  },
-  {
-    label: 'Imported',
-    value: formatDate(firstValue(activeRelease.value, ['import_completed_at', 'imported_at'])),
-    mono: false,
-  },
-]);
-
-const performanceRows = computed(() => {
-  const raw = firstRawValue(activeRelease.value, ['ndd_performance_json', 'performance_summary']);
-  const record = parseRecord(raw);
-  if (!record) return [];
-
-  return Object.entries(record).map(([key, value]) => ({
-    label: humanizeKey(key),
-    value: displayValue(value),
-  }));
-});
-
-const zenodoArchiveName = computed(() =>
-  firstValue(normalizeRecord(zenodoResult.value?.zenodo), [
-    'source_archive_name',
-    'archive_name',
-    'filename',
-    'name',
-  ])
-);
-
-const zenodoChecksum = computed(() =>
-  firstValue(normalizeRecord(zenodoResult.value?.zenodo), [
-    'archive_md5',
-    'source_archive_checksum',
-    'archive_checksum',
-    'checksum',
-  ])
-);
+const {
+  activeReleaseStatus,
+  countItems,
+  releaseRows,
+  performanceRows,
+  zenodoArchiveName,
+  zenodoChecksum,
+} = useNddScoreAdminDerivedRows(activeRelease, zenodoResult, loadingStatus);
 
 onMounted(() => {
   void loadStatus();
@@ -477,90 +404,6 @@ async function confirmImport() {
   } finally {
     submittingImport.value = false;
   }
-}
-
-function normalizeRecord(value: unknown): AdminRecord | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  return value as AdminRecord;
-}
-
-function parseRecord(value: unknown): AdminRecord | null {
-  if (typeof value === 'string') {
-    try {
-      return normalizeRecord(JSON.parse(value));
-    } catch {
-      return null;
-    }
-  }
-  return normalizeRecord(value);
-}
-
-function firstRawValue(record: AdminRecord | null | undefined, keys: string[]): unknown {
-  if (!record) return undefined;
-  return keys.map((key) => record[key]).find((value) => value !== null && value !== undefined);
-}
-
-function firstValue(record: AdminRecord | null | undefined, keys: string[]) {
-  return displayValue(firstRawValue(record, keys));
-}
-
-function displayValue(value: unknown): string {
-  if (Array.isArray(value)) {
-    return value.length === 1 ? displayValue(value[0]) : value.map(displayValue).join(', ');
-  }
-  if (value === null || value === undefined || value === '') return 'Not recorded';
-  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'Not recorded';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
-
-function formatInteger(value: unknown): string {
-  const scalar = Array.isArray(value) ? value[0] : value;
-  const numberValue = Number(scalar);
-  return Number.isFinite(numberValue) ? numberValue.toLocaleString() : '0';
-}
-
-function formatDate(value: unknown): string {
-  const raw = displayValue(value);
-  if (raw === 'Not recorded') return raw;
-  const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleString();
-}
-
-function humanizeKey(key: string): string {
-  return key.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function statusClass(value: unknown): string {
-  const normalized = displayValue(value).toLowerCase();
-  if (['active', 'completed', 'success', 'succeeded'].includes(normalized)) return 'bg-success';
-  if (['failed', 'error'].includes(normalized)) return 'bg-danger';
-  if (['running', 'accepted', 'pending'].includes(normalized)) return 'bg-primary';
-  return 'bg-secondary';
-}
-
-function jobMode(job: AdminRecord): string {
-  const payload = parseRecord(job.request_payload_json);
-  const validateOnly = firstRawValue(job, ['validate_only']) ?? payload?.validate_only;
-  if (validateOnly === true || validateOnly === 'true' || validateOnly === 1)
-    return 'Validate only';
-  return 'Import';
-}
-
-function jobReleaseId(job: AdminRecord): string {
-  const payload = parseRecord(job.request_payload_json);
-  const result = parseRecord(firstRawValue(job, ['result_json', 'result_payload_json']));
-  return displayValue(
-    firstRawValue(job, ['release_id']) ??
-      result?.release_id ??
-      payload?.release_id ??
-      payload?.record_id
-  );
-}
-
-function jobKey(job: AdminRecord): string {
-  return firstValue(job, ['job_id', 'id', 'created_at']);
 }
 
 defineExpose({ confirmImport });

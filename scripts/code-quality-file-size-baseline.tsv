@@ -30,9 +30,7 @@ app/src/components/analyses/PubtatorNDDTable.vue	922
 app/src/components/ApprovalTableView.vue	689
 app/src/components/forms/BatchCriteriaForm.vue	747
 app/src/components/gene/GeneStructurePlotWithVariants.vue	680
-app/src/components/llm/LlmSummaryCard.vue	706
-app/src/components/nddscore/NddScoreGeneDetail.vue	750
-app/src/components/nddscore/NddScoreGeneTable.vue	1156
+app/src/components/nddscore/NddScoreGeneTable.vue	898
 app/src/components/small/GenericTable.vue	923
 app/src/components/tables/TablesEntities.vue	843
 app/src/components/tables/TablesGenes.vue	782
@@ -40,8 +38,6 @@ app/src/components/tables/TablesLogs.vue	1160
 app/src/components/tables/TablesPhenotypes.vue	1153
 app/src/views/admin/ManageAnnotations.vue	690
 app/src/views/admin/ManageBackups.vue	1115
-app/src/views/admin/ManageLLM.vue	938
-app/src/views/admin/ManageNDDScore.vue	738
 app/src/views/admin/ManageOntology.vue	825
 app/src/views/admin/ManagePubtator.vue	638
 app/src/views/admin/ManageUser.vue	675
