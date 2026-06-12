@@ -81,6 +81,13 @@ function(req,
 
   tryCatch(
     {
+      # Load the pure SQL-construction layer (validate/build/parse helpers,
+      # extracted into logging-query-builders.R in WP8 #401) before the
+      # repository, which depends on these builders.
+      if (!exists("parse_logging_filter", mode = "function")) {
+        source("/app/functions/logging-query-builders.R", local = FALSE)
+      }
+
       # Load logging repository for database-side filtering (fixes #152)
       if (!exists("get_logs_filtered", mode = "function")) {
         source("/app/functions/logging-repository.R", local = FALSE)

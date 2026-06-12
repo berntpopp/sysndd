@@ -11,7 +11,12 @@
 
 library(testthat)
 
-# Source the module under test
+# Source the modules under test. The pure SQL-construction layer
+# (validate/build/parse helpers) lives in logging-query-builders.R and the
+# database query functions (get_logs_first_page) in logging-repository.R since
+# the WP8 (#401) split; the repository functions call the builders, so both
+# are sourced here.
+source_api_file("functions/logging-query-builders.R", local = FALSE)
 source_api_file("functions/logging-repository.R", local = FALSE)
 
 # ============================================================================
