@@ -329,3 +329,24 @@ test_that("cluster snapshot refresh delegates LLM summary generation to the work
   expect_equal(phenotype_result$llm_generation$job_id, "llm-job")
   expect_equal(functional_result$llm_generation$job_id, "llm-job")
 })
+
+test_that("cluster_hash is extracted from hash_filter and fits CHAR(64)", {
+  source(file.path("functions", "analysis-snapshot-builder.R"), local = TRUE)
+
+  sha <- paste(rep("a", 64), collapse = "") # 64-char stand-in for a SHA-256
+  out <- analysis_snapshot_extract_cluster_hash(c(
+    paste0("equals(hash,", sha, ")"), # filter-expression form
+    "bareplainhash",                   # already a bare hash
+    NA_character_,                     # missing
+    ""                                 # empty
+  ))
+
+  expect_equal(out[[1]], sha)                 # inner hash extracted, not the expr
+  expect_equal(out[[2]], "bareplainhash")     # bare hash passed through
+  expect_true(is.na(out[[3]]))
+  expect_true(is.na(out[[4]]))
+  # The whole point: extracted values fit the CHAR(64) cluster_hash column.
+  expect_true(all(nchar(out[!is.na(out)]) <= 64))
+  # Regression: the raw filter expression would have been > 64 chars.
+  expect_gt(nchar(paste0("equals(hash,", sha, ")")), 64)
+})

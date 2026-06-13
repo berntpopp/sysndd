@@ -131,6 +131,36 @@ analysis_snapshot_build_network_rows <- function(network) {
   )
 }
 
+#' Extract the canonical cluster hash (SHA-256) from a clustering result's
+#' `hash_filter` column.
+#'
+#' Clustering carries `hash_filter` as a filter expression `equals(hash,XXX)`
+#' (or already a bare hash). The `analysis_snapshot_cluster.cluster_hash` column
+#' is CHAR(64), so we must store the inner `XXX`, not the whole expression —
+#' otherwise the INSERT overflows ("Data too long for column 'cluster_hash'",
+#' errno 1406), the refresh transaction rolls back, and every public analysis
+#' endpoint stays on `snapshot_missing`. Mirrors the extraction in
+#' `llm-batch-generator.R` so the snapshot and the LLM summary cache agree on the
+#' cluster key.
+#' @noRd
+analysis_snapshot_extract_cluster_hash <- function(hash_filter) {
+  vapply(
+    as.character(hash_filter),
+    function(h) {
+      if (is.na(h) || !nzchar(h)) {
+        return(NA_character_)
+      }
+      if (grepl("^equals\\(hash,", h)) {
+        sub("^equals\\(hash,(.*)\\)$", "\\1", h)
+      } else {
+        h
+      }
+    },
+    character(1),
+    USE.NAMES = FALSE
+  )
+}
+
 analysis_snapshot_build_cluster_rows <- function(clusters, cluster_kind) {
   clusters_in <- tibble::as_tibble(clusters %||% tibble::tibble())
   if (nrow(clusters_in) == 0L) {
@@ -157,7 +187,9 @@ analysis_snapshot_build_cluster_rows <- function(clusters, cluster_kind) {
 
   cluster_id_col <- if ("cluster_id" %in% names(clusters_in)) "cluster_id" else "cluster"
   cluster_ids <- as.character(clusters_in[[cluster_id_col]])
-  cluster_hashes <- as.character(analysis_snapshot_column(clusters_in, "hash_filter", NA_character_))
+  cluster_hashes <- analysis_snapshot_extract_cluster_hash(
+    analysis_snapshot_column(clusters_in, "hash_filter", NA_character_)
+  )
   cluster_sizes <- suppressWarnings(as.integer(analysis_snapshot_column(clusters_in, "cluster_size", NA_integer_)))
   labels <- as.character(analysis_snapshot_column(
     clusters_in,
