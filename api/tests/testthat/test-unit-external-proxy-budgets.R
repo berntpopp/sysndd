@@ -164,3 +164,58 @@ test_that("external_proxy_budget defaults stay 6/10/2 for existing callers", {
   expect_equal(b$max_seconds, 10)
   expect_equal(b$max_tries, 2L)
 })
+
+# ---------------------------------------------------------------------------
+# #344: request-scoped external-time accumulator + per-request ceiling
+# ---------------------------------------------------------------------------
+
+test_that("request-time accumulator sums and resets", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  external_proxy_request_reset()
+  expect_equal(external_proxy_request_total_ms(), 0)
+  external_proxy_request_add(1200)
+  external_proxy_request_add(800)
+  expect_equal(external_proxy_request_total_ms(), 2000)
+  external_proxy_request_reset()
+  expect_equal(external_proxy_request_total_ms(), 0)
+})
+
+test_that("request ceiling trips at the env-configured limit", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(EXTERNAL_PROXY_REQUEST_MAX_SECONDS = "15"))
+  external_proxy_request_reset()
+  external_proxy_request_add(2000)
+  expect_false(external_proxy_request_ceiling_exceeded())
+  external_proxy_request_add(14000) # total 16000ms > 15000ms
+  expect_true(external_proxy_request_ceiling_exceeded())
+})
+
+test_that("timing wrapper accumulates external time into the request total", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  external_proxy_request_reset()
+  suppressMessages(
+    external_proxy_with_timing("mgi", function() {
+      Sys.sleep(0.05)
+      list(source = "mgi", found = FALSE)
+    })
+  )
+  expect_gt(external_proxy_request_total_ms(), 40)
+})
+
+test_that("once the ceiling trips, the timing wrapper short-circuits upstream", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(EXTERNAL_PROXY_REQUEST_MAX_SECONDS = "0.001"))
+  external_proxy_request_reset()
+  external_proxy_request_add(50) # already over the 1ms ceiling
+  called <- FALSE
+  result <- suppressMessages(
+    external_proxy_with_timing("mgi", function() {
+      called <<- TRUE
+      list(source = "mgi")
+    })
+  )
+  expect_false(called)
+  expect_true(isTRUE(result$error))
+  expect_equal(result$status, 503L)
+  expect_true(isTRUE(result$request_budget_exceeded))
+})
