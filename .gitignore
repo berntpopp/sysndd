@@ -61,3 +61,11 @@ api/tests/testthat/fixtures/nddscore/*.tar.gz
 
 # Understand-Anything knowledge graph artifacts
 .understand-anything/
+
+# Frontend design audit (2026-06): keep markdown reports + scripts + small JSON; ignore heavy captures
+.planning/audits/**/screenshots/
+.planning/audits/**/lighthouse/*.json
+.planning/audits/**/lighthouse/*.err
+.planning/audits/**/lighthouse/run.log
+.planning/audits/**/ratings-raw.json
+.planning/audits/**/capture.log
