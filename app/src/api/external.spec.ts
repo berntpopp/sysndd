@@ -4,24 +4,18 @@
 //
 // `getUniprotDomains` already has cross-coverage in `genes.spec.ts` (it lives
 // in this module but was migrated alongside the gene-lookup helpers in Phase
-// E.E3). This spec focuses on the v11.1 W7 finish-hardening additions:
+// E.E3). This spec focuses on the v11.1 W7 finish-hardening addition:
 //
 //   - getEnsemblStructure(symbol)
-//   - createInternetArchiveSnapshot(url)
 //
-// Both helpers throw the underlying AxiosError on non-2xx — consumers
-// (`GeneStructureCard.vue`, `GenomicVisualizationTabs.vue`, `HelperBadge.vue`)
-// catch the error and map status codes to UI states.
+// The helper throws the underlying AxiosError on non-2xx — consumers
+// (`GeneStructureCard.vue`, `GenomicVisualizationTabs.vue`) catch the error
+// and map status codes to UI states.
 
 import { describe, it, expect } from 'vitest';
 import { http, HttpResponse } from 'msw';
 
-import {
-  getEnsemblStructure,
-  createInternetArchiveSnapshot,
-  type EnsemblGeneStructure,
-  type InternetArchiveSnapshot,
-} from './external';
+import { getEnsemblStructure, type EnsemblGeneStructure } from './external';
 import { isApiError } from './client';
 import { server } from '@/test-utils/mocks/server';
 
@@ -109,94 +103,5 @@ describe('api/external — getEnsemblStructure', () => {
       )
     );
     await expect(getEnsemblStructure('BRCA1')).rejects.toThrow();
-  });
-});
-
-describe('api/external — createInternetArchiveSnapshot', () => {
-  it('forwards the URL via parameter_url and returns the snapshot envelope', async () => {
-    let observedParam: string | null = null;
-    const expected: InternetArchiveSnapshot = {
-      job_id: 'spn2-abc123',
-      url: 'https://sysndd.dbmr.unibe.ch/Genes/HGNC:4586',
-      status: 'pending',
-    };
-    server.use(
-      http.get('/api/external/internet_archive', ({ request }) => {
-        observedParam = new URL(request.url).searchParams.get('parameter_url');
-        return HttpResponse.json(expected);
-      })
-    );
-
-    const target = 'https://sysndd.dbmr.unibe.ch/Genes/HGNC:4586';
-    const result = await createInternetArchiveSnapshot(target);
-    expect(observedParam).toBe(target);
-    expect(result).toEqual(expected);
-    expect(result.job_id).toBe('spn2-abc123');
-  });
-
-  it('merges caller-supplied params with parameter_url', async () => {
-    let observedParams: Record<string, string> = {};
-    server.use(
-      http.get('/api/external/internet_archive', ({ request }) => {
-        const url = new URL(request.url);
-        observedParams = Object.fromEntries(url.searchParams.entries());
-        return HttpResponse.json({ job_id: 'spn2-merged' });
-      })
-    );
-
-    await createInternetArchiveSnapshot('https://sysndd.dbmr.unibe.ch/foo', {
-      params: { capture_screenshot: 'off' },
-    });
-    expect(observedParams.parameter_url).toBe('https://sysndd.dbmr.unibe.ch/foo');
-    expect(observedParams.capture_screenshot).toBe('off');
-  });
-
-  it('merges params even when the caller provides URLSearchParams', async () => {
-    // Copilot review (PR #306, v11.1 W7): spreading a `URLSearchParams`
-    // instance with `{ ...config.params }` copies internal slots and drops
-    // the actual entries, so `parameter_url` would arrive on its own and
-    // the caller's `x=1` would be silently dropped. The helper now
-    // normalises via `Object.fromEntries` before the merge.
-    let observedParams: Record<string, string> = {};
-    server.use(
-      http.get('/api/external/internet_archive', ({ request }) => {
-        const url = new URL(request.url);
-        observedParams = Object.fromEntries(url.searchParams.entries());
-        return HttpResponse.json({ job_id: 'spn2-search-params' });
-      })
-    );
-
-    await createInternetArchiveSnapshot('https://example.com', {
-      params: new URLSearchParams({ x: '1', capture_screenshot: 'off' }),
-    });
-
-    expect(observedParams.parameter_url).toBe('https://example.com');
-    expect(observedParams.x).toBe('1');
-    expect(observedParams.capture_screenshot).toBe('off');
-  });
-
-  it('throws AxiosError on 400 (URL outside the SysNDD allowlist)', async () => {
-    server.use(
-      http.get('/api/external/internet_archive', () =>
-        HttpResponse.json(
-          {
-            status: 400,
-            message: "Required 'url' parameter not provided or not valid.",
-          },
-          { status: 400 }
-        )
-      )
-    );
-
-    let caught: unknown;
-    try {
-      await createInternetArchiveSnapshot('https://example.com');
-    } catch (err) {
-      caught = err;
-    }
-    expect(isApiError(caught)).toBe(true);
-    if (isApiError(caught)) {
-      expect(caught.response?.status).toBe(400);
-    }
   });
 });

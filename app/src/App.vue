@@ -12,10 +12,6 @@
         <AppFooter @show-disclaimer="disclaimerDialogVisible = true" />
       </div>
 
-      <!--place the helper badge -->
-      <HelperBadge />
-      <!--place the helper badge -->
-
       <!-- PWA update prompt -->
       <ReloadPrompt />
 
@@ -37,7 +33,6 @@ import { useDisclaimerStore } from '@/stores/disclaimer';
 import { mapState } from 'pinia';
 import AppNavbar from '@/components/AppNavbar.vue';
 import AppFooter from '@/components/AppFooter.vue';
-import HelperBadge from '@/components/HelperBadge.vue';
 import SkipLink from '@/components/accessibility/SkipLink.vue';
 import DisclaimerDialog from '@/components/disclaimer/DisclaimerDialog.vue';
 import ReloadPrompt from '@/components/ReloadPrompt.vue';
@@ -47,7 +42,6 @@ export default {
   components: {
     AppNavbar,
     AppFooter,
-    HelperBadge,
     SkipLink,
     DisclaimerDialog,
     ReloadPrompt,

@@ -12,7 +12,6 @@
 "/api/entity/<sysndd_id>/review",FALSE,FALSE,"","GET"
 "/api/entity/<sysndd_id>/status",FALSE,FALSE,"","GET"
 "/api/entity/<sysndd_id>/variation",FALSE,FALSE,"","GET"
-"/api/external/internet_archive",FALSE,FALSE,"","GET"
 "/api/gene/",FALSE,FALSE,"","GET"
 "/api/gene/<gene_input>",FALSE,FALSE,"","GET"
 "/api/list/inheritance",FALSE,FALSE,"","GET"

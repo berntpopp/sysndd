@@ -9,7 +9,6 @@ This subfolder contains various R scripts that provide essential functionalities
 - `config-functions.R`: Functions to update API specifications.
 - `database-functions.R`: Functions for database interactions.
 - `endpoint-functions.R`: Functions related to API endpoints.
-- `external-functions.R`: Functions for interactions with external resources.
 - `genereviews-functionsy.R`: Functions specific to GeneReviews.
 - `account-helpers.R`: User/account helpers (password, email, initials).
 - `data-helpers.R`: Hashing, file generation, and data utilities.

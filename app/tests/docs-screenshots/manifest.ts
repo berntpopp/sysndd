@@ -369,21 +369,6 @@ export const docsScreenshots: DocsScreenshot[] = [
     fullPage: false,
   },
   {
-    slug: 'helper-feedback-menu',
-    output: 'documentation/static/img/generated/helper-feedback-menu.png',
-    docRefs: ['documentation/02-web-tool.qmd#help-feedback'],
-    route: '/Entities',
-    viewport: { width: 1440, height: 900 },
-    setup: 'openHelperBadge',
-    waitFor: 'main',
-    fullPage: false,
-    maskSelectors: ['.tooltip'],
-    annotations: [
-      { selector: '.float', mode: 'box', label: 'Help menu' },
-      { selector: '.dropdown-menu.show', mode: 'box', label: 'Feedback actions' },
-    ],
-  },
-  {
     slug: 'login-page',
     output: 'documentation/static/img/generated/login-page.png',
     docRefs: [

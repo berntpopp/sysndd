@@ -296,21 +296,6 @@ The right-hand panel displays a table with either (1) the *Term enrichment* incl
 The website's About page provides general information about the project, such as its creators, funding sources, the status of updates, and how to get help.
 
 
-## Help & Feedback
-
-On each page of SysNDD, a floating smiley-face button points users to the following help and feedback features:
-
-- Button **1** allows the user to cite the page (quotation mark icon), copies the recommended citation text to the clipboard and automatically creates a snapshot of the website in the internet archive for reproducibility ([Wayback Machine - Internet Archive](https://archive.org/web/))
-- Button **2** directs the user to a form for positive feedback (*Like*)
-- Button **3** directs the user to a form for improvement suggestions (*Improve*)
-- Button **4** directs the user to the SysNDD documentation (*Docs*)
-- Button **5** directs the user to the SysNDD GitHub discussions page for questions and help (*Help*)
-
-::: {.doc-screenshot}
-![Floating help and feedback menu with Cite, Like, Improve, Docs, and Help actions.](./static/img/generated/helper-feedback-menu.png)
-:::
-
-
 ## Reporting bugs, problems and making feature requests
 
 If you have technical problems using SysNDD or requests regarding the data or functionality, please contact us at support [at] sysndd.org.

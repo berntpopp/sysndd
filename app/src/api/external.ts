@@ -6,15 +6,13 @@
  * first real helper (`getUniprotDomains`) as part of migrating
  * `GeneView.vue` off raw `axios.get`. v11.1 W7 finish-hardening adds the
  * Ensembl gene-structure helper (used by `GeneStructureCard` and
- * `GenomicVisualizationTabs`) and the Internet Archive snapshot helper
- * (used by `HelperBadge`).
+ * `GenomicVisualizationTabs`).
  *
  * Wire shapes mirror `api/endpoints/external_endpoints.R`. The
  * external-proxy endpoints use `@serializer unboxedJSON`, so responses
  * arrive as plain objects (not the R/Plumber 1-element-array scalar
  * wrapping used by tibble collectors elsewhere). Consumers therefore do
- * NOT need `unwrapScalar`. The Internet Archive endpoint returns the raw
- * archive.org SPN2 response body (JSON object containing `job_id`).
+ * NOT need `unwrapScalar`.
  */
 
 import type { AxiosRequestConfig } from 'axios';
@@ -100,63 +98,4 @@ export async function getEnsemblStructure(
 ): Promise<EnsemblGeneStructure> {
   const path = `/api/external/ensembl/structure/${encodeURIComponent(symbol)}`;
   return apiClient.get<EnsemblGeneStructure>(path, config);
-}
-
-// ---------------------------------------------------------------------------
-// Internet Archive snapshot
-// ---------------------------------------------------------------------------
-
-/**
- * Response body from `GET /api/external/internet_archive`.
- *
- * The R endpoint forwards the URL to archive.org's SPN2 (Save Page Now v2)
- * API and returns the raw response body. SPN2 is asynchronous: a successful
- * submission returns a `job_id` and `url` immediately; the actual archiving
- * completes later. Consumers can poll the SPN2 status endpoint with the
- * returned `job_id` if they need to confirm capture (sysndd does not).
- *
- * Fields beyond `job_id` and `url` are documented as returned by archive.org
- * but treated as optional — the payload shape may evolve upstream.
- */
-export interface InternetArchiveSnapshot {
-  /**
-   * SPN2 job identifier returned synchronously on a successful submission.
-   * `HelperBadge` surfaces this in the success toast so curators can
-   * cross-reference the citation in archive.org's wayback machine.
-   */
-  job_id: string;
-  /** The submitted URL, echoed back by archive.org. */
-  url?: string;
-  /** Optional status hint emitted by SPN2 ("pending", etc.). */
-  status?: string;
-  /** Optional human-readable status text from SPN2. */
-  message?: string;
-}
-
-/**
- * GET /api/external/internet_archive?parameter_url=<url>
- * Mirrors `api/endpoints/external_endpoints.R` (`@get internet_archive`).
- *
- * Submits a sysndd page URL to archive.org's SPN2 API and returns the
- * snapshot identifier. The R handler validates `parameter_url` against the
- * configured `archive_base_url` (sysndd domain whitelist) and returns 400
- * for any other origin. Throws the underlying `AxiosError` on non-2xx.
- */
-export async function createInternetArchiveSnapshot(
-  url: string,
-  config?: AxiosRequestConfig
-): Promise<InternetArchiveSnapshot> {
-  // `AxiosRequestConfig.params` is loosely typed as `unknown`; in practice
-  // callers may pass either a plain object or a `URLSearchParams` instance.
-  // Spreading `URLSearchParams` with object spread copies its non-enumerable
-  // internal slots and drops the actual entries, so normalise to a record
-  // before merging in `parameter_url`.
-  const baseParams =
-    config?.params instanceof URLSearchParams
-      ? Object.fromEntries(config.params.entries())
-      : ((config?.params as Record<string, unknown> | undefined) ?? {});
-  return apiClient.get<InternetArchiveSnapshot>('/api/external/internet_archive', {
-    ...config,
-    params: { ...baseParams, parameter_url: url },
-  });
 }

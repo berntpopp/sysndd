@@ -7,54 +7,6 @@
 # Make sure to source any required helpers or libraries at the top if needed.
 
 ## -------------------------------------------------------------------##
-## External endpoints
-## -------------------------------------------------------------------##
-
-#* Submit URL to Internet Archive
-#*
-#* This endpoint takes a SysNDD URL and submits it to the Internet Archive
-#* (a.k.a. the Wayback Machine) for archiving.
-#*
-#* # `Details`
-#* Validates that the provided URL is an https URL whose host exactly matches
-#* the configured archive base host (dw$archive_base_url) before submitting it,
-#* so the shared Internet Archive credential can only ever archive SysNDD pages.
-#* This remains a public endpoint: the front-end "Cite / archive this page"
-#* action (HelperBadge) is available to anonymous visitors by design.
-#*
-#* # `Return`
-#* Returns a status of the archiving operation. If invalid or missing,
-#* returns an error with HTTP status 400.
-#*
-#* @tag external
-#* @serializer json list(na="string")
-#*
-#* @param parameter_url The URL to be archived.
-#* @param capture_screenshot Whether to capture a screenshot (on/off).
-#*
-#* @response 200 OK if successful.
-#* @response 400 Bad Request if the URL is invalid or missing.
-#*
-#* @get internet_archive
-function(req, res, parameter_url, capture_screenshot = "on") {
-  # Public endpoint by design (anonymous "Cite" button). The exact-host
-  # validation below is the security control: it prevents the shared archive
-  # credential from being abused to archive arbitrary third-party URLs.
-  if (!is_valid_archive_url(parameter_url, dw$archive_base_url)) {
-    res$status <- 400
-    res$body <- jsonlite::toJSON(
-      auto_unbox = TRUE,
-      list(
-        status = 400,
-        message = "Required 'url' parameter not provided or not valid."
-      )
-    )
-    return(res)
-  }
-  post_url_archive(parameter_url, capture_screenshot)
-}
-
-## -------------------------------------------------------------------##
 ## External proxy endpoints for genomic data sources
 ## -------------------------------------------------------------------##
 
