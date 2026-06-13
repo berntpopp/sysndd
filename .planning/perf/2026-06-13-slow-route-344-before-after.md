@@ -134,8 +134,9 @@ Key observations:
 ### Lighthouse (performance, desktop)
 
 Lighthouse **ran** (`npx --yes lighthouse`, v13.4.0, system `google-chrome` at
-`/usr/bin/google-chrome`, `--headless=new`). Report saved to
-`.planning/perf/lh-genes-before.json`.
+`/usr/bin/google-chrome`, `--headless=new`). The raw JSON report was **not retained**
+(it measured the `/PageNotFound` redirect, not a gene page — see caveat below — so it
+is invalid evidence; the summary metrics are recorded inline here instead).
 
 **Caveat — these numbers are NOT a valid gene-page baseline.** Because the 8088 DB has
 no ARID1B record, the SPA redirected `/Genes/ARID1B` to **`/PageNotFound`**
