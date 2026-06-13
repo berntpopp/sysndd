@@ -64,12 +64,14 @@ describe('NddScoreGeneTable', () => {
     const wrapper = mount(NddScoreGeneTable);
     await flushPromises();
 
-    expect(wrapper.get('input[placeholder=".. Gene .."]').classes()).toContain(
+    expect(wrapper.get('input[placeholder="Filter Gene"]').classes()).toContain(
       'nddscore-gene-table__filter-control'
     );
     const riskTierSelect = selectWithOption(wrapper, 'Very High');
     expect(riskTierSelect.classes()).toContain('nddscore-gene-table__filter-control');
-    expect(wrapper.get('[aria-label="NDD score filter"]').classes()).toContain(
+    // aria-label now includes the current value (e.g. "NDD score filter: Any NDD
+    // score") so the accessible name contains the visible toggle text — match the prefix.
+    expect(wrapper.get('[aria-label^="NDD score filter"]').classes()).toContain(
       'nddscore-gene-table__filter-dropdown--empty'
     );
     expect(wrapper.get('[data-testid="nddscore-hpo-filter"]').classes()).toContain(
@@ -113,7 +115,7 @@ describe('NddScoreGeneTable', () => {
 
     expect(wrapper.text()).not.toContain('HGNC ID');
 
-    const geneInput = wrapper.find('input[placeholder=".. Gene .."]');
+    const geneInput = wrapper.find('input[placeholder="Filter Gene"]');
     await geneInput.setValue('KMT2A');
     await flushPromises();
 

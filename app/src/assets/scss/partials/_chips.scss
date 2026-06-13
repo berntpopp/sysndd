@@ -101,10 +101,11 @@
   color: var(--status-danger, #c62828);
 }
 
-// Info — text 4.8:1 on background
+// Info — #01579b on #e1f5fe ≈ 6.0:1 ✓ AA (the --status-info #0277bd measured
+// only ~4.27:1 on the tinted info background, so use a darker info ink here).
 .sysndd-chip--info {
   background-color: var(--status-info-bg, #e1f5fe);
-  color: var(--status-info, #0277bd);
+  color: #01579b;
 }
 
 // Inline annotation highlights (PubTator entity spans)

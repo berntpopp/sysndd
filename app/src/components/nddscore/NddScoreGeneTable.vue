@@ -58,8 +58,24 @@
         @update-sort="handleSortUpdate"
       >
         <template #column-header="{ data }">
-          <div v-b-tooltip.hover.bottom :title="columnHelp[data.column] || data.label">
+          <div
+            class="nddscore-gene-table__col-label"
+            :aria-label="data.label"
+            :aria-describedby="columnHelp[data.column] ? `col-help-${data.column}` : undefined"
+          >
             {{ data.label }}
+            <span
+              v-if="columnHelp[data.column]"
+              :id="`col-help-${data.column}`"
+              class="visually-hidden"
+            >{{ columnHelp[data.column] }}</span>
+            <i
+              v-if="columnHelp[data.column]"
+              v-b-tooltip.hover.bottom
+              :title="columnHelp[data.column]"
+              class="bi bi-info-circle ms-1 nddscore-gene-table__col-help"
+              aria-hidden="true"
+            />
           </div>
         </template>
 
@@ -73,7 +89,7 @@
               :class="rangeFilterDropdownClass(field)"
               :toggle-class="rangeFilterToggleClass(field)"
               menu-class="nddscore-gene-table__filter-menu"
-              :aria-label="`${field.label} filter`"
+              :aria-label="`${field.label} filter: ${rangeFilterLabel(field)}`"
             >
               <template #button-content>
                 {{ rangeFilterLabel(field) }}
@@ -127,7 +143,8 @@
             <BFormInput
               v-else-if="field.filterType === 'text'"
               v-model="columnFilters[field.key]"
-              :placeholder="'.. ' + field.label + ' ..'"
+              :placeholder="'Filter ' + field.label"
+              :aria-label="`Filter by ${field.label}`"
               type="search"
               autocomplete="off"
               size="sm"
@@ -141,6 +158,7 @@
               v-model="columnFilters[field.key]"
               :options="selectOptionsFor(field)"
               size="sm"
+              :aria-label="`Filter by ${field.label}`"
               :class="filterControlClass(field.key)"
               @update:model-value="
                 removeSearch();
@@ -156,7 +174,7 @@
               :class="hpoFilterDropdownClass"
               :toggle-class="hpoFilterToggleClass"
               menu-class="nddscore-gene-table__hpo-menu"
-              aria-label="Predicted HPO terms"
+              :aria-label="`Predicted HPO terms filter: ${hpoFilterLabel}`"
               data-testid="nddscore-hpo-filter"
             >
               <template #button-content>
@@ -241,15 +259,15 @@
         </template>
 
         <template #cell-risk_tier="{ row }">
-          <BBadge :variant="riskVariant(row.risk_tier)">
+          <span :class="['sysndd-chip', riskChipClass(row.risk_tier)]">
             {{ displayValue(row.risk_tier) }}
-          </BBadge>
+          </span>
         </template>
 
         <template #cell-confidence_tier="{ row }">
-          <BBadge :variant="confidenceVariant(row.confidence_tier)">
+          <span :class="['sysndd-chip', confidenceChipClass(row.confidence_tier)]">
             {{ displayValue(row.confidence_tier) }}
-          </BBadge>
+          </span>
         </template>
 
         <template #cell-known_sysndd_gene="{ row }">
@@ -257,24 +275,24 @@
             v-if="isKnownGene(row.known_sysndd_gene)"
             v-b-tooltip.hover.left
             :to="`/Genes/${row.hgnc_id}`"
-            class="nddscore-gene-table__gene-link"
+            class="nddscore-gene-table__gene-link sysndd-chip sysndd-chip--blue"
             title="Open the curated SysNDD gene page for this HGNC identifier."
           >
-            <BBadge variant="info">Known</BBadge>
+            Known
           </RouterLink>
-          <BBadge v-else variant="light">New</BBadge>
+          <span v-else class="sysndd-chip sysndd-chip--neutral">New</span>
         </template>
 
         <template #cell-model_split="{ row }">
-          <BBadge class="nddscore-gene-table__chip" variant="secondary">
+          <span class="sysndd-chip sysndd-chip--neutral nddscore-gene-table__chip">
             {{ displayValue(row.model_split) }}
-          </BBadge>
+          </span>
         </template>
 
         <template #cell-top_inheritance_mode="{ row }">
-          <BBadge class="nddscore-gene-table__chip" variant="primary">
+          <span class="sysndd-chip sysndd-chip--blue nddscore-gene-table__chip">
             {{ displayValue(row.top_inheritance_mode) }}
-          </BBadge>
+          </span>
         </template>
 
         <template #cell-top_hpo_predictions_json="{ row }">
@@ -308,7 +326,6 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import {
-  BBadge,
   BAlert,
   BButton,
   BCol,
@@ -349,8 +366,6 @@ import {
   displayValue,
   formatDecimal,
   formatPercentile,
-  riskVariant,
-  confidenceVariant,
   isKnownGene,
   topHpoLabel,
   topHpoTooltip,
@@ -369,6 +384,35 @@ import {
 defineOptions({
   name: 'NddScoreGeneTable',
 });
+
+/** Map risk_tier values to AA-compliant sysndd-chip modifier classes. */
+function riskChipClass(value: unknown): string {
+  switch (String(value).toLowerCase()) {
+    case 'very high':
+    case 'high':
+      return 'sysndd-chip--danger';
+    case 'moderate':
+      return 'sysndd-chip--warning';
+    case 'low':
+    case 'very low':
+      return 'sysndd-chip--neutral';
+    default:
+      return 'sysndd-chip--neutral';
+  }
+}
+
+/** Map confidence_tier values to AA-compliant sysndd-chip modifier classes. */
+function confidenceChipClass(value: unknown): string {
+  switch (String(value).toLowerCase()) {
+    case 'high':
+      return 'sysndd-chip--success';
+    case 'medium':
+    case 'moderate':
+      return 'sysndd-chip--info';
+    default:
+      return 'sysndd-chip--neutral';
+  }
+}
 
 type GenePredictionRow = NddScoreGenePrediction & {
   release_id?: string;

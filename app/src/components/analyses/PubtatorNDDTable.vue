@@ -73,13 +73,11 @@
       >
         <!-- Filter row removed for cleaner UI - use search box instead -->
 
-        <!-- search_id -->
+        <!-- search_id — static identifier, not a link; use neutral chip -->
         <template #cell-search_id="{ row }">
-          <div>
-            <BBadge variant="primary" style="cursor: pointer">
-              {{ row.search_id }}
-            </BBadge>
-          </div>
+          <span class="sysndd-chip sysndd-chip--neutral sysndd-chip--mono">
+            {{ row.search_id }}
+          </span>
         </template>
 
         <!-- pmid - clickable button like Genes table -->
@@ -87,8 +85,9 @@
           <BButton
             size="sm"
             variant="outline-primary"
-            class="btn-xs"
+            class="btn-xs pubtator-pmid-btn"
             :href="'https://pubmed.ncbi.nlm.nih.gov/' + row.pmid"
+            :aria-label="`Open PubMed article ${row.pmid} in new tab`"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -131,11 +130,11 @@
           </div>
         </template>
 
-        <!-- score -->
+        <!-- score — right-aligned numeric -->
         <template #cell-score="{ row }">
-          <div>
+          <span class="pubtator-score-numeric">
             {{ row.score ? row.score.toFixed(3) : '' }}
-          </div>
+          </span>
         </template>
 
         <!-- gene_symbols - clickable gene chips -->
@@ -406,7 +405,7 @@ export default {
           key: 'score',
           label: 'Score',
           sortable: true,
-          class: 'text-start',
+          class: 'text-end',
           filterable: true,
         },
         {
@@ -787,6 +786,18 @@ export default {
   font-weight: 600;
   border-radius: 2px;
   padding: 0 2px;
+}
+
+/* Score column — right-aligned monospace numeric */
+.pubtator-score-numeric {
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.8125rem;
+}
+
+/* PMID button — monospace for identifier consistency */
+.pubtator-pmid-btn {
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.75rem;
 }
 
 /* Publication details panel */

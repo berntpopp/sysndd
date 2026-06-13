@@ -55,7 +55,7 @@
           coverage with external curation efforts.
         </p>
         <div class="home-action-links">
-          <BLink to="/Entities?sort=%2Bentity_id&page_size=10">Entities</BLink>
+          <BLink to="/Entities?sort=%2Bentity_id&page_size=10" class="home-action-links__primary">Entities</BLink>
           <BLink to="/Genes?sort=%2Bsymbol&page_size=10">Genes</BLink>
           <BLink to="/CurationComparisons">Comparisons</BLink>
           <BLink :href="docsUrl" target="_blank">Documentation</BLink>
@@ -198,8 +198,22 @@ defineProps<{
 
 .home-action-links a:focus-visible {
   box-shadow:
-    0 0 0 0.16rem rgba(13, 110, 253, 0.22),
+    0 0 0 0.16rem rgba(0, 121, 107, 0.25),
     0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
+}
+
+/* Teal accent for the primary Entities CTA — the one warm action signal on an all-blue panel */
+.home-action-links__primary {
+  border-color: var(--medical-teal-700, #00796b) !important;
+  color: var(--medical-teal-700, #00796b) !important;
+}
+
+.home-action-links__primary:hover,
+.home-action-links__primary:focus {
+  background: var(--medical-teal-700, #00796b) !important;
+  border-color: var(--medical-teal-700, #00796b) !important;
+  color: #fff !important;
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 121, 107, 0.2) !important;
 }
 
 .home-concept-panel :deep(.gene-badge-link),
@@ -224,6 +238,7 @@ defineProps<{
 
 @media (prefers-reduced-motion: reduce) {
   .home-action-links a,
+  .home-action-links__primary,
   .home-concept-panel :deep(.gene-badge-link),
   .home-concept-panel :deep(.disease-badge-link),
   .home-concept-panel :deep(.inheritance-badge-link) {

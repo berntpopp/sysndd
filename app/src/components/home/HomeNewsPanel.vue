@@ -5,102 +5,121 @@
         <h2 id="home-news-title" class="home-panel__title">New entities</h2>
         <p class="home-panel__description">Recently added curated gene-disease relationships.</p>
       </div>
-      <BLink to="/Entities?sort=-entry_date&page_size=10" class="home-panel__link">
+      <BLink to="/Entities?sort=-entry_date&page_size=10" class="home-panel__link home-panel__link--accent">
         Browse all
       </BLink>
     </header>
 
-    <div class="home-news-table-wrap d-none d-md-block">
-      <table class="home-news-table">
-        <thead>
-          <tr>
-            <th scope="col">Entity</th>
-            <th scope="col">Gene</th>
-            <th scope="col">Disease</th>
-            <th scope="col">Inh.</th>
-            <th scope="col">Class</th>
-            <th scope="col">NDD</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in news" :key="item.entity_id">
-            <td>
-              <EntityBadge
-                :entity-id="item.entity_id"
-                :link-to="`/Entities/${item.entity_id}`"
-                :title="`Entry date: ${item.entry_date}`"
-                size="sm"
-              />
-            </td>
-            <td>
-              <GeneBadge
-                :symbol="item.symbol"
-                :hgnc-id="String(item.hgnc_id)"
-                :link-to="`/Genes/${item.hgnc_id}`"
-                size="sm"
-              />
-            </td>
-            <td>
-              <DiseaseBadge
-                :name="item.disease_ontology_name"
-                :ontology-id="item.disease_ontology_id_version"
-                :link-to="`/Ontology/${item.disease_ontology_id_version}`"
-                :max-length="32"
-                size="sm"
-              />
-            </td>
-            <td>
-              <InheritanceBadge
-                :full-name="item.inheritance_filter"
-                :hpo-term="item.hpo_mode_of_inheritance_term"
-                size="sm"
-              />
-            </td>
-            <td>
-              <CategoryIcon :category="item.category" size="sm" :show-title="false" />
-            </td>
-            <td>
-              <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="home-news-loading" aria-busy="true" aria-label="Loading recent entities">
+      <TableLoadingState :rows="5" label="Loading recent entities" />
     </div>
 
-    <div class="home-news-list d-md-none">
-      <article v-for="item in news" :key="item.entity_id" class="home-news-item">
-        <div class="home-news-item__main">
-          <EntityBadge
-            :entity-id="item.entity_id"
-            :link-to="`/Entities/${item.entity_id}`"
-            :title="`Entry date: ${item.entry_date}`"
-            size="sm"
-          />
-          <GeneBadge
-            :symbol="item.symbol"
-            :hgnc-id="String(item.hgnc_id)"
-            :link-to="`/Genes/${item.hgnc_id}`"
-            size="sm"
-          />
-        </div>
-        <DiseaseBadge
-          :name="item.disease_ontology_name"
-          :ontology-id="item.disease_ontology_id_version"
-          :link-to="`/Ontology/${item.disease_ontology_id_version}`"
-          :max-length="42"
-          size="sm"
-        />
-        <div class="home-news-item__meta">
-          <InheritanceBadge
-            :full-name="item.inheritance_filter"
-            :hpo-term="item.hpo_mode_of_inheritance_term"
-            size="sm"
-          />
-          <CategoryIcon :category="item.category" size="sm" :show-title="false" />
-          <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
-        </div>
-      </article>
+    <!-- Inline error state -->
+    <div v-else-if="error" class="home-panel-state home-panel-state--error" role="alert">
+      <i class="bi bi-exclamation-circle home-panel-state__icon" aria-hidden="true" />
+      <span>{{ error }}</span>
     </div>
+
+    <!-- Empty state -->
+    <div v-else-if="!news || news.length === 0" class="home-panel-state home-panel-state--empty" role="status">
+      <i class="bi bi-inbox home-panel-state__icon" aria-hidden="true" />
+      <span>No recent entities found.</span>
+    </div>
+
+    <template v-else>
+      <div class="home-news-table-wrap d-none d-md-block">
+        <table class="home-news-table">
+          <thead>
+            <tr>
+              <th scope="col">Entity</th>
+              <th scope="col">Gene</th>
+              <th scope="col">Disease</th>
+              <th scope="col">Inh.</th>
+              <th scope="col">Class</th>
+              <th scope="col">NDD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in news" :key="item.entity_id">
+              <td>
+                <EntityBadge
+                  :entity-id="item.entity_id"
+                  :link-to="`/Entities/${item.entity_id}`"
+                  :title="`Entry date: ${item.entry_date}`"
+                  size="sm"
+                />
+              </td>
+              <td>
+                <GeneBadge
+                  :symbol="item.symbol"
+                  :hgnc-id="String(item.hgnc_id)"
+                  :link-to="`/Genes/${item.hgnc_id}`"
+                  size="sm"
+                />
+              </td>
+              <td>
+                <DiseaseBadge
+                  :name="item.disease_ontology_name"
+                  :ontology-id="item.disease_ontology_id_version"
+                  :link-to="`/Ontology/${item.disease_ontology_id_version}`"
+                  :max-length="32"
+                  size="sm"
+                />
+              </td>
+              <td>
+                <InheritanceBadge
+                  :full-name="item.inheritance_filter"
+                  :hpo-term="item.hpo_mode_of_inheritance_term"
+                  size="sm"
+                />
+              </td>
+              <td>
+                <CategoryIcon :category="item.category" size="sm" :show-title="false" />
+              </td>
+              <td>
+                <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="home-news-list d-md-none">
+        <article v-for="item in news" :key="item.entity_id" class="home-news-item">
+          <div class="home-news-item__main">
+            <EntityBadge
+              :entity-id="item.entity_id"
+              :link-to="`/Entities/${item.entity_id}`"
+              :title="`Entry date: ${item.entry_date}`"
+              size="sm"
+            />
+            <GeneBadge
+              :symbol="item.symbol"
+              :hgnc-id="String(item.hgnc_id)"
+              :link-to="`/Genes/${item.hgnc_id}`"
+              size="sm"
+            />
+          </div>
+          <DiseaseBadge
+            :name="item.disease_ontology_name"
+            :ontology-id="item.disease_ontology_id_version"
+            :link-to="`/Ontology/${item.disease_ontology_id_version}`"
+            :max-length="42"
+            size="sm"
+          />
+          <div class="home-news-item__meta">
+            <InheritanceBadge
+              :full-name="item.inheritance_filter"
+              :hpo-term="item.hpo_mode_of_inheritance_term"
+              size="sm"
+            />
+            <CategoryIcon :category="item.category" size="sm" :show-title="false" />
+            <NddIcon :status="item.ndd_phenotype_word" size="sm" :show-title="false" />
+          </div>
+        </article>
+      </div>
+    </template>
   </section>
 </template>
 
@@ -111,6 +130,7 @@ import EntityBadge from '@/components/ui/EntityBadge.vue';
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import DiseaseBadge from '@/components/ui/DiseaseBadge.vue';
 import InheritanceBadge from '@/components/ui/InheritanceBadge.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
 
 interface NewsItem {
   entity_id: string | number;
@@ -127,6 +147,8 @@ interface NewsItem {
 
 defineProps<{
   news: NewsItem[];
+  loading?: boolean;
+  error?: string | null;
 }>();
 </script>
 
@@ -170,6 +192,67 @@ defineProps<{
   font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
+}
+
+/* Teal accent for the primary action link — warmer CTA vs all-blue panel chrome */
+.home-panel__link--accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--medical-teal-700, #00796b);
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--medical-teal-700, #00796b);
+  font-size: 0.8125rem;
+  font-weight: var(--font-weight-semibold, 600);
+  text-decoration: none;
+  transition:
+    background-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.home-panel__link--accent:hover,
+.home-panel__link--accent:focus {
+  background: var(--medical-teal-700, #00796b);
+  color: #fff;
+  outline: none;
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+}
+
+.home-panel__link--accent:focus-visible {
+  box-shadow:
+    0 0 0 0.16rem rgba(0, 121, 107, 0.3),
+    0 0.2rem 0.5rem rgba(0, 121, 107, 0.2);
+}
+
+/* Loading / error / empty panel states */
+.home-news-loading {
+  padding: 1rem;
+}
+
+.home-panel-state {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1rem;
+  color: var(--neutral-700, #616161);
+  font-size: 0.875rem;
+}
+
+.home-panel-state--error {
+  color: #b71c1c;
+}
+
+.home-panel-state--empty {
+  color: var(--neutral-600, #757575);
+}
+
+.home-panel-state__icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
 }
 
 .home-news-table-wrap {
@@ -243,6 +326,10 @@ defineProps<{
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .home-panel__link--accent {
+    transition: none;
+  }
+
   .home-news-panel :deep(.entity-badge-link),
   .home-news-panel :deep(.gene-badge-link),
   .home-news-panel :deep(.disease-badge-link),

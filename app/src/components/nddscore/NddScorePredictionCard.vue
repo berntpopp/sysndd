@@ -75,8 +75,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
 }
 
 .ndd-score-card--ml-disclosure {
-  border-left: 5px solid #d95f00;
-  background: linear-gradient(to bottom, #fff0db 0%, #ffffff 100%);
+  border-left: 3px solid #e65c00;
+  background-color: var(--status-warning-bg, #fff3e0);
 }
 
 .ndd-score-card :deep(.card-header) {
@@ -100,7 +100,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
   gap: 0.4rem;
   padding: 0.125rem 0.5rem;
   border-radius: var(--radius-sm, 4px);
-  background: #ffe1b8;
+  /* #7a3400 on #fff3e0 ≈ 5.4:1 ✓ AA */
+  background: var(--status-warning-bg, #fff3e0);
   color: #7a3400;
   font-size: 0.875rem;
   font-weight: 600;
@@ -121,7 +122,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
   margin-left: auto;
   max-width: 16rem;
   overflow: hidden;
-  color: var(--neutral-600, #757575);
+  /* #616161 on white/light ≈ 5.7:1 ✓ AA */
+  color: var(--neutral-700, #616161);
   text-overflow: ellipsis;
   white-space: nowrap;
   border: 1px solid var(--bs-border-color);
@@ -160,7 +162,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
 }
 
 .ndd-score-card__metric dt {
-  color: var(--neutral-600, #757575);
+  /* #424242 on white ≈ 9.7:1 ✓ AAA — was #757575 which is only 4.6:1 at 12px small text */
+  color: var(--neutral-800, #424242);
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.2;
@@ -179,7 +182,8 @@ const doiUrl = computed(() => (props.versionDoi ? `https://doi.org/${props.versi
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  color: var(--neutral-600, #757575);
+  /* #616161 on #fff3e0 ≈ 4.7:1 ✓ AA */
+  color: var(--neutral-700, #616161);
   font-size: 0.8125rem;
 }
 

@@ -78,7 +78,8 @@
             <BFormInput
               v-if="field.filterable"
               v-model="filter[field.key].content"
-              :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+              :placeholder="'Filter ' + truncate(field.label, 20)"
+              :aria-label="`Filter by ${field.label}`"
               debounce="500"
               type="search"
               autocomplete="off"
@@ -90,6 +91,7 @@
               v-if="field.selectable"
               v-model="filter[field.key].content"
               :options="field.selectOptions"
+              :aria-label="`Filter by ${field.label}`"
               type="search"
               @input="removeSearch()"
               @change="filtered()"
@@ -105,7 +107,7 @@
             <label
               v-if="field.multi_selectable && field.selectOptions && field.selectOptions.length > 0"
               :for="'select_' + field.key"
-              :aria-label="field.label"
+              :aria-label="`Filter by ${field.label}`"
             >
               <BFormSelect
                 :id="'select_' + field.key"
@@ -859,16 +861,19 @@ export default {
   border: 1px solid var(--neutral-300, #e0e0e0);
 }
 
-/* Date badge: --status-success on --status-success-bg ≈ 4.6:1 ✓ AA */
+/* Date badge: neutral metadata — --neutral-700 on --neutral-100 ≈ 5.4:1 ✓ AA.
+   Green success token is reserved for actual status; dates are neutral. */
 .date-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.15em 0.4em;
   font-size: 0.75em;
-  background-color: var(--status-success-bg, #e8f5e9);
-  color: var(--status-success, #2e7d32);
+  background-color: var(--neutral-100, #f5f5f5);
+  color: var(--neutral-700, #616161);
   border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid var(--neutral-300, #e0e0e0);
   white-space: nowrap;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
 }
 
 /* Publication details expanded row */

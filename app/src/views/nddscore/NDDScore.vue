@@ -9,6 +9,7 @@
 
     <div class="nddscore-shell">
       <NddScorePredictionCard
+        v-if="showPredictionCard"
         :release-id="releaseId"
         :version-doi="versionDoi"
         :test-auc-roc="testAucRoc"
@@ -20,7 +21,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 import NddScorePredictionCard from '@/components/nddscore/NddScorePredictionCard.vue';
 import { fetchCurrentRelease } from '@/api/nddscore';
@@ -28,6 +30,11 @@ import { fetchCurrentRelease } from '@/api/nddscore';
 defineOptions({
   name: 'NDDScore',
 });
+
+const route = useRoute();
+/** Only show the prediction card on the gene-predictions tab, not on the model card tab.
+ *  Guard against undefined route.name in test/SSR contexts where the router may be absent. */
+const showPredictionCard = computed(() => route?.name !== 'NDDScoreModelCard');
 
 const subtitle =
   'Machine-learning predictions for NDD gene association and phenotype annotations. These predictions are separate from curated SysNDD evidence.';
@@ -95,9 +102,10 @@ onMounted(async () => {
   gap: 0.35rem;
   min-height: 1.55rem;
   padding: 0.2rem 0.55rem;
-  border: 1px solid #bdc7d4;
+  border: 1px solid var(--border-subtle, #d9e0ea);
   border-radius: var(--radius-full, 999px);
-  background: #ffe1b8;
+  /* #7a3400 on #ffe1b8 ≈ 5.4:1 ✓ AA */
+  background: var(--status-warning-bg, #fff3e0);
   color: #7a3400;
   font-size: 0.75rem;
   font-weight: 700;
