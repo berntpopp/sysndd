@@ -34,7 +34,7 @@ const PAGES = [
   ['login', '/Login'],
   ['register', '/Register'],
   ['gene-detail', '/Genes/ARID1B'],
-  ['entity-detail', '/Entities/1'],
+  ['entity-detail', '/Entities/2'],
 ];
 
 // table/data-heavy pages we also capture at mobile width

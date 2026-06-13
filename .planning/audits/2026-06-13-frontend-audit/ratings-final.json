@@ -1,0 +1,1938 @@
+[
+  {
+    "page": "home",
+    "route": "/",
+    "scores": {
+      "hierarchy": 9,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 9,
+      "accessibility": 10,
+      "dataviz": 8,
+      "interaction_states": 9,
+      "content_clarity": 9
+    },
+    "overall": 9,
+    "one_line_verdict": "A disciplined, table-first landing page that reads like a clinical operations dashboard: trimmed hero, real stats tables, recent-entity feed, and a quiet concept rail — exactly the reference surface it should be.",
+    "top_findings": [
+      {
+        "issue": "Hero is appropriately restrained: an h1 'SysNDD', a one-line summary, and an inline search combobox — no oversized marketing card or gradient. This is the correct fitness-for-purpose for an expert tool.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "HomeView.vue lines 3-14: home-hero is a 2-col grid (summary + search), title font-size var(--font-size-xl) ~1.25rem semibold; no decorative imagery."
+      },
+      {
+        "issue": "Statistics are presented as scannable tables (Category / Count / Details) with CategoryIcon + label pairing and expandable inheritance breakdowns — status is never color-alone.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "HomeStatsPanel.vue lines 28-86: <th scope=col>, CategoryIcon beside text label, BLink counts deep-link into filtered /Entities and /Panels routes."
+      },
+      {
+        "issue": "Three near-identical panel chrome blocks (.home-panel header/title/description/meta) are copy-pasted across HomeStatsPanel, HomeNewsPanel, HomeConceptPanel instead of sharing one PanelShell, and they diverge from the canonical TableShell tokens (hardcoded #172033/#526070/#fbfcfe vs --neutral-* / --border-subtle).",
+        "severity": "med",
+        "dimension": "consistency",
+        "evidence": "HomeStatsPanel.vue 219-265, HomeNewsPanel.vue 156-187, HomeConceptPanel.vue 80-107 repeat the same .home-panel/.home-panel__header rules with literal hex; TableShell.vue uses var(--neutral-900) etc."
+      },
+      {
+        "issue": "Loading / error / empty states are all designed and wired (skeletons via TableLoadingState, role=alert error rows, role=status empty row), and counts animate via GSAP with prefers-reduced-motion respected.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "HomeStatsPanel.vue 12-20 loading+error; HomeNewsPanel.vue 14-28 loading/error/empty; HomeView.vue 180-209 loadingStates/errors handling."
+      },
+      {
+        "issue": "Two competing 'Browse all' affordances sit close together (teal pill CTA in the news header + 'Browse all' link) and the concept rail repeats action chips (Entities/Genes/Comparisons/Documentation), creating mild action redundancy below the fold.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "HomeNewsPanel.vue 8-11 home-panel__link--accent 'Browse all'; HomeConceptPanel.vue 57-63 home-action-links duplicate primary nav targets."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Extract the repeated .home-panel header/title/description/meta block into a shared PanelShell (or reuse TableShell) so the three home panels and the public tables share one tokenized chrome; replace literal hex (#172033, #526070, #fbfcfe, #e6ebf2) with --neutral-*/--border-subtle.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Single source of truth for panel chrome; eliminates drift between Home and TableShell and guarantees token-consistent borders/typography app-wide."
+      },
+      {
+        "recommendation": "Align the home panel title scale with TableShell (both currently differ: 1.05rem/700 here vs var(--font-size-lg)/semibold there). Pick one heading scale token for section titles.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Consistent visual rhythm between the landing page and the table pages users navigate into."
+      },
+      {
+        "recommendation": "Resolve the heading-order(1) audit by confirming the document goes h1 (hero) -> h2 (panels) -> h3 (sub-blocks) with no skips; the likely culprit is a footer/banner heading level — verify AppBanner/AppFooter heading levels.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears the last a11y audit (a11y99->100) and improves screen-reader landmark navigation across all pages sharing the footer."
+      },
+      {
+        "recommendation": "De-duplicate the two 'browse entities' CTAs: keep the teal 'Browse all' pill in the news header and drop or demote the redundant concept-rail Entities chip, or relabel them to distinct destinations.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Reduces redundant primary actions and sharpens the single intended next-step for a first-time visitor."
+      }
+    ]
+  },
+  {
+    "page": "entities",
+    "route": "/Entities?sort=+entity_id&page_size=10",
+    "scores": {
+      "hierarchy": 9,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 9,
+      "accessibility": 7,
+      "dataviz": 9,
+      "interaction_states": 9,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A dense, professional gene-disease entity table with consistent chips, mono IDs, per-column filters, and well-designed skeleton/mobile states — held back only by a select-name a11y defect in the filter row.",
+    "top_findings": [
+      {
+        "issue": "Filter-row selects have no accessible name: the <BFormSelect> is wrapped in a <label> that carries aria-label but no text content, and aria-label on a <label> is aria-prohibited — so the three select filters (Inheritance/Category/NDD) fail select-name.",
+        "severity": "high",
+        "dimension": "accessibility",
+        "evidence": "TablesEntities.vue 101-124 & 135-160: <label :for ... :aria-label=...><BFormSelect :id=...></label> with empty label text; Lighthouse select-name(3)."
+      },
+      {
+        "issue": "One filter <td> still trips td-has-header despite role=presentation on the filter row, so a data/control cell is read without a header association.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "TablesEntities.vue 87-88 filter-controls slot <td role=presentation>; Lighthouse td-has-header(1) persists."
+      },
+      {
+        "issue": "Excellent dataviz density: TableShell header with 'Entities: 4200' meta pill and 'Loaded 10/4200 in 0.07 secs' description, mono entity IDs (sysndd:2), GeneBadge mono symbols, status as CategoryIcon + NddIcon (icon, never color-alone), with hover tooltips.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "TablesEntities.vue 7-13 meta/description; 173-221 EntityBadge/GeneBadge/DiseaseBadge/CategoryIcon/NddIcon cells; screenshot shows compact 7-col table."
+      },
+      {
+        "issue": "Interaction states are genuinely complete: data-testid skeleton via TableLoadingState while loading, dedicated EntitiesMobileRows card layout under d-md-none, download/copy/remove-filter actions with variant-driven 'is filtered' affordance.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "TablesEntities.vue 55-57 #loading skeleton; 225-227 mobile rows; 14-25 TableDownloadLinkCopyButtons."
+      },
+      {
+        "issue": "Mobile reflow is a true card layout (chips stack: entity+gene, disease, then inheritance/category/NDD meta row) with no horizontal overflow at 390px, matching the clinical-tool density goal.",
+        "severity": "low",
+        "dimension": "responsiveness",
+        "evidence": "entities-mobile.png shows stacked badge cards; TablesEntities.vue 225-227 EntitiesMobileRows."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Fix the filter-select accessible name in the shared table-filter renderer: bind aria-label directly on <BFormSelect> (not the wrapping <label>) and either give the <label> visible/visually-hidden text tied via for=, or drop the label wrapper entirely. This clears select-name(3) on Entities and Phenotypes at once.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Resolves select-name across all filterable tables (Entities, Phenotypes, Genes) from one fix; restores a11y to ~100."
+      },
+      {
+        "recommendation": "In the GenericTable/td filter renderer, replace role=presentation on the wrapping row+cells with a properly headered structure or move filters out of the <table> into a toolbar grid, eliminating td-has-header(1) without ARIA suppression.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes td-has-header on every table page and makes the filter row a real, navigable form region for screen readers."
+      },
+      {
+        "recommendation": "Audit and fix the heading-order(1) skip (single route-level h1 is correct via heading-level=1; the skip is likely footer/banner) shared across all table pages.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Final a11y audit cleared (a11y95->100) for the reference table surface."
+      },
+      {
+        "recommendation": "Mono-tune the disease column: disease names truncate at 35 chars but the secondary ontology ID is hidden; surface the OMIM/MONDO id as a mono micro-label on hover or a second line so curators can disambiguate similarly named diseases.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Improves scan/compare for expert users distinguishing near-duplicate disease entities."
+      }
+    ]
+  },
+  {
+    "page": "genes",
+    "route": "/Genes?sort=+symbol&page_size=10",
+    "scores": {
+      "hierarchy": 9,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 9,
+      "accessibility": 9,
+      "dataviz": 9,
+      "interaction_states": 9,
+      "content_clarity": 8
+    },
+    "overall": 9,
+    "one_line_verdict": "The cleanest of the table cluster: gene-aggregated rows with multi-chip inheritance/category/NDD columns, a pill entity-count, expandable per-entity detail, and a strong mobile card fallback — near reference-class.",
+    "top_findings": [
+      {
+        "issue": "Multi-value columns are handled gracefully: Inheritance, Category, and NDD render one icon/badge per associated entity in a flex-wrap group, so a gene with 2 entities (AARS1: AD+AR, AARS2: AR+AR) reads at a glance without row explosion.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "TablesGenes.vue 265-301 cell(hpo_mode_of_inheritance_term_name)/cell(category)/cell(ndd_phenotype_word) v-for over data.item.entities with d-flex flex-wrap gap-1."
+      },
+      {
+        "issue": "Entities-count is a proper secondary pill badge and the Details column uses an outline-primary toggle with a descriptive aria-label ('Show details for ' + symbol), so the icon/text control is named.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "TablesGenes.vue 303-307 BBadge secondary pill; 177-189 cell(details) BButton with :aria-label including row.item.symbol."
+      },
+      {
+        "issue": "Same filter-select pattern as Entities (label-wrapped BFormSelect with aria-label on the label), so the latent select-name risk exists, but Lighthouse reports a11y99 here — in this snapshot the category/inheritance columns are not in selectable state so fewer/no problem selects render.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "TablesGenes.vue 123-172 identical label/BFormSelect pattern; Lighthouse a11y99 (only heading-order + td-has-header), no select-name flagged this run."
+      },
+      {
+        "issue": "td-has-header(1) persists from the same filter-row role=presentation technique used across the table cluster.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "TablesGenes.vue 108-110 #thead-top <tr role=presentation><td role=presentation>; Lighthouse td-has-header(1)."
+      },
+      {
+        "issue": "Mobile cards are well-composed: gene mono symbol + 'N entit(y/ies)' count, then inheritance/category/NDD chips wrapped under a Details button; no overflow at 390px and the chip tones are AA (teal AD/AR, amber Limited, green NDD Yes).",
+        "severity": "low",
+        "dimension": "responsiveness",
+        "evidence": "genes-mobile.png cards (A2ML1 1 entity / AD / Limited / NDD Yes); TablesGenes.vue 310-312 GenesMobileRows."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Apply the shared filter-select accessible-name fix (bind aria-label on BFormSelect, give the wrapping label real text or remove it) here too so Genes does not regress to select-name failures when category/inheritance selects render in a future data state.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Pre-empts a latent select-name regression on Genes and keeps the whole table cluster consistent."
+      },
+      {
+        "recommendation": "Remove the role=presentation filter-row workaround via the shared td-has-header fix (toolbar-based filters or properly associated headers).",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears td-has-header on Genes and siblings; makes filters a real form region."
+      },
+      {
+        "recommendation": "Genes still renders via a raw BTable while Entities uses GenericTable — converge the two desktop table renderers onto one shared component so header tooltips, filter rows, and a11y fixes live in a single place.",
+        "effort": "L",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Eliminates two parallel table implementations; every a11y/density fix applies once and propagates to all table pages."
+      },
+      {
+        "recommendation": "Give the Category column a header-level sort affordance consistent with Symbol (it is sortable:false today) or visibly mark non-sortable columns so the sort model is predictable.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Clarifies which columns are interactive and matches user expectation set by the sortable Symbol column."
+      }
+    ]
+  },
+  {
+    "page": "phenotypes",
+    "route": "/Phenotypes?filter=all(modifier_phenotype_id,HP:0001249)",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 7,
+      "consistency": 8,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 6,
+      "dataviz": 8,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 7,
+    "one_line_verdict": "A capable HPO-driven phenotype-to-entity search with a custom tag multiselect and AND/OR pill toggle, but the bespoke icon-as-button controls and light-blue tags drop it below its table siblings on accessibility.",
+    "top_findings": [
+      {
+        "issue": "Icon-only click targets in the phenotype multiselect are bare <i> elements with @click, not <button>s, so they have no accessible name/role — this is the source of button-name(3) (tag remove 'x', clear-all, dropdown chevron region).",
+        "severity": "high",
+        "dimension": "accessibility",
+        "evidence": "PhenotypeFilterToolbar.vue 18 <i class='bi bi-x tag-remove' @click>; 26-31 <i class='bi bi-x-lg clear-icon' @click title='Clear all'/> — clickable <i>, not <button>; Lighthouse button-name(3)."
+      },
+      {
+        "issue": "Color-contrast(1): selected phenotype tags use #004085 text on a #e9f5ff fill with a #b8daff border — the low-saturation pastel chip is borderline and the active-state dropdown item reuses the same pale-blue, risking sub-AA contrast.",
+        "severity": "med",
+        "dimension": "color_contrast",
+        "evidence": "PhenotypeFilterToolbar.vue 206-219 .phenotype-tag background #e9f5ff/color #004085; 294-297 .dropdown-item.active same palette; Lighthouse color-contrast(1)."
+      },
+      {
+        "issue": "Same shared filter-row issues as the other tables: a wrapped-label BFormSelect (select-name(1)) and a role=presentation filter <td> (td-has-header(1)).",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "TablesPhenotypes.vue 178-199 label/BFormSelect; 162-164 <tr/td role=presentation>; Lighthouse select-name(1)+td-has-header(1)."
+      },
+      {
+        "issue": "The AND/OR logic toggle is a well-considered custom pill group (active = --medical-blue-700 fill, white text) and the empty state is handled (no phenotype selected -> items cleared, not a stuck spinner) — good interaction design once names are fixed.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "TablesPhenotypes.vue 76-94 logic-toggle/.logic-btn.active; 781-790 requestSelected clears items when no phenotype selected."
+      },
+      {
+        "issue": "Strong dataviz core: the result table reuses the same Entity/Gene/Disease/Inheritance/Category/NDD chip vocabulary as Entities, and the mobile rows even surface the matched HPO IDs (mono '1-HP:0000077, 1-HP:0000707 +6') so curators see why a row matched.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "phenotypes-mobile.png shows mono HPO-id match lists per card; TablesPhenotypes.vue 249-294 reuse shared badges."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Convert every clickable <i> in PhenotypeFilterToolbar (tag remove, clear-all, and ensure the dropdown trigger) into real <button type=button> with an aria-label ('Remove {term}', 'Clear all phenotypes'), or wrap the <i> in a button. This clears button-name(3) and makes the control keyboard-operable.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Fixes the single biggest a11y gap on this page (a11y88) and makes the phenotype filter usable by keyboard/AT users."
+      },
+      {
+        "recommendation": "Retone the phenotype tag/active-item to the AA sysndd-chip blue token used elsewhere (info #0277bd family) instead of the #e9f5ff/#004085 pastel, matching the badge contrast standard already applied to the result chips.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears color-contrast(1) and unifies the tag chips with the app-wide AA chip palette."
+      },
+      {
+        "recommendation": "Apply the shared filter-select accessible-name and td-has-header fixes here as part of the cross-table foundation pass.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes select-name(1) and td-has-header(1) on Phenotypes alongside the other tables."
+      },
+      {
+        "recommendation": "Add an explicit empty/zero-state message for the 'no phenotype selected' case (currently the table just empties silently) so first-time users understand they must pick an HPO term to populate results.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Reduces confusion on first load and clarifies the search-first interaction model of this page."
+      }
+    ]
+  },
+  {
+    "page": "panels",
+    "route": "/Panels/All/All",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 7,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 7,
+      "responsiveness": 9,
+      "accessibility": 9,
+      "dataviz": 8,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A capable panel-compilation grid with a genuinely well-built control bar (labeled selects, sort, a columns disclosure) and an excellent mobile card view; the desktop grid is very dense and ID-heavy, which is on-brand but visually flat.",
+    "top_findings": [
+      {
+        "issue": "Best-in-cluster control accessibility: PanelsTableControls uses real <label><span>Category</span><BFormSelect></label> with visible text labels and a dedicated aria-label='Sort order' on the order select — the correct pattern the other tables' filter rows are missing.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "PanelsTableControls.vue 4-49 labeled selects with visible <span> text; 45 aria-label='Sort order'; Lighthouse a11y99 (only heading-order)."
+      },
+      {
+        "issue": "Columns control is a proper progressive-disclosure toggle (aria-expanded + aria-controls=panel-controls-columns, count badge 9/9) with required-column locking (symbol can't be removed) — strong, accessible affordance for a power feature.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "PanelsTableControls.vue 51-82 advanced-toggle aria-expanded/aria-controls; 111 requiredColumns=['symbol']; 71-81 checkbox group."
+      },
+      {
+        "issue": "The desktop grid is extremely dense and monochrome: 9 columns of mostly mono identifiers (HGNC id, Entrez, Ensembl, UCSC, BED hg19/hg38) with category/inheritance as plain truncated text rather than the CategoryIcon/InheritanceBadge chips used on every other table — it loses the visual status vocabulary.",
+        "severity": "med",
+        "dimension": "consistency",
+        "evidence": "PanelsTable.vue 83-101 cell(category)/cell(inheritance) render plain text w/ text-truncate, not CategoryIcon/InheritanceBadge; panels.png desktop shows a flat all-text grid."
+      },
+      {
+        "issue": "Desktop screenshot shows a very small, cramped header/control bar (1440px render is compressed) and the category column shows raw 'Limited/Definitive/Moderate' words with no icon, undercutting the at-a-glance scanning that the icon system provides elsewhere.",
+        "severity": "med",
+        "dimension": "spacing_density",
+        "evidence": "panels.png: control row + 9-col table rendered at small scale; category text-only; compare to Genes/Entities CategoryIcon usage."
+      },
+      {
+        "issue": "Mobile is excellent and on-brand: GeneBadge mono symbol, category chip, then HGNC:/Entrez identifier chips per card, respecting selected columns — arguably clearer than the desktop grid.",
+        "severity": "low",
+        "dimension": "responsiveness",
+        "evidence": "panels-mobile.png cards (A2ML1 / Limited / Autosomal dominant inheritance / HGNC:23336 / Entrez 144568); PanelsTable.vue 171-173 PanelsMobileRows :selected-field-keys."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Render the desktop Category and Inheritance columns with the shared CategoryIcon + InheritanceBadge chips (as the mobile card already implies and the other tables do), instead of plain truncated text, so status is scannable and the page rejoins the app-wide visual vocabulary.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores at-a-glance category/inheritance scanning and visual consistency with Entities/Genes/Phenotypes; status no longer text-only."
+      },
+      {
+        "recommendation": "Style the mono identifier columns (HGNC/Entrez/Ensembl/UCSC/BED) with the IdBadge/mono chip treatment used elsewhere and right-size column widths so the 9-col grid breathes; consider defaulting the densest external-ID columns to hidden in the 9/9 columns control.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Reduces the flat, cramped feel of the widest table and lets curators focus on the columns they compose panels from."
+      },
+      {
+        "recommendation": "Promote the labeled-select pattern in PanelsTableControls into the shared table-filter component so Entities/Genes/Phenotypes inherit the same visible-label selects (this is the canonical fix for select-name across the cluster).",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Panels already does selects right; lifting that pattern fixes select-name on the other three tables and unifies control styling."
+      },
+      {
+        "recommendation": "Resolve the shared heading-order(1) skip (verify h1 Panel compilation -> any subsequent headings/footer levels).",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears the last a11y audit on Panels (a11y99->100) along with the rest of the cluster."
+      }
+    ]
+  },
+  {
+    "page": "curationcomparisons",
+    "route": "/CurationComparisons",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 9,
+      "dataviz": 8,
+      "interaction_states": 9,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A genuinely strong, tool-grade analysis surface: tokenized AnalysisShell frame, one h1, a dense purpose-built UpSet toolbar with chips/toggles/legend and full loading/empty/error states - the best chart-page pattern in the cluster.",
+    "top_findings": [
+      {
+        "issue": "UpSet bar values, axis labels and the SysNDD/Core-Overlap legend are well above AA and the colorblind-safe #0072b2/#d55e00 highlight pair is paired with text labels (not color-alone), satisfying the status-rule.",
+        "severity": "low",
+        "dimension": "color_contrast",
+        "evidence": "Inline legend 'SysNDD (This Database): 3,217 / Core Overlap (3 sources): 1,575' with named dots; toggles read 'Highlight SysNDD (3,217)' so the highlight is never color-only."
+      },
+      {
+        "issue": "The toolbar is the densest control row in the cluster (Add Sources dropdown + count badge, 3 dismissible source chips, reset, Definitive Only, two highlight switches, '3 of 8 sources selected' counter) and stays readable without overflow at 1440 - this is the reference interaction-states implementation.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "Source has explicit skeleton (skeleton-bars + skeleton-dots), role=alert error with Retry, and a bi-bar-chart empty state with remediation copy ('Try adding more sources or disabling Definitive Only')."
+      },
+      {
+        "issue": "heading-order(1): an h2 'Overlap' sits inside the panel directly under the route h1, which is correct, but the InlineHelpBadge/BPopover title slot can emit an out-of-sequence heading - the lone flagged audit.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "lighthouse heading-order(1); a11y 99. Panel title is a real <h2 class=panel-title> so the structure is mostly sound."
+      },
+      {
+        "issue": "On mobile (390px) the entire toolbar stacks vertically into a tall column (Add Sources, 3 chips, Definitive, Highlight SysNDD, Core Overlap each on its own row) pushing the actual chart far below the fold; the chart is clipped mid-axis at the viewport bottom.",
+        "severity": "med",
+        "dimension": "responsiveness",
+        "evidence": "Mobile screenshot shows ~6 stacked control rows before the bar chart even begins; only the top three bars (3,217 / 2,667 / 2,363) are visible above the fold."
+      },
+      {
+        "issue": "PNG/SVG export buttons use dark grey filled pills that read slightly heavier than the quiet medical aesthetic and compete with the panel title for attention in the header.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "Header right shows two dark-grey 'PNG'/'SVG' buttons; elsewhere the app favors quiet outline/ghost affordances."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Verify the route h1 -> panel h2 sequence and ensure InlineHelpBadge/BPopover does not inject a heading element into the accessibility tree (render its title as a strong/span, not an h-tag) to clear heading-order across all three comparison tabs at once.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears the single a11y audit on Overlap, Similarity and Table simultaneously since they share the InlineHelpBadge/panel-title pattern."
+      },
+      {
+        "recommendation": "On <576px, collapse the UpSet toolbar into a single 'Sources & options' disclosure (summary chips + a sheet) so the chart is reachable above the fold instead of buried under 6 stacked control rows.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores chart-first mobile hierarchy; the most data-relevant element appears without scrolling past every control."
+      },
+      {
+        "recommendation": "Demote PNG/SVG to outline/ghost icon-buttons with tooltips (matching the quiet table download affordances) so the panel title stays the strongest header element.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Quieter, more consistent header chrome across all chart panels that use DownloadImageButtons."
+      },
+      {
+        "recommendation": "Add a brief on-chart caption/data-source line (e.g. 'Definitive entries only' state already exists) and consider rendering the bar value labels in tabular-nums to keep the count column visually aligned.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Marginally sharpens scannability of intersection counts for expert comparison."
+      }
+    ]
+  },
+  {
+    "page": "curationcomparisons-similarity",
+    "route": "/CurationComparisons/Similarity",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 7,
+      "consistency": 8,
+      "spacing_density": 6,
+      "responsiveness": 7,
+      "accessibility": 8,
+      "dataviz": 4,
+      "interaction_states": 8,
+      "content_clarity": 7
+    },
+    "overall": 6,
+    "one_line_verdict": "Solid panel chrome, a thoughtful sequential-teal legend and good a11y plumbing, but the captured state shows a large empty card with ONLY the legend - the heatmap itself is absent, leaving a vast white void where the primary dataviz should be.",
+    "top_findings": [
+      {
+        "issue": "The defining content of the page - the cosine-similarity heatmap - is not rendered in the capture; the card shows a huge blank region with just the 'Cosine Similarity' gradient legend floating mid-card, so the page reads as broken/empty.",
+        "severity": "high",
+        "dimension": "dataviz",
+        "evidence": "Screenshot: ~400px of empty white inside the panel above a centered legend bar; no matrix cells, no axis labels visible. d3 renders into #matrix_dataviz on mount but the captured frame has no SVG."
+      },
+      {
+        "issue": "Because the matrix is missing, there is a large unbalanced whitespace block; the panel min-height (12rem) plus the d3 chart area produces dead space rather than a designed empty state - and the real empty-state branch (itemsMatrix.length===0) is NOT what shows here.",
+        "severity": "high",
+        "dimension": "spacing_density",
+        "evidence": "The card extends to ~470px tall with content only in a thin band; the source empty state ('No similarity data available' with a grid icon) would have filled it, so this is a render-timing/capture gap, not the designed empty UI."
+      },
+      {
+        "issue": "The sequential white->teal->teal-800 scale is a deliberate, well-justified token choice (code comments explain why a diverging navy/red scale would be misleading for cosine data >=0), with explicit 0 / 0.5 / 1 anchors and units - genuinely good dataviz design intent.",
+        "severity": "low",
+        "dimension": "color_contrast",
+        "evidence": "Legend reads '0 (no overlap) / 0.5 / 1 (identical)'; SIMILARITY_COLOR_LOW/MID/HIGH = #f0faf8/#4db6ac/#00695c, anchored to the SysNDD teal token."
+      },
+      {
+        "issue": "heading-order(1): same InlineHelpBadge/panel-title pattern as Overlap; one flagged audit, otherwise a11y 99 with per-cell aria-labels ('X vs Y: 0.NNN') on each rect.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "lighthouse heading-order(1) a11y 99; source adds .attr('aria-label', ...) to every cell rect and a labeled BSpinner loading state."
+      },
+      {
+        "issue": "No mobile capture and the chart sizing is JS-derived (container width, square chart, 45-degree rotated labels); the long axis labels (Gene2Phenotype, Geisinger DBD) at 13px risk crowding on narrow widths but reflow logic exists.",
+        "severity": "low",
+        "dimension": "responsiveness",
+        "evidence": "generateGraph derives labelMargin from label length and rotates x-axis -45deg; svg-container max-width 680px, drops to 100% under 576px."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Fix the capture/render so the heatmap is actually present (await d3 paint before the screenshot, or guard that generateGraph runs after layout) AND ensure that on genuine no-data the designed grid-icon empty state fills the card instead of a bare legend over whitespace.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores the page's entire reason to exist; eliminates the 'is this broken?' perception that currently dominates the surface."
+      },
+      {
+        "recommendation": "Reserve the chart area with an explicit aspect-ratio/min-height placeholder and render the skeleton there so loading and empty never collapse into floating-legend whitespace.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes layout void and CLS; the card always looks intentional regardless of data state."
+      },
+      {
+        "recommendation": "Clear heading-order by treating the InlineHelpBadge/BPopover title as non-heading markup (shared with Overlap/Table).",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Single fix clears the a11y audit on all three comparison tabs."
+      },
+      {
+        "recommendation": "Add a one-line data caption near the legend (source count + refresh date already exists at frame level) and consider an SVG <title>/role='img' on the matrix so the heatmap is announced as a single labeled figure, not just per-cell.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Improves screen-reader narrative and grounds the chart in its data provenance."
+      }
+    ]
+  },
+  {
+    "page": "curationcomparisons-table",
+    "route": "/CurationComparisons/Table",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 7,
+      "dataviz": 9,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "The strongest surface in the cluster and exactly on-brief: a dense, table-first comparison matrix with mono gene chips, status icons (not color-alone), per-column filters, TableShell + pagination - clinical-ops grade, held back only by residual table-a11y audits.",
+    "top_findings": [
+      {
+        "issue": "The presence matrix is excellent dataviz-as-table: 8 source columns of CategoryIcon status glyphs (green check, amber warning, red x, blue dash) that encode state with shape+color (not color alone), plus mono GeneBadge symbol chips - dense yet instantly scannable across 4,979 genes.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "Rows like AAAS show check/check/check/.../check across PanelApp/G2P/Orphanet/OMIM; A2ML1 shows amber-warning SysNDD + red-x PanelApp - distinct icons per state, paired with sortable per-source headers."
+      },
+      {
+        "issue": "td-has-header(1): the per-column filter row is rendered as <td role='presentation'> inside the data table without header association, which axe flags as a data cell missing a header.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "lighthouse td-has-header(1); source #filter-controls emits '<td v-for=field role=presentation>' housing the filter inputs/selects inside the table body."
+      },
+      {
+        "issue": "select-name(8): the 8 source-column filter <select>s are flagged for missing accessible names even though the template sets :aria-label - suggesting the BFormSelect aria-label is not reaching the underlying native <select>, or the BFormSelectOption placeholder ('.. Sysndd ..') is being read as the name instead.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "lighthouse select-name(8) matches exactly the 8 source columns; template binds :aria-label=`Filter by ${field.label}` on each BFormSelect but axe still reports no name."
+      },
+      {
+        "issue": "Column header labels are truncated ('Gene2phenoty', 'Radboudumc i', 'Orphanet id') and several filter-select placeholders are clipped ('.. Geisinger dbd', '.. Omim ndd ..'), so the source identity is partly obscured at 1440 width.",
+        "severity": "med",
+        "dimension": "content_clarity",
+        "evidence": "Header cells truncate at 28 chars and selects show '.. Gene2phenoty|' / '.. Orphanet id .' cut mid-word; tooltips exist but the resting state hides identity."
+      },
+      {
+        "issue": "Header chrome is busy: a black InlineHelpBadge, 'Genes: 4979' pill, a Definitive Only switch, and three tightly packed toolbar icon-buttons (xlsx, link, filter) in teal/green - slightly noisier than the quieter public table pages it should mirror.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "Top-right shows '.xlsx' grey button + green link icon + teal filter icon abutting; the colored icon-buttons read more saturated than the reference table toolbars."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "In the table renderer, give the filter row real header association (th scope, or aria-describedby/headers, or move filters into a thead row) instead of <td role=presentation> so td-has-header clears for every table using GenericTable.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes td-has-header across the whole app's GenericTable instances, not just this page."
+      },
+      {
+        "recommendation": "Fix BFormSelect accessible-name propagation: render a visually-hidden <label for> or ensure aria-label lands on the native <select> (BootstrapVueNext may need labelled-by), so select-name(8) clears here and on every select-filtered table.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears 8 violations here and prevents the same regression on all column-filtered tables (raises table a11y toward the 100 baseline)."
+      },
+      {
+        "recommendation": "Widen or abbreviate source columns with full names on hover but a stable short label (e.g. 'G2P', 'Radboud', 'Orphanet') so resting-state header/placeholder identity is never clipped mid-word.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores immediate column identification without relying on tooltips."
+      },
+      {
+        "recommendation": "Quiet the header toolbar: unify xlsx/link/filter into outline icon-buttons with consistent tone and tooltips, matching the reference public-table toolbars.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Reduces header noise consistently across all TableShell toolbars."
+      },
+      {
+        "recommendation": "Add a compact legend/key for the CategoryIcon states (check=present-Definitive, warning=Limited, x=Refuted, dash=N/A) above or beside the matrix so first-time expert users decode the glyphs without hover.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Improves content clarity of the core matrix; makes the status encoding self-explanatory."
+      }
+    ]
+  },
+  {
+    "page": "phenotypecorrelations",
+    "route": "/PhenotypeCorrelations",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 8,
+      "responsiveness": 7,
+      "accessibility": 9,
+      "dataviz": 8,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A genuinely strong, reference-quality correlogram: tokenized AnalysisShell + AnalysisPanel, a real rendered heatmap with axis labels, diverging legend, keyboard-accessible cells, and proper loading/empty/error states; held back only by minor y-axis label clipping and the all-blue-link tab row.",
+    "top_findings": [
+      {
+        "issue": "Left y-axis labels are clipped at the edge (e.g. 'bnormality of the autonomic nervous system' loses its leading 'A'). The dynamic left-margin formula (capped at 240px) is too small for the longest HPO phenotype names.",
+        "severity": "med",
+        "dimension": "dataviz",
+        "evidence": "Screenshot row 'bnormality of the autonomic nervous system' visibly runs off the left container edge; margin.left = Math.min(240, maxLabelLen*12*0.55) in AnalysesPhenotypeCorrelogram.generateMatrixGraph."
+      },
+      {
+        "issue": "This is the most polished of the three correlation pages and validates the AnalysisShell pattern: single route-level h1, AnalysisPanel h2, tokenized borders/radius, diverging red/white/blue heatmap with a self-correlation diagonal that reads instantly. Strong fitness-for-purpose for a clinical research tool.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "AnalysisShell.vue renders one <h1 class='analysis-title'>; AnalysisPanel.vue renders <h2 class='analysis-panel__title'>; screenshot shows clean correlogram with red diagonal and PNG/SVG/help controls."
+      },
+      {
+        "issue": "The tab row is entirely medical-blue bold links creating a near-monochrome blue band that fights the 'never one-hue all-blue' rule; the active tab is distinguished only by an underline + darker text, which is subtle at a glance.",
+        "severity": "low",
+        "dimension": "color_contrast",
+        "evidence": "AnalysisShell.vue .analysis-tab color: var(--medical-blue-700) bold for all tabs; .active only adds border-bottom + neutral-900 text; screenshot shows four blue tab labels in a row."
+      },
+      {
+        "issue": "The diverging palette is very low-saturation off-diagonal: most cells are near-white pale pink/blue, so weak-to-moderate correlations are hard to discriminate and the chart reads as 'mostly empty with a red diagonal'.",
+        "severity": "med",
+        "dimension": "dataviz",
+        "evidence": "Screenshot: off-diagonal cells predominantly very pale; only the diagonal (#B22222) and a few cells (Macrocephaly row) carry visible saturation; colorScale domain [-1,0,1] maps |R|<0.3 nearly indistinguishably from white."
+      },
+      {
+        "issue": "Legend, caption and color scale are pushed below the visible fold because the square chart fills the full card width, so a user landing on the page sees a giant matrix before any read-guide.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "chartSize = availableWidth - margins (full card width) producing a near-full-width square; ColorLegend + .chart-caption render after the SVG in template order and fall below the 900px viewport."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Increase the left-margin cap (or measure rendered text width) so the longest phenotype labels are never clipped; raise Math.min(240,...) to ~300 and/or truncate with an ellipsis tooltip. The same formula is duplicated in the variant correlogram, so fix once in a shared helper.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Eliminates truncated y-axis labels across both correlograms; restores legibility of the most information-dense axis."
+      },
+      {
+        "recommendation": "Cap the heatmap to a max width (e.g. min(card, 720px)) and center it, so the legend, caption and color scale sit in the first viewport.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Brings the read-guide and legend above the fold and reduces the 'wall of pale cells' first impression."
+      },
+      {
+        "recommendation": "Add a perceptual contrast boost to the diverging scale (clamp/whiten only |R|<0.05, or power-scaled diverging interpolator) and an optional R-value-on-cell toggle, so weak correlations are visible and the chart isn't dominated by the self-correlation diagonal.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Makes the off-diagonal signal scannable for expert users; benefits all three correlograms sharing the same color scale."
+      },
+      {
+        "recommendation": "Differentiate the active tab more strongly than an underline (filled pill or neutral background chip) and de-emphasize inactive tabs to grey to break the all-blue band.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Improves tab-state legibility on every AnalysisShell page and softens the monochrome-blue rule violation."
+      },
+      {
+        "recommendation": "Trace the single heading-order(1) Lighthouse flag: confirm it is not the AnalysisShell h1→AnalysisPanel h2 chain (which is correct) and resolve it at the site header/footer; document it as a known shared-layout residual.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Closes the last a11y audit on this page family and prevents per-page re-triage of the same shared heading."
+      }
+    ]
+  },
+  {
+    "page": "phenotypefunctionalcorrelation",
+    "route": "/PhenotypeFunctionalCorrelation",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 5,
+      "responsiveness": 7,
+      "accessibility": 8,
+      "dataviz": 4,
+      "interaction_states": 6,
+      "content_clarity": 8
+    },
+    "overall": 6,
+    "one_line_verdict": "The shell, fc_/pc_ chip legend and color scale are well-designed and on-brand, but the actual correlation heatmap is not rendered in the captured state, leaving a barren panel with a huge empty white void below the legend, which is the page's defining flaw.",
+    "top_findings": [
+      {
+        "issue": "The heatmap itself does not render: the panel shows only the cluster-type legend (fc_/pc_ badges), the explanatory sentence and the horizontal color scale; the entire matrix area is collapsed and below it is a tall empty white band consuming most of the viewport.",
+        "severity": "high",
+        "dimension": "dataviz",
+        "evidence": "Screenshot shows 'fc_ Functional clusters / pc_ Phenotype clusters' legend and the 'Correlation Coefficient (R)' gradient but no grid of cells; #phenotypeFunctionalCorrelationViz is empty and the page is mostly whitespace down to the footer."
+      },
+      {
+        "issue": "Because the chart is absent, the page reads as decorative explanation-before-data, exactly the anti-pattern the SysNDD intent warns against (legend + prose with no actual matrix). For an expert tool this looks broken/empty rather than quiet-and-dense.",
+        "severity": "high",
+        "dimension": "spacing_density",
+        "evidence": "The only content is one legend row + one caption row inside the panel; everything below ~430px is empty void to the footer at ~870px."
+      },
+      {
+        "issue": "The empty-state guard checks correlationMelted.length === 0, but the rendered state shows the v-else 'Chart + legend' branch (data present) yet renderHeatmap produced no visible cells, likely a sizing/timing race (svgWrapper.clientWidth 0 at $nextTick). No fallback covers 'data present but chart failed to draw'.",
+        "severity": "high",
+        "dimension": "interaction_states",
+        "evidence": "Template v-else branch renders the legend+caption that ARE visible, so loadingCorrelation=false and correlationMelted.length>0; yet #phenotypeFunctionalCorrelationViz has no svg in the screenshot."
+      },
+      {
+        "issue": "The fc_/pc_ chips and named color scale are genuinely good, on-token dataviz scaffolding: mono font for cluster IDs, AA teal/blue tones, clear units. The instinct is right; it just has no chart to annotate.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "AnalysesPhenotypeFunctionalCorrelation.vue .fc-badge (medical-blue-700) and .pc-badge (medical-teal-700) mono chips; ColorLegend title 'Correlation Coefficient (R)' with labeled ends."
+      },
+      {
+        "issue": "The dashed fc_/pc_ quadrant separator described in the help popover ('The black separator line divides fc_ from pc_ clusters') is invisible since no matrix is drawn, so the help text references geometry not on screen.",
+        "severity": "med",
+        "dimension": "content_clarity",
+        "evidence": "Help popover text references a separator line and renderHeatmap draws dashed #718096 boundary lines, none of which are visible in the screenshot."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Make renderHeatmap robust to a zero-width container at mount: guard chartSize, use a ResizeObserver / requestAnimationFrame retry, and re-render on first non-zero width; add a 'data loaded but render failed' fallback distinct from the empty state so the panel never shows a legend with no chart.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Fixes the defining failure so the heatmap actually appears, removing the barren-panel impression and the dead white void."
+      },
+      {
+        "recommendation": "Reserve a min-height for the chart container (e.g. min-height: 360px with a skeleton) so a non-rendered/slow chart shows a placeholder block instead of collapsing to zero.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes layout collapse / CLS and the giant empty band across all three correlogram panels when the chart is slow or fails."
+      },
+      {
+        "recommendation": "Show the cluster-type legend and color scale only once the matrix renders; while loading/empty show the skeleton, not the legend. Order: chart-first, legend-second, never legend-only.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Prevents the 'explanation before data' anti-pattern and makes the panel read as a tool, not a brochure."
+      },
+      {
+        "recommendation": "Add a content-present assertion: if correlationMelted is non-empty but derived clusterNames < 2 or all values are NaN, surface the empty/error state with Retry rather than rendering an invisible chart.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Turns silent render failures into an actionable error state, improving trust on the weakest analysis surface."
+      },
+      {
+        "recommendation": "Cap chart width (centered, max ~640px for the small fc_/pc_ matrix) so even when it renders the panel isn't dominated by whitespace and the documented separator geometry is visible.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Right-sizes a small N×N matrix and makes the documented fc_/pc_ separator visible."
+      },
+      {
+        "recommendation": "Resolve the single heading-order(1) Lighthouse flag at the shared layout level (header/footer), since the AnalysisShell h1→AnalysisPanel h2 sequence here is correct.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Closes the residual a11y audit shared by the whole analysis family."
+      }
+    ]
+  },
+  {
+    "page": "variantcorrelations",
+    "route": "/VariantCorrelations",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 7,
+      "spacing_density": 5,
+      "responsiveness": 7,
+      "accessibility": 7,
+      "dataviz": 4,
+      "interaction_states": 6,
+      "content_clarity": 8
+    },
+    "overall": 6,
+    "one_line_verdict": "Same strong AnalysisShell scaffolding and on-token caption/legend as its phenotype sibling, but the variant heatmap is not rendered in the captured state and the cells are link-only (no keyboard/role/tabindex), making it both visually empty and less accessible than the phenotype correlogram it claims to mirror.",
+    "top_findings": [
+      {
+        "issue": "The variant correlation matrix is not visible: the panel shows only the one-line caption and the 'Correlation Coefficient (R)' color scale; the chart grid is absent and the area below is a tall empty white void to the footer.",
+        "severity": "high",
+        "dimension": "dataviz",
+        "evidence": "Screenshot: panel header 'Matrix of variant correlations' + PNG/SVG/help controls render, then only a centered caption and gradient legend; #matrix_dataviz contains no svg and the page is ~55% empty whitespace."
+      },
+      {
+        "issue": "Variant heatmap cells are <a><rect> links with no tabindex, no role=button and no keydown handler, unlike the phenotype correlogram whose cells are fully keyboard-operable. The two 'mirror' correlograms diverge on accessibility, and the variant one is the weaker pattern.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "AnalysesVariantCorrelogram appends 'a' with xlink:href + aria-label then a child rect with only mouse handlers; AnalysesPhenotypeCorrelogram appends rect with tabindex '0', role button, keydown Enter/Space and focus stroke."
+      },
+      {
+        "issue": "Because no matrix draws, the panel is a caption + legend floating over a large empty card, the same explanation-before-data emptiness as the functional-correlation page, reading as broken rather than dense/quiet.",
+        "severity": "high",
+        "dimension": "spacing_density",
+        "evidence": "Only ~2 rows of content inside a full-width panel; empty band from ~370px to the footer ~870px."
+      },
+      {
+        "issue": "The caption, color scale, mono-friendly tooltip and PNG/SVG export are well-built and consistent with the phenotype page; the scaffolding is correct and on-brand, it just has no chart to host.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "Shared ColorLegend (#000080/#fff/#B22222), .chart-caption styling, DownloadImageButtons with tooltip titles, identical diverging domain [-1,0,1]."
+      },
+      {
+        "issue": "No 'data loaded but chart failed' fallback: the empty-state only triggers when itemsMatrix.length === 0; a successful fetch that fails to render (zero-width container at $nextTick) shows neither skeleton, empty, nor error, exactly the captured empty panel.",
+        "severity": "med",
+        "dimension": "interaction_states",
+        "evidence": "v-else-if itemsMatrix.length === 0 empty state; v-else renders svg-wrapper; generateMatrixGraph runs in $nextTick using svgWrapper.clientWidth which can be 0 inside a just-shown panel."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Bring the variant correlogram to parity with the phenotype one: render cells as keyboard-operable rects (tabindex=0, role=button, aria-label, Enter/Space activation, visible focus stroke) instead of <a><rect>, ideally by extracting one shared correlogram renderer both components call.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes the a11y divergence and DRYs the two near-identical D3 renderers into one tested helper, fixing both at once."
+      },
+      {
+        "recommendation": "Harden generateMatrixGraph against a zero-width container (ResizeObserver/RAF retry, guard chartSize) and add a render-failure fallback so a fetched-but-undrawn matrix shows a skeleton/error with Retry rather than an empty panel.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Eliminates the captured empty-panel state on both variant and functional correlation pages."
+      },
+      {
+        "recommendation": "Reserve a min-height on #matrix_dataviz (e.g. 360px skeleton) so the panel never collapses to caption+legend over whitespace.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Kills layout collapse/CLS and the dead white void across all correlogram panels."
+      },
+      {
+        "recommendation": "Apply the same left/right margin and label-truncation fix as the phenotype correlogram so the long variant-consequence class names never clip; share the margin helper.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Prevents axis-label clipping for the longest VariO consequence names on the same shared renderer."
+      },
+      {
+        "recommendation": "Center and cap the matrix width so the legend/caption stay near the chart and the page isn't whitespace-dominated when the (small) variant matrix renders.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Right-sizes the smaller variant matrix and improves first-viewport density."
+      },
+      {
+        "recommendation": "Resolve the shared heading-order(1) Lighthouse flag at the layout level (header/footer), since the in-page h1→h2 order is correct here too.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Closes the last a11y audit shared by the analysis page family."
+      }
+    ]
+  },
+  {
+    "page": "entriesovertime",
+    "route": "/EntriesOverTime",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 8,
+      "spacing_density": 6,
+      "responsiveness": 7,
+      "accessibility": 9,
+      "dataviz": 4,
+      "interaction_states": 8,
+      "content_clarity": 7
+    },
+    "overall": 6,
+    "one_line_verdict": "Clean, well-tokenized AnalysisShell with strong a11y plumbing, but the captured screenshot shows the actual line chart and legend missing entirely, leaving a large empty card that undermines the page's only purpose.",
+    "top_findings": [
+      {
+        "issue": "The primary data visualization is not visible in the screenshot: between the Aggregation/Grouping selects and the 'Click a legend chip or data point to filter the view' caption there is no SVG chart, no y-axis label, and no legend chips — only a tall empty white band, so a time-trend page renders with no time trend.",
+        "severity": "high",
+        "dimension": "dataviz",
+        "evidence": "Cropped panel body (/tmp/eot_body.png) shows selects then caption with a blank region in between; the v-else chart block in AnalysesTimePlot.vue (#my_dataviz svg-container + .legend-chips) produced no rendered pixels."
+      },
+      {
+        "issue": "Roughly the bottom 55% of the 1440x900 viewport is empty grey page background below a single short card; the page reads as unfinished rather than dense/operational, the opposite of the table-first reference surfaces.",
+        "severity": "med",
+        "dimension": "spacing_density",
+        "evidence": "Full screenshot: the Curated Counts Timeline card ends near y=380 and everything to the footer at y=876 is blank #f6f8fb."
+      },
+      {
+        "issue": "Two stacked descriptive blocks (shell subtitle 'Track curated SysNDD entities...' then panel description 'Cumulative count of curated NDD entities...') restate intent before any data, edging toward the decorative-explanation-before-data pattern the design intent warns against.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "AnalysisShell subtitle (line 7) + AnalysisPanel description (AnalysesTimePlot.vue line 5) both sit above the controls."
+      },
+      {
+        "issue": "Pre-fix Lighthouse select-name(2) is resolved in source — both selects now have <label for> input-group-text plus aria-label — but the input-group label min-width of 7rem makes the control row feel heavy/form-like for only two filters.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "AnalysesTimePlot.vue lines 25-48 and .input-group-text { min-width: 7rem } at line 561-567."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Diagnose and fix why the d3 SVG renders zero-height/empty on initial mount (likely container.clientWidth measured before layout or generateGraph running before #my_dataviz has width); add a min-height to .svg-container and re-measure on ResizeObserver so the chart always paints.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores the page's core function; turns an apparently-broken screen into a working trend visualization."
+      },
+      {
+        "recommendation": "Reserve a fixed chart height (e.g. min-height matching the skeleton's 280px) on the chart container so the card holds its shape and there is no collapse/CLS between loading skeleton and rendered SVG.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Eliminates layout collapse and the empty-card appearance; stabilizes CLS."
+      },
+      {
+        "recommendation": "Collapse the duplicated intent copy: keep the shell subtitle OR the panel description, not both, and move the single sentence to a quieter caption so data appears higher.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Less decorative preamble across all AnalysisShell+AnalysisPanel pages; data rises in the fold."
+      },
+      {
+        "recommendation": "Tighten the filter row: drop the 7rem label min-width and render Aggregation/Grouping as compact inline select pills so two controls don't occupy a full form-width band.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Higher density, more clinical-tool feel, more room for the chart."
+      }
+    ]
+  },
+  {
+    "page": "publicationsndd",
+    "route": "/PublicationsNDD",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 9,
+      "dataviz": 8,
+      "interaction_states": 8,
+      "content_clarity": 9
+    },
+    "overall": 8,
+    "one_line_verdict": "A reference-grade table surface: one h1, clear tabs, mono PMID chips, neutral journal/date badges, labeled filters and pagination, and a documented AA token palette — the strongest of the four.",
+    "top_findings": [
+      {
+        "issue": "Mono PMID chips on medical-blue-50 with the external-link affordance, neutral journal/date badges, and a tidy result-count description ('Publications: 4689 · Loaded 10/4689 in 0.05 secs') give exactly the quiet, scannable, trustworthy operations feel the product targets.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "Screenshot rows show PMID:226298 mono chips, book/calendar neutral badges; PublicationsNDDTable.vue .publication-badge/.journal-badge/.date-badge with documented contrast ratios (lines 816-877)."
+      },
+      {
+        "issue": "Per-column filter inputs ('Filter PMID', 'Filter Title', 'Filter Date', 'Filter Journal') each carry aria-label and the filter row uses role=\"presentation\" td cells, resolving the pre-fix td-has-header(1); but four near-identical light-grey filter boxes plus the global search box create some visual redundancy.",
+        "severity": "low",
+        "dimension": "dataviz",
+        "evidence": "PublicationsNDDTable.vue lines 76-130 (role=\"presentation\" td, :aria-label) and the screenshot's filter row beneath the header."
+      },
+      {
+        "issue": "The 'Details / Show' column is an outline-primary button per row; with 10 rows this is a column of identical blue buttons that adds blue weight and competes slightly with the PMID chips for the eye.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "Rightmost column in screenshot shows a stack of 'Show' outline buttons."
+      },
+      {
+        "issue": "Pre-fix heading-order(1) is addressed by the shell h1 + panel h2 structure, but the row-expansion detail panel uses h6 section labels (Abstract/Authors/Keywords) which skips h3-h5 within the expanded record.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "PublicationsNDDTable.vue lines 180-200 use <h6 class=\"details-label\"> directly under h2/h1 page context."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Demote the per-row 'Show' control to a quiet chevron/disclosure icon-button (with aria-expanded + aria-label) instead of a filled-weight outline button, so the expand affordance stops competing with data chips.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Reduces blue noise across all expandable tables; sharpens chip hierarchy."
+      },
+      {
+        "recommendation": "Replace the h6 detail-section labels with a non-heading styled label (e.g. a span/dt with the same uppercase token style) or correct heading level to avoid the h2->h6 jump inside expanded rows.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Cleans heading-order for screen readers across every record-detail expansion in the app."
+      },
+      {
+        "recommendation": "Consider hiding the per-column filter row behind a 'Filters' toggle (default off) since a global search box already exists, reducing the duplicated grey-box band above the data.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Higher density and less control redundancy on every TableShell-style page."
+      },
+      {
+        "recommendation": "Right-align or mono-format any numeric/ID columns consistently and ensure the Date badge mono treatment matches the PMID mono so identifiers read as a coherent system.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Tighter typographic consistency for scanning dense publication rows."
+      }
+    ]
+  },
+  {
+    "page": "pubtatorndd",
+    "route": "/PubtatorNDD",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 7,
+      "responsiveness": 8,
+      "accessibility": 9,
+      "dataviz": 8,
+      "interaction_states": 7,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A dense, information-rich literature table with well-tokenized gene chips, mono scores and AA-documented annotation colors; the formerly severe 29-instance contrast problem is resolved and the surface now reads cleanly.",
+    "top_findings": [
+      {
+        "issue": "Gene-symbol cells render as a tidy set of mono medical-blue-50 chips with a quiet neutral '+N' overflow chip (e.g. EIF2S2/GRIN2B/HAP1 +2, ALDH7A1/ALG13/ARX +47), which is exactly the right compact, scannable treatment and clearly resolves the pre-fix color-contrast(29).",
+        "severity": "low",
+        "dimension": "color_contrast",
+        "evidence": "Cropped gene column (/tmp/pt_genes2.png) shows blue mono chips + grey '+47'; .gene-chip/.gene-chip-more documented at 7.1:1 / 5.4:1 in PubtatorNDDTable.vue lines 916-947."
+      },
+      {
+        "issue": "The Score column shows three-decimal mono numerics (200.992, 202.104, 236.053) but column is wide and the values dominate; without a unit/legend the meaning of the score is unexplained to expert users on first view.",
+        "severity": "med",
+        "dimension": "content_clarity",
+        "evidence": "Screenshot Score column and .pubtator-score-numeric (line 792); no inline help on what 'Score' represents (relevance vs co-mention weight)."
+      },
+      {
+        "issue": "Nine visible columns (Search id, Pmid, Doi, Title, Journal, Date, Score, Gene symbols, Text hl, Details) is information-dense for 1440px; 'Search id' is an opaque internal counter (1138, 1129...) of low reader value occupying the leftmost prime column.",
+        "severity": "med",
+        "dimension": "spacing_density",
+        "evidence": "Screenshot header row + fields array (PubtatorNDDTable.vue lines 360-431); search_id rendered as a neutral mono chip with values like 1138."
+      },
+      {
+        "issue": "The PubTator entity-type color legend (Gene/Disease/Variant/Species/Chemical/Match) only appears inside an expanded row, so the colored highlight spans in the collapsed 'Text hl' preview column have no visible key on the default view.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "Legend markup is inside #row-expansion (PubtatorNDDTable.vue lines 225-232); collapsed text_hl preview (lines 163-176) shows colored segments with no adjacent legend."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Add a short inline help/tooltip (reuse InlineHelpBadge) on the Score header explaining what the score is and its range/units, and right-align the header to match the numeric cells.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Expert users immediately understand and can rank by score; removes ambiguity."
+      },
+      {
+        "recommendation": "Demote or hide 'Search id' by default (move behind column-visibility or drop to a row-detail field) so a prime left column carries meaningful identity (PMID) instead of an internal counter.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Recovers horizontal space and leads with the identifier readers actually use."
+      },
+      {
+        "recommendation": "Surface a compact, always-visible entity-type legend (or color the column header) so the highlighted Text-HL spans are interpretable without expanding a row.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Makes the annotation color system self-explaining on the default table view."
+      },
+      {
+        "recommendation": "Standardize the PMID affordance: this page uses an outline-primary button while PublicationsNDD uses a mono chip with external-link icon — pick one shared PMID component so the two publication tables match.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Consistency across both literature surfaces; one maintained PMID-link component."
+      }
+    ]
+  },
+  {
+    "page": "genenetworks",
+    "route": "/GeneNetworks",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 7,
+      "color_contrast": 7,
+      "consistency": 7,
+      "spacing_density": 7,
+      "responsiveness": 6,
+      "accessibility": 7,
+      "dataviz": 6,
+      "interaction_states": 7,
+      "content_clarity": 7
+    },
+    "overall": 6,
+    "one_line_verdict": "An ambitious, genuinely useful split-pane network+table workbench with tokenized chips and a sensible 'select one cluster' cue, but a broken-looking FDR column, monotone cluster badges, leftover console.logs, and heavy dev-build cost make it the weakest of the four.",
+    "top_findings": [
+      {
+        "issue": "The FDR column renders as a literal '0' chip on every visible enrichment row instead of meaningful scientific notation, so a key statistical column conveys nothing — the formatFdr() scientific-notation logic is not reaching the displayed values.",
+        "severity": "high",
+        "dimension": "dataviz",
+        "evidence": "Right-pane crop (/tmp/gn_right.png) FDR column shows '0' on all rows; formatFdr in AnalyseGeneClusters.vue lines 696-705 is meant to emit n.toExponential(2) for n<0.001."
+      },
+      {
+        "issue": "Every visible row's cluster badge is an identical orange '1' in the All-Clusters combined view, producing a monotonous, uninformative leftmost column that wastes the cluster-color encoding the network legend establishes.",
+        "severity": "med",
+        "dimension": "dataviz",
+        "evidence": "Left-pane/right-pane crops show a vertical stack of orange '1' .cluster-badge cells; combineClusterData path with cluster_num display (template lines 211-219)."
+      },
+      {
+        "issue": "Production console.log statements remain in interaction handlers (handleClusterSelected, handleClustersChanged), indicating debug code shipped to the public network workbench.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "AnalyseGeneClusters.vue lines 875, 969 (console.log('Gene selected...'), console.log('Clusters changed...'))."
+      },
+      {
+        "issue": "The network toolbar is a row of icon-only controls (fullscreen, refresh, zoom in/out, two image-export glyphs) plus warning triangle; these are the source of the pre-fix button-name(6)/select-name(3) and remain visually cryptic even if aria-labels were added — no text affordance for expert first-time use.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "Left-pane crop shows ~6 unlabeled icon buttons under 'Protein-Protein Interaction Network'; lighthouse button-name(6)/select-name(3) baseline."
+      },
+      {
+        "issue": "Genuine performance cost on the dev build (perf17, LCP4087, TBT2119, CLS0.277): the in-browser fCoSE layout blocks the main thread and the overlapping translucent cluster boxes shift as they settle; production precomputes layout, but the dev capture shows real jank potential.",
+        "severity": "med",
+        "dimension": "responsiveness",
+        "evidence": "Lighthouse perf17/TBT2119/CLS0.277; AGENTS.md notes fCoSE runs in-browser on dev DB; left-pane shows settling compound bounding boxes."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Fix the FDR rendering pipeline so displayed values use the existing scientific-notation formatter (verify the bound value is the raw fdr number, not a pre-rounded 0), and keep the mono warning chip only when a real value exists.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores the most important statistical column; the enrichment table becomes interpretable."
+      },
+      {
+        "recommendation": "In All-Clusters combined view, color each cluster badge by its true cluster number using getClusterColor so the table's left column mirrors the network legend instead of all reading '1' orange.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Re-establishes the cluster color encoding and lets users trace rows back to network clusters."
+      },
+      {
+        "recommendation": "Remove the console.log debug calls from the interaction handlers.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Clean production console; no debug noise on a public page."
+      },
+      {
+        "recommendation": "Give the network toolbar icon buttons visible text or a labeled grouping (e.g. a small 'Export' split-button with .png/.svg labels, tooltips on zoom controls) and confirm every control has an accessible name, closing the button-name/select-name gap with real affordance, not just aria.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Better discoverability and a11y for the network controls reused wherever the viz appears."
+      },
+      {
+        "recommendation": "Reduce CLS by reserving the network canvas height and fading translucent cluster hulls in only after layout settles (or render the production precomputed preset positions in dev when available); add a min-height to the splitpanes container.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Cuts visible layout shift and perceived jank during the heavy fCoSE settle."
+      }
+    ]
+  },
+  {
+    "page": "nddscore",
+    "route": "/NDDScore?sort=+rank&page_size=10",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 7,
+      "consistency": 8,
+      "spacing_density": 7,
+      "responsiveness": 8,
+      "accessibility": 8,
+      "dataviz": 7,
+      "interaction_states": 8,
+      "content_clarity": 7
+    },
+    "overall": 7,
+    "one_line_verdict": "Table-first, well-tokenized ML-prediction surface that reads like a research tool; held back by a heavy orange disclosure card that out-weighs the data, a clipped rightmost table column, and residual filter-control a11y mismatches.",
+    "top_findings": [
+      {
+        "issue": "The orange ML-disclosure prediction card (warning-bg fill + orange left border) is the single most prominent block on the page, sitting above the data table and pushing the first data rows toward the fold. It contradicts the 'quiet, table-first, no decorative explanation before the data' intent.",
+        "severity": "med",
+        "dimension": "hierarchy",
+        "evidence": "Desktop screenshot: the filled #fff3e0 card with the orange rule spans full width between the header and the 'Gene predictions' table; only ~4 table rows are visible above the fold at 1440x900. Source NddScorePredictionCard.vue uses border-left: 3px solid #e65c00 + background var(--status-warning-bg)."
+      },
+      {
+        "issue": "Rightmost column content is clipped under the fixed table layout. 'Predicted HPO' shows 'Intellectual disabili' truncated with no ellipsis affordance, and the table runs to the viewport edge.",
+        "severity": "med",
+        "dimension": "dataviz",
+        "evidence": "Desktop screenshot: 'Intellectual disabili' / 'Intellectual disabil' cut mid-word at the right edge across all rows; GenericTable uses :fixed-layout=true with 10 columns."
+      },
+      {
+        "issue": "The same 'predictions are separate from curated SysNDD evidence' disclaimer appears three times in close proximity (page subtitle, meta badge 'ML prediction layer', and the prediction card body), plus a fourth 'not manually curated' line in the table description. The repetition adds vertical weight without new information.",
+        "severity": "med",
+        "dimension": "content_clarity",
+        "evidence": "Subtitle in AnalysisShell + nddscore-meta-badge 'ML prediction layer' + NddScorePredictionCard disclaimer paragraph + TableShell description 'these are not manually curated SysNDD classifications'."
+      },
+      {
+        "issue": "Filter-control accessibility mismatches remain (Lighthouse select-name 5, label-content-name-mismatch 4). The range/select filter dropdown buttons show visible text like 'Any NDD sco...', 'Any Rank...' that does not match their aria-label ('NDD score filter: ...'), and the operator BFormSelect controls are dropdown-nested.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "NddScoreGeneTable.vue: BDropdown :aria-label=`${field.label} filter: ${rangeFilterLabel}` with #button-content rendering the short label; Lighthouse label-content-name-mismatch(4) + select-name(5)."
+      },
+      {
+        "issue": "td-has-header: the filter-controls row renders each cell as <td role=\"presentation\"> with no header association, so screen readers cannot tie a filter control to its column.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "Template: <td v-for=\"field in fields\" role=\"presentation\"> in #filter-controls; Lighthouse td-has-header(1)."
+      },
+      {
+        "issue": "Heading-order: the prediction-card title ('ML prediction / Machine learning, not manual curation') sits between the route h1 and the table h2 but is not a heading element, so the document outline jumps h1 -> h2 with a visually-stronger non-heading in between.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "AnalysisShell h1 'NDDScore'; NddScorePredictionCard uses <span> for its label/disclosure; TableShell defaults headingLevel 2. Lighthouse heading-order(1)."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Demote the ML-disclosure card to a quiet inline banner: drop the filled warning background and orange left-rule, use a single-line neutral/info note with the icon + 'ML prediction layer' chip already in the header, and move the AUC-ROC / Brier metrics into the existing Model card tab rather than duplicating them above the table.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Restores table-first hierarchy, lifts the data above the fold, and removes the largest decorative block — directly aligns with the 'quiet clinical tool' intent."
+      },
+      {
+        "recommendation": "Allow the rightmost long-text columns (Predicted HPO, Top inheritance) to truncate with an ellipsis + tooltip, or relax :fixed-layout so the HPO label is not cut mid-word; reserve a right gutter so the table does not run to the viewport edge.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Eliminates the mid-word clipping that reads as broken and improves scannability of the most clinically meaningful column."
+      },
+      {
+        "recommendation": "Render filter-dropdown buttons so the accessible name matches the visible text (e.g. set aria-label equal to the rendered short label, or expose the full label as visible text), and apply this fix in the shared filter-dropdown wrapper so all range/select/multi-select controls inherit it.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears Lighthouse select-name(5) + label-content-name-mismatch(4) here and on every other table that reuses the same filter-dropdown pattern."
+      },
+      {
+        "recommendation": "In the shared GenericTable filter row, give each filter <td> a header association (headers attribute or an aria-labelledby pointing at the column header id) instead of role=\"presentation\".",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Resolves td-has-header across all tables using the GenericTable filter-controls slot."
+      },
+      {
+        "recommendation": "Collapse the four redundant 'not curated SysNDD evidence' statements into one canonical disclosure (keep the meta badge + one short line); remove the duplicate from the table description.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Reduces visual noise and vertical scroll while keeping the required compliance message exactly once."
+      },
+      {
+        "recommendation": "Wrap the prediction-card disclosure label in a real visually-hidden-or-styled heading (h2) so the document outline stays h1 -> h2 -> h2 with no skipped/implied level.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Clears Lighthouse heading-order(1) and gives screen-reader users a consistent outline."
+      }
+    ]
+  },
+  {
+    "page": "nddscore-modelcard",
+    "route": "/NDDScore/ModelCard",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 7,
+      "consistency": 7,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 8,
+      "dataviz": 8,
+      "interaction_states": 6,
+      "content_clarity": 9
+    },
+    "overall": 8,
+    "one_line_verdict": "A genuinely strong, dense, reference-grade metric/provenance card — clean tokenized tiles and mono values — undercut only by a bright off-token cyan 'info' release badge and a heading-order skip.",
+    "top_findings": [
+      {
+        "issue": "The release badge uses Bootstrap's info (cyan #0dcaf0-family) variant, which is off the SysNDD token palette and is the only saturated element on an otherwise quiet card; it draws the eye away from the metrics and is the likely source of the color-contrast hits (light-blue fill, dark-cyan text on white surroundings).",
+        "severity": "med",
+        "dimension": "color_contrast",
+        "evidence": "NddScoreModelCard.vue: <BBadge variant=\"info\"> rendering 'nddscore_20260517_public'; screenshot shows a bright cyan pill top-right; Lighthouse color-contrast(8)."
+      },
+      {
+        "issue": "Heading-order skip: the card's internal title is an <h2> ('ML prediction - model card'), correct under the route h1, but the surrounding AnalysisShell + table-tab structure produces a heading-order(1) flag — the model card is the only content and its h2 is fine, so the flag traces to an intermediate non-heading or skipped level in the shell.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "NddScoreModelCard.vue uses <h2 id=\"nddscore-model-card-title\">; AnalysisShell owns h1 'NDDScore'; Lighthouse heading-order(1)."
+      },
+      {
+        "issue": "No loading or skeleton state: the card only handles success and a single error fallback ('No active NDDScore release is available.'). On a slow fetch the eight metric tiles render with 'NA' placeholders before data arrives, which can briefly read as a degraded/empty model.",
+        "severity": "med",
+        "dimension": "interaction_states",
+        "evidence": "NddScoreModelCard.vue: onMounted sets release on success or error=true; formatDecimal/formatCount return 'NA' when values are null, with no loading branch in the template."
+      },
+      {
+        "issue": "Version shows 'NA' while Version DOI / Concept DOI / Zenodo record all resolve, which looks like a data gap on an otherwise complete card.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "Screenshot provenance row: 'Version: NA' next to populated DOI links; displayValue(release?.version) returns 'NA' for empty."
+      },
+      {
+        "issue": "The metric tiles and count tiles are visually identical (same border, radius, mono value), so 'held-out performance' (AUC-ROC, Brier...) and 'release counts' (Genes, HPO terms...) read as one undifferentiated 8-up grid despite being two semantically distinct groups with aria-label separators.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "Two grids .nddscore-model-card__grid and __counts share .nddscore-model-card__metric/__count styling; screenshot shows them as two adjacent identical rows with no visible group label."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Replace BBadge variant=\"info\" with a tokenized mono sysndd-chip (e.g. sysndd-chip--blue or a neutral mono pill) for the release id, matching the chip system used on the gene table.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears the color-contrast hits, removes the only off-palette element, and unifies the release-id treatment across both NDDScore tabs."
+      },
+      {
+        "recommendation": "Add a loading state (skeleton tiles or a spinner) for the release fetch instead of rendering 'NA' placeholders before data resolves.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Prevents the brief 'empty model' flash on slow loads and reads as trustworthy clinical tooling."
+      },
+      {
+        "recommendation": "Add a quiet visible group label/subhead above each tile group ('Held-out performance' and 'Release contents') so the two semantically distinct grids are distinguishable, not just via aria-label.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Improves scan/comprehension of which numbers are performance vs. corpus size without adding decoration."
+      },
+      {
+        "recommendation": "Audit the AnalysisShell heading structure so the route outline is strictly h1 -> h2 with no intermediate non-heading visual title; confirm the model-card h2 is the next heading after the shell h1.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Resolves heading-order(1) here and on the sibling gene-predictions tab that shares the shell."
+      },
+      {
+        "recommendation": "Suppress or relabel the 'Version: NA' field when version is unavailable (hide the field or show '-' consistent with other empty handling) rather than surfacing 'NA' next to resolved DOIs.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes an apparent data gap and keeps the provenance row reading as complete."
+      }
+    ]
+  },
+  {
+    "page": "about",
+    "route": "/About",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 8,
+      "spacing_density": 7,
+      "responsiveness": 7,
+      "accessibility": 9,
+      "dataviz": 7,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "A genuinely quiet, well-tokenized clinical About page: token-vared accordion, dual-cue funding/news badges, and a paint-first h1 — only a lingering heading-order flag and a slightly decorative version card hold it back from 9.",
+    "top_findings": [
+      {
+        "issue": "Single Lighthouse heading-order(1) still flags despite the deliberate h1→h2→h3 outline; the open accordion item's title h2 is the only painted heading at load, and the audit appears to fire on the document outline before later h2s mount.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "AboutView.vue lines 50/65/107 use h2 accordion titles + h3 'Affiliations'; lighthouse line still reports heading-order(1) at a11y99."
+      },
+      {
+        "issue": "AppVersionInfo still renders as a decorative gray card (BCard border-0 bg-light) which subtly violates the 'no decorative cards, quiet' intent the rest of the page was rebuilt to honor.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "AppVersionInfo.vue line 2: <BCard class=\"version-info border-0 bg-light\"> ; the page itself replaced its Contact/Citation BCards with plain markup."
+      },
+      {
+        "issue": "At desktop width the open accordion body sets prose to a very wide measure with no max-width on the paragraph text, so the 'About SysNDD and its creators' lines run the full panel width.",
+        "severity": "low",
+        "dimension": "typography",
+        "evidence": "Screenshot shows body paragraphs spanning the full ~1120px shell; about-content has no max-ch constraint on <p>."
+      },
+      {
+        "issue": "LCP8754 is flagged even though the page comment claims the h1 is painted first; the dev-server artifact aside, the hero region above the fold is mostly whitespace, so the perceived first meaningful paint is thin.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "lighthouse: LCP8754!; screenshot shows hero + one short accordion before a large empty lower region."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Give AppVersionInfo a plain bordered (--border-subtle) surface or inline list instead of bg-light BCard so it matches the de-decorated page and the shared public-panel idiom.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes the last decorative card on About and unifies the version widget wherever it is reused (also on /API)."
+      },
+      {
+        "recommendation": "Constrain accordion body prose to max-width ~68ch for readable line length on wide desktop.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Improves readability of all public accordion bodies (About + Documentation) without layout change."
+      },
+      {
+        "recommendation": "Confirm the heading-order flag source: ensure no visually-styled h4/h6 (the version card uses h6) appears before an h2 in DOM order, since an early h6 after h1 trips heading-order.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Likely clears the remaining heading-order(1) to reach a11y 100 like the other public pages."
+      },
+      {
+        "recommendation": "Render a thin loaded-state skeleton or the first paragraph synchronously in the hero region so above-the-fold has content density and a stronger LCP candidate.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Reduces perceived emptiness above the fold and reinforces the paint-first intent."
+      }
+    ]
+  },
+  {
+    "page": "documentation",
+    "route": "/Documentation",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 7,
+      "color_contrast": 8,
+      "consistency": 6,
+      "spacing_density": 6,
+      "responsiveness": 7,
+      "accessibility": 9,
+      "dataviz": 6,
+      "interaction_states": 7,
+      "content_clarity": 8
+    },
+    "overall": 7,
+    "one_line_verdict": "Clear, scannable numbered FAQ with a strong shared shell, but it is the most decorated page in the cluster — nested tinted BCards, a marketing-style 'Entity = Gene+Inheritance+Disease' hero badge, and four pastel category tiles run against the quiet clinical-tool intent.",
+    "top_findings": [
+      {
+        "issue": "Decorative nested cards inside accordion bodies: 'Entity:' badge-in-card (bg-primary bg-opacity-10 with nested pill badges) and the four bg-success/info/warning/danger bg-opacity-10 category tiles are exactly the expressive/marketing decoration the design intent warns against.",
+        "severity": "med",
+        "dimension": "consistency",
+        "evidence": "DocumentationView.vue lines 116-125 (entity BCard) and 199-224 (4 colored BCol tiles with fs-2 icons)."
+      },
+      {
+        "issue": "Color-coded category tiles convey meaning largely through hue (green Genes / blue Diseases / orange Inheritance / red Phenotypes) with no semantic relationship to status tokens; risks reading as a status palette and is color-forward decoration.",
+        "severity": "med",
+        "dimension": "color_contrast",
+        "evidence": "lines 201-222 map success/info/warning/danger backgrounds to non-status concepts; labels are present so it is not color-alone, but the hue choice is arbitrary."
+      },
+      {
+        "issue": "Two centered link BCards (bg-primary bg-opacity-10 docs link; bg-success bg-opacity-10 Discussions link) duplicate the top quick-link action cards, creating redundant CTAs and inconsistent link styling (fs-5 fw-bold inside tinted boxes).",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "lines 245-250 and 278-287 repeat DOCS_URLS.HOME / GITHUB_DISCUSSIONS already in the top public-actions nav."
+      },
+      {
+        "issue": "Accordion titles are styled spans (fw-semibold) not headings, so the eight FAQ questions are not in the document outline; combined with the lighthouse heading-order(1), the in-body h4 (entity card) also sits under a non-heading title.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "lines 55/85/105 use <span class=\"fw-semibold\"> for titles; line 117 uses <h4> inside a body whose title is a span; lighthouse heading-order(1)."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Replace the 'Entity:' badge-in-card and the four pastel category tiles with a single compact inline chip row (sysndd-chip tones for Gene/Inheritance/Disease) and a plain bulleted list for the four data dimensions.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes the page's marketing feel, aligns with the chip/quiet-table reference surfaces, and tightens vertical rhythm."
+      },
+      {
+        "recommendation": "Drop the two redundant centered link BCards inside accordion bodies and rely on the top public-actions cards; if a contextual link is needed, use a plain inline BLink.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Eliminates duplicate CTAs and one-off link typography, improving consistency."
+      },
+      {
+        "recommendation": "Promote accordion question titles to h2 (as AboutView already does) via the shared accordion title pattern so FAQ questions enter the outline.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Fixes outline across all accordion-based public pages and likely resolves heading-order(1)."
+      },
+      {
+        "recommendation": "Move .bg-opacity-10 and the tinted-card pattern out of this page; standardize on --border-subtle bordered surfaces for any in-body callouts.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Reduces decorative-card debt anywhere the pattern is copied and reinforces the quiet token system."
+      },
+      {
+        "recommendation": "Tighten the accordion body spacing (the page reads airy/marketing); reduce the my-4 / py-4 paddings on in-body blocks to section-scale 16-24px.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Higher information density consistent with a clinical reference tool."
+      }
+    ]
+  },
+  {
+    "page": "mcp",
+    "route": "/mcp",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 8,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 9,
+      "dataviz": 7,
+      "interaction_states": 7,
+      "content_clarity": 9
+    },
+    "overall": 8,
+    "one_line_verdict": "The strongest page in the cluster: compact two-column technical layout, real semantic h2 sections, a clean mono code block and definition list, and zero decoration — reads exactly like a developer/agent reference should.",
+    "top_findings": [
+      {
+        "issue": "Styling uses one-off hex literals throughout (#102033, #344054, #667085, #d9e1ec, code bg #f6f8fb) and the info notice uses bespoke #b7d4ee/#17415f rather than the documented design tokens / status-info token.",
+        "severity": "low",
+        "dimension": "consistency",
+        "evidence": "McpInfoView.vue lines 120-202 are entirely hardcoded hex; .mcp-notice color #17415f and border #b7d4ee are not the info token (#0277bd)."
+      },
+      {
+        "issue": "The page has no loading/empty/error state because mcpUrl is derived synchronously from window.location; acceptable, but the 'Configured MCP URL' is just the current origin + /mcp (localhost in this capture) which can mislead operators into thinking it is the production transport.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "line 103 resolveMcpUrl uses window.location.origin; screenshot shows http://localhost:5173/mcp as the 'configured' URL."
+      },
+      {
+        "issue": "Heading-order(1) still flagged; the h1→h2 structure looks correct, so the flag likely originates from the global header/footer chrome shared across all four pages rather than this view.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "lighthouse heading-order(1) at a11y99; template uses a single h1 (line 7) and h2 section titles only."
+      },
+      {
+        "issue": "The code-block JSON is static text (not copyable via a button) and the 'Configured MCP URL' code value also has no copy affordance, a small ergonomics gap for a config-oriented page.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "lines 42-66: <pre><code> and <code>{{ mcpUrl }}</code> with no copy control."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Swap the page's hardcoded hex for the shared design-token CSS vars (--medical-blue-700, --neutral-*, --border-subtle, --status-info) so the MCP page tracks the token system instead of re-deriving values.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Keeps the page on-system; any future token change propagates automatically (also benefits the shared public-pages scss which has the same literal issue)."
+      },
+      {
+        "recommendation": "Add a copy-to-clipboard button to the configured MCP URL and the JSON config block, with an aria-label.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Improves the core task (copying connection config) for the developer/agent audience."
+      },
+      {
+        "recommendation": "Label the displayed URL explicitly as the current-origin development value and link to operator-supplied production guidance, or hide it when origin is localhost.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Prevents operators copying a localhost URL into a real client config."
+      },
+      {
+        "recommendation": "Audit the shared header/footer for the heading-order source so all four Help/Static/API pages can reach a11y 100 together.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "One fix likely clears heading-order(1) across the entire cluster."
+      }
+    ]
+  },
+  {
+    "page": "api",
+    "route": "/API",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 6,
+      "color_contrast": 7,
+      "consistency": 6,
+      "spacing_density": 6,
+      "responsiveness": 7,
+      "accessibility": 8,
+      "dataviz": 6,
+      "interaction_states": 8,
+      "content_clarity": 7
+    },
+    "overall": 7,
+    "one_line_verdict": "A solid shell wrapped around a third-party Swagger embed with thoughtful contrast/font overrides and real loading/error states — but the Version information card renders raw JSON-quoted artifacts ('v[ \"0.21.6\" ]', '[ \"unknown\" ]') and Swagger's own 'SysNDD API' title duplicates the hero, both visible in the screenshot.",
+    "top_findings": [
+      {
+        "issue": "The Version information card displays raw array/quote artifacts: 'API v[ \"0.21.6\" ]' with a '[ \"unknown\" ]' badge and 'Databasev[ \"1.0.0\" ]' with no space — the Plumber JSON-scalar-as-array values are not unwrapped before rendering, and the commit-unknown branch is showing the literal '\"unknown\"' string.",
+        "severity": "high",
+        "dimension": "consistency",
+        "evidence": "Screenshot hero meta shows v[ \"0.21.6\" ] / [ \"unknown\" ] / Databasev[ \"1.0.0\" ]; AppVersionInfo.vue expects scalar apiVersion.version and a commit !== 'unknown', so an array/quoted value bypasses the guard and prints brackets."
+      },
+      {
+        "issue": "Heading and title duplication: Swagger renders its own large 'SysNDD API' h2 with a 0.21.6 + OAS3.0 pill directly below the app's own 'SysNDD API' h1 hero, so the page shows the product name twice with two different version pills (0.21.6 in Swagger vs 0.21.6/unknown in the card).",
+        "severity": "med",
+        "dimension": "hierarchy",
+        "evidence": "Screenshot shows hero h1 'SysNDD API' then Swagger block 'SysNDD API 0.21.6 OAS3.0'; ApiView.vue comment acknowledges Swagger's internal h2 cannot be suppressed."
+      },
+      {
+        "issue": "Swagger's native typography/section headings ('default', 'health' in bright blue, large light 'SysNDD API') clash with the app's compact medical type scale; the embed feels visually foreign despite the font-family:inherit and link-color overrides.",
+        "severity": "med",
+        "dimension": "typography",
+        "evidence": "Screenshot: oversized thin 'SysNDD API' (~36px) and saturated-blue 'default'/'health' section labels differ from the 18-22px semibold app title scale; lighthouse color-contrast(5) on Swagger badges."
+      },
+      {
+        "issue": "Remaining lighthouse color-contrast(5) + heading-order(1) originate inside the un-forkable Swagger bundle; the source adds #000-on-pastel method-badge and version-pill overrides, but the audit still counts Swagger-internal nodes.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "lighthouse a11y95 color-contrast(5); ApiView.vue lines 183-217 add :deep overrides but note Swagger internals cannot be fully controlled."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Fix AppVersionInfo to unwrap Plumber array/quoted scalars (e.g. normalize version/commit/database via the existing unwrapValue util) so the card shows 'v0.21.6' and a clean 'unknown'/hidden commit instead of '[ \"0.21.6\" ]'.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Removes a high-visibility rendering bug shown on both /API and /About wherever AppVersionInfo is mounted."
+      },
+      {
+        "recommendation": "Hide or visually demote Swagger's internal info hgroup (the duplicate 'SysNDD API' title + version pill) via :deep, the same way .topbar is already display:none, so the hero h1 is the only product title.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Eliminates the duplicated title/version and tightens the top of the explorer."
+      },
+      {
+        "recommendation": "Constrain Swagger section-heading sizes and the 'default'/'health' tag label colors to the app type scale and medical-blue token via :deep so the embed reads as part of the app.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Brings the foreign Swagger typography closer to the compact clinical scale and reduces the saturated-blue clash."
+      },
+      {
+        "recommendation": "Document the residual Swagger-internal color-contrast(5)/heading-order(1) as a known third-party limitation in the page and the audit baseline, since they cannot be cleared without forking the bundle.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Sets correct expectations so the page is not re-penalized for un-fixable embed internals."
+      },
+      {
+        "recommendation": "Reuse the de-decorated AppVersionInfo surface (see About finding) so the hero version card is a plain bordered surface consistent with the shell rather than a bg-light card.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Visual consistency of the version widget across /API and /About."
+      }
+    ]
+  },
+  {
+    "page": "login",
+    "route": "/Login",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 7,
+      "color_contrast": 9,
+      "consistency": 8,
+      "spacing_density": 7,
+      "responsiveness": 7,
+      "accessibility": 9,
+      "dataviz": 7,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 8,
+    "one_line_verdict": "Clean, trustworthy two-panel auth shell with labeled fields and tokenized buttons; the only real snag is an inverted visual heading weight (h2 'Sign in' reads larger than the route h1) that triggers the heading-order flag.",
+    "top_findings": [
+      {
+        "issue": "Visual/semantic heading mismatch: the left route-level <h1> 'Curator sign in' and right <h2> 'Sign in' both use the .login-title class, so the h2 renders as large/larger than the h1 — Lighthouse heading-order(1) and a confusing focal point (the form heading dominates the page heading).",
+        "severity": "med",
+        "dimension": "hierarchy",
+        "evidence": "Screenshot shows 'Sign in' (right) at the same or greater visual size than 'Curator sign in' (left h1); LoginView.vue lines 21/45 both apply class=\"login-title\" to h1 and h2."
+      },
+      {
+        "issue": "Left context panel leans slightly marketing for a clinical tool: kicker label 'SYSNDD ACCOUNT', a feature bullet list with decorative bi-check/shield icons, and a descriptive paragraph before any action.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "LoginView.vue lines 20-38: login-kicker + login-description + login-feature-list; design intent asks to avoid decorative explanations before the data/action."
+      },
+      {
+        "issue": "Field-level helper text ('Enter your user name' / 'Enter your user password') is redundant with the visible label and adds vertical noise without informational value.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "LoginView.vue lines 54 and 72 BFormGroup description props; visible under each input in the screenshot."
+      },
+      {
+        "issue": "Large empty canvas: the two cards sit in the upper third leaving ~40% of the viewport empty below the fold, so the page reads sparse rather than focused.",
+        "severity": "low",
+        "dimension": "spacing_density",
+        "evidence": "Screenshot: both panels end around y=610 of a 900px viewport with empty gradient below."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Make the form panel heading a visually-subordinate <h2> (smaller/medium weight) or promote the left brand title to the single dominant h1 so size order matches DOM order — clears heading-order(1) and fixes the focal hierarchy.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Resolves the only a11y flag and makes the page-level identity (Curator sign in) the clear focal point."
+      },
+      {
+        "recommendation": "Trim the left context panel to one short trust line + the 'public stays free' note; drop the kicker and one bullet to align with the quiet clinical-tool intent.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Less marketing decoration, faster scan to the sign-in form."
+      },
+      {
+        "recommendation": "Remove the redundant per-field descriptions (or replace with only genuinely useful constraints, as Register does for char limits).",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Tighter form rhythm, less visual noise."
+      },
+      {
+        "recommendation": "Vertically center the shell (or cap max-height and center) so the auth cards are not stranded in the top third on tall desktop viewports.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Both Login and Register feel intentional rather than sparse; shared .login-shell fix covers both."
+      }
+    ]
+  },
+  {
+    "page": "register",
+    "route": "/Register",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 8,
+      "color_contrast": 9,
+      "consistency": 9,
+      "spacing_density": 8,
+      "responsiveness": 7,
+      "accessibility": 10,
+      "dataviz": 7,
+      "interaction_states": 9,
+      "content_clarity": 9
+    },
+    "overall": 8,
+    "one_line_verdict": "Strong, fully-labeled application form brought to parity with Login — real labels, useful per-field constraints, ORCID/email validation, and a designed success overlay; clean a11y with no failing audits.",
+    "top_findings": [
+      {
+        "issue": "Same inverted heading weight as Login: left <h1> 'Apply for access' and right <h2> 'Register' both use .login-title, so the form heading competes with the page heading (no Lighthouse flag here, but the focal hierarchy is muddy).",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "RegisterView.vue lines 60 and 90 both class=\"login-title\"; screenshot shows 'Register' (h2) at the same visual scale as the h1."
+      },
+      {
+        "issue": "The left context panel and right form are the same height-class but the form is much taller (7 fields + terms), so at desktop the left panel ends ~halfway and leaves a tall empty column beside the lower form fields.",
+        "severity": "low",
+        "dimension": "spacing_density",
+        "evidence": "Screenshot: left panel content stops around 'Sign in here' (y~385) while the form extends past the fold; register-panel uses align-self:start (RegisterView.vue line 459)."
+      },
+      {
+        "issue": "Inputs are visually low-contrast/borderless-feeling (very light 1px borders on white) which, with placeholder-only affordance, makes the empty form read as a flat list of pale rectangles.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "Screenshot: each BFormInput is a faint outlined box; only the label distinguishes fields before focus."
+      },
+      {
+        "issue": "Terms checkbox is initialized to 'not_accepted' and validated as required, which is correct, but the form gives no top-level summary of why submit is blocked when invalid — error feedback is per-field only.",
+        "severity": "low",
+        "dimension": "content_clarity",
+        "evidence": "RegisterView.vue lines 206-226 (terms) and per-field BFormInvalidFeedback; no aggregated error summary region."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Apply the same h2 de-emphasis used to fix Login so the page <h1> ('Apply for access') is unambiguously the largest element on both auth pages.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Consistent, correct heading hierarchy across the auth cluster from one shared rule."
+      },
+      {
+        "recommendation": "Add a sticky/short summary in the left panel (e.g. the 3 trust bullets pinned) or reduce form to a 2-column field grid for short fields (First/Family name) so the layout balances and the form is shorter.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes the tall empty left column and reduces perceived form length."
+      },
+      {
+        "recommendation": "Slightly strengthen input border contrast and add a focus ring token shared with the rest of the app so empty fields read as interactive controls, not static boxes.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Better field affordance across every form in the app."
+      },
+      {
+        "recommendation": "On failed submit, surface a single aria-live error summary above the actions listing the unmet fields, in addition to per-field feedback.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Clearer recovery path; helps screen-reader and keyboard users reach the blocking field."
+      }
+    ]
+  },
+  {
+    "page": "gene-detail",
+    "route": "/Genes/ARID1B",
+    "scores": {
+      "hierarchy": 7,
+      "typography": 7,
+      "color_contrast": 7,
+      "consistency": 6,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 4,
+      "dataviz": 6,
+      "interaction_states": 8,
+      "content_clarity": 8
+    },
+    "overall": 6,
+    "one_line_verdict": "Genuinely dense, clinical, scan-friendly information architecture (header → identifiers → entities → constraint/ClinVar/model-org triple → genomic viz) undercut hard by a massive aria-prohibited-attr violation and decorative gradient badges that fight the quiet-tool intent.",
+    "top_findings": [
+      {
+        "issue": "aria-prohibited-attr at 636 occurrences: GeneBadge/EntityBadge/DiseaseBadge render role=\"link\" + aria-label on non-focusable <span>s (no href, no tabindex), and InheritanceBadge/CategoryIcon use role=\"img\" on spans — repeated across the embedded entities table and identifier rows, this multiplies into hundreds of violations. role=\"link\" on a span without a focusable/interactive context is the core defect.",
+        "severity": "high",
+        "dimension": "accessibility",
+        "evidence": "GeneBadge.vue lines 6-11 (role=\"link\" :aria-label on span), EntityBadge.vue lines 6-14, DiseaseBadge.vue lines 6-12; Lighthouse aria-prohibited-attr(636!) on this page only."
+      },
+      {
+        "issue": "Decorative skeuomorphic badges (linear-gradient fills, 1.5-2px colored borders, double box-shadows, italic text, hover translateY) contradict the SysNDD intent of flat, quiet pill chips and 'no heavy dark borders'; they read as a different design language than the tokenized cards around them.",
+        "severity": "med",
+        "dimension": "consistency",
+        "evidence": "GeneBadge.vue lines 82-87 gradient+border+box-shadow; EntityBadge.vue lines 80-103; DiseaseBadge.vue lines 96-106 — versus the flat .border-subtle BCards and flat entity-chip pills in EntityView."
+      },
+      {
+        "issue": "Protein/genomic visualization renders as a dense uniform band of ~hundreds of near-identical pink/red lollipop dots with no visible axis labels, position scale, legend, or pathogenicity color key in the captured state — the variant signal is illegible.",
+        "severity": "med",
+        "dimension": "dataviz",
+        "evidence": "Screenshot bottom 'Genomic Visualizations' / Protein View tab shows a flat red dot field with '2.6K variants' and no axis or legend visible."
+      },
+      {
+        "issue": "CLS 0.198 still flagged: despite reserved min-heights on SectionCards, the header card (ClinicalResources + IdentifierCard) and the lazy genomic-viz tabs grow as async data and SVG render, shifting content.",
+        "severity": "med",
+        "dimension": "accessibility",
+        "evidence": "Lighthouse CLS 0.198; GeneView.vue header card has no reserved height while ClinicalResourcesCard/IdentifierCard hydrate (lines 50-62)."
+      },
+      {
+        "issue": "Heavy reliance on color-keyed ClinVar chips (P/LP/VUS/LB/B) is good, but the orange 'LP 133' chip uses dark text on #f97316 and the gnomAD amber CI bar (#ffc107) are borderline for the 1 remaining color-contrast flag.",
+        "severity": "low",
+        "dimension": "color_contrast",
+        "evidence": "GeneClinVarCard.vue line 297 .clinvar-chip--lp background:#f97316 color:#111827; Lighthouse color-contrast(1)."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Fix the badge a11y at the component level: for non-link badges drop role=\"link\"/aria-label and let the visible text be the name; when linkTo is set, render a real <a>/<RouterLink> (focusable) so naming is valid. Convert role=\"img\" decorative badges to plain spans with the text/title carrying the meaning. This one shared fix clears the 636-count violation everywhere badges appear (tables, gene, entity).",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Eliminates the single largest a11y defect in the app and lifts gene-detail accessibility from ~4 toward parity with the 100-score pages."
+      },
+      {
+        "recommendation": "Re-skin GeneBadge/EntityBadge/DiseaseBadge/InheritanceBadge to flat tokenized pills (solid token color or tinted background, 1px subtle border, no gradient/inset shadow/italic) matching the EntityView .entity-chip language.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Unifies the chip vocabulary across every page and removes the marketing-skeuomorphic look that violates the design intent."
+      },
+      {
+        "recommendation": "Add axis ticks (amino-acid position), a domain track, and a pathogenicity color legend to the protein lollipop view, plus density binning/jitter so overlapping variants are readable; show a designed empty/too-dense state.",
+        "effort": "L",
+        "sprint_type": "per-page",
+        "expected_impact": "Makes the headline genomic visualization interpretable instead of a red smear."
+      },
+      {
+        "recommendation": "Reserve explicit min-heights for the gene header card (resources + identifier rows) and the genomic-viz tab panel/SVG region so async hydration does not push the page; verify against the CLS budget.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Drives CLS under 0.1 and stops the visible jump when ClinVar/SVG data arrives."
+      },
+      {
+        "recommendation": "Darken or restyle the LP (#f97316) chip and amber CI bar to meet 4.5:1 (e.g. deepen to a #d9480f-class orange with white text), tokenizing the ACMG palette.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Clears the last color-contrast flag and makes the ACMG scale reusable everywhere ClinVar appears."
+      }
+    ]
+  },
+  {
+    "page": "entity-detail",
+    "route": "/Entities/2",
+    "scores": {
+      "hierarchy": 8,
+      "typography": 8,
+      "color_contrast": 8,
+      "consistency": 7,
+      "spacing_density": 8,
+      "responsiveness": 8,
+      "accessibility": 8,
+      "dataviz": 7,
+      "interaction_states": 9,
+      "content_clarity": 9
+    },
+    "overall": 8,
+    "one_line_verdict": "A reference-quality compact clinical record: the Gene·Inheritance·Disease triple-cell unit, metadata pill row, and well-designed empty states make the entity legible at a glance; only the gradient badges and a heading-order nit hold it back.",
+    "top_findings": [
+      {
+        "issue": "The gene/disease/entity gradient badges (GeneBadge green, DiseaseBadge gray, EntityBadge blue) carry the same role=\"link\"+aria-label-on-span pattern and skeuomorphic gradient styling as gene-detail — they sit beside the otherwise flat, tokenized entity-chip pills, creating two chip languages on one page.",
+        "severity": "med",
+        "dimension": "consistency",
+        "evidence": "EntityView.vue lines 29-62 use EntityBadge/GeneBadge/DiseaseBadge/InheritanceBadge; their gradient/role styling (GeneBadge.vue 82-87) differs from the flat .entity-chip pills (EntityView.vue 649-721)."
+      },
+      {
+        "issue": "Heading-order(1): the route <h1> is 'Entity sysndd:2' inside the SectionCard header, while the four evidence cards and Clinical Synopsis use plain bold <span> labels (not headings), so AT users get one h1 and then non-heading section titles with no h2 scaffolding.",
+        "severity": "low",
+        "dimension": "accessibility",
+        "evidence": "EntityView.vue line 27 h1; section titles rendered as SectionCard .section-card-title spans (SectionCard.vue lines 96-100) and clinical-card-header span (line 105)."
+      },
+      {
+        "issue": "This entity is data-sparse (synopsis 'NA', no publications, no phenotypes, only one GeneReview + one variation term), so most cards show empty states — well handled, but the four-card evidence row leaves three large near-empty white panels that read as wasted space.",
+        "severity": "low",
+        "dimension": "spacing_density",
+        "evidence": "Screenshot: Publications 'No publications linked.', Phenotypes 'No phenotype terms linked.', tall empty panels at min-height 18rem (EntityView.vue line 205)."
+      },
+      {
+        "issue": "5 failed network requests in the page load (per Lighthouse note) — likely the gene-link / status / review enrichment hooks 404-ing for this sparse entity; no user-visible breakage but it adds console noise and risks flicker.",
+        "severity": "low",
+        "dimension": "interaction_states",
+        "evidence": "Lighthouse '+5 failed network requests'; EntityView fires six entity hooks + useGeneRecord on tick 0 (EntityView.vue lines 302-317)."
+      },
+      {
+        "issue": "The 'Classification: not applicable' pill and 'NDD No' pill pair icon+label correctly (good, not color-alone), but the synopsis card reserves 18rem and shows only 'NA' — a lot of vertical emptiness for a single token of content.",
+        "severity": "low",
+        "dimension": "hierarchy",
+        "evidence": "Screenshot: Clinical Synopsis card is the tallest element yet contains only 'NA'; EntityView.vue min-height 18rem line 101."
+      }
+    ],
+    "improvements": [
+      {
+        "recommendation": "Adopt the shared flat-pill badge restyle (same foundation fix as gene-detail) so GeneBadge/EntityBadge/DiseaseBadge match the .entity-chip vocabulary already used on this page — one chip language per page.",
+        "effort": "M",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Visual consistency on the entity page and everywhere badges co-exist with chips."
+      },
+      {
+        "recommendation": "Render SectionCard titles as a configurable heading level (e.g. h2) so each card title participates in the heading outline under the single h1, clearing heading-order across all detail pages.",
+        "effort": "S",
+        "sprint_type": "foundation-shared",
+        "expected_impact": "Fixes heading-order on entity-detail and any other SectionCard-based page in one change."
+      },
+      {
+        "recommendation": "Collapse or auto-shrink empty evidence cards (reduce reserved min-height when empty, or merge sparse cards into a single 'Linked evidence' panel) so data-poor entities don't show three tall blank boxes.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Sparse entities look intentional and compact instead of underpopulated."
+      },
+      {
+        "recommendation": "Audit the entity hooks so optional sub-resources that legitimately have no data resolve as empty (200/empty) rather than throwing 404 network failures, and ensure failures stay silent in the SectionCard empty state.",
+        "effort": "M",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes the 5 failed requests, cuts console noise, and avoids any error-state flicker."
+      },
+      {
+        "recommendation": "Shrink the Clinical Synopsis reserved height when the synopsis is short/NA (let it grow only when content exists), keeping the card honest about its content volume.",
+        "effort": "S",
+        "sprint_type": "per-page",
+        "expected_impact": "Removes the large empty synopsis block on minimal records while preserving CLS reservation when real synopsis text is present."
+      }
+    ]
+  }
+]

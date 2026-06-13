@@ -69,3 +69,12 @@ api/tests/testthat/fixtures/nddscore/*.tar.gz
 .planning/audits/**/lighthouse/run.log
 .planning/audits/**/ratings-raw.json
 .planning/audits/**/capture.log
+ratings-final-raw.json
+.planning/audits/**/lighthouse-final/*.json
+.planning/audits/**/lighthouse-final/*.err
+.planning/audits/**/lighthouse-final/run.log
+.planning/audits/**/lh-b1/
+.planning/audits/**/lh-b2/
+.planning/audits/**/lh-b3/
+.planning/audits/**/capture-final.log
+.planning/audits/**/lighthouse-recheck/
