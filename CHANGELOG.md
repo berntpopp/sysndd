@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.4] — 2026-06-13
+
+Patch release fixing the NDDScore gene-predictions table on mobile.
+
+### Fixed
+
+- **NDDScore predictions are readable on mobile again.** The `/NDDScore` gene table rendered its 10-column fixed-layout `b-table` directly on small screens, crushing every column to ~28px so values truncated to `0..`, `Ve`, `Kn` with overlapping headers — the "stacked Bootstrap table" anti-pattern the visual design guide warns against. It now follows the same responsive pattern as the reference `/Entities` and `/Genes` tables: the desktop table is hidden below the `md` breakpoint (`d-none d-md-block`) and a purpose-built `NddScoreGeneMobileRows` record-card list renders instead (`d-md-none`). Each card shows gene + rank + an ML-prediction score / risk-tier / confidence / Known-vs-New chip row, with an expandable details panel for HGNC, percentile, top inheritance, model split, and predicted HPO. No horizontal overflow at 390px; the desktop table is unchanged. The "model-derived prediction, separate from curated SysNDD evidence" framing is preserved.
+
 ## [0.21.3] — 2026-06-13
 
 Patch release hardening the API against slow external/analysis endpoints blocking cheap routes (#344), fixing the gene-page request-ordering regression that made our own "Associated" data load last, and repairing two latent defects that made it impossible for any public analysis snapshot (GeneNetworks, clustering, correlations) to be built.
