@@ -423,7 +423,7 @@ export default {
 .upset-container :deep(svg) { max-width: 100%; }
 
 .legend-count {
-  color: var(--neutral-600, #526070);
+  color: var(--neutral-700, #616161);
   font-weight: 400;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
