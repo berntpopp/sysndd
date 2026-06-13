@@ -124,3 +124,43 @@ test_that("external proxy aggregate helper keeps error-then-skip partial", {
   expect_equal(result$skipped_sources, list("second"))
   expect_false(would_return_503)
 })
+
+# ---------------------------------------------------------------------------
+# #344: tunable per-provider budget defaults
+# ---------------------------------------------------------------------------
+
+test_that("external_proxy_budget honors default overrides when no env is set", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(
+    EXTERNAL_PROXY_GNOMAD_BATCH_TIMEOUT_SECONDS = NA,
+    EXTERNAL_PROXY_TIMEOUT_SECONDS = NA,
+    EXTERNAL_PROXY_GNOMAD_BATCH_MAX_SECONDS = NA,
+    EXTERNAL_PROXY_MAX_SECONDS = NA,
+    EXTERNAL_PROXY_GNOMAD_BATCH_MAX_TRIES = NA,
+    EXTERNAL_PROXY_MAX_TRIES = NA
+  ))
+  b <- external_proxy_budget("gnomad_batch", default_timeout = 20, default_max = 30, default_tries = 3)
+  expect_equal(b$timeout_seconds, 20)
+  expect_equal(b$max_seconds, 30)
+  expect_equal(b$max_tries, 3L)
+})
+
+test_that("external_proxy_budget env override beats the supplied default", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(EXTERNAL_PROXY_GNOMAD_BATCH_TIMEOUT_SECONDS = "8"))
+  b <- external_proxy_budget("gnomad_batch", default_timeout = 20)
+  expect_equal(b$timeout_seconds, 8)
+})
+
+test_that("external_proxy_budget defaults stay 6/10/2 for existing callers", {
+  source(file.path(get_api_dir(), "functions", "external-proxy-functions.R"), local = TRUE)
+  withr::local_envvar(c(
+    EXTERNAL_PROXY_MGI_TIMEOUT_SECONDS = NA, EXTERNAL_PROXY_TIMEOUT_SECONDS = NA,
+    EXTERNAL_PROXY_MGI_MAX_SECONDS = NA, EXTERNAL_PROXY_MAX_SECONDS = NA,
+    EXTERNAL_PROXY_MGI_MAX_TRIES = NA, EXTERNAL_PROXY_MAX_TRIES = NA
+  ))
+  b <- external_proxy_budget("mgi")
+  expect_equal(b$timeout_seconds, 6)
+  expect_equal(b$max_seconds, 10)
+  expect_equal(b$max_tries, 2L)
+})

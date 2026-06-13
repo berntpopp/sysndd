@@ -189,24 +189,27 @@ EXTERNAL_API_THROTTLE <- list(
   rgd = list(capacity = 30, fill_time_s = 60) # 30 req/min (conservative)
 )
 
-external_proxy_budget <- function(api_name) {
+external_proxy_budget <- function(api_name,
+                                  default_timeout = 6,
+                                  default_max = 10,
+                                  default_tries = 2L) {
   api_name <- toupper(as.character(api_name %||% "default")[[1]])
   timeout <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_TIMEOUT_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", "6")
+    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", as.character(default_timeout))
   ))
   max_seconds <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", "10")
+    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", as.character(default_max))
   ))
   max_tries <- as.integer(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_TRIES"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", "2")
+    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", as.character(default_tries))
   ))
   list(
-    timeout_seconds = if (is.na(timeout) || timeout <= 0) 6 else timeout,
-    max_seconds = if (is.na(max_seconds) || max_seconds <= 0) 10 else max_seconds,
-    max_tries = if (is.na(max_tries) || max_tries < 1L) 1L else max_tries
+    timeout_seconds = if (is.na(timeout) || timeout <= 0) default_timeout else timeout,
+    max_seconds = if (is.na(max_seconds) || max_seconds <= 0) default_max else max_seconds,
+    max_tries = if (is.na(max_tries) || max_tries < 1L) max(1L, as.integer(default_tries)) else max_tries
   )
 }
 
