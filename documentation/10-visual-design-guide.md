@@ -54,6 +54,7 @@ Neutral foundation:
 - Secondary text: `--neutral-600: #757575`
 - Surface backgrounds: white and near-white neutrals
 - Borders: pale neutral/blue-gray lines with low visual weight
+- Canonical surface border token: `--border-subtle: #d9e0ea` (the app-wide low-weight panel/card border used by the home page, public tables, and the user/analyses/curation surfaces). Use this token for card and panel borders; never use a heavy dark Bootstrap card border (`border-variant="dark"` / `.border-dark`). On a Bootstrap `BCard`, add the `.border-subtle` utility class instead of a dark variant.
 
 Rules:
 

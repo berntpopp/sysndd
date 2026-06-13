@@ -1,9 +1,8 @@
 <template>
   <BCard
-    class="constraint-card constraint-card--compact"
+    class="constraint-card constraint-card--compact border-subtle"
     body-class="p-0"
     header-class="p-1"
-    border-variant="dark"
     role="region"
     aria-label="Gene constraint scores from gnomAD"
   >

@@ -121,6 +121,15 @@
   border: 1;
   border-color: #000;
 }
+/*
+ * Canonical subtle surface border for cards/panels. Pairs with Bootstrap's
+ * `.card` (which supplies 1px solid + radius) to override the heavy dark
+ * border with the app-wide pale blue-gray used by the home page and public
+ * surfaces. See documentation/10-visual-design-guide.md.
+ */
+.border-subtle {
+  border-color: var(--border-subtle) !important;
+}
 .word {
   font-size: 1.25em;
 }

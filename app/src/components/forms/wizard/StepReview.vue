@@ -262,7 +262,7 @@ export default defineComponent({
 .review-entity-strip,
 .review-panel,
 .review-warning {
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
 }

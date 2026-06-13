@@ -4,8 +4,7 @@
     header-tag="header"
     body-class="p-0"
     header-class="p-2"
-    border-variant="dark"
-    class="mb-3 text-start"
+    class="mb-3 text-start border-subtle"
   >
     <template #header>
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">

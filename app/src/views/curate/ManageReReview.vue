@@ -982,7 +982,7 @@ export default {
   gap: 0.75rem;
   min-width: 0;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
 }
@@ -1013,7 +1013,7 @@ export default {
 
 .re-review-section {
   overflow: hidden;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
 }
@@ -1097,7 +1097,7 @@ export default {
   gap: 0.75rem;
   width: 100%;
   padding: 0.8rem 0.9rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
   color: inherit;
@@ -1170,7 +1170,7 @@ export default {
   gap: 0.45rem;
   margin-bottom: 0.85rem;
   padding: 0.65rem 0.75rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #f8fafc;
   color: #526070;
@@ -1318,7 +1318,7 @@ export default {
   gap: 0.75rem;
   align-items: end;
   padding: 0.75rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #f8fafc;
 }
@@ -1337,7 +1337,7 @@ export default {
   gap: 0.25rem;
   min-height: 2rem;
   padding: 0 0.65rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
   color: #526070;
