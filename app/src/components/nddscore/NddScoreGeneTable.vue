@@ -46,245 +46,253 @@
       </BRow>
     </template>
 
-    <GenericTable
-      :items="rows"
-      :fields="fields"
-      :sort-by="sortBy"
-      :fixed-layout="true"
-      :stacked-mode="false"
-      :is-busy="loading"
-      @update-sort="handleSortUpdate"
-    >
-      <template #column-header="{ data }">
-        <div v-b-tooltip.hover.bottom :title="columnHelp[data.column] || data.label">
-          {{ data.label }}
-        </div>
-      </template>
+    <!-- Desktop: fixed-layout prediction table -->
+    <div class="d-none d-md-block">
+      <GenericTable
+        :items="rows"
+        :fields="fields"
+        :sort-by="sortBy"
+        :fixed-layout="true"
+        :stacked-mode="false"
+        :is-busy="loading"
+        @update-sort="handleSortUpdate"
+      >
+        <template #column-header="{ data }">
+          <div v-b-tooltip.hover.bottom :title="columnHelp[data.column] || data.label">
+            {{ data.label }}
+          </div>
+        </template>
 
-      <template #filter-controls>
-        <td v-for="field in fields" :key="field.key">
-          <BDropdown
-            v-if="field.filterType === 'range'"
-            :auto-close="false"
-            variant="outline-secondary"
-            size="sm"
-            :class="rangeFilterDropdownClass(field)"
-            :toggle-class="rangeFilterToggleClass(field)"
-            menu-class="nddscore-gene-table__filter-menu"
-            :aria-label="`${field.label} filter`"
-          >
-            <template #button-content>
-              {{ rangeFilterLabel(field) }}
-            </template>
+        <template #filter-controls>
+          <td v-for="field in fields" :key="field.key">
+            <BDropdown
+              v-if="field.filterType === 'range'"
+              :auto-close="false"
+              variant="outline-secondary"
+              size="sm"
+              :class="rangeFilterDropdownClass(field)"
+              :toggle-class="rangeFilterToggleClass(field)"
+              menu-class="nddscore-gene-table__filter-menu"
+              :aria-label="`${field.label} filter`"
+            >
+              <template #button-content>
+                {{ rangeFilterLabel(field) }}
+              </template>
 
-            <BDropdownForm class="nddscore-gene-table__range-menu" @submit.prevent>
-              <BFormSelect
-                v-model="rangeFilters[rangeKey(field.key)].operator"
-                :options="rangeOperatorOptions"
-                size="sm"
-                :aria-label="`${field.label} filter operator`"
-                @update:model-value="handleRangeOperatorChange(field.key)"
-              />
-              <BFormInput
-                v-if="rangeFilters[rangeKey(field.key)].operator !== 'any'"
-                v-model="rangeFilters[rangeKey(field.key)].value"
-                :aria-label="`${field.label} filter value`"
-                :placeholder="rangeValuePlaceholder(field)"
-                type="number"
-                :step="field.numericStep ?? '1'"
-                size="sm"
-                @click="removeSearch"
-                @update:model-value="handleColumnFilterChange"
-              />
-              <BFormInput
-                v-if="rangeFilters[rangeKey(field.key)].operator === 'range'"
-                v-model="rangeFilters[rangeKey(field.key)].valueMax"
-                :aria-label="`${field.label} upper filter value`"
-                placeholder="to"
-                type="number"
-                :step="field.numericStep ?? '1'"
-                size="sm"
-                @click="removeSearch"
-                @update:model-value="handleColumnFilterChange"
-              />
-            </BDropdownForm>
-            <BDropdownDivider />
-            <div class="nddscore-gene-table__filter-actions">
-              <BButton
-                variant="link"
-                size="sm"
-                class="text-decoration-none p-0"
-                :disabled="rangeFilters[rangeKey(field.key)].operator === 'any'"
-                @click="clearRangeFilter(field.key)"
-              >
-                Clear
-              </BButton>
-            </div>
-          </BDropdown>
-
-          <BFormInput
-            v-else-if="field.filterType === 'text'"
-            v-model="columnFilters[field.key]"
-            :placeholder="'.. ' + field.label + ' ..'"
-            type="search"
-            autocomplete="off"
-            size="sm"
-            class="nddscore-gene-table__filter-control"
-            @click="removeSearch"
-            @update:model-value="handleColumnFilterChange"
-          />
-
-          <BFormSelect
-            v-else-if="field.filterType === 'select'"
-            v-model="columnFilters[field.key]"
-            :options="selectOptionsFor(field)"
-            size="sm"
-            :class="filterControlClass(field.key)"
-            @update:model-value="
-              removeSearch();
-              handleColumnFilterChange();
-            "
-          />
-
-          <BDropdown
-            v-else-if="field.filterType === 'multi-select'"
-            :auto-close="false"
-            variant="outline-secondary"
-            size="sm"
-            :class="hpoFilterDropdownClass"
-            :toggle-class="hpoFilterToggleClass"
-            menu-class="nddscore-gene-table__hpo-menu"
-            aria-label="Predicted HPO terms"
-            data-testid="nddscore-hpo-filter"
-          >
-            <template #button-content>
-              {{ hpoFilterLabel }}
-            </template>
-
-            <BDropdownForm @submit.prevent>
-              <BFormInput
-                v-model="hpoTermSearch"
-                placeholder="Search HPO terms"
-                type="search"
-                size="sm"
-                autocomplete="off"
-                aria-label="Search HPO terms"
-              />
-            </BDropdownForm>
-            <BDropdownDivider />
-            <div class="nddscore-gene-table__hpo-options">
-              <BDropdownItemButton
-                v-for="option in filteredHpoTermOptions"
-                :key="option.value"
-                :active="hpoTermFilter.includes(option.value)"
-                :data-testid="`nddscore-hpo-option-${option.value}`"
-                @click="toggleHpoTerm(option.value)"
-              >
-                <i
-                  class="bi me-2"
-                  :class="
-                    hpoTermFilter.includes(option.value)
-                      ? 'bi-check-square text-primary'
-                      : 'bi-square text-muted'
-                  "
-                  aria-hidden="true"
+              <BDropdownForm class="nddscore-gene-table__range-menu" @submit.prevent>
+                <BFormSelect
+                  v-model="rangeFilters[rangeKey(field.key)].operator"
+                  :options="rangeOperatorOptions"
+                  size="sm"
+                  :aria-label="`${field.label} filter operator`"
+                  @update:model-value="handleRangeOperatorChange(field.key)"
                 />
-                {{ option.text }}
-              </BDropdownItemButton>
-              <BDropdownText v-if="filteredHpoTermOptions.length === 0">
-                No matching HPO terms
-              </BDropdownText>
-            </div>
-            <BDropdownDivider />
-            <div class="nddscore-gene-table__filter-actions">
-              <BButton
-                variant="link"
-                size="sm"
-                class="text-decoration-none p-0"
-                :disabled="!hpoTermFilter.length"
-                @click="clearHpoTerms"
-              >
-                Clear
-              </BButton>
-            </div>
-          </BDropdown>
-        </td>
-      </template>
+                <BFormInput
+                  v-if="rangeFilters[rangeKey(field.key)].operator !== 'any'"
+                  v-model="rangeFilters[rangeKey(field.key)].value"
+                  :aria-label="`${field.label} filter value`"
+                  :placeholder="rangeValuePlaceholder(field)"
+                  type="number"
+                  :step="field.numericStep ?? '1'"
+                  size="sm"
+                  @click="removeSearch"
+                  @update:model-value="handleColumnFilterChange"
+                />
+                <BFormInput
+                  v-if="rangeFilters[rangeKey(field.key)].operator === 'range'"
+                  v-model="rangeFilters[rangeKey(field.key)].valueMax"
+                  :aria-label="`${field.label} upper filter value`"
+                  placeholder="to"
+                  type="number"
+                  :step="field.numericStep ?? '1'"
+                  size="sm"
+                  @click="removeSearch"
+                  @update:model-value="handleColumnFilterChange"
+                />
+              </BDropdownForm>
+              <BDropdownDivider />
+              <div class="nddscore-gene-table__filter-actions">
+                <BButton
+                  variant="link"
+                  size="sm"
+                  class="text-decoration-none p-0"
+                  :disabled="rangeFilters[rangeKey(field.key)].operator === 'any'"
+                  @click="clearRangeFilter(field.key)"
+                >
+                  Clear
+                </BButton>
+              </div>
+            </BDropdown>
 
-      <template #cell-gene_symbol="{ row }">
-        <GeneBadge
-          :symbol="displayValue(row.gene_symbol)"
-          :hgnc-id="displayValue(row.hgnc_id)"
-          :link-to="detailPath(row)"
-          size="sm"
-        />
-      </template>
+            <BFormInput
+              v-else-if="field.filterType === 'text'"
+              v-model="columnFilters[field.key]"
+              :placeholder="'.. ' + field.label + ' ..'"
+              type="search"
+              autocomplete="off"
+              size="sm"
+              class="nddscore-gene-table__filter-control"
+              @click="removeSearch"
+              @update:model-value="handleColumnFilterChange"
+            />
 
-      <template #cell-hgnc_id="{ row }">
-        <RouterLink class="nddscore-gene-table__id-link" :to="detailPath(row)">
-          {{ displayValue(row.hgnc_id) }}
-        </RouterLink>
-      </template>
+            <BFormSelect
+              v-else-if="field.filterType === 'select'"
+              v-model="columnFilters[field.key]"
+              :options="selectOptionsFor(field)"
+              size="sm"
+              :class="filterControlClass(field.key)"
+              @update:model-value="
+                removeSearch();
+                handleColumnFilterChange();
+              "
+            />
 
-      <template #cell-ndd_score="{ row }">
-        <span class="nddscore-gene-table__numeric">{{ formatDecimal(row.ndd_score, 3) }}</span>
-      </template>
+            <BDropdown
+              v-else-if="field.filterType === 'multi-select'"
+              :auto-close="false"
+              variant="outline-secondary"
+              size="sm"
+              :class="hpoFilterDropdownClass"
+              :toggle-class="hpoFilterToggleClass"
+              menu-class="nddscore-gene-table__hpo-menu"
+              aria-label="Predicted HPO terms"
+              data-testid="nddscore-hpo-filter"
+            >
+              <template #button-content>
+                {{ hpoFilterLabel }}
+              </template>
 
-      <template #cell-rank="{ row }">
-        <span class="nddscore-gene-table__numeric">{{ displayValue(row.rank) }}</span>
-      </template>
+              <BDropdownForm @submit.prevent>
+                <BFormInput
+                  v-model="hpoTermSearch"
+                  placeholder="Search HPO terms"
+                  type="search"
+                  size="sm"
+                  autocomplete="off"
+                  aria-label="Search HPO terms"
+                />
+              </BDropdownForm>
+              <BDropdownDivider />
+              <div class="nddscore-gene-table__hpo-options">
+                <BDropdownItemButton
+                  v-for="option in filteredHpoTermOptions"
+                  :key="option.value"
+                  :active="hpoTermFilter.includes(option.value)"
+                  :data-testid="`nddscore-hpo-option-${option.value}`"
+                  @click="toggleHpoTerm(option.value)"
+                >
+                  <i
+                    class="bi me-2"
+                    :class="
+                      hpoTermFilter.includes(option.value)
+                        ? 'bi-check-square text-primary'
+                        : 'bi-square text-muted'
+                    "
+                    aria-hidden="true"
+                  />
+                  {{ option.text }}
+                </BDropdownItemButton>
+                <BDropdownText v-if="filteredHpoTermOptions.length === 0">
+                  No matching HPO terms
+                </BDropdownText>
+              </div>
+              <BDropdownDivider />
+              <div class="nddscore-gene-table__filter-actions">
+                <BButton
+                  variant="link"
+                  size="sm"
+                  class="text-decoration-none p-0"
+                  :disabled="!hpoTermFilter.length"
+                  @click="clearHpoTerms"
+                >
+                  Clear
+                </BButton>
+              </div>
+            </BDropdown>
+          </td>
+        </template>
 
-      <template #cell-percentile="{ row }">
-        <span class="nddscore-gene-table__numeric">{{ formatPercentile(row.percentile) }}</span>
-      </template>
+        <template #cell-gene_symbol="{ row }">
+          <GeneBadge
+            :symbol="displayValue(row.gene_symbol)"
+            :hgnc-id="displayValue(row.hgnc_id)"
+            :link-to="detailPath(row)"
+            size="sm"
+          />
+        </template>
 
-      <template #cell-risk_tier="{ row }">
-        <BBadge :variant="riskVariant(row.risk_tier)">
-          {{ displayValue(row.risk_tier) }}
-        </BBadge>
-      </template>
+        <template #cell-hgnc_id="{ row }">
+          <RouterLink class="nddscore-gene-table__id-link" :to="detailPath(row)">
+            {{ displayValue(row.hgnc_id) }}
+          </RouterLink>
+        </template>
 
-      <template #cell-confidence_tier="{ row }">
-        <BBadge :variant="confidenceVariant(row.confidence_tier)">
-          {{ displayValue(row.confidence_tier) }}
-        </BBadge>
-      </template>
+        <template #cell-ndd_score="{ row }">
+          <span class="nddscore-gene-table__numeric">{{ formatDecimal(row.ndd_score, 3) }}</span>
+        </template>
 
-      <template #cell-known_sysndd_gene="{ row }">
-        <RouterLink
-          v-if="isKnownGene(row.known_sysndd_gene)"
-          v-b-tooltip.hover.left
-          :to="`/Genes/${row.hgnc_id}`"
-          class="nddscore-gene-table__gene-link"
-          title="Open the curated SysNDD gene page for this HGNC identifier."
-        >
-          <BBadge variant="info">Known</BBadge>
-        </RouterLink>
-        <BBadge v-else variant="light">New</BBadge>
-      </template>
+        <template #cell-rank="{ row }">
+          <span class="nddscore-gene-table__numeric">{{ displayValue(row.rank) }}</span>
+        </template>
 
-      <template #cell-model_split="{ row }">
-        <BBadge class="nddscore-gene-table__chip" variant="secondary">
-          {{ displayValue(row.model_split) }}
-        </BBadge>
-      </template>
+        <template #cell-percentile="{ row }">
+          <span class="nddscore-gene-table__numeric">{{ formatPercentile(row.percentile) }}</span>
+        </template>
 
-      <template #cell-top_inheritance_mode="{ row }">
-        <BBadge class="nddscore-gene-table__chip" variant="primary">
-          {{ displayValue(row.top_inheritance_mode) }}
-        </BBadge>
-      </template>
+        <template #cell-risk_tier="{ row }">
+          <BBadge :variant="riskVariant(row.risk_tier)">
+            {{ displayValue(row.risk_tier) }}
+          </BBadge>
+        </template>
 
-      <template #cell-top_hpo_predictions_json="{ row }">
-        <span
-          v-b-tooltip.hover.left
-          class="nddscore-gene-table__hpo"
-          :title="topHpoTooltip(row.top_hpo_predictions_json)"
-        >
-          {{ topHpoLabel(row.top_hpo_predictions_json, row.n_predicted_hpo) }}
-        </span>
-      </template>
-    </GenericTable>
+        <template #cell-confidence_tier="{ row }">
+          <BBadge :variant="confidenceVariant(row.confidence_tier)">
+            {{ displayValue(row.confidence_tier) }}
+          </BBadge>
+        </template>
+
+        <template #cell-known_sysndd_gene="{ row }">
+          <RouterLink
+            v-if="isKnownGene(row.known_sysndd_gene)"
+            v-b-tooltip.hover.left
+            :to="`/Genes/${row.hgnc_id}`"
+            class="nddscore-gene-table__gene-link"
+            title="Open the curated SysNDD gene page for this HGNC identifier."
+          >
+            <BBadge variant="info">Known</BBadge>
+          </RouterLink>
+          <BBadge v-else variant="light">New</BBadge>
+        </template>
+
+        <template #cell-model_split="{ row }">
+          <BBadge class="nddscore-gene-table__chip" variant="secondary">
+            {{ displayValue(row.model_split) }}
+          </BBadge>
+        </template>
+
+        <template #cell-top_inheritance_mode="{ row }">
+          <BBadge class="nddscore-gene-table__chip" variant="primary">
+            {{ displayValue(row.top_inheritance_mode) }}
+          </BBadge>
+        </template>
+
+        <template #cell-top_hpo_predictions_json="{ row }">
+          <span
+            v-b-tooltip.hover.left
+            class="nddscore-gene-table__hpo"
+            :title="topHpoTooltip(row.top_hpo_predictions_json)"
+          >
+            {{ topHpoLabel(row.top_hpo_predictions_json, row.n_predicted_hpo) }}
+          </span>
+        </template>
+      </GenericTable>
+    </div>
+
+    <!-- Mobile: purpose-built prediction record rows -->
+    <div class="d-md-none">
+      <NddScoreGeneMobileRows :items="rows" />
+    </div>
 
     <div v-if="!loading && !rows.length" class="nddscore-gene-table__empty">
       No gene predictions found.
@@ -318,6 +326,7 @@ import { fetchGenePredictions, fetchHpoTerms, type NddScoreGenePrediction } from
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
+import NddScoreGeneMobileRows from './NddScoreGeneMobileRows.vue';
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
@@ -766,133 +775,4 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.nddscore-gene-table__id-link,
-.nddscore-gene-table__gene-link {
-  text-decoration: none;
-}
-
-.nddscore-gene-table__numeric {
-  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-}
-
-.nddscore-gene-table__chip {
-  min-width: 2.5rem;
-  font-weight: 700;
-}
-
-.nddscore-gene-table__hpo {
-  display: inline-block;
-  max-width: 18rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: bottom;
-  cursor: help;
-}
-
-.nddscore-gene-table__empty {
-  padding: 1.5rem;
-  color: var(--neutral-600, #757575);
-  text-align: center;
-}
-
-.nddscore-gene-table__filter-dropdown {
-  width: 100%;
-  min-width: 7.5rem;
-}
-
-.nddscore-gene-table__filter-dropdown :deep(.btn) {
-  width: 100%;
-  min-height: calc(1.5em + 1rem + 2px);
-  padding: 0.5rem 0.5rem;
-  overflow: hidden;
-  border-color: #dee2e6;
-  color: #212529;
-  font-size: 0.875rem;
-  font-weight: 400;
-  text-align: left;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background-color: #fff;
-}
-
-.nddscore-gene-table__filter-control {
-  min-height: calc(1.5em + 1rem + 2px);
-}
-
-.nddscore-gene-table__filter-control--empty,
-.nddscore-gene-table__filter-dropdown :deep(.nddscore-gene-table__filter-toggle--empty) {
-  color: var(--neutral-600, #757575);
-}
-
-.nddscore-gene-table__filter-control::placeholder {
-  color: var(--neutral-600, #757575);
-  opacity: 1;
-}
-
-.nddscore-gene-table__filter-dropdown :deep(.btn:hover),
-.nddscore-gene-table__filter-dropdown :deep(.btn:focus) {
-  border-color: #86b7fe;
-  color: #212529;
-  background-color: #fff;
-  box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.12);
-}
-
-.nddscore-gene-table__range-menu {
-  display: grid;
-  width: 15rem;
-  gap: 0.5rem;
-}
-
-.nddscore-gene-table__filter-actions {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0.35rem 0.75rem 0.45rem;
-}
-
-:deep(.nddscore-gene-table__filter-menu) {
-  min-width: 16rem;
-}
-
-:deep(.nddscore-gene-table__hpo-menu) {
-  min-width: 22rem;
-  max-width: 30rem;
-}
-
-.nddscore-gene-table__hpo-options {
-  max-height: 16rem;
-  overflow-y: auto;
-}
-
-.nddscore-gene-table__hpo-options :deep(.dropdown-item) {
-  padding: 0.45rem 0.75rem;
-  overflow-wrap: anywhere;
-  white-space: normal;
-}
-
-.nddscore-gene-table__hpo-options :deep(.dropdown-item.active) {
-  background-color: #e9f5ff;
-  color: #0f172a;
-}
-
-:deep(.entities-table) {
-  width: 100%;
-  min-width: 100%;
-}
-
-:deep(.entities-table th) {
-  color: var(--neutral-600, #757575);
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-:deep(.entities-table td) {
-  white-space: nowrap;
-}
-
-:deep(.entities-table thead input),
-:deep(.entities-table thead select) {
-  min-width: 7.5rem;
-}
-</style>
+<style scoped src="./NddScoreGeneTable.styles.css"></style>
