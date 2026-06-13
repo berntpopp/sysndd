@@ -1,9 +1,10 @@
 <template>
-  <div class="score-slider">
+  <div class="score-slider" role="group">
     <BInputGroup size="sm">
       <BFormSelect
         v-model="selectedPreset"
         :options="presetOptions"
+        aria-label="FDR threshold"
         :class="{ 'filter-active': modelValue !== null }"
       >
         <template #first>

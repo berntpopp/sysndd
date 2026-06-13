@@ -133,7 +133,7 @@
                       size="sm"
                       variant="outline-secondary"
                       title="Download table data as Excel file"
-                      aria-label="Download table data as Excel file"
+                      aria-label="Download table data as Excel file (.xlsx)"
                       :disabled="loading || isExporting"
                       @click="downloadExcel"
                     >
@@ -1132,6 +1132,9 @@ mark {
 
 .cluster-summary-cue__action {
   flex: 0 0 auto;
+  /* Ensure the outline button text clears AA on the cue background. */
+  color: var(--medical-blue-700, #0d47a1);
+  border-color: var(--medical-blue-700, #0d47a1);
 }
 
 :deep(.cluster-table-type-control .form-select) {

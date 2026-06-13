@@ -5,7 +5,7 @@
       <header class="network-panel__header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <div class="d-flex align-items-center flex-wrap">
-            <h6 class="mb-0 font-weight-bold me-2">Protein-Protein Interaction Network</h6>
+            <h2 class="mb-0 fw-bold me-2 network-panel__title">Protein-Protein Interaction Network</h2>
             <!-- Visible / Total in network -->
             <BBadge
               v-if="isInitialized && visibleNodeCount > 0"
@@ -897,7 +897,13 @@ defineExpose({
 
 .network-panel__header {
   padding: 0.65rem 0.75rem;
-  border-bottom: 1px solid #e6ebf2;
+  border-bottom: 1px solid var(--border-subtle, #e6ebf2);
+}
+
+/* Promoted from h6 to h2 (heading-order); keep the compact panel-title size. */
+.network-panel__title {
+  font-size: 1rem;
+  color: var(--neutral-900, #212121);
 }
 
 .network-container {
