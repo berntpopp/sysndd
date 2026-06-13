@@ -120,6 +120,14 @@ memoise_external_success_only <- function(f, cache, source = NULL) {
   memoised <- memoise::memoise(f, cache = cache)
 
   function(...) {
+    # Short-circuit before a cache probe / upstream call once this request has
+    # already spent its external-time budget (#344). Covers every provider whose
+    # public entry is a `*_mem` wrapper (gnomad/uniprot/ensembl/alphafold/mgi/
+    # rgd/genereviews).
+    if (external_proxy_request_ceiling_exceeded()) {
+      return(external_proxy_request_budget_error(source))
+    }
+
     cache_status <- NULL
     if (!is.null(source)) {
       cache_status <- tryCatch(
@@ -131,6 +139,7 @@ memoise_external_success_only <- function(f, cache, source = NULL) {
     start <- proc.time()[["elapsed"]]
     result <- memoised(...)
     elapsed_ms <- as.numeric((proc.time()[["elapsed"]] - start) * 1000)
+    external_proxy_request_add(elapsed_ms)
 
     if (external_proxy_is_error(result)) {
       tryCatch(
@@ -189,28 +198,36 @@ EXTERNAL_API_THROTTLE <- list(
   rgd = list(capacity = 30, fill_time_s = 60) # 30 req/min (conservative)
 )
 
-external_proxy_budget <- function(api_name) {
+external_proxy_budget <- function(api_name,
+                                  default_timeout = 6,
+                                  default_max = 10,
+                                  default_tries = 2L) {
   api_name <- toupper(as.character(api_name %||% "default")[[1]])
   timeout <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_TIMEOUT_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", "6")
+    Sys.getenv("EXTERNAL_PROXY_TIMEOUT_SECONDS", as.character(default_timeout))
   ))
   max_seconds <- as.numeric(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_SECONDS"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", "10")
+    Sys.getenv("EXTERNAL_PROXY_MAX_SECONDS", as.character(default_max))
   ))
   max_tries <- as.integer(Sys.getenv(
     paste0("EXTERNAL_PROXY_", api_name, "_MAX_TRIES"),
-    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", "2")
+    Sys.getenv("EXTERNAL_PROXY_MAX_TRIES", as.character(default_tries))
   ))
   list(
-    timeout_seconds = if (is.na(timeout) || timeout <= 0) 6 else timeout,
-    max_seconds = if (is.na(max_seconds) || max_seconds <= 0) 10 else max_seconds,
-    max_tries = if (is.na(max_tries) || max_tries < 1L) 1L else max_tries
+    timeout_seconds = if (is.na(timeout) || timeout <= 0) default_timeout else timeout,
+    max_seconds = if (is.na(max_seconds) || max_seconds <= 0) default_max else max_seconds,
+    max_tries = if (is.na(max_tries) || max_tries < 1L) max(1L, as.integer(default_tries)) else max_tries
   )
 }
 
 external_proxy_with_timing <- function(source, expr_fn) {
+  # Short-circuit before doing any upstream work once this request has already
+  # spent its external-time budget (#344).
+  if (external_proxy_request_ceiling_exceeded()) {
+    return(external_proxy_request_budget_error(source))
+  }
   start <- proc.time()[["elapsed"]]
   result <- tryCatch(
     expr_fn(),
@@ -224,6 +241,7 @@ external_proxy_with_timing <- function(source, expr_fn) {
     }
   )
   elapsed_ms <- as.numeric((proc.time()[["elapsed"]] - start) * 1000)
+  external_proxy_request_add(elapsed_ms)
 
   if (!is.list(result)) {
     result <- list(value = result)
@@ -264,6 +282,67 @@ external_proxy_aggregate_budget <- function() {
   } else {
     max_seconds
   }
+}
+
+# --- Request-scoped external-time accumulator + ceiling (#344) ----------------
+# Plumber serves one request at a time per process, so a single module-level
+# environment is sufficient (no request-id keying). The preroute hook resets it;
+# the two universal proxy wrappers (`memoise_external_success_only` and
+# `external_proxy_with_timing`) increment it and short-circuit once the per-request
+# ceiling is exceeded, so even single-endpoint external paths (not just the
+# multi-source aggregator) cannot occupy a worker for tens of seconds.
+external_proxy_request_state <- new.env(parent = emptyenv())
+external_proxy_request_state$external_ms <- 0
+
+#' Reset the per-request external-time accumulator (call in the preroute hook).
+#' @noRd
+external_proxy_request_reset <- function() {
+  external_proxy_request_state$external_ms <- 0
+  invisible(NULL)
+}
+
+#' Add elapsed external time (ms) to the current request total.
+#' @noRd
+external_proxy_request_add <- function(ms) {
+  cur <- external_proxy_request_state$external_ms %||% 0
+  external_proxy_request_state$external_ms <- cur + as.numeric(ms %||% 0)
+  invisible(NULL)
+}
+
+#' Total external time (ms) spent in the current request.
+#' @noRd
+external_proxy_request_total_ms <- function() {
+  external_proxy_request_state$external_ms %||% 0
+}
+
+#' Per-request external-time ceiling in ms (env `EXTERNAL_PROXY_REQUEST_MAX_SECONDS`, default 15s).
+#' @noRd
+external_proxy_request_ceiling_ms <- function() {
+  secs <- as.numeric(Sys.getenv("EXTERNAL_PROXY_REQUEST_MAX_SECONDS", "15"))
+  if (is.na(secs) || secs <= 0) 15000 else secs * 1000
+}
+
+#' TRUE once accumulated external time meets/exceeds the per-request ceiling.
+#' @noRd
+external_proxy_request_ceiling_exceeded <- function() {
+  external_proxy_request_total_ms() >= external_proxy_request_ceiling_ms()
+}
+
+#' Degraded 503 envelope returned when the per-request external ceiling is hit.
+#' @noRd
+external_proxy_request_budget_error <- function(source) {
+  external_proxy_log_event(
+    source = source %||% "external",
+    event = "request_budget_exceeded",
+    status = 503L
+  )
+  list(
+    error = TRUE,
+    status = 503L,
+    source = source %||% "external",
+    message = "external request budget exceeded for this request",
+    request_budget_exceeded = TRUE
+  )
 }
 
 #' Make an external API request with retry and rate limiting

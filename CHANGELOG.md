@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.3] — 2026-06-13
+
+Patch release hardening the API against slow external/analysis endpoints blocking cheap routes (#344), fixing the gene-page request-ordering regression that made our own "Associated" data load last, and repairing two latent defects that made it impossible for any public analysis snapshot (GeneNetworks, clustering, correlations) to be built.
+
+### Fixed
+
+- **Slow external/analysis endpoints can no longer block cheap routes (#344).** Three external HTTP calls that bypassed the central per-provider budget are now bounded: the UniProt step-2 features fetch (previously `req_timeout(30)` + `max_seconds=120`, a ~120s worker-occupying window) now goes through `make_external_request()`; the GeneReviews E-utilities call (a budget bypass reintroduced in #389) and the worker-only gnomAD-batch chunk request now derive their timeout/retry from `external_proxy_budget()`.
+- **"Associated" entities (our own data) no longer load after the external enrichment cards on gene pages (#344).** `GeneView` fired its five external-provider fetches synchronously in `setup()` (via `useResource`'s immediate watcher) before the child entities table dispatched its request, so on the single-threaded API the cheap entity request queued behind up to six slow upstream calls and finished last (measured 4041ms on a symbol URL). External activation is now deferred to a post-mount macrotask so own-data is requested first (entity completion 4041ms → 391ms).
+- **Public analysis snapshots can now be built — GeneNetworks/analysis pages are no longer permanently `snapshot_missing` (#344).** Two latent defects made `analysis_snapshot_refresh` impossible to complete: (1) the MySQL `GET_LOCK` advisory-lock name was 109–124 chars while MySQL caps it at 64 (errno 4163), and (2) the builder wrote each cluster's `equals(hash,…)` filter expression into `cluster_hash CHAR(64)`, overflowing it (errno 1406) and rolling back the refresh. Both fixed; after deploy, run `make refresh-analysis-snapshots` once to populate the public-ready snapshots.
+
+### Added
+
+- **Per-request external-time ceiling + observability (#344).** A request-scoped accumulator (`EXTERNAL_PROXY_REQUEST_MAX_SECONDS`, default 15s), wired into both universal proxy wrappers, short-circuits further external work once a single request's accumulated external time crosses the ceiling — covering single-endpoint paths the 12s aggregate budget never governed. The `postroute` hook now logs `[request-timing] … duration_ms=… external_ms=… slow=…` (slow over `API_SLOW_REQUEST_MS`, default 2000), attributing slow requests to external time. New tunable env knobs: `EXTERNAL_PROXY_GENEREVIEWS_*`, `EXTERNAL_PROXY_GNOMAD_BATCH_*` (20/30/3 defaults).
+- **Regression guards + tests (#344).** `test-unit-external-budget-guard.R` fails CI on any hardcoded external timeout literal; `test-unit-cheap-route-isolation.R` keeps `/health`, `/auth`, `/statistics` free of external-fetcher coupling; `test-integration-slow-provider-isolation.R` proves a slow provider fast-fails while a cheap read stays bounded; and the local-only `app/tests/e2e/slow-provider-resilience.spec.ts` + `gene-page-own-data-priority.spec.ts` lock in gene-page resilience and own-data request ordering. Worker-pool isolation remains tracked in #154.
+- **Operator tooling to build analysis snapshots (#344).** `api/scripts/refresh-analysis-snapshots.R` and `make refresh-analysis-snapshots` submit `analysis_snapshot_refresh` jobs for every supported preset; previously no trigger existed (it is intentionally admin/operator-only and heavy).
+
 ## [0.21.2] — 2026-06-13
 
 Patch release for Sprint 2 of the continuous oversized-file refactor (#346) — all nine workpackages (#394–#402, WP1–WP9), each landed as a behavior-preserving PR (#404–#412) and merged after integration validation (type-check, strict type-check, full Vitest suite, ESLint/MSW, SEO, R API unit tests, and a Playwright E2E parity check against `master`). Every reduction moves the file-size ratchet baseline downward only.

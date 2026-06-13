@@ -39,7 +39,7 @@ RESET := \033[0m
 # =============================================================================
 # PHONY Declarations
 # =============================================================================
-.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
+.PHONY: help check-r check-npm check-docker install-api install-app dev serve-app build-app watch-app test-api test-api-fast test-api-full mcp-transport-spike test-mcp-smoke coverage lint-api lint-app format-api format-app verify-seo-app code-quality-audit pre-commit ci-local _ci-cleanup preflight docker-build docker-up docker-down docker-dev docker-dev-db docker-logs docker-status cache-clear refresh-analysis-snapshots install-dev doctor worktree-setup worktree-prune refresh-fixtures test-ci-scripts verify-gate playwright-stack playwright-stack-down playwright-stack-logs docs-screenshots docs-screenshots-down verify-doc-screenshots _playwright-seed-templates _playwright-seed-users _playwright-seed-docs-data
 
 # =============================================================================
 # Help Target (Self-documenting)
@@ -467,6 +467,14 @@ cache-clear: ## [docker] Wipe API memoise cache (forces cached endpoints to reco
 	@docker exec sysndd-api-1 sh -c 'find /app/cache -type f -name "*.rds" -delete' && \
 		printf "$(GREEN)✓ Cache wiped (next stats request will recompute)$(RESET)\n" || \
 		(printf "$(RED)✗ cache-clear failed$(RESET)\n" && exit 1)
+
+refresh-analysis-snapshots: check-docker ## [docker] Build+activate public analysis snapshots (fixes GeneNetworks/analysis snapshot_missing)
+	@printf "$(CYAN)==> Submitting analysis_snapshot_refresh jobs for all supported presets...$(RESET)\n"
+	@docker ps --format '{{.Names}}' | grep -q '^sysndd-api-1$$' || \
+		(printf "$(RED)✗ sysndd-api-1 not running$(RESET)\n" && exit 1)
+	@docker exec -i sysndd-api-1 Rscript - < api/scripts/refresh-analysis-snapshots.R && \
+		printf "$(GREEN)✓ Jobs queued; the worker builds + activates each snapshot (clustering can take 30-80s each)$(RESET)\n" || \
+		(printf "$(RED)✗ refresh-analysis-snapshots failed$(RESET)\n" && exit 1)
 
 docker-dev-db: check-docker ## [docker] Start only dev databases (for local API/app development)
 	@printf "$(CYAN)==> Starting development databases only...$(RESET)\n"

@@ -153,6 +153,7 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
     # preroute / postroute hooks for timing & logging
     ####################################################################
     plumber::pr_hook("preroute", function() {
+      external_proxy_request_reset() # #344: zero the per-request external-time accumulator
       tictoc::tic()
     }) %>%
     plumber::pr_hook("postroute", function(req, res) {
@@ -193,6 +194,25 @@ bootstrap_mount_endpoints <- function(api_spec, pool, logging_temp_file) {
         collapse = ""
       )
       log_info(skip_formatter(log_entry))
+
+      # #344: structured, greppable per-request timing with external-time
+      # attribution. external_ms is the wall time this request spent in external
+      # provider calls (0 for cheap routes); slow=true flags requests over the
+      # SLO threshold (API_SLOW_REQUEST_MS, default 2000).
+      duration_ms <- (end$toc - end$tic) * 1000
+      external_ms <- external_proxy_request_total_ms()
+      slow_threshold_ms <- suppressWarnings(as.numeric(Sys.getenv("API_SLOW_REQUEST_MS", "2000")))
+      if (is.na(slow_threshold_ms) || slow_threshold_ms <= 0) slow_threshold_ms <- 2000
+      structured_timing <- paste0(
+        "[request-timing] ",
+        "method=", convert_empty(req$REQUEST_METHOD),
+        " path=", convert_empty(req$PATH_INFO),
+        " status=", convert_empty(res$status),
+        " duration_ms=", as.integer(round(duration_ms)),
+        " external_ms=", as.integer(round(external_ms)),
+        " slow=", tolower(as.character(duration_ms >= slow_threshold_ms))
+      )
+      log_info(skip_formatter(structured_timing))
 
       # Write log entry to DB with sanitized data
       log_message_to_db(

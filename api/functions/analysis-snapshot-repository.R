@@ -5,12 +5,15 @@ if (!exists("%||%", mode = "function")) {
 }
 
 analysis_snapshot_lock_name <- function(analysis_type, parameter_hash) {
-  paste0(
-    "analysis_snapshot_refresh:",
-    as.character(analysis_type[[1]]),
-    ":",
-    as.character(parameter_hash[[1]])
-  )
+  # MySQL GET_LOCK() names must be <= 64 characters (errno 4163 otherwise). The
+  # previous "analysis_snapshot_refresh:<type>:<sha256>" form was 109-124 chars,
+  # so GET_LOCK always failed and the refresh job aborted before writing a
+  # snapshot -> permanent `snapshot_missing` on every public analysis endpoint.
+  # parameter_hash is a 64-char SHA-256 that already encodes (analysis_type,
+  # params) (see analysis_snapshot_parameter_hash), so a short prefix + a
+  # truncated hash stays unique per preset while fitting the limit. analysis_type
+  # is intentionally not inlined — the long preset names overflow the cap.
+  paste0("asr:", substr(as.character(parameter_hash[[1]]), 1, 56))
 }
 
 analysis_snapshot_acquire_lock <- function(analysis_type,

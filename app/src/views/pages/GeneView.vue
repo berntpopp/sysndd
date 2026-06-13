@@ -171,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, watch, ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useHead } from '@unhead/vue';
 import { BContainer, BRow, BCol, BCard } from 'bootstrap-vue-next';
@@ -229,8 +229,28 @@ const mgdId = computed(() => gene.value?.mgd_id?.[0] ?? '');
 const rgdId = computed(() => gene.value?.rgd_id?.[0] ?? '');
 const gnomadConstraintsJson = computed(() => gene.value?.gnomad_constraints ?? null);
 
+// #344: defer external-provider activation until after mount so the child
+// <TablesEntities> entity request (our own above-the-fold data) is DISPATCHED
+// FIRST. The API is single-threaded per process and serves requests in arrival
+// order; useResource's immediate watcher fires the 6 external enrichment calls
+// synchronously in this parent setup(), before the child's mounted() hook runs
+// the entity fetch. On a symbol URL (where the symbol is known immediately) that
+// queued the cheap entity request behind up to 6 slow upstream calls — making
+// "Associated" load last. onMounted runs AFTER the child's mounted() hook, so
+// gating the external key here guarantees own-data is requested first.
+const externalsReady = ref(false);
+onMounted(() => {
+  // Defer to a macrotask (setTimeout 0): this runs AFTER the microtask queue
+  // drains — including the child <TablesEntities> $nextTick-scheduled entity
+  // fetch and all Vue reactive watcher flushes — so our own-data requests
+  // (gene record + Associated entities) are dispatched BEFORE the external
+  // enrichment calls, regardless of warm/cold cache or symbol-vs-HGNC URL form.
+  window.setTimeout(() => {
+    externalsReady.value = true;
+  }, 0);
+});
 const symbolForExternal = computed<string | null>(() =>
-  geneSymbol.value ? geneSymbol.value : null
+  externalsReady.value && geneSymbol.value ? geneSymbol.value : null
 );
 // ClinVar counts power the small above-the-fold card (~250 B response).
 // The full variant list (~520 KB) is fetched separately for the genomic

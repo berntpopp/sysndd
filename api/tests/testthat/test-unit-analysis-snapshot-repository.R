@@ -13,18 +13,34 @@ test_that("snapshot repository exposes expected public API", {
   expect_true(exists("analysis_snapshot_prune", mode = "function"))
 })
 
-test_that("snapshot lock names are scoped by analysis type and parameter hash", {
+test_that("snapshot lock names are scoped by hash and fit MySQL's 64-char GET_LOCK limit", {
   source(file.path("functions", "analysis-snapshot-presets.R"), local = TRUE)
   source(file.path("functions", "analysis-snapshot-repository.R"), local = TRUE)
 
-  preset <- analysis_snapshot_normalize_params(
+  net <- analysis_snapshot_normalize_params(
     "gene_network_edges",
     list(cluster_type = "clusters", min_confidence = 400, max_edges = 10000)
   )
-  expect_equal(
-    analysis_snapshot_lock_name(preset$analysis_type, preset$parameter_hash),
-    paste0("analysis_snapshot_refresh:gene_network_edges:", preset$parameter_hash)
+  net_lock <- analysis_snapshot_lock_name(net$analysis_type, net$parameter_hash)
+
+  # Derived deterministically from the parameter hash (which already encodes the
+  # analysis type + params); short prefix keeps it readable and unique.
+  expect_equal(net_lock, paste0("asr:", substr(net$parameter_hash, 1, 56)))
+
+  # Every supported preset's lock name MUST fit MySQL GET_LOCK()'s 64-char cap.
+  # If it overflows, GET_LOCK fails (errno 4163) and the refresh job can never
+  # build a snapshot -> permanent `snapshot_missing` on every analysis endpoint.
+  locks <- vapply(analysis_snapshot_supported_presets(), function(p) {
+    h <- analysis_snapshot_parameter_hash(p$analysis_type, p$params)
+    analysis_snapshot_lock_name(p$analysis_type, h)
+  }, character(1))
+  expect_true(
+    all(nchar(locks) <= 64),
+    info = paste("lock name lengths:", paste(nchar(locks), collapse = ", "))
   )
+
+  # Distinct presets still get distinct locks (per-(type,params) scoping preserved).
+  expect_equal(length(unique(locks)), length(locks))
 })
 
 test_that("snapshot status helpers classify missing and stale rows", {

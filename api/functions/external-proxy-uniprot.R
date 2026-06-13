@@ -115,46 +115,34 @@ fetch_uniprot_domains <- function(gene_symbol) {
         accession
       )
 
-      # Build httr2 request with Accept header for JSON
-      features_req <- request(features_url) %>%
-        req_headers(Accept = "application/json") %>%
-        req_throttle(
-          rate = EXTERNAL_API_THROTTLE$uniprot$capacity / EXTERNAL_API_THROTTLE$uniprot$fill_time_s
-        ) %>%
-        req_retry(
-          max_tries = 5,
-          max_seconds = 120,
-          backoff = ~ 2^.x,
-          is_transient = ~ resp_status(.x) %in% c(429, 503, 504)
-        ) %>%
-        req_timeout(30) %>%
-        req_error(is_error = ~FALSE)
+      # Step 2: Fetch protein features/domains via the shared budget-bound helper.
+      # make_external_request() applies external_proxy_budget("uniprot") for the
+      # timeout / retry / max_seconds window, so this path can no longer occupy a
+      # worker for the legacy 30-120s window that caused head-of-line blocking
+      # (#344). It returns parsed JSON on 200, list(found = FALSE) on 404, and
+      # list(error = TRUE, ...) otherwise.
+      features_data <- make_external_request(
+        url = features_url,
+        api_name = "uniprot",
+        throttle_config = EXTERNAL_API_THROTTLE$uniprot
+      )
 
-      # Perform request
-      features_response <- req_perform(features_req)
-
-      # Handle non-200 responses
-      if (resp_status(features_response) != 200) {
-        if (resp_status(features_response) == 404) {
-          return(list(
-            source = "uniprot",
-            gene_symbol = gene_symbol,
-            accession = accession,
-            protein_name = protein_name,
-            protein_length = protein_length,
-            domains = list()
-          ))
-        }
+      # 404 from the features API: accession resolved but no features -> partial OK
+      if (!is.null(features_data$found) && isFALSE(features_data$found)) {
         return(list(
-          error = TRUE,
-          status = resp_status(features_response),
           source = "uniprot",
-          message = paste("UniProt features API returned HTTP", resp_status(features_response))
+          gene_symbol = gene_symbol,
+          accession = accession,
+          protein_name = protein_name,
+          protein_length = protein_length,
+          domains = list()
         ))
       }
 
-      # Parse features response
-      features_data <- resp_body_json(features_response)
+      # Transient/upstream error -> propagate (success-only cache drops it)
+      if (!is.null(features_data$error) && isTRUE(features_data$error)) {
+        return(features_data)
+      }
 
       # Filter to domain-relevant feature types
       domain_types <- c(
