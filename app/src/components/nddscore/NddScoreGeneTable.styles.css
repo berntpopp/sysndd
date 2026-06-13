@@ -112,6 +112,18 @@
   color: #0f172a;
 }
 
+/* Header label: neutral-900 so the label text clears AA (4.5:1) on the
+   light table-header background — neutral-600 measured 4.37:1 there. */
+.nddscore-gene-table__col-label {
+  color: var(--neutral-900, #212121);
+}
+
+.nddscore-gene-table__col-help {
+  font-size: 0.7rem;
+  color: var(--neutral-700, #616161);
+  vertical-align: middle;
+}
+
 :deep(.entities-table) {
   width: 100%;
   min-width: 100%;

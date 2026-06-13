@@ -6,6 +6,7 @@
       v-if="showFilterControls"
       v-model="filterContent"
       placeholder="Search any field..."
+      aria-label="Search any field"
       @input="onFilterInput"
     />
     <!-- ...other filter controls -->

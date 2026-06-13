@@ -14,6 +14,7 @@
 @use './partials/radius';
 @use './partials/typography';
 @use './partials/animations';
+@use './partials/chips';
 
 // Import component styles
 @use './components/cards';
@@ -29,3 +30,10 @@
 @use './utilities/accessibility';
 
 // Additional global styles can be added below
+
+// Align Bootstrap's `.text-muted` with the WCAG-verified neutral token. Bootstrap's
+// default (#6c757d) computes just under AA (4.5:1) at small sizes; --neutral-700
+// (#616161) is 5.74:1 on white. Darker-only — strictly improves contrast site-wide.
+.text-muted {
+  color: var(--neutral-700, #616161) !important;
+}

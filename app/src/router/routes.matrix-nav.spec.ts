@@ -48,7 +48,9 @@ describe('Curation/Correlation matrix navigation (#89)', () => {
     const curationMatrix = analyses?.items.find((i) => i.text === 'Curation matrix');
     expect(curationMatrix?.path).toBe('/CurationComparisons/Similarity');
 
-    const correlationMatrix = analyses?.items.find((i) => i.text === 'Correlation matrix');
+    const correlationMatrix = analyses?.items.find(
+      (i) => i.text === 'Phenotype–function correlation'
+    );
     expect(correlationMatrix?.path).toBe('/PhenotypeFunctionalCorrelation');
   });
 
@@ -59,12 +61,14 @@ describe('Curation/Correlation matrix navigation (#89)', () => {
     expect(paths).toContain('/PhenotypeCorrelations');
   });
 
-  it('groups each matrix link directly after its parent analysis entry', () => {
+  it('groups the curation matrix after its parent and keeps the phenotype–function correlation last', () => {
     const analyses = DROPDOWN_ITEMS_LEFT.find((d) => d.id === 'analyses_dropdown');
     const texts = analyses?.items.map((i) => i.text) ?? [];
 
     expect(texts.indexOf('Curation matrix')).toBe(texts.indexOf('Compare curations') + 1);
-    expect(texts.indexOf('Correlation matrix')).toBe(texts.indexOf('Correlate phenotypes') + 1);
+    // Phenotype–function correlation is a distinct analysis (functional vs phenotype
+    // clusters), so it sits last in the Analyses menu rather than beside a parent.
+    expect(texts.indexOf('Phenotype–function correlation')).toBe(texts.length - 1);
   });
 
   it('resolves the matrix paths to the matrix components via named routes', async () => {
@@ -101,7 +105,10 @@ describe('Curation/Correlation matrix navigation (#89)', () => {
     expect(matrixLink?.props('to')).toEqual({ name: 'PhenotypeFunctionalCorrelation' });
   });
 
-  it('links from the Correlation matrix page back to the Phenotype correlogram', () => {
+  it('renders the Phenotype–function correlation page standalone (no cross-link tabs)', () => {
+    // It is its own Analyses entry now, so it must NOT show tab links that
+    // navigate away (the 'Phenotype correlogram' tab was misleading — clicking it
+    // jumped to a different analysis).
     const wrapper = mount(PhenotypeFunctionalCorrelation, {
       global: {
         stubs: {
@@ -114,8 +121,7 @@ describe('Curation/Correlation matrix navigation (#89)', () => {
     });
 
     const links = wrapper.findAllComponents(RouterLinkStub);
-    const backLink = links.find((l) => l.text().includes('Phenotype correlogram'));
-    expect(backLink).toBeDefined();
-    expect(backLink?.props('to')).toEqual({ name: 'PhenotypeCorrelations' });
+    expect(links.find((l) => l.text().includes('Phenotype correlogram'))).toBeUndefined();
+    expect(wrapper.find('.analysis-tabs').exists()).toBe(false);
   });
 });

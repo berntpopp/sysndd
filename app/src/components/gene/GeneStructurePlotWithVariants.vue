@@ -18,10 +18,15 @@
 -->
 <template>
   <div class="gene-structure-plot">
-    <!-- SVG container (D3 owns this element exclusively) -->
+    <!--
+      SVG container (D3 owns this element exclusively).
+      role="figure" allows aria-label on the wrapper div; the D3 SVG inside
+      carries role="img" + title/desc for AT traversing the SVG element.
+    -->
     <div
       ref="plotContainer"
       class="plot-container"
+      role="figure"
       :aria-label="`Gene structure diagram for ${geneSymbol}`"
     />
 

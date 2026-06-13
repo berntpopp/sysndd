@@ -13,7 +13,8 @@
           />
         </h2>
         <p class="panel-description">
-          UpSet plot of selected curation-list intersections for neurodevelopmental disorders.
+          UpSet plot of selected curation-list intersections. Each bar shows the gene count unique
+          to that intersection; connected dots below show which sources contribute.
         </p>
         <BPopover target="popover-badge-help-upset" variant="info" triggers="focus hover">
           <template #title>Comparisons of Curation Efforts</template>
@@ -24,13 +25,12 @@
       <DownloadImageButtons :svg-id="'comparisons-upset-svg'" :file-name="'upset_plot'" />
     </header>
 
-    <!-- Source Selection: Dropdown + Chips -->
+    <!-- Source Selection -->
     <div
       v-if="!loadingUpset && columns_list && columns_list.length > 0"
       class="source-selector p-2"
     >
       <div class="source-toolbar d-flex flex-wrap align-items-center gap-2">
-        <!-- Dropdown for adding sources -->
         <BDropdown
           variant="outline-primary"
           size="sm"
@@ -38,31 +38,23 @@
           menu-class="source-dropdown-menu"
         >
           <template #button-content>
-            <i class="bi bi-plus-circle me-1" />
-            Add Sources
+            <i class="bi bi-plus-circle me-1" />Add Sources
             <BBadge v-if="availableSources.length > 0" variant="secondary" pill class="ms-1">
               {{ availableSources.length }}
             </BBadge>
           </template>
-
           <div class="px-3 py-2">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <small class="text-muted fw-semibold">Available Sources</small>
               <BButton
                 v-if="selected_columns.length < columns_list.length"
-                variant="link"
-                size="sm"
-                class="p-0 text-decoration-none"
+                variant="link" size="sm" class="p-0 text-decoration-none"
                 @click="selectAllSources"
-              >
-                Select All
-              </BButton>
+              >Select All</BButton>
             </div>
-
             <div v-if="availableSources.length === 0" class="text-muted small text-center py-2">
               All sources selected
             </div>
-
             <BFormCheckbox
               v-for="source in normalizeSelectOptions(columns_list)"
               :key="source.value"
@@ -89,16 +81,12 @@
                 : `Remove ${formatSourceName(source)}`
             "
             @remove="removeSource(source)"
-          >
-            {{ formatSourceName(source) }}
-          </BFormTag>
+          >{{ formatSourceName(source) }}</BFormTag>
         </TransitionGroup>
 
-        <!-- Clear all button -->
         <BButton
           v-if="selected_columns.length > 2"
-          variant="link"
-          size="sm"
+          variant="link" size="sm"
           class="text-muted text-decoration-none p-0 ms-1"
           title="Reset to default selection"
           @click="resetToDefault"
@@ -106,51 +94,81 @@
           <i class="bi bi-arrow-counterclockwise" />
         </BButton>
 
-        <!-- Separator -->
-        <span class="border-start mx-2" style="height: 24px" />
+        <span class="separator-line border-start mx-2" />
 
-        <!-- Definitive Only toggle -->
-        <BFormCheckbox v-model="definitiveOnly" switch size="sm" class="definitive-toggle">
+        <BFormCheckbox v-model="definitiveOnly" switch size="sm" class="definitive-toggle mb-0">
           <span class="small fw-semibold">Definitive Only</span>
         </BFormCheckbox>
 
-        <!-- Separator -->
-        <span class="border-start mx-2" style="height: 24px" />
+        <span class="separator-line border-start mx-2" />
 
-        <!-- Highlight SysNDD toggle -->
-        <BFormCheckbox v-model="highlightSysNDD" switch size="sm" class="highlight-toggle">
+        <!-- Highlight SysNDD toggle with inline count -->
+        <BFormCheckbox v-model="highlightSysNDD" switch size="sm" class="highlight-toggle mb-0">
           <span class="small fw-semibold">
-            <span class="highlight-indicator sysndd-indicator" />
+            <span class="highlight-dot sysndd-dot" aria-hidden="true" />
             Highlight SysNDD
+            <span v-if="sysnddCount !== null" class="legend-count">({{ sysnddCount.toLocaleString() }})</span>
           </span>
         </BFormCheckbox>
 
-        <!-- Highlight Core Overlap toggle -->
-        <BFormCheckbox v-model="highlightCoreOverlap" switch size="sm" class="highlight-toggle">
+        <!-- Highlight Core Overlap toggle with inline count -->
+        <BFormCheckbox v-model="highlightCoreOverlap" switch size="sm" class="highlight-toggle mb-0">
           <span class="small fw-semibold">
-            <span class="highlight-indicator overlap-indicator" />
+            <span class="highlight-dot overlap-dot" aria-hidden="true" />
             Core Overlap
+            <span v-if="coreOverlapCount !== null" class="legend-count">({{ coreOverlapCount.toLocaleString() }})</span>
           </span>
         </BFormCheckbox>
       </div>
 
-      <!-- Helper text -->
       <small class="text-muted d-block mt-1">
         <i class="bi bi-info-circle me-1" />
         {{ selected_columns.length }} of {{ columns_list.length }} sources selected
-        <span v-if="selected_columns.length < 2" class="text-danger ms-1">
-          (minimum 2 required)
-        </span>
-        <span v-if="definitiveOnly" class="text-success ms-2">
-          <i class="bi bi-check-circle me-1" />
-          Showing only Definitive entries for each source
+        <span v-if="selected_columns.length < 2" class="text-danger ms-1">(minimum 2 required)</span>
+        <span v-if="definitiveOnly" class="ms-2" style="color:var(--status-success,#2e7d32)">
+          <i class="bi bi-check-circle me-1" />Definitive entries only
         </span>
       </small>
     </div>
 
-    <!-- Content with overlay spinner -->
+    <!-- Content area -->
     <div class="position-relative">
-      <BSpinner v-if="loadingUpset" label="Loading..." class="spinner" />
+      <!-- Loading skeleton -->
+      <div v-if="loadingUpset" class="loading-skeleton" aria-live="polite" aria-busy="true">
+        <div class="skeleton-bars">
+          <div class="skeleton-bar" style="height:70%" />
+          <div class="skeleton-bar" style="height:90%" />
+          <div class="skeleton-bar" style="height:55%" />
+          <div class="skeleton-bar" style="height:75%" />
+          <div class="skeleton-bar" style="height:40%" />
+          <div class="skeleton-bar" style="height:60%" />
+          <div class="skeleton-bar" style="height:30%" />
+        </div>
+        <div class="skeleton-dots">
+          <div v-for="r in 3" :key="r" class="skeleton-dot-row">
+            <div v-for="c in 7" :key="c" class="skeleton-dot" />
+          </div>
+        </div>
+        <span class="visually-hidden">Loading UpSet plot…</span>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="loadError" class="state-card text-center p-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-2 mb-2 d-block" style="color:var(--status-danger,#c62828)" />
+        <p class="mb-3 text-muted">{{ loadError }}</p>
+        <BButton variant="primary" size="sm" @click="retryLoad">
+          <i class="bi bi-arrow-clockwise me-1" />Retry
+        </BButton>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else-if="!loadingUpset && elems.length === 0" class="state-card text-center p-4">
+        <i class="bi bi-bar-chart fs-2 mb-2 d-block text-muted" />
+        <p class="text-muted mb-0">No intersecting genes found for the selected sources.</p>
+        <p class="text-muted small mt-1">Try adding more sources or disabling Definitive Only.</p>
+      </div>
+
+      <!-- Chart -->
       <div
         v-else
         id="comparisons-upset-svg"
@@ -166,13 +184,9 @@
 import { ref } from 'vue';
 import useToast from '@/composables/useToast';
 import { render, extractSets } from '@upsetjs/bundle';
-// TODO: vue3-treeselect disabled pending Bootstrap-Vue-Next migration
-// import Treeselect from '@zanmato/vue3-treeselect';
-// import '@zanmato/vue3-treeselect/dist/vue3-treeselect.min.css';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 
-// Typed API client (W5)
 import { getComparisonsOptions, getUpsetData } from '@/api/comparisons';
 
 import {
@@ -188,7 +202,6 @@ import {
 
 export default {
   name: 'AnalysesCurationUpset',
-  // TODO: Treeselect disabled pending Bootstrap-Vue-Next migration
   components: { DownloadImageButtons, InlineHelpBadge },
   setup() {
     const upsetContainer = ref(null);
@@ -197,32 +210,25 @@ export default {
   },
   data() {
     return {
-      elems: [
-        {
-          name: 'AAAS',
-          sets: ['SysNDD', 'radboudumc_ID', 'sfari', 'gene2phenotype', 'panelapp', 'geisinger_DBD'],
-        },
-      ],
-      width: 1400,
-      height: 600,
+      elems: [],
       columns_list: [],
-      selected_columns: ['SysNDD', 'panelapp', 'gene2phenotype'],
+      selected_columns: [...DEFAULT_SELECTED_SOURCES],
       selection: null,
       loadingUpset: true,
+      loadError: null,
       resizeObserver: null,
       definitiveOnly: false,
       highlightSysNDD: true,
       highlightCoreOverlap: true,
-      // Color palette + highlight colors (Wong/Okabe-Ito, see curationUpsetDisplay.ts)
       sourceColors: SOURCE_COLORS,
       sysnddHighlightColor: SYSNDD_HIGHLIGHT_COLOR,
       coreOverlapColor: CORE_OVERLAP_COLOR,
+      sysnddCount: null,
+      coreOverlapCount: null,
     };
   },
   computed: {
-    sets() {
-      return extractSets(this.elems);
-    },
+    sets() { return extractSets(this.elems); },
     availableSources() {
       if (!this.columns_list) return [];
       return this.normalizeSelectOptions(this.columns_list).filter(
@@ -231,46 +237,18 @@ export default {
     },
   },
   watch: {
-    selected_columns() {
-      setTimeout(() => {
-        this.loadComparisonsUpsetData();
-      }, 0);
-    },
-    definitiveOnly() {
-      setTimeout(() => {
-        this.loadComparisonsUpsetData();
-      }, 0);
-    },
-    highlightSysNDD() {
-      this.$nextTick(() => {
-        this.renderUpset();
-      });
-    },
-    highlightCoreOverlap() {
-      this.$nextTick(() => {
-        this.renderUpset();
-      });
-    },
-    sets: {
-      handler() {
-        this.$nextTick(() => {
-          this.renderUpset();
-        });
-      },
-      deep: true,
-    },
+    selected_columns() { setTimeout(() => this.loadComparisonsUpsetData(), 0); },
+    definitiveOnly() { setTimeout(() => this.loadComparisonsUpsetData(), 0); },
+    highlightSysNDD() { this.$nextTick(() => this.renderUpset()); },
+    highlightCoreOverlap() { this.$nextTick(() => this.renderUpset()); },
+    sets: { handler() { this.$nextTick(() => this.renderUpset()); }, deep: true },
   },
   mounted() {
     this.loadOptionsData();
-    this.$nextTick(() => {
-      this.attachResizeObserver();
-    });
+    this.$nextTick(() => this.attachResizeObserver());
   },
   beforeUnmount() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-      this.resizeObserver = null;
-    }
+    if (this.resizeObserver) { this.resizeObserver.disconnect(); this.resizeObserver = null; }
     window.removeEventListener('resize', this.renderUpset);
   },
   methods: {
@@ -280,11 +258,14 @@ export default {
         this.columns_list = data.list;
         this.loadComparisonsUpsetData();
       } catch (e) {
+        this.loadError = e.message || 'Failed to load source options.';
+        this.loadingUpset = false;
         this.makeToast(e, 'Error', 'danger');
       }
     },
     async loadComparisonsUpsetData() {
       this.loadingUpset = true;
+      this.loadError = null;
       try {
         const data = await getUpsetData({
           fields: this.selected_columns.join(),
@@ -292,59 +273,53 @@ export default {
         });
         this.elems = data;
       } catch (e) {
+        this.loadError = e.message || 'Failed to load UpSet plot data.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingUpset = false;
-        this.$nextTick(() => {
-          this.renderUpset();
-        });
+        this.$nextTick(() => this.renderUpset());
       }
     },
+    retryLoad() {
+      this.loadError = null;
+      this.loadComparisonsUpsetData();
+    },
     renderUpset() {
-      if (!this.upsetContainer || this.loadingUpset) {
-        return;
-      }
+      if (!this.upsetContainer || this.loadingUpset || this.elems.length === 0) return;
 
       const sets = extractSets(this.elems);
       const dimensions = this.getPlotDimensions();
+      const maxH = typeof window !== 'undefined' ? Math.max(300, window.innerHeight - 280) : 560;
+      const clampedHeight = Math.min(dimensions.height, maxH);
 
-      // Build setColors map for coloring individual sets
       const setColors = {};
       sets.forEach((set) => {
-        if (this.sourceColors[set.name]) {
-          setColors[set.name] = this.sourceColors[set.name];
-        }
+        if (this.sourceColors[set.name]) setColors[set.name] = this.sourceColors[set.name];
       });
 
-      // Build queries for highlighting
       const queries = [];
+      this.sysnddCount = null;
+      this.coreOverlapCount = null;
 
-      // Highlight SysNDD set if enabled and present
       if (this.highlightSysNDD) {
         const sysnddSet = sets.find((s) => s.name === 'SysNDD');
         if (sysnddSet) {
-          queries.push({
-            name: 'SysNDD (This Database)',
-            color: this.sysnddHighlightColor,
-            set: sysnddSet,
-          });
+          this.sysnddCount = sysnddSet.elems ? sysnddSet.elems.length : null;
+          queries.push({ name: 'SysNDD (This Database)', color: this.sysnddHighlightColor, set: sysnddSet });
         }
       }
 
-      // Highlight core overlap (intersection of all selected sources) if enabled
       if (this.highlightCoreOverlap && sets.length >= 2) {
-        // Find genes that appear in ALL selected sources
-        const coreOverlapGenes = this.elems.filter((elem) => {
-          // Check if this gene has all selected sources
+        const coreGenes = this.elems.filter((elem) => {
           const elemSets = elem.sets || [];
-          return this.selected_columns.every((source) => elemSets.includes(source));
+          return this.selected_columns.every((src) => elemSets.includes(src));
         });
-
-        if (coreOverlapGenes.length > 0) {
+        if (coreGenes.length > 0) {
+          this.coreOverlapCount = coreGenes.length;
           queries.push({
             name: `Core Overlap (${this.selected_columns.length} sources)`,
             color: this.coreOverlapColor,
-            elems: coreOverlapGenes,
+            elems: coreGenes,
           });
         }
       }
@@ -352,90 +327,50 @@ export default {
       render(this.upsetContainer, {
         sets,
         width: dimensions.width,
-        height: dimensions.height,
+        height: clampedHeight,
         selection: this.selection,
         theme: 'vega',
         setColors,
         queries: queries.length > 0 ? queries : undefined,
         exportButtons: false,
-        // Enhanced styling
         barPadding: 0.3,
         dotPadding: 0.7,
-        onHover: (s) => {
-          this.selection = s;
-        },
+        onHover: (s) => { this.selection = s; },
       });
     },
     getPlotDimensions() {
-      const containerWidth = this.upsetContainer?.clientWidth || this.upsetContainer?.offsetWidth;
-      const viewportWidth =
-        typeof window !== 'undefined' ? Math.max(window.innerWidth - 64, 300) : this.width;
-      return computeUpsetPlotDimensions(containerWidth, viewportWidth);
+      const cw = this.upsetContainer?.clientWidth || this.upsetContainer?.offsetWidth;
+      const vw = typeof window !== 'undefined' ? Math.max(window.innerWidth - 64, 300) : 1400;
+      return computeUpsetPlotDimensions(cw, vw);
     },
     attachResizeObserver() {
-      if (!this.upsetContainer) {
+      if (!this.upsetContainer || typeof ResizeObserver === 'undefined') {
         window.addEventListener('resize', this.renderUpset);
         return;
       }
-
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', this.renderUpset);
-        return;
-      }
-
-      this.resizeObserver = new ResizeObserver(() => {
-        this.renderUpset();
-      });
+      this.resizeObserver = new ResizeObserver(() => this.renderUpset());
       this.resizeObserver.observe(this.upsetContainer);
     },
-    normalizeLists(node) {
-      return {
-        id: node.list,
-        label: node.list,
-      };
-    },
-    hover(s) {
-      this.selection = s;
-    },
-    // Normalize select options for BFormSelect (delegates to the upset helper)
-    normalizeSelectOptions(options) {
-      return normalizeUpsetSelectOptions(options);
-    },
-    // Toggle a source selection
+    hover(s) { this.selection = s; },
+    normalizeSelectOptions(options) { return normalizeUpsetSelectOptions(options); },
     toggleSource(source) {
       if (this.selected_columns.includes(source)) {
-        // Don't allow removing if only 2 left
-        if (this.selected_columns.length > 2) {
+        if (this.selected_columns.length > 2)
           this.selected_columns = this.selected_columns.filter((s) => s !== source);
-        }
       } else {
         this.selected_columns = [...this.selected_columns, source];
       }
     },
-    // Remove a source from selection
     removeSource(source) {
-      if (this.selected_columns.length > 2) {
+      if (this.selected_columns.length > 2)
         this.selected_columns = this.selected_columns.filter((s) => s !== source);
-      }
     },
-    // Select all sources
     selectAllSources() {
-      this.selected_columns = this.normalizeSelectOptions(this.columns_list).map(
-        (opt) => opt.value
-      );
+      this.selected_columns = this.normalizeSelectOptions(this.columns_list).map((opt) => opt.value);
     },
-    // Reset to default selection
-    resetToDefault() {
-      this.selected_columns = [...DEFAULT_SELECTED_SOURCES];
-    },
-    // Format source name for display (delegates to the upset helper)
-    formatSourceName(name) {
-      return formatSourceName(name);
-    },
-    // Get variant color for source chip (delegates to the upset helper)
-    getSourceVariant(source) {
-      return getSourceVariant(source);
-    },
+    resetToDefault() { this.selected_columns = [...DEFAULT_SELECTED_SOURCES]; },
+    formatSourceName(name) { return formatSourceName(name); },
+    getSourceVariant(source) { return getSourceVariant(source); },
   },
 };
 </script>
@@ -457,9 +392,7 @@ export default {
   border-bottom: 1px solid #e6ebf2;
 }
 
-.panel-heading {
-  min-width: 0;
-}
+.panel-heading { min-width: 0; }
 
 .panel-title {
   display: flex;
@@ -483,31 +416,64 @@ export default {
   display: flex;
   justify-content: center;
   width: 100%;
-  min-height: 0;
   overflow: hidden;
   padding: 0.5rem 0;
 }
 
-.upset-container :deep(svg) {
-  max-width: 100%;
+.upset-container :deep(svg) { max-width: 100%; }
+
+.legend-count {
+  color: var(--neutral-700, #616161);
+  font-weight: 400;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
 }
 
-.spinner {
-  width: 2rem;
-  height: 2rem;
-  margin: 5rem auto;
-  display: block;
+/* Loading skeleton */
+.loading-skeleton { padding: 1rem 0.75rem 0.5rem; }
+
+.skeleton-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 0 1rem;
+  height: 140px;
+  margin-bottom: 1rem;
 }
 
-/* Source Selector Styles */
-.source-selector {
-  background: #f4f7fa;
-  border-bottom: 1px solid #dee2e6;
+.skeleton-bar {
+  flex: 1;
+  background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%);
+  background-size: 400% 100%;
+  border-radius: 3px 3px 0 0;
+  animation: shimmer 1.5s ease-in-out infinite;
 }
 
-.source-toolbar {
-  row-gap: 0.4rem !important;
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar { animation: none; background: #f0f4f8; }
 }
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.skeleton-dots { display: flex; flex-direction: column; gap: 10px; padding: 0 1rem 0.5rem; }
+.skeleton-dot-row { display: flex; gap: 6px; }
+.skeleton-dot { flex: 1; height: 14px; border-radius: 50%; background: #e2e8f0; }
+
+.state-card {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Source Selector */
+.source-selector { background: #f4f7fa; border-bottom: 1px solid #dee2e6; }
+.separator-line { height: 24px; }
+.source-toolbar { row-gap: 0.4rem !important; }
 
 .source-selector :deep(.btn-sm) {
   --bs-btn-padding-y: 0.18rem;
@@ -515,39 +481,14 @@ export default {
   --bs-btn-font-size: 0.8125rem;
 }
 
-.source-selector :deep(.btn-outline-primary) {
-  border-color: #07509b;
-  background: #fff;
-  color: #063f7a;
-}
-
+.source-selector :deep(.btn-outline-primary) { border-color: #07509b; background: #fff; color: #063f7a; }
 .source-selector :deep(.btn-outline-primary:hover),
-.source-selector :deep(.btn-outline-primary:focus) {
-  border-color: #063f7a;
-  background: #eaf3ff;
-  color: #052f5c;
-}
+.source-selector :deep(.btn-outline-primary:focus) { border-color: #063f7a; background: #eaf3ff; color: #052f5c; }
+.source-selector > small { color: #4a5565 !important; }
+.source-dropdown-menu { min-width: 220px; max-height: 300px; overflow-y: auto; }
 
-.source-selector > small {
-  color: #4a5565 !important;
-}
-
-.source-dropdown-menu {
-  min-width: 220px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.source-checkbox {
-  cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.15s ease;
-}
-
-.source-checkbox:hover {
-  background-color: #e9ecef;
-}
+.source-checkbox { cursor: pointer; padding: 0.25rem 0.5rem; border-radius: 0.25rem; transition: background-color 0.15s ease; }
+.source-checkbox:hover { background-color: #e9ecef; }
 
 .source-chip {
   min-height: 1.5rem;
@@ -557,157 +498,50 @@ export default {
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1;
-  gap: 0.25rem;
   transition: all 0.2s ease;
 }
 
-.source-chip :deep(.b-form-tag-content) {
-  line-height: 1;
-}
+@media (prefers-reduced-motion: reduce) { .source-chip { transition: none; } }
 
-.source-chip :deep(.b-form-tag-remove) {
-  width: 0.55rem;
-  height: 0.55rem;
-  margin-left: 0.1rem;
-  padding: 0;
-  font-size: 0.55rem;
-  opacity: 0.7;
-}
+.source-chip :deep(.b-form-tag-content) { line-height: 1; }
+.source-chip :deep(.b-form-tag-remove) { width: 0.55rem; height: 0.55rem; margin-left: 0.1rem; padding: 0; font-size: 0.55rem; opacity: 0.7; }
+.source-chip :deep(.b-form-tag-remove:hover) { opacity: 1; }
+.source-chip:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,.1); }
 
-.source-chip :deep(.b-form-tag-remove:hover) {
-  opacity: 1;
-}
+@media (prefers-reduced-motion: reduce) { .source-chip:hover:not(:disabled) { transform: none; } }
 
-.source-chip:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* Toggle styles */
+.definitive-toggle :deep(.form-check-input:checked) { background-color: var(--status-success,#2e7d32); border-color: var(--status-success,#2e7d32); }
+.highlight-toggle :deep(.form-check-input:checked) { background-color: #0072b2; border-color: #0072b2; }
 
-/* Definitive toggle styles */
-.definitive-toggle {
-  margin-bottom: 0;
-}
-
-.definitive-toggle :deep(.form-check-input) {
-  cursor: pointer;
-}
-
-.definitive-toggle :deep(.form-check-input:checked) {
-  background-color: #198754;
-  border-color: #198754;
-}
-
-/* Highlight toggle styles */
-.highlight-toggle {
-  margin-bottom: 0;
-}
-
-.highlight-toggle :deep(.form-check-input) {
-  cursor: pointer;
-}
-
-.highlight-toggle :deep(.form-check-input:checked) {
-  background-color: #0072b2; /* Okabe-Ito Blue */
-  border-color: #0072b2;
-}
-
-/* Color indicator dots next to toggle labels */
-.highlight-indicator {
+.highlight-dot {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   margin-right: 4px;
   vertical-align: middle;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0,0,0,.2);
 }
 
-.sysndd-indicator {
-  background-color: #0072b2; /* Okabe-Ito Blue */
-}
-
-.overlap-indicator {
-  background-color: #d55e00; /* Okabe-Ito Vermilion */
-}
+.sysndd-dot { background-color: #0072b2; }
+.overlap-dot { background-color: #d55e00; }
 
 /* Chip animation */
-.chip-enter-active,
-.chip-leave-active {
-  transition: all 0.2s ease;
-}
-
-.chip-enter-from {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.chip-leave-to {
-  opacity: 0;
-  transform: scale(0.8);
-}
-
-.chip-move {
-  transition: transform 0.2s ease;
-}
+.chip-enter-active, .chip-leave-active { transition: all 0.2s ease; }
+@media (prefers-reduced-motion: reduce) { .chip-enter-active, .chip-leave-active { transition: none; } }
+.chip-enter-from, .chip-leave-to { opacity: 0; transform: scale(0.8); }
+.chip-move { transition: transform 0.2s ease; }
+@media (prefers-reduced-motion: reduce) { .chip-move { transition: none; } }
 
 @media (max-width: 575.98px) {
-  .panel-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.55rem;
-    padding: 0.7rem;
-    text-align: center;
-  }
-
-  .panel-title {
-    justify-content: center;
-    font-size: 1rem;
-  }
-
-  .panel-description {
-    font-size: 0.8125rem;
-  }
-
-  .source-selector {
-    padding: 0.5rem !important;
-  }
-
-  .source-toolbar {
-    gap: 0.35rem !important;
-  }
-
-  .source-selector :deep(.form-check-label),
-  .source-selector .small {
-    padding: 0;
-    font-size: 0.75rem;
-    line-height: 1.1;
-  }
-
-  .source-selector :deep(.form-check) {
-    min-height: 1.65rem;
-    margin-bottom: 0;
-    padding-top: 0.1rem;
-    padding-bottom: 0.1rem;
-  }
-
-  .source-selector :deep(.form-switch) {
-    align-items: center;
-    width: auto;
-    padding-right: 0.35rem;
-  }
-
-  .source-selector .border-start {
-    display: none;
-  }
-
-  .source-chip {
-    min-height: 1.45rem;
-    max-height: 1.45rem;
-    font-size: 0.75rem;
-  }
-
-  .upset-container {
-    padding-top: 0.25rem;
-  }
+  .panel-header { flex-direction: column; align-items: stretch; gap: 0.55rem; padding: 0.7rem; text-align: center; }
+  .panel-title { justify-content: center; }
+  .source-selector { padding: 0.5rem !important; }
+  .source-toolbar { gap: 0.35rem !important; }
+  .source-selector :deep(.form-check-label), .source-selector .small { font-size: 0.75rem; }
+  .source-selector :deep(.form-switch) { width: auto; }
+  .separator-line { display: none; }
+  .source-chip { min-height: 1.45rem; max-height: 1.45rem; font-size: 0.75rem; }
 }
 </style>

@@ -128,18 +128,20 @@
                   }
                 )
               "
+              :aria-label="data.label"
             >
-              {{ truncate(data.label, 20) }}
+              {{ truncate(data.label, 28) }}
             </div>
           </template>
 
           <template #filter-controls>
-            <td v-for="field in fields" :key="field.key">
+            <td v-for="field in fields" :key="field.key" role="presentation">
               <BFormInput
                 v-if="field.filterable"
                 v-model="filter[field.key].content"
                 class="filter-input"
-                :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                :placeholder="'Filter ' + truncate(field.label, 20)"
+                :aria-label="`Filter by ${field.label}`"
                 debounce="500"
                 type="search"
                 autocomplete="off"
@@ -151,6 +153,7 @@
                 v-if="field.selectable && field.selectOptions && field.selectOptions.length > 0"
                 v-model="filter[field.key].content"
                 class="filter-input"
+                :aria-label="`Filter by ${field.label}`"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
                 @update:model-value="
@@ -172,6 +175,7 @@
                 "
                 v-model="filter[field.key].content"
                 class="filter-input"
+                :aria-label="`Filter by ${field.label}`"
                 :options="normalizeSelectOptions(field.selectOptions)"
                 size="sm"
                 @update:model-value="

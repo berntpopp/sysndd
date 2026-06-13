@@ -10,7 +10,6 @@
 
 <script>
 import { useHead } from '@unhead/vue';
-import useToast from '@/composables/useToast';
 import AnalyseGeneClusters from '@/components/analyses/AnalyseGeneClusters.vue';
 import AnalysisShell from '@/components/analyses/AnalysisShell.vue';
 import { preloadNetworkData } from '@/composables/useNetworkData';
@@ -22,8 +21,11 @@ export default {
     AnalyseGeneClusters,
   },
   setup() {
-    const { makeToast } = useToast();
+    // Kick off network data preload in the background so it is ready
+    // before NetworkVisualization mounts. Errors are silenced here;
+    // the component handles its own error/retry state.
     void preloadNetworkData().catch(() => undefined);
+
     useHead({
       title: 'Functional clusters',
       meta: [
@@ -34,18 +36,6 @@ export default {
         },
       ],
     });
-
-    return { makeToast };
   },
 };
 </script>
-
-<style scoped>
-.btn-group-xs > .btn,
-.btn-xs {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.875rem;
-  line-height: 0.5;
-  border-radius: 0.2rem;
-}
-</style>

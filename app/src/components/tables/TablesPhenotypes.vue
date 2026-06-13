@@ -2,6 +2,7 @@
   <div class="container-fluid py-2">
     <TableShell
       title="Phenotype search"
+      :heading-level="headingLevel"
       :meta="`Associated entities: ${totalRows}`"
       :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
       :loading="loading"
@@ -25,6 +26,7 @@
           class="me-1"
           size="sm"
           title="Copy link to this page."
+          aria-label="Copy link to this page"
           variant="success"
           @click="copyLinkToClipboard()"
         >
@@ -35,6 +37,7 @@
           v-b-tooltip.hover.bottom
           size="sm"
           class="me-1"
+          aria-label="Remove all filters"
           :title="
             'The table is ' +
             (filter_string === '' || filter_string === null || filter_string === 'null'
@@ -153,13 +156,17 @@
           </template>
 
           <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+          <!-- role="presentation" removes the row from the table accessibility tree so
+               axe/Lighthouse does not flag the filter <td> cells as lacking column headers
+               (td-has-header). Filter inputs are independently labelled via aria-label. -->
           <template #thead-top>
-            <tr v-if="showFilterControls">
-              <td v-for="field in fields" :key="field.key">
+            <tr v-if="showFilterControls" role="presentation">
+              <td v-for="field in fields" :key="field.key" role="presentation">
                 <BFormInput
                   v-if="field.filterable"
                   v-model="filter[field.key].content"
                   :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                  :aria-label="'Filter by ' + field.label"
                   debounce="500"
                   type="search"
                   autocomplete="off"
@@ -167,33 +174,40 @@
                   @update:model-value="filtered()"
                 />
 
-                <BFormSelect
+                <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
+                <label
                   v-if="field.selectable"
-                  v-model="filter[field.key].content"
-                  :options="field.selectOptions"
-                  size="sm"
-                  @update:model-value="
-                    removeSearch();
-                    filtered();
-                  "
+                  :for="'select_' + field.key"
+                  :aria-label="'Filter by ' + field.label"
                 >
-                  <template #first>
-                    <BFormSelectOption :value="null">
-                      .. {{ truncate(field.label, 20) }} ..
-                    </BFormSelectOption>
-                  </template>
-                </BFormSelect>
+                  <BFormSelect
+                    :id="'select_' + field.key"
+                    v-model="filter[field.key].content"
+                    :options="field.selectOptions"
+                    size="sm"
+                    @update:model-value="
+                      removeSearch();
+                      filtered();
+                    "
+                  >
+                    <template #first>
+                      <BFormSelectOption :value="null">
+                        .. {{ truncate(field.label, 20) }} ..
+                      </BFormSelectOption>
+                    </template>
+                  </BFormSelect>
+                </label>
 
                 <!-- TODO: treeselect disabled pending Bootstrap-Vue-Next migration -->
                 <label
                   v-if="
                     field.multi_selectable && field.selectOptions && field.selectOptions.length > 0
                   "
-                  :for="'select_' + field.key"
-                  :aria-label="field.label"
+                  :for="'multiselect_' + field.key"
+                  :aria-label="'Filter by ' + field.label"
                 >
                   <BFormSelect
-                    :id="'select_' + field.key"
+                    :id="'multiselect_' + field.key"
                     v-model="filter[field.key].content"
                     :options="normalizeSelectOptions(field.selectOptions)"
                     size="sm"
@@ -353,6 +367,8 @@ export default {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Phenotype table' },
+    // Heading level for the TableShell title; standalone /Phenotypes passes 1 (default 2 when embedded).
+    headingLevel: { type: Number, default: 2 },
     sortInput: { type: String, default: 'entity_id' },
     filterInput: { type: String, default: 'all(modifier_phenotype_id,HP:0001249)' },
     fieldsInput: { type: String, default: null },
@@ -853,21 +869,21 @@ export default {
   background: transparent;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6c757d;
+  color: var(--neutral-700);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .logic-btn:first-child {
-  border-right: 1px solid #ced4da;
+  border-right: 1px solid var(--border-subtle);
 }
 
 .logic-btn:hover:not(.active) {
-  background: #e9ecef;
+  background: var(--neutral-200);
 }
 
 .logic-btn.active {
-  background: #0d6efd;
+  background: var(--medical-blue-700);
   color: #fff;
 }
 </style>

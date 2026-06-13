@@ -79,6 +79,12 @@
   <template v-else-if="!empty && frameless">
     <slot />
   </template>
+  <!--
+    Resolved card sizes to its CONTENT (no minHeight) so sparse sections (e.g. a
+    Phenotypes card with one term) don't become tall empty boxes. minHeight is
+    reserved only on the loading skeleton above; a small skeleton->content shift
+    is preferable to large uneven whitespace on detail pages.
+  -->
   <BCard
     v-else-if="!empty"
     data-testid="section-card-content"
@@ -118,8 +124,8 @@ withDefaults(
 .section-card-title {
   font-size: 0.875rem;
   line-height: 1.2;
-  font-weight: 600;
-  color: #4b5563;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--neutral-700, #4b5563);
   text-align: left;
   padding-left: 0.25rem;
 }

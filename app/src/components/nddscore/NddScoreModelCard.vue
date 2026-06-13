@@ -275,13 +275,16 @@ onMounted(async () => {
   padding: 0.55rem 0.65rem;
   border: 1px solid #e1e7ef;
   border-radius: var(--radius-md, 6px);
-  background: #f8fafc;
+  /* White background keeps --neutral-700 label text at ≥ 5.7:1 ✓ AA */
+  background: #fff;
 }
 
+/* Label text: --neutral-700 (#616161) on #fff ≈ 5.7:1 ✓ AA
+   (--neutral-600 #757575 is 4.54:1 on white but fails on tinted #f8fafc backgrounds) */
 .nddscore-model-card__metric-label,
 .nddscore-model-card__count-label,
 .nddscore-model-card__provenance dt {
-  color: var(--neutral-600, #757575);
+  color: var(--neutral-700, #616161);
   font-size: 0.75rem;
   font-weight: 700;
 }

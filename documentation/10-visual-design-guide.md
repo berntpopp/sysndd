@@ -216,6 +216,14 @@ Rules:
 - Avoid mixing several unrelated chip styles on one row.
 - Use icons only where they improve recognition. Icon-only controls need accessible labels/tooltips.
 
+Shared chip classes (added 2026-06): use the token-based, AA-verified classes in
+`app/src/assets/scss/partials/_chips.scss` — `.sysndd-chip` plus a tone modifier
+`--blue` / `--teal` / `--neutral` / `--success` / `--warning` / `--danger` / `--info`
+(add `--mono` for identifiers). Do **not** reintroduce per-component pastel chip
+palettes or Bootstrap blue (`#0d6efd`); those failed AA (e.g. `#0d6efd` on `#e7f1ff`
+≈ 3:1). The `--info` tone uses a darkened ink (`#01579b`) because `--status-info`
+on its tinted background fell just under 4.5:1.
+
 ### Forms
 
 Forms should be dense but not cryptic.
@@ -289,6 +297,29 @@ For every new or changed page:
 - `/ManageReReview`: reduce visible action count and continue guided batch-builder work.
 - `/AdminStatistics`: tighten mobile date/filter/chart controls.
 - `/ManageLLM`: flatten dashboard card nesting.
+
+## Public Surface A11y/Token Pass (2026-06)
+
+A full public-page design + accessibility pass landed in `feat/frontend-design-9of10`.
+Durable contracts to preserve:
+
+- **Shared shells use tokens.** `TableShell` and `AnalysisShell` are tokenized
+  (`--neutral-*`, `--border-subtle`, `--radius-lg`, `--shadow-sm`, brand
+  `--medical-blue-700` for active state). Do not reintroduce slate hardcodes
+  (`#0f172a`/`#172033`) or Bootstrap blue (`#0d6efd`) in these shells.
+- **Heading contract.** `TableShell` takes a `heading-level` prop (default **2** so
+  it is safe nested under `AnalysisShell`/`AuthenticatedPageShell`/detail-page
+  `<h1>`); standalone public table views (`/Entities`, `/Genes`, `/Phenotypes`,
+  `/Panels`) pass `:heading-level="1"`. Every public page must have exactly one
+  route-level `<h1>`. Do not use `<h_>` tags as pure layout wrappers (they caused
+  heading-order skips) and keep the `DisclaimerDialog` title/sections at `h2`/`h3`.
+- **Table semantics.** The in-table filter row and its `<td>` cells carry
+  `role="presentation"`; filter `<select>`/inputs carry `aria-label="Filter by …"`.
+  Keep these when adding new list tables (clears `td-has-header` / `select-name`).
+- **Chips & muted text.** Use the `.sysndd-chip--*` token classes (see Chips section)
+  and the AA-aligned `.text-muted` (now `--neutral-700`).
+- **Verify with Lighthouse a11y** on changed public pages — the bar is **a11y 100**
+  (only `/API` is exempt: its embedded third-party Swagger UI renders its own DOM).
 
 ## Verification Commands
 

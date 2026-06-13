@@ -2,8 +2,7 @@
   <div class="home-page">
     <section class="home-hero" aria-labelledby="home-title">
       <div class="home-hero__content">
-        <p class="home-hero__eyebrow">Expert curated neurodevelopmental disorder database</p>
-        <h1 id="home-title">SysNDD</h1>
+        <h1 id="home-title" class="home-hero__title">SysNDD</h1>
         <p class="home-hero__summary">
           Curated gene-disease relationships for clinical diagnostics, counseling, and research.
         </p>
@@ -22,9 +21,15 @@
           :last-update="last_update"
           :inheritance-overview-text="inheritance_overview_text"
           :inheritance-link="inheritance_link"
+          :loading="loadingStates.statistics"
+          :error="errors.statistics"
         />
 
-        <HomeNewsPanel :news="news" />
+        <HomeNewsPanel
+          :news="news"
+          :loading="loadingStates.news"
+          :error="errors.news"
+        />
       </div>
 
       <aside class="home-layout__secondary" aria-label="SysNDD concepts">
@@ -102,6 +107,10 @@ export default {
         statistics: false,
         news: false,
       },
+      errors: {
+        statistics: null,
+        news: null,
+      },
     };
   },
   computed: {
@@ -170,11 +179,13 @@ export default {
     // and then clears the loading flag when complete.
     async loadStatistics() {
       this.loadingStates.statistics = true;
+      this.errors.statistics = null;
       try {
         // use the functions from apiService asset to make calls to the API
         this.entity_statistics = await apiService.fetchStatistics('entity');
         this.gene_statistics = await apiService.fetchStatistics('gene');
       } catch (e) {
+        this.errors.statistics = 'Statistics could not be loaded. Please try again later.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingStates.statistics = false;
@@ -185,10 +196,12 @@ export default {
     // and then clears the loading flag when complete.
     async loadNews() {
       this.loadingStates.news = true;
+      this.errors.news = null;
       try {
         // use the functions from apiService asset to make calls to the API
         this.news = await apiService.fetchNews(5);
       } catch (e) {
+        this.errors.news = 'Recent entities could not be loaded. Please try again later.';
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingStates.news = false;
@@ -221,28 +234,19 @@ export default {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-.home-hero__eyebrow {
-  margin: 0 0 0.25rem;
-  color: #244b7a;
-  font-size: 0.75rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.home-hero h1 {
+.home-hero__title {
   margin: 0;
-  color: #172033;
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1.05;
+  color: var(--neutral-900, #172033);
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: 1.2;
 }
 
 .home-hero__summary {
   max-width: 44rem;
-  margin: 0.35rem 0 0;
-  color: #526070;
-  font-size: 0.975rem;
+  margin: 0.25rem 0 0;
+  color: var(--neutral-600, #526070);
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
@@ -295,12 +299,8 @@ export default {
     padding: 0.9rem 0.75rem;
   }
 
-  .home-hero h1 {
-    font-size: 1.65rem;
-  }
-
   .home-hero__summary {
-    font-size: 0.9rem;
+    font-size: 0.875rem;
   }
 }
 </style>

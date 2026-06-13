@@ -6,12 +6,13 @@
         <BCol col md="12">
           <TableShell
             :title="headerLabel"
+            :heading-level="headingLevel"
             :meta="'Entities: ' + totalRows"
             :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
             :loading="loading"
           >
             <template v-if="!loading" #actions>
-              <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+              <div v-if="showFilterControls" class="mb-1 text-end">
                 <TableDownloadLinkCopyButtons
                   :downloading="downloading"
                   :remove-filters-title="removeFiltersButtonTitle"
@@ -20,7 +21,7 @@
                   @copy-link="copyLinkToClipboard"
                   @remove-filters="removeFilters"
                 />
-              </h5>
+              </div>
             </template>
 
             <template v-if="!loading" #toolbar>
@@ -84,11 +85,12 @@
 
                 <!-- Custom filter fields slot -->
                 <template v-if="showFilterControls" #filter-controls>
-                  <td v-for="field in fields" :key="field.key">
+                  <td v-for="field in fields" :key="field.key" role="presentation">
                     <BFormInput
                       v-if="field.filterable"
                       v-model="filter[field.key].content"
                       :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                      :aria-label="'Filter by ' + field.label"
                       debounce="500"
                       type="search"
                       autocomplete="off"
@@ -96,24 +98,30 @@
                       @update:model-value="filtered()"
                     />
 
-                    <BFormSelect
+                    <label
                       v-if="
                         field.selectable && field.selectOptions && field.selectOptions.length > 0
                       "
-                      v-model="filter[field.key].content"
-                      :options="field.selectOptions"
-                      size="sm"
-                      @update:model-value="
-                        removeSearch();
-                        filtered();
-                      "
+                      :for="'select_' + field.key"
+                      :aria-label="'Filter by ' + field.label"
                     >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
+                      <BFormSelect
+                        :id="'select_' + field.key"
+                        v-model="filter[field.key].content"
+                        :options="field.selectOptions"
+                        size="sm"
+                        @update:model-value="
+                          removeSearch();
+                          filtered();
+                        "
+                      >
+                        <template #first>
+                          <BFormSelectOption :value="null">
+                            .. {{ truncate(field.label, 20) }} ..
+                          </BFormSelectOption>
+                        </template>
+                      </BFormSelect>
+                    </label>
                     <BSpinner
                       v-else-if="
                         field.selectable &&
@@ -124,26 +132,32 @@
                     />
 
                     <!-- Multi-select: temporarily use BFormSelect instead of treeselect for compatibility -->
-                    <BFormSelect
+                    <label
                       v-if="
                         field.multi_selectable &&
                         field.selectOptions &&
                         field.selectOptions.length > 0
                       "
-                      v-model="filter[field.key].content"
-                      :options="normalizeSelectOptions(field.selectOptions)"
-                      size="sm"
-                      @update:model-value="
-                        removeSearch();
-                        filtered();
-                      "
+                      :for="'multiselect_' + field.key"
+                      :aria-label="'Filter by ' + field.label"
                     >
-                      <template #first>
-                        <BFormSelectOption :value="null">
-                          .. {{ truncate(field.label, 20) }} ..
-                        </BFormSelectOption>
-                      </template>
-                    </BFormSelect>
+                      <BFormSelect
+                        :id="'multiselect_' + field.key"
+                        v-model="filter[field.key].content"
+                        :options="normalizeSelectOptions(field.selectOptions)"
+                        size="sm"
+                        @update:model-value="
+                          removeSearch();
+                          filtered();
+                        "
+                      >
+                        <template #first>
+                          <BFormSelectOption :value="null">
+                            .. {{ truncate(field.label, 20) }} ..
+                          </BFormSelectOption>
+                        </template>
+                      </BFormSelect>
+                    </label>
                     <BSpinner
                       v-else-if="
                         field.multi_selectable &&
@@ -323,6 +337,10 @@ export default {
         'entity_id,symbol,disease_ontology_name,hpo_mode_of_inheritance_term_name,category,ndd_phenotype_word,details',
     },
     disableUrlSync: { type: Boolean, default: false },
+    // Heading level for the TableShell title. Standalone page (/Entities) passes 1;
+    // embedded usages (e.g. the gene-detail "Associated" table) keep the default 2
+    // so the page keeps exactly one route-level <h1>.
+    headingLevel: { type: Number, default: 2 },
   },
   setup(props) {
     // Independent composables

@@ -11,12 +11,24 @@
         annotations. The graphical part allows you to explore the clusters by clicking on the nodes,
         and the table displays detailed information about the variables within each cluster.
       </BPopover>
-      <div class="btn-group btn-group-sm">
-        <BButton variant="outline-secondary" size="sm" title="Export as PNG" @click="exportPNG">
-          <i class="bi bi-image" />
+      <div class="btn-group btn-group-sm" role="group" aria-label="Export phenotype cluster network">
+        <BButton
+          variant="outline-secondary"
+          size="sm"
+          title="Export as PNG"
+          aria-label="Export network as PNG image"
+          @click="exportPNG"
+        >
+          <i class="bi bi-image" aria-hidden="true" />
         </BButton>
-        <BButton variant="outline-secondary" size="sm" title="Export as SVG" @click="exportSVG">
-          <i class="bi bi-filetype-svg" />
+        <BButton
+          variant="outline-secondary"
+          size="sm"
+          title="Export as SVG"
+          aria-label="Export network as SVG image"
+          @click="exportSVG"
+        >
+          <i class="bi bi-filetype-svg" aria-hidden="true" />
         </BButton>
       </div>
     </template>
@@ -32,14 +44,14 @@
           border-variant="light"
         >
           <template #header>
-            <h6 class="mb-0 font-weight-bold">
+            <p class="mb-0 fw-semibold" style="font-size: 0.875rem;">
               Selected cluster {{ selectedCluster.cluster }}
               with
-              <BBadge variant="primary">
+              <span class="sysndd-chip sysndd-chip--blue">
                 {{ selectedCluster.cluster_size }}
-              </BBadge>
+              </span>
               entities
-            </h6>
+            </p>
           </template>
 
           <div id="cluster_dataviz" class="svg-container">
@@ -113,8 +125,15 @@
             <div class="mb-0 font-weight-bold">
               <BRow>
                 <BCol sm="6" class="mb-1">
-                  <BInputGroup prepend="Table type" size="sm">
-                    <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
+                  <BInputGroup size="sm">
+                    <label for="phenotype-table-type-select" class="input-group-text">Table type</label>
+                    <BFormSelect
+                      id="phenotype-table-type-select"
+                      v-model="tableType"
+                      :options="tableOptions"
+                      size="sm"
+                      aria-label="Select table type"
+                    />
                   </BInputGroup>
                 </BCol>
 
@@ -131,11 +150,12 @@
                       size="sm"
                       variant="outline-secondary"
                       title="Download table data as Excel file"
+                      aria-label="Download table data as Excel file"
                       :disabled="loading || isExporting"
                       @click="downloadExcel"
                     >
-                      <i class="bi bi-table me-1" />
-                      <i v-if="!isExporting" class="bi bi-download" />
+                      <i class="bi bi-table me-1" aria-hidden="true" />
+                      <i v-if="!isExporting" class="bi bi-download" aria-hidden="true" />
                       <BSpinner v-else small />
                       .xlsx
                     </BButton>
@@ -162,11 +182,12 @@
               @update-sort="handleSortUpdate"
             >
               <template #filter-controls>
-                <td v-for="field in fields" :key="field.key">
+                <td v-for="field in fields" :key="field.key" role="presentation">
                   <BFormInput
                     v-if="field.key !== 'details'"
                     v-model="filter[field.key].content"
                     :placeholder="'Filter ' + field.label"
+                    :aria-label="'Filter by ' + field.label"
                     debounce="500"
                     @input="onFilterChange"
                   />
@@ -174,21 +195,21 @@
               </template>
 
               <template #cell-variable="{ row }">
-                <BBadge variant="primary">
+                <span class="sysndd-chip sysndd-chip--blue">
                   {{ row.variable }}
-                </BBadge>
+                </span>
               </template>
 
               <template #cell-p.value="{ row }">
-                <BBadge variant="info">
+                <span class="sysndd-chip sysndd-chip--info sysndd-chip--mono">
                   {{ row['p.value'] }}
-                </BBadge>
+                </span>
               </template>
 
               <template #cell-v.test="{ row }">
-                <BBadge variant="warning">
+                <span class="sysndd-chip sysndd-chip--warning sysndd-chip--mono">
                   {{ row['v.test'] }}
-                </BBadge>
+                </span>
               </template>
             </GenericTable>
 
@@ -608,20 +629,21 @@ export default {
 </script>
 
 <style scoped>
+/* Block-level container with reserved height prevents CLS when Cytoscape mounts */
 .svg-container {
-  display: inline-block;
+  display: block;
   position: relative;
   width: 100%;
-  max-width: 800px;
-  vertical-align: top;
   overflow: hidden;
+  /* Reserve space before graph mounts to prevent layout shift */
+  min-height: 380px;
 }
 
 .cytoscape-container {
   width: 100%;
   height: 380px;
   background: #fafafa;
-  border-radius: 4px;
+  border-radius: var(--radius-md, 6px);
 }
 
 .spinner {

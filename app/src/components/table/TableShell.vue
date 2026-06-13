@@ -3,7 +3,7 @@
     <header class="table-shell__header">
       <div class="table-shell__heading">
         <div class="table-shell__title-line">
-          <h2 class="table-shell__title">{{ title }}</h2>
+          <component :is="`h${headingLevel}`" class="table-shell__title">{{ title }}</component>
           <slot name="title-actions" />
           <span v-if="meta" class="table-shell__meta">{{ meta }}</span>
         </div>
@@ -30,21 +30,30 @@
 <script setup lang="ts">
 import TableLoadingState from './TableLoadingState.vue';
 
-defineProps<{
-  title: string;
-  description?: string;
-  meta?: string;
-  loading?: boolean;
-}>();
+withDefaults(
+  defineProps<{
+    title: string;
+    description?: string;
+    meta?: string;
+    loading?: boolean;
+    headingLevel?: 1 | 2 | 3;
+  }>(),
+  {
+    // Default to h2: most TableShell usages are nested under a page/shell that
+    // already owns the route <h1> (AnalysisShell, AuthenticatedPageShell, detail
+    // pages). Standalone public table VIEWS opt into h1 via :heading-level="1".
+    headingLevel: 2,
+  }
+);
 </script>
 
 <style scoped>
 .table-shell {
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.1);
-  border-radius: 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-shell__header {
@@ -68,9 +77,9 @@ defineProps<{
 
 .table-shell__title {
   margin: 0;
-  color: #0f172a;
-  font-size: 1rem;
-  font-weight: 700;
+  color: var(--neutral-900);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.35;
 }
 
@@ -79,19 +88,20 @@ defineProps<{
   align-items: center;
   min-height: 1.5rem;
   padding: 0.125rem 0.5rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 999px;
-  background: #f8fafc;
-  color: #475569;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--neutral-100);
+  /* --neutral-700 (5.74:1 on neutral-100) — neutral-600 fails AA on the tinted pill */
+  color: var(--neutral-700);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: 1.2;
   white-space: nowrap;
 }
 
 .table-shell__description {
   margin: 0.25rem 0 0;
-  color: #64748b;
+  color: var(--neutral-600);
   font-size: 0.875rem;
   line-height: 1.45;
 }
@@ -105,13 +115,13 @@ defineProps<{
 
 .table-shell__toolbar {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
-  background: #f8fafc;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--neutral-50);
 }
 
 .table-shell__body {
   padding: 1rem 1.25rem 1.25rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .table-shell__toolbar + .table-shell__body {

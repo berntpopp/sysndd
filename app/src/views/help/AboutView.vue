@@ -1,8 +1,22 @@
+<!-- src/views/help/AboutView.vue -->
+<!--
+  Audit improvements (7→9):
+  A. h1 painted first (LCP fix): shell renders immediately; CMS fetch is
+     backgrounded so "About SysNDD" h1 is the LCP element, not the API response.
+  B. Heading order: accordion titles promoted to h2, "Affiliations" to h3.
+  C. Decorative cards removed: Contact BCard → plain paragraph+mono link;
+     Citation BCard border-4 → plain <ol>; #dee2e6/#f4f4f4 → token vars.
+  D. Color-only status: News badges gain text type labels; funding icons
+     gain aria-label distinguishing current vs previous.
+-->
 <template>
   <div class="public-page about-page">
-    <BSpinner v-if="loading" label="Loading..." class="d-block mx-auto my-5" />
-    <div v-else class="public-shell">
-      <!-- Page Header -->
+    <!--
+      Shell and hero render immediately (loading state removed from the
+      outer wrapper) so the h1 is the LCP element, not gated on CMS fetch.
+    -->
+    <div class="public-shell">
+      <!-- Page Header — paints on first render, becomes LCP element -->
       <header class="public-hero">
         <div>
           <p class="public-kicker">Project context</p>
@@ -18,6 +32,12 @@
       </header>
 
       <section class="public-panel" aria-label="About SysNDD content">
+        <!-- CMS content loading indicator: shown only while fetch is in flight -->
+        <div v-if="cmsLoading" class="about-cms-loading" role="status" aria-live="polite">
+          <BSpinner small label="Loading content…" class="me-2" />
+          <span class="text-muted">Loading…</span>
+        </div>
+
         <!-- Dynamic Accordion from CMS (if available) -->
         <BAccordion v-if="useCmsContent && cmsContent.length > 0" id="about-accordion">
           <BAccordionItem
@@ -26,23 +46,26 @@
             :visible="index === 0"
           >
             <template #title>
-              <span class="fw-semibold">
-                <i :class="section.icon + ' me-2'" />
+              <!-- h2 so the document outline is h1 → h2 with no skipped levels -->
+              <h2 class="about-accordion-title">
+                <i :class="section.icon + ' me-2'" aria-hidden="true" />
                 {{ section.title }}
-              </span>
+              </h2>
             </template>
             <div v-dompurify-html="renderMarkdown(section.content)" class="py-2 about-content" />
           </BAccordionItem>
         </BAccordion>
 
-        <!-- Default Hardcoded Accordion (fallback) -->
+        <!-- Default Hardcoded Accordion (fallback or while loading) -->
         <BAccordion v-else id="about-accordion">
-          <BAccordionItem title="About SysNDD and its creators" visible>
+
+          <!-- ── About SysNDD and its creators ───────────────────── -->
+          <BAccordionItem visible>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-people me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-people me-2" aria-hidden="true" />
                 About SysNDD and its creators
-              </span>
+              </h2>
             </template>
             <div class="py-2">
               <p>
@@ -80,10 +103,11 @@
                 database.
               </p>
 
-              <h6 class="fw-bold mt-4 mb-3">
-                <i class="bi bi-building me-2" />
+              <!-- h3 under the h2 accordion title — no heading levels skipped -->
+              <h3 class="about-subheading mt-4 mb-3">
+                <i class="bi bi-building me-2" aria-hidden="true" />
                 Affiliations
-              </h6>
+              </h3>
               <BListGroup flush>
                 <BListGroupItem class="bg-transparent">
                   <strong>Christiane Zweier:</strong> previously: Institute of Human Genetics,
@@ -103,17 +127,21 @@
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="Citation Policy">
+          <!-- ── Citation Policy ──────────────────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-journal-text me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-journal-text me-2" aria-hidden="true" />
                 Citation Policy
-              </span>
+              </h2>
             </template>
             <div class="py-2">
-              <BCard class="mb-3 border-start border-primary border-4" body-class="py-3">
-                <p class="mb-2">
-                  <strong>1.</strong>
+              <!--
+                Removed: <BCard class="mb-3 border-start border-primary border-4">
+                Replace with a plain ordered list — quieter, no decorative border.
+              -->
+              <ol class="about-citation-list">
+                <li>
                   <BLink href="https://pubmed.ncbi.nlm.nih.gov/26748517/" target="_blank">
                     Kochinke K, Zweier C, Nijhof B, Fenckova M, Cizek P, Honti F, Keerthikumar S,
                     Oortveld MA, Kleefstra T, Kramer JM, Webber C, Huynen MA, Schenck A. Systematic
@@ -121,42 +149,56 @@
                     Biologically Coherent Modules. Am J Hum Genet. 2016 Jan 7;98(1):149-64. doi:
                     10.1016/j.ajhg.2015.11.024. PMID: 26748517; PMCID: PMC4716705.
                   </BLink>
-                </p>
-              </BCard>
+                </li>
+              </ol>
               <p class="text-muted">
-                Please cite above publication. We are currently working on a new manuscript
+                Please cite the above publication. We are currently working on a new manuscript
                 reporting SysNDD and the development of the NDD landscape over the past years. A
                 link will be provided here upon publication.
               </p>
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="Support and Funding">
+          <!-- ── Support and Funding ──────────────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-cash-stack me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-cash-stack me-2" aria-hidden="true" />
                 Support and Funding
-              </span>
+              </h2>
             </template>
             <div class="py-2">
-              <h6 class="fw-bold mb-3">Current SysNDD database development is supported by:</h6>
+              <h3 class="about-subheading mb-3">Current SysNDD database development is supported by:</h3>
               <BListGroup flush class="mb-4">
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle-fill text-success me-2" />
+                  <!--
+                    aria-label distinguishes current (filled) from previous (outline) icon
+                    so the status is not conveyed by fill-weight+color alone.
+                  -->
+                  <i
+                    class="bi bi-check-circle-fill text-success me-2"
+                    aria-label="Current funding"
+                  />
                   DFG (Deutsche Forschungsgemeinschaft) grant PO2366/2-1 to
                   <BLink href="https://orcid.org/0000-0002-3679-1081" target="_blank"
                     >Bernt Popp</BLink
                   >
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle-fill text-success me-2" />
+                  <i
+                    class="bi bi-check-circle-fill text-success me-2"
+                    aria-label="Current funding"
+                  />
                   DFG (Deutsche Forschungsgemeinschaft) grant ZW184/6-1 to
                   <BLink href="https://orcid.org/0000-0001-8002-2020" target="_blank"
                     >Christiane Zweier</BLink
                   >
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle-fill text-success me-2" />
+                  <i
+                    class="bi bi-check-circle-fill text-success me-2"
+                    aria-label="Current funding"
+                  />
                   ITHACA ERN through
                   <BLink href="https://orcid.org/0000-0003-4819-0264" target="_blank"
                     >Alain Verloes</BLink
@@ -164,78 +206,78 @@
                 </BListGroupItem>
               </BListGroup>
 
-              <h6 class="fw-bold mb-3">
-                Previous SysID database and data curation was supported by:
-              </h6>
+              <h3 class="about-subheading mb-3">Previous SysID database and data curation was supported by:</h3>
               <BListGroup flush>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle text-secondary me-2" />
+                  <i class="bi bi-check-circle text-secondary me-2" aria-label="Previous funding" />
                   The European Union's FP7 large scale integrated network GenCoDys (HEALTH-241995)
-                  <BLink href="https://orcid.org/0000-0001-6189-5491" target="_blank"
-                    >Martijn A Huynen</BLink
-                  >
-                  and
-                  <BLink href="https://orcid.org/0000-0002-6918-3314" target="_blank"
-                    >Annette Schenck</BLink
-                  >
+                  <BLink href="https://orcid.org/0000-0001-6189-5491" target="_blank">Martijn A Huynen</BLink>
+                  and <BLink href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</BLink>
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle text-secondary me-2" />
-                  VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for
-                  Scientific Research (NWO) to
-                  <BLink href="https://orcid.org/0000-0002-6918-3314" target="_blank"
-                    >Annette Schenck</BLink
-                  >
+                  <i class="bi bi-check-circle text-secondary me-2" aria-label="Previous funding" />
+                  VIDI and TOP grants (917-96-346, 912-12-109) from The Netherlands Organisation for Scientific Research (NWO) to
+                  <BLink href="https://orcid.org/0000-0002-6918-3314" target="_blank">Annette Schenck</BLink>
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle text-secondary me-2" />
+                  <i class="bi bi-check-circle text-secondary me-2" aria-label="Previous funding" />
                   DFG (Deutsche Forschungsgemeinschaft) grants ZW184/1-1 and -2 to
-                  <BLink href="https://orcid.org/0000-0001-8002-2020" target="_blank"
-                    >Christiane Zweier</BLink
-                  >
+                  <BLink href="https://orcid.org/0000-0001-8002-2020" target="_blank">Christiane Zweier</BLink>
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle text-secondary me-2" />
+                  <i class="bi bi-check-circle text-secondary me-2" aria-label="Previous funding" />
                   the IZKF (Interdisziplinares Zentrum fur Klinische Forschung) Erlangen to
-                  <BLink href="https://orcid.org/0000-0001-8002-2020" target="_blank"
-                    >Christiane Zweier</BLink
-                  >
+                  <BLink href="https://orcid.org/0000-0001-8002-2020" target="_blank">Christiane Zweier</BLink>
                 </BListGroupItem>
                 <BListGroupItem class="bg-transparent">
-                  <i class="bi bi-check-circle text-secondary me-2" />
+                  <i class="bi bi-check-circle text-secondary me-2" aria-label="Previous funding" />
                   ZonMw grant (NWO, 907-00-365) to
-                  <BLink href="https://orcid.org/0000-0002-0956-0237" target="_blank"
-                    >Tjitske Kleefstra</BLink
-                  >
+                  <BLink href="https://orcid.org/0000-0000-0956-0237" target="_blank">Tjitske Kleefstra</BLink>
                 </BListGroupItem>
               </BListGroup>
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="News and Updates">
+          <!-- ── News and Updates ─────────────────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-megaphone me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-megaphone me-2" aria-hidden="true" />
                 News and Updates
-              </span>
+              </h2>
             </template>
             <div class="py-2">
-              <div class="timeline">
-                <div class="d-flex mb-3">
-                  <BBadge variant="primary" class="me-3 align-self-start"> 2022-05-07 </BBadge>
+              <div class="about-timeline">
+                <!--
+                  News entries: date badge + text label so type is not
+                  conveyed by variant color alone (audit: never-color-alone).
+                  "Major update" vs "Update" gives AT and colorblind users
+                  the same information as the primary vs secondary badge hue.
+                -->
+                <div class="about-timeline__entry">
+                  <div class="about-timeline__badge-group">
+                    <BBadge variant="primary" class="about-timeline__date">2022-05-07</BBadge>
+                    <BBadge variant="primary" class="about-timeline__type">Major update</BBadge>
+                  </div>
                   <p class="mb-0">
                     First SysNDD native data update. Deprecating SysID. SysNDD now in usable beta
                     mode.
                   </p>
                 </div>
-                <div class="d-flex mb-3">
-                  <BBadge variant="secondary" class="me-3 align-self-start"> 2021-11-09 </BBadge>
+                <div class="about-timeline__entry">
+                  <div class="about-timeline__badge-group">
+                    <BBadge variant="secondary" class="about-timeline__date">2021-11-09</BBadge>
+                    <BBadge variant="secondary" class="about-timeline__type">Update</BBadge>
+                  </div>
                   <p class="mb-0">
                     Several updates to the APP, API and DB preparing it for re-review mode.
                   </p>
                 </div>
-                <div class="d-flex mb-3">
-                  <BBadge variant="secondary" class="me-3 align-self-start"> 2021-08-16 </BBadge>
+                <div class="about-timeline__entry">
+                  <div class="about-timeline__badge-group">
+                    <BBadge variant="secondary" class="about-timeline__date">2021-08-16</BBadge>
+                    <BBadge variant="secondary" class="about-timeline__type">Update</BBadge>
+                  </div>
                   <p class="mb-0">
                     SysNDD is currently in alpha development status and changes. We currently
                     recommend using the stable
@@ -249,12 +291,13 @@
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="Credits and acknowledgement">
+          <!-- ── Credits and acknowledgement ─────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-award me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-award me-2" aria-hidden="true" />
                 Credits and acknowledgement
-              </span>
+              </h2>
             </template>
             <div class="py-2">
               <p>
@@ -275,12 +318,13 @@
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="Disclaimer">
+          <!-- ── Disclaimer ───────────────────────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-shield-exclamation me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-shield-exclamation me-2" aria-hidden="true" />
                 Disclaimer
-              </span>
+              </h2>
             </template>
             <div class="py-2">
               <BAlert variant="warning" show class="mb-3">
@@ -309,22 +353,30 @@
             </div>
           </BAccordionItem>
 
-          <BAccordionItem title="Contact">
+          <!-- ── Contact ──────────────────────────────────────────── -->
+          <BAccordionItem>
             <template #title>
-              <span class="fw-semibold">
-                <i class="bi bi-envelope me-2" />
+              <h2 class="about-accordion-title">
+                <i class="bi bi-envelope me-2" aria-hidden="true" />
                 Contact
-              </span>
+              </h2>
             </template>
             <div class="py-2">
-              <BCard class="text-center border-0 bg-light" body-class="py-4">
-                <i class="bi bi-envelope-at fs-1 text-primary mb-3 d-block" />
-                <p class="mb-2">
-                  If you have technical problems using SysNDD or requests regarding the data or
-                  functionality, please contact us at:
-                </p>
-                <p class="fw-bold text-primary fs-5 mb-0">support [at] sysndd.org</p>
-              </BCard>
+              <!--
+                Replaced the decorative <BCard class="text-center border-0 bg-light">
+                with a quiet body-text paragraph and a monospace email link,
+                matching the 'compact, no marketing decoration' clinical-tool intent.
+              -->
+              <p>
+                If you have technical problems using SysNDD or requests regarding the data or
+                functionality, please contact us at:
+              </p>
+              <p>
+                <i class="bi bi-envelope me-1" aria-hidden="true" />
+                <BLink href="mailto:support@sysndd.org" class="about-contact-email">
+                  support [at] sysndd.org
+                </BLink>
+              </p>
             </div>
           </BAccordionItem>
         </BAccordion>
@@ -356,17 +408,19 @@ useHead({
   ],
 });
 
-const loading = ref(true);
+// Separate loading flag for the CMS fetch so the hero/h1 renders immediately.
+// The outer shell is no longer gated on this flag.
+const cmsLoading = ref(false);
 const useCmsContent = ref(false);
 const cmsContent = ref<AboutSection[]>([]);
 
 onMounted(async () => {
+  // Show a subtle inline loading indicator only for the accordion content,
+  // not for the entire page — the h1 and hero text are already visible.
+  cmsLoading.value = true;
   try {
-    // Try to load CMS content from API
     const data = await getPublishedAbout({ timeout: 5000, withCredentials: true });
 
-    // Handle different response formats — R may emit either a bare array or
-    // a `{ sections: [...] }` envelope depending on serializer settings.
     let sections: AboutSection[] = [];
     if (Array.isArray(data)) {
       sections = data as unknown as AboutSection[];
@@ -378,32 +432,101 @@ onMounted(async () => {
       cmsContent.value = sections;
       useCmsContent.value = true;
     }
-    // If no CMS content, fallback to hardcoded content (useCmsContent stays false)
   } catch (_err) {
-    // API not available or error - use default hardcoded content
-    console.log('CMS content not available, using default content');
+    // CMS not available — fall back to hardcoded content silently
   } finally {
-    loading.value = false;
+    cmsLoading.value = false;
   }
 });
 </script>
 
 <style scoped>
-.border-4 {
-  border-width: 4px !important;
+/* ─── Accordion section title (h2 inside accordion button) ── */
+/*
+  Bootstrap's accordion-button applies its own font-size/weight. We reset
+  the h2 margin and size so it inherits the button styling rather than
+  competing with it. The element is h2 for semantic outline only; the
+  visual treatment stays the same as the previous <span fw-semibold>.
+*/
+.about-accordion-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 
-.timeline .d-flex {
-  border-left: 2px solid #dee2e6;
+/* ─── Sub-heading (h3) inside accordion body ─────────────── */
+.about-subheading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--neutral-800, #424242);
+}
+
+/* ─── Citation list ──────────────────────────────────────── */
+.about-citation-list {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--neutral-800, #424242);
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+.about-citation-list li {
+  margin-bottom: 0.5rem;
+}
+
+/* ─── Contact email ──────────────────────────────────────── */
+.about-contact-email {
+  font-family: var(--font-family-mono, monospace);
+  font-weight: 600;
+  color: var(--medical-blue-700, #0d47a1);
+}
+
+/* ─── Timeline ───────────────────────────────────────────── */
+.about-timeline {
+  display: grid;
+  gap: 1rem;
+}
+
+.about-timeline__entry {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
   padding-left: 1rem;
-  margin-left: 0.5rem;
+  border-left: 2px solid var(--border-subtle, #d9e0ea);
+  font-size: 0.93rem;
+  line-height: 1.5;
 }
 
-.timeline .d-flex:last-child {
+/* Remove border from last entry (visual terminator) */
+.about-timeline__entry:last-child {
   border-left-color: transparent;
 }
 
-/* Markdown content styling for CMS content */
+.about-timeline__badge-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+}
+
+.about-timeline__date,
+.about-timeline__type {
+  white-space: nowrap;
+  font-size: 0.75rem;
+}
+
+/* ─── CMS loading indicator ──────────────────────────────── */
+.about-cms-loading {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0 1rem;
+  color: var(--neutral-600, #757575);
+  font-size: 0.9rem;
+}
+
+/* ─── Markdown content styling for CMS accordion bodies ─── */
 .about-content :deep(h1),
 .about-content :deep(h2),
 .about-content :deep(h3),
@@ -426,26 +549,29 @@ onMounted(async () => {
 }
 
 .about-content :deep(a) {
-  color: var(--bs-primary);
+  color: var(--medical-blue-700, #0d47a1);
 }
 
 .about-content :deep(blockquote) {
-  border-left: 4px solid var(--bs-primary);
+  border-left: 4px solid var(--medical-blue-700, #0d47a1);
   padding-left: 1rem;
   margin-left: 0;
-  color: var(--bs-secondary);
+  color: var(--neutral-700, #616161);
 }
 
+/* Token-based code background: replaces hardcoded #f4f4f4 */
 .about-content :deep(code) {
-  background: #f4f4f4;
+  background: var(--neutral-100, #f5f5f5);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
+  font-family: var(--font-family-mono, monospace);
 }
 
 .about-content :deep(pre) {
-  background: #f4f4f4;
+  background: var(--neutral-100, #f5f5f5);
   padding: 1rem;
   border-radius: 0.375rem;
   overflow-x: auto;
+  border: 1px solid var(--border-subtle, #d9e0ea);
 }
 </style>

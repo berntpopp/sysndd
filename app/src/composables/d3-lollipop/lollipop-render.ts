@@ -104,7 +104,9 @@ export function renderDomains(
           .attr('ry', 3)
           .attr('cursor', 'pointer')
           .style('pointer-events', 'all')
-          .attr('aria-label', (d) => `${d.type}: ${d.description} (${d.begin}-${d.end})`);
+          // Decorative: the SVG has role="img" with aria-labelledby (title+desc);
+          // aria-label on child elements is prohibited inside role="img". Hide from AT.
+          .attr('aria-hidden', 'true');
 
         // Add event handlers for domain tooltips
         rects
@@ -212,7 +214,8 @@ export function renderVariants(
             .attr('opacity', dynamicOpacity)
             .attr('cursor', 'pointer')
             .style('pointer-events', 'all')
-            .attr('aria-label', (d) => `Position ${d.proteinPosition}: ${d.count} variants`);
+            // Decorative inside role="img" SVG — aria-label is prohibited on child elements.
+            .attr('aria-hidden', 'true');
 
           // Event handlers for aggregated markers
           markers
@@ -324,11 +327,9 @@ export function renderVariants(
             .attr('opacity', dynamicOpacity)
             .attr('cursor', 'pointer')
             .style('pointer-events', 'all')
-            .attr(
-              'aria-label',
-              (d) =>
-                `${d.proteinHGVS}: ${d.classification}${d.isSpliceVariant ? ' (splice variant)' : ''}`
-            );
+            // Decorative inside role="img" SVG — aria-label is prohibited on child elements.
+            // Hover/click tooltips surface per-variant detail for pointer users.
+            .attr('aria-hidden', 'true');
 
           // Event handlers
           markers

@@ -2,6 +2,7 @@
   <div class="container-fluid">
     <!-- Load Genes table component element -->
     <TablesGenes
+      :heading-level="1"
       :sort-input="sort"
       :filter-input="filter"
       :fields-input="fields"

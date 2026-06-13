@@ -1,9 +1,7 @@
 <template>
   <AnalysisShell
     title="Phenotype & functional clusters correlation"
-    subtitle="Compare phenotype-based clusters with functional gene clusters in a heatmap view."
-    nav-label="Phenotype correlation views"
-    :tabs="tabs"
+    subtitle="Heatmap of the correlation between phenotype-based clusters and functional gene clusters."
   >
     <AnalysesPhenotypeFunctionalCorrelation />
   </AnalysisShell>
@@ -35,16 +33,9 @@ export default {
       ],
     });
 
-    // Cross-link back to the related phenotype correlation views so users who
-    // land on the correlation matrix can discover (and return to) the wider
-    // phenotype-correlation analysis section. The self-link highlights via
-    // AnalysisShell's `exact-active-class`.
-    const tabs = [
-      { label: 'Phenotype correlogram', to: { name: 'PhenotypeCorrelations' } },
-      { label: 'Correlation matrix', to: { name: 'PhenotypeFunctionalCorrelation' } },
-    ];
-
-    return { makeToast, tabs };
+    // Standalone analysis (functional vs phenotype clusters); no cross-link tabs —
+    // it is its own Analyses menu entry, so tab navigation here was misleading.
+    return { makeToast };
   },
   data() {
     return {

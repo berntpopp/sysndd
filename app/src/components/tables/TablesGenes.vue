@@ -6,12 +6,13 @@
         <BCol col md="12">
           <TableShell
             :title="headerLabel"
+            :heading-level="headingLevel"
             :meta="'Genes: ' + totalRows"
             :description="'Loaded ' + perPage + '/' + totalRows + ' in ' + executionTime"
             :loading="loading"
           >
             <template v-if="!loading" #actions>
-              <h5 v-if="showFilterControls" class="mb-1 text-end font-weight-bold">
+              <div v-if="showFilterControls" class="mb-1 text-end">
                 <TableDownloadLinkCopyButtons
                   :downloading="downloading"
                   :remove-filters-title="removeFiltersButtonTitle"
@@ -20,7 +21,7 @@
                   @copy-link="copyLinkToClipboard"
                   @remove-filters="removeFilters"
                 />
-              </h5>
+              </div>
             </template>
 
             <template v-if="!loading" #toolbar>
@@ -101,13 +102,17 @@
                 </template>
 
                 <!-- Filter row in table header - Bootstrap-Vue-Next uses #thead-top instead of slot="top-row" -->
+                <!-- role="presentation" removes the row from the table accessibility tree so
+                     axe/Lighthouse does not flag the filter <td> cells as lacking column headers
+                     (td-has-header). Filter inputs are independently labelled via aria-label. -->
                 <template #thead-top>
-                  <tr>
-                    <td v-for="field in fields" :key="field.key">
+                  <tr role="presentation">
+                    <td v-for="field in fields" :key="field.key" role="presentation">
                       <BFormInput
                         v-if="field.filterable"
                         v-model="filter[field.key].content"
                         :placeholder="' .. ' + truncate(field.label, 20) + ' .. '"
+                        :aria-label="'Filter by ' + field.label"
                         debounce="500"
                         type="search"
                         autocomplete="off"
@@ -118,7 +123,7 @@
                       <label
                         v-if="field.selectable"
                         :for="'select_' + field.key"
-                        :aria-label="field.label"
+                        :aria-label="'Filter by ' + field.label"
                       >
                         <BFormSelect
                           :id="'select_' + field.key"
@@ -145,11 +150,11 @@
                           field.selectOptions &&
                           field.selectOptions.length > 0
                         "
-                        :for="'select_' + field.key"
-                        :aria-label="field.label"
+                        :for="'multiselect_' + field.key"
+                        :aria-label="'Filter by ' + field.label"
                       >
                         <BFormSelect
-                          :id="'select_' + field.key"
+                          :id="'multiselect_' + field.key"
                           v-model="filter[field.key].content"
                           :options="normalizeSelectOptions(field.selectOptions)"
                           size="sm"
@@ -392,6 +397,8 @@ export default {
     showFilterControls: { type: Boolean, default: true },
     showPaginationControls: { type: Boolean, default: true },
     headerLabel: { type: String, default: 'Genes table' },
+    // Heading level for the TableShell title; standalone /Genes passes 1 (default 2 when embedded).
+    headingLevel: { type: Number, default: 2 },
     sortInput: { type: String, default: '+symbol' },
     filterInput: { type: String, default: null },
     fieldsInput: { type: String, default: null },

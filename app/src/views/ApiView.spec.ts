@@ -17,6 +17,13 @@ vi.mock('swagger-ui-dist/swagger-ui-es-bundle.js', () => ({
   default: swaggerUiBundleMock,
 }));
 
+// `@unhead/vue`'s `useHead()` requires a `createHead()` plugin registered on the
+// app. ApiView now sets a route-level title/description via useHead; replace it
+// with a no-op so the standalone mount in this spec doesn't throw.
+vi.mock('@unhead/vue', () => ({
+  useHead: vi.fn(),
+}));
+
 describe('ApiView', () => {
   beforeEach(() => {
     swaggerUiBundleMock.mockClear();

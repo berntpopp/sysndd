@@ -123,16 +123,31 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
   d3.select(ctx.container.value).select('svg').remove();
   d3.select(ctx.container.value).select('.gene-tooltip').remove();
 
-  // Create responsive SVG with viewBox
+  // Create responsive SVG with viewBox.
+  // role="img" + aria-labelledby (title + desc) is the correct accessible pattern
+  // for a decorative/informational SVG chart. aria-label on role="group" is a
+  // prohibited naming attribute and triggers Lighthouse aria-prohibited-attr.
   ctx.svg = d3
     .select(ctx.container.value)
     .append('svg')
     .attr('viewBox', `0 0 ${width} ${height}`)
     .attr('preserveAspectRatio', 'xMinYMin meet')
-    .attr('role', 'group')
-    .attr('aria-label', `Gene structure diagram for ${geneSymbol}`)
+    .attr('role', 'img')
+    .attr('aria-labelledby', 'gene-structure-title gene-structure-desc')
     .style('width', '100%')
     .style('height', 'auto');
+
+  // Embedded accessible title and description (consumed by aria-labelledby above).
+  ctx.svg
+    .append('title')
+    .attr('id', 'gene-structure-title')
+    .text(`Gene structure diagram for ${geneSymbol}`);
+  ctx.svg
+    .append('desc')
+    .attr('id', 'gene-structure-desc')
+    .text(
+      'Interactive visualization showing exon/intron structure and clinical variants along the genomic sequence.'
+    );
 
   // Click on SVG background to dismiss locked tooltip
   ctx.svg.on('click', (event: MouseEvent) => {
@@ -315,9 +330,10 @@ export function renderGeneStructure(ctx: GeneStructureContext, render: () => voi
           variantGroup
             .append('circle')
             .attr('class', 'variant-marker')
-            .attr('role', 'button')
-            .attr('tabindex', '0')
-            .attr('aria-label', getVariantMarkerLabel(variant))
+            // Decorative inside role="img" SVG — aria naming and role="button" are
+            // prohibited on SVG child elements of role="img". Mark hidden from AT;
+            // the SVG title/desc carry the accessible figure description.
+            .attr('aria-hidden', 'true')
             .attr('cx', x)
             .attr('cy', markerY)
             .attr('r', MARKER_RADIUS)

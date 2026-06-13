@@ -86,67 +86,68 @@
           </div>
           <!-- No placeholder when summary doesn't exist -->
 
-          <BCard
-            header-tag="header"
-            class="text-start"
-            body-class="p-0"
-            header-class="p-1"
-            border-variant="light"
-          >
-            <!-- TABLE HEADER (Table type, Search input, etc.) -->
-            <template #header>
-              <div class="mb-0 font-weight-bold">
-                <BRow>
-                  <BCol sm="4" class="mb-1">
-                    <!-- Table type selector (term_enrichment vs. identifiers) -->
-                    <BInputGroup prepend="Table type" size="sm" class="cluster-table-type-control">
-                      <BFormSelect v-model="tableType" :options="tableOptions" size="sm" />
-                    </BInputGroup>
-                  </BCol>
+          <!-- Table panel: flat container replaces inner BCard to reduce card-in-card nesting -->
+          <div class="cluster-table-panel">
+            <!-- TABLE TOOLBAR (Table type, Cluster indicator, Search, Export) -->
+            <div class="cluster-table-panel__toolbar">
+              <BRow class="g-1 align-items-center">
+                <BCol sm="4" class="mb-1">
+                  <!-- Table type selector (term_enrichment vs. identifiers) -->
+                  <BInputGroup size="sm" class="cluster-table-type-control">
+                    <label for="cluster-table-type-select" class="input-group-text">Table type</label>
+                    <BFormSelect
+                      id="cluster-table-type-select"
+                      v-model="tableType"
+                      :options="tableOptions"
+                      size="sm"
+                      aria-label="Select table type"
+                    />
+                  </BInputGroup>
+                </BCol>
 
-                  <BCol sm="4" class="mb-1 text-center">
-                    <!-- Cluster indicator showing which data is displayed -->
-                    <BBadge
-                      v-b-tooltip.hover
-                      :variant="showAllClustersInTable ? 'secondary' : 'primary'"
-                      class="py-1 px-2"
-                      title="Select clusters in the network to filter table data"
+                <BCol sm="4" class="mb-1 text-center">
+                  <!-- Cluster indicator showing which data is displayed -->
+                  <span
+                    v-b-tooltip.hover
+                    class="sysndd-chip"
+                    :class="showAllClustersInTable ? 'sysndd-chip--neutral' : 'sysndd-chip--blue'"
+                    title="Select clusters in the network to filter table data"
+                  >
+                    <i class="bi bi-diagram-3 me-1" aria-hidden="true" />
+                    {{ clusterDisplayLabel }}
+                  </span>
+                </BCol>
+
+                <BCol sm="4" class="mb-1 text-end">
+                  <div class="d-flex align-items-center justify-content-end gap-2">
+                    <!-- Gene search synced with network (uses same geneSearchPattern) -->
+                    <TermSearch
+                      v-model="geneSearchPattern"
+                      :match-count="tableType === 'identifiers' ? searchMatchCount : null"
+                      :suggestions="allGeneSymbols"
+                      placeholder="Search genes..."
+                    />
+                    <!-- Excel download button -->
+                    <BButton
+                      v-b-tooltip.hover.bottom
+                      size="sm"
+                      variant="outline-secondary"
+                      title="Download table data as Excel file"
+                      aria-label="Download table data as Excel file (.xlsx)"
+                      :disabled="loading || isExporting"
+                      @click="downloadExcel"
                     >
-                      <i class="bi bi-diagram-3 me-1" />
-                      {{ clusterDisplayLabel }}
-                    </BBadge>
-                  </BCol>
+                      <i class="bi bi-table me-1" aria-hidden="true" />
+                      <i v-if="!isExporting" class="bi bi-download" aria-hidden="true" />
+                      <BSpinner v-else small />
+                      .xlsx
+                    </BButton>
+                  </div>
+                </BCol>
+              </BRow>
+            </div>
 
-                  <BCol sm="4" class="mb-1 text-end">
-                    <div class="d-flex align-items-center justify-content-end gap-2">
-                      <!-- Gene search synced with network (uses same geneSearchPattern) -->
-                      <TermSearch
-                        v-model="geneSearchPattern"
-                        :match-count="tableType === 'identifiers' ? searchMatchCount : null"
-                        :suggestions="allGeneSymbols"
-                        placeholder="Search genes..."
-                      />
-                      <!-- Excel download button -->
-                      <BButton
-                        v-b-tooltip.hover.bottom
-                        size="sm"
-                        variant="outline-secondary"
-                        title="Download table data as Excel file"
-                        :disabled="loading || isExporting"
-                        @click="downloadExcel"
-                      >
-                        <i class="bi bi-table me-1" />
-                        <i v-if="!isExporting" class="bi bi-download" />
-                        <BSpinner v-else small />
-                        .xlsx
-                      </BButton>
-                    </div>
-                  </BCol>
-                </BRow>
-              </div>
-            </template>
-
-            <BCardText class="text-start" :aria-busy="loading ? 'true' : 'false'">
+            <div class="text-start" :aria-busy="loading ? 'true' : 'false'">
               <TableLoadingState
                 v-if="loading"
                 class="cluster-table-loading"
@@ -163,14 +164,15 @@
                 :sort-desc="sortDesc"
                 @update-sort="handleSortUpdate"
               >
-                <!-- Optional column-level filters -->
+                <!-- Optional column-level filters — role="presentation" prevents td-has-header violation -->
                 <template #filter-controls>
-                  <td v-for="field in fieldsComputed" :key="field.key">
+                  <td v-for="field in fieldsComputed" :key="field.key" role="presentation">
                     <!-- Cluster number: keep text filter -->
                     <BFormInput
                       v-if="field.key === 'cluster_num'"
                       v-model="filter[field.key].content"
                       :placeholder="'Filter ' + field.label"
+                      :aria-label="'Filter by ' + field.label"
                       debounce="500"
                       @input="onFilterChange"
                     />
@@ -181,6 +183,7 @@
                       v-model="categoryFilter"
                       :options="categoryOptions"
                       placeholder="All categories"
+                      aria-label="Filter by category"
                       @update:model-value="onFilterChange"
                     />
 
@@ -188,6 +191,7 @@
                     <ScoreSlider
                       v-else-if="field.key === 'fdr'"
                       v-model="fdrThreshold"
+                      aria-label="Filter by FDR threshold"
                       @update:model-value="onFilterChange"
                     />
 
@@ -196,6 +200,7 @@
                       v-else-if="field.key !== 'details' && field.key !== 'number_of_genes'"
                       v-model="filter[field.key].content"
                       :placeholder="'Filter ' + field.label"
+                      :aria-label="'Filter by ' + field.label"
                       debounce="500"
                       @input="onFilterChange"
                     />
@@ -213,32 +218,28 @@
                   </span>
                 </template>
 
-                <!-- category cell -->
+                <!-- category cell: quiet chip tokens instead of heavy dark border -->
                 <template #cell-category="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
                   <div v-if="tableType === 'term_enrichment'">
-                    <BBadge
+                    <span
                       v-b-tooltip.hover.rightbottom
-                      variant="light"
-                      :style="
-                        'border-color: ' +
-                        (clusterCategoryStyle[row.category] || clusterCategoryStyle.default) +
-                        '; border-width: medium;'
-                      "
+                      class="sysndd-chip"
+                      :class="getCategoryChipClass(row.category)"
                       :title="row.category"
                     >
                       {{ findCategoryText(row.category) }}
-                    </BBadge>
+                    </span>
                   </div>
                 </template>
 
                 <template #cell-number_of_genes="{ row }">
-                  <BBadge variant="info">
+                  <span class="sysndd-chip sysndd-chip--info">
                     {{ row['number_of_genes'] }}
-                  </BBadge>
+                  </span>
                 </template>
 
-                <!-- fdr cell -->
+                <!-- fdr cell: scientific notation so tiny values don't render as '0' -->
                 <template #cell-fdr="{ row }">
                   <!-- Render only if tableType === 'term_enrichment' -->
                   <div
@@ -247,9 +248,9 @@
                     class="overflow-hidden text-truncate"
                     :title="row.fdr != null ? Number(row.fdr).toFixed(10) : ''"
                   >
-                    <BBadge variant="warning">
-                      {{ row.fdr }}
-                    </BBadge>
+                    <span class="sysndd-chip sysndd-chip--warning sysndd-chip--mono">
+                      {{ formatFdr(row.fdr) }}
+                    </span>
                   </div>
                 </template>
 
@@ -263,8 +264,9 @@
                       :href="findCategoryLink(row.category, row.term)"
                       target="_blank"
                       title="Open in external database"
+                      :aria-label="'Open ' + (row.description || row.term) + ' in external database'"
                     >
-                      <i class="bi bi-box-arrow-up-right" />
+                      <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
                     </BButton>
                     <span
                       v-b-tooltip.hover.top
@@ -287,14 +289,13 @@
                     @mouseleave="handleTableRowHover(null)"
                   >
                     <BLink :to="'/Genes/' + row.hgnc_id">
-                      <BBadge
+                      <span
                         v-b-tooltip.hover.leftbottom
-                        pill
-                        variant="success"
+                        class="sysndd-chip sysndd-chip--success sysndd-chip--mono"
                         :title="row.hgnc_id"
                       >
                         {{ row.symbol }}
-                      </BBadge>
+                      </span>
                     </BLink>
                   </div>
                 </template>
@@ -314,8 +315,9 @@
                       :href="'https://string-db.org/network/' + row.STRING_id"
                       target="_blank"
                       :title="'View ' + row.STRING_id + ' in STRING database'"
+                      :aria-label="'View ' + row.STRING_id + ' in STRING database'"
                     >
-                      <i class="bi bi-box-arrow-up-right" />
+                      <i class="bi bi-box-arrow-up-right" aria-hidden="true" />
                       {{ row.STRING_id }}
                     </BButton>
                   </div>
@@ -334,8 +336,8 @@
                   />
                 </BCol>
               </BRow>
-            </BCardText>
-          </BCard>
+            </div>
+          </div>
         </div>
       </Pane>
     </Splitpanes>
@@ -671,6 +673,35 @@ export default {
      */
     findCategoryLink(categoryVal, termVal) {
       return findCategoryLinkHelper(this.valueCategories, categoryVal, termVal);
+    },
+
+    /**
+     * Map category value to a sysndd-chip modifier class.
+     * Uses quiet token chips instead of heavy dark-bordered BBadge.
+     */
+    getCategoryChipClass(category) {
+      const map = {
+        GO: 'sysndd-chip--teal',
+        KEGG: 'sysndd-chip--blue',
+        MONDO: 'sysndd-chip--info',
+        HPO: 'sysndd-chip--success',
+      };
+      return map[category] || 'sysndd-chip--neutral';
+    },
+
+    /**
+     * Format FDR value as scientific notation so tiny values (e.g. 1e-15)
+     * render meaningfully instead of as "0".
+     */
+    formatFdr(fdr) {
+      if (fdr == null) return '—';
+      const n = Number(fdr);
+      if (Number.isNaN(n)) return String(fdr);
+      if (n === 0) return '0';
+      if (n < 0.001 || n >= 1000) {
+        return n.toExponential(2);
+      }
+      return n.toPrecision(3);
     },
 
     /**
@@ -1067,10 +1098,10 @@ mark {
   gap: 0.75rem;
   margin-bottom: 0.75rem;
   padding: 0.625rem 0.75rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: #f8fbff;
-  color: #495057;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
+  background: var(--medical-blue-50, #e3f2fd);
+  color: var(--neutral-900, #212121);
   font-size: 0.875rem;
 }
 
@@ -1082,11 +1113,28 @@ mark {
 }
 
 .cluster-summary-cue__text .bi {
-  color: #0d47a1;
+  color: var(--medical-blue-700, #0d47a1);
+}
+
+/* Flat table panel replaces inner BCard to reduce nesting depth */
+.cluster-table-panel {
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
+  background: #fff;
+  overflow: hidden;
+}
+
+.cluster-table-panel__toolbar {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  background: #fafbfc;
 }
 
 .cluster-summary-cue__action {
   flex: 0 0 auto;
+  /* Ensure the outline button text clears AA on the cue background. */
+  color: var(--medical-blue-700, #0d47a1);
+  border-color: var(--medical-blue-700, #0d47a1);
 }
 
 :deep(.cluster-table-type-control .form-select) {
@@ -1107,16 +1155,16 @@ mark {
 /* Override splitpanes default theme for better visibility */
 /* Use :deep() for Vue 3 scoped styles to affect child components */
 :deep(.splitpanes.default-theme .splitpanes__splitter) {
-  background-color: #dee2e6;
+  background-color: var(--border-subtle, #e2e8f0);
   min-width: 8px;
-  border-left: 1px solid #adb5bd;
-  border-right: 1px solid #adb5bd;
+  border-left: 1px solid var(--neutral-300, #e0e0e0);
+  border-right: 1px solid var(--neutral-300, #e0e0e0);
   cursor: col-resize;
   position: relative;
 }
 
 :deep(.splitpanes.default-theme .splitpanes__splitter:hover) {
-  background-color: #adb5bd;
+  background-color: var(--neutral-300, #e0e0e0);
 }
 
 :deep(.splitpanes.default-theme .splitpanes__splitter::before) {
@@ -1126,7 +1174,7 @@ mark {
   top: 50%;
   transform: translate(-50%, -50%);
   font-size: 16px;
-  color: #6c757d;
+  color: var(--neutral-600, #757575);
   font-weight: bold;
 }
 

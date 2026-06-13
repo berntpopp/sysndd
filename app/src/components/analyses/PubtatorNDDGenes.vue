@@ -147,7 +147,7 @@
 
         <!-- Per-column filters row -->
         <template #top-row>
-          <td v-for="field in fields" :key="field.key">
+          <td v-for="field in fields" :key="field.key" role="presentation">
             <BFormInput
               v-if="field.filterable"
               :model-value="getFilterContent(field.key)"

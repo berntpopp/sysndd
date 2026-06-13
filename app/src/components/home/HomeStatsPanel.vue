@@ -5,10 +5,21 @@
         <h2 id="home-stats-title" class="home-panel__title">Database statistics</h2>
         <p class="home-panel__description">Current curated entity and gene coverage.</p>
       </div>
-      <span class="home-panel__meta">Updated {{ lastUpdate }}</span>
+      <span v-if="!loading && !error" class="home-panel__meta">Updated {{ lastUpdate }}</span>
     </header>
 
-    <div class="home-stats-grid">
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="home-stats-loading" aria-busy="true" aria-label="Loading statistics">
+      <TableLoadingState :rows="4" label="Loading database statistics" />
+    </div>
+
+    <!-- Inline error state -->
+    <div v-else-if="error" class="home-panel-state home-panel-state--error" role="alert">
+      <i class="bi bi-exclamation-circle home-panel-state__icon" aria-hidden="true" />
+      <span>{{ error }}</span>
+    </div>
+
+    <div v-else class="home-stats-grid">
       <div class="home-stats-block">
         <div class="home-stats-block__header">
           <h3>Entities</h3>
@@ -147,6 +158,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import CategoryIcon from '@/components/ui/CategoryIcon.vue';
+import TableLoadingState from '@/components/table/TableLoadingState.vue';
 
 interface StatDetail {
   category: string;
@@ -171,6 +183,8 @@ const props = defineProps<{
   lastUpdate: string;
   inheritanceOverviewText: Record<string, string>;
   inheritanceLink: Record<string, string[]>;
+  loading?: boolean;
+  error?: string | null;
 }>();
 
 const expanded = ref<Record<string, boolean>>({});
@@ -362,8 +376,35 @@ function entityDetailLink(detail: StatDetail) {
 
 .home-detail-chip:focus-visible {
   box-shadow:
-    0 0 0 0.16rem rgba(13, 110, 253, 0.22),
+    0 0 0 0.16rem rgba(0, 121, 107, 0.25),
     0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
+}
+
+/* Loading / error / empty panel states */
+.home-stats-loading {
+  padding: 1rem;
+}
+
+.home-panel-state {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 1rem;
+  color: var(--neutral-700, #616161);
+  font-size: 0.875rem;
+}
+
+.home-panel-state--error {
+  color: #b71c1c;
+}
+
+.home-panel-state--empty {
+  color: var(--neutral-600, #757575);
+}
+
+.home-panel-state__icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
 }
 
 @media (max-width: 991.98px) {
