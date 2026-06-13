@@ -50,4 +50,14 @@ export default {
 :deep(.version) {
   color: #000 !important;
 }
+
+/* Fix Swagger UI HTTP-method badge contrast (WCAG AA).
+   Swagger uses bright pastel backgrounds (#49cc90, #61affe, #fca130, #f93e3e, #50e3c2)
+   with white text — all fail 4.5:1. Dark text on those backgrounds passes easily:
+   black (#000) on #49cc90 ≈ 14:1, on #61affe ≈ 7:1, on #fca130 ≈ 11:1,
+   on #f93e3e ≈ 6:1, on #50e3c2 ≈ 12:1. All ≥ 4.5:1 ✓ AA. */
+:deep(.opblock-summary-method) {
+  color: #000 !important;
+  text-shadow: none !important;
+}
 </style>

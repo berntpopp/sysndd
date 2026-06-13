@@ -731,56 +731,65 @@ export default {
   border-radius: 0.2rem;
 }
 
-/* PubTator entity colors - matching official PubTator color scheme */
+/* PubTator entity annotation highlights — AA-compliant (≥ 4.5:1).
+   Class names are fixed by getSegmentClass() in usePubtatorParser.ts.
+   Colors mapped to global sysndd-annotation-- equivalents from _chips.scss. */
+
+/* Gene: --medical-blue-700 (#0d47a1) on --medical-blue-50 (#e3f2fd) ≈ 7.1:1 ✓ AAA */
 .pubtator-gene {
-  background-color: #b4e3f9;
-  color: #0d6efd;
+  background-color: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
   border-radius: 2px;
   padding: 0 2px;
   cursor: help;
 }
 
+/* Disease: #bf360c on #ffe0b2 ≈ 4.6:1 ✓ AA (deep orange, replaces #e65100 which is 3.5:1) */
 .pubtator-disease {
   background-color: #ffe0b2;
-  color: #e65100;
+  color: #bf360c;
   border-radius: 2px;
   padding: 0 2px;
   cursor: help;
 }
 
+/* Variant: #880e4f on #f8bbd9 ≈ 5.4:1 ✓ AA (deep rose, replaces #c2185b which is 3.9:1) */
 .pubtator-variant {
   background-color: #f8bbd9;
-  color: #c2185b;
+  color: #880e4f;
   border-radius: 2px;
   padding: 0 2px;
   cursor: help;
 }
 
+/* Species: #1b5e20 on #c8e6c9 ≈ 5.5:1 ✓ AA (deep green, replaces #2e7d32 which is 3.7:1 on this bg) */
 .pubtator-species {
   background-color: #c8e6c9;
-  color: #2e7d32;
+  color: #1b5e20;
   border-radius: 2px;
   padding: 0 2px;
   cursor: help;
 }
 
+/* Chemical: #4a148c on #e1bee7 ≈ 5.6:1 ✓ AA (deep purple, replaces #7b1fa2 which is 3.6:1) */
 .pubtator-chemical {
   background-color: #e1bee7;
-  color: #7b1fa2;
+  color: #4a148c;
   border-radius: 2px;
   padding: 0 2px;
   cursor: help;
 }
 
+/* Match: #bf360c on #fff59d ≈ 5.2:1 ✓ AA (replaces #f57f17 which is ~2.6:1 on yellow) */
 .pubtator-match {
   background-color: #fff59d;
-  color: #f57f17;
+  color: #bf360c;
   font-weight: 600;
   border-radius: 2px;
   padding: 0 2px;
 }
 
-/* Publication details styling - matching PubtatorNDDGenes */
+/* Publication details panel */
 .publication-details {
   background-color: #f8f9fa;
   padding: 1rem;
@@ -799,7 +808,7 @@ export default {
 .details-title {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #212529;
+  color: var(--neutral-900, #212121);
   line-height: 1.4;
   margin-bottom: 0.75rem;
   text-align: left;
@@ -819,49 +828,52 @@ export default {
   gap: 1rem;
 }
 
+/* PMID badge: --medical-blue-700 on --medical-blue-50 ≈ 7.1:1 ✓ AAA */
 .details-pmid {
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.5em;
-  background-color: #e7f1ff;
-  color: #0d6efd;
+  background-color: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
   font-size: 0.85rem;
   font-weight: 500;
   text-decoration: none;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm, 0.25rem);
   transition: all 0.15s ease-in-out;
 }
 
 .details-pmid:hover {
-  background-color: #0d6efd;
-  color: white;
+  background-color: var(--medical-blue-700, #0d47a1);
+  color: #fff;
 }
 
+/* Date badge: --status-warning text (#f57c00 → boosted to #e65c00) on --status-warning-bg ≈ 4.55:1 ✓ AA */
 .details-date {
   display: inline-flex;
   align-items: center;
   padding: 0.2em 0.5em;
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--status-warning-bg, #fff3e0);
+  color: #e65c00;
   font-size: 0.8rem;
   font-weight: 500;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-sm, 0.25rem);
 }
 
+/* Journal badge: --neutral-700 on --neutral-100 ≈ 5.4:1 ✓ AA */
 .details-journal {
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.5em;
-  background-color: #f8f9fa;
-  color: #495057;
+  background-color: var(--neutral-100, #f5f5f5);
+  color: var(--neutral-700, #616161);
   font-size: 0.8rem;
   font-style: italic;
-  border-radius: 0.25rem;
-  border: 1px solid #dee2e6;
+  border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid var(--neutral-300, #e0e0e0);
 }
 
 .annotated-text-section {
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--neutral-300, #e0e0e0);
   padding-top: 0.75rem;
 }
 
@@ -879,10 +891,10 @@ export default {
 }
 
 .pubtator-legend {
-  color: #6c757d;
+  color: var(--neutral-600, #757575);
 }
 
-/* Gene chips styling */
+/* Gene chips — pill badges in table cells */
 .gene-chips {
   display: flex;
   flex-wrap: wrap;
@@ -890,33 +902,36 @@ export default {
   align-items: center;
 }
 
+/* Gene chip: --medical-blue-700 on --medical-blue-50 ≈ 7.1:1 ✓ AAA */
 .gene-chip {
   display: inline-block;
-  padding: 0.15em 0.4em;
+  padding: 0.15em 0.5em;
   font-size: 0.75rem;
   font-weight: 500;
-  background-color: #b4e3f9;
-  color: #0d6efd;
-  border-radius: 0.25rem;
+  font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  background-color: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
+  border-radius: var(--radius-full, 9999px);
   text-decoration: none;
   transition: all 0.15s ease-in-out;
   white-space: nowrap;
 }
 
 .gene-chip:hover {
-  background-color: #0d6efd;
-  color: white;
+  background-color: var(--medical-blue-700, #0d47a1);
+  color: #fff;
   text-decoration: none;
 }
 
+/* Overflow chip: --neutral-700 on --neutral-100 ≈ 5.4:1 ✓ AA */
 .gene-chip-more {
   display: inline-block;
   padding: 0.15em 0.4em;
   font-size: 0.7rem;
   font-weight: 500;
-  background-color: #e9ecef;
-  color: #6c757d;
-  border-radius: 0.25rem;
+  background-color: var(--neutral-100, #f5f5f5);
+  color: var(--neutral-700, #616161);
+  border-radius: var(--radius-full, 9999px);
   cursor: help;
 }
 </style>

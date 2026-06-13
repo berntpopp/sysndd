@@ -134,7 +134,7 @@
           </template>
 
           <template #filter-controls>
-            <td v-for="field in fields" :key="field.key">
+            <td v-for="field in fields" :key="field.key" role="presentation">
               <BFormInput
                 v-if="field.filterable"
                 v-model="filter[field.key].content"

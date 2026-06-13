@@ -2,6 +2,7 @@
   <div class="container-fluid py-2">
     <TableShell
       title="Panel compilation"
+      :heading-level="1"
       :meta="`Genes: ${totalRows}`"
       :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
       :loading="loading"

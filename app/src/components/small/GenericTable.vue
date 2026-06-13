@@ -27,8 +27,11 @@
 
     <!-- Slot for custom filter fields -->
     <!-- Bootstrap-Vue-Next uses #thead-top instead of #top-row -->
+    <!-- role="presentation" removes the row from the table accessibility tree so
+         axe/Lighthouse does not flag the filter <td> cells as lacking column headers
+         (td-has-header). Filter inputs are independently labelled via aria-label. -->
     <template #thead-top>
-      <tr v-if="$slots['filter-controls']">
+      <tr v-if="$slots['filter-controls']" role="presentation">
         <slot name="filter-controls" />
       </tr>
     </template>

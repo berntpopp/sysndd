@@ -3,6 +3,7 @@
   <div class="container-fluid">
     <!-- Load Entities table component element -->
     <TablesEntities
+      :heading-level="1"
       :sort-input="sort"
       :filter-input="filter"
       :fields-input="fields"

@@ -18,18 +18,18 @@
       <!-- Header -->
       <div class="disclaimer-header">
         <i class="bi bi-exclamation-triangle-fill disclaimer-header__icon" aria-hidden="true" />
-        <h5 id="disclaimer-title" class="disclaimer-header__title mb-0">
+        <h2 id="disclaimer-title" class="disclaimer-header__title mb-0">
           Usage Policy &amp; Data Privacy
-        </h5>
+        </h2>
       </div>
 
       <!-- Content -->
       <div id="disclaimer-content" class="disclaimer-body">
         <section class="disclaimer-section">
-          <h6 class="disclaimer-section__heading">
+          <h3 class="disclaimer-section__heading">
             <i class="bi bi-shield-exclamation" aria-hidden="true" />
             Usage Policy
-          </h6>
+          </h3>
           <p class="disclaimer-section__text">
             The information on this website is not intended for direct diagnostic use or medical
             decision-making without review by a genetics professional. Individuals should not change
@@ -54,10 +54,10 @@
         <hr class="disclaimer-divider" />
 
         <section class="disclaimer-section">
-          <h6 class="disclaimer-section__heading">
+          <h3 class="disclaimer-section__heading">
             <i class="bi bi-lock" aria-hidden="true" />
             Data Privacy
-          </h6>
+          </h3>
           <p class="disclaimer-section__text">
             The SysNDD website does not use cookies and tries to be completely stateless for regular
             users. Our parent domain unibe.ch uses cookies which we do not control (<BLink

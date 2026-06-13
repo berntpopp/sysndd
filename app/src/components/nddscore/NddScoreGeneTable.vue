@@ -6,7 +6,7 @@
     :loading="tableShellLoading"
   >
     <template #actions>
-      <h5 class="mb-1 text-end font-weight-bold">
+      <div class="mb-1 text-end">
         <TableDownloadLinkCopyButtons
           :downloading="isExporting"
           remove-filters-title="Click to remove all filters."
@@ -15,7 +15,7 @@
           @copy-link="copyLinkToClipboard"
           @remove-filters="removeFilters"
         />
-      </h5>
+      </div>
     </template>
 
     <template #toolbar>
@@ -64,7 +64,7 @@
         </template>
 
         <template #filter-controls>
-          <td v-for="field in fields" :key="field.key">
+          <td v-for="field in fields" :key="field.key" role="presentation">
             <BDropdown
               v-if="field.filterType === 'range'"
               :auto-close="false"

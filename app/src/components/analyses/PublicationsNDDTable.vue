@@ -74,7 +74,7 @@
       >
         <!-- Custom filter fields slot -->
         <template v-if="showFilterControls" #filter-controls>
-          <td v-for="field in fields" :key="field.key">
+          <td v-for="field in fields" :key="field.key" role="presentation">
             <BFormInput
               v-if="field.filterable"
               v-model="filter[field.key].content"
@@ -805,31 +805,32 @@ export default {
 </script>
 
 <style scoped>
-/* Modern publication table styling */
+/* Publication table styling */
 .publication-link {
   text-decoration: none;
   display: inline-block;
 }
 
+/* PMID badge: --medical-blue-700 on --medical-blue-50 ≈ 7.1:1 ✓ AAA */
 .publication-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.2em 0.45em;
   font-size: 0.75em;
   font-weight: 500;
-  background-color: #e7f1ff;
-  color: #0d6efd;
-  border-radius: 0.3rem;
+  background-color: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
+  border-radius: var(--radius-sm, 0.25rem);
   transition: all 0.15s ease-in-out;
 }
 
 .publication-link:hover .publication-badge {
-  background-color: #0d6efd;
-  color: white;
+  background-color: var(--medical-blue-700, #0d47a1);
+  color: #fff;
 }
 
 .publication-id {
-  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-family-mono, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace);
 }
 
 .external-icon {
@@ -842,39 +843,41 @@ export default {
 }
 
 .title-text {
-  color: #333;
+  color: var(--neutral-900, #212121);
   line-height: 1.4;
 }
 
+/* Journal badge: --neutral-700 on --neutral-100 ≈ 5.4:1 ✓ AA */
 .journal-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.25em 0.5em;
   font-size: 0.85em;
-  background-color: #f8f9fa;
-  color: #495057;
-  border-radius: 0.25rem;
-  border: 1px solid #dee2e6;
+  background-color: var(--neutral-100, #f5f5f5);
+  color: var(--neutral-700, #616161);
+  border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid var(--neutral-300, #e0e0e0);
 }
 
+/* Date badge: --status-success on --status-success-bg ≈ 4.6:1 ✓ AA */
 .date-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.15em 0.4em;
   font-size: 0.75em;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border-radius: 0.25rem;
+  background-color: var(--status-success-bg, #e8f5e9);
+  color: var(--status-success, #2e7d32);
+  border-radius: var(--radius-sm, 0.25rem);
   white-space: nowrap;
 }
 
-/* Publication details expanded row styling */
+/* Publication details expanded row */
 .publication-details {
   padding: 1.25rem 1.5rem;
   background: #fafbfc;
   border-radius: 0.5rem;
   margin: 0.75rem 1rem;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--neutral-200, #eeeeee);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -886,28 +889,30 @@ export default {
   margin-bottom: 0;
 }
 
+/* Section label: --neutral-700 on white ≈ 5.7:1 ✓ AA */
 .details-label {
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6c757d;
+  color: var(--neutral-700, #616161);
   margin-bottom: 0.6rem;
   padding-bottom: 0.35rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--neutral-200, #eeeeee);
   display: flex;
   align-items: center;
 }
 
+/* Icon in section label: --medical-blue-700 on white ≈ 8.6:1 ✓ AAA */
 .details-label i {
-  color: #0d6efd;
-  opacity: 0.7;
+  color: var(--medical-blue-700, #0d47a1);
+  opacity: 0.8;
 }
 
 .details-abstract {
   font-size: 0.875rem;
   line-height: 1.7;
-  color: #333;
+  color: var(--neutral-900, #212121);
   margin: 0;
   text-align: justify;
   padding: 0.5rem 0;
@@ -918,7 +923,7 @@ export default {
   grid-template-columns: minmax(180px, 1fr) minmax(300px, 3fr);
   gap: 2rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--neutral-200, #eeeeee);
   margin-top: 0.25rem;
 }
 
@@ -930,9 +935,10 @@ export default {
   min-width: 0;
 }
 
+/* Body text: --neutral-700 on white ≈ 5.7:1 ✓ AA */
 .details-text {
   font-size: 0.875rem;
-  color: #495057;
+  color: var(--neutral-700, #616161);
   margin: 0;
   line-height: 1.5;
 }
@@ -943,16 +949,17 @@ export default {
   gap: 0.4rem;
 }
 
+/* Keyword chip: --medical-blue-700 on --medical-blue-50 ≈ 7.1:1 ✓ AAA */
 .keyword-tag {
   display: inline-block;
   padding: 0.25em 0.6em;
   font-size: 0.7rem;
   font-weight: 500;
-  background-color: #e7f1ff;
-  color: #0d6efd;
-  border-radius: 1rem;
+  background-color: var(--medical-blue-50, #e3f2fd);
+  color: var(--medical-blue-700, #0d47a1);
+  border-radius: var(--radius-full, 9999px);
   white-space: nowrap;
-  border: 1px solid rgba(13, 110, 253, 0.15);
+  border: 1px solid rgba(13, 71, 161, 0.15);
 }
 
 /* Text truncation for table cells */

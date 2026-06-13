@@ -71,9 +71,9 @@ withDefaults(
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .analysis-header {
@@ -82,7 +82,7 @@ withDefaults(
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem 0.7rem;
-  border-bottom: 1px solid #e6ebf2;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .analysis-title-group {
@@ -92,16 +92,16 @@ withDefaults(
 
 .analysis-title {
   margin: 0;
-  color: #172033;
-  font-size: 1.05rem;
-  font-weight: 700;
+  color: var(--neutral-900);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.2;
 }
 
 .analysis-subtitle {
   max-width: 58rem;
   margin: 0.25rem 0 0;
-  color: #526070;
+  color: var(--neutral-600);
   font-size: 0.875rem;
   line-height: 1.35;
 }
@@ -110,11 +110,11 @@ withDefaults(
 .analysis-tab__badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid #bdc7d4;
-  border-radius: 999px;
-  background: #eef2f7;
-  color: #223044;
-  font-weight: 700;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
@@ -130,8 +130,8 @@ withDefaults(
   gap: 0.25rem;
   padding: 0 1rem;
   overflow-x: auto;
-  border-bottom: 1px solid #e6ebf2;
-  background: #fbfcfe;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--neutral-50);
 }
 
 .analysis-tab {
@@ -141,22 +141,22 @@ withDefaults(
   min-height: 2.45rem;
   padding: 0 0.75rem;
   border-bottom: 2px solid transparent;
-  color: #244b7a;
+  color: var(--medical-blue-700);
   font-size: 0.92rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .analysis-tab:hover,
 .analysis-tab:focus {
-  color: #0b5ed7;
-  background: #eef5ff;
+  color: var(--medical-blue-800);
+  background: var(--medical-blue-50);
 }
 
 .analysis-tab.active {
-  border-bottom-color: #0d6efd;
-  color: #111827;
+  border-bottom-color: var(--medical-blue-700);
+  color: var(--neutral-900);
   background: #fff;
 }
 

@@ -40,7 +40,8 @@
           @shown="focusSearchInput"
         >
           <template #button-content>
-            <i class="bi bi-chevron-down control-icon" />
+            <i class="bi bi-chevron-down control-icon" aria-hidden="true" />
+            <span class="visually-hidden">Add phenotype filter</span>
           </template>
           <BDropdownForm @submit.prevent>
             <BFormInput

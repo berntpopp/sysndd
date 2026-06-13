@@ -2,6 +2,7 @@
   <div class="container-fluid">
     <!-- Load Phenotypes table component element -->
     <TablesPhenotypes
+      :heading-level="1"
       :sort-input="sort"
       :filter-input="filter"
       :fields-input="fields"

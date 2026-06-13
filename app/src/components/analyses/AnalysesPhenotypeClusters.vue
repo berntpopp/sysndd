@@ -162,7 +162,7 @@
               @update-sort="handleSortUpdate"
             >
               <template #filter-controls>
-                <td v-for="field in fields" :key="field.key">
+                <td v-for="field in fields" :key="field.key" role="presentation">
                   <BFormInput
                     v-if="field.key !== 'details'"
                     v-model="filter[field.key].content"
