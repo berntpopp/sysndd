@@ -9,7 +9,7 @@
         v-model="query"
         type="search"
         class="form-control"
-        :class="inNavbar ? 'form-control-sm navbar-search' : 'border-dark'"
+        :class="inNavbar ? 'form-control-sm navbar-search' : ''"
         :placeholder="placeholderString"
         autocomplete="off"
         role="combobox"
@@ -24,7 +24,7 @@
       />
       <button
         class="btn"
-        :class="inNavbar ? 'btn-outline-primary btn-sm' : 'btn-outline-dark'"
+        :class="inNavbar ? 'btn-outline-primary btn-sm' : 'btn-outline-primary'"
         :disabled="query.length < 2"
         aria-label="Search"
         @mousedown.prevent="onSubmit"
@@ -77,7 +77,7 @@ export default {
   props: {
     placeholderString: {
       type: String,
-      default: '...',
+      default: 'Search genes, diseases, IDs',
     },
     inNavbar: {
       type: Boolean,

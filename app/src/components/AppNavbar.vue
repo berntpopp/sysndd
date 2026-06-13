@@ -49,7 +49,7 @@
         <!-- Center aligned search bar -->
         <ul v-if="show_search" class="navbar-nav app-navbar__search mx-auto d-none d-lg-flex">
           <li class="nav-item navbar-search-item">
-            <SearchCombobox placeholder-string="..." :in-navbar="true" />
+            <SearchCombobox placeholder-string="Search genes, diseases, IDs" :in-navbar="true" />
           </li>
         </ul>
         <!-- Center aligned search bar -->
@@ -74,7 +74,7 @@
         <!-- Mobile search bar -->
         <ul v-if="show_search" class="navbar-nav app-navbar__mobile-search d-lg-none ms-auto">
           <li class="nav-item navbar-search-item">
-            <SearchCombobox placeholder-string="..." :in-navbar="true" />
+            <SearchCombobox placeholder-string="Search genes, diseases, IDs" :in-navbar="true" />
           </li>
         </ul>
         <!-- Mobile search bar -->
