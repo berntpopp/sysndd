@@ -700,40 +700,6 @@
       "bytes": 145280
     },
     {
-      "slug": "helper-feedback-menu",
-      "output": "documentation/static/img/generated/helper-feedback-menu.png",
-      "docRefs": [
-        "documentation/02-web-tool.qmd#help-feedback"
-      ],
-      "route": "/Entities",
-      "url": "http://localhost:8088/Entities",
-      "viewport": {
-        "width": 1440,
-        "height": 900
-      },
-      "setup": "openHelperBadge",
-      "waitFor": "main",
-      "captureMode": "page",
-      "annotations": [
-        {
-          "selector": ".float",
-          "mode": "box",
-          "label": "Help menu"
-        },
-        {
-          "selector": ".dropdown-menu.show",
-          "mode": "box",
-          "label": "Feedback actions"
-        }
-      ],
-      "gitSha": "8ba9dc78b1a3dac51c888e2d18a44a643ceb9b6f",
-      "capturedAt": "2026-05-15T11:14:49.383Z",
-      "browserName": "chromium",
-      "browserVersion": "148.0.7778.96",
-      "sha256": "df67f22e3b16defdf4af571444b107fcc0f4e755acee957cd84c779bd0f80f52",
-      "bytes": 102953
-    },
-    {
       "slug": "login-page",
       "output": "documentation/static/img/generated/login-page.png",
       "docRefs": [

@@ -458,15 +458,6 @@ export const setupHelpers: Record<string, SetupHelper> = {
     await waitForTable(page);
   },
 
-  async openHelperBadge({ page }) {
-    await page.getByRole('button', { name: /feedback and help/i }).click();
-    await page.locator('.dropdown-menu.show').filter({ hasText: 'Cite' }).waitFor({
-      state: 'visible',
-      timeout: 10_000,
-    });
-    await page.waitForTimeout(500);
-  },
-
   async loginAuthError({ page }) {
     await page.locator('#login-username').fill('not_a_user');
     await page.locator('#login-password').fill('bad-password');

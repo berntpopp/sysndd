@@ -33,9 +33,6 @@ default:
     mail_noreply_use_ssl: FALSE
     mail_noreply_overwrite: TRUE
     mail_noreply_password: ""
-    archive_access_key: "playwright_dummy_access_key"
-    archive_secret_key: "playwright_dummy_secret_key"
-    archive_base_url: "https://example.com/"
     omim_token: "playwright_dummy_omim_token"
     nddscore_zenodo_record_id: "20258027"
     nddscore_zenodo_api_base_url: "https://zenodo.org/api/records"

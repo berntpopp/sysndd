@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.7] — 2026-06-13
+
+Patch release removing the floating help/feedback widget and its backing "Cite" endpoint.
+
+### Removed
+
+- **The floating smiley help/feedback widget (`HelperBadge`) is gone from every page.** A fixed bottom-right green circle with a `bi-emoji-smile` icon opened a dropdown of Cite / Like / Improve / Docs / Help actions. It was lightly used and clashed with SysNDD's quiet, table-first visual direction, so it has been removed from the global app shell (`App.vue`) and deleted. Documentation and Help destinations remain reachable from the footer.
+- **The `internet_archive` "Cite" endpoint and all of its supporting code are removed.** The widget's *Cite* action called `GET /api/external/internet_archive`, which forwarded the current page URL to archive.org's SPN2 (Save Page Now) API. With the widget gone the endpoint had no remaining caller, so the route (`api/endpoints/external_endpoints.R`), its backing functions (`api/functions/external-functions.R` — `post_url_archive` / `is_valid_archive_url`), the typed frontend client (`createInternetArchiveSnapshot` in `app/src/api/external.ts`) and its tests, the `test-unit-archive-url.R` unit test, the endpoint-checklist row, the docs section, and the now-unused `archive_access_key` / `archive_secret_key` / `archive_base_url` config keys have all been removed. The gnomAD / UniProt / Ensembl / AlphaFold / MGI / RGD external-proxy endpoints are unaffected. Verified in a restarted stack: `GET /api/external/internet_archive` returns `404` while the kept proxy endpoints still return `200`.
+
 ## [0.21.6] — 2026-06-13
 
 Patch release unifying the Genes/Entities detail-page card borders with the rest of the app.
