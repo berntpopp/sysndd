@@ -512,8 +512,8 @@ useHead({
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem 0.55rem;
-  border: 1px solid #dbe2ea;
-  border-radius: 0.45rem;
+  border: 1px solid var(--border-subtle, #dbe2ea);
+  border-radius: var(--radius-md, 0.45rem);
   background: #f8fafc;
 }
 .entity-unit-gene {
@@ -526,7 +526,7 @@ useHead({
   border-left: 0.25rem solid #65717d;
 }
 .entity-unit-label {
-  color: #667085;
+  color: var(--neutral-600, #667085);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -545,10 +545,10 @@ useHead({
   box-sizing: border-box;
   height: 1.8rem;
   padding: 0.18rem 0.48rem;
-  border: 1px solid #d5dbe3;
+  border: 1px solid var(--border-subtle, #d5dbe3);
   border-radius: 999px;
   background: #f8fafc;
-  color: #344054;
+  color: var(--neutral-900, #344054);
   font-size: 0.78rem;
   font-weight: 650;
   line-height: 1;
@@ -577,7 +577,7 @@ useHead({
   text-transform: uppercase;
 }
 .entity-meta-pill a {
-  color: #0b5ed7;
+  color: var(--medical-blue-700, #0d47a1);
   text-decoration: none;
 }
 .entity-meta-icon {
@@ -593,9 +593,9 @@ useHead({
   justify-content: space-between;
   gap: 0.75rem;
   padding-left: 0.25rem;
-  color: #4b5563;
+  color: var(--neutral-700, #374151);
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 1.2;
 }
 .clinical-card-actions {
@@ -609,7 +609,7 @@ useHead({
   padding: 0.75rem;
 }
 .clinical-panel-meta {
-  color: #667085;
+  color: var(--neutral-600, #667085);
   font-size: 0.76rem;
   font-weight: 650;
 }
@@ -619,22 +619,22 @@ useHead({
   gap: 0.25rem;
   min-height: 1.45rem;
   padding: 0.08rem 0.4rem;
-  border-color: #0a58ca;
-  color: #0a58ca;
+  border-color: var(--medical-blue-700, #0d47a1);
+  color: var(--medical-blue-700, #0d47a1);
   font-size: 0.72rem;
   line-height: 1;
   white-space: nowrap;
 }
 .copy-synopsis-button:hover,
 .copy-synopsis-button:focus {
-  border-color: #084298;
-  background-color: #0a58ca;
+  border-color: var(--medical-blue-700, #0d47a1);
+  background-color: var(--medical-blue-700, #0d47a1);
   color: #fff;
 }
 .clinical-synopsis-text {
   width: 100%;
   margin: 0;
-  color: #111827;
+  color: var(--neutral-900, #111827);
   font-size: 0.95rem;
   line-height: 1.55;
   text-align: left;
@@ -762,7 +762,7 @@ useHead({
     0 0.35rem 0.8rem rgba(15, 23, 42, 0.14);
 }
 .entity-empty-state {
-  color: #667085;
+  color: var(--neutral-600, #667085);
   font-size: 0.84rem;
   font-weight: 650;
 }

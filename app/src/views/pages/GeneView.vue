@@ -322,16 +322,16 @@ useHead({
 .gene-page-title {
   font-size: 1rem;
   line-height: 1.2;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold, 700);
 }
 .gene-card-name {
   font-weight: 600;
   font-size: 0.95rem;
-  color: #333;
+  color: var(--neutral-900, #1a1a2e);
 }
 .gene-card-location {
   font-size: 0.8rem;
-  font-family: 'Courier New', monospace;
-  color: #495057;
+  font-family: var(--font-family-mono, 'Courier New', monospace);
+  color: var(--neutral-700, #374151);
 }
 </style>

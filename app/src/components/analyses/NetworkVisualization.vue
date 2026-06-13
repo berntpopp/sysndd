@@ -63,6 +63,7 @@
                 :variant="hasCategoryData ? 'outline-secondary' : 'outline-warning'"
                 :text="categoryFilterLabel"
                 :disabled="!hasCategoryData"
+                :aria-label="`Filter by category: ${categoryFilterLabel}`"
               >
                 <template v-if="!hasCategoryData">
                   <BDropdownItemButton disabled>
@@ -85,7 +86,7 @@
               </BDropdown>
 
               <!-- Cluster dropdown -->
-              <BDropdown size="sm" variant="outline-secondary" :text="clusterFilterLabel">
+              <BDropdown size="sm" variant="outline-secondary" :text="clusterFilterLabel" :aria-label="`Filter by cluster: ${clusterFilterLabel}`">
                 <BDropdownItemButton :active="showAllClusters" @click="setShowAllClusters(true)">
                   <i class="bi bi-grid-3x3-gap me-2" />
                   All Clusters
@@ -102,9 +103,10 @@
                     type="button"
                     class="cluster-dropdown-main"
                     :title="`View Cluster ${cluster.id} only`"
+                    :aria-label="`View cluster ${cluster.id} only`"
                     @click="selectSingleCluster(cluster.id)"
                   >
-                    <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" />
+                    <span class="legend-color me-2" :style="{ backgroundColor: cluster.color }" aria-hidden="true" />
                     <span class="cluster-label">Cluster {{ cluster.id }}</span>
                     <i
                       v-if="selectedClusters.has(cluster.id) && selectedClusters.size === 1"
@@ -117,85 +119,93 @@
                     type="button"
                     class="cluster-dropdown-action cluster-dropdown-action--add"
                     title="Add to selection"
+                    :aria-label="`Add cluster ${cluster.id} to selection`"
                     @click.stop="addClusterToSelection(cluster.id)"
                   >
-                    <i class="bi bi-plus-lg" />
+                    <i class="bi bi-plus-lg" aria-hidden="true" />
                   </button>
                   <button
                     v-else
                     type="button"
                     class="cluster-dropdown-action cluster-dropdown-action--remove"
                     title="Remove from selection"
+                    :aria-label="`Remove cluster ${cluster.id} from selection`"
                     @click.stop="removeClusterFromSelection(cluster.id)"
                   >
-                    <i class="bi bi-x-lg" />
+                    <i class="bi bi-x-lg" aria-hidden="true" />
                   </button>
                 </div>
               </BDropdown>
             </div>
           </div>
 
-          <!-- Control buttons -->
-          <div class="btn-group btn-group-sm mt-1 mt-md-0">
+          <!-- Control buttons: aria-label required for icon-only buttons (button-name) -->
+          <div class="btn-group btn-group-sm mt-1 mt-md-0" role="group" aria-label="Network controls">
             <BButton
               v-b-tooltip.hover
               variant="outline-secondary"
               size="sm"
               title="Fit to screen"
+              aria-label="Fit network to screen"
               :disabled="!isInitialized"
               @click="handleFitToScreen"
             >
-              <i class="bi bi-arrows-fullscreen" />
+              <i class="bi bi-arrows-fullscreen" aria-hidden="true" />
             </BButton>
             <BButton
               v-b-tooltip.hover
               variant="outline-secondary"
               size="sm"
               title="Reset layout"
+              aria-label="Reset network layout"
               :disabled="!isInitialized || isCytoscapeLoading"
               @click="handleResetLayout"
             >
-              <i class="bi bi-arrow-clockwise" />
+              <i class="bi bi-arrow-clockwise" aria-hidden="true" />
             </BButton>
             <BButton
               v-b-tooltip.hover
               variant="outline-secondary"
               size="sm"
               title="Zoom in"
+              aria-label="Zoom in"
               :disabled="!isInitialized"
               @click="handleZoomIn"
             >
-              <i class="bi bi-zoom-in" />
+              <i class="bi bi-zoom-in" aria-hidden="true" />
             </BButton>
             <BButton
               v-b-tooltip.hover
               variant="outline-secondary"
               size="sm"
               title="Zoom out"
+              aria-label="Zoom out"
               :disabled="!isInitialized"
               @click="handleZoomOut"
             >
-              <i class="bi bi-zoom-out" />
+              <i class="bi bi-zoom-out" aria-hidden="true" />
             </BButton>
             <BButton
               v-b-tooltip.hover
               variant="outline-primary"
               size="sm"
               title="Export as PNG"
+              aria-label="Export network as PNG image"
               :disabled="!isInitialized"
               @click="handleExportPNG"
             >
-              <i class="bi bi-image" />
+              <i class="bi bi-image" aria-hidden="true" />
             </BButton>
             <BButton
               v-b-tooltip.hover
               variant="outline-primary"
               size="sm"
               title="Export as SVG"
+              aria-label="Export network as SVG image"
               :disabled="!isInitialized"
               @click="handleExportSVG"
             >
-              <i class="bi bi-file-earmark-image" />
+              <i class="bi bi-file-earmark-image" aria-hidden="true" />
             </BButton>
           </div>
         </div>
@@ -270,9 +280,10 @@
               type="button"
               class="legend-pill-main"
               :title="`View Cluster ${cluster.id}`"
+              :aria-label="`View cluster ${cluster.id} only`"
               @click="selectSingleCluster(cluster.id)"
             >
-              <span class="legend-color" :style="{ backgroundColor: cluster.color }" />
+              <span class="legend-color" :style="{ backgroundColor: cluster.color }" aria-hidden="true" />
               {{ cluster.id }}
             </button>
             <!-- Add button - appears on hover when not selected -->
@@ -281,9 +292,10 @@
               type="button"
               class="legend-pill-add"
               title="Add to selection"
+              :aria-label="`Add cluster ${cluster.id} to selection`"
               @click.stop="addClusterToSelection(cluster.id)"
             >
-              <i class="bi bi-plus" />
+              <i class="bi bi-plus" aria-hidden="true" />
             </button>
             <!-- Remove button - shown when selected in multi-select mode -->
             <button
@@ -291,9 +303,10 @@
               type="button"
               class="legend-pill-remove"
               title="Remove from selection"
+              :aria-label="`Remove cluster ${cluster.id} from selection`"
               @click.stop="removeClusterFromSelection(cluster.id)"
             >
-              <i class="bi bi-x" />
+              <i class="bi bi-x" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -877,8 +890,8 @@ defineExpose({
 
 .network-panel {
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 6px);
   background: #fff;
 }
 
@@ -1005,7 +1018,6 @@ defineExpose({
   border-radius: 20px;
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
-  transition: all 0.2s ease;
   overflow: hidden;
 }
 
@@ -1032,7 +1044,12 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.04);
 }
 
-.legend-pill-main:focus {
+.legend-pill-main:focus-visible {
+  outline: 2px solid var(--medical-blue-700, #0d47a1);
+  outline-offset: 1px;
+}
+
+.legend-pill-main:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -1085,11 +1102,17 @@ defineExpose({
   color: #dc3545;
 }
 
-/* Selected pill state */
+/* Selected pill state — uses medical-blue-700 token, no gradient per quiet-chip rule */
+@media (prefers-reduced-motion: no-preference) {
+  .legend-pill {
+    transition: all 0.2s ease;
+  }
+}
+
 .legend-pill--selected {
-  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
-  border-color: #0a58ca;
-  box-shadow: 0 2px 6px rgba(13, 110, 253, 0.35);
+  background-color: var(--medical-blue-700, #0d47a1);
+  border-color: var(--medical-blue-700, #0d47a1);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
 }
 
 .legend-pill--selected .legend-pill-main {
@@ -1166,9 +1189,15 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.04);
 }
 
-.cluster-dropdown-main:focus {
+.cluster-dropdown-main:focus-visible {
+  outline: 2px solid var(--medical-blue-700, #0d47a1);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.cluster-dropdown-main:focus:not(:focus-visible) {
   outline: none;
-  box-shadow: inset 0 0 0 2px rgba(13, 110, 253, 0.25);
+  box-shadow: none;
 }
 
 .cluster-dropdown-main .cluster-label {

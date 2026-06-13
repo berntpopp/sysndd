@@ -17,10 +17,17 @@
 -->
 <template>
   <div class="protein-lollipop-plot">
-    <!-- SVG container (D3 owns this element exclusively) -->
+    <!--
+      SVG container (D3 owns this element exclusively).
+      role="figure" on the wrapper allows aria-label to provide a figure-level
+      accessible description; the D3-rendered SVG inside has role="img" + title/desc
+      for AT that traverses the SVG element. role="figure" is the correct landmark
+      for a chart container div that needs naming without being interactive.
+    -->
     <div
       ref="plotContainer"
       class="plot-container"
+      role="figure"
       :aria-label="`Protein domain lollipop plot for ${geneSymbol}`"
     />
 

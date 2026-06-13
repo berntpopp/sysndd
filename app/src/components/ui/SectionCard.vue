@@ -79,10 +79,17 @@
   <template v-else-if="!empty && frameless">
     <slot />
   </template>
+  <!--
+    Apply minHeight to the resolved BCard so the card reserves the same vertical
+    space as the skeleton — this prevents layout shift (CLS) when async data
+    arrives and the card grows from nothing to full content. The style is inert
+    once the content fills more space than the reserved minimum.
+  -->
   <BCard
     v-else-if="!empty"
     data-testid="section-card-content"
     class="border-subtle"
+    :style="{ minHeight }"
     body-class="p-0"
     header-class="p-1"
   >
@@ -118,8 +125,8 @@ withDefaults(
 .section-card-title {
   font-size: 0.875rem;
   line-height: 1.2;
-  font-weight: 600;
-  color: #4b5563;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--neutral-700, #4b5563);
   text-align: left;
   padding-left: 0.25rem;
 }
