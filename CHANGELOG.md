@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.5] — 2026-06-13
+
+Patch release making the global search input look consistent between the home hero and the navbar.
+
+### Fixed
+
+- **The global search input now looks the same on every page.** The shared `SearchCombobox` rendered with two divergent looks: the home (`/`) hero variant used a heavy black input border (`border-dark`) and a dark/neutral action button (`btn-outline-dark`), while the navbar variant (shown on `/Entities`, `/Genes`, and all non-home routes) used the medical-blue action button but was passed a literal `placeholder-string="..."`, so it displayed a broken `...` placeholder instead of helpful text. Both variants now converge on one design-token-aligned treatment — the global low-weight `.form-control` neutral border with a medical-blue focus ring, the medical-blue `btn-outline-primary` action button, and the `Search genes, diseases, IDs` placeholder — differing only by size (default in the hero, `sm` in the navbar). This aligns with the visual design guide ("use blue for action and navigation"; "borders: pale neutral/blue-gray lines with low visual weight"). Suggestions, submit, and keyboard navigation are unchanged.
+
 ## [0.21.4] — 2026-06-13
 
 Patch release fixing the NDDScore gene-predictions table on mobile.
