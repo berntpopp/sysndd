@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.6] — 2026-06-13
+
+Patch release unifying the Genes/Entities detail-page card borders with the rest of the app.
+
+### Fixed
+
+- **Detail-page cards no longer use a heavy black border.** The Genes (`/Genes/:symbol`) and Entities (`/Entities/:entity_id`) detail pages — plus the Ontology view (`/Ontology/:disease_term`) and the admin Job History card — wrapped their cards in `border-variant="dark"`, which rendered a heavy near-black Bootstrap border (`#212529`) that clashed with the home page and the public `/Entities`/`/Genes` tables. They now use the app-wide subtle surface border (pale blue-gray, `#d9e0ea`), so the detail/admin cards match the home hero/panels and the reference tables. This aligns with the visual design guide ("borders: pale neutral/blue-gray lines with low visual weight"; "avoid heavy black/dark borders"). The change is presentation-only — verified with Playwright at `1440px` and `390px`, every visible detail-page card border now computes to `rgb(217, 224, 234)` (`#d9e0ea`) with no remaining visible dark card borders.
+
+### Changed
+
+- **Introduced a canonical `--border-subtle` design token (`#d9e0ea`) and a `.border-subtle` utility class.** The ~30 component stylesheets that previously hard-coded the `1px solid #d9e0ea` panel border (home, user, analyses, curation, and form/wizard surfaces) now reference the token, giving the subtle surface border a single source of truth. The migration is value-identical; no surface changes appearance except the detail/admin cards described above.
+
 ## [0.21.5] — 2026-06-13
 
 Patch release making the global search input look consistent between the home hero and the navbar.

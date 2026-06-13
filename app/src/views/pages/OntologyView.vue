@@ -8,10 +8,9 @@
           <!-- Ontology overview card -->
           <BCard
             header-tag="header"
-            class="my-3 text-start"
+            class="my-3 text-start border-subtle"
             body-class="p-0"
             header-class="p-1"
-            border-variant="dark"
           >
             <template #header>
               <h3 class="mb-1 text-start font-weight-bold d-flex align-items-center gap-2">

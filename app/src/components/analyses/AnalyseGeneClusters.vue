@@ -1067,7 +1067,7 @@ mark {
   gap: 0.75rem;
   margin-bottom: 0.75rem;
   padding: 0.625rem 0.75rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #f8fbff;
   color: #495057;

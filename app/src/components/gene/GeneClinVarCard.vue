@@ -1,9 +1,8 @@
 <template>
   <BCard
-    class="clinvar-card"
+    class="clinvar-card border-subtle"
     body-class="p-0"
     header-class="p-1"
-    border-variant="dark"
     role="region"
     aria-label="ClinVar variant summary"
   >

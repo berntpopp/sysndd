@@ -289,7 +289,7 @@ export default defineComponent({
   z-index: 2;
   min-height: 2.35rem;
   padding: 0.35rem 0.5rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
 }
@@ -366,7 +366,7 @@ export default defineComponent({
 .wizard-content {
   min-width: 0;
   margin-bottom: 1rem;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
 }

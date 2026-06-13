@@ -1,10 +1,9 @@
 <template>
   <BCard
     v-if="showCard"
-    class="model-organisms-card"
+    class="model-organisms-card border-subtle"
     body-class="p-0"
     header-class="p-1"
-    border-variant="dark"
     role="region"
     aria-label="Model organism phenotypes"
   >

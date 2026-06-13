@@ -58,6 +58,13 @@
   --neutral-700: #616161; // 5.74:1 (WCAG AA text - passes)
   --neutral-800: #424242; // 8.59:1 (WCAG AAA text - passes)
   --neutral-900: #212121; // 16.10:1 (WCAG AAA text - passes)
+
+  // Surface borders
+  // Canonical low-weight panel/card border. This pale blue-gray is the
+  // app-wide subtle surface border used by the home page, public panels,
+  // and the user/analyses/curation surfaces. Use it instead of heavy dark
+  // Bootstrap card borders (see documentation/10-visual-design-guide.md).
+  --border-subtle: #d9e0ea; // 1.18:1 (UI border, low visual weight)
 }
 
 // WCAG 2.2 Level AA Requirements:

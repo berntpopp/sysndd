@@ -55,7 +55,7 @@ withDefaults(
 .authenticated-frame {
   width: min(100%, 1480px);
   margin: 0 auto;
-  border: 1px solid #d9e0ea;
+  border: 1px solid var(--border-subtle);
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);

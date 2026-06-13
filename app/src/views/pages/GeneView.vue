@@ -17,7 +17,7 @@
       <BContainer fluid>
         <BRow class="justify-content-md-center pt-2">
           <BCol col md="12">
-            <BCard body-class="p-0" header-class="p-1" border-variant="dark">
+            <BCard class="border-subtle" body-class="p-0" header-class="p-1">
               <template #header>
                 <div class="d-flex align-items-center gap-1 flex-wrap">
                   <h1 class="gene-page-title mb-0">

@@ -30,10 +30,10 @@
   <BCard
     v-else-if="loading"
     data-testid="section-card-skeleton"
+    class="border-subtle"
     :style="{ minHeight }"
     body-class="p-0"
     header-class="p-1"
-    border-variant="dark"
   >
     <template #header>
       <slot name="header">
@@ -82,9 +82,9 @@
   <BCard
     v-else-if="!empty"
     data-testid="section-card-content"
+    class="border-subtle"
     body-class="p-0"
     header-class="p-1"
-    border-variant="dark"
   >
     <template #header>
       <slot name="header">
