@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Slow external/analysis endpoints can no longer block cheap routes (#344).** Three external HTTP calls that bypassed the central per-provider budget are now bounded: the UniProt step-2 features fetch (previously `req_timeout(30)` + `max_seconds=120`, a ~120s worker-occupying window) now goes through `make_external_request()`; the GeneReviews E-utilities call (a budget bypass reintroduced in #389) and the worker-only gnomAD-batch chunk request now derive their timeout/retry from `external_proxy_budget()`.
+
+### Added
+
+- **Per-request external-time ceiling + observability (#344).** A request-scoped accumulator (`EXTERNAL_PROXY_REQUEST_MAX_SECONDS`, default 15s), wired into both universal proxy wrappers, short-circuits further external work once a single request's accumulated external time crosses the ceiling — covering single-endpoint paths the 12s aggregate budget never governed. The `postroute` hook now logs `[request-timing] … duration_ms=… external_ms=… slow=…` (slow over `API_SLOW_REQUEST_MS`, default 2000), attributing slow requests to external time. New tunable env knobs: `EXTERNAL_PROXY_GENEREVIEWS_*`, `EXTERNAL_PROXY_GNOMAD_BATCH_*` (20/30/3 defaults).
+- **Regression guards + tests (#344).** `test-unit-external-budget-guard.R` fails CI on any hardcoded external timeout literal; `test-unit-cheap-route-isolation.R` keeps `/health`, `/auth`, `/statistics` free of external-fetcher coupling; `test-integration-slow-provider-isolation.R` proves a slow provider fast-fails while a cheap read stays bounded; and the local-only `app/tests/e2e/slow-provider-resilience.spec.ts` proves the gene page renders in ~3s with every external provider stalled 20s. Worker-pool isolation remains tracked in #154.
+
 ## [0.21.2] — 2026-06-13
 
 Patch release for Sprint 2 of the continuous oversized-file refactor (#346) — all nine workpackages (#394–#402, WP1–WP9), each landed as a behavior-preserving PR (#404–#412) and merged after integration validation (type-check, strict type-check, full Vitest suite, ESLint/MSW, SEO, R API unit tests, and a Playwright E2E parity check against `master`). Every reduction moves the file-size ratchet baseline downward only.
