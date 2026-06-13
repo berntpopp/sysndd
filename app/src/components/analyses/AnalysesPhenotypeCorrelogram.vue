@@ -2,7 +2,7 @@
 <template>
   <AnalysisPanel
     title="Matrix of phenotype correlations"
-    description="Pearson correlation heatmap for curated phenotype co-occurrence patterns."
+    description="Pearson correlation heatmap for curated phenotype co-occurrence patterns. Click a cell to explore entities sharing both phenotypes."
   >
     <template #actions>
       <InlineHelpBadge
@@ -19,6 +19,7 @@
           <li><strong>White:</strong> No correlation</li>
         </ul>
         Click on the cells to explore the detailed phenotype relationships.
+        Use Enter or Space to activate a focused cell.
       </BPopover>
       <DownloadImageButtons :svg-id="'matrix-svg'" :file-name="'phenotype_correlation_matrix'" />
     </template>
@@ -26,8 +27,8 @@
     <!-- Content with overlay spinner -->
     <div class="position-relative">
       <!-- Error state with retry -->
-      <div v-if="error" class="error-state text-center p-4">
-        <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
+      <div v-if="error" class="state-card error-state text-center p-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-2 mb-2 d-block" style="color: var(--status-danger, #c62828)" />
         <p class="text-muted mb-3">
           {{ error }}
         </p>
@@ -37,12 +38,22 @@
         </BButton>
       </div>
 
-      <!-- Loading spinner -->
-      <BSpinner v-else-if="loadingMatrix" label="Loading..." class="spinner" />
+      <!-- Loading skeleton -->
+      <div v-else-if="loadingMatrix" class="loading-skeleton" aria-live="polite" aria-busy="true">
+        <div class="skeleton-matrix" />
+        <span class="visually-hidden">Loading phenotype correlation matrix…</span>
+      </div>
 
       <!-- Visualization container -->
-      <template v-else>
-        <div id="matrix_dataviz" class="svg-container" />
+      <template v-else-if="itemsMatrix.length > 0">
+        <div ref="svgWrapper" class="svg-wrapper">
+          <div id="matrix_dataviz" class="svg-container" />
+        </div>
+        <!-- Caption for non-expert readers -->
+        <p class="chart-caption">
+          Each cell shows the Pearson R between two phenotype categories.
+          Red = co-occurring phenotypes; blue = mutually exclusive patterns. Click a cell to filter entities.
+        </p>
         <!-- Color legend -->
         <div class="d-flex justify-content-center mt-2 mb-3">
           <ColorLegend
@@ -54,11 +65,18 @@
           />
         </div>
       </template>
+
+      <!-- Empty state -->
+      <div v-else class="state-card empty-state text-center p-4">
+        <i class="bi bi-grid fs-2 mb-2 d-block text-muted" />
+        <p class="text-muted mb-0">No phenotype correlation data available.</p>
+      </div>
     </div>
   </AnalysisPanel>
 </template>
 
 <script>
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import useToast from '@/composables/useToast';
 import DownloadImageButtons from '@/components/small/DownloadImageButtons.vue';
@@ -72,8 +90,6 @@ import { getPhenotypeCorrelation } from '@/api/phenotype';
 
 /**
  * Get human-readable interpretation of a correlation coefficient
- * @param {number} r - Correlation coefficient (-1 to 1)
- * @returns {string} Human-readable interpretation
  */
 function getCorrelationInterpretation(r) {
   const absR = Math.abs(r);
@@ -96,14 +112,14 @@ export default {
   setup() {
     const { makeToast } = useToast();
     const router = useRouter();
-    return { makeToast, router };
+    const svgWrapper = ref(null);
+    return { makeToast, router, svgWrapper };
   },
   data() {
     return {
       itemsMatrix: [],
-      loadingMatrix: true, // Added loading state
-      error: null, // Error state for retry functionality
-      // Labels for color legend
+      loadingMatrix: true,
+      error: null,
       correlationLabels: [
         { value: -1, text: '-1 (negative)' },
         { value: 0, text: '0' },
@@ -127,7 +143,6 @@ export default {
         this.makeToast(e, 'Error', 'danger');
       } finally {
         this.loadingMatrix = false;
-        // Generate graph AFTER loadingMatrix is false so #matrix_dataviz exists in DOM
         this.$nextTick(() => {
           if (this.itemsMatrix.length > 0 && !this.error) {
             this.generateMatrixGraph();
@@ -135,107 +150,120 @@ export default {
         });
       }
     },
-    /**
-     * Retry loading data after an error
-     */
     retryLoad() {
       this.loadMatrixData();
     },
     generateMatrixGraph() {
-      // Graph dimension
+      const wrapper = this.svgWrapper;
+      const containerEl = document.getElementById('matrix_dataviz');
+      if (!containerEl) return;
+
+      // Responsive width: fill the card width
+      const availableWidth = (wrapper?.clientWidth || containerEl.parentElement?.clientWidth || 600);
+      const domain = Array.from(new Set(this.itemsMatrix.map((d) => d.x)));
+
+      // Derive margins based on longest label length
+      const maxLabelLen = Math.max(...domain.map((d) => d.length));
+      const labelFontPx = 12;
+      const labelMargin = Math.min(240, Math.max(120, maxLabelLen * labelFontPx * 0.55));
+
       const margin = {
         top: 20,
-        right: 50,
-        bottom: 150,
-        left: 220,
+        right: 20,
+        bottom: labelMargin,
+        left: labelMargin,
       };
-      const width = 650 - margin.left - margin.right;
-      const height = 620 - margin.top - margin.bottom;
 
-      // Remove any existing SVG
+      // Square chart area filling available space
+      const chartSize = Math.max(200, availableWidth - margin.left - margin.right - 24);
+      const totalW = chartSize + margin.left + margin.right;
+      const totalH = chartSize + margin.top + margin.bottom;
+
+      // Remove any existing SVG + tooltip
       d3.select('#matrix_dataviz').select('svg').remove();
+      d3.select('#matrix_dataviz').selectAll('.corr-tooltip').remove();
 
-      // Create the svg area
       const svg = d3
         .select('#matrix_dataviz')
         .append('svg')
-        .attr('id', 'matrix-svg') // Added id for easier selection
-        .attr('viewBox', '0 0 700 700')
-        .attr('preserveAspectRatio', 'xMinYMin meet')
+        .attr('id', 'matrix-svg')
+        .attr('viewBox', `0 0 ${totalW} ${totalH}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet')
+        .style('width', '100%')
+        .style('height', 'auto')
         .append('g')
         .attr('transform', `translate(${margin.left},${margin.top})`);
 
-      //
       const data = this.itemsMatrix;
 
-      // List of all variables and number of them
-      const domain = Array.from(new Set(data.map((d) => d.x)));
+      const x = d3.scaleBand().range([0, chartSize]).domain(domain).padding(0.01);
+      const y = d3.scaleBand().range([chartSize, 0]).domain(domain).padding(0.01);
 
-      // Build X scales and axis:
-      const x = d3.scaleBand().range([0, width]).domain(domain).padding(0.01);
-
+      // X axis — rotated 90deg
       svg
         .append('g')
-        .attr('transform', `translate(0, ${height})`)
+        .attr('transform', `translate(0, ${chartSize})`)
         .call(d3.axisBottom(x))
         .selectAll('text')
         .style('text-anchor', 'end')
         .attr('dx', '-.8em')
         .attr('dy', '.15em')
-        .attr('transform', 'rotate(-90)');
+        .attr('transform', 'rotate(-90)')
+        .style('font-size', '12px')
+        .style('fill', '#27364a');
 
-      // Build Y scales and axis:
-      const y = d3.scaleBand().range([height, 0]).domain(domain).padding(0.01);
+      // Y axis
+      svg
+        .append('g')
+        .call(d3.axisLeft(y))
+        .selectAll('text')
+        .style('font-size', '12px')
+        .style('fill', '#27364a');
 
-      svg.append('g').call(d3.axisLeft(y));
-
-      // Build color scale
+      // Diverging color scale
       const myColor = d3.scaleLinear().range(['#000080', '#fff', '#B22222']).domain([-1, 0, 1]);
 
-      // create a tooltip
+      // Styled tooltip
       const tooltip = d3
         .select('#matrix_dataviz')
         .append('div')
+        .attr('class', 'corr-tooltip')
         .style('opacity', 0)
-        .attr('class', 'tooltip')
-        .style('background-color', 'white')
-        .style('border', 'solid')
-        .style('border-width', '1px')
-        .style('border-radius', '5px')
-        .style('padding', '2px');
+        .style('position', 'absolute')
+        .style('pointer-events', 'none')
+        .style('background', '#fff')
+        .style('border', '1px solid var(--border-subtle, #d9e0ea)')
+        .style('border-radius', '6px')
+        .style('padding', '6px 10px')
+        .style('font-size', '0.8rem')
+        .style('box-shadow', '0 2px 6px rgba(15,23,42,0.10)')
+        .style('z-index', '20');
 
-      // Three function that change the tooltip when user hover / move / leave a cell
       const mouseover = function mouseover(_event, _d) {
         tooltip.style('opacity', 1);
-
-        d3.select(this).style('stroke', 'black').style('opacity', 1);
+        d3.select(this).style('stroke', '#172033').style('stroke-width', 1.5);
       };
 
       const mousemove = function mousemove(event, d) {
         const interpretation = getCorrelationInterpretation(d.value);
         tooltip
           .html(
-            `
-            <strong>R: ${Number(d.value).toFixed(3)}</strong><br>
-            <em>${interpretation}</em><br>
-            <small>${d.x} &amp; ${d.y}</small>
-          `
+            `<strong style="font-family:var(--font-family-mono,'ui-monospace',monospace)">R = ${Number(d.value).toFixed(3)}</strong><br>` +
+            `<em style="color:#526070">${interpretation}</em><br>` +
+            `<small style="color:#6c757d">${d.x} &amp; ${d.y}</small>`
           )
-          .style('left', `${event.layerX + 20}px`)
-          .style('top', `${event.layerY + 20}px`);
+          .style('left', `${event.layerX + 14}px`)
+          .style('top', `${event.layerY + 14}px`);
       };
 
       const mouseleave = function mouseleave(_event, _d) {
         tooltip.style('opacity', 0);
-
         d3.select(this).style('stroke', 'none');
       };
 
-      // add the squares with click navigation
-      // NAVL-02: Click to navigate to phenotypes filtered by correlation pair
-      // Note: cluster_id is not available from backend (see api/endpoints/phenotype_endpoints.R)
-      // because phenotype pairs don't map directly to entity clusters.
-      // This implementation provides clickable cells that navigate to filtered phenotype table.
+      const router = this.$router;
+
+      // Add cells — keyboard-accessible interactive rects
       svg
         .selectAll()
         .data(data, (d) => `${d.x}:${d.y}`)
@@ -248,18 +276,36 @@ export default {
         .style('fill', (d) => myColor(d.value))
         .style('cursor', 'pointer')
         .attr('role', 'button')
+        .attr('tabindex', '0')
         .attr(
           'aria-label',
-          (d) => `View phenotypes for ${d.x} and ${d.y} (correlation: ${d.value})`
+          (d) =>
+            `R=${Number(d.value).toFixed(3)}: ${d.x} and ${d.y}. Press Enter to view entities.`
         )
         .on('mouseover', mouseover)
         .on('mousemove', mousemove)
         .on('mouseleave', mouseleave)
-        .on('click', (event, d) => {
-          // Navigate to Phenotypes page filtered by both phenotypes
+        .on('click', (_event, d) => {
           const filterQuery = `all(modifier_phenotype_id,${d.x_id},${d.y_id})`;
           const url = `/Phenotypes/?sort=entity_id&filter=${filterQuery}&page_after=0&page_size=10`;
-          this.$router.push(url);
+          router.push(url);
+        })
+        .on('keydown', function keydown(event, d) {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            const filterQuery = `all(modifier_phenotype_id,${d.x_id},${d.y_id})`;
+            const url = `/Phenotypes/?sort=entity_id&filter=${filterQuery}&page_after=0&page_size=10`;
+            router.push(url);
+          }
+        })
+        .on('focus', function focus() {
+          d3.select(this)
+            .style('stroke', 'var(--medical-blue-700, #0d47a1)')
+            .style('stroke-width', 2)
+            .style('outline', 'none');
+        })
+        .on('blur', function blur() {
+          d3.select(this).style('stroke', 'none');
         });
     },
   },
@@ -267,39 +313,74 @@ export default {
 </script>
 
 <style scoped>
-.svg-container {
-  display: inline-block;
-  position: relative;
+.svg-wrapper {
   width: 100%;
-  max-width: 800px;
-  vertical-align: top;
-  overflow: hidden;
+  overflow: visible;
 }
-.svg-content {
-  display: inline-block;
-  position: absolute;
-  top: 0;
-  left: 0;
+
+.svg-container {
+  display: block;
+  width: 100%;
+  overflow: visible;
 }
-mark {
-  display: inline-block;
-  line-height: 0em;
-  padding-bottom: 0.5em;
-  font-weight: bold;
-  background-color: #eaadba;
+
+/* Chart caption — one-liner read guide */
+.chart-caption {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: #526070;
+  text-align: center;
+  line-height: 1.35;
 }
+
+/* Focus outline for keyboard-accessible cells (shown by SVG stroke in JS) */
+:deep(rect:focus) {
+  outline: none;
+}
+
+/* Loading skeleton */
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0;
+}
+
+.skeleton-matrix {
+  width: 100%;
+  max-width: 580px;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%);
+  background-size: 400% 100%;
+  border-radius: 4px;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-matrix {
+    animation: none;
+    background: #f0f4f8;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Shared state card */
+.state-card {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .spinner {
   width: 2rem;
   height: 2rem;
   margin: 5rem auto;
   display: block;
-}
-
-.error-state {
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 </style>
