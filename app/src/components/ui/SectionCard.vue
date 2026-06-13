@@ -80,16 +80,15 @@
     <slot />
   </template>
   <!--
-    Apply minHeight to the resolved BCard so the card reserves the same vertical
-    space as the skeleton — this prevents layout shift (CLS) when async data
-    arrives and the card grows from nothing to full content. The style is inert
-    once the content fills more space than the reserved minimum.
+    Resolved card sizes to its CONTENT (no minHeight) so sparse sections (e.g. a
+    Phenotypes card with one term) don't become tall empty boxes. minHeight is
+    reserved only on the loading skeleton above; a small skeleton->content shift
+    is preferable to large uneven whitespace on detail pages.
   -->
   <BCard
     v-else-if="!empty"
     data-testid="section-card-content"
     class="border-subtle"
-    :style="{ minHeight }"
     body-class="p-0"
     header-class="p-1"
   >

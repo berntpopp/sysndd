@@ -61,12 +61,12 @@ const MAIN_NAV = {
         { text: 'Compare curations', path: '/CurationComparisons' },
         { text: 'Curation matrix', path: '/CurationComparisons/Similarity' },
         { text: 'Correlate phenotypes', path: '/PhenotypeCorrelations' },
-        { text: 'Correlation matrix', path: '/PhenotypeFunctionalCorrelation' },
         { text: 'Correlate variants', path: '/VariantCorrelations' },
         { text: 'Entries over time', path: '/EntriesOverTime' },
         { text: 'NDD Publications', path: '/PublicationsNDD' },
         { text: 'PubTator Analysis', path: '/PubtatorNDD' },
         { text: 'Functional clusters', path: '/GeneNetworks' },
+        { text: 'Phenotype–function correlation', path: '/PhenotypeFunctionalCorrelation' },
       ],
     },
     {
