@@ -162,6 +162,16 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
   # genes' worth of data, so the per-gene rate is effectively 25x higher — but
   # the upstream rate is what matters for politeness, and gnomAD has confirmed
   # tolerance for 5 concurrent batch requests in our spike.
+  #
+  # Timeout/retry derive from external_proxy_budget("gnomad_batch") so this path
+  # is explicitly bounded and never the legacy unbounded class (#344). This is a
+  # worker/job-only path batching up to 25 genes, so its DEFAULTS are higher
+  # (20s timeout / 30s window) than the per-gene 6s/10s class, but stay tunable
+  # via EXTERNAL_PROXY_GNOMAD_BATCH_* env vars.
+  budget <- external_proxy_budget(
+    "gnomad_batch",
+    default_timeout = 20, default_max = 30, default_tries = 3L
+  )
   httr2::request(GNOMAD_BATCH_ENDPOINT) |>
     httr2::req_method("POST") |>
     httr2::req_headers("Content-Type" = "application/json", "Accept" = "application/json") |>
@@ -170,10 +180,10 @@ GNOMAD_BATCH_ENDPOINT <- "https://gnomad.broadinstitute.org/api?raw"
       rate = EXTERNAL_API_THROTTLE$gnomad$capacity / EXTERNAL_API_THROTTLE$gnomad$fill_time_s,
       realm = "gnomad"
     ) |>
-    httr2::req_timeout(30) |>
+    httr2::req_timeout(budget$timeout_seconds) |>
     httr2::req_retry(
-      max_tries = 3L,
-      max_seconds = 30L,
+      max_tries = budget$max_tries,
+      max_seconds = budget$max_seconds,
       is_transient = function(resp) httr2::resp_status(resp) %in% c(429L, 503L, 504L)
     ) |>
     httr2::req_error(is_error = function(resp) FALSE) # handle errors manually

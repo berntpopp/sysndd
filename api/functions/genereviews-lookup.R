@@ -76,14 +76,20 @@ genereviews_bookshelf_url <- function(nbk_id) {
 #' @return Parsed xml2 document.
 #' @noRd
 genereviews_eutils_xml <- function(endpoint, query) {
+  # Bound by external_proxy_budget("genereviews") so an NCBI E-utilities hiccup
+  # cannot occupy a worker for the legacy 30s window (#344; this path bypassed
+  # the budget when GeneReviews landed in PR #389). Tunable via
+  # EXTERNAL_PROXY_GENEREVIEWS_* env vars.
+  budget <- external_proxy_budget("genereviews")
   response <- httr2::request(paste0(GENEREVIEWS_EUTILS_BASE, "/", endpoint)) %>%
     httr2::req_url_query(!!!genereviews_eutils_query(query)) %>%
     httr2::req_retry(
-      max_tries = 3,
+      max_tries = budget$max_tries,
+      max_seconds = budget$max_seconds,
       backoff = ~ 2^.x,
       is_transient = ~ httr2::resp_status(.x) %in% c(429, 500, 502, 503, 504)
     ) %>%
-    httr2::req_timeout(30) %>%
+    httr2::req_timeout(budget$timeout_seconds) %>%
     httr2::req_perform()
 
   xml2::read_xml(httr2::resp_body_string(response))
