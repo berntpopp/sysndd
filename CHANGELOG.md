@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.8] — 2026-06-13
+
+Patch release: a public-page design + accessibility pass, plus review fixes.
+
+### Changed
+
+- **Accessibility lifted across all public pages (Lighthouse a11y mean 96.6 → 99.8; 23/25 pages now score 100; best-practices and SEO 100 on all 25).** Root-caused and fixed app-wide issues via shared components: the `heading-order` failure (the first-visit `DisclaimerDialog` used `h5`/`h6` → now `h2`/`h3`); `td-has-header` on every data table (filter-row cells marked `role="presentation"`); `select-name` and `button-name` on filter/page-size selects and icon controls; and `aria-prohibited-attr` (636 instances) on the gene-detail protein-domain lollipop SVG. The shared `TableShell`/`AnalysisShell` were moved onto the design tokens (neutral/`--border-subtle`/radius/shadow/brand blue) and each public page now has exactly one route-level `<h1>` (`TableShell` gained a `heading-level` prop, default `2`).
+- **Low-contrast chips replaced with an AA token system.** Ad-hoc pastel chips that failed WCAG AA (e.g. Bootstrap blue `#0d6efd` on `#e7f1ff` ≈ 3:1, ~29 instances on PubTator) were replaced with shared `.sysndd-chip--*` classes in `app/src/assets/scss/partials/_chips.scss`; the app-wide `.text-muted` was aligned to `--neutral-700`.
+- **Analyses menu:** the "Correlation matrix" entry was renamed to **"Phenotype–function correlation"** and moved to the end of the Analyses dropdown, and the page is now standalone (its misleading cross-link tabs, which navigated away to the phenotype correlogram, were removed).
+
+### Fixed
+
+- **Detail-page section cards size to their content again.** A layout-stability change had reserved a large fixed `min-height` on resolved cards, which made sparse cards (e.g. a Phenotypes card with one term) render as tall empty boxes with uneven heights; the reservation now applies only to the loading skeleton, so cards adapt to content (e.g. a Phenotypes card on `/Entities/1317` dropped from 288px to 107px).
+- **The analysis correlation/matrix charts render again.** An attempted responsive-width change computed the SVG size before its container was laid out, so the D3 matrices (Curation similarity, phenotype/variant correlograms, time plot, phenotype–function correlation) rendered no SVG or at the wrong size; the chart sizing was reverted to its working approach.
+
+### Internal
+
+- Recorded the justified file-size growth from the accessibility/token additions in `scripts/code-quality-file-size-baseline.tsv` (added lines are necessary ARIA labels, roles, token styles, and chip classes rather than new behavior). Full audit, spec, plan, and before/after evidence live under `.planning/audits/2026-06-13-frontend-audit/`.
+
 ## [0.21.7] — 2026-06-13
 
 Patch release removing the floating help/feedback widget and its backing "Cite" endpoint.
