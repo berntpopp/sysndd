@@ -8,8 +8,11 @@
 # Functions are available in the global environment.
 
 llm_admin_runtime_config <- function() {
-  if (exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
-    return(get("dw", envir = .GlobalEnv, inherits = FALSE))
+  # base:: namespacing is required: the live runtime attaches packages (e.g. via
+  # biomaRt/AnnotationDbi) that mask base `exists`/`get` with S4 generics that
+  # reject the `inherits=` argument, which otherwise 500s this endpoint.
+  if (base::exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    return(base::get("dw", envir = .GlobalEnv, inherits = FALSE))
   }
   NULL
 }

@@ -22,7 +22,8 @@ string_db_cache <- new.env(parent = emptyenv())
 get_string_db <- function(score_threshold = 400L) {
   cache_key <- as.character(score_threshold)
 
-  if (!exists(cache_key, envir = string_db_cache)) {
+  # base:: namespacing guards against loaded packages masking base exists/get.
+  if (!base::exists(cache_key, envir = string_db_cache)) {
     message(sprintf("[STRING] Initializing STRINGdb singleton (threshold=%d)...", score_threshold))
     string_db_cache[[cache_key]] <- STRINGdb::STRINGdb$new(
       version = "11.5",

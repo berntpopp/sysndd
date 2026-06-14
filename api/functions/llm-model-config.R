@@ -23,8 +23,10 @@ LLM_DEFAULT_GEMINI_MODEL <- "gemini-3.5-flash"
   }
 
   if (is.environment(config)) {
-    if (exists("gemini_model", envir = config, inherits = FALSE)) {
-      return(.llm_model_scalar(get("gemini_model", envir = config, inherits = FALSE)))
+    # base:: namespacing: loaded packages can mask base exists/get with S4
+    # generics that reject the inherits= argument (see llm_admin_endpoints.R).
+    if (base::exists("gemini_model", envir = config, inherits = FALSE)) {
+      return(.llm_model_scalar(base::get("gemini_model", envir = config, inherits = FALSE)))
     }
     return(NA_character_)
   }
@@ -40,8 +42,8 @@ LLM_DEFAULT_GEMINI_MODEL <- "gemini-3.5-flash"
   if (!is.null(config)) {
     return(config)
   }
-  if (exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
-    return(get("dw", envir = .GlobalEnv, inherits = FALSE))
+  if (base::exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    return(base::get("dw", envir = .GlobalEnv, inherits = FALSE))
   }
   NULL
 }
