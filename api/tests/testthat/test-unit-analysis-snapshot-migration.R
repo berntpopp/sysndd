@@ -5,8 +5,8 @@ withr::defer(setwd(analysis_snapshot_test_wd), testthat::teardown_env())
 test_that("migration manifest tracks the latest migration", {
   source(file.path("functions", "migration-manifest.R"), local = TRUE)
 
-  expect_equal(EXPECTED_LATEST_MIGRATION, "034_add_pubtator_annotation_indexes.sql")
-  expect_equal(EXPECTED_MIGRATION_COUNT, 32L)
+  expect_equal(EXPECTED_LATEST_MIGRATION, "035_add_pubtator_gene_summary.sql")
+  expect_equal(EXPECTED_MIGRATION_COUNT, 33L)
 })
 
 test_that("public analysis snapshot migration enforces scoped public-ready uniqueness", {

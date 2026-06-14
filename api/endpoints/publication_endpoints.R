@@ -468,7 +468,7 @@ function(req,
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,observed,background_count,enrichment_ratio,npmi,fisher_p,fdr_bh,pmids,publications,entities", # nolint: line_length_linter
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,observed,background_count,enrichment_ratio,npmi,fisher_p,fdr_bh,pmids", # nolint: line_length_linter
          format = "json") {
   # 1) Set serializer
   res$serializer <- serializers[[format]]
@@ -497,42 +497,14 @@ function(req,
   filter_exprs <- generate_filter_expressions(filter,
     allowed_columns = NULL)
 
-  # 4) Fetch from DB (no filter yet - computed fields don't exist)
-  df_raw <- pool %>%
-    tbl("pubtator_human_gene_entity_view") %>%
-    collect()
-
-  # 5) Nest the data => one row per gene
-  df_nested <- nest_pubtator_gene_tibble_mem(df_raw)
-
-  # 6) Add computed fields for prioritization
-  #    - publication_count: number of valid publications
-  #    - entities_count: number of SysNDD entities (0 = novel/coverage gap)
-  #    - is_novel: 1 if gene has no SysNDD entity, 0 otherwise
-  #    - oldest_pub_date: earliest publication date
-  #    - pmids: comma-separated list of PMIDs (string, not array)
-  df_counts <- df_nested %>%
-    dplyr::mutate(
-      publication_count = purrr::map_int(publications, ~
-        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
-      entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
-      is_novel = as.integer(entities_count == 0),
-      oldest_pub_date = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
-        if (nrow(valid_pubs) == 0) {
-          return(NA_character_)
-        }
-        min_date <- min(valid_pubs$date, na.rm = TRUE)
-        as.character(min_date)
-      }),
-      pmids = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
-          dplyr::arrange(date) %>%
-          dplyr::distinct(pmid)
-        paste(valid_pubs$pmid, collapse = ",")
-      })
-    )
+  # 4-6) Flat per-gene rows. Fast path reads the precomputed
+  #      pubtator_gene_summary table (migration 035) refreshed by the nightly
+  #      worker job; cold-start fallback computes the same flat fields live from
+  #      the view. This replaces the per-request collect()+tidyr::nest() that
+  #      dominated the ~800ms latency. The nested publications/entities are no
+  #      longer produced: the frontend never consumed them (it lazy-fetches
+  #      per-gene publications via /pubtator/table on row expand).
+  df_counts <- pubtator_genes_summary_base(pool)$data
 
   # 6b) Left-join normalized enrichment metrics (issue #175): normalize raw NDD
   #     co-occurrence for research-popularity bias. Worker-precomputed; LEFT JOIN
