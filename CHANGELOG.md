@@ -20,6 +20,10 @@ Minor release: Administrator-views UX hardening and maintainability (audit follo
 
 - **Gemini cost estimate is no longer hardcoded.** The LLM-admin cache cost estimate is centralized in the model catalog (`llm_model_pricing()` with per-model `price_input/output_per_million`) and keyed off the active model (`get_default_gemini_model()`), removing the stale "Gemini 2.0 Flash" rate.
 
+### Fixed
+
+- **Developer-reference version display** (`/API`) rendered the API and Database versions as raw Plumber 1-element arrays (`v[ "0.22.0" ]`) with a stray `[ "unknown" ]` commit badge (the badge guard `!== 'unknown'` never matched the array). The `/api/version` client now unwraps the array-wrapped scalars, so the versions render as plain `v0.22.0` / `v1.0.0` with the commit badge correctly hidden when unknown.
+
 ### Internal
 
 - **`TablesLogs.vue` split** (1160 → 378 lines) into a `useLogTable` composable + `LogFilterToolbar` child + `logTableConfig`; file-size baseline ratcheted down.
