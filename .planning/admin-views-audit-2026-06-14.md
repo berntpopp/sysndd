@@ -33,6 +33,23 @@ Read-only production verification (no destructive admin actions on the live DB):
   `/Entities` (data-heavy public table) 100/100/100/92 (TBT 20ms, CLS 0.052). 0 console errors.
 - Admin routes are auth-guarded: `GET /ManageUser` (etc.) redirects to `/Login` when unauthenticated.
 
+### Authenticated admin-view Lighthouse (production, desktop)
+
+Run via puppeteer-core + lighthouse `startFlow` with a seeded admin token
+(`disableStorageReset`), so the authenticated admin pages are actually measured:
+
+| Admin view | Perf | A11y | Best-Pr | FCP / LCP / TBT / CLS |
+|---|:--:|:--:|:--:|---|
+| ManageUser | 98 | 100 | 100 | 0.9s / 0.9s / 20ms / 0 |
+| ManageOntology | 99 | 100 | 100 | 0.8s / 0.8s / 20ms / 0 |
+| AdminStatistics | 99 | 100 | 100 | 0.8s / 0.8s / 10ms / 0 |
+| ManagePubtator | 99 | 100 | 100 | 0.8s / 0.8s / 30ms / 0 |
+| ManageLLM | 96 | 100 | 100 | 0.8s / 0.8s / 150ms / 0 |
+
+Authenticated admin-view performance is excellent (perf 96–99, a11y/best-practices 100).
+ManageLLM has the highest TBT (150ms) from its cache + generation-log tables — the main
+remaining perf headroom (virtualize/paginate those tables).
+
 ### Authenticated production walkthrough (operator account, read-only — no writes)
 
 Logged in as an Administrator and navigated all 11 admin views on production master.
@@ -135,3 +152,42 @@ All verified live (Playwright + API) and via gates: vitest (affected specs), who
   chart fallbacks, keyboard-operable rows, icon-button labels.
 - T5 Polish: replace native dialogs with modals; per-view titles; confirmations on heavy ops;
   design-token cleanups; split oversized files.
+
+## Enhancement plan to >9/10 — per sub-9 view
+
+Status legend: ✅ done in PR #429 · 🔧 in PR #2 (typed-client migration) · ⬜ remaining backlog.
+
+### ManageLLM (6 → target 9.5)
+- ✅ Funct: `/config` 500 fixed; cache per-type cards fixed.  ✅ A11y: WAI-ARIA tablist.
+- 🔧 Code: migrate `useLlmAdmin` onto the typed `llm_admin.ts` (delete dead client + type drift).
+- ⬜ Funct: add a job-cancel action for in-flight regeneration; centralize Gemini pricing with
+  `llm-model-config.R` (cost row currently shows stale "Gemini 2.0 Flash" pricing).
+- ⬜ Perf: virtualize/paginate the cache + generation-log tables (TBT 150ms → <50ms).
+
+### ManageOntology (6 → target 9)
+- ✅ Funct/Security: UPDATE column allowlist (injection closed).
+- 🔧 Code: route the table/edit calls through typed `ontology.ts`; drop dead `inject('axios')`.
+- ⬜ Code: extract URL-state + pagination into a composable to bring the 721-line view under 600.
+- ⬜ UX/A11y: confirmation before saving an "anchored" (VariO) term; `aria-label`s on desktop
+  filter selects + `aria-busy` on the loading overlay; replace hardcoded hex with design tokens.
+
+### AdminStatistics (6 → target 9.5)
+- ✅ A11y: chart `role=img` + aria-label fallbacks.  ✅ Funct: double `/updates` fetch removed;
+  stale spec endpoint fixed; chart empty states.
+- 🔧 Code: migrate the three composables onto typed `statistics.ts` (drop injected axios).
+- ⬜ Perf/UX: dedupe remaining on-mount request fan-out; design-token cleanup of one-off hex;
+  tighten mobile control bar (3764px scroll-height debt).
+
+### ManagePubtator (6 → target 9.5)
+- ✅ A11y: aria-live job/progress + progressbar aria.  ✅ Funct: error extraction; dead code removed.
+- 🔧 Code: migrate `usePubtatorAdmin` onto typed `publication.ts` (delete duplicated interfaces,
+  fix `updated_count`/`updated` drift).
+- ⬜ UX: honest indeterminate progress when total unknown; polling backoff; expand behavior spec.
+
+### Cross-view backlog (lifts ViewLogs, ManageUser, ManageBackups, etc.)
+- ⬜ Split `TablesLogs.vue` (1160 lines) into a `useLogTable` composable + toolbar child.
+- ⬜ Replace native `prompt()` (ManageUser presets) / `confirm()` (export) with app modals.
+- ⬜ Per-view document `<title>` for all admin routes (most show generic "SysNDD |").
+- ⬜ Confirmation modals on heavy/irreversible ManageAnnotations ops (ontology update, force-apply,
+  comparisons refresh, refresh-all); server-side "refresh all" sentinel to avoid the full-corpus
+  client round trip.
