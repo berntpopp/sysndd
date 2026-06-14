@@ -179,6 +179,9 @@ services:
       # seeds a baseline so the surface works even when these are unset.
       DB_VERSION: "${DB_VERSION:-}"
       DB_COMMIT: "${DB_COMMIT:-}"
+      # Auto-bootstrap public analysis snapshots on startup (#420). Default on;
+      # set to false to disable the post-migration enqueue of missing presets.
+      ANALYSIS_SNAPSHOT_BOOTSTRAP_ON_STARTUP: "${ANALYSIS_SNAPSHOT_BOOTSTRAP_ON_STARTUP:-true}"
     networks:
       - proxy
       - backend

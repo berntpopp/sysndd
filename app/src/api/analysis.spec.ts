@@ -12,6 +12,7 @@ import {
   getNetworkEdges,
   getFunctionalClusterSummary,
   getPhenotypeClusterSummary,
+  isSnapshotPreparingError,
   type FunctionalClusteringResponse,
   type PhenotypeCluster,
   type PhenotypeClusteringResponse,
@@ -221,5 +222,24 @@ describe('api/analysis — getPhenotypeClusterSummary', () => {
     server.use(http.get('/api/analysis/phenotype_cluster_summary', () => HttpResponse.json(ok)));
     const result = await getPhenotypeClusterSummary({ cluster_hash: 'def', cluster_number: '2' });
     expect(result.cluster_hash).toBe('def');
+  });
+});
+
+describe('isSnapshotPreparingError', () => {
+  it('is true for a 503 snapshot_missing problem', () => {
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'snapshot_missing' } } })).toBe(true);
+  });
+  it('is true for snapshot_stale and source_version_mismatch', () => {
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'snapshot_stale' } } })).toBe(true);
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'source_version_mismatch' } } })).toBe(true);
+  });
+  it('is false for a non-503 error', () => {
+    expect(isSnapshotPreparingError({ response: { status: 500, data: { code: 'snapshot_missing' } } })).toBe(false);
+  });
+  it('is false for a 503 with an unrelated code', () => {
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'CAPACITY_EXCEEDED' } } })).toBe(false);
+  });
+  it('is false for a plain error', () => {
+    expect(isSnapshotPreparingError(new Error('boom'))).toBe(false);
   });
 });

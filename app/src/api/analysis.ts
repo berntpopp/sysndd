@@ -13,6 +13,39 @@ import type { AxiosRequestConfig } from 'axios';
 import { apiClient } from './client';
 
 // ---------------------------------------------------------------------------
+// Snapshot "being prepared" classification
+// ---------------------------------------------------------------------------
+
+/**
+ * Problem codes the analysis-snapshot endpoints return (HTTP 503) while a
+ * snapshot is being (re)built rather than on a hard failure. The frontend shows
+ * a friendly "being prepared" state for these instead of a raw error. (#420)
+ */
+export const SNAPSHOT_PREPARING_CODES = [
+  'snapshot_missing',
+  'snapshot_stale',
+  'source_version_mismatch',
+] as const;
+
+/**
+ * Returns true when an error is an analysis-snapshot "being prepared" 503
+ * (snapshot missing/stale/mismatch), false for any other error.
+ *
+ * The API rejects with a raw AxiosError (the typed `apiClient` only unwraps
+ * `response.data` on success), so the status code lives at
+ * `err.response.status` and the RFC 9457 problem code at
+ * `err.response.data.code` — the same access path `networkDataError()` already
+ * uses in `useNetworkData.ts`.
+ */
+export function isSnapshotPreparingError(err: unknown): boolean {
+  const problem = (err as { response?: { status?: number; data?: { code?: string } } })?.response;
+  if (!problem || problem.status !== 503) return false;
+  const code = problem.data?.code;
+  return typeof code === 'string'
+    && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 

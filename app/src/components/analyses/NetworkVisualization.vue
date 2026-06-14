@@ -223,8 +223,21 @@
           </div>
         </div>
 
+        <!-- Snapshot being prepared (503) — takes precedence over the error card -->
+        <div v-if="isPreparing && !isLoading" class="preparing-container text-center py-4">
+          <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
+          <p class="text-muted mb-3">
+            This analysis is being prepared and will appear here shortly. This can take a
+            couple of minutes after a deploy or data update.
+          </p>
+          <BButton variant="primary" @click="retryLoadNetwork">
+            <i class="bi bi-arrow-clockwise me-1" />
+            Check again
+          </BButton>
+        </div>
+
         <!-- Error state with retry -->
-        <div v-if="error && !isLoading" class="error-container text-center">
+        <div v-else-if="error && !isLoading" class="error-container text-center">
           <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
           <p class="text-muted mb-3">Failed to load network: {{ error.message }}</p>
           <BButton variant="primary" @click="retryLoadNetwork">
@@ -363,6 +376,7 @@ const cytoscapeContainer = ref<HTMLElement | null>(null);
 const {
   isLoading,
   error,
+  isPreparing,
   metadata,
   fetchNetworkData,
   cytoscapeElements,
@@ -959,7 +973,8 @@ defineExpose({
   text-align: center;
 }
 
-.error-container {
+.error-container,
+.preparing-container {
   position: absolute;
   top: 50%;
   left: 50%;

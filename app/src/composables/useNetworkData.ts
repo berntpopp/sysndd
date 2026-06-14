@@ -14,7 +14,7 @@
 
 import { ref, shallowRef, computed, type Ref, type ComputedRef } from 'vue';
 import type { ElementDefinition } from 'cytoscape';
-import { getNetworkEdges } from '@/api/analysis';
+import { getNetworkEdges, isSnapshotPreparingError } from '@/api/analysis';
 import type { NetworkNode, NetworkEdge, NetworkResponse, NetworkMetadata } from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import { getClusterColor } from '../utils/clusterColors';
@@ -35,6 +35,8 @@ export interface NetworkDataState {
   isLoading: Ref<boolean>;
   /** Error state */
   error: Ref<Error | null>;
+  /** True when the API returned a snapshot "being prepared" 503 (#420) */
+  isPreparing: Ref<boolean>;
   /** Network metadata for UI display */
   metadata: ComputedRef<NetworkMetadata | null>;
   /** Fetch network data from API */
@@ -180,6 +182,7 @@ export function useNetworkData(): NetworkDataState {
   const networkData = shallowRef<NetworkResponse | null>(null);
   const isLoading = ref(false);
   const error = ref<Error | null>(null);
+  const isPreparing = ref(false);
 
   /**
    * Computed metadata for UI display
@@ -196,6 +199,7 @@ export function useNetworkData(): NetworkDataState {
   const fetchNetworkData = async (): Promise<void> => {
     isLoading.value = true;
     error.value = null;
+    isPreparing.value = false;
 
     console.log('[useNetworkData] Fetching public network snapshot preset');
     const startTime = performance.now();
@@ -216,6 +220,7 @@ export function useNetworkData(): NetworkDataState {
         );
       }
     } catch (err) {
+      isPreparing.value = isSnapshotPreparingError(err);
       error.value = networkDataError(err);
       console.error('Network data fetch error:', err);
     } finally {
@@ -288,6 +293,7 @@ export function useNetworkData(): NetworkDataState {
   const clearNetworkData = (): void => {
     networkData.value = null;
     error.value = null;
+    isPreparing.value = false;
     isLoading.value = false;
   };
 
@@ -295,6 +301,7 @@ export function useNetworkData(): NetworkDataState {
     networkData,
     isLoading,
     error,
+    isPreparing,
     metadata,
     fetchNetworkData,
     cytoscapeElements,

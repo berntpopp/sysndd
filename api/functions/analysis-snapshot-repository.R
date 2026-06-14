@@ -406,6 +406,76 @@ analysis_snapshot_status_code <- function(row) {
   "available"
 }
 
+#' Cheap existence probe for an active public-ready snapshot.
+#'
+#' Mirrors the public-ready predicate of `analysis_snapshot_get_public()` but
+#' fetches no child-table rows — used by the startup bootstrap and admin refresh
+#' to decide whether a preset still needs a refresh job.
+#'
+#' @return TRUE when a `public_ready = 1, status = 'public_ready'` manifest row
+#'   exists for the (analysis_type, parameter_hash); FALSE otherwise.
+#' @export
+analysis_snapshot_public_exists <- function(analysis_type, parameter_hash, conn = NULL) {
+  row <- db_execute_query(
+    "SELECT snapshot_id
+       FROM analysis_snapshot_manifest
+      WHERE analysis_type = ?
+        AND parameter_hash = ?
+        AND public_ready = 1
+        AND status = 'public_ready'
+      LIMIT 1",
+    unname(list(analysis_type, parameter_hash)),
+    conn = conn
+  )
+  nrow(row) > 0L
+}
+
+#' Metadata-only read of the active public-ready manifest row.
+#'
+#' Like `analysis_snapshot_get_public()` but returns just the single manifest row
+#' annotated with the computed `status_code` (no network/cluster/correlation
+#' child queries). Used by the admin status endpoint to report per-preset state.
+#'
+#' @return A 1-row data frame with an added `status_code` column, or NULL when no
+#'   public-ready row exists.
+#' @export
+analysis_snapshot_public_manifest <- function(analysis_type,
+                                              parameter_hash,
+                                              conn = NULL,
+                                              current_source_data_version = NULL) {
+  manifest <- db_execute_query(
+    "SELECT *
+       FROM analysis_snapshot_manifest
+      WHERE analysis_type = ?
+        AND parameter_hash = ?
+        AND public_ready = 1
+        AND status = 'public_ready'
+      ORDER BY activated_at DESC, snapshot_id DESC
+      LIMIT 1",
+    unname(list(analysis_type, parameter_hash)),
+    conn = conn
+  )
+
+  if (nrow(manifest) == 0L) {
+    return(NULL)
+  }
+
+  if (is.null(current_source_data_version) &&
+    exists("analysis_snapshot_source_data_version", mode = "function")) {
+    current_source_data_version <- tryCatch(
+      analysis_snapshot_source_data_version(conn = conn),
+      error = function(e) NULL
+    )
+  }
+
+  manifest <- manifest[1, , drop = FALSE]
+  if (!is.null(current_source_data_version)) {
+    manifest$current_source_data_version <- as.character(current_source_data_version)[1]
+  }
+  manifest$status_code <- analysis_snapshot_status_code(manifest)
+  manifest
+}
+
 analysis_snapshot_source_data_version <- function(conn = NULL) {
   result <- db_execute_query(
     "SELECT SHA2(CONCAT_WS('|',

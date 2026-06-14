@@ -112,6 +112,21 @@ Public analysis endpoints and MCP analysis tools read public-ready rows from `an
 
 After curated public data changes, submit `analysis_snapshot_refresh` durable jobs for the supported presets and let the worker build and activate snapshots. Activation is scoped to one public-ready row per `(analysis_type, parameter_hash)`, so refreshing one preset does not replace another preset. Refresh jobs must use approved-public inputs only.
 
+A fresh deploy bootstraps the snapshots automatically (#420): after migrations, `start_sysndd_api.R` runs `analysis_snapshot_bootstrap_on_startup()`, which enqueues a refresh job for any supported preset that has no active public-ready snapshot. It is idempotent (a restart with snapshots already present enqueues nothing), dedup-safe, never crashes boot, and is gated by `ANALYSIS_SNAPSHOT_BOOTSTRAP_ON_STARTUP` (default `true`; set to `false` to disable). The worker must be running to consume the jobs. There are three ways to (re)build snapshots, all sharing one submit function:
+
+- **Automatic** — the startup bootstrap above.
+- **Admin HTTP (no SSH/docker needed)** — `POST /api/admin/analysis/snapshots/refresh` (Administrator token) submits the jobs and returns the job ids; pass `{"force": true}` to rebuild even when a current snapshot exists, or `{"analysis_type": "gene_network_edges"}` to target one preset. `GET /api/admin/analysis/snapshots/status` reports per-preset state (missing / available / stale / source_version_mismatch) with timestamps and row counts so an operator can watch a rebuild progress. Example:
+
+  ```bash
+  curl -X POST https://<host>/api/admin/analysis/snapshots/refresh \
+    -H "Authorization: Bearer <admin-token>" -H "Content-Type: application/json" -d '{}'
+  curl https://<host>/api/admin/analysis/snapshots/status -H "Authorization: Bearer <admin-token>"
+  ```
+
+- **Operator script (SSH fallback)** — `make refresh-analysis-snapshots` (or `docker exec sysndd-api-1 Rscript /app/scripts/refresh-analysis-snapshots.R`) forces a rebuild of all presets.
+
+While a snapshot is still building, the public GeneNetworks and PhenotypeClusters pages show a friendly "analysis is being prepared" panel (with a retry) instead of a raw error.
+
 Snapshot status meanings:
 
 - `unsupported_parameter`: the requested parameters are not in the fixed public preset matrix; change the request or predefine and refresh a new preset in code.

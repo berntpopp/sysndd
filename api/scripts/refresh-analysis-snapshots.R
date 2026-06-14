@@ -51,37 +51,30 @@ on.exit(pool::poolClose(pool), add = TRUE)
 
 presets <- analysis_snapshot_supported_presets()
 message(sprintf(
-  "[refresh-snapshots] submitting analysis_snapshot_refresh for %d presets on '%s'",
+  "[refresh-snapshots] forcing analysis_snapshot_refresh for %d presets on '%s'",
   length(presets), api_config
 ))
 
-submitted <- 0L
-for (preset in presets) {
-  outcome <- tryCatch(
-    async_job_service_submit(
-      job_type = "analysis_snapshot_refresh",
-      request_payload = list(
-        analysis_type = preset$analysis_type,
-        params = preset$params
-      ),
-      queue_name = "default",
-      priority = 50L
-    ),
-    error = function(e) list(.error = conditionMessage(e))
+# Shared submit path (#420): the same function backs the startup bootstrap and
+# the admin endpoint. The operator script's contract is "rebuild them", so it
+# forces a refresh regardless of whether a current snapshot already exists.
+summary <- service_analysis_snapshot_submit_refresh(force = TRUE)
+
+for (r in summary$results) {
+  tag <- switch(r$action,
+    submitted = "",
+    reused = " (existing job reused)",
+    error = sprintf(" ERROR: %s", r$message),
+    skipped_existing = " (already present)",
+    ""
   )
-
-  if (!is.null(outcome$.error)) {
-    message(sprintf("  %-34s ERROR: %s", preset$analysis_type, outcome$.error))
-    next
-  }
-
-  job_id <- tryCatch(as.character(outcome$job$job_id[[1]]), error = function(e) NA_character_)
-  tag <- if (isTRUE(outcome$duplicate)) " (existing job reused)" else ""
-  message(sprintf("  %-34s job_id=%s%s", preset$analysis_type, job_id, tag))
-  submitted <- submitted + 1L
+  message(sprintf("  %-34s job_id=%s%s", r$analysis_type, r$job_id, tag))
 }
 
 message(sprintf(
-  "[refresh-snapshots] %d/%d jobs queued. Worker (queue 'default') will build + activate each snapshot.",
-  submitted, length(presets)
+  paste(
+    "[refresh-snapshots] %d submitted, %d reused, %d failed of %d presets.",
+    "Worker (queue 'default') will build + activate each snapshot."
+  ),
+  summary$submitted, summary$reused, summary$failed, summary$requested
 ))

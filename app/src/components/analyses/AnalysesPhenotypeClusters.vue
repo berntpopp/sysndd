@@ -55,7 +55,19 @@
           </template>
 
           <div id="cluster_dataviz" class="svg-container">
-            <div v-if="error" class="error-state text-center p-4">
+            <div v-if="isPreparing" class="error-state text-center p-4">
+              <i class="bi bi-hourglass-split text-primary fs-1 mb-3 d-block" />
+              <p class="text-muted mb-3">
+                This analysis is being prepared and will appear here shortly. This can take a
+                couple of minutes after a deploy or data update.
+              </p>
+              <BButton variant="primary" @click="retryLoad">
+                <i class="bi bi-arrow-clockwise me-1" />
+                Check again
+              </BButton>
+            </div>
+
+            <div v-else-if="error" class="error-state text-center p-4">
               <i class="bi bi-exclamation-triangle-fill text-danger fs-1 mb-3 d-block" />
               <p class="text-muted mb-3">
                 {{ error }}
@@ -242,7 +254,11 @@ import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import TableLoadingState from '@/components/table/TableLoadingState.vue';
 import LlmSummaryCard from '@/components/llm/LlmSummaryCard.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
-import { getPhenotypeClustering, getPhenotypeClusterSummary } from '@/api/analysis';
+import {
+  getPhenotypeClustering,
+  getPhenotypeClusterSummary,
+  isSnapshotPreparingError,
+} from '@/api/analysis';
 import { isApiError } from '@/api/client';
 import {
   sortPhenotypeClusterRows,
@@ -306,6 +322,7 @@ export default {
       },
       loading: true,
       error: null,
+      isPreparing: false,
 
       fields: [
         {
@@ -436,6 +453,7 @@ export default {
     async loadClusterData() {
       this.loading = true;
       this.error = null;
+      this.isPreparing = false;
       try {
         const data = await getPhenotypeClustering();
         this.itemsCluster = data.clusters;
@@ -449,8 +467,14 @@ export default {
           this.updateClusterGraph();
         });
       } catch (e) {
-        this.error = e.message || 'Failed to load phenotype cluster data. Please try again.';
-        this.makeToast(e, 'Error', 'danger');
+        // A snapshot "being prepared" 503 is a transient, expected state — show a
+        // friendly panel instead of a hard error toast. (#420)
+        if (isSnapshotPreparingError(e)) {
+          this.isPreparing = true;
+        } else {
+          this.error = e.message || 'Failed to load phenotype cluster data. Please try again.';
+          this.makeToast(e, 'Error', 'danger');
+        }
       } finally {
         this.loading = false;
       }

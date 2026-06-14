@@ -151,6 +151,19 @@ tryCatch(
 )
 
 ## -------------------------------------------------------------------##
+# 9c) Bootstrap public analysis snapshots if missing (#420): a fresh deploy
+#     gets the analysis_snapshot_* tables populated so /GeneNetworks and
+#     /PhenotypeClusters heal automatically instead of 503 snapshot_missing.
+#     Idempotent (existence-checked) + dedup-safe; gated; never crashes boot.
+## -------------------------------------------------------------------##
+tryCatch(
+  analysis_snapshot_bootstrap_on_startup(),
+  error = function(e) {
+    message(sprintf("[snapshot-bootstrap] skipped: %s", conditionMessage(e)))
+  }
+)
+
+## -------------------------------------------------------------------##
 # 10) Run the API.
 ## -------------------------------------------------------------------##
 root %>% pr_run(host = "0.0.0.0", port = as.numeric(dw$port_self))

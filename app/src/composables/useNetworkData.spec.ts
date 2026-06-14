@@ -6,6 +6,9 @@ import { useNetworkData } from './useNetworkData';
 
 vi.mock('@/api/analysis', () => ({
   getNetworkEdges: vi.fn(),
+  // #420: the composable classifies fetch errors via this helper; default to
+  // "not a snapshot-preparing 503" so the existing error-path assertions hold.
+  isSnapshotPreparingError: vi.fn(() => false),
 }));
 
 const getNetworkEdgesMock = vi.mocked(getNetworkEdges);
