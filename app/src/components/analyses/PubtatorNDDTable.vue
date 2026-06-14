@@ -268,9 +268,7 @@ import PubtatorAnnotatedText from '@/components/analyses/PubtatorAnnotatedText.v
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
-
-// Upper bound for the per-instance gene_symbols split cache (LRU eviction).
-const GENE_SYMBOL_CACHE_LIMIT = 2000;
+import { createLruCache } from '@/utils/lruCache';
 
 export default {
   name: 'PubtatorNDDTable',
@@ -429,7 +427,7 @@ export default {
       // Non-reactive memoization cache for gene_symbols splits (keyed by the
       // raw comma-separated string). markRaw keeps Vue from making it reactive;
       // declaring it here lets TypeScript infer the instance property.
-      geneSymbolCache: markRaw(new Map<string, string[]>()),
+      geneSymbolCache: markRaw(createLruCache<string, string[]>(2000)),
     };
   },
   watch: {
@@ -684,10 +682,8 @@ export default {
     },
 
     /**
-     * Parse PubTator annotations from text_hl field.
-     * Memoized: the same `text_hl` string parses once and is reused across the
-     * preview slice and the length check. The expanded detail view renders
-     * annotated text via PubtatorAnnotatedText (which memoizes independently).
+     * Parse PubTator annotations (memoized). Used for the preview slice + length
+     * check; the expanded detail view renders via PubtatorAnnotatedText.
      */
     parseAnnotations(text: string | null | undefined): ParsedSegment[] {
       return parsePubtatorTextMemoized(text);
@@ -702,30 +698,18 @@ export default {
     },
 
     /**
-     * Split a comma-separated gene_symbols string into trimmed symbols once.
-     * The template needs this list up to three times per row (slice, count,
-     * overflow), so memoize by the raw string to avoid repeated splitting.
-     * Bounded with LRU eviction (recency refreshed on hit) so a long browsing
-     * session over many distinct gene_symbols strings cannot grow it unbounded.
+     * Split a comma-separated gene_symbols string into trimmed symbols once
+     * (template uses it ~3x/row). Memoized via a bounded LRU (geneSymbolCache).
      */
     geneSymbolList(geneSymbols: string | null | undefined): string[] {
       if (!geneSymbols) return [];
-      const cache = this.geneSymbolCache;
-      const cached = cache.get(geneSymbols);
-      if (cached) {
-        cache.delete(geneSymbols);
-        cache.set(geneSymbols, cached);
-        return cached;
-      }
+      const cached = this.geneSymbolCache.get(geneSymbols);
+      if (cached) return cached;
       const list = geneSymbols
         .split(',')
         .map((g) => g.trim())
         .filter((g) => g !== '');
-      if (cache.size >= GENE_SYMBOL_CACHE_LIMIT) {
-        const oldestKey = cache.keys().next().value;
-        if (oldestKey !== undefined) cache.delete(oldestKey);
-      }
-      cache.set(geneSymbols, list);
+      this.geneSymbolCache.set(geneSymbols, list);
       return list;
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)

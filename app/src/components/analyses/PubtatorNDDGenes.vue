@@ -593,8 +593,7 @@ const loadData = async () => {
         currentPage?: number;
         fspec?: FieldDefinition[];
         // Optional enrichment-freshness fields from /pubtator/genes meta
-        // (camelCase, matching executionTime/totalItems); absent on older API
-        // responses, so both are optional and handled defensively.
+        // (camelCase, like executionTime/totalItems); absent on older responses.
         enrichmentStatus?: string;
         enrichmentRefreshedAt?: string;
       };

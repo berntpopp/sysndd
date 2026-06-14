@@ -8,6 +8,8 @@
  * Entity types: GENE, DISEASE, VARIANT, SPECIES, CHEMICAL
  */
 
+import { createLruCache } from '@/utils/lruCache';
+
 export interface ParsedSegment {
   text: string;
   type: 'plain' | 'gene' | 'disease' | 'variant' | 'species' | 'chemical' | 'match';
@@ -129,36 +131,20 @@ export function parsePubtatorText(text: string | null | undefined): ParsedSegmen
  * resulting segment array keyed by the raw text. This collapses the N parses
  * per row down to one, with no change in rendered output.
  *
- * The cache is bounded with LRU eviction (a Map preserves insertion order, and
- * we refresh recency on every hit) so a long browsing session over many distinct
- * rows cannot grow it without limit, and hot entries are not evicted as "oldest".
+ * The cache is a bounded LRU (recency refreshed on hit) so a long browsing
+ * session over many distinct rows cannot grow it without limit, and hot entries
+ * are not evicted as "oldest". See {@link createLruCache}.
  */
-const PUBTATOR_PARSE_CACHE_LIMIT = 1000;
-const pubtatorParseCache = new Map<string, ParsedSegment[]>();
+const pubtatorParseCache = createLruCache<string, ParsedSegment[]>(1000);
 
 export function parsePubtatorTextMemoized(text: string | null | undefined): ParsedSegment[] {
   if (!text) return [];
 
   const cached = pubtatorParseCache.get(text);
-  if (cached) {
-    // Refresh LRU recency: re-insert so a frequently-used entry moves to the
-    // newest position and is not evicted as the "oldest".
-    pubtatorParseCache.delete(text);
-    pubtatorParseCache.set(text, cached);
-    return cached;
-  }
+  if (cached) return cached;
 
   const segments = parsePubtatorText(text);
-
-  // Bound the cache: drop the oldest entry once over the limit.
-  if (pubtatorParseCache.size >= PUBTATOR_PARSE_CACHE_LIMIT) {
-    const oldestKey = pubtatorParseCache.keys().next().value;
-    if (oldestKey !== undefined) {
-      pubtatorParseCache.delete(oldestKey);
-    }
-  }
   pubtatorParseCache.set(text, segments);
-
   return segments;
 }
 
