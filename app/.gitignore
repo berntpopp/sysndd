@@ -1,6 +1,13 @@
 .DS_Store
 node_modules
+
+# Build output (vite build -> dist) plus local build/measurement variants
 /dist
+/dist-*/
+# Bundle-analyzer output + build/CI artifacts
+stats.html
+*.tsbuildinfo
+.lighthouseci/
 
 # local env files
 .env.local

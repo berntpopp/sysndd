@@ -28,6 +28,37 @@ export function createViteConfig(mode: string): UserConfig {
       vue(),
       VitePWA({
         registerType: 'prompt',
+        workbox: {
+          // The build emits ~250 content-hashed chunks. The Workbox default
+          // precaches every one of them, so on a first visit the service worker
+          // downloads several MB in the background — competing with the landing
+          // page's critical render path (this was pulling the 1.3 MB 3D viewer
+          // and 0.7 MB markdown renderer onto the home page network window).
+          // Instead, exclude the largest route-only chunks from precache and
+          // cache them at runtime on first use, so first paint is never slowed
+          // by code the home page does not execute.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
+          globIgnores: [
+            '**/ngl-*.js', // ~1.3 MB — 3D structure viewer (gene detail only)
+            '**/exceljs*.js', // ~0.9 MB — spreadsheet export (downloads only)
+            '**/ApiView-*.{js,css}', // ~1.5 MB — Swagger UI (API docs page only)
+            '**/useMarkdownRenderer-*.js', // ~0.7 MB — markdown (CMS/admin only)
+          ],
+          cleanupOutdatedCaches: true,
+          runtimeCaching: [
+            {
+              // Content-hashed build assets are immutable, so CacheFirst is safe
+              // and makes the excluded chunks offline-capable after first use.
+              urlPattern: /\/assets\/.*\.(?:js|css|woff2?)$/,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'sysndd-runtime-assets',
+                expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] },
+              },
+            },
+          ],
+        },
         manifest: {
           name: 'SysNDD',
           short_name: 'SysNDD',
@@ -190,7 +221,10 @@ export function createViteConfig(mode: string): UserConfig {
             vendor: ['vue', 'vue-router', 'pinia'],
             bootstrap: ['bootstrap', 'bootstrap-vue-next'],
             // Heavy visualization libraries (lazy-loaded)
-            viz: ['d3', '@upsetjs/bundle', 'gsap'],
+            // gsap is intentionally NOT bundled here: it is dynamically imported
+            // by HomeView for the count-up animation, so Vite emits it as its own
+            // small chunk and the home page no longer pulls in d3/upsetjs.
+            viz: ['d3', '@upsetjs/bundle'],
             // 3D structure viewer (lazy-loaded via BTab lazy)
             ngl: ['ngl'],
           },
