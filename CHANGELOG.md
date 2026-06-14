@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.21.9] — 2026-06-14
+
+Patch release: home-page performance — keep heavy libraries off the landing-page critical path.
+
+### Changed
+
+- **Home page no longer downloads ~600 KB of unused code.** `HomeView.vue` imported from the `@/composables` barrel, which statically re-exports heavy composables (`use3DStructure` → `ngl` 1.3 MB, `useMarkdownRenderer` 0.7 MB, `useCytoscape`/`useNetworkData` → d3, exceljs). Rollup cannot tree-shake the barrel, so the home route chunk eagerly pulled all of that in. Importing the two light composables (`useToast`, `useText`) directly bypasses the barrel; home JS payload dropped 740 → 211 KiB (−71%) and main-thread blocking from those modules executing went to ~0. This directly targets the mobile-Lighthouse LCP and TBT losses.
+- **`gsap` is loaded lazily** (and split out of the `viz` chunk) — it is only needed for the home count-up animation that runs after statistics load, so it no longer sits on the first-load critical path; it degrades gracefully to instant numbers if not yet ready.
+- **Leaner PWA precache.** The service worker no longer precaches the largest route-only chunks (`ngl`, `exceljs`, Swagger/`ApiView`, markdown) on first visit; they are runtime-cached on demand instead. First-visit background precache dropped 8.59 → 4.76 MB (−45%).
+
+### Internal
+
+- `app/.gitignore` now robustly ignores build output (`dist`, `dist-*`, `stats.html`, `*.tsbuildinfo`, `.lighthouseci`).
+
 ## [0.21.8] — 2026-06-13
 
 Patch release: a public-page design + accessibility pass, plus review fixes.
