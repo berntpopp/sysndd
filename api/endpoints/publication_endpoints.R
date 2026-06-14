@@ -497,42 +497,9 @@ function(req,
   filter_exprs <- generate_filter_expressions(filter,
     allowed_columns = NULL)
 
-  # 4) Fetch from DB (no filter yet - computed fields don't exist)
-  df_raw <- pool %>%
-    tbl("pubtator_human_gene_entity_view") %>%
-    collect()
-
-  # 5) Nest the data => one row per gene
-  df_nested <- nest_pubtator_gene_tibble_mem(df_raw)
-
-  # 6) Add computed fields for prioritization
-  #    - publication_count: number of valid publications
-  #    - entities_count: number of SysNDD entities (0 = novel/coverage gap)
-  #    - is_novel: 1 if gene has no SysNDD entity, 0 otherwise
-  #    - oldest_pub_date: earliest publication date
-  #    - pmids: comma-separated list of PMIDs (string, not array)
-  df_counts <- df_nested %>%
-    dplyr::mutate(
-      publication_count = purrr::map_int(publications, ~
-        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
-      entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
-      is_novel = as.integer(entities_count == 0),
-      oldest_pub_date = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
-        if (nrow(valid_pubs) == 0) {
-          return(NA_character_)
-        }
-        min_date <- min(valid_pubs$date, na.rm = TRUE)
-        as.character(min_date)
-      }),
-      pmids = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
-          dplyr::arrange(date) %>%
-          dplyr::distinct(pmid)
-        paste(valid_pubs$pmid, collapse = ",")
-      })
-    )
+  # 4-6) Flat per-gene rows (collect + nest + derive prioritization fields).
+  #      Extracted to a helper to keep this endpoint within its size baseline.
+  df_counts <- pubtator_genes_nest_base(pool)
 
   # 6b) Left-join normalized enrichment metrics (issue #175): normalize raw NDD
   #     co-occurrence for research-popularity bias. Worker-precomputed; LEFT JOIN
@@ -570,18 +537,15 @@ function(req,
   end_time <- Sys.time()
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
-  # 13) Build meta. Echo the originally requested `sort` (links/cursor stay
-  #     consistent) and append the enrichment snapshot status so the client can
-  #     show whether the ranking is current or not yet computed.
+  # 13) Build meta (echo the requested `sort`) and append the enrichment snapshot
+  #     status so the client can show whether the ranking is current.
   meta <- build_cursor_meta(
     pag_info$meta,
     sort, filter, fields,
     tbl_fspec, execution_time
-  ) %>%
-    tibble::add_column(
-      enrichmentStatus = enrichment_meta$status,
-      enrichmentRefreshedAt = enrichment_meta$refreshed_at %||% NA_character_
-    )
+  )
+  meta$enrichmentStatus <- enrichment_meta$status
+  meta$enrichmentRefreshedAt <- enrichment_meta$refreshed_at %||% NA_character_
 
   # 14) Build the cursor next/prev links for this resource
   links <- build_cursor_links(
