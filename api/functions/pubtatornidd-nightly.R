@@ -163,8 +163,10 @@ pubtatornidd_nightly_run <- function(pool_obj, dw_config, progress_fn = NULL, pa
     env_query = Sys.getenv("PUBTATORNDD_NIGHTLY_QUERY", "")
   )
   if (is.na(query) || !nzchar(query)) {
+    # Benign skip (consistent with the locked case): nothing to refresh, so the
+    # job completes successfully. `reason`/`message` make it diagnosable.
     return(list(
-      status = "completed", success = FALSE, skipped = TRUE, reason = "no_query",
+      status = "completed", success = TRUE, skipped = TRUE, reason = "no_query",
       message = paste(
         "No PubtatorNDD standing query configured (PUBTATORNDD_NIGHTLY_QUERY)",
         "or cached in pubtator_query_cache; nothing to update"

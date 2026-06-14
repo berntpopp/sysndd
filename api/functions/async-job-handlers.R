@@ -433,10 +433,11 @@
     payload = payload
   )
 
-  # Benign skips (lock held by a concurrent run) complete successfully. A
-  # missing standing query or a failed refresh step is surfaced as a job
-  # failure so the nightly run is observable in job history / alerting.
-  if (!isTRUE(result$success)) {
+  # Benign skips (lock held by a concurrent run, or no standing query
+  # configured/cached) complete successfully. Only a non-skip with success=FALSE
+  # is a real refresh failure and is surfaced as a job failure so it is
+  # observable in job history / alerting.
+  if (!isTRUE(result$skipped) && !isTRUE(result$success)) {
     stop(result$message %||% "PubtatorNDD nightly refresh failed", call. = FALSE)
   }
 
