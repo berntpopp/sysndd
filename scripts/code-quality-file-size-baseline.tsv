@@ -35,7 +35,6 @@ app/src/components/nddscore/NddScoreGeneTable.vue	822
 app/src/components/small/GenericTable.vue	926
 app/src/components/tables/TablesEntities.vue	861
 app/src/components/tables/TablesGenes.vue	782
-app/src/components/tables/TablesLogs.vue	1160
 app/src/components/tables/TablesPhenotypes.vue	889
 app/src/views/admin/ManageAnnotations.vue	613
 app/src/views/admin/ManageNDDScore.vue	602
