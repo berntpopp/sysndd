@@ -102,7 +102,10 @@ describe('api/llm — getLlmCacheStats', () => {
     const ok: LlmCacheStats = {
       total_entries: 42,
       by_status: { validated: 30, rejected: 5, pending: 7 },
-      by_type: { functional: 20, phenotype: 22 },
+      by_type: {
+        functional: { count: 20, validated: 15, pending: 4, rejected: 1 },
+        phenotype: { count: 22, validated: 15, pending: 3, rejected: 4 },
+      },
       last_generation: '2026-04-25T00:00:00Z',
       total_tokens_input: 1000,
       total_tokens_output: 2000,

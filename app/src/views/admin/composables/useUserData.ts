@@ -1,6 +1,7 @@
 import { nextTick, ref } from 'vue';
 
-import { apiClient } from '@/api/client';
+import { getUserTable, getRoleList, listUsersByRole } from '@/api/user';
+import type { UserTableResponse } from '@/api/user';
 import { useTableData, useExcelExport, useFilterPresets, useUrlParsing } from '@/composables';
 
 // Module-level dedup cache (preserves the existing semantics from ManageUser.vue line 760).
@@ -43,7 +44,6 @@ export interface UseUserDataOptions {
 
 export function useUserData(options: UseUserDataOptions = {}) {
   const { onToast, onScrollbarUpdate } = options;
-  const apiBase = import.meta.env.VITE_API_URL ?? '';
 
   const tableData = useTableData({
     pageSizeInput: 25,
@@ -74,18 +74,21 @@ export function useUserData(options: UseUserDataOptions = {}) {
     comment: { content: null, join_char: null, operator: 'contains' },
   });
 
-  function applyApiResponse(data: any): void {
-    users.value = data.data;
-    tableData.totalRows.value = data.meta[0].totalItems;
+  function applyApiResponse(data: UserTableResponse): void {
+    // meta is typed `unknown` on the envelope; it's a 1-element array of paging
+    // scalars (Plumber may serialize numbers as strings, hence Number()).
+    const meta = ((data.meta as Array<Record<string, unknown>>) ?? [])[0] ?? {};
+    users.value = data.data as unknown as Array<Record<string, unknown>>;
+    tableData.totalRows.value = Number(meta.totalItems) || 0;
     nextTick(() => {
-      tableData.currentPage.value = data.meta[0].currentPage;
+      tableData.currentPage.value = Number(meta.currentPage) || 0;
     });
-    totalPages.value = data.meta[0].totalPages;
-    tableData.prevItemID.value = Number(data.meta[0].prevItemID) || 0;
-    tableData.currentItemID.value = Number(data.meta[0].currentItemID) || 0;
-    tableData.nextItemID.value = Number(data.meta[0].nextItemID) || 0;
-    tableData.lastItemID.value = Number(data.meta[0].lastItemID) || 0;
-    tableData.executionTime.value = data.meta[0].executionTime;
+    totalPages.value = Number(meta.totalPages) || 0;
+    tableData.prevItemID.value = Number(meta.prevItemID) || 0;
+    tableData.currentItemID.value = Number(meta.currentItemID) || 0;
+    tableData.nextItemID.value = Number(meta.nextItemID) || 0;
+    tableData.lastItemID.value = Number(meta.lastItemID) || 0;
+    tableData.executionTime.value = Number(meta.executionTime) || 0;
     onScrollbarUpdate?.();
   }
 
@@ -93,7 +96,7 @@ export function useUserData(options: UseUserDataOptions = {}) {
     const urlParam = `sort=${tableData.sort.value}&filter=${tableData.filter_string.value}&page_after=${tableData.currentItemID.value}&page_size=${tableData.perPage.value}`;
     const now = Date.now();
     if (moduleLastApiParams === urlParam && now - moduleLastApiCallTime < 500) {
-      if (moduleLastApiResponse) applyApiResponse(moduleLastApiResponse);
+      if (moduleLastApiResponse) applyApiResponse(moduleLastApiResponse as UserTableResponse);
       return;
     }
     if (moduleApiCallInProgress && moduleLastApiParams === urlParam) return;
@@ -103,10 +106,15 @@ export function useUserData(options: UseUserDataOptions = {}) {
     tableData.isBusy.value = true;
 
     try {
-      const response = await apiClient.raw.get(`${apiBase}/api/user/table?${urlParam}`);
+      const data = await getUserTable({
+        sort: tableData.sort.value,
+        filter: tableData.filter_string.value,
+        page_after: tableData.currentItemID.value,
+        page_size: String(tableData.perPage.value),
+      });
       moduleApiCallInProgress = false;
-      moduleLastApiResponse = response.data;
-      applyApiResponse(response.data);
+      moduleLastApiResponse = data;
+      applyApiResponse(data);
       updateBrowserUrl();
     } catch (e) {
       moduleApiCallInProgress = false;
@@ -131,8 +139,8 @@ export function useUserData(options: UseUserDataOptions = {}) {
 
   async function loadRoleList(): Promise<void> {
     try {
-      const response = await apiClient.raw.get(`${apiBase}/api/user/role_list`);
-      role_options.value = (response.data as Array<{ role: string }>).map((item) => ({
+      const roles = await getRoleList();
+      role_options.value = roles.map((item) => ({
         value: item.role,
         text: item.role,
       }));
@@ -143,10 +151,8 @@ export function useUserData(options: UseUserDataOptions = {}) {
 
   async function loadUserList(): Promise<void> {
     try {
-      const response = await apiClient.raw.get(`${apiBase}/api/user/list?roles=Curator,Reviewer`);
-      user_options.value = (
-        response.data as Array<{ user_id: number; user_name: string; user_role: string }>
-      ).map((item) => ({
+      const list = await listUsersByRole({ roles: 'Curator,Reviewer' });
+      user_options.value = list.map((item) => ({
         value: item.user_id,
         text: item.user_name,
         role: item.user_role,

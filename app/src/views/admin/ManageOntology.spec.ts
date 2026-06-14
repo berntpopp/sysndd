@@ -1,18 +1,21 @@
 // ManageOntology.spec.ts
 /**
- * v11.0 closeout F2b — spec covering the apiClient migration of
- * `views/admin/ManageOntology.vue`.
+ * Spec covering the typed-client migration of
+ * `views/admin/ManageOntology.vue` (feat/admin-typed-client-migration).
  *
- *   1. `doLoadData()` fetches `GET /api/ontology/variant/table` with the
- *      `Authorization: Bearer <token>` header injected by the apiClient
- *      request interceptor.
+ *   1. `doLoadData()` fetches `GET /api/ontology/variant/table` via
+ *      `listVariantOntology` with the `Authorization: Bearer <token>`
+ *      header injected by the apiClient request interceptor.
  *   2. `updateOntologyData()` writes via `PUT /api/ontology/variant/update`
- *      and also carries the Bearer header.
+ *      through `updateVariantOntology` and also carries the Bearer header.
  *
  * The pre-F2b implementation hard-coded
  * `Authorization: Bearer ${localStorage.getItem('token')}` on each call;
  * this spec pins the migrated path so any regression trips the lint
- * guardrail AND fails an observable test.
+ * guardrail AND fails an observable test. Asserting on the msw network
+ * boundary keeps the Bearer-header-on-the-wire coverage intact across the
+ * raw-axios -> typed-client move (both route through the same axios
+ * singleton + request interceptor).
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +24,6 @@ import { createPinia, setActivePinia } from 'pinia';
 import { http, HttpResponse } from 'msw';
 
 import '@/plugins/axios';
-import axios from '@/plugins/axios';
 import { server } from '@/test-utils/mocks/server';
 import { primeAuth } from '@/test-utils/primeAuth';
 import { expectBearerHeader } from '@/test-utils/expectBearerHeader';
@@ -101,8 +103,6 @@ async function mountView() {
   setActivePinia(createPinia());
   const wrapper = mount(ManageOntology, {
     global: {
-      mocks: { axios },
-      provide: { axios },
       directives: { 'b-tooltip': {}, 'b-toggle': {} },
       stubs: {
         GenericTable: { template: '<div />' },

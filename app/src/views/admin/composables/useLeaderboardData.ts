@@ -1,7 +1,8 @@
 // views/admin/composables/useLeaderboardData.ts
 import { ref } from 'vue';
-import type { AxiosInstance } from 'axios';
 import { safeArray, unwrapScalar } from '@/utils/apiUtils';
+import { getContributorLeaderboard, getRereviewLeaderboard } from '@/api/statistics';
+import type { LeaderboardParams } from '@/api/statistics';
 
 interface ContributorData {
   user_name: string;
@@ -16,9 +17,6 @@ interface ReReviewLeaderboardData {
 }
 
 export function useLeaderboardData(
-  axios: AxiosInstance | undefined,
-  apiUrl: string,
-  getAuthHeaders: () => Record<string, string>,
   makeToast: (msg: unknown, title: string, variant: string) => void
 ) {
   const leaderboardData = ref<ContributorData[]>([]);
@@ -31,11 +29,9 @@ export function useLeaderboardData(
   const reReviewLeaderboardScope = ref<'all_time' | 'range'>('all_time');
 
   async function fetchLeaderboard(startDate: string, endDate: string): Promise<void> {
-    if (!axios) return;
-
     loadingLeaderboard.value = true;
     try {
-      const params: Record<string, string | number> = {
+      const params: LeaderboardParams = {
         top: 10,
         scope: leaderboardScope.value,
       };
@@ -44,19 +40,16 @@ export function useLeaderboardData(
         params.end_date = endDate;
       }
 
-      const response = await axios.get(`${apiUrl}/api/statistics/contributor_leaderboard`, {
-        params,
-        headers: getAuthHeaders(),
-      });
+      const response = await getContributorLeaderboard(params);
 
-      const data = safeArray<{ display_name: string; entity_count: number }>(response.data?.data);
+      const data = safeArray<{ display_name: string; entity_count: number }>(response?.data);
       leaderboardData.value = data.map((item) => ({
         user_name: item.display_name || 'Unknown',
         entity_count: item.entity_count,
       }));
 
-      if (response.data.meta?.total_contributors) {
-        totalContributors.value = unwrapScalar(response.data.meta.total_contributors, 0)!;
+      if (response?.meta?.total_contributors) {
+        totalContributors.value = unwrapScalar(response.meta.total_contributors, 0)!;
       }
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
@@ -68,11 +61,9 @@ export function useLeaderboardData(
   }
 
   async function fetchReReviewLeaderboard(startDate: string, endDate: string): Promise<void> {
-    if (!axios) return;
-
     loadingReReview.value = true;
     try {
-      const params: Record<string, string | number> = {
+      const params: LeaderboardParams = {
         top: 10,
         scope: reReviewLeaderboardScope.value,
       };
@@ -81,17 +72,14 @@ export function useLeaderboardData(
         params.end_date = endDate;
       }
 
-      const response = await axios.get(`${apiUrl}/api/statistics/rereview_leaderboard`, {
-        params,
-        headers: getAuthHeaders(),
-      });
+      const response = await getRereviewLeaderboard(params);
 
       const data = safeArray<{
         display_name: string;
         total_assigned: number;
         submitted_count: number;
         approved_count: number;
-      }>(response.data?.data);
+      }>(response?.data);
 
       reReviewLeaderboardData.value = data.map((item) => ({
         user_name: item.display_name || 'Unknown',

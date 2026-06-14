@@ -1,16 +1,36 @@
 // app/src/composables/useLlmAdmin.ts
 // Composable for LLM Administration API calls.
 //
+// HTTP transport is delegated to the typed resource helpers in
+// `@/api/llm_admin` (getLlmConfig / updateLlmModel / getLlmPrompts /
+// updateLlmPrompt / getLlmCacheStats / getLlmCacheSummaries / clearLlmCache /
+// validateLlmCacheEntry / regenerateLlm / getLlmLogs) rather than reaching for
+// raw `apiClient.get/post` URLs here. This composable owns the reactive state
+// (config / prompts / cacheStats / loading / error) and exposes the
+// view-facing types from `@/types/llm`.
+//
 // v11.0 closeout F2a: the `token: string` parameter has been dropped from
 // every exported method. The `apiClient` request interceptor
 // (`@/api/client`) reads `useAuth().token.value` on every outbound call and
-// injects the `Authorization: Bearer <token>` header. Call sites are
-// therefore no longer responsible for sourcing the token from localStorage
-// and passing it through — they just call `fetchConfig()` / `fetchPrompts()`
-// / etc. directly. See `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
+// injects the `Authorization: Bearer <token>` header (the typed helpers run
+// through the same interceptor). Call sites are therefore no longer
+// responsible for sourcing the token from localStorage and passing it through
+// — they just call `fetchConfig()` / `fetchPrompts()` / etc. directly. See
+// `.planning/_archive/legacy-plans/v11.0/closeout.md` §3 F2a.
 
 import { ref, type Ref } from 'vue';
-import { apiClient } from '@/api/client';
+import {
+  getLlmConfig,
+  updateLlmModel,
+  getLlmPrompts,
+  updateLlmPrompt,
+  getLlmCacheStats,
+  getLlmCacheSummaries,
+  clearLlmCache,
+  validateLlmCacheEntry,
+  regenerateLlm,
+  getLlmLogs,
+} from '@/api/llm_admin';
 import type {
   LlmConfig,
   PromptTemplates,
@@ -27,8 +47,6 @@ import type {
   ValidationStatus,
   LogStatus,
 } from '@/types/llm';
-
-const API_BASE = `${import.meta.env.VITE_API_URL}/api/llm`;
 
 /**
  * Unwrap Plumber's array-wrapped scalar values.
@@ -134,11 +152,11 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiClient.get<LlmConfig>(`${API_BASE}/config`, {
-        withCredentials: true,
-      });
-      // Unwrap Plumber's array-wrapped scalar values
-      config.value = unwrapPlumberValue(data);
+      const data = await getLlmConfig();
+      // Unwrap Plumber's array-wrapped scalar values. llm_admin.ts and
+      // @/types/llm declare parallel LlmConfig shapes (identical runtime data);
+      // bridge via unknown.
+      config.value = unwrapPlumberValue(data as unknown as LlmConfig);
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch config';
       throw e;
@@ -151,14 +169,11 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiClient.put<ModelUpdateResponse>(`${API_BASE}/config`, null, {
-        params: { model },
-        withCredentials: true,
-      });
+      const data = await updateLlmModel({ model });
       if (config.value) {
         config.value.current_model = model;
       }
-      return data;
+      return data as unknown as ModelUpdateResponse;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to update model';
       throw e;
@@ -175,10 +190,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiClient.get<PromptTemplates>(`${API_BASE}/prompts`, {
-        withCredentials: true,
-      });
-      prompts.value = data;
+      const data = await getLlmPrompts();
+      prompts.value = data as unknown as PromptTemplates;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch prompts';
       throw e;
@@ -196,12 +209,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiClient.put<PromptUpdateResponse>(
-        `${API_BASE}/prompts/${type}`,
-        { template, version, description },
-        { withCredentials: true }
-      );
-      return data;
+      const data = await updateLlmPrompt(type, { template, version, description });
+      return data as unknown as PromptUpdateResponse;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to update prompt';
       throw e;
@@ -218,10 +227,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     loading.value = true;
     error.value = null;
     try {
-      const data = await apiClient.get<CacheStats>(`${API_BASE}/cache/stats`, {
-        withCredentials: true,
-      });
-      cacheStats.value = data;
+      const data = await getLlmCacheStats();
+      cacheStats.value = data as unknown as CacheStats;
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch cache stats';
       throw e;
@@ -238,27 +245,21 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       per_page?: number;
     } = {}
   ): Promise<PaginatedCacheSummaries> {
-    return apiClient.get<PaginatedCacheSummaries>(`${API_BASE}/cache/summaries`, {
-      params,
-      withCredentials: true,
-    });
+    const data = await getLlmCacheSummaries(params);
+    return data as unknown as PaginatedCacheSummaries;
   }
 
   async function clearCache(clusterType: ClusterType | 'all'): Promise<CacheClearResponse> {
-    return apiClient.delete<CacheClearResponse>(`${API_BASE}/cache`, {
-      params: { cluster_type: clusterType },
-      withCredentials: true,
-    });
+    const data = await clearLlmCache({ cluster_type: clusterType });
+    return data as unknown as CacheClearResponse;
   }
 
   async function updateValidationStatus(
     cacheId: number,
     action: 'validate' | 'reject'
   ): Promise<ValidationUpdateResponse> {
-    return apiClient.post<ValidationUpdateResponse>(`${API_BASE}/cache/${cacheId}/validate`, null, {
-      params: { action },
-      withCredentials: true,
-    });
+    const data = await validateLlmCacheEntry(cacheId, { action });
+    return data as unknown as ValidationUpdateResponse;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -269,10 +270,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
     clusterType: ClusterType | 'all',
     force = false
   ): Promise<RegenerationJobResponse> {
-    return apiClient.post<RegenerationJobResponse>(`${API_BASE}/regenerate`, null, {
-      params: { cluster_type: clusterType, force },
-      withCredentials: true,
-    });
+    const data = await regenerateLlm({ cluster_type: clusterType, force });
+    return data as unknown as RegenerationJobResponse;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -289,10 +288,8 @@ export function useLlmAdmin(): UseLlmAdminReturn {
       per_page?: number;
     } = {}
   ): Promise<PaginatedLogs> {
-    return apiClient.get<PaginatedLogs>(`${API_BASE}/logs`, {
-      params,
-      withCredentials: true,
-    });
+    const data = await getLlmLogs(params);
+    return data as unknown as PaginatedLogs;
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

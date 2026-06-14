@@ -1,6 +1,6 @@
 // app/src/views/admin/composables/useBackupJobs.ts
 import { ref, watch } from 'vue';
-import { apiClient } from '@/api/client';
+import { createBackup, restoreBackup, deleteBackup } from '@/api/backup';
 import { useAsyncJob } from '@/composables/useAsyncJob';
 import { extractApiErrorMessage } from '@/utils/api-errors';
 import type { BackupItem } from './useBackupInventory';
@@ -62,20 +62,9 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
     showRestoreModal.value = false;
 
     try {
-      const response = await apiClient.raw.post<{
-        job_id: string;
-      }>(
-        `${import.meta.env.VITE_API_URL}/api/backup/restore`,
-        { filename: selectedBackup.value.filename },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          withCredentials: true,
-        }
-      );
+      const response = await restoreBackup({ filename: selectedBackup.value.filename });
 
-      restoreJob.startJob(response.data.job_id);
+      restoreJob.startJob(response.job_id);
     } catch (error) {
       console.error('Failed to start restore:', error);
       onToast?.(extractApiErrorMessage(error, 'Failed to start restore'), 'Error', 'danger');
@@ -90,16 +79,7 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
     const filename = selectedBackup.value.filename;
 
     try {
-      await apiClient.raw.delete(
-        `${import.meta.env.VITE_API_URL}/api/backup/delete/${encodeURIComponent(filename)}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: { confirm: 'DELETE' },
-          withCredentials: true,
-        }
-      );
+      await deleteBackup(filename, { confirm: 'DELETE' });
 
       onToast?.(`Backup '${filename}' deleted successfully`, 'Success', 'success');
       onRefresh();
@@ -114,17 +94,9 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
     backupJob.reset();
 
     try {
-      const response = await apiClient.raw.post<{
-        job_id: string;
-      }>(
-        `${import.meta.env.VITE_API_URL}/api/backup/create`,
-        {},
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await createBackup();
 
-      backupJob.startJob(response.data.job_id);
+      backupJob.startJob(response.job_id);
     } catch (error) {
       console.error('Failed to start backup:', error);
       onToast?.(extractApiErrorMessage(error, 'Failed to start backup'), 'Error', 'danger');
