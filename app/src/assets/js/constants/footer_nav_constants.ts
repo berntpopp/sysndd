@@ -65,6 +65,16 @@ const FOOTER_NAV = {
       width: '34',
       target: '_self',
     },
+    // Model Context Protocol (MCP) information page
+    {
+      id: 'mcp',
+      link: URLS.MCP_LINK,
+      linkAttr: { 'aria-label': 'mcp-link', title: 'SysNDD MCP — agent access' },
+      imgSrc: '/img/mcp.svg',
+      alt: 'Model Context Protocol logo',
+      width: '34',
+      target: '_self',
+    },
     // German Research Foundation (DFG)
     {
       id: 'dfg',

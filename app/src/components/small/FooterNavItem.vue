@@ -35,7 +35,7 @@ export default {
       return [
         'footer-logo',
         {
-          'footer-logo--icon': ['github', 'openapi'].includes(this.item.id),
+          'footer-logo--icon': ['github', 'openapi', 'mcp'].includes(this.item.id),
           'footer-logo--license': this.item.id === 'cc-license',
           'footer-logo--partner': ['dfg', 'unibe', 'ern-ithaca'].includes(this.item.id),
         },
