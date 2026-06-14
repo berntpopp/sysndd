@@ -262,7 +262,27 @@ const bvnStubs = {
   TableSearchInput: { template: '<input class="search-stub" />' },
   TableDownloadLinkCopyButtons: { template: '<div />' },
   TablePaginationControls: { template: '<div />' },
+  // The shared confirmation gate. Stubbed so tests can accept the gate by
+  // emitting `confirm` directly (the real BModal teleports and is awkward in
+  // jsdom). The view wires `@confirm="acceptConfirm"`, which runs the pending
+  // heavy-op action.
+  ConfirmActionModal: {
+    name: 'ConfirmActionModal',
+    props: ['modelValue', 'title', 'message', 'confirmLabel', 'confirmVariant'],
+    emits: ['update:modelValue', 'confirm', 'cancel', 'hidden'],
+    template: '<div class="confirm-action-modal-stub"><slot /></div>',
+  },
 };
+
+/**
+ * Accept the shared confirmation gate. Heavy operations (ontology update,
+ * force-apply, comparisons refresh, refresh-all) now open ConfirmActionModal
+ * before running; this emits the modal's `confirm` so the pending action fires.
+ */
+async function acceptConfirmGate(wrapper: VueWrapper): Promise<void> {
+  await wrapper.findComponent({ name: 'ConfirmActionModal' }).vm.$emit('confirm');
+  await flushPromises();
+}
 
 async function mountView(): Promise<VueWrapper> {
   const router = buildTestRouter();
@@ -444,7 +464,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     expect(updateOntology, 'Update Ontology Annotations button exists').toBeTruthy();
 
     await updateOntology!.trigger('click');
-    await flushPromises();
+    await acceptConfirmGate(wrapper);
     await vi.advanceTimersByTimeAsync(3000);
     await flushPromises();
 
@@ -546,7 +566,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     expect(ontologyButton, 'expected an "Update Ontology Annotations" button').toBeDefined();
 
     await ontologyButton!.trigger('click');
-    await flushPromises();
+    await acceptConfirmGate(wrapper);
 
     // Walk the polling loop: queued → running → completed+blocked.
     await vi.advanceTimersByTimeAsync(3000); // poll #1 — queued
@@ -685,7 +705,7 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
       'expected an "Update Ontology Annotations" button to trigger the blocked flow'
     ).toBeDefined();
     await ontologyButton!.trigger('click');
-    await flushPromises();
+    await acceptConfirmGate(wrapper);
 
     await vi.advanceTimersByTimeAsync(3000); // poll #1
     await flushPromises();
@@ -707,11 +727,42 @@ describe('ManageAnnotations — Phase C.C5 functional spec', () => {
     ).toBeDefined();
 
     await forceApplyButton!.trigger('click');
-    await flushPromises();
+    await acceptConfirmGate(wrapper);
 
     // The PUT must have been made, with blocked_job_id set to the id we
     // staged — i.e. the Phase 76 contract for force_apply_ontology.
     expect(forceApplyCalls.length).toBe(1);
     expect(forceApplyCalls[0].blockedJobId).toBe(BLOCKED_JOB_ID);
+  });
+
+  // -------------------------------------------------------------------------
+  // Confirmation gate: heavy ops must not fire until the operator accepts.
+  // -------------------------------------------------------------------------
+  it('does not submit the ontology update until the confirmation gate is accepted', async () => {
+    let submitCount = 0;
+    server.use(
+      http.put('/api/admin/update_ontology_async', () => {
+        submitCount += 1;
+        return HttpResponse.json({ job_id: ['ontology-gated'], status: ['accepted'] });
+      }),
+      http.get('/api/jobs/:job_id/status', () =>
+        HttpResponse.json({ job_id: ['ontology-gated'], status: ['completed'], result: [{}] })
+      )
+    );
+
+    const wrapper = await mountView();
+    const ontologyButton = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Update Ontology Annotations'));
+    expect(ontologyButton).toBeDefined();
+
+    // Clicking only opens the gate — no submit yet.
+    await ontologyButton!.trigger('click');
+    await flushPromises();
+    expect(submitCount).toBe(0);
+
+    // Accepting the gate runs the pending action — submit fires.
+    await acceptConfirmGate(wrapper);
+    expect(submitCount).toBe(1);
   });
 });
