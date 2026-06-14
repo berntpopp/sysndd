@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import { apiClient } from '@/api/client';
 import { useAsyncJob } from '@/composables/useAsyncJob';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 import type { BackupItem } from './useBackupInventory';
 
 export interface UseBackupJobsOptions {
@@ -62,8 +63,6 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
 
     try {
       const response = await apiClient.raw.post<{
-        error?: unknown;
-        message?: string;
         job_id: string;
       }>(
         `${import.meta.env.VITE_API_URL}/api/backup/restore`,
@@ -76,15 +75,10 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
         }
       );
 
-      if (response.data.error) {
-        onToast?.(response.data.message || 'Failed to start restore', 'Error', 'danger');
-        return;
-      }
-
       restoreJob.startJob(response.data.job_id);
     } catch (error) {
       console.error('Failed to start restore:', error);
-      onToast?.('Failed to start restore', 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(error, 'Failed to start restore'), 'Error', 'danger');
     }
   }
 
@@ -96,27 +90,22 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
     const filename = selectedBackup.value.filename;
 
     try {
-      const response = await apiClient.raw.delete<{
-        error?: unknown;
-        message?: string;
-      }>(`${import.meta.env.VITE_API_URL}/api/backup/delete/${filename}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: { confirm: 'DELETE' },
-        withCredentials: true,
-      });
-
-      if (response.data.error) {
-        onToast?.(response.data.message || 'Failed to delete backup', 'Error', 'danger');
-        return;
-      }
+      await apiClient.raw.delete(
+        `${import.meta.env.VITE_API_URL}/api/backup/delete/${encodeURIComponent(filename)}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          data: { confirm: 'DELETE' },
+          withCredentials: true,
+        }
+      );
 
       onToast?.(`Backup '${filename}' deleted successfully`, 'Success', 'success');
       onRefresh();
     } catch (error) {
       console.error('Failed to delete backup:', error);
-      onToast?.('Failed to delete backup', 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(error, 'Failed to delete backup'), 'Error', 'danger');
     }
   }
 
@@ -126,8 +115,6 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
 
     try {
       const response = await apiClient.raw.post<{
-        error?: unknown;
-        message?: string;
         job_id: string;
       }>(
         `${import.meta.env.VITE_API_URL}/api/backup/create`,
@@ -137,15 +124,10 @@ export function useBackupJobs(options: UseBackupJobsOptions) {
         }
       );
 
-      if (response.data.error) {
-        onToast?.(response.data.message || 'Failed to start backup', 'Error', 'danger');
-        return;
-      }
-
       backupJob.startJob(response.data.job_id);
     } catch (error) {
       console.error('Failed to start backup:', error);
-      onToast?.('Failed to start backup', 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(error, 'Failed to start backup'), 'Error', 'danger');
     }
   }
 

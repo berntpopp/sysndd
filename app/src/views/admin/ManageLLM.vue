@@ -28,14 +28,22 @@
                 </BButton>
               </template>
 
-              <!-- Tab Navigation -->
-              <nav class="nav nav-pills admin-tabs mb-3" aria-label="LLM administration sections">
+              <!-- Tab Navigation (WAI-ARIA tablist) -->
+              <nav
+                class="nav nav-pills admin-tabs mb-3"
+                role="tablist"
+                aria-label="LLM administration sections"
+              >
                 <RouterLink
                   v-for="tab in tabs"
+                  :id="`llm-tab-${tab.id}`"
                   :key="tab.id"
                   :to="{ path: '/ManageLLM', hash: tab.hash }"
                   class="nav-link"
+                  role="tab"
                   :class="{ active: activeTab === tab.id }"
+                  :aria-selected="activeTab === tab.id ? 'true' : 'false'"
+                  :aria-controls="tab.id"
                   :aria-current="activeTab === tab.id ? 'page' : undefined"
                   @click="setActiveTab(tab.id)"
                 >
@@ -43,7 +51,13 @@
                 </RouterLink>
               </nav>
 
-              <section v-show="activeTab === 'overview'" id="overview" role="tabpanel">
+              <section
+                v-show="activeTab === 'overview'"
+                id="overview"
+                role="tabpanel"
+                aria-labelledby="llm-tab-overview"
+                tabindex="0"
+              >
                 <LlmOverviewPanel
                   :config="config"
                   :cache-stats="cacheStats"
@@ -64,7 +78,13 @@
               </section>
 
               <!-- Configuration Tab -->
-              <section v-show="activeTab === 'configuration'" id="configuration" role="tabpanel">
+              <section
+                v-show="activeTab === 'configuration'"
+                id="configuration"
+                role="tabpanel"
+                aria-labelledby="llm-tab-configuration"
+                tabindex="0"
+              >
                 <LlmConfigPanel
                   :config="config"
                   :loading="loading"
@@ -73,12 +93,24 @@
               </section>
 
               <!-- Prompts Tab -->
-              <section v-show="activeTab === 'prompts'" id="prompts" role="tabpanel">
+              <section
+                v-show="activeTab === 'prompts'"
+                id="prompts"
+                role="tabpanel"
+                aria-labelledby="llm-tab-prompts"
+                tabindex="0"
+              >
                 <LlmPromptEditor :prompts="prompts" :loading="loading" @save="handlePromptSave" />
               </section>
 
               <!-- Cache Tab -->
-              <section v-show="activeTab === 'cache'" id="cache" role="tabpanel">
+              <section
+                v-show="activeTab === 'cache'"
+                id="cache"
+                role="tabpanel"
+                aria-labelledby="llm-tab-cache"
+                tabindex="0"
+              >
                 <LlmCacheManager
                   :stats="cacheStats"
                   @clear="handleCacheClear"
@@ -88,7 +120,13 @@
               </section>
 
               <!-- Logs Tab -->
-              <section v-show="activeTab === 'logs'" id="logs" role="tabpanel">
+              <section
+                v-show="activeTab === 'logs'"
+                id="logs"
+                role="tabpanel"
+                aria-labelledby="llm-tab-logs"
+                tabindex="0"
+              >
                 <LlmLogViewer />
               </section>
             </AdminOperationPanel>

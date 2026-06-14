@@ -77,9 +77,9 @@ describe('useBulkUserActions', () => {
 
   it('bulkAssignRole POSTs user_ids + role and rejects empty selection or empty role', async () => {
     const axios = await getAxiosMock();
-    let received: any = null;
-    axios.post.mockImplementationOnce((_url: string, data: any) => {
-      received = data;
+    let received: Record<string, unknown> | null = null;
+    axios.post.mockImplementationOnce((_url: string, data: unknown) => {
+      received = data as Record<string, unknown>;
       return Promise.resolve({ status: 200, data: { processed: 2 } });
     });
     const a = useBulkUserActions();
@@ -97,5 +97,21 @@ describe('useBulkUserActions', () => {
     await a.bulkDelete([1, 2]);
     await flushPromises();
     expect(a.bulkActing.value).toBe(false);
+  });
+
+  it('bulkDelete surfaces RFC 9457 problem+json detail on the toast (409)', async () => {
+    const axios = await getAxiosMock();
+    const onToast = vi.fn();
+    axios.post.mockRejectedValueOnce({
+      response: { data: { detail: 'User still referenced by curation data', title: 'Conflict' } },
+    });
+    const a = useBulkUserActions({ onToast });
+    await expect(a.bulkDelete([1, 2])).rejects.toBeTruthy();
+    await flushPromises();
+    expect(onToast).toHaveBeenCalledWith(
+      'User still referenced by curation data',
+      'Bulk Delete Failed',
+      'danger'
+    );
   });
 });

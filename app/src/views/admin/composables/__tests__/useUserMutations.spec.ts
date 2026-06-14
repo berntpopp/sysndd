@@ -73,16 +73,43 @@ describe('useUserMutations', () => {
         succeeded = true;
       },
     });
-    await m.deleteUser({ user_id: 7 } as any);
+    await m.deleteUser({ user_id: 7 });
     await flushPromises();
     expect(succeeded).toBe(true);
   });
 
-  it('updateUser PUT sends only intended fields and surfaces success', async () => {
+  it('updateUser PUT sends intended fields and surfaces success', async () => {
     const axios = await getAxiosMock();
-    let received: any = null;
-    axios.put.mockImplementationOnce((_url: string, data: any) => {
-      received = data;
+    let received: { user_details: Record<string, unknown> } | null = null;
+    axios.put.mockImplementationOnce((_url: string, data: unknown) => {
+      received = data as { user_details: Record<string, unknown> };
+      return Promise.resolve({ status: 200, data: { ok: true } });
+    });
+    const m = useUserMutations();
+    await m.updateUser({
+      user_id: 7,
+      user_name: 'alice',
+      email: 'alice@example.org',
+      abbreviation: 'AL',
+      first_name: 'Alice',
+      family_name: 'Liddell',
+      user_role: 'Curator',
+      approved: true,
+      orcid: '0000-0002-1825-0097',
+      comment: 'a note',
+    });
+    await flushPromises();
+    expect(received?.user_details.user_id).toBe(7);
+    expect(received?.user_details.approved).toBe(1);
+    expect(received?.user_details.orcid).toBe('0000-0002-1825-0097');
+    expect(received?.user_details.comment).toBe('a note');
+  });
+
+  it('updateUser PUT sends cleared orcid/comment as empty strings (not omitted)', async () => {
+    const axios = await getAxiosMock();
+    let received: { user_details: Record<string, unknown> } | null = null;
+    axios.put.mockImplementationOnce((_url: string, data: unknown) => {
+      received = data as { user_details: Record<string, unknown> };
       return Promise.resolve({ status: 200, data: { ok: true } });
     });
     const m = useUserMutations();
@@ -97,13 +124,38 @@ describe('useUserMutations', () => {
       approved: true,
       orcid: '',
       comment: '',
-    } as any);
+    });
     await flushPromises();
-    expect(received.user_details.user_id).toBe(7);
-    expect(received.user_details.approved).toBe(1);
-    // empty strings are omitted from the wire payload
-    expect(received.user_details.orcid).toBeUndefined();
-    expect(received.user_details.comment).toBeUndefined();
+    // Cleared values must reach the API as '' so they are persisted, not no-op'd.
+    expect(received?.user_details).toHaveProperty('orcid', '');
+    expect(received?.user_details).toHaveProperty('comment', '');
+  });
+
+  it('updateUser surfaces RFC 9457 problem+json detail on the toast', async () => {
+    const axios = await getAxiosMock();
+    const onToast = vi.fn();
+    axios.put.mockRejectedValueOnce({
+      response: { data: { detail: 'Cannot demote the last administrator', title: 'Forbidden' } },
+    });
+    const m = useUserMutations({ onToast });
+    await expect(
+      m.updateUser({
+        user_id: 7,
+        user_name: 'alice',
+        email: 'alice@example.org',
+        abbreviation: 'AL',
+        first_name: 'Alice',
+        family_name: 'Liddell',
+        user_role: 'Viewer',
+        approved: true,
+      })
+    ).rejects.toBeTruthy();
+    await flushPromises();
+    expect(onToast).toHaveBeenCalledWith(
+      'Cannot demote the last administrator',
+      'Error',
+      'danger'
+    );
   });
 
   it('changePassword PUT toggles isChangingPassword', async () => {

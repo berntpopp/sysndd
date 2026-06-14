@@ -209,6 +209,154 @@ describe('ManageBackups — v11.0 closeout F2b apiClient migration', () => {
     await flushPromises();
   });
 
+  it('downloadBackup() percent-encodes the filename segment in the URL', async () => {
+    primeAuth('encode-token');
+
+    // Backup names embed ':' from the timestamp; the segment must be
+    // encodeURIComponent-escaped so the colon does not break the path.
+    const filename = 'manual_2025-10-01T12:34:56.sql.gz';
+    let requestedUrl = '';
+    server.use(
+      http.get('/api/backup/download/:filename', ({ request }) => {
+        requestedUrl = request.url;
+        return new HttpResponse(new Blob(['ok']));
+      })
+    );
+
+    const createSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    const wrapper = mountView();
+    await (wrapper.vm as unknown as BackupsVm).downloadBackup(filename);
+    await flushPromises();
+
+    createSpy.mockRestore();
+    revokeSpy.mockRestore();
+
+    expect(requestedUrl).toContain(`/api/backup/download/${encodeURIComponent(filename)}`);
+    expect(requestedUrl).not.toContain(`${filename}`);
+  });
+
+  it('downloadBackup() surfaces the extracted error (not the static fallback) on failure', async () => {
+    primeAuth('download-fail-token');
+
+    server.use(
+      // onMounted refresh — keep it green so the assertion targets the download leg.
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({ data: [], meta: { total_count: 0, total_size_bytes: 0 } })
+      ),
+      http.get('/api/backup/download/:filename', () =>
+        HttpResponse.json({ message: 'Backup file not found' }, { status: 404 })
+      )
+    );
+
+    const wrapper = mountView();
+    await flushPromises();
+    makeToastSpy.mockClear();
+
+    await (wrapper.vm as unknown as BackupsVm).downloadBackup('missing.sql.gz');
+    await flushPromises();
+
+    // The download response is a Blob, so the JSON `message` is not parsed;
+    // extractApiErrorMessage falls through to axios's error message. Either
+    // way the toast is no longer the hardcoded 'Download failed' fallback.
+    expect(makeToastSpy).toHaveBeenCalledTimes(1);
+    const [message, title, variant] = makeToastSpy.mock.calls[0];
+    expect(message).toMatch(/404/);
+    expect(title).toBe('Error');
+    expect(variant).toBe('danger');
+  });
+
+  it('confirmDelete() percent-encodes the filename segment in the URL', async () => {
+    primeAuth('delete-encode-token');
+
+    const filename = 'pre-restore_2025-10-01T12:34:56.sql.gz';
+    let requestedUrl = '';
+    server.use(
+      http.delete('/api/backup/delete/:filename', ({ request }) => {
+        requestedUrl = request.url;
+        return HttpResponse.json({ message: 'Deleted' });
+      }),
+      http.get('/api/backup/list', () =>
+        HttpResponse.json({ data: [], meta: { total_count: 0, total_size_bytes: 0 } })
+      )
+    );
+
+    const wrapper = mountView();
+    const vm = wrapper.vm as unknown as BackupsVm;
+    vm.selectedBackup = { filename };
+    vm.deleteConfirmText = 'DELETE';
+
+    await vm.confirmDelete();
+    await flushPromises();
+
+    expect(requestedUrl).toContain(`/api/backup/delete/${encodeURIComponent(filename)}`);
+  });
+
+  it('confirmDelete() surfaces the server error message via the toast', async () => {
+    primeAuth('delete-fail-token');
+
+    server.use(
+      http.delete('/api/backup/delete/:filename', () =>
+        HttpResponse.json({ message: 'A backup operation is already running' }, { status: 409 })
+      )
+    );
+
+    const wrapper = mountView();
+    const vm = wrapper.vm as unknown as BackupsVm;
+    vm.selectedBackup = { filename: 'manual_2025-10-01.sql.gz' };
+    vm.deleteConfirmText = 'DELETE';
+
+    await vm.confirmDelete();
+    await flushPromises();
+
+    expect(makeToastSpy).toHaveBeenCalledWith(
+      'A backup operation is already running',
+      'Error',
+      'danger'
+    );
+  });
+
+  it('triggerBackup() surfaces the server error message via the toast', async () => {
+    primeAuth('create-fail-token');
+
+    server.use(
+      http.post('/api/backup/create', () =>
+        HttpResponse.json({ message: 'A backup is already running' }, { status: 409 })
+      )
+    );
+
+    const wrapper = mountView();
+    await (wrapper.vm as unknown as BackupsVm).triggerBackup();
+    await flushPromises();
+
+    expect(makeToastSpy).toHaveBeenCalledWith('A backup is already running', 'Error', 'danger');
+  });
+
+  it('confirmRestore() surfaces the server error message via the toast', async () => {
+    primeAuth('restore-fail-token');
+
+    server.use(
+      http.post('/api/backup/restore', () =>
+        HttpResponse.json({ message: 'Restore is temporarily unavailable' }, { status: 503 })
+      )
+    );
+
+    const wrapper = mountView();
+    const vm = wrapper.vm as unknown as BackupsVm;
+    vm.selectedBackup = { filename: 'manual_2025-10-01.sql.gz' };
+    vm.restoreConfirmText = 'RESTORE';
+
+    await vm.confirmRestore();
+    await flushPromises();
+
+    expect(makeToastSpy).toHaveBeenCalledWith(
+      'Restore is temporarily unavailable',
+      'Error',
+      'danger'
+    );
+  });
+
   it('keeps the manual backup operation inside the inventory table shell', () => {
     primeAuth('layout-token');
 

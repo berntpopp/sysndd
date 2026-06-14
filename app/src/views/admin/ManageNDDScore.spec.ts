@@ -35,4 +35,35 @@ describe('ManageNDDScore.vue', () => {
     const { submitNddScoreImport } = await import('@/api/nddscore_admin');
     expect(submitNddScoreImport).toHaveBeenCalledWith({ validateOnly: false });
   });
+
+  it('shows a distinct message when an import is already running (409)', async () => {
+    const { submitNddScoreImport } = await import('@/api/nddscore_admin');
+    (submitNddScoreImport as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      jobId: 'job-existing',
+      status: 'already_running',
+    });
+    const wrapper = mount(ManageNDDScore, {
+      global: { stubs: { AdminOperationPanel: false } },
+    });
+    await flushPromises();
+    await (wrapper.vm as unknown as { confirmImport: () => Promise<void> }).confirmImport();
+    await flushPromises();
+    expect(wrapper.text()).toContain('An import is already running.');
+    expect(wrapper.text()).not.toContain('Import and activation job submitted.');
+  });
+
+  it('surfaces the extracted API error message on submit failure', async () => {
+    const { submitNddScoreImport } = await import('@/api/nddscore_admin');
+    (submitNddScoreImport as ReturnType<typeof vi.fn>).mockRejectedValueOnce({
+      response: { data: { detail: 'Zenodo archive checksum mismatch' } },
+    });
+    const wrapper = mount(ManageNDDScore, {
+      global: { stubs: { AdminOperationPanel: false } },
+    });
+    await flushPromises();
+    await (wrapper.vm as unknown as { confirmImport: () => Promise<void> }).confirmImport();
+    await flushPromises();
+    expect(wrapper.text()).toContain('Zenodo archive checksum mismatch');
+    expect(wrapper.text()).not.toContain('Failed to submit import job.');
+  });
 });

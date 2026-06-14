@@ -9,6 +9,7 @@
             :title="headerLabel"
             :meta="`${totalRows.toLocaleString()} log entries`"
             :description="`Loaded ${perPage}/${totalRows} in ${executionTime}`"
+            :aria-busy="isBusy ? 'true' : 'false'"
           >
             <template #actions>
               <TableDownloadLinkCopyButtons
@@ -233,7 +234,14 @@
             </template>
             <!-- User Interface controls -->
 
-            <div v-if="isBusy" data-testid="logs-loading-state" class="logs-loading-state">
+            <div
+              v-if="isBusy"
+              data-testid="logs-loading-state"
+              class="logs-loading-state"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
               <BSpinner small class="me-2" />
               Loading logs...
             </div>
@@ -318,11 +326,9 @@
               <!-- Custom filter fields slot -->
 
               <template #cell-id="{ row }">
-                <div style="cursor: pointer" @click="handleRowClick(row)">
-                  <BBadge variant="primary">
-                    {{ row.id }}
-                  </BBadge>
-                </div>
+                <BBadge variant="primary">
+                  {{ row.id }}
+                </BBadge>
               </template>
 
               <template #cell-agent="{ row }">
@@ -464,11 +470,34 @@ import {
   getLogStatusVariant,
 } from './logTableFormatters';
 import { normalizeSelectOptions } from '@/utils/selectOptions';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 import { listLogs, listLogsXlsx, deleteLogs as deleteLogsApi } from '@/api/logging';
 import { listUsersByRole } from '@/api/user';
 import { createLogTableRequestCache } from './logTableRequests';
 
 const moduleLogRequestCache = createLogTableRequestCache();
+
+// Single source of truth for the empty log-filter shape (used by both the
+// initial filter ref and removeFilters() to avoid drift between the two).
+function createEmptyLogFilter() {
+  return {
+    any: { content: null, join_char: null, operator: 'contains' },
+    id: { content: null, join_char: null, operator: 'contains' },
+    timestamp: { content: null, join_char: null, operator: 'contains' },
+    address: { content: null, join_char: null, operator: 'contains' },
+    agent: { content: null, join_char: null, operator: 'contains' },
+    host: { content: null, join_char: null, operator: 'contains' },
+    user: { content: null, join_char: null, operator: 'contains' },
+    request_method: { content: null, join_char: ',', operator: 'contains' },
+    path: { content: null, join_char: ',', operator: 'contains' },
+    query: { content: null, join_char: null, operator: 'contains' },
+    post: { content: null, join_char: ',', operator: 'contains' },
+    status: { content: null, join_char: ',', operator: 'contains' },
+    duration: { content: null, join_char: ',', operator: 'contains' },
+    file: { content: null, join_char: ',', operator: 'contains' },
+    modified: { content: null, join_char: ',', operator: 'contains' },
+  };
+}
 
 export default {
   name: 'TablesLogs',
@@ -516,23 +545,7 @@ export default {
     });
 
     // Component-specific filter
-    const filter = ref({
-      any: { content: null, join_char: null, operator: 'contains' },
-      id: { content: null, join_char: null, operator: 'contains' },
-      timestamp: { content: null, join_char: null, operator: 'contains' },
-      address: { content: null, join_char: null, operator: 'contains' },
-      agent: { content: null, join_char: null, operator: 'contains' },
-      host: { content: null, join_char: null, operator: 'contains' },
-      user: { content: null, join_char: null, operator: 'contains' },
-      request_method: { content: null, join_char: ',', operator: 'contains' },
-      path: { content: null, join_char: ',', operator: 'contains' },
-      query: { content: null, join_char: null, operator: 'contains' },
-      post: { content: null, join_char: ',', operator: 'contains' },
-      status: { content: null, join_char: ',', operator: 'contains' },
-      duration: { content: null, join_char: ',', operator: 'contains' },
-      file: { content: null, join_char: ',', operator: 'contains' },
-      modified: { content: null, join_char: ',', operator: 'contains' },
-    });
+    const filter = ref(createEmptyLogFilter());
 
     const route = useRoute();
 
@@ -941,23 +954,7 @@ export default {
       this.loadData();
     },
     removeFilters() {
-      this.filter = {
-        any: { content: null, join_char: null, operator: 'contains' },
-        id: { content: null, join_char: null, operator: 'contains' },
-        timestamp: { content: null, join_char: null, operator: 'contains' },
-        address: { content: null, join_char: null, operator: 'contains' },
-        agent: { content: null, join_char: null, operator: 'contains' },
-        host: { content: null, join_char: null, operator: 'contains' },
-        user: { content: null, join_char: null, operator: 'contains' },
-        request_method: { content: null, join_char: ',', operator: 'contains' },
-        path: { content: null, join_char: ',', operator: 'contains' },
-        query: { content: null, join_char: null, operator: 'contains' },
-        post: { content: null, join_char: ',', operator: 'contains' },
-        status: { content: null, join_char: ',', operator: 'contains' },
-        duration: { content: null, join_char: ',', operator: 'contains' },
-        file: { content: null, join_char: ',', operator: 'contains' },
-        modified: { content: null, join_char: ',', operator: 'contains' },
-      };
+      this.filter = createEmptyLogFilter();
     },
     removeSearch() {
       this.filter.any.content = null;
@@ -1009,7 +1006,7 @@ export default {
 
         this.makeToast(`Exported ${this.totalRows} log entries`, 'Export Complete', 'success');
       } catch (e) {
-        this.makeToast(e, 'Export failed', 'danger');
+        this.makeToast(extractApiErrorMessage(e, 'Export failed'), 'Export failed', 'danger');
       }
 
       this.downloading = false;
@@ -1063,7 +1060,7 @@ export default {
         this.currentItemID = 0;
         this.loadData();
       } catch (error) {
-        const errorMsg = error.response?.data?.error || error.message;
+        const errorMsg = extractApiErrorMessage(error, 'Failed to delete logs');
         this.makeToast(`Failed to delete logs: ${errorMsg}`, 'Error', 'danger');
       } finally {
         this.isDeleting = false;
@@ -1148,9 +1145,9 @@ export default {
   color: #6c757d !important;
 }
 
-/* Row hover effect for clickable rows */
+/* Row hover effect. Rows are not clickable (the detail drawer opens from the
+   per-row "view" button, which is keyboard-operable), so no pointer cursor. */
 :deep(.table tbody tr) {
-  cursor: pointer;
   transition: background-color 0.15s ease-in-out;
 }
 

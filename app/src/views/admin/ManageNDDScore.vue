@@ -11,13 +11,14 @@
         description="Currently active NDDScore release and import provenance."
         icon="bi-graph-up-arrow"
         :meta="activeReleaseStatus"
+        :aria-busy="loadingStatus ? 'true' : 'false'"
       >
         <BAlert v-if="loadError" variant="danger" show class="mb-3">
           <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
           {{ loadError }}
         </BAlert>
 
-        <div v-if="loadingStatus" class="ndd-loading">
+        <div v-if="loadingStatus" class="ndd-loading" role="status" aria-live="polite">
           <BSpinner small class="me-2" />
           Loading NDDScore status...
         </div>
@@ -73,6 +74,7 @@
         description="Check Zenodo, validate the archive, then import and activate the latest release when ready."
         icon="bi-cloud-arrow-down"
         heading-tag="h2"
+        :aria-busy="submittingJob || importJob.isLoading.value ? 'true' : 'false'"
       >
         <template #actions>
           <BButton
@@ -133,7 +135,13 @@
           </div>
         </div>
 
-        <div v-if="importJob.jobId.value" class="ndd-job" data-testid="ndd-active-job">
+        <div
+          v-if="importJob.jobId.value"
+          class="ndd-job"
+          data-testid="ndd-active-job"
+          role="status"
+          aria-live="polite"
+        >
           <div class="ndd-job__header">
             <div>
               <BBadge :class="importJob.statusBadgeClass.value" class="me-2">
@@ -296,6 +304,7 @@ import {
   type NddScoreAdminRecord,
 } from './nddScoreAdminFormatters';
 import { useNddScoreAdminDerivedRows } from './useNddScoreAdminDerivedRows';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 type AdminRecord = NddScoreAdminRecord;
 
@@ -350,8 +359,8 @@ async function loadStatus() {
   loadError.value = '';
   try {
     status.value = await fetchNddScoreStatus();
-  } catch {
-    loadError.value = 'Failed to load NDDScore admin status.';
+  } catch (err) {
+    loadError.value = extractApiErrorMessage(err, 'Failed to load NDDScore admin status.');
   } finally {
     loadingStatus.value = false;
   }
@@ -366,8 +375,8 @@ async function checkZenodo() {
     actionMessage.value = zenodoResult.value.matches_active
       ? 'Latest Zenodo archive matches the active release.'
       : 'Latest Zenodo archive differs from the active release.';
-  } catch {
-    actionError.value = 'Failed to check Zenodo release metadata.';
+  } catch (err) {
+    actionError.value = extractApiErrorMessage(err, 'Failed to check Zenodo release metadata.');
   } finally {
     checkingZenodo.value = false;
   }
@@ -379,11 +388,17 @@ async function submitValidateOnly() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: true });
-    importJob.reset();
-    importJob.startJob(result.jobId);
-    actionMessage.value = 'Validate-only job submitted.';
-  } catch {
-    actionError.value = 'Failed to submit validate-only job.';
+    if (result.status === 'already_running') {
+      importJob.reset();
+      importJob.startJob(result.jobId);
+      actionMessage.value = 'An import is already running.';
+    } else {
+      importJob.reset();
+      importJob.startJob(result.jobId);
+      actionMessage.value = 'Validate-only job submitted.';
+    }
+  } catch (err) {
+    actionError.value = extractApiErrorMessage(err, 'Failed to submit validate-only job.');
   } finally {
     submittingValidate.value = false;
   }
@@ -396,11 +411,17 @@ async function confirmImport() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: false });
-    importJob.reset();
-    importJob.startJob(result.jobId);
-    actionMessage.value = 'Import and activation job submitted.';
-  } catch {
-    actionError.value = 'Failed to submit import job.';
+    if (result.status === 'already_running') {
+      importJob.reset();
+      importJob.startJob(result.jobId);
+      actionMessage.value = 'An import is already running.';
+    } else {
+      importJob.reset();
+      importJob.startJob(result.jobId);
+      actionMessage.value = 'Import and activation job submitted.';
+    }
+  } catch (err) {
+    actionError.value = extractApiErrorMessage(err, 'Failed to submit import job.');
   } finally {
     submittingImport.value = false;
   }

@@ -38,19 +38,6 @@ export interface JobSubmitResponse {
   status_url: string;
 }
 
-/** Job result when completed */
-export interface JobResult {
-  status: string;
-  success: boolean;
-  query_id?: number;
-  query?: string;
-  pages_cached?: number;
-  pages_total?: number;
-  publications_count?: number;
-  annotations_count?: number;
-  message?: string;
-}
-
 /** Clear cache response (unwrapped from Plumber array wrappers) */
 export interface ClearResponse {
   success: boolean;
@@ -201,16 +188,6 @@ export function usePubtatorAdmin() {
   }
 
   /**
-   * Get job result when completed
-   */
-  const jobResult = computed<JobResult | null>(() => {
-    if (asyncJob.status.value !== 'completed') return null;
-    // The result is stored in the job status response
-    // Access it via the last status check
-    return null; // Will be populated from job status polling
-  });
-
-  /**
    * Progress percentage (cached / total)
    */
   const cacheProgress = computed(() => {
@@ -247,7 +224,6 @@ export function usePubtatorAdmin() {
 
     // Local computed
     cacheProgress,
-    jobResult,
 
     // Methods
     getCacheStatus,

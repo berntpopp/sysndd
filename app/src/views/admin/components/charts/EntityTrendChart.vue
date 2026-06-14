@@ -5,7 +5,14 @@
       label="Loading chart..."
       class="position-absolute top-50 start-50 translate-middle"
     />
-    <Line v-else :data="chartData" :options="chartOptions" />
+    <p
+      v-else-if="isEmpty"
+      class="text-muted text-center position-absolute top-50 start-50 translate-middle mb-0"
+      data-testid="entity-trend-empty"
+    >
+      No entity data for the selected period.
+    </p>
+    <Line v-else :data="chartData" :options="chartOptions" role="img" :aria-label="ariaLabel" />
   </div>
 </template>
 
@@ -135,6 +142,24 @@ const chartData = computed(() => {
   }
 
   return { labels, datasets };
+});
+
+const isEmpty = computed(() => {
+  if (props.displayMode === 'by_category') {
+    return !props.categoryData || props.categoryData.dates.length === 0;
+  }
+  return props.entityData.length === 0;
+});
+
+const ariaLabel = computed(() => {
+  if (props.displayMode === 'by_category' && props.categoryData) {
+    const groups = Object.keys(props.categoryData.series);
+    return `Cumulative NDD entities over time by category (${groups.join(', ')}), ${props.categoryData.dates.length} time points.`;
+  }
+  const latest = props.entityData.length
+    ? props.entityData[props.entityData.length - 1].count
+    : 0;
+  return `Cumulative NDD entities over time, ${props.entityData.length} time points, latest value ${latest}.`;
 });
 
 const chartOptions = computed<ChartOptions<'line'>>(() => ({

@@ -5,7 +5,7 @@
         <div class="mobile-record-row__topline">
           <div class="backup-mobile-row__identity">
             <span class="backup-mobile-row__filename">{{ displayValue(item.filename) }}</span>
-            <span class="backup-mobile-row__created">{{ formatDate(item.created_at) }}</span>
+            <span class="backup-mobile-row__created">{{ formatDate(displayValue(item.created_at)) }}</span>
           </div>
           <div class="backup-mobile-row__actions" aria-label="Backup actions">
             <button
@@ -36,9 +36,9 @@
         </div>
 
         <div class="mobile-record-row__chips" aria-label="Backup metadata">
-          <span v-if="backupType(item.filename)" class="mobile-record-row__chip">
+          <span v-if="getBackupType(displayValue(item.filename))" class="mobile-record-row__chip">
             <i class="bi bi-archive" aria-hidden="true" />
-            <span>{{ backupType(item.filename) }}</span>
+            <span>{{ getBackupType(displayValue(item.filename)) }}</span>
           </span>
           <span class="mobile-record-row__chip">
             <i class="bi bi-hdd" aria-hidden="true" />
@@ -56,6 +56,11 @@
 
 <script setup lang="ts">
 import MobileTableList from '@/components/table/MobileTableList.vue';
+import {
+  formatFileSize,
+  formatDate,
+  getBackupType,
+} from '../composables/useBackupInventory';
 
 interface Item extends Record<string, unknown> {
   filename: string;
@@ -96,34 +101,6 @@ function emitRestore(item: Record<string, unknown>): void {
 
 function emitDelete(item: Record<string, unknown>): void {
   emit('delete', item as Item);
-}
-
-function backupType(value: unknown): string | null {
-  const filename = displayValue(value);
-  if (filename.startsWith('manual_')) return 'manual';
-  if (filename.startsWith('pre-restore_')) return 'pre-restore';
-  return null;
-}
-
-function formatFileSize(bytes: number): string {
-  if (!bytes) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
-function formatDate(value: unknown): string {
-  const raw = displayValue(value);
-  if (!raw) return '';
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return raw;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 </script>
 

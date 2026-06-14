@@ -5,7 +5,14 @@
       label="Loading chart..."
       class="position-absolute top-50 start-50 translate-middle"
     />
-    <Bar v-else :data="chartData" :options="chartOptions" />
+    <p
+      v-else-if="isEmpty"
+      class="text-muted text-center position-absolute top-50 start-50 translate-middle mb-0"
+      data-testid="rereview-bar-empty"
+    >
+      No re-review data for the selected period.
+    </p>
+    <Bar v-else :data="chartData" :options="chartOptions" role="img" :aria-label="ariaLabel" />
   </div>
 </template>
 
@@ -42,6 +49,15 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+});
+
+const isEmpty = computed(() => props.reviewers.length === 0);
+
+const ariaLabel = computed(() => {
+  const top = props.reviewers[0];
+  return top
+    ? `Top re-reviewers by submitted re-reviews, ${props.reviewers.length} reviewers, leader ${top.user_name} with ${top.approved_count} approved of ${top.submitted_count} submitted.`
+    : 'Top re-reviewers by submitted re-reviews, no data.';
 });
 
 const chartData = computed(() => ({
