@@ -121,6 +121,49 @@ export function parsePubtatorText(text: string | null | undefined): ParsedSegmen
 }
 
 /**
+ * Memoized variant of {@link parsePubtatorText}.
+ *
+ * `text_hl` is parsed repeatedly per row per render in the PubTator table/genes
+ * components (preview slice, length check, full render, per-publication detail).
+ * The annotation parse is a pure function of the input string, so we cache the
+ * resulting segment array keyed by the raw text. This collapses the N parses
+ * per row down to one, with no change in rendered output.
+ *
+ * The cache is bounded (LRU-by-insertion) so a long browsing session over many
+ * distinct rows cannot grow it without limit.
+ */
+const PUBTATOR_PARSE_CACHE_LIMIT = 1000;
+const pubtatorParseCache = new Map<string, ParsedSegment[]>();
+
+export function parsePubtatorTextMemoized(text: string | null | undefined): ParsedSegment[] {
+  if (!text) return [];
+
+  const cached = pubtatorParseCache.get(text);
+  if (cached) return cached;
+
+  const segments = parsePubtatorText(text);
+
+  // Bound the cache: drop the oldest entry once over the limit.
+  if (pubtatorParseCache.size >= PUBTATOR_PARSE_CACHE_LIMIT) {
+    const oldestKey = pubtatorParseCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      pubtatorParseCache.delete(oldestKey);
+    }
+  }
+  pubtatorParseCache.set(text, segments);
+
+  return segments;
+}
+
+/**
+ * Clear the memoization cache. Exposed for tests; not needed in app code
+ * because the bounded cache evicts on its own.
+ */
+export function clearPubtatorParseCache(): void {
+  pubtatorParseCache.clear();
+}
+
+/**
  * Parse text for <m>...</m> search match tags
  */
 function parseMatchTags(text: string): ParsedSegment[] {
@@ -270,6 +313,7 @@ export function getSegmentTooltip(segment: ParsedSegment): string {
 export function usePubtatorParser() {
   return {
     parsePubtatorText,
+    parsePubtatorTextMemoized,
     extractEntities,
     extractGeneSymbols,
     getEntityClass,

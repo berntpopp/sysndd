@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import type { ParsedSegment } from './usePubtatorParser';
 import {
   getEntityClass,
   getSegmentClass,
   getSegmentTooltip,
   usePubtatorParser,
+  parsePubtatorText,
+  parsePubtatorTextMemoized,
+  clearPubtatorParseCache,
 } from './usePubtatorParser';
 
 const seg = (overrides: Partial<ParsedSegment>): ParsedSegment =>
@@ -63,5 +66,43 @@ describe('usePubtatorParser', () => {
     expect(parser.getSegmentClass).toBe(getSegmentClass);
     expect(parser.getSegmentTooltip).toBe(getSegmentTooltip);
     expect(parser.getEntityClass).toBe(getEntityClass);
+  });
+
+  it('exposes the memoized parser', () => {
+    const parser = usePubtatorParser();
+    expect(parser.parsePubtatorTextMemoized).toBe(parsePubtatorTextMemoized);
+  });
+});
+
+describe('parsePubtatorTextMemoized', () => {
+  beforeEach(() => {
+    clearPubtatorParseCache();
+  });
+
+  it('returns the same segments as the non-memoized parser', () => {
+    const text = '@GENE_2904 @GENE_GRIN2B @@@GRIN2B@@@ is linked to <m>NDD</m>.';
+    expect(parsePubtatorTextMemoized(text)).toEqual(parsePubtatorText(text));
+  });
+
+  it('returns the identical (cached) array instance on repeat calls', () => {
+    const text = '@GENE_2904 @@@GRIN2B@@@ causes epilepsy.';
+    const first = parsePubtatorTextMemoized(text);
+    const second = parsePubtatorTextMemoized(text);
+    // Same reference proves the parse ran once and was reused.
+    expect(second).toBe(first);
+  });
+
+  it('returns a fresh empty array for empty/nullish input (never cached)', () => {
+    expect(parsePubtatorTextMemoized('')).toEqual([]);
+    expect(parsePubtatorTextMemoized(null)).toEqual([]);
+    expect(parsePubtatorTextMemoized(undefined)).toEqual([]);
+  });
+
+  it('parses distinct strings into distinct results', () => {
+    const a = parsePubtatorTextMemoized('@GENE_1 @@@AAA@@@');
+    const b = parsePubtatorTextMemoized('@GENE_2 @@@BBB@@@');
+    expect(a).not.toBe(b);
+    expect(a[0].text).toBe('AAA');
+    expect(b[0].text).toBe('BBB');
   });
 });
