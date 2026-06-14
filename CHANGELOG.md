@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-06-14
+
+Minor release: PubTatorNDD performance, stability, and automatic nightly updates.
+
+- **Performance** — precomputed `pubtator_gene_summary` table (migration 035) replaces per-request `collect()`+`tidyr::nest()`; `/pubtator/genes` drops from ~800ms to ~100ms (Stats path 83ms) and the payload shrinks ~3×. Missing annotation/search-cache indexes added (migration 034).
+- **Stability / bug fixes** — repaired the enrichment refresh (the NDD-corpus probe `@DISEASE_neurodevelopmental` silently returned 0; now `@DISEASE_Neurodevelopmental_Disorders`); fixed the worker external-time budget never resetting per job (which broke every external-calling job after the first); corrected the `publication_count`/`entities_count` double-count from the view's gene×publication×entity fan-out (now distinct counts, consistent with `pmids`).
+- **Automatic updates** — new `pubtatornidd-cron` Compose sidecar enqueues a durable `pubtatornidd_nightly` job that incrementally fetches new publications, refreshes enrichment, and refreshes the summary table; single-flighted via a MySQL advisory lock.
+- **Gene listing** — graceful degradation with a deterministic `-publication_count` fallback and an `enrichmentStatus` meta flag when no enrichment snapshot exists.
+- **Frontend** — PubTatorNDD annotation-parse + gene-symbol caches are now bounded LRU; Stats chart re-render debounced; stale per-gene publication cache cleared on filter/sort; component split under the size baseline.
+
 ## [0.21.9] — 2026-06-14
 
 Patch release: home-page performance — keep heavy libraries off the landing-page critical path.
