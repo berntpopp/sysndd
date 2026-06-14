@@ -96,7 +96,15 @@ ManagePubtator */
                 <span>Cache coverage</span>
                 <strong>{{ cacheProgress }}%</strong>
               </div>
-              <BProgress :max="100" height="0.75rem">
+              <BProgress
+                :value="cacheProgress"
+                :max="100"
+                height="0.75rem"
+                :aria-label="`Cache coverage ${cacheProgress}%`"
+                :aria-valuenow="cacheProgress"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
                 <BProgressBar :value="cacheProgress" variant="success" />
               </BProgress>
             </div>
@@ -172,8 +180,27 @@ ManagePubtator */
                 {{ elapsedTimeDisplay }}
               </span>
             </div>
-            <p v-if="jobStep" class="pubtator-job__step">{{ jobStep }}</p>
-            <BProgress :max="100" height="0.875rem">
+            <p
+              v-if="jobStep"
+              class="pubtator-job__step"
+              role="status"
+              aria-live="polite"
+            >
+              {{ jobStep }}
+            </p>
+            <BProgress
+              :value="hasRealProgress ? (progressPercent ?? 0) : 100"
+              :max="100"
+              height="0.875rem"
+              :aria-label="
+                hasRealProgress
+                  ? `Fetch progress ${jobProgress.current} of ${jobProgress.total} pages`
+                  : 'Fetch job in progress'
+              "
+              :aria-valuenow="hasRealProgress ? (progressPercent ?? 0) : undefined"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
               <BProgressBar
                 :value="hasRealProgress ? (progressPercent ?? 0) : 100"
                 :variant="progressVariant"
@@ -191,13 +218,25 @@ ManagePubtator */
               <i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true" />
               {{ jobError }}
             </BAlert>
-            <BAlert v-if="jobStatus === 'completed'" variant="success" class="mt-3 mb-0" show>
+            <BAlert
+              v-if="jobStatus === 'completed'"
+              variant="success"
+              class="mt-3 mb-0"
+              show
+              is-status
+            >
               <i class="bi bi-check-circle-fill me-1" aria-hidden="true" />
               Fetch completed successfully. Refresh cache status to see results.
             </BAlert>
           </div>
 
-          <BAlert v-if="feedbackMessage" :variant="feedbackVariant" class="mt-3 mb-0" show>
+          <BAlert
+            v-if="feedbackMessage"
+            :variant="feedbackVariant"
+            class="mt-3 mb-0"
+            show
+            is-status
+          >
             <i :class="feedbackIcon" class="me-1" aria-hidden="true" />
             {{ feedbackMessage }}
           </BAlert>

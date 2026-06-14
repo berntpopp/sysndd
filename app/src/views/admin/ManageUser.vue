@@ -199,12 +199,14 @@
                     <BFormCheckbox
                       :model-value="allOnPageSelected"
                       :indeterminate="selectionCount > 0 && !allOnPageSelected"
+                      aria-label="Select all users on this page"
                       @update:model-value="toggleSelectAllOnPage"
                     />
                   </template>
                   <template #cell-select="{ row }">
                     <BFormCheckbox
                       :model-value="isSelected(row.user_id)"
+                      :aria-label="`Select user ${row.user_name}`"
                       @update:model-value="handleRowSelect(row.user_id)"
                     />
                   </template>
@@ -215,18 +217,20 @@
                         size="sm"
                         class="me-1 btn-xs"
                         title="Edit user"
+                        :aria-label="`Edit user ${row.user_name}`"
                         @click="editUser(row)"
                       >
-                        <i class="bi bi-pen" />
+                        <i class="bi bi-pen" aria-hidden="true" />
                       </BButton>
                       <BButton
                         v-b-tooltip.hover.top
                         size="sm"
                         class="me-1 btn-xs"
                         title="Delete user"
+                        :aria-label="`Delete user ${row.user_name}`"
                         @click="promptDelete(row)"
                       >
-                        <i class="bi bi-x" />
+                        <i class="bi bi-x" aria-hidden="true" />
                       </BButton>
                     </div>
                   </template>
@@ -330,7 +334,9 @@ import UserBulkRoleModal from './components/UserBulkRoleModal.vue';
 import UserAdminMobileRows from './components/UserAdminMobileRows.vue';
 
 import { useUserData } from './composables/useUserData';
+import type { ManageUserFilter } from './composables/useUserData';
 import { useUserMutations } from './composables/useUserMutations';
+import type { UpdateUserPayload } from './composables/useUserMutations';
 import { useBulkUserActions } from './composables/useBulkUserActions';
 import { useUserModals } from './composables/useUserModals';
 import { useUserTablePresentation } from './composables/useUserTablePresentation';
@@ -414,17 +420,20 @@ export default defineComponent({
 
     const allOnPageSelected = computed(() => {
       if (data.users.value.length === 0) return false;
-      return data.users.value.every((user: any) => bulkSelection.isSelected(user.user_id));
+      return data.users.value.every((user: Record<string, unknown>) =>
+        bulkSelection.isSelected(user.user_id as number)
+      );
     });
 
     // ── Selection helpers ──────────────────────────────────────────────────────
     function toggleSelectAllOnPage(): void {
       if (allOnPageSelected.value) {
-        data.users.value.forEach((user: any) => {
-          if (bulkSelection.isSelected(user.user_id)) bulkSelection.toggleSelection(user.user_id);
+        data.users.value.forEach((user: Record<string, unknown>) => {
+          const id = user.user_id as number;
+          if (bulkSelection.isSelected(id)) bulkSelection.toggleSelection(id);
         });
       } else {
-        const pageUserIds = data.users.value.map((u: any) => u.user_id);
+        const pageUserIds = data.users.value.map((u: Record<string, unknown>) => u.user_id as number);
         const added = bulkSelection.selectMultiple(pageUserIds);
         if (added < pageUserIds.length && bulkSelection.selectionCount.value >= 20) {
           makeToast(
@@ -460,7 +469,10 @@ export default defineComponent({
         data.sort.value = urlParams.get('sort') as string;
       }
       if (urlParams.get('filter')) {
-        data.filter.value = data.filterStrToObj(urlParams.get('filter'), data.filter.value) as any;
+        data.filter.value = data.filterStrToObj(
+          urlParams.get('filter'),
+          data.filter.value
+        ) as ManageUserFilter;
         data.filter_string.value = urlParams.get('filter') as string;
       }
       if (urlParams.get('page_after')) {
@@ -514,19 +526,19 @@ export default defineComponent({
     // Composables re-throw after toasting; swallow at the orchestration layer
     // so callers don't see unhandled rejections (toast already covers UX).
     const onConfirmDelete = () =>
-      mutations.deleteUser(modals.userToDelete.value as any).catch(() => {});
+      mutations.deleteUser(modals.userToDelete.value as { user_id: number }).catch(() => {});
     // updateUserData reads from modals.userToUpdate.value so the spec can set
     // wrapper.vm.userToUpdate = {...} and then call wrapper.vm.updateUserData()
     // with no args (matching original ManageUser.vue behaviour).
     // Errors are already toasted inside mutations.updateUser; swallow the
     // re-throw here so callers (and the spec) don't see unhandled rejections.
     const updateUserData = () =>
-      mutations.updateUser(modals.userToUpdate.value as any).catch(() => {});
-    const onSubmitUpdate = (payload: any) => {
+      mutations.updateUser(modals.userToUpdate.value as unknown as UpdateUserPayload).catch(() => {});
+    const onSubmitUpdate = (payload?: UpdateUserPayload) => {
       const p =
         payload !== undefined
           ? mutations.updateUser(payload)
-          : mutations.updateUser(modals.userToUpdate.value as any);
+          : mutations.updateUser(modals.userToUpdate.value as unknown as UpdateUserPayload);
       return p.catch(() => {});
     };
     // Use a shallowRef so the spec can override wrapper.vm.getSelectedArray and
@@ -539,7 +551,7 @@ export default defineComponent({
     const onConfirmBulkDelete = () => bulk.bulkDelete(getSelectedArray.value()).catch(() => {});
     const onChangePassword = () =>
       mutations.changePassword({
-        userId: (modals.userToUpdate.value as any).user_id,
+        userId: modals.userToUpdate.value.user_id as number,
         newPassword: mutations.passwordChange.value.newPassword,
         confirmPassword: mutations.passwordChange.value.confirmPassword,
       });

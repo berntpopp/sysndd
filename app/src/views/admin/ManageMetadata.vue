@@ -17,28 +17,40 @@
       </div>
 
       <template v-else>
-        <!-- Vocabulary selector -->
-        <nav class="metadata-tabs" aria-label="Metadata vocabularies">
+        <!-- Vocabulary selector (WAI-ARIA tablist) -->
+        <div class="metadata-tabs" role="tablist" aria-label="Metadata vocabularies">
           <BButton
             v-for="vocab in catalog"
+            :id="`metadata-tab-${vocab.slug}`"
             :key="vocab.slug"
+            role="tab"
+            :aria-selected="vocab.slug === activeSlug ? 'true' : 'false'"
+            :aria-controls="`metadata-panel-${vocab.slug}`"
+            :tabindex="vocab.slug === activeSlug ? 0 : -1"
             size="sm"
             :variant="vocab.slug === activeSlug ? 'primary' : 'outline-primary'"
             class="metadata-tab"
             :data-testid="`metadata-tab-${vocab.slug}`"
             @click="selectVocabulary(vocab.slug)"
+            @keydown="onTabKeydown"
           >
             {{ vocab.label }}
           </BButton>
-        </nav>
+        </div>
 
-        <AdminOperationPanel
+        <div
           v-if="activeVocabulary"
-          :title="activeVocabulary.label"
-          :description="vocabularyDescription"
-          icon="bi-list-check"
-          :meta="vocabularyMeta"
+          :id="`metadata-panel-${activeSlug}`"
+          role="tabpanel"
+          :aria-labelledby="`metadata-tab-${activeSlug}`"
+          tabindex="0"
         >
+          <AdminOperationPanel
+            :title="activeVocabulary.label"
+            :description="vocabularyDescription"
+            icon="bi-list-check"
+            :meta="vocabularyMeta"
+          >
           <template #actions>
             <BButton
               v-if="canCreate"
@@ -124,7 +136,8 @@
           <p v-if="!loadingRows && rows.length === 0" class="text-muted small mb-0">
             No entries.
           </p>
-        </AdminOperationPanel>
+          </AdminOperationPanel>
+        </div>
       </template>
 
       <MetadataEntryModal
@@ -149,7 +162,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, nextTick, onMounted, ref } from 'vue';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import MetadataEntryModal from './components/MetadataEntryModal.vue';
@@ -287,7 +300,28 @@ export default defineComponent({
       if (ok) isDeleteOpen.value = false;
     }
 
+    // WAI-ARIA tablist keyboard navigation (Left/Right/Home/End with roving focus).
+    function onTabKeydown(event: KeyboardEvent) {
+      const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
+      if (!keys.includes(event.key)) return;
+      event.preventDefault();
+      const slugs = admin.catalog.value.map((v) => v.slug);
+      if (slugs.length === 0) return;
+      const current = slugs.indexOf(admin.activeSlug.value);
+      let next = current;
+      if (event.key === 'ArrowRight') next = (current + 1) % slugs.length;
+      else if (event.key === 'ArrowLeft') next = (current - 1 + slugs.length) % slugs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = slugs.length - 1;
+      const nextSlug = slugs[next];
+      admin.selectVocabulary(nextSlug);
+      nextTick(() => {
+        document.getElementById(`metadata-tab-${nextSlug}`)?.focus();
+      });
+    }
+
     return {
+      onTabKeydown,
       // state from composable
       catalog: admin.catalog,
       activeSlug: admin.activeSlug,

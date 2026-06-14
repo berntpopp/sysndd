@@ -82,12 +82,13 @@
                         class="backup-search__input"
                         debounce="300"
                         type="search"
+                        aria-label="Filter by filename"
                       />
                     </div>
 
                     <label class="backup-select-label">
                       <span>Format</span>
-                      <BFormSelect v-model="compressionFilter" size="sm">
+                      <BFormSelect v-model="compressionFilter" size="sm" aria-label="Filter by format">
                         <BFormSelectOption :value="null">All</BFormSelectOption>
                         <BFormSelectOption value="compressed">.gz</BFormSelectOption>
                         <BFormSelectOption value="uncompressed">.sql</BFormSelectOption>

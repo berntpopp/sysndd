@@ -13,6 +13,7 @@
 
 import { ref, computed } from 'vue';
 import { usePubtatorAdmin } from '@/composables/usePubtatorAdmin';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 export type FeedbackVariant = 'success' | 'danger' | 'info' | 'warning';
 
@@ -23,7 +24,6 @@ const DEFAULT_QUERY =
 export function usePubtatorAdminPanel() {
   const admin = usePubtatorAdmin();
   const {
-    error,
     lastStatus,
     getCacheStatus,
     submitFetchJob,
@@ -74,8 +74,8 @@ export function usePubtatorAdminPanel() {
 
     try {
       await getCacheStatus(query.value);
-    } catch (_err) {
-      feedbackMessage.value = `Error checking status: ${error.value}`;
+    } catch (err) {
+      feedbackMessage.value = extractApiErrorMessage(err, 'Failed to check cache status');
       feedbackVariant.value = 'danger';
     }
   }
@@ -89,8 +89,8 @@ export function usePubtatorAdminPanel() {
       await submitFetchJob(query.value, maxPages.value, clearOld.value);
       feedbackMessage.value = `Job submitted! Fetching ${maxPages.value} pages (~${Math.round((maxPages.value * 2.5) / 60)} min)`;
       feedbackVariant.value = 'info';
-    } catch (_err) {
-      feedbackMessage.value = `Error submitting job: ${error.value}`;
+    } catch (err) {
+      feedbackMessage.value = extractApiErrorMessage(err, 'Failed to submit fetch job');
       feedbackVariant.value = 'danger';
     }
   }
@@ -103,8 +103,8 @@ export function usePubtatorAdminPanel() {
       const backfillResult = await backfillGeneSymbols(lastStatus.value.query_id);
       feedbackMessage.value = backfillResult.message;
       feedbackVariant.value = 'success';
-    } catch (_err) {
-      feedbackMessage.value = `Error backfilling: ${error.value}`;
+    } catch (err) {
+      feedbackMessage.value = extractApiErrorMessage(err, 'Failed to backfill gene symbols');
       feedbackVariant.value = 'danger';
     }
   }
@@ -117,8 +117,8 @@ export function usePubtatorAdminPanel() {
       feedbackMessage.value = clearResult.message;
       feedbackVariant.value = 'success';
       lastStatus.value = null;
-    } catch (_err) {
-      feedbackMessage.value = `Error clearing cache: ${error.value}`;
+    } catch (err) {
+      feedbackMessage.value = extractApiErrorMessage(err, 'Failed to clear cache');
       feedbackVariant.value = 'danger';
     } finally {
       showClearAllModal.value = false;

@@ -1,6 +1,7 @@
 // app/src/views/admin/composables/useBulkUserActions.ts
 import { ref } from 'vue';
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 const apiBase = import.meta.env.VITE_API_URL ?? '';
 
@@ -39,8 +40,8 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         );
         onSuccess?.();
       }
-    } catch (e: any) {
-      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+    } catch (e) {
+      const errorMsg = extractApiErrorMessage(e, 'Failed to approve users');
       onToast?.(errorMsg, 'Bulk Approve Failed', 'danger');
       throw e;
     } finally {
@@ -72,8 +73,8 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         );
         onSuccess?.();
       }
-    } catch (e: any) {
-      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+    } catch (e) {
+      const errorMsg = extractApiErrorMessage(e, 'Failed to assign role');
       onToast?.(errorMsg, 'Bulk Role Assignment Failed', 'danger');
       throw e;
     } finally {
@@ -99,8 +100,8 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
         );
         onSuccess?.();
       }
-    } catch (e: any) {
-      const errorMsg = e.response?.data?.message || e.response?.data?.error || 'Unknown error';
+    } catch (e) {
+      const errorMsg = extractApiErrorMessage(e, 'Failed to delete users');
       onToast?.(errorMsg, 'Bulk Delete Failed', 'danger');
       throw e;
     } finally {

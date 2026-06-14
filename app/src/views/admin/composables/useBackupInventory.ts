@@ -1,6 +1,7 @@
 // app/src/views/admin/composables/useBackupInventory.ts
 import { ref, computed, watch } from 'vue';
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 /**
  * A single database backup row in the inventory surface.
@@ -279,7 +280,7 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
   async function downloadBackup(filename: string) {
     try {
       const response = await apiClient.raw.get<Blob>(
-        `${import.meta.env.VITE_API_URL}/api/backup/download/${filename}`,
+        `${import.meta.env.VITE_API_URL}/api/backup/download/${encodeURIComponent(filename)}`,
         {
           responseType: 'blob',
           withCredentials: true,
@@ -296,7 +297,7 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
-      onToast?.('Download failed', 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(error, 'Download failed'), 'Error', 'danger');
     }
   }
 

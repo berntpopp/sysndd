@@ -1,6 +1,7 @@
 // app/src/views/admin/composables/useUserMutations.ts
 import { computed, ref } from 'vue';
 import { apiClient } from '@/api/client';
+import { extractApiErrorMessage } from '@/utils/api-errors';
 
 const apiBase = import.meta.env.VITE_API_URL ?? '';
 
@@ -69,7 +70,7 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
         throw new Error('Failed to delete the user.');
       }
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(e, 'Failed to delete the user.'), 'Error', 'danger');
       throw e;
     } finally {
       isDeleting.value = false;
@@ -88,8 +89,11 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
       user_role: payload.user_role,
       approved: payload.approved ? 1 : 0,
     };
-    if (payload.orcid) updatePayload.orcid = payload.orcid;
-    if (payload.comment) updatePayload.comment = payload.comment;
+    // Send orcid/comment unconditionally so an admin clearing an existing
+    // value to empty is persisted (the API maps these to user table columns).
+    // `?? ''` lets a cleared field reach the API as '' instead of being dropped.
+    if (payload.orcid !== undefined) updatePayload.orcid = payload.orcid ?? '';
+    if (payload.comment !== undefined) updatePayload.comment = payload.comment ?? '';
     try {
       const response = await apiClient.raw.put(`${apiBase}/api/user/update`, {
         user_details: updatePayload,
@@ -101,7 +105,7 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
         throw new Error('Failed to update the user.');
       }
     } catch (e) {
-      onToast?.(e, 'Error', 'danger');
+      onToast?.(extractApiErrorMessage(e, 'Failed to update the user.'), 'Error', 'danger');
       throw e;
     } finally {
       isUpdating.value = false;
@@ -128,9 +132,8 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
       onToast?.(`Password changed successfully`, 'Password Changed', 'success', true, 5000);
       passwordChange.value.newPassword = '';
       passwordChange.value.confirmPassword = '';
-    } catch (e: any) {
-      const errorMsg =
-        e.response?.data?.message || e.response?.data?.error || 'Failed to change password';
+    } catch (e) {
+      const errorMsg = extractApiErrorMessage(e, 'Failed to change password');
       onToast?.(errorMsg, 'Password Change Failed', 'danger');
       throw e;
     } finally {

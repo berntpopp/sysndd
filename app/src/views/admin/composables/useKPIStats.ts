@@ -62,11 +62,17 @@ export function useKPIStats(
 
   async function calculateTrendDelta(
     startDate: string,
-    endDate: string
+    endDate: string,
+    currentStatsArg?: UpdatesStatistics | null
   ): Promise<number | undefined> {
     const prev = previousPeriod(startDate, endDate);
+    // Reuse the already-fetched current-period stats when the caller passes
+    // them in (fetchKPIStats does) to avoid a duplicate /statistics/updates
+    // request; only fetch the current period when no value was provided.
     const [currentStats, prevStats] = await Promise.all([
-      fetchUpdatesStats(startDate, endDate),
+      currentStatsArg !== undefined
+        ? Promise.resolve(currentStatsArg)
+        : fetchUpdatesStats(startDate, endDate),
       fetchUpdatesStats(prev.start, prev.end),
     ]);
 
@@ -92,7 +98,9 @@ export function useKPIStats(
         kpiStats.value.avgPerDay = Math.round(currentStats.average_per_day * 100) / 100;
         statistics.value = currentStats;
       }
-      const delta = await calculateTrendDelta(startDate, endDate);
+      // Pass the current-period stats we just fetched so calculateTrendDelta
+      // only needs to fetch the previous period (avoids a redundant request).
+      const delta = await calculateTrendDelta(startDate, endDate, currentStats);
       kpiStats.value.trendDelta = delta;
     } catch (error) {
       console.error('Failed to fetch KPI stats:', error);
