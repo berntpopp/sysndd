@@ -118,6 +118,8 @@ export type { Use3DStructureReturn } from './use3DStructure';
 export {
   usePubtatorParser,
   parsePubtatorText,
+  parsePubtatorTextMemoized,
+  clearPubtatorParseCache,
   extractEntities,
   extractGeneSymbols,
   getEntityClass,

@@ -25,8 +25,8 @@ app/src/components/analyses/AnalysesCurationUpset.vue	713
 app/src/components/analyses/AnalysesPhenotypeClusters.vue	671
 app/src/components/analyses/NetworkVisualization.vue	1253
 app/src/components/analyses/PublicationsNDDTable.vue	1011
-app/src/components/analyses/PubtatorNDDGenes.vue	1141
-app/src/components/analyses/PubtatorNDDTable.vue	948
+app/src/components/analyses/PubtatorNDDGenes.vue	900
+app/src/components/analyses/PubtatorNDDTable.vue	930
 app/src/components/ApprovalTableView.vue	689
 app/src/components/forms/BatchCriteriaForm.vue	747
 app/src/components/gene/GeneStructurePlotWithVariants.vue	685

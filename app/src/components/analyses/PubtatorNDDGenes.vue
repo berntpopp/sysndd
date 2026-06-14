@@ -109,6 +109,18 @@
       </BRow>
       <!-- End Controls -->
 
+      <!-- Enrichment freshness notice (defensive: only when the API reports
+           a non-current ranking; absent fields render nothing). -->
+      <BAlert
+        v-if="enrichmentNotice"
+        :model-value="true"
+        variant="warning"
+        class="mx-2 mb-2 py-2 px-3 small"
+      >
+        <i class="bi bi-info-circle me-1" />
+        {{ enrichmentNotice }}
+      </BAlert>
+
       <!-- Main b-table -->
       <BTable
         :items="items"
@@ -279,92 +291,11 @@
 
             <!-- Publication list -->
             <div v-else>
-              <div
+              <PubtatorPublicationDetail
                 v-for="pub in getPublications((data.item as GeneItem).gene_symbol)"
                 :key="pub.pmid"
-                class="details-section"
-              >
-                <!-- Title -->
-                <div v-if="pub.title" class="details-title">
-                  {{ pub.title }}
-                </div>
-
-                <div class="details-row">
-                  <!-- PMID, DOI, Date, Journal, Score -->
-                  <div class="details-meta">
-                    <a
-                      :href="'https://pubmed.ncbi.nlm.nih.gov/' + pub.pmid"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="details-pmid"
-                    >
-                      <i class="bi bi-journal-medical me-1" />
-                      PMID:{{ pub.pmid }}
-                      <i class="bi bi-box-arrow-up-right ms-1" />
-                    </a>
-                    <a
-                      v-if="pub.doi"
-                      :href="'https://doi.org/' + pub.doi"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="details-doi"
-                    >
-                      <i class="bi bi-link-45deg me-1" />
-                      {{ pub.doi }}
-                    </a>
-                    <span v-if="pub.date" class="details-date">
-                      <i class="bi bi-calendar3 me-1" />
-                      {{ pub.date }}
-                    </span>
-                    <span v-if="pub.journal" class="details-journal">
-                      <i class="bi bi-book me-1" />
-                      {{ pub.journal }}
-                    </span>
-                    <BBadge
-                      v-if="pub.score != null"
-                      :variant="
-                        pub.score >= 500 ? 'success' : pub.score >= 100 ? 'warning' : 'secondary'
-                      "
-                      pill
-                    >
-                      Score: {{ pub.score }}
-                    </BBadge>
-                  </div>
-                </div>
-
-                <!-- Annotated Text Section -->
-                <div v-if="pub.text_hl" class="annotated-text-section mt-2">
-                  <div class="annotated-text-label text-muted small mb-1">
-                    <i class="bi bi-highlighter me-1" />Annotated Text:
-                  </div>
-                  <div class="annotated-text">
-                    <span
-                      v-for="(segment, idx) in parseAnnotations(pub.text_hl)"
-                      :key="idx"
-                      :class="getSegmentClass(segment)"
-                      :title="getSegmentTooltip(segment)"
-                      >{{ segment.text }}</span
-                    >
-                  </div>
-                  <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
-                    <span><span class="pubtator-gene px-1">Gene</span></span>
-                    <span><span class="pubtator-disease px-1">Disease</span></span>
-                    <span><span class="pubtator-variant px-1">Variant</span></span>
-                    <span><span class="pubtator-species px-1">Species</span></span>
-                    <span><span class="pubtator-chemical px-1">Chemical</span></span>
-                    <span><span class="pubtator-match px-1">Match</span></span>
-                  </div>
-                </div>
-
-                <!-- Gene symbols as badges -->
-                <div v-if="pub.gene_symbols" class="gene-symbols-section mt-2">
-                  <div class="gene-chips">
-                    <span v-for="sym in pub.gene_symbols.split(',')" :key="sym" class="gene-chip">
-                      {{ sym.trim() }}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                :publication="pub"
+              />
 
               <!-- Fallback if no cached data -->
               <div
@@ -398,19 +329,12 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { listPubtatorGenes, listPubtatorTable } from '@/api/publication';
+import { listPubtatorGenes } from '@/api/publication';
 
 // Import composables
-import {
-  useToast,
-  useUrlParsing,
-  useTableData,
-  parsePubtatorText,
-  getSegmentClass,
-  getSegmentTooltip,
-} from '@/composables';
-import type { ParsedSegment } from '@/composables/usePubtatorParser';
+import { useToast, useUrlParsing, useTableData } from '@/composables';
 import { useExcelExport } from '@/composables/useExcelExport';
+import { usePubtatorGenePublications } from '@/composables/usePubtatorGenePublications';
 
 // Small reusable components
 import TableSearchInput from '@/components/small/TableSearchInput.vue';
@@ -419,6 +343,7 @@ import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCo
 import GeneBadge from '@/components/ui/GeneBadge.vue';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import PubtatorPublicationDetail from '@/components/analyses/PubtatorPublicationDetail.vue';
 import {
   applyPubtatorGenePrioritizationFilters,
   createDefaultPubtatorGeneFilter,
@@ -456,18 +381,6 @@ interface GeneItem {
   npmi?: number | null;
   fisher_p?: number | null;
   fdr_bh?: number | null;
-}
-
-interface PublicationData {
-  search_id?: number;
-  pmid: number;
-  doi?: string;
-  title?: string;
-  journal?: string;
-  date?: string;
-  score?: number;
-  gene_symbols?: string;
-  text_hl?: string;
 }
 
 // Props
@@ -562,12 +475,22 @@ const dateRangeOptions = [
 // Cursor pagination info
 const totalPages = ref(0);
 
-// Publication data cache (keyed by gene_symbol)
-const publicationCache = ref<Record<string, PublicationData[]>>({});
-const loadingPublications = ref<Record<string, boolean>>({});
+// Enrichment freshness notice (issue: surface a non-blocking notice when the
+// genes API reports the gene ranking is not yet computed / is stale). Defensive
+// — the meta fields may be absent (older API), in which case this stays null.
+const enrichmentNotice = ref<string | null>(null);
 
-// AbortControllers for per-gene publication fetches (prevents orphaned requests)
-const publicationAbortControllers = new Map<string, AbortController>();
+// Per-gene publication-detail cache (extracted composable). Scoped to the
+// current filter/sort: resetCache() runs on every reload so an expanded row
+// never shows publications fetched under a previous query.
+const {
+  fetchPublications,
+  getPublications,
+  isLoading: isLoadingPublications,
+  isCached,
+  resetCache: resetPublicationCache,
+  cancelAll: cancelAllPublicationFetches,
+} = usePubtatorGenePublications({ makeToast });
 
 // Computed: sortBy as properly typed array for BTable
 const sortByArray = computed(() => sortBy.value);
@@ -622,64 +545,13 @@ const truncateText = (str: string | undefined, n: number): string => {
   return str.length > n ? `${str.slice(0, n)}...` : str;
 };
 
-// Fetch publication data for a gene's PMIDs from pubtator cache
-const fetchPublicationData = async (geneSymbol: string, pmids: string[]) => {
-  if (pmids.length === 0) return;
-  if (publicationCache.value[geneSymbol]) return; // Already cached
-
-  // Cancel any in-flight request for this gene
-  publicationAbortControllers.get(geneSymbol)?.abort();
-  const controller = new AbortController();
-  publicationAbortControllers.set(geneSymbol, controller);
-
-  loadingPublications.value[geneSymbol] = true;
-
-  try {
-    const response = await listPubtatorTable(
-      {
-        filter: `any(pmid,${pmids.join(',')})`,
-        fields: 'search_id,pmid,doi,title,journal,date,score,gene_symbols,text_hl',
-        page_size: String(pmids.length),
-      },
-      { signal: controller.signal }
-    );
-    publicationCache.value[geneSymbol] = response.data || [];
-  } catch (error) {
-    if ((error as Error).name !== 'AbortError' && (error as Error).name !== 'CanceledError') {
-      console.error('Failed to fetch publication data:', error);
-      publicationCache.value[geneSymbol] = [];
-    }
-  } finally {
-    publicationAbortControllers.delete(geneSymbol);
-    loadingPublications.value[geneSymbol] = false;
-  }
-};
-
-// Handle row expansion - fetch publication data
+// Handle row expansion - fetch publication data lazily via the cache composable
 const handleRowExpand = (item: GeneItem) => {
   const pmids = parsePmids(item.pmids);
-  if (pmids.length > 0 && !publicationCache.value[item.gene_symbol]) {
-    fetchPublicationData(item.gene_symbol, pmids);
+  if (pmids.length > 0 && !isCached(item.gene_symbol)) {
+    fetchPublications(item.gene_symbol, pmids);
   }
 };
-
-// Get cached publications for a gene
-const getPublications = (geneSymbol: string): PublicationData[] => {
-  return publicationCache.value[geneSymbol] || [];
-};
-
-// Check if publications are loading for a gene
-const isLoadingPublications = (geneSymbol: string): boolean => {
-  return loadingPublications.value[geneSymbol] || false;
-};
-
-// Parse PubTator annotations from text_hl field
-const parseAnnotations = (text: string | null | undefined): ParsedSegment[] => {
-  return parsePubtatorText(text);
-};
-
-// Segment display helpers (getSegmentClass / getSegmentTooltip) are imported
-// from the shared PubTator parser composable above and used directly in the template.
 
 // Apply prioritization filters
 const applyPrioritizationFilters = () => {
@@ -693,6 +565,11 @@ const applyPrioritizationFilters = () => {
 
 const loadData = async () => {
   isBusy.value = true;
+
+  // The gene set is about to change (filter / sort / page). Drop the per-gene
+  // publication cache so an expanded row cannot show publications fetched under
+  // the previous query (correctness fix).
+  resetPublicationCache();
 
   try {
     const response = await listPubtatorGenes({
@@ -715,6 +592,10 @@ const loadData = async () => {
         lastItemID?: number | null;
         currentPage?: number;
         fspec?: FieldDefinition[];
+        // Optional enrichment-freshness fields from /pubtator/genes meta
+        // (camelCase, like executionTime/totalItems); absent on older responses.
+        enrichmentStatus?: string;
+        enrichmentRefreshedAt?: string;
       };
       totalRows.value = metaObj.totalItems || 0;
       totalPages.value = metaObj.totalPages || 1;
@@ -728,6 +609,11 @@ const loadData = async () => {
       if (metaObj.fspec && Array.isArray(metaObj.fspec)) {
         fields.value = mergeFields(metaObj.fspec);
       }
+
+      enrichmentNotice.value = deriveEnrichmentNotice(
+        metaObj.enrichmentStatus,
+        metaObj.enrichmentRefreshedAt
+      );
     }
 
     const uiStore = useUiStore();
@@ -737,6 +623,32 @@ const loadData = async () => {
   } finally {
     isBusy.value = false;
   }
+};
+
+/**
+ * Build a non-blocking notice string from the optional enrichment-freshness
+ * meta. Returns null when the ranking is current or the fields are absent
+ * (defensive: never throw on a shape the API may not yet send).
+ */
+const deriveEnrichmentNotice = (
+  status: string | undefined,
+  refreshedAt: string | undefined
+): string | null => {
+  if (!status || status === 'current') return null;
+  if (status === 'missing') {
+    return 'Gene ranking not yet computed. Showing raw co-occurrence ordering until the first refresh.';
+  }
+  if (status === 'stale') {
+    const when = refreshedAt ? ` (last refreshed ${formatRefreshedAt(refreshedAt)})` : '';
+    return `Gene ranking may be out of date${when}.`;
+  }
+  return null;
+};
+
+/** Best-effort human-friendly date for the freshness notice. */
+const formatRefreshedAt = (value: string): string => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
 };
 
 // Handle page change
@@ -878,8 +790,7 @@ const mergeFields = (inboundFields: FieldDefinition[]): FieldDefinition[] => {
 
 // Cleanup: abort all in-flight publication requests on unmount
 onUnmounted(() => {
-  publicationAbortControllers.forEach((controller) => controller.abort());
-  publicationAbortControllers.clear();
+  cancelAllPublicationFetches();
 });
 
 // Lifecycle
@@ -964,29 +875,6 @@ mark {
   opacity: 0.7;
 }
 
-.details-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #212529;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
-  text-align: left;
-}
-
-.details-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.details-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem;
-}
-
 .details-pmid {
   display: inline-flex;
   align-items: center;
@@ -1005,137 +893,8 @@ mark {
   color: white;
 }
 
-.details-date {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2em 0.5em;
-  font-size: 0.8em;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border-radius: 0.25rem;
-}
-
-.details-journal {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25em 0.5em;
-  font-size: 0.8em;
-  background-color: #f8f9fa;
-  color: #495057;
-  border-radius: 0.25rem;
-  border: 1px solid #dee2e6;
-}
-
-.details-doi {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25em 0.5em;
-  font-size: 0.8em;
-  font-weight: 500;
-  background-color: #f0f0f0;
-  color: #495057;
-  border-radius: 0.3rem;
-  text-decoration: none;
-  transition: all 0.15s ease-in-out;
-}
-
-.details-doi:hover {
-  background-color: #495057;
-  color: white;
-}
-
-/* PubTator annotation styles */
-.annotated-text-section {
-  border-top: 1px solid #dee2e6;
-  padding-top: 0.75rem;
-}
-
-.annotated-text-label {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.annotated-text {
-  text-align: left;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.pubtator-legend {
-  color: #6c757d;
-}
-
-.pubtator-gene {
-  background-color: #b4e3f9;
-  color: #0d6efd;
-  border-radius: 2px;
-  padding: 0 2px;
-  cursor: help;
-}
-
-.pubtator-disease {
-  background-color: #ffe0b2;
-  color: #e65100;
-  border-radius: 2px;
-  padding: 0 2px;
-  cursor: help;
-}
-
-.pubtator-variant {
-  background-color: #f8bbd9;
-  color: #c2185b;
-  border-radius: 2px;
-  padding: 0 2px;
-  cursor: help;
-}
-
-.pubtator-species {
-  background-color: #c8e6c9;
-  color: #2e7d32;
-  border-radius: 2px;
-  padding: 0 2px;
-  cursor: help;
-}
-
-.pubtator-chemical {
-  background-color: #e1bee7;
-  color: #7b1fa2;
-  border-radius: 2px;
-  padding: 0 2px;
-  cursor: help;
-}
-
-.pubtator-match {
-  background-color: #fff59d;
-  color: #f57f17;
-  font-weight: 600;
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-/* Gene symbol chips */
-.gene-symbols-section {
-  border-top: 1px solid #dee2e6;
-  padding-top: 0.5rem;
-}
-
-.gene-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.gene-chip {
-  display: inline-block;
-  padding: 0.15em 0.4em;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background-color: #b4e3f9;
-  color: #0d6efd;
-  border-radius: 0.25rem;
-  white-space: nowrap;
-}
+/* The per-publication detail card (title/meta/annotated text/gene chips) now
+   lives in PubtatorPublicationDetail.vue and PubtatorAnnotatedText.vue. The
+   styles retained here cover the panel wrapper, the loading state, and the
+   no-cache PMID fallback that this component still renders directly. */
 </style>

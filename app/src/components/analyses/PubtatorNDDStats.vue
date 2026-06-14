@@ -35,7 +35,7 @@
           <template #header>
             <small class="text-muted">Total Genes</small>
           </template>
-          <BCardBody class="py-2">
+          <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
               <h3 class="mb-0 text-primary">
@@ -51,7 +51,7 @@
           <template #header>
             <small class="text-muted">Literature Only</small>
           </template>
-          <BCardBody class="py-2">
+          <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
               <h3 class="mb-0 text-info">
@@ -68,7 +68,7 @@
           <template #header>
             <small class="text-muted">Curated</small>
           </template>
-          <BCardBody class="py-2">
+          <BCardBody class="py-2 summary-card-body">
             <BSpinner v-if="loadingStats" small />
             <template v-else>
               <h3 class="mb-0 text-success">
@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useDebounceFn } from '@vueuse/core';
 import * as d3 from 'd3';
 import useToast from '@/composables/useToast';
 import InlineHelpBadge from '@/components/small/InlineHelpBadge.vue';
@@ -221,18 +222,32 @@ const isFilterActive = computed(() => selectedCategory.value === 'gene' && minCo
 // Number of bars actually displayed (limited by topN)
 const displayedCount = computed(() => Math.min(statsData.value.length, topN.value));
 
-// Watch minCount changes - needs to re-process data and re-plot
-watch(minCount, () => {
+// Debounced re-render guards (~300ms): minCount/topN are stepper inputs whose
+// value can change rapidly; without this each keystroke/step triggers a full
+// D3 rebuild. The BFormInput debounce coalesces the model update; this further
+// coalesces the (more expensive) chart rebuild.
+const RERENDER_DEBOUNCE_MS = 300;
+
+const debouncedProcessAndPlot = useDebounceFn(() => {
   if (rawGeneData.value.length > 0) {
     processAndPlot();
   }
+}, RERENDER_DEBOUNCE_MS);
+
+const debouncedReplot = useDebounceFn(() => {
+  if (statsData.value.length > 0) {
+    generateBarPlot();
+  }
+}, RERENDER_DEBOUNCE_MS);
+
+// Watch minCount changes - needs to re-process data and re-plot
+watch(minCount, () => {
+  debouncedProcessAndPlot();
 });
 
 // Watch topN changes - only needs to re-plot (data slice changes)
 watch(topN, () => {
-  if (statsData.value.length > 0) {
-    generateBarPlot();
-  }
+  debouncedReplot();
 });
 
 /**
@@ -254,11 +269,13 @@ async function fetchStats() {
       is_novel: item.is_novel !== undefined ? Number(item.is_novel) : undefined,
       hgnc_id: item.hgnc_id ? String(item.hgnc_id) : undefined,
     }));
-    loadingStats.value = false;
     processAndPlot();
   } catch (error) {
     makeToast(error, 'Error fetching PubTator stats', 'danger');
   } finally {
+    // Always exit both loading states so a fetch failure cannot leave the
+    // summary cards (loadingStats) or the chart overlay (loading) spinning.
+    loadingStats.value = false;
     loading.value = false;
   }
 }
@@ -331,14 +348,16 @@ function barFill(d: StatsDataItem): string {
 function generateBarPlot() {
   const isGeneMode = selectedCategory.value === 'gene';
 
-  // Always remove old svg and tooltip first
-  d3.select('#pubtator_stats_dataviz').select('svg').remove();
-  d3.select('#pubtator_stats_dataviz').select('.tooltip').remove();
-  d3.select('#pubtator_stats_dataviz').select('.no-data-message').remove();
+  // Single SVG root: clear the one container in a single pass rather than
+  // several targeted .select().remove() calls. The container only ever holds
+  // our svg / tooltip / no-data-message, so emptying it is equivalent and
+  // cheaper than three separate selections.
+  const container = d3.select('#pubtator_stats_dataviz');
+  container.selectAll('*').remove();
 
   // Handle empty data case - show message instead of stale chart
   if (!statsData.value || statsData.value.length === 0) {
-    d3.select('#pubtator_stats_dataviz')
+    container
       .append('div')
       .attr('class', 'no-data-message text-center text-muted py-5')
       .html(
@@ -357,13 +376,20 @@ function generateBarPlot() {
   const width = CHART_SVG_WIDTH - margin.left - margin.right;
   const height = CHART_SVG_HEIGHT - margin.top - margin.bottom;
 
+  // Accessible chart description (role="img" + aria-label) so the bar chart is
+  // announced as a single meaningful image rather than a tree of <rect>s.
+  const chartLabel = isGeneMode
+    ? `Bar chart of top ${data.length} genes by NDD publication count.`
+    : `Bar chart of the number of genes by NDD publication count, ${data.length} bins.`;
+
   // append the SVG
-  const svg = d3
-    .select('#pubtator_stats_dataviz')
+  const svg = container
     .append('svg')
     .attr('id', 'pubtator-stats-svg')
     .attr('viewBox', `0 0 ${CHART_SVG_WIDTH} ${CHART_SVG_HEIGHT}`)
     .attr('preserveAspectRatio', 'xMinYMin meet')
+    .attr('role', 'img')
+    .attr('aria-label', chartLabel)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -429,8 +455,7 @@ function generateBarPlot() {
     .text(isGeneMode ? 'Publication Count' : 'Number of Genes');
 
   // Create a tooltip element
-  const tooltip = d3
-    .select('#pubtator_stats_dataviz')
+  const tooltip = container
     .append('div')
     .attr('class', 'tooltip')
     .style('opacity', 0)
@@ -525,6 +550,14 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+}
+/* Reserve summary-card body height so the loading-spinner → number swap does
+   not reflow the cards (avoids cumulative layout shift). */
+.summary-card-body {
+  min-height: 4.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 mark {
   display: inline-block;

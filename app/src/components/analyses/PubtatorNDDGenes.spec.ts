@@ -95,6 +95,7 @@ async function mountSubject(props = {}) {
         TableDownloadLinkCopyButtons: { template: '<div />' },
         GeneBadge: { template: '<a :href="linkTo">{{ symbol }}</a>', props: ['symbol', 'linkTo'] },
         BBadge: { template: '<span><slot /></span>' },
+        BAlert: { template: '<div class="b-alert"><slot /></div>' },
         BButton: {
           template: '<button :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
           props: ['disabled'],
@@ -311,5 +312,59 @@ describe('PubtatorNDDGenes', () => {
       })
     );
     expect(makeToastSpy).toHaveBeenCalledWith('Excel file downloaded', 'Success', 'success');
+  });
+
+  it('shows a freshness notice when the API reports a stale/missing ranking', async () => {
+    server.use(
+      http.get('/api/publication/pubtator/genes', () =>
+        HttpResponse.json({
+          meta: [
+            {
+              totalItems: 1,
+              totalPages: 1,
+              currentPage: 1,
+              currentItemID: 0,
+              fspec: [],
+              enrichmentStatus: 'missing',
+            },
+          ],
+          data: [
+            {
+              gene_symbol: 'MECP2',
+              gene_name: 'methyl CpG binding protein 2',
+              publication_count: 2,
+              is_novel: 1,
+              pmids: '123',
+            },
+          ],
+        })
+      )
+    );
+
+    const wrapper = await mountSubject();
+    expect(wrapper.find('.b-alert').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Gene ranking not yet computed');
+  });
+
+  it('renders no freshness notice when the meta fields are absent (defensive)', async () => {
+    server.use(
+      http.get('/api/publication/pubtator/genes', () =>
+        HttpResponse.json({
+          meta: [{ totalItems: 1, totalPages: 1, currentPage: 1, currentItemID: 0, fspec: [] }],
+          data: [
+            {
+              gene_symbol: 'MECP2',
+              gene_name: 'methyl CpG binding protein 2',
+              publication_count: 2,
+              is_novel: 1,
+              pmids: '123',
+            },
+          ],
+        })
+      )
+    );
+
+    const wrapper = await mountSubject();
+    expect(wrapper.find('.b-alert').exists()).toBe(false);
   });
 });

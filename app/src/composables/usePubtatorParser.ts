@@ -8,6 +8,8 @@
  * Entity types: GENE, DISEASE, VARIANT, SPECIES, CHEMICAL
  */
 
+import { createLruCache } from '@/utils/lruCache';
+
 export interface ParsedSegment {
   text: string;
   type: 'plain' | 'gene' | 'disease' | 'variant' | 'species' | 'chemical' | 'match';
@@ -118,6 +120,40 @@ export function parsePubtatorText(text: string | null | undefined): ParsedSegmen
   }
 
   return segments;
+}
+
+/**
+ * Memoized variant of {@link parsePubtatorText}.
+ *
+ * `text_hl` is parsed repeatedly per row per render in the PubTator table/genes
+ * components (preview slice, length check, full render, per-publication detail).
+ * The annotation parse is a pure function of the input string, so we cache the
+ * resulting segment array keyed by the raw text. This collapses the N parses
+ * per row down to one, with no change in rendered output.
+ *
+ * The cache is a bounded LRU (recency refreshed on hit) so a long browsing
+ * session over many distinct rows cannot grow it without limit, and hot entries
+ * are not evicted as "oldest". See {@link createLruCache}.
+ */
+const pubtatorParseCache = createLruCache<string, ParsedSegment[]>(1000);
+
+export function parsePubtatorTextMemoized(text: string | null | undefined): ParsedSegment[] {
+  if (!text) return [];
+
+  const cached = pubtatorParseCache.get(text);
+  if (cached) return cached;
+
+  const segments = parsePubtatorText(text);
+  pubtatorParseCache.set(text, segments);
+  return segments;
+}
+
+/**
+ * Clear the memoization cache. Exposed for tests; not needed in app code
+ * because the bounded cache evicts on its own.
+ */
+export function clearPubtatorParseCache(): void {
+  pubtatorParseCache.clear();
 }
 
 /**
@@ -270,6 +306,7 @@ export function getSegmentTooltip(segment: ParsedSegment): string {
 export function usePubtatorParser() {
   return {
     parsePubtatorText,
+    parsePubtatorTextMemoized,
     extractEntities,
     extractGeneSymbols,
     getEntityClass,
