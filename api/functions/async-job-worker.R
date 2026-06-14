@@ -380,6 +380,18 @@ async_job_worker_run_claimed_job <- function(
         heartbeat_fn = heartbeat_fn
       )
 
+      # Zero the per-request external-time accumulator (#344) at the START of
+      # each job, mirroring the API preroute hook. Without this the accumulator
+      # is never reset in the worker, so external time accrues monotonically
+      # across the worker's lifetime; once it crosses
+      # EXTERNAL_PROXY_REQUEST_MAX_SECONDS every subsequent external call in
+      # every job short-circuits to a degraded 503 (request_budget_exceeded).
+      # That is what made the PubtatorNDD enrichment refresh fail at the
+      # corpus-size fetch after the worker had already run external-heavy jobs.
+      if (exists("external_proxy_request_reset", mode = "function")) {
+        external_proxy_request_reset()
+      }
+
       result <- handler$run(
         job = claimed_job,
         payload = payload,

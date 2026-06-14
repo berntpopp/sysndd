@@ -38,6 +38,24 @@ PUBTATOR_FALLBACK_TOTAL_CORPUS <- 37000000L
 # replacement returns a non-zero count before changing it.
 PUBTATOR_NDD_CORPUS_QUERY <- "@DISEASE_Neurodevelopmental_Disorders"
 
+#' Reset the per-request external-time accumulator if the helper is present
+#'
+#' The enrichment collector is a durable batch job that makes many independent
+#' external PubTator calls (one corpus probe + one per gene). The per-request
+#' external-time ceiling (`EXTERNAL_PROXY_REQUEST_MAX_SECONDS`, #344) is designed
+#' for public request paths; left unchecked it short-circuits the back half of a
+#' batch to a degraded 503. Calling this before each external call gives each
+#' call its own fresh budget while keeping each call's own per-call
+#' timeout/retry (via `external_proxy_budget()`). Guarded so the collector can be
+#' sourced in library-light test contexts where the accumulator is absent.
+#' @keywords internal
+.pubtatornidd_reset_external_budget <- function() {
+  if (exists("external_proxy_request_reset", mode = "function")) {
+    external_proxy_request_reset()
+  }
+  invisible(NULL)
+}
+
 #' Fetch the total PubTator publication count for a single search query
 #'
 #' Hits the PubTator3 search endpoint and reads `response.count`. This is the
@@ -105,11 +123,19 @@ pubtator_total_count_mem <- if (exists("cache_dynamic") &&
 #'   `PUBTATOR_FALLBACK_TOTAL_CORPUS` if the all-corpus probe fails.
 #' @export
 pubtator_collect_corpus_sizes <- function(fetch_fn = pubtator_total_count_mem) {
+  # This is a durable batch job, not a public request: the per-request external
+  # time ceiling (EXTERNAL_PROXY_REQUEST_MAX_SECONDS, #344) would otherwise
+  # short-circuit our many independent calls to a degraded 503. Reset the
+  # accumulator before each call so each gets its own fresh per-call budget
+  # (per-call timeout/retry still applies via external_proxy_budget). See
+  # .pubtatornidd_reset_external_budget().
+  .pubtatornidd_reset_external_budget()
   ndd_res <- fetch_fn(PUBTATOR_NDD_CORPUS_QUERY)
   ndd_size <- if (isTRUE(ndd_res$error)) NA_integer_ else as.integer(ndd_res$count)
 
   # Total corpus size: an unfiltered search returns the index size. A bare "*"
   # query is the conventional "everything" probe; guard with the fallback.
+  .pubtatornidd_reset_external_budget()
   total_res <- fetch_fn("*")
   total_is_fallback <- isTRUE(total_res$error) ||
     is.null(total_res$count) || is.na(total_res$count) ||
@@ -154,6 +180,10 @@ pubtator_collect_background_counts <- function(gene_symbols,
 
   for (i in seq_len(total)) {
     sym <- gene_symbols[[i]]
+    # Per-call reset: each gene's background fetch gets its own fresh external
+    # budget so this legitimate multi-minute batch is not capped by the
+    # per-request external-time ceiling (#344). See corpus-sizes note above.
+    .pubtatornidd_reset_external_budget()
     res <- fetch_fn(paste0("@GENE_", sym))
     if (!isTRUE(res$error) && !is.null(res$count) && !is.na(res$count)) {
       background[[i]] <- as.integer(res$count)

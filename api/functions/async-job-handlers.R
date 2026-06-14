@@ -412,6 +412,37 @@
   pubtator_enrichment_job_run(job, .async_job_progress_reporter)
 }
 
+.async_job_run_pubtatornidd_nightly <- function(job, payload, state, worker_config) {
+  progress <- .async_job_progress_reporter(job$job_id[[1]])
+  progress("init", "Starting PubtatorNDD nightly refresh...", current = 0, total = 1)
+
+  if (!base::exists("pool", envir = .GlobalEnv, inherits = FALSE)) {
+    stop("PubtatorNDD nightly refresh requires the global database pool", call. = FALSE)
+  }
+  if (!base::exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    stop("PubtatorNDD nightly refresh requires the global config (dw)", call. = FALSE)
+  }
+
+  db_pool <- base::get("pool", envir = .GlobalEnv, inherits = FALSE)
+  dw_config <- base::get("dw", envir = .GlobalEnv, inherits = FALSE)
+
+  result <- pubtatornidd_nightly_run(
+    pool_obj = db_pool,
+    dw_config = dw_config,
+    progress_fn = progress,
+    payload = payload
+  )
+
+  # Benign skips (lock held by a concurrent run) complete successfully. A
+  # missing standing query or a failed refresh step is surfaced as a job
+  # failure so the nightly run is observable in job history / alerting.
+  if (!isTRUE(result$success)) {
+    stop(result$message %||% "PubtatorNDD nightly refresh failed", call. = FALSE)
+  }
+
+  result
+}
+
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
@@ -838,6 +869,11 @@ async_job_handler_registry <- list(
   pubtator_enrichment_refresh = list(
     cancel_mode = "best_effort",
     run = .async_job_run_pubtator_enrichment,
+    after_success = .async_job_after_success_noop
+  ),
+  pubtatornidd_nightly = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_pubtatornidd_nightly,
     after_success = .async_job_after_success_noop
   ),
   nddscore_import = list(
