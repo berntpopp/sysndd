@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-06-14
+
+Minor release: public analysis snapshots now auto-bootstrap on startup so a fresh deploy heals on its own, plus Administrator refresh/status endpoints and a friendlier "being prepared" frontend state (#420).
+
+### Added
+
+- **Startup auto-bootstrap for analysis snapshots** (#420): after migrations, `analysis_snapshot_bootstrap_on_startup()` idempotently enqueues `analysis_snapshot_refresh` jobs for any supported preset lacking an active public-ready snapshot, so `/GeneNetworks` and `/PhenotypeClusters` heal automatically after a fresh deploy instead of serving 503 `snapshot_missing`. Gated by `ANALYSIS_SNAPSHOT_BOOTSTRAP_ON_STARTUP` (default on), existence-checked (a restart with snapshots already present enqueues nothing), dedup-safe, and never crashes boot. Mirrors the #421 PubtatorNDD bootstrap pattern.
+- **Administrator snapshot endpoints** (#420): `POST /api/admin/analysis/snapshots/refresh` (optional `analysis_type`, optional `force`) submits the refresh jobs and returns their ids; `GET /api/admin/analysis/snapshots/status` reports per-preset state (missing / available / stale / source_version_mismatch) with timestamps and row counts — letting an operator rebuild/inspect snapshots without SSH or `docker exec`. Non-admin callers get 403.
+- **Frontend "analysis is being prepared" state** (#420): GeneNetworks and PhenotypeClusters now render a friendly retry panel when the API returns a snapshot 503, instead of a raw `AxiosError` and an empty page.
+
+### Changed
+
+- All three snapshot submit paths — the startup hook, the new admin endpoint, and the operator script `scripts/refresh-analysis-snapshots.R` (now `force=TRUE`) — share one `service_analysis_snapshot_submit_refresh()` function. The shared submit/status/bootstrap functions live in a focused new `services/analysis-snapshot-refresh-service.R` to keep the service files under the 600-line ceiling.
+
 ## [0.23.0] — 2026-06-14
 
 Minor release: Administrator-views UX hardening and maintainability (audit follow-through to >9/10).
