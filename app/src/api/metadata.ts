@@ -53,11 +53,48 @@ export interface MetadataMutationResult {
   entry?: { pk: number | string };
 }
 
-/** R/Plumber wraps scalars in 1-element arrays; the catalog endpoint returns a
- * `data` array of descriptors. The fields below are normalised by the caller
- * only where a scalar shape is required. */
+/** R/Plumber serializes scalars as 1-element arrays. The catalog/list endpoints
+ * return descriptor scalars (slug, pk, label, ...) in that wrapped shape, so we
+ * normalise them at the client boundary to honour the declared `string` types.
+ * Without this, `vocab.pk` reaches `humanizeLabel` as an array and crashes the
+ * ManageMetadata view with `field.replace is not a function`. */
 interface MetadataCatalogResponse {
-  data: MetadataVocabulary[];
+  data: unknown[];
+}
+
+/** Unwrap a Plumber 1-element array to its scalar; pass scalars through. */
+function unwrapScalar<T>(value: T | T[]): T {
+  return Array.isArray(value) ? (value[0] as T) : value;
+}
+
+/** Normalise a raw catalog/meta descriptor: unwrap scalar fields and coerce
+ * `fields` to a `string[]` and optional boolean flags. */
+function normalizeVocabulary(raw: Record<string, unknown>): MetadataVocabulary {
+  const fields = Array.isArray(raw.fields)
+    ? (raw.fields as unknown[]).map((f) => String(unwrapScalar(f as string)))
+    : [];
+  return {
+    slug: String(unwrapScalar(raw.slug as string)),
+    label: String(unwrapScalar(raw.label as string)),
+    table: String(unwrapScalar(raw.table as string)),
+    pk: String(unwrapScalar(raw.pk as string)),
+    pk_type: unwrapScalar(raw.pk_type as MetadataVocabulary['pk_type']),
+    editable: unwrapScalar(raw.editable as MetadataEditable),
+    managed: String(unwrapScalar(raw.managed as string)),
+    fields,
+    has_is_active:
+      raw.has_is_active != null ? Boolean(unwrapScalar(raw.has_is_active as boolean)) : undefined,
+    has_sort: raw.has_sort != null ? Boolean(unwrapScalar(raw.has_sort as boolean)) : undefined,
+  };
+}
+
+/** Unwrap each cell value of a vocabulary row (Plumber wraps scalar cells too). */
+function normalizeRow(raw: Record<string, unknown>): MetadataRow {
+  const out: MetadataRow = {};
+  for (const [key, value] of Object.entries(raw)) {
+    out[key] = unwrapScalar(value) as MetadataCellValue;
+  }
+  return out;
 }
 
 /**
@@ -66,7 +103,7 @@ interface MetadataCatalogResponse {
  */
 export async function fetchMetadataCatalog(): Promise<MetadataVocabulary[]> {
   const response = await apiClient.get<MetadataCatalogResponse>('/api/metadata');
-  return response.data;
+  return (response.data ?? []).map((v) => normalizeVocabulary(v as Record<string, unknown>));
 }
 
 /**
@@ -74,7 +111,22 @@ export async function fetchMetadataCatalog(): Promise<MetadataVocabulary[]> {
  * GET /api/metadata/:slug
  */
 export async function fetchMetadataRows(slug: string): Promise<MetadataListResponse> {
-  return apiClient.get<MetadataListResponse>(`/api/metadata/${encodeURIComponent(slug)}`);
+  const response = await apiClient.get<{ meta: Record<string, unknown>; data: unknown[] }>(
+    `/api/metadata/${encodeURIComponent(slug)}`
+  );
+  const meta = normalizeVocabulary(response.meta);
+  return {
+    meta: {
+      slug: meta.slug,
+      label: meta.label,
+      table: meta.table,
+      pk: meta.pk,
+      editable: meta.editable,
+      managed: meta.managed,
+      fields: meta.fields,
+    },
+    data: (response.data ?? []).map((r) => normalizeRow(r as Record<string, unknown>)),
+  };
 }
 
 /**

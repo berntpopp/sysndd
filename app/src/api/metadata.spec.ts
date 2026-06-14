@@ -36,6 +36,37 @@ describe('api/metadata client', () => {
     expect(catalog[1].editable).toBe('anchored');
   });
 
+  it('normalises Plumber array-wrapped scalar descriptor fields', async () => {
+    primeAuth();
+    // Real /api/metadata serialises scalars as 1-element arrays (no jsonlite::unbox).
+    server.use(
+      http.get('/api/metadata', () =>
+        HttpResponse.json({
+          data: [
+            {
+              slug: ['modifier'],
+              label: ['Modifiers'],
+              table: ['modifier_list'],
+              pk: ['modifier_id'],
+              pk_type: ['integer'],
+              editable: [true],
+              managed: ['sysndd'],
+              fields: ['modifier_name', 'allowed_phenotype'],
+              has_is_active: [true],
+            },
+          ],
+        })
+      )
+    );
+    const catalog = await fetchMetadataCatalog();
+    expect(catalog[0].slug).toBe('modifier');
+    expect(catalog[0].pk).toBe('modifier_id');
+    expect(catalog[0].editable).toBe(true);
+    expect(catalog[0].fields).toEqual(['modifier_name', 'allowed_phenotype']);
+    // pk must be a string so the view's humanizeLabel(vocab.pk) never crashes.
+    expect(typeof catalog[0].pk).toBe('string');
+  });
+
   it('lists rows for a vocabulary', async () => {
     primeAuth();
     server.use(

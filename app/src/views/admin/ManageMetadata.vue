@@ -176,8 +176,11 @@ const MANAGED_COPY: Record<string, string> = {
   vario: 'Variant types anchored to the Variation Ontology (VariO).',
 };
 
-function humanizeLabel(field: string): string {
-  return field
+function humanizeLabel(field: unknown): string {
+  // Defensive String(): the metadata client normalises Plumber's array-wrapped
+  // scalars, but coercing here keeps a non-string field from crashing the
+  // column computed (was: "field.replace is not a function").
+  return String(field ?? '')
     .replace(/_/g, ' ')
     .replace(/\bhpo\b/gi, 'HPO')
     .replace(/^\w/, (c) => c.toUpperCase());
