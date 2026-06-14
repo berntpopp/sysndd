@@ -165,6 +165,7 @@ bootstrap_load_modules <- function() {
     "services/re-review-refusal-service.R",
     "services/seo-service.R",
     "services/analysis-snapshot-service.R",
+    "services/analysis-snapshot-refresh-service.R",
     "services/mcp-service.R",
     "services/mcp-analysis-shaping.R",
     "services/mcp-query-service.R",

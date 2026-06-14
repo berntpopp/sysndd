@@ -2,7 +2,11 @@
 # Pure-unit: injects fake submit/exists fns, no DB.
 
 source_api_file("functions/analysis-snapshot-presets.R", local = FALSE)
+# Read/shape helpers (service_analysis_snapshot_scalar_value / _time_string /
+# _record_counts) live in the read service; the shared submit/status/bootstrap
+# functions under test live in the refresh service.
 source_api_file("services/analysis-snapshot-service.R", local = FALSE)
+source_api_file("services/analysis-snapshot-refresh-service.R", local = FALSE)
 
 fake_job <- function(id, duplicate = FALSE) {
   list(
