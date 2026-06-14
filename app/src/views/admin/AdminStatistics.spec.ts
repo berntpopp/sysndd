@@ -44,7 +44,12 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
   function stubStatisticsEndpoints() {
     server.use(
       http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
-      http.get('*/api/statistics/leaderboard', () => HttpResponse.json({ data: [] })),
+      // The view's leaderboard composable calls `/contributor_leaderboard`,
+      // not `/leaderboard`; with MSW `onUnhandledRequest: 'error'` the wrong
+      // path would surface as an unhandled request rather than a real stub.
+      http.get('*/api/statistics/contributor_leaderboard', () =>
+        HttpResponse.json({ data: [] })
+      ),
       http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
       http.get('*/api/statistics/updates', () => HttpResponse.json({})),
       http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
@@ -99,7 +104,9 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
       // Short-circuit the rest of the on-mount fan-out so
       // `onUnhandledRequest: 'error'` does not fail the test on unrelated
       // endpoints the view also fires.
-      http.get('*/api/statistics/leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/contributor_leaderboard', () =>
+        HttpResponse.json({ data: [] })
+      ),
       http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
       http.get('*/api/statistics/updates', () => HttpResponse.json({})),
       http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
@@ -114,6 +121,62 @@ describe('AdminStatistics — F2a Bearer-via-interceptor', () => {
     await new Promise((r) => setTimeout(r, 0));
 
     expect(sawRequest).toBe(true);
+  });
+
+  it('fetches the contributor leaderboard from /contributor_leaderboard on mount', async () => {
+    primeAuth();
+    let sawLeaderboard = false;
+
+    server.use(
+      http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/contributor_leaderboard', () => {
+        sawLeaderboard = true;
+        return HttpResponse.json({ data: [] });
+      }),
+      http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/updates', () => HttpResponse.json({})),
+      http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_reviews', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
+    );
+
+    mountView();
+
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(sawLeaderboard).toBe(true);
+  });
+
+  it('fetches /statistics/updates exactly twice on mount (current + previous period)', async () => {
+    primeAuth();
+    let updatesCalls = 0;
+
+    server.use(
+      http.get('*/api/statistics/entities_over_time', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/contributor_leaderboard', () =>
+        HttpResponse.json({ data: [] })
+      ),
+      http.get('*/api/statistics/rereview_leaderboard', () => HttpResponse.json({ data: [] })),
+      http.get('*/api/statistics/updates', () => {
+        updatesCalls += 1;
+        return HttpResponse.json({});
+      }),
+      http.get('*/api/statistics/rereview', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_reviews', () => HttpResponse.json({})),
+      http.get('*/api/statistics/updated_statuses', () => HttpResponse.json({}))
+    );
+
+    mountView();
+
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    // fetchKPIStats fetches the current period once and threads it into
+    // calculateTrendDelta, which then only fetches the previous period —
+    // two calls total, not three (the pre-fix double-fetch).
+    expect(updatesCalls).toBe(2);
   });
 
   it('renders a compact date range control panel', () => {

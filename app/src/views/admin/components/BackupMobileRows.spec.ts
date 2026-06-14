@@ -33,4 +33,27 @@ describe('BackupMobileRows', () => {
     expect(wrapper.emitted('restore')).toEqual([[item]]);
     expect(wrapper.emitted('delete')).toEqual([[item]]);
   });
+
+  it('uses the canonical inventory formatters (DRY) for size and type', () => {
+    // After the DRY refactor the row delegates formatFileSize/formatDate/
+    // getBackupType to ../composables/useBackupInventory instead of
+    // re-implementing them locally.
+    const item = {
+      filename: 'pre-restore_2026-05-01.sql',
+      size_bytes: 1048576,
+      created_at: '2026-05-01T10:30:00Z',
+      table_count: null,
+    };
+
+    const wrapper = mount(BackupMobileRows, {
+      props: { items: [item] },
+    });
+
+    // Canonical formatFileSize: 1 MB (1048576 bytes).
+    expect(wrapper.text()).toContain('1 MB');
+    // Canonical getBackupType: pre-restore prefix.
+    expect(wrapper.text()).toContain('pre-restore');
+    // table_count null -> the tables chip is hidden.
+    expect(wrapper.text()).not.toContain('tables');
+  });
 });
