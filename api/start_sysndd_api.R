@@ -145,9 +145,9 @@ root <- bootstrap_mount_endpoints(api_spec, pool, logging_temp_file)
 ## -------------------------------------------------------------------##
 tryCatch(
   pubtatornidd_bootstrap_enrichment(),
-  error = function(e) message(sprintf(
-    "[pubtatornidd-bootstrap] skipped: %s", conditionMessage(e)
-  ))
+  error = function(e) {
+    message(sprintf("[pubtatornidd-bootstrap] skipped: %s", conditionMessage(e)))
+  }
 )
 
 ## -------------------------------------------------------------------##
