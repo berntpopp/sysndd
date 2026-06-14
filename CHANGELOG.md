@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-06-14
+
+Minor release: surface the read-only SysNDD MCP service in the UI — a footer icon beside the API/Swagger link and an expanded `/mcp` information page with client setup instructions.
+
+### Added
+
+- **MCP footer icon** beside the API/Swagger icon in the footer, linking to the `/mcp` information page. Uses the official Model Context Protocol logomark (MIT / public-domain geometric mark, recolored to the SysNDD brand) served from `/img/mcp.svg`.
+- **Expanded `/mcp` information page**: per-client setup for coding clients (Claude Code `claude mcp add --transport http`, Claude Desktop, Cursor) and browser chatbots (Claude.ai custom connectors, ChatGPT developer-mode connectors), a read-only tool catalog, recommended workflow, and clearer transport/safety notes.
+
+### Fixed
+
+- **MCP footer asset path collision**: the footer logo is served from `/img/mcp.svg` instead of `/mcp.svg`. The dev Vite `/mcp` proxy (and production `/mcp` routing) forwards the `/mcp` prefix to the MCP transport, which returns `405` on a `GET`, so the icon silently fell back to the app icon.
+
 ## [0.24.0] — 2026-06-14
 
 Minor release: public analysis snapshots now auto-bootstrap on startup so a fresh deploy heals on its own, plus Administrator refresh/status endpoints and a friendlier "being prepared" frontend state (#420).

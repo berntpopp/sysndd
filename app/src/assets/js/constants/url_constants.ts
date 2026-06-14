@@ -54,6 +54,13 @@ const URLS = {
   API_LINK: '/API',
 
   /**
+   * Relative link to the MCP (Model Context Protocol) information page
+   * @description A relative URL pointing to the in-app /mcp information page that explains
+   * how to add and use the read-only SysNDD MCP service in agentic clients.
+   */
+  MCP_LINK: '/mcp',
+
+  /**
    * Base URL for API calls (from environment)
    * @description The base URL for API calls, dynamically set from the environment variables.
    * This ensures that the application can adapt to different environments (development, production, etc.).
