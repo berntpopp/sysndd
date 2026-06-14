@@ -16,8 +16,10 @@
               :last-updated="annotationDates.omim_update"
               :user-options="forceApplyUserOptions"
               :loading-users="loadingForceApplyUsers"
-              @start-ontology="onStartOntology"
-              @force-apply="onForceApply"
+              @start-ontology="() => requestConfirm(ONTOLOGY_UPDATE_CONFIRM, onStartOntology)"
+              @force-apply="
+                (payload) => requestConfirm(FORCE_APPLY_CONFIRM, () => onForceApply(payload))
+              "
               @dismiss-blocked="dismissBlockedOntology"
             />
           </BCol>
@@ -50,7 +52,7 @@
               :metadata="comparisonsMetadata"
               :loading-metadata="loadingComparisonsMetadata"
               @refresh-metadata="loadComparisonsMetadata"
-              @start-refresh="onStartComparisons"
+              @start-refresh="() => requestConfirm(COMPARISONS_REFRESH_CONFIRM, onStartComparisons)"
             />
           </BCol>
         </BRow>
@@ -70,7 +72,7 @@
               @update:custom-date="(value: string) => (customDate = value)"
               @refresh-stats="loadPublicationStats"
               @refresh-filtered="onRefreshFilteredPublications"
-              @refresh-all="onRefreshAllPublications"
+              @refresh-all="() => requestConfirm(REFRESH_ALL_PUBLICATIONS_CONFIRM, onRefreshAllPublications)"
             />
           </BCol>
         </BRow>
@@ -111,18 +113,44 @@
         </BRow>
       </BContainer>
     </div>
+
+    <!-- Shared confirmation gate for heavy / irreversible operations. Stays
+         mounted (no v-if) so its @hidden lifecycle clears any pending action. -->
+    <ConfirmActionModal
+      v-model="confirmOpen"
+      :title="confirmConfig.title"
+      :message="confirmConfig.message"
+      :confirm-label="confirmConfig.confirmLabel ?? 'Confirm'"
+      :confirm-variant="confirmConfig.confirmVariant ?? 'warning'"
+      :header-bg-variant="confirmConfig.confirmVariant ?? 'warning'"
+      :header-text-variant="confirmConfig.confirmVariant === 'danger' ? 'light' : 'dark'"
+      icon="bi-exclamation-triangle-fill"
+      :icon-class="confirmConfig.confirmVariant === 'danger' ? 'text-danger' : 'text-warning'"
+      @confirm="acceptConfirm"
+      @hidden="resetConfirm"
+    />
   </AuthenticatedPageShell>
 </template>
 
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
+import ConfirmActionModal from '@/components/ui/ConfirmActionModal.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import { useAsyncJob } from '@/composables/useAsyncJob';
+import { useConfirmGate } from '@/composables/useConfirmGate';
 import { unwrapValue } from '@/composables/annotations/useAnnotationFormatters';
 import * as api from '@/composables/annotations/useAnnotationsApi';
 import { useJobHistoryPanel } from '@/composables/annotations/useJobHistoryPanel';
+import { useAnnotationJobReactions } from '@/composables/annotations/useAnnotationJobReactions';
+import {
+  ONTOLOGY_UPDATE_CONFIRM,
+  FORCE_APPLY_CONFIRM,
+  COMPARISONS_REFRESH_CONFIRM,
+  REFRESH_ALL_PUBLICATIONS_CONFIRM,
+} from '@/composables/annotations/annotationsConfirmCopy';
 import OntologyAnnotationsCard, {
   type OntologyBlockedState,
   type UserOption,
@@ -148,6 +176,18 @@ import JobHistoryCard from '@/components/annotations/JobHistoryCard.vue';
 // ---------------------------------------------------------------------------
 const route = useRoute();
 const { makeToast } = useToast();
+
+useHead({ title: 'Manage Annotations' });
+
+// Confirmation gate for heavy / irreversible operations (pairs with
+// ConfirmActionModal in the template).
+const {
+  open: confirmOpen,
+  config: confirmConfig,
+  request: requestConfirm,
+  accept: acceptConfirm,
+  reset: resetConfirm,
+} = useConfirmGate();
 
 const jobStatusUrl = (jobId: string): string => `/api/jobs/${encodeURIComponent(jobId)}/status`;
 
@@ -255,120 +295,30 @@ const {
 } = useJobHistoryPanel(route, { onToast: makeToast });
 
 // ---------------------------------------------------------------------------
-// Toast-and-history wiring for each job watcher
+// Toast-and-history wiring: per-job status reactions live in a composable.
 // ---------------------------------------------------------------------------
-function toastDone(msg: string): void {
-  makeToast(msg, 'Success', 'success');
-}
 function toastFail(msg: string): void {
   makeToast(msg, 'Error', 'danger');
 }
 
-watch(
-  () => ontologyJob.status.value,
-  async (newStatus) => {
-    if (newStatus === 'completed') {
-      try {
-        const jobId = ontologyJob.jobId.value;
-        if (jobId) {
-          const result = await api.fetchOntologyJobResult(jobId);
-          if (result && result.kind === 'blocked') {
-            ontologyBlocked.value = result.state;
-            forceApplyUserOptions.value = [];
-            loadingForceApplyUsers.value = true;
-            try {
-              forceApplyUserOptions.value = await api.fetchForceApplyUsers();
-            } catch {
-              forceApplyUserOptions.value = [];
-            } finally {
-              loadingForceApplyUsers.value = false;
-            }
-            makeToast(
-              `Ontology update blocked: ${result.state.critical_count} critical changes`,
-              'Update Blocked',
-              'warning'
-            );
-            loadJobHistory();
-            return;
-          }
-          const autoFixes = result && result.kind === 'ok' ? result.autoFixesApplied : 0;
-          if (autoFixes > 0) {
-            toastDone(`Ontology updated. ${autoFixes} entity version(s) auto-fixed.`);
-          } else {
-            toastDone('Ontology annotations updated successfully');
-          }
-        }
-      } catch {
-        toastDone('Ontology annotations updated successfully');
-      }
-      loadAnnotationDates();
-      loadJobHistory();
-    } else if (newStatus === 'failed') {
-      toastFail(ontologyJob.error.value || 'Ontology update failed');
-      loadJobHistory();
-    }
-  }
-);
-
-watch(
-  () => forceApplyJob.status.value,
-  (newStatus) => {
-    if (newStatus === 'completed') {
-      toastDone(
-        'Ontology force-applied successfully. Re-review batch created for critical entities.'
-      );
-      ontologyBlocked.value = null;
-      loadAnnotationDates();
-      loadJobHistory();
-    } else if (newStatus === 'failed') {
-      toastFail(forceApplyJob.error.value || 'Force-apply failed');
-      loadJobHistory();
-    }
-  }
-);
-
-watch(
-  () => hgncJob.status.value,
-  (newStatus) => {
-    if (newStatus === 'completed') {
-      toastDone('HGNC data updated successfully');
-      loadAnnotationDates();
-      loadJobHistory();
-    } else if (newStatus === 'failed') {
-      toastFail(hgncJob.error.value || 'HGNC update failed');
-      loadJobHistory();
-    }
-  }
-);
-
-watch(
-  () => publicationRefreshJob.status.value,
-  (newStatus) => {
-    if (newStatus === 'completed') {
-      toastDone('Publications refreshed successfully');
-      loadPublicationStats();
-      loadFilteredCount();
-      loadJobHistory();
-    } else if (newStatus === 'failed') {
-      toastFail(publicationRefreshJob.error.value || 'Publication refresh failed');
-      loadJobHistory();
-    }
-  }
-);
-
-watch(
-  () => comparisonsJob.status.value,
-  (newStatus) => {
-    if (newStatus === 'completed') {
-      toastDone('Comparisons data refreshed successfully');
-      loadComparisonsMetadata();
-      loadJobHistory();
-    } else if (newStatus === 'failed') {
-      toastFail(comparisonsJob.error.value || 'Comparisons refresh failed');
-      loadJobHistory();
-    }
-  }
-);
+useAnnotationJobReactions({
+  ontologyJob,
+  forceApplyJob,
+  hgncJob,
+  comparisonsJob,
+  publicationRefreshJob,
+  ontologyBlocked,
+  forceApplyUserOptions,
+  loadingForceApplyUsers,
+  makeToast,
+  reload: {
+    annotationDates: loadAnnotationDates,
+    jobHistory: loadJobHistory,
+    publicationStats: loadPublicationStats,
+    filteredCount: loadFilteredCount,
+    comparisonsMetadata: loadComparisonsMetadata,
+  },
+});
 
 watch(notUpdatedSince, () => {
   if (notUpdatedSince.value) {
