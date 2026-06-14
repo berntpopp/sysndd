@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-06-14
+
+Minor release: Administrator-views UX hardening and maintainability (audit follow-through to >9/10).
+
+### Added
+
+- **Per-view document titles** on the Administrator views (ManageUser/Ontology/Annotations/About/Backups/Pubtator/LLM/NDDScore/Metadata/AdminStatistics), via `useHead` — they previously rendered the generic "SysNDD |". Renders e.g. "Manage Users | SysNDD …".
+- **Confirmation modals** replace native browser dialogs in the app's modal language: a `SavePresetModal` for naming a filter preset (was `window.prompt()` in ManageUser), a reusable `ConfirmActionModal` for the large-log-export gate (was `window.confirm()` in the logs table), and a confirmation gate (`useConfirmGate`) before the four heavy/irreversible ManageAnnotations operations (ontology update, force-apply, comparisons refresh, refresh-all).
+- **Server-side "refresh all" for publications** — `POST /api/admin/publications/refresh` accepts `all=true` to enumerate the whole corpus server-side; the client no longer pulls every PMID. An empty request still 400s (safety guard).
+
+### Changed
+
+- **Gemini cost estimate is no longer hardcoded.** The LLM-admin cache cost estimate is centralized in the model catalog (`llm_model_pricing()` with per-model `price_input/output_per_million`) and keyed off the active model (`get_default_gemini_model()`), removing the stale "Gemini 2.0 Flash" rate.
+
+### Fixed
+
+- **Developer-reference version display** (`/API`) rendered the API and Database versions as raw Plumber 1-element arrays (`v[ "0.22.0" ]`) with a stray `[ "unknown" ]` commit badge (the badge guard `!== 'unknown'` never matched the array). The `/api/version` client now unwraps the array-wrapped scalars, so the versions render as plain `v0.22.0` / `v1.0.0` with the commit badge correctly hidden when unknown.
+
+### Internal
+
+- **`TablesLogs.vue` split** (1160 → 378 lines) into a `useLogTable` composable + `LogFilterToolbar` child + `logTableConfig`; file-size baseline ratcheted down.
+- Job-status watchers in ManageAnnotations extracted to `useAnnotationJobReactions`; preset state moved into `useUserData` — both to keep oversized SFCs under the file-size baseline while adding behaviour.
+- Documented that a durable HTTP job-cancel route is absent (the service layer supports cancellation but no endpoint exposes it) — recorded as a future change.
+
 ## [0.22.0] — 2026-06-14
 
 Minor release: PubTatorNDD performance, stability, and automatic nightly updates.
