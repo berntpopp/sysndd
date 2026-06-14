@@ -857,25 +857,15 @@ function(req, res) {
 #* Returns immediately with job_id. Poll GET /api/jobs/{job_id} for status.
 #* Rate limited to 3 requests/second (NCBI limit without API key).
 #*
-#* Supports two modes:
-#* 1. Explicit PMIDs: Provide a list of PMIDs to refresh
-#* 2. Date filter: Provide not_updated_since to refresh all publications not updated since that date
+#* Supports three modes:
+#* 1. Explicit PMIDs: Provide a `pmids` list to refresh
+#* 2. Date filter: Provide `not_updated_since` (YYYY-MM-DD) to refresh publications older than that
+#* 3. Refresh all: Provide `all=true` to refresh the whole corpus (enumerated server-side)
 #*
-#* # `Request Body`
-#* {
-#*   "pmids": ["PMID:12345678", "PMID:87654321"],
-#*   "not_updated_since": "2024-01-01"
-#* }
+#* Request body: { pmids?: [...], not_updated_since?: "YYYY-MM-DD", all?: true }.
+#* With both a date and pmids, the list is filtered to publications older than the date.
 #*
-#* If not_updated_since is provided without pmids, fetches all publications not updated since that date.
-#* If both are provided, filters the pmids list to only those not updated since that date.
-#*
-#* # `Response (202 Accepted)`
-#* {
-#*   "job_id": "550e8400-e29b-41d4-a716-446655440000",
-#*   "status": "accepted",
-#*   "estimated_seconds": 30
-#* }
+#* Returns 202 Accepted with { job_id, status, estimated_seconds }.
 #*
 #* # `Authorization`
 #* Restricted to Administrator role.
@@ -891,6 +881,7 @@ function(req, res) {
   body <- req$body
   pmids <- body$pmids
   not_updated_since <- body$not_updated_since
+  refresh_all <- isTRUE(body$all)
 
   # Handle date-based filtering
   if (!is.null(not_updated_since) && nzchar(not_updated_since)) {
@@ -939,7 +930,13 @@ function(req, res) {
     }
   }
 
-  # Validate input - at least one PMID required
+  # Opt-in full-corpus refresh: enumerate server-side (client need not fetch all PMIDs).
+  if (refresh_all && (is.null(pmids) || length(pmids) == 0)) {
+    pmids <- db_execute_query("SELECT publication_id FROM publication")$publication_id
+  }
+
+  # Validate input - at least one PMID required. An empty request still 400s
+  # (safety guard); full-corpus refresh requires the explicit all=true flag.
   if (is.null(pmids) || length(pmids) == 0) {
     res$status <- 400
     return(list(error = "No PMIDs provided and no date filter specified"))
