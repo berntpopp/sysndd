@@ -502,7 +502,19 @@ get_cache_statistics <- function() {
        SUM(CASE WHEN validation_status = 'validated' THEN 1 ELSE 0 END) as validated,
        SUM(CASE WHEN validation_status = 'rejected' THEN 1 ELSE 0 END) as rejected,
        SUM(CASE WHEN cluster_type = 'functional' THEN 1 ELSE 0 END) as functional,
+       SUM(CASE WHEN cluster_type = 'functional'
+                AND validation_status = 'validated' THEN 1 ELSE 0 END) as functional_validated,
+       SUM(CASE WHEN cluster_type = 'functional'
+                AND validation_status = 'pending' THEN 1 ELSE 0 END) as functional_pending,
+       SUM(CASE WHEN cluster_type = 'functional'
+                AND validation_status = 'rejected' THEN 1 ELSE 0 END) as functional_rejected,
        SUM(CASE WHEN cluster_type = 'phenotype' THEN 1 ELSE 0 END) as phenotype,
+       SUM(CASE WHEN cluster_type = 'phenotype'
+                AND validation_status = 'validated' THEN 1 ELSE 0 END) as phenotype_validated,
+       SUM(CASE WHEN cluster_type = 'phenotype'
+                AND validation_status = 'pending' THEN 1 ELSE 0 END) as phenotype_pending,
+       SUM(CASE WHEN cluster_type = 'phenotype'
+                AND validation_status = 'rejected' THEN 1 ELSE 0 END) as phenotype_rejected,
        MAX(created_at) as last_generation
      FROM llm_cluster_summary_cache
      WHERE is_current = TRUE"
@@ -530,9 +542,22 @@ get_cache_statistics <- function() {
       validated = cache_stats$validated[1] %||% 0L,
       rejected = cache_stats$rejected[1] %||% 0L
     ),
+    # Nested per-type breakdown ({count, validated, pending, rejected}) to match
+    # the frontend contract (app/src/types/llm.ts CacheTypeStats); the previous
+    # scalar shape made the per-type cache cards always render 0.
     by_type = list(
-      functional = cache_stats$functional[1] %||% 0L,
-      phenotype = cache_stats$phenotype[1] %||% 0L
+      functional = list(
+        count = cache_stats$functional[1] %||% 0L,
+        validated = cache_stats$functional_validated[1] %||% 0L,
+        pending = cache_stats$functional_pending[1] %||% 0L,
+        rejected = cache_stats$functional_rejected[1] %||% 0L
+      ),
+      phenotype = list(
+        count = cache_stats$phenotype[1] %||% 0L,
+        validated = cache_stats$phenotype_validated[1] %||% 0L,
+        pending = cache_stats$phenotype_pending[1] %||% 0L,
+        rejected = cache_stats$phenotype_rejected[1] %||% 0L
+      )
     ),
     last_generation = cache_stats$last_generation[1],
     total_tokens_input = token_stats$total_tokens_input[1] %||% 0L,
