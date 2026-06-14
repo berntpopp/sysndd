@@ -7,6 +7,8 @@ import { Blob as NodeBlob } from 'node:buffer';
 import { vi, beforeEach, afterEach, beforeAll, afterAll, expect } from 'vitest';
 import * as matchers from 'vitest-axe/matchers';
 import axios from 'axios';
+import { config } from '@vue/test-utils';
+import { createHead } from '@unhead/vue/client';
 
 // =============================================================================
 // Accessibility Testing Matchers (vitest-axe)
@@ -14,6 +16,16 @@ import axios from 'axios';
 
 // Extend Vitest expect with accessibility matchers (toHaveNoViolations)
 expect.extend(matchers);
+
+// =============================================================================
+// Global head (@unhead/vue) for useHead() in isolated component mounts
+// =============================================================================
+// Views call useHead() in setup() to set the per-route document <title>.
+// Without a provided head, injectHead() throws "useHead() was called without
+// provide context". Install a shared head plugin into every VTU mount via the
+// global config so isolated view specs don't need to wire it themselves. The
+// head's accumulated state is irrelevant to assertions.
+config.global.plugins = [...(config.global.plugins ?? []), createHead()];
 
 // Axios 1.16 + MSW 2.14 can fail under Vitest/jsdom when the XHR adapter
 // synthesizes binary responses (`responseType: "blob"`). The fetch adapter

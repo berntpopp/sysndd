@@ -262,6 +262,16 @@ export function useUserData(options: UseUserDataOptions = {}) {
     filterPresets.savePreset(name, JSON.parse(JSON.stringify(filter.value)));
   }
 
+  // Filter-preset naming uses the app's modal language (SavePresetModal) rather
+  // than a native window.prompt(); the modal state lives here next to the
+  // preset actions it drives.
+  const savePresetModalOpen = ref(false);
+
+  function confirmSavePreset(name: string): void {
+    saveFilterPreset(name);
+    onToast?.(`Saved preset: ${name}`, 'Filter Preset', 'success', true, 3000);
+  }
+
   function setInitialized(): void {
     nextTick(() => {
       isInitializing.value = false;
@@ -301,6 +311,8 @@ export function useUserData(options: UseUserDataOptions = {}) {
     loadFilterPreset,
     deleteFilterPreset,
     saveFilterPreset,
+    savePresetModalOpen,
+    confirmSavePreset,
     setInitialized,
   };
 }

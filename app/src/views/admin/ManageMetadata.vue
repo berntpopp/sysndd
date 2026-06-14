@@ -163,6 +163,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, nextTick, onMounted, ref } from 'vue';
+import { useHead } from '@unhead/vue';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import MetadataEntryModal from './components/MetadataEntryModal.vue';
@@ -208,6 +209,7 @@ export default defineComponent({
     MetadataDeleteModal,
   },
   setup() {
+    useHead({ title: 'Manage Metadata' });
     const { makeToast } = useToast();
     const admin = useMetadataAdmin({ onToast: makeToast });
 

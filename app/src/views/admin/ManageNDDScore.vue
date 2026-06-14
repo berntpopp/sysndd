@@ -305,6 +305,9 @@ import {
 } from './nddScoreAdminFormatters';
 import { useNddScoreAdminDerivedRows } from './useNddScoreAdminDerivedRows';
 import { extractApiErrorMessage } from '@/utils/api-errors';
+import { useHead } from '@unhead/vue';
+
+useHead({ title: 'Manage NDDScore' });
 
 type AdminRecord = NddScoreAdminRecord;
 
@@ -388,15 +391,12 @@ async function submitValidateOnly() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: true });
-    if (result.status === 'already_running') {
-      importJob.reset();
-      importJob.startJob(result.jobId);
-      actionMessage.value = 'An import is already running.';
-    } else {
-      importJob.reset();
-      importJob.startJob(result.jobId);
-      actionMessage.value = 'Validate-only job submitted.';
-    }
+    importJob.reset();
+    importJob.startJob(result.jobId);
+    actionMessage.value =
+      result.status === 'already_running'
+        ? 'An import is already running.'
+        : 'Validate-only job submitted.';
   } catch (err) {
     actionError.value = extractApiErrorMessage(err, 'Failed to submit validate-only job.');
   } finally {
@@ -411,15 +411,12 @@ async function confirmImport() {
   actionMessage.value = '';
   try {
     const result = await submitNddScoreImport({ validateOnly: false });
-    if (result.status === 'already_running') {
-      importJob.reset();
-      importJob.startJob(result.jobId);
-      actionMessage.value = 'An import is already running.';
-    } else {
-      importJob.reset();
-      importJob.startJob(result.jobId);
-      actionMessage.value = 'Import and activation job submitted.';
-    }
+    importJob.reset();
+    importJob.startJob(result.jobId);
+    actionMessage.value =
+      result.status === 'already_running'
+        ? 'An import is already running.'
+        : 'Import and activation job submitted.';
   } catch (err) {
     actionError.value = extractApiErrorMessage(err, 'Failed to submit import job.');
   } finally {

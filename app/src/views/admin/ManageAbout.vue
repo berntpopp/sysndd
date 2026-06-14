@@ -155,9 +155,12 @@
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
+import { useHead } from '@unhead/vue';
 import { useCmsContent } from '@/composables';
 import type { AboutSection } from '@/types';
 import SectionList from '@/components/cms/SectionList.vue';
+
+useHead({ title: 'Manage About Page' });
 
 // CMS content composable
 const {

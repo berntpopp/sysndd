@@ -230,6 +230,7 @@ component. */
 </template>
 
 <script>
+import { useHead } from '@unhead/vue';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import { ref } from 'vue';
@@ -266,6 +267,7 @@ export default {
     OntologyEditModal,
   },
   setup() {
+    useHead({ title: 'Manage Ontology' });
     const { makeToast } = useToast();
     const { filterObjToStr, filterStrToObj, sortStringToVariables } = useUrlParsing();
     const { isExporting, exportToExcel } = useExcelExport();

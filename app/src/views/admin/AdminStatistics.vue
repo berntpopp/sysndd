@@ -287,6 +287,9 @@ import EntityTrendChart from './components/charts/EntityTrendChart.vue';
 import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
 import StatCard from './components/statistics/StatCard.vue';
+import { useHead } from '@unhead/vue';
+
+useHead({ title: 'Admin Statistics' });
 
 const { makeToast } = useToast();
 
