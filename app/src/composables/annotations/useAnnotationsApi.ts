@@ -209,34 +209,15 @@ export async function submitComparisonsRefresh(): Promise<JobSubmissionResponse>
 }
 
 export async function submitPublicationRefresh(
-  payload: { not_updated_since: string } | { pmids: unknown[] }
+  // `{ all: true }` asks the server to enumerate the entire publication corpus
+  // server-side (the client no longer fetches every PMID).
+  payload: { not_updated_since: string } | { pmids: unknown[] } | { all: true }
 ): Promise<JobSubmissionResponse> {
   return apiClient.post<JobSubmissionResponse>(
     '/api/admin/publications/refresh',
     payload,
     authRequestConfig()
   );
-}
-
-export async function fetchAllPublicationPmids(): Promise<unknown[]> {
-  const publications: Array<{ publication_id: string | string[] }> = [];
-  let nextUrl: string | null = '/api/publication';
-  let isFirstPage = true;
-  while (nextUrl) {
-    const data = await apiClient.get<{
-      data?: Array<{ publication_id: string | string[] }>;
-      links?: { next?: unknown };
-    }>(nextUrl, {
-      ...authRequestConfig(),
-      params: isFirstPage ? { fields: 'publication_id', page_size: 10000 } : undefined,
-    });
-    const pageRows: Array<{ publication_id: string | string[] }> = data?.data || [];
-    publications.push(...pageRows);
-    const link = data?.links?.next;
-    nextUrl = typeof link === 'string' && link.length > 0 ? link : null;
-    isFirstPage = false;
-  }
-  return publications.map((p) => unwrapValue(p.publication_id));
 }
 
 export type OntologyJobResult =

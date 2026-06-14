@@ -527,14 +527,14 @@ async function onRefreshFilteredPublications(): Promise<void> {
 async function onRefreshAllPublications(): Promise<void> {
   publicationRefreshJob.reset();
   try {
-    const pmids = await api.fetchAllPublicationPmids();
-    if (pmids.length === 0) {
-      makeToast('No publications to refresh', 'Info', 'info');
-      return;
-    }
-    const data = await api.submitPublicationRefresh({ pmids });
+    // Server enumerates the full corpus (no client-side PMID fetch).
+    const data = await api.submitPublicationRefresh({ all: true });
     if (data.error) {
       toastFail(data.message || 'Failed to start refresh');
+      return;
+    }
+    if (data.count === 0) {
+      makeToast(data.message || 'No publications to refresh', 'Info', 'info');
       return;
     }
     if (data.status === 'already_running') {
