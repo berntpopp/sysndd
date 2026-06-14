@@ -139,6 +139,18 @@ schedule_cleanup(3600)
 root <- bootstrap_mount_endpoints(api_spec, pool, logging_temp_file)
 
 ## -------------------------------------------------------------------##
+# 9b) Bootstrap PubtatorNDD enrichment if no current snapshot exists (#421):
+#     a fresh deploy gets enrichment + the gene-summary table populated without
+#     waiting for the nightly cron. Idempotent + dedup-safe; never crashes boot.
+## -------------------------------------------------------------------##
+tryCatch(
+  pubtatornidd_bootstrap_enrichment(),
+  error = function(e) message(sprintf(
+    "[pubtatornidd-bootstrap] skipped: %s", conditionMessage(e)
+  ))
+)
+
+## -------------------------------------------------------------------##
 # 10) Run the API.
 ## -------------------------------------------------------------------##
 root %>% pr_run(host = "0.0.0.0", port = as.numeric(dw$port_self))

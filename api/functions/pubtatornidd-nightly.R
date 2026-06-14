@@ -296,3 +296,50 @@ pubtatornidd_nightly_job_run <- function(job, payload, progress_reporter_fn) {
 
   result
 }
+
+#' Bootstrap the PubtatorNDD enrichment snapshot on startup if missing (#421)
+#'
+#' If no current `pubtator_corpus_stats` snapshot exists, idempotently enqueue a
+#' `pubtatornidd_nightly` job so a fresh deploy populates enrichment (and the
+#' gene-summary table) without waiting for the nightly cron. Dedup-safe: when a
+#' current snapshot already exists this is a no-op, and `async_job_service_submit`
+#' dedups by request_hash so a restart while a bootstrap job is queued does not
+#' double-enqueue. Never throws (callable directly in API startup).
+#'
+#' @param query_fn Query function (injectable for tests). Default
+#'   `db_execute_query`.
+#' @param submit_fn Job-submit function (injectable for tests). Default
+#'   `async_job_service_submit`.
+#' @return Invisibly TRUE when a job was enqueued, FALSE otherwise.
+#' @export
+pubtatornidd_bootstrap_enrichment <- function(query_fn = db_execute_query,
+                                              submit_fn = async_job_service_submit) {
+  rows <- tryCatch(
+    query_fn("SELECT COUNT(*) AS n FROM pubtator_corpus_stats WHERE is_current = 1"),
+    error = function(e) NULL
+  )
+  has_current <- !is.null(rows) && nrow(rows) > 0 &&
+    !is.na(rows$n[[1]]) && as.integer(rows$n[[1]]) > 0L
+  if (isTRUE(has_current)) {
+    return(invisible(FALSE))
+  }
+
+  submitted <- tryCatch(
+    submit_fn(
+      job_type = "pubtatornidd_nightly",
+      request_payload = list(trigger = "startup_bootstrap")
+    ),
+    error = function(e) {
+      message(sprintf("[pubtatornidd-bootstrap] enqueue failed: %s",
+                      conditionMessage(e)))
+      NULL
+    }
+  )
+  if (!is.null(submitted)) {
+    message(paste(
+      "[pubtatornidd-bootstrap] no current enrichment snapshot;",
+      "enqueued nightly refresh to populate it"
+    ))
+  }
+  invisible(!is.null(submitted))
+}
