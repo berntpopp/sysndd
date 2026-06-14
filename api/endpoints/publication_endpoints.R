@@ -431,20 +431,21 @@ function(req,
 
 #* Get a Cursor-Pagination Object of Genes from pubtator_human_gene_entity_view
 #*
-#* This endpoint returns a cursor pagination object with one row per gene,
-#* listing nested `publications` and `entities` for each gene. The data is
-#* from `pubtator_human_gene_entity_view`. It provides prioritization fields:
-#* - `publication_count`: how many valid publication rows
-#* - `entities_count`: how many valid entity rows (SysNDD entities)
+#* This endpoint returns a cursor pagination object with one row per gene of
+#* flat prioritization fields (it no longer returns nested `publications` /
+#* `entities` arrays — the frontend lazy-fetches per-gene publications via
+#* `/pubtator/table`). The data is derived from `pubtator_human_gene_entity_view`
+#* (served from the precomputed `pubtator_gene_summary` table). Fields:
+#* - `publication_count`: distinct PMIDs mentioning the gene
+#* - `entities_count`: distinct SysNDD entities for the gene
 #* - `is_novel`: 1 if gene has no SysNDD entity (coverage gap), 0 otherwise
 #* - `oldest_pub_date`: earliest publication date for this gene
 #* - `pmids`: comma-separated list of PMIDs for this gene
+#* - enrichment metrics (`enrichment_ratio`, `npmi`, `fdr_bh`, ...) left-joined
+#*   from the current enrichment snapshot when available
 #*
-#* Default sort prioritizes novel genes (not in SysNDD) then by oldest_pub_date
-#* to surface long-overlooked genes for curator review.
-#*
-#* If the nested list-column has rows that are all NA in the key column
-#* (e.g. `entity_id` == NA), those get filtered out => count becomes 0.
+#* Default sort prioritizes enrichment, falling back to `-publication_count`
+#* when no enrichment snapshot exists (see `enrichmentStatus` in meta).
 #*
 #* @tag publication
 #* @serializer json list(na="string")
@@ -458,7 +459,7 @@ function(req,
 #* @param fspec:str   Field spec for meta info.
 #* @param format:str  "json" or "xlsx". Default "json".
 #*
-#* @response 200 OK - a cursor-paginated list of nested gene rows
+#* @response 200 OK - a cursor-paginated list of flat per-gene rows
 #*
 #* @get /pubtator/genes
 function(req,
@@ -468,7 +469,7 @@ function(req,
          fields = "",
          page_after = "0",
          page_size = "10",
-         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,observed,background_count,enrichment_ratio,npmi,fisher_p,fdr_bh,pmids,publications,entities", # nolint: line_length_linter
+         fspec = "gene_name,gene_symbol,gene_normalized_id,hgnc_id,publication_count,entities_count,is_novel,oldest_pub_date,observed,background_count,enrichment_ratio,npmi,fisher_p,fdr_bh,pmids", # nolint: line_length_linter
          format = "json") {
   # 1) Set serializer
   res$serializer <- serializers[[format]]
@@ -497,9 +498,15 @@ function(req,
   filter_exprs <- generate_filter_expressions(filter,
     allowed_columns = NULL)
 
-  # 4-6) Flat per-gene rows (collect + nest + derive prioritization fields).
-  #      Extracted to a helper to keep this endpoint within its size baseline.
-  df_counts <- pubtator_genes_nest_base(pool)
+  # 4-6) Flat per-gene rows. Fast path reads the precomputed
+  #      pubtator_gene_summary table (migration 035) refreshed by the nightly
+  #      worker job; cold-start fallback computes the same flat fields live from
+  #      the view. This replaces the per-request collect()+tidyr::nest() that
+  #      dominated the endpoint's latency (the raw view query is ~50-100ms). The
+  #      nested publications/entities are no longer produced: the frontend never
+  #      consumed them (it lazy-fetches per-gene publications via
+  #      /pubtator/table on row expand).
+  df_counts <- pubtator_genes_summary_base(pool)$data
 
   # 6b) Left-join normalized enrichment metrics (issue #175): normalize raw NDD
   #     co-occurrence for research-popularity bias. Worker-precomputed; LEFT JOIN

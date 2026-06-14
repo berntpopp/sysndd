@@ -2,8 +2,8 @@
 #
 # Strict migration manifest validation for startup/readiness.
 
-EXPECTED_LATEST_MIGRATION <- "034_add_pubtator_annotation_indexes.sql"
-EXPECTED_MIGRATION_COUNT <- 32L
+EXPECTED_LATEST_MIGRATION <- "035_add_pubtator_gene_summary.sql"
+EXPECTED_MIGRATION_COUNT <- 33L
 
 #' Validate the migration manifest for strict startup/readiness checks
 #'
