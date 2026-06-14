@@ -307,7 +307,7 @@ export default defineComponent({
       event.preventDefault();
       const slugs = admin.catalog.value.map((v) => v.slug);
       if (slugs.length === 0) return;
-      const current = slugs.indexOf(admin.activeSlug.value);
+      const current = slugs.indexOf(admin.activeSlug.value ?? '');
       let next = current;
       if (event.key === 'ArrowRight') next = (current + 1) % slugs.length;
       else if (event.key === 'ArrowLeft') next = (current - 1 + slugs.length) % slugs.length;
