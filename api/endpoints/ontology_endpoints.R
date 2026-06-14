@@ -232,6 +232,21 @@ function(req, res) {
     !names(ontology_details) %in% c("vario_id", "update_date")
   ]
 
+  # Allowlist field names against the actual table columns before they are
+  # interpolated into the SET clause. Identifiers are NOT parameterizable, so an
+  # un-allowlisted client key would be a (post-auth) SQL-identifier injection /
+  # mass-assignment surface. `current_data` came from SELECT *, so its column
+  # names are the authoritative, safe set of real columns.
+  allowed_columns <- setdiff(names(current_data), c("vario_id", "update_date"))
+  invalid_fields <- setdiff(fields_to_update, allowed_columns)
+  if (length(invalid_fields) > 0) {
+    res$status <- 400
+    return(list(error = paste(
+      "Invalid field(s) for update:", paste(invalid_fields, collapse = ", ")
+    )))
+  }
+  fields_to_update <- intersect(fields_to_update, allowed_columns)
+
   if (length(fields_to_update) == 0) {
     res$status <- 400
     return(list(error = "No valid fields to update."))
