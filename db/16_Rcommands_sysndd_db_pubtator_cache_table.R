@@ -92,7 +92,11 @@ rs <- dbSendQuery(sysndd_db, "
     `score` FLOAT,
     `text_hl` TEXT,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX (pmid)
+    INDEX (pmid),
+    -- See db/migrations/034_add_pubtator_annotation_indexes.sql: these support
+    -- query-scoped maintenance/backfill and date sort/filter on the table page.
+    INDEX `idx_search_query` (`query_id`),
+    INDEX `idx_search_date` (`date`)
   );
 ")
 dbClearResult(rs)
@@ -129,7 +133,14 @@ rs <- dbSendQuery(sysndd_db, "
     `biotype` VARCHAR(100) NULL,
     `name` TEXT NULL,
     `accession` VARCHAR(255) NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- See db/migrations/034_add_pubtator_annotation_indexes.sql. The gene view
+    -- joins on search_id + filters type='Gene' and EXISTS(type='Species',
+    -- normalized_id='9606'); without these a /pubtator/genes request full-scans
+    -- the whole annotation cache. Keep in sync with migration 034.
+    INDEX `idx_annotation_search_type` (`search_id`, `type`),
+    INDEX `idx_annotation_type_norm` (`type`, `normalized_id`)
   );
 ")
 dbClearResult(rs)
