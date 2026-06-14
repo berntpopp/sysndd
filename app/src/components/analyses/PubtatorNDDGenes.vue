@@ -592,10 +592,11 @@ const loadData = async () => {
         lastItemID?: number | null;
         currentPage?: number;
         fspec?: FieldDefinition[];
-        // Optional enrichment-freshness fields (may arrive from a sibling
-        // backend sprint; absent on older API responses).
-        enrichment_status?: string;
-        enrichment_refreshed_at?: string;
+        // Optional enrichment-freshness fields from /pubtator/genes meta
+        // (camelCase, matching executionTime/totalItems); absent on older API
+        // responses, so both are optional and handled defensively.
+        enrichmentStatus?: string;
+        enrichmentRefreshedAt?: string;
       };
       totalRows.value = metaObj.totalItems || 0;
       totalPages.value = metaObj.totalPages || 1;
@@ -611,8 +612,8 @@ const loadData = async () => {
       }
 
       enrichmentNotice.value = deriveEnrichmentNotice(
-        metaObj.enrichment_status,
-        metaObj.enrichment_refreshed_at
+        metaObj.enrichmentStatus,
+        metaObj.enrichmentRefreshedAt
       );
     }
 

@@ -325,7 +325,7 @@ describe('PubtatorNDDGenes', () => {
               currentPage: 1,
               currentItemID: 0,
               fspec: [],
-              enrichment_status: 'missing',
+              enrichmentStatus: 'missing',
             },
           ],
           data: [
