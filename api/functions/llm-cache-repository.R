@@ -479,9 +479,9 @@ update_validation_status <- function(cache_id, validation_status, validated_by =
 #'   - estimated_cost_usd: Numeric, estimated API cost
 #'
 #' @details
-#' Cost calculation uses Gemini 2.0 Flash pricing:
-#' - $0.075 per 1M input tokens
-#' - $0.30 per 1M output tokens
+#' The cost estimate is keyed off the active Gemini model
+#' (get_default_gemini_model()) using approximate per-1M-token rates from the
+#' central catalog (llm_model_pricing()), not a hardcoded rate.
 #'
 #' @examples
 #' \dontrun{
@@ -529,10 +529,10 @@ get_cache_statistics <- function() {
      WHERE status = 'success'"
   )
 
-  # Calculate estimated cost (Gemini 2.0 Flash pricing)
-  # Input: $0.075 per 1M tokens, Output: $0.30 per 1M tokens
-  input_cost <- (token_stats$total_tokens_input[1] %||% 0) * 0.075 / 1e6
-  output_cost <- (token_stats$total_tokens_output[1] %||% 0) * 0.30 / 1e6
+  # Estimate cost via the active model's catalog pricing (not a hardcoded rate).
+  pricing <- llm_model_pricing(get_default_gemini_model())
+  input_cost <- (token_stats$total_tokens_input[1] %||% 0) * pricing$input_per_million / 1e6
+  output_cost <- (token_stats$total_tokens_output[1] %||% 0) * pricing$output_per_million / 1e6
   estimated_cost_usd <- input_cost + output_cost
 
   list(
