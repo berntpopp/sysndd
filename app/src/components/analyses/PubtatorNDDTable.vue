@@ -141,19 +141,19 @@
         <template #cell-gene_symbols="{ row }">
           <div v-if="row.gene_symbols" class="gene-chips">
             <RouterLink
-              v-for="gene in row.gene_symbols.split(',').slice(0, 3)"
+              v-for="gene in geneSymbolList(row.gene_symbols).slice(0, 3)"
               :key="gene"
-              :to="'/Genes/' + gene.trim()"
+              :to="'/Genes/' + gene"
               class="gene-chip"
             >
-              {{ gene.trim() }}
+              {{ gene }}
             </RouterLink>
             <span
-              v-if="row.gene_symbols.split(',').length > 3"
+              v-if="geneSymbolList(row.gene_symbols).length > 3"
               class="gene-chip-more"
               :title="row.gene_symbols"
             >
-              +{{ row.gene_symbols.split(',').length - 3 }}
+              +{{ geneSymbolList(row.gene_symbols).length - 3 }}
             </span>
           </div>
           <span v-else class="text-muted">—</span>
@@ -209,28 +209,11 @@
               </div>
 
               <!-- Annotated Text Section -->
-              <div v-if="row.text_hl" class="annotated-text-section mt-3">
-                <div class="annotated-text-label text-muted small mb-1">
-                  <i class="bi bi-highlighter me-1" />Annotated Text:
-                </div>
-                <div class="annotated-text">
-                  <span
-                    v-for="(segment, idx) in parseAnnotations(row.text_hl)"
-                    :key="idx"
-                    :class="getSegmentClass(segment)"
-                    :title="getSegmentTooltip(segment)"
-                    >{{ segment.text }}</span
-                  >
-                </div>
-                <div class="pubtator-legend d-flex flex-wrap gap-2 small mt-2">
-                  <span><span class="pubtator-gene px-1">Gene</span></span>
-                  <span><span class="pubtator-disease px-1">Disease</span></span>
-                  <span><span class="pubtator-variant px-1">Variant</span></span>
-                  <span><span class="pubtator-species px-1">Species</span></span>
-                  <span><span class="pubtator-chemical px-1">Chemical</span></span>
-                  <span><span class="pubtator-match px-1">Match</span></span>
-                </div>
-              </div>
+              <PubtatorAnnotatedText
+                v-if="row.text_hl"
+                :text="row.text_hl"
+                section-class="mt-3"
+              />
               <div v-else class="text-muted mt-3">
                 <i class="bi bi-info-circle me-1" />No annotated text available.
               </div>
@@ -245,7 +228,7 @@
 
 <script lang="ts">
 // Import Vue utilities
-import { ref } from 'vue';
+import { ref, markRaw } from 'vue';
 
 // Import composables
 import {
@@ -254,9 +237,8 @@ import {
   useColorAndSymbols,
   useText,
   useTableData,
-  parsePubtatorText,
+  parsePubtatorTextMemoized,
   getSegmentClass,
-  getSegmentTooltip,
 } from '@/composables';
 import type { ParsedSegment } from '@/composables';
 import { normalizeSelectOptions } from '@/utils/selectOptions';
@@ -282,6 +264,7 @@ import TablePaginationControls from '@/components/small/TablePaginationControls.
 import TableDownloadLinkCopyButtons from '@/components/small/TableDownloadLinkCopyButtons.vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import AnalysisPanel from '@/components/analyses/AnalysisPanel.vue';
+import PubtatorAnnotatedText from '@/components/analyses/PubtatorAnnotatedText.vue';
 
 import Utils from '@/assets/js/utils';
 import { useUiStore } from '@/stores/ui';
@@ -294,6 +277,7 @@ export default {
     TablePaginationControls,
     TableDownloadLinkCopyButtons,
     GenericTable,
+    PubtatorAnnotatedText,
   },
   props: {
     apiEndpoint: {
@@ -438,6 +422,11 @@ export default {
 
       // Component-specific cursor pagination info (not in useTableData)
       totalPages: 0,
+
+      // Non-reactive memoization cache for gene_symbols splits (keyed by the
+      // raw comma-separated string). markRaw keeps Vue from making it reactive;
+      // declaring it here lets TypeScript infer the instance property.
+      geneSymbolCache: markRaw(new Map<string, string[]>()),
     };
   },
   watch: {
@@ -692,10 +681,12 @@ export default {
     },
 
     /**
-     * Parse PubTator annotations from text_hl field
+     * Parse PubTator annotations from text_hl field.
+     * Memoized: the same `text_hl` string parses once and is reused across the
+     * preview slice, the length check, and the (legacy) detail render.
      */
     parseAnnotations(text: string | null | undefined): ParsedSegment[] {
-      return parsePubtatorText(text);
+      return parsePubtatorTextMemoized(text);
     },
 
     /**
@@ -707,11 +698,20 @@ export default {
     },
 
     /**
-     * Get tooltip text for annotated segments.
-     * Delegates to the shared PubTator parser helper.
+     * Split a comma-separated gene_symbols string into trimmed symbols once.
+     * The template needs this list up to three times per row (slice, count,
+     * overflow), so memoize by the raw string to avoid repeated splitting.
      */
-    getSegmentTooltip(segment: ParsedSegment): string {
-      return getSegmentTooltip(segment);
+    geneSymbolList(geneSymbols: string | null | undefined): string[] {
+      if (!geneSymbols) return [];
+      const cached = this.geneSymbolCache.get(geneSymbols);
+      if (cached) return cached;
+      const list = geneSymbols
+        .split(',')
+        .map((g) => g.trim())
+        .filter((g) => g !== '');
+      this.geneSymbolCache.set(geneSymbols, list);
+      return list;
     },
     // Normalize select options for BFormSelect (replacement for treeselect normalizer)
     normalizeSelectOptions(options) {
@@ -883,27 +883,9 @@ export default {
   border: 1px solid var(--neutral-300, #e0e0e0);
 }
 
-.annotated-text-section {
-  border-top: 1px solid var(--neutral-300, #e0e0e0);
-  padding-top: 0.75rem;
-}
-
-.annotated-text-label {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.annotated-text {
-  text-align: left;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.pubtator-legend {
-  color: var(--neutral-600, #757575);
-}
+/* The annotated-text block + legend now live in PubtatorAnnotatedText.vue.
+   The entity color classes below are retained because the truncated text_hl
+   preview cell renders segments inline (without that child component). */
 
 /* Gene chips — pill badges in table cells */
 .gene-chips {
