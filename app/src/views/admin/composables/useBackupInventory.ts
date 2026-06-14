@@ -1,6 +1,6 @@
 // app/src/views/admin/composables/useBackupInventory.ts
 import { ref, computed, watch } from 'vue';
-import { apiClient } from '@/api/client';
+import { listBackups, downloadBackup as downloadBackupFile } from '@/api/backup';
 import { extractApiErrorMessage } from '@/utils/api-errors';
 
 /**
@@ -241,21 +241,17 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
   async function fetchBackupList() {
     loading.value = true;
     try {
-      const response = await apiClient.raw.get<{
-        data?: Record<string, unknown>[];
-        meta?: Record<string, unknown>;
-      }>(`${import.meta.env.VITE_API_URL}/api/backup/list`, {
-        withCredentials: true,
-      });
+      const data = await listBackups();
 
-      const data = response.data;
       if (data && Array.isArray(data.data)) {
-        backups.value = data.data.map((backup: Record<string, unknown>) => ({
-          filename: unwrapValue(backup.filename) as string,
-          size_bytes: Number(unwrapValue(backup.size_bytes)) || 0,
-          created_at: unwrapValue(backup.created_at) as string,
-          table_count: backup.table_count ? Number(unwrapValue(backup.table_count)) : null,
-        }));
+        backups.value = (data.data as unknown as Record<string, unknown>[]).map(
+          (backup: Record<string, unknown>) => ({
+            filename: unwrapValue(backup.filename) as string,
+            size_bytes: Number(unwrapValue(backup.size_bytes)) || 0,
+            created_at: unwrapValue(backup.created_at) as string,
+            table_count: backup.table_count ? Number(unwrapValue(backup.table_count)) : null,
+          })
+        );
       } else {
         backups.value = [];
       }
@@ -279,15 +275,9 @@ export function useBackupInventory(options: UseBackupInventoryOptions = {}) {
   // Download backup file
   async function downloadBackup(filename: string) {
     try {
-      const response = await apiClient.raw.get<Blob>(
-        `${import.meta.env.VITE_API_URL}/api/backup/download/${encodeURIComponent(filename)}`,
-        {
-          responseType: 'blob',
-          withCredentials: true,
-        }
-      );
+      const blob = await downloadBackupFile(filename);
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);

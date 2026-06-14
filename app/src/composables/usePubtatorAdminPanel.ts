@@ -114,7 +114,7 @@ export function usePubtatorAdminPanel() {
 
     try {
       const clearResult = await clearCache();
-      feedbackMessage.value = clearResult.message;
+      feedbackMessage.value = clearResult.message ?? 'Cache cleared.';
       feedbackVariant.value = 'success';
       lastStatus.value = null;
     } catch (err) {

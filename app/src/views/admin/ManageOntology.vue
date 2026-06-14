@@ -232,17 +232,18 @@ component. */
 <script>
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 import GenericTable from '@/components/small/GenericTable.vue';
 import TablePaginationControls from '@/components/small/TablePaginationControls.vue';
 import OntologyMobileRows from './components/OntologyMobileRows.vue';
 import OntologyEditModal from './components/OntologyEditModal.vue';
 import useToast from '@/composables/useToast';
 import { useUrlParsing, useTableData, useExcelExport } from '@/composables';
-// v11.0 closeout F2b: reach for `apiClient` instead of the raw axios
-// instance so the request interceptor injects the Bearer header from
+// Migrated to the typed ontology client (feat/admin-typed-client-migration):
+// `listVariantOntology` / `updateVariantOntology` delegate to `apiClient`, so
+// the request interceptor still injects the Bearer header from
 // `useAuth().token.value` (single source of truth for session auth).
-import { apiClient } from '@/api/client';
+import { listVariantOntology, updateVariantOntology } from '@/api/ontology';
 
 // Import the Pinia store
 import { useUiStore } from '@/stores/ui';
@@ -289,8 +290,6 @@ export default {
     const showEditModal = ref(false);
     const ontologyToEdit = ref({});
 
-    const axios = inject('axios');
-
     return {
       ...tableData,
       filter,
@@ -300,7 +299,6 @@ export default {
       sortStringToVariables,
       isExporting,
       exportToExcel,
-      axios,
       showEditModal,
       ontologyToEdit,
     };
@@ -603,16 +601,18 @@ export default {
       moduleApiCallInProgress = true;
       this.isBusy = true;
 
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/ontology/variant/table?${urlParam}`;
-
       try {
-        // v11.0 closeout F2b: `apiClient.raw` returns the full AxiosResponse
-        // so the existing `response.data` unpacking stays intact; the
-        // request interceptor adds the Bearer header automatically.
-        const response = await apiClient.raw.get(apiUrl);
+        // Typed ontology client resolves with the response payload directly;
+        // apiClient's interceptor adds the Bearer header.
+        const data = await listVariantOntology({
+          sort: this.sort,
+          filter: this.filter_string,
+          page_after: this.currentItemID,
+          page_size: this.perPage,
+        });
         moduleApiCallInProgress = false;
-        moduleLastApiResponse = response.data;
-        this.applyApiResponse(response.data);
+        moduleLastApiResponse = data;
+        this.applyApiResponse(data);
         this.updateBrowserUrl();
         this.isBusy = false;
       } catch (e) {
@@ -684,14 +684,12 @@ export default {
      * @returns {Promise<void>}
      */
     async updateOntologyData() {
-      const apiUrl = `${import.meta.env.VITE_API_URL}/api/ontology/variant/update`;
       try {
-        // v11.0 closeout F2b: Bearer header flows through the apiClient
-        // request interceptor from `useAuth().token.value`.
-        const response = await apiClient.raw.put(apiUrl, {
+        // Typed ontology client routes through apiClient (Bearer via interceptor).
+        const data = await updateVariantOntology({
           ontology_details: this.ontologyToEdit,
         });
-        this.makeToast(response.data.message, 'Success', 'success');
+        this.makeToast(data.message, 'Success', 'success');
         // Update the ontology in the local state
         const index = this.ontologies.findIndex((o) => o.vario_id === this.ontologyToEdit.vario_id);
         if (index !== -1) {

@@ -1,13 +1,19 @@
 // composables/annotations/useAnnotationsApi.ts
 /**
- * Axios helpers for the Manage Annotations view (Phase E.E4).
+ * Typed apiClient helpers for the Manage Annotations view (Phase E.E4).
  *
  * Each function is a thin typed wrapper around an existing backend call the
  * view previously made inline.  They return already-unwrapped payloads so the
  * view can stay focussed on orchestration.
+ *
+ * Calls go through the shared `apiClient` (`@/api/client`), which already sets
+ * the `baseURL` and injects the Bearer token / 401 handling via its
+ * interceptors.  Paths are therefore relative `/api/...` with no manual
+ * `VITE_API_URL` prefix.  `authRequestConfig()` continues to contribute only
+ * the `withCredentials: true` opt-in.
  */
 
-import axios from 'axios';
+import { apiClient } from '@/api/client';
 import { unwrapValue, authRequestConfig } from './useAnnotationFormatters';
 import type {
   OntologyBlockedState,
@@ -18,8 +24,6 @@ import type { ComparisonsMetadata } from '@/components/annotations/ComparisonsRe
 import type { PublicationStats } from '@/components/annotations/PublicationRefreshCard.vue';
 import type { DeprecatedData } from '@/components/annotations/DeprecatedEntitiesCard.vue';
 import type { JobHistoryItem } from '@/components/annotations/JobHistoryCard.vue';
-
-const API = (): string => import.meta.env.VITE_API_URL || '';
 
 export interface AnnotationDates {
   omim_update: string | null;
@@ -38,22 +42,23 @@ export interface JobSubmissionResponse {
 }
 
 export async function fetchAnnotationDates(): Promise<AnnotationDates> {
-  const response = await axios.get(`${API()}/api/admin/annotation_dates`, authRequestConfig());
-  const data = response.data;
+  const data = await apiClient.get<Record<string, unknown>>(
+    '/api/admin/annotation_dates',
+    authRequestConfig()
+  );
   return {
-    omim_update: unwrapValue(data.omim_update),
-    hgnc_update: unwrapValue(data.hgnc_update),
-    mondo_update: unwrapValue(data.mondo_update),
-    disease_ontology_update: unwrapValue(data.disease_ontology_update),
+    omim_update: unwrapValue(data.omim_update) as string,
+    hgnc_update: unwrapValue(data.hgnc_update) as string,
+    mondo_update: unwrapValue(data.mondo_update) as string,
+    disease_ontology_update: unwrapValue(data.disease_ontology_update) as string,
   };
 }
 
 export async function fetchJobHistory(limit = 20): Promise<JobHistoryItem[]> {
-  const response = await axios.get(`${API()}/api/jobs/history`, {
+  const data = await apiClient.get<{ data?: Array<Record<string, unknown>> }>('/api/jobs/history', {
     ...authRequestConfig(),
     params: { limit },
   });
-  const data = response.data;
   if (!data || !Array.isArray(data.data)) return [];
   return data.data.map((job: Record<string, unknown>) => ({
     job_id: unwrapValue(job.job_id),
@@ -67,17 +72,19 @@ export async function fetchJobHistory(limit = 20): Promise<JobHistoryItem[]> {
 }
 
 export async function fetchJobHistoryRaw(limit = 1000): Promise<Array<Record<string, unknown>>> {
-  const response = await axios.get(`${API()}/api/jobs/history`, {
+  const data = await apiClient.get<{ data?: Array<Record<string, unknown>> }>('/api/jobs/history', {
     ...authRequestConfig(),
     params: { limit },
   });
-  return response.data?.data || [];
+  return data?.data || [];
 }
 
 export async function fetchDeprecatedEntities(): Promise<DeprecatedData> {
-  const response = await axios.get(`${API()}/api/admin/deprecated_entities`, authRequestConfig());
-  const data = response.data;
-  const unwrappedEntities = (data.affected_entities || []).map(
+  const data = await apiClient.get<Record<string, unknown>>(
+    '/api/admin/deprecated_entities',
+    authRequestConfig()
+  );
+  const unwrappedEntities = ((data.affected_entities as Array<Record<string, unknown>>) || []).map(
     (entity: Record<string, unknown>) => {
       const unwrapped: Record<string, unknown> = {};
       Object.keys(entity).forEach((key) => {
@@ -87,37 +94,37 @@ export async function fetchDeprecatedEntities(): Promise<DeprecatedData> {
     }
   );
   return {
-    deprecated_count: unwrapValue(data.deprecated_count),
+    deprecated_count: unwrapValue(data.deprecated_count) as number,
     affected_entity_count: (unwrapValue(data.affected_entity_count) as number) || 0,
     affected_entities: unwrappedEntities,
-    mim2gene_date: unwrapValue(data.mim2gene_date),
-    message: unwrapValue(data.message),
+    mim2gene_date: unwrapValue(data.mim2gene_date) as string,
+    message: unwrapValue(data.message) as string,
   };
 }
 
 export async function fetchPubtatorStats(): Promise<PubtatorStats> {
-  const metaTotal = (response: { data?: { meta?: unknown } }): number | null => {
-    const meta = Array.isArray(response.data?.meta) ? response.data?.meta[0] : response.data?.meta;
+  const metaTotal = (data: { meta?: unknown }): number | null => {
+    const meta = Array.isArray(data?.meta) ? data?.meta[0] : data?.meta;
     return (meta as { totalItems?: number })?.totalItems ?? null;
   };
 
-  const genesResponse = await axios.get(`${API()}/api/publication/pubtator/genes`, {
+  const genesData = await apiClient.get<{ meta?: unknown }>('/api/publication/pubtator/genes', {
     withCredentials: true,
     params: { page_size: 1, fields: 'gene_symbol' },
   });
-  const pubsResponse = await axios.get(`${API()}/api/publication/pubtator/table`, {
+  const pubsData = await apiClient.get<{ meta?: unknown }>('/api/publication/pubtator/table', {
     withCredentials: true,
     params: { page_size: 1, fields: 'search_id' },
   });
-  const novelResponse = await axios.get(`${API()}/api/publication/pubtator/genes`, {
+  const novelData = await apiClient.get<{ meta?: unknown }>('/api/publication/pubtator/genes', {
     withCredentials: true,
     params: { page_size: 1, filter: 'is_novel==1', fields: 'gene_symbol' },
   });
 
   return {
-    publication_count: metaTotal(pubsResponse),
-    gene_count: metaTotal(genesResponse),
-    novel_count: metaTotal(novelResponse),
+    publication_count: metaTotal(pubsData),
+    gene_count: metaTotal(genesData),
+    novel_count: metaTotal(novelData),
   };
 }
 
@@ -127,50 +134,49 @@ export async function fetchPublicationStats(
   const params: Record<string, string> = {};
   if (notUpdatedSince) params.not_updated_since = notUpdatedSince;
 
-  const response = await axios.get(`${API()}/api/publication/stats`, {
+  const data = await apiClient.get<Record<string, unknown>>('/api/publication/stats', {
     ...authRequestConfig(),
     params,
   });
   return {
-    total: unwrapValue(response.data.total),
-    oldest_update: unwrapValue(response.data.oldest_update),
-    outdated_count: unwrapValue(response.data.outdated_count),
-    filtered_count: (unwrapValue(response.data.filtered_count) as number) ?? null,
+    total: unwrapValue(data.total) as number,
+    oldest_update: unwrapValue(data.oldest_update) as string,
+    outdated_count: unwrapValue(data.outdated_count) as number,
+    filtered_count: (unwrapValue(data.filtered_count) as number) ?? null,
   };
 }
 
 export async function fetchComparisonsMetadata(): Promise<ComparisonsMetadata> {
-  const response = await axios.get(`${API()}/api/comparisons/metadata`, {
+  const data = await apiClient.get<Record<string, unknown>>('/api/comparisons/metadata', {
     withCredentials: true,
   });
   return {
-    last_full_refresh: unwrapValue(response.data.last_full_refresh),
-    last_refresh_status: (unwrapValue(response.data.last_refresh_status) as string) ?? 'never',
-    last_refresh_error: unwrapValue(response.data.last_refresh_error),
-    sources_count: (unwrapValue(response.data.sources_count) as number) ?? 0,
-    rows_imported: (unwrapValue(response.data.rows_imported) as number) ?? 0,
+    last_full_refresh: unwrapValue(data.last_full_refresh) as string,
+    last_refresh_status: (unwrapValue(data.last_refresh_status) as string) ?? 'never',
+    last_refresh_error: unwrapValue(data.last_refresh_error) as string,
+    sources_count: (unwrapValue(data.sources_count) as number) ?? 0,
+    rows_imported: (unwrapValue(data.rows_imported) as number) ?? 0,
   };
 }
 
 export async function fetchForceApplyUsers(): Promise<UserOption[]> {
-  const response = await axios.get(
-    `${API()}/api/user/list?roles=Curator,Reviewer`,
+  const data = await apiClient.get<Array<Record<string, unknown>>>(
+    '/api/user/list?roles=Curator,Reviewer',
     authRequestConfig()
   );
-  if (!Array.isArray(response.data)) return [];
-  return response.data.map((item: Record<string, unknown>) => ({
+  if (!Array.isArray(data)) return [];
+  return data.map((item: Record<string, unknown>) => ({
     value: item.user_id as number,
     text: item.user_name as string,
   }));
 }
 
 export async function submitOntologyUpdate(): Promise<JobSubmissionResponse> {
-  const response = await axios.put(
-    `${API()}/api/admin/update_ontology_async`,
+  return apiClient.put<JobSubmissionResponse>(
+    '/api/admin/update_ontology_async',
     {},
     authRequestConfig()
   );
-  return response.data as JobSubmissionResponse;
 }
 
 export async function submitForceApplyOntology(
@@ -180,55 +186,53 @@ export async function submitForceApplyOntology(
   const params: Record<string, string | number> = { blocked_job_id: blockedJobId };
   if (assignedUserId) params.assigned_user_id = assignedUserId;
 
-  const response = await axios.put(
-    `${API()}/api/admin/force_apply_ontology`,
-    {},
-    { ...authRequestConfig(), params }
-  );
-  return response.data as JobSubmissionResponse;
+  return apiClient.put<JobSubmissionResponse>('/api/admin/force_apply_ontology', {}, {
+    ...authRequestConfig(),
+    params,
+  });
 }
 
 export async function submitHgncUpdate(): Promise<JobSubmissionResponse> {
-  const response = await axios.post(
-    `${API()}/api/jobs/hgnc_update/submit`,
+  return apiClient.post<JobSubmissionResponse>(
+    '/api/jobs/hgnc_update/submit',
     {},
     authRequestConfig()
   );
-  return response.data as JobSubmissionResponse;
 }
 
 export async function submitComparisonsRefresh(): Promise<JobSubmissionResponse> {
-  const response = await axios.post(
-    `${API()}/api/jobs/comparisons_update/submit`,
+  return apiClient.post<JobSubmissionResponse>(
+    '/api/jobs/comparisons_update/submit',
     {},
     authRequestConfig()
   );
-  return response.data as JobSubmissionResponse;
 }
 
 export async function submitPublicationRefresh(
   payload: { not_updated_since: string } | { pmids: unknown[] }
 ): Promise<JobSubmissionResponse> {
-  const response = await axios.post(
-    `${API()}/api/admin/publications/refresh`,
+  return apiClient.post<JobSubmissionResponse>(
+    '/api/admin/publications/refresh',
     payload,
     authRequestConfig()
   );
-  return response.data as JobSubmissionResponse;
 }
 
 export async function fetchAllPublicationPmids(): Promise<unknown[]> {
   const publications: Array<{ publication_id: string | string[] }> = [];
-  let nextUrl: string | null = `${API()}/api/publication`;
+  let nextUrl: string | null = '/api/publication';
   let isFirstPage = true;
   while (nextUrl) {
-    const response = await axios.get(nextUrl, {
+    const data = await apiClient.get<{
+      data?: Array<{ publication_id: string | string[] }>;
+      links?: { next?: unknown };
+    }>(nextUrl, {
       ...authRequestConfig(),
       params: isFirstPage ? { fields: 'publication_id', page_size: 10000 } : undefined,
     });
-    const pageRows: Array<{ publication_id: string | string[] }> = response.data?.data || [];
+    const pageRows: Array<{ publication_id: string | string[] }> = data?.data || [];
     publications.push(...pageRows);
-    const link = response.data?.links?.next;
+    const link = data?.links?.next;
     nextUrl = typeof link === 'string' && link.length > 0 ? link : null;
     isFirstPage = false;
   }
@@ -241,8 +245,11 @@ export type OntologyJobResult =
   | null;
 
 export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJobResult> {
-  const statusResp = await axios.get(`${API()}/api/jobs/${jobId}/status`, authRequestConfig());
-  const result = statusResp.data?.result;
+  const statusData = await apiClient.get<{ result?: Record<string, unknown> }>(
+    `/api/jobs/${jobId}/status`,
+    authRequestConfig()
+  );
+  const result = statusData?.result;
   if (!result) return null;
   const resultStatus = unwrapValue(result?.status);
 
@@ -267,8 +274,10 @@ export async function fetchOntologyJobResult(jobId: string): Promise<OntologyJob
         critical_count: (unwrapValue(result.critical_count) as number) || 0,
         auto_fixable_count: (unwrapValue(result.auto_fixable_count) as number) || 0,
         total_affected: (unwrapValue(result.total_affected) as number) || 0,
-        critical_entities: unwrapRows(result.critical_entities || []),
-        auto_fixes: unwrapRows(result.auto_fixes || []),
+        critical_entities: unwrapRows(
+          (result.critical_entities as Array<Record<string, unknown>>) || []
+        ),
+        auto_fixes: unwrapRows((result.auto_fixes as Array<Record<string, unknown>>) || []),
       },
     };
   }

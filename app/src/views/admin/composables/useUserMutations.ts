@@ -1,9 +1,9 @@
 // app/src/views/admin/composables/useUserMutations.ts
 import { computed, ref } from 'vue';
-import { apiClient } from '@/api/client';
+import { changePassword as apiChangePassword } from '@/api/auth';
+import { deleteUser as apiDeleteUser, updateUser as apiUpdateUser } from '@/api/user';
+import type { UpdateUserRequest } from '@/api/user';
 import { extractApiErrorMessage } from '@/utils/api-errors';
-
-const apiBase = import.meta.env.VITE_API_URL ?? '';
 
 export interface UseUserMutationsOptions {
   onToast?: (...args: unknown[]) => void;
@@ -60,15 +60,9 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
   async function deleteUser(user: { user_id: number }): Promise<void> {
     isDeleting.value = true;
     try {
-      const response = await apiClient.raw.delete(`${apiBase}/api/user/delete`, {
-        data: { user_id: user.user_id },
-      });
-      if (response.status === 200) {
-        onToast?.('User deleted successfully', 'Success', 'success');
-        onSuccess?.();
-      } else {
-        throw new Error('Failed to delete the user.');
-      }
+      await apiDeleteUser(user.user_id);
+      onToast?.('User deleted successfully', 'Success', 'success');
+      onSuccess?.();
     } catch (e) {
       onToast?.(extractApiErrorMessage(e, 'Failed to delete the user.'), 'Error', 'danger');
       throw e;
@@ -95,15 +89,11 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
     if (payload.orcid !== undefined) updatePayload.orcid = payload.orcid ?? '';
     if (payload.comment !== undefined) updatePayload.comment = payload.comment ?? '';
     try {
-      const response = await apiClient.raw.put(`${apiBase}/api/user/update`, {
-        user_details: updatePayload,
+      await apiUpdateUser({
+        user_details: updatePayload as UpdateUserRequest['user_details'],
       });
-      if (response.status === 200) {
-        onToast?.('User updated successfully', 'Success', 'success');
-        onSuccess?.();
-      } else {
-        throw new Error('Failed to update the user.');
-      }
+      onToast?.('User updated successfully', 'Success', 'success');
+      onSuccess?.();
     } catch (e) {
       onToast?.(extractApiErrorMessage(e, 'Failed to update the user.'), 'Error', 'danger');
       throw e;
@@ -120,15 +110,12 @@ export function useUserMutations(options: UseUserMutationsOptions = {}) {
     }
     isChangingPassword.value = true;
     try {
-      const response = await apiClient.raw.put(`${apiBase}/api/user/password/update`, {
+      await apiChangePassword({
         user_id_pass_change: args.userId,
         old_pass: '',
         new_pass_1: args.newPassword,
         new_pass_2: args.confirmPassword,
       });
-      if (response.status !== 200) {
-        throw new Error('Failed to change password');
-      }
       onToast?.(`Password changed successfully`, 'Password Changed', 'success', true, 5000);
       passwordChange.value.newPassword = '';
       passwordChange.value.confirmPassword = '';

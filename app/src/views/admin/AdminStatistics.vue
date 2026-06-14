@@ -265,8 +265,7 @@
 <script setup lang="ts">
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
-import { ref, computed, onMounted, inject } from 'vue';
-import type { AxiosInstance } from 'axios';
+import { ref, computed, onMounted } from 'vue';
 import {
   BContainer,
   BRow,
@@ -289,24 +288,14 @@ import ContributorBarChart from './components/charts/ContributorBarChart.vue';
 import ReReviewBarChart from './components/charts/ReReviewBarChart.vue';
 import StatCard from './components/statistics/StatCard.vue';
 
-// Inject axios
-const axios = inject<AxiosInstance>('axios');
 const { makeToast } = useToast();
 
-// API base URL
-const apiUrl = import.meta.env.VITE_API_URL;
-
-// v11.0 closeout F2a: the `apiClient` request interceptor (`@/api/client`)
-// now injects the Authorization header on every outbound call, reading
-// `useAuth().token.value`. The sub-composables (`useAdminTrendData`,
-// `useLeaderboardData`, `useKPIStats`) accept a `getAuthHeaders` callback
-// for historical reasons; we pass an empty-object factory so they emit no
-// explicit `Authorization` header — the interceptor then injects the
-// session token. Those composables are outside F2a's ownership; changing
-// their signatures is F2b/F2c's scope.
-function getAuthHeaders(): Record<string, string> {
-  return {};
-}
+// Statistics requests go through the typed `@/api/statistics` clients used by
+// the sub-composables (`useAdminTrendData`, `useLeaderboardData`,
+// `useKPIStats`). Those delegate to the shared `apiClient`, whose request
+// interceptor (`@/api/client`) injects the `Authorization` header on every
+// outbound call, reading `useAuth().token.value` — so no injected axios,
+// base URL, or auth-header plumbing is needed here.
 
 // Date range (default: last 12 months)
 const today = new Date();
@@ -329,7 +318,7 @@ const {
   selectedCategories,
   trendDescription,
   fetchTrendData,
-} = useAdminTrendData(axios, apiUrl, getAuthHeaders, makeToast);
+} = useAdminTrendData(makeToast);
 
 const {
   leaderboardData,
@@ -341,7 +330,7 @@ const {
   reReviewLeaderboardScope,
   fetchLeaderboard,
   fetchReReviewLeaderboard,
-} = useLeaderboardData(axios, apiUrl, getAuthHeaders, makeToast);
+} = useLeaderboardData(makeToast);
 
 const {
   loading: kpiLoading,
@@ -352,7 +341,7 @@ const {
   updatedStatusesStatistics,
   fetchKPIStats,
   fetchExistingStatistics,
-} = useKPIStats(axios, apiUrl, getAuthHeaders, makeToast);
+} = useKPIStats(makeToast);
 
 // --- Composite loading state for template ---
 const loading = computed(() => ({

@@ -1,9 +1,7 @@
 // app/src/views/admin/composables/useBulkUserActions.ts
 import { ref } from 'vue';
-import { apiClient } from '@/api/client';
+import { bulkApproveUsers, bulkAssignRole as apiBulkAssignRole, bulkDeleteUsers } from '@/api/user';
 import { extractApiErrorMessage } from '@/utils/api-errors';
-
-const apiBase = import.meta.env.VITE_API_URL ?? '';
 
 export interface UseBulkUserActionsOptions {
   onToast?: (...args: unknown[]) => void;
@@ -26,20 +24,16 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
     ensureNonEmpty(userIds, 'Bulk Approve');
     bulkActing.value = true;
     try {
-      const response = await apiClient.raw.post(`${apiBase}/api/user/bulk_approve`, {
-        user_ids: userIds,
-      });
-      if (response.status === 200) {
-        const processed = (response.data as { processed?: number }).processed;
-        onToast?.(
-          `Successfully approved ${processed || userIds.length} users`,
-          'Bulk Approve Complete',
-          'success',
-          true,
-          5000
-        );
-        onSuccess?.();
-      }
+      const result = await bulkApproveUsers({ user_ids: userIds });
+      const processed = result.processed;
+      onToast?.(
+        `Successfully approved ${processed || userIds.length} users`,
+        'Bulk Approve Complete',
+        'success',
+        true,
+        5000
+      );
+      onSuccess?.();
     } catch (e) {
       const errorMsg = extractApiErrorMessage(e, 'Failed to approve users');
       onToast?.(errorMsg, 'Bulk Approve Failed', 'danger');
@@ -58,21 +52,16 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
     }
     bulkActing.value = true;
     try {
-      const response = await apiClient.raw.post(`${apiBase}/api/user/bulk_assign_role`, {
-        user_ids: userIds,
-        role,
-      });
-      if (response.status === 200) {
-        const processed = (response.data as { processed?: number }).processed;
-        onToast?.(
-          `Successfully assigned ${role} role to ${processed || userIds.length} users`,
-          'Bulk Role Assignment Complete',
-          'success',
-          true,
-          5000
-        );
-        onSuccess?.();
-      }
+      const result = await apiBulkAssignRole({ user_ids: userIds, role });
+      const processed = result.processed;
+      onToast?.(
+        `Successfully assigned ${role} role to ${processed || userIds.length} users`,
+        'Bulk Role Assignment Complete',
+        'success',
+        true,
+        5000
+      );
+      onSuccess?.();
     } catch (e) {
       const errorMsg = extractApiErrorMessage(e, 'Failed to assign role');
       onToast?.(errorMsg, 'Bulk Role Assignment Failed', 'danger');
@@ -86,20 +75,16 @@ export function useBulkUserActions(options: UseBulkUserActionsOptions = {}) {
     ensureNonEmpty(userIds, 'Bulk Delete');
     bulkActing.value = true;
     try {
-      const response = await apiClient.raw.post(`${apiBase}/api/user/bulk_delete`, {
-        user_ids: userIds,
-      });
-      if (response.status === 200) {
-        const processed = (response.data as { processed?: number }).processed;
-        onToast?.(
-          `Successfully deleted ${processed || userIds.length} users`,
-          'Bulk Delete Complete',
-          'success',
-          true,
-          5000
-        );
-        onSuccess?.();
-      }
+      const result = await bulkDeleteUsers({ user_ids: userIds });
+      const processed = result.processed;
+      onToast?.(
+        `Successfully deleted ${processed || userIds.length} users`,
+        'Bulk Delete Complete',
+        'success',
+        true,
+        5000
+      );
+      onSuccess?.();
     } catch (e) {
       const errorMsg = extractApiErrorMessage(e, 'Failed to delete users');
       onToast?.(errorMsg, 'Bulk Delete Failed', 'danger');

@@ -58,10 +58,22 @@ export interface UpdateLlmModelResponse {
   model: string;
 }
 
+/**
+ * Per-cluster-type cache breakdown. Mirrors the nested `by_type` shape the
+ * `/cache/stats` handler returns (one object per cluster type with its own
+ * validation-status counts), and matches `CacheTypeStats` in `@/types/llm`.
+ */
+export interface LlmCacheTypeStats {
+  count: number;
+  validated: number;
+  pending: number;
+  rejected: number;
+}
+
 export interface LlmCacheStats {
   total_entries: number;
   by_status: { pending?: number; validated?: number; rejected?: number };
-  by_type: { functional?: number; phenotype?: number };
+  by_type: { functional?: LlmCacheTypeStats; phenotype?: LlmCacheTypeStats };
   last_generation: string | null;
   total_tokens_input: number;
   total_tokens_output: number;

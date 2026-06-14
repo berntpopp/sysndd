@@ -1,9 +1,10 @@
 // views/admin/composables/useAdminTrendData.ts
 import { ref, computed, watch, onUnmounted } from 'vue';
-import type { AxiosInstance } from 'axios';
 import { mergeGroupedCumulativeSeries, extractPerGroupSeries } from '@/utils/timeSeriesUtils';
 import type { GroupedTimeSeries } from '@/utils/timeSeriesUtils';
 import { safeArray } from '@/utils/apiUtils';
+import { getEntitiesOverTime } from '@/api/statistics';
+import type { EntitiesOverTimeParams } from '@/api/statistics';
 
 interface TrendDataPoint {
   date: string;
@@ -11,9 +12,6 @@ interface TrendDataPoint {
 }
 
 export function useAdminTrendData(
-  axios: AxiosInstance | undefined,
-  apiUrl: string,
-  getAuthHeaders: () => Record<string, string>,
   makeToast: (msg: unknown, title: string, variant: string) => void
 ) {
   const trendData = ref<TrendDataPoint[]>([]);
@@ -72,8 +70,6 @@ export function useAdminTrendData(
   const totalEntities = ref(0);
 
   async function fetchTrendData(): Promise<void> {
-    if (!axios) return;
-
     abortController?.abort();
     abortController = new AbortController();
     const currentVersion = ++requestVersion;
@@ -83,7 +79,7 @@ export function useAdminTrendData(
     loading.value = true;
 
     try {
-      const params: Record<string, string> = {
+      const params: EntitiesOverTimeParams = {
         aggregate: 'entity_id',
         group: 'category',
         summarize: granularity.value,
@@ -93,15 +89,13 @@ export function useAdminTrendData(
         params.filter = filterValue;
       }
 
-      const response = await axios.get(`${apiUrl}/api/statistics/entities_over_time`, {
-        params,
-        headers: getAuthHeaders(),
+      const response = await getEntitiesOverTime(params, {
         signal: abortController.signal,
       });
 
       if (currentVersion !== requestVersion) return;
 
-      const allData = safeArray<GroupedTimeSeries>(response.data?.data);
+      const allData = safeArray<GroupedTimeSeries>(response?.data);
       trendData.value = mergeGroupedCumulativeSeries(allData);
       trendCategoryData.value = extractPerGroupSeries(allData);
 

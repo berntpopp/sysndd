@@ -1,8 +1,13 @@
 // views/admin/composables/useKPIStats.ts
 import { ref } from 'vue';
-import type { AxiosInstance } from 'axios';
 import { unwrapScalar } from '@/utils/apiUtils';
 import { previousPeriod } from '@/utils/dateUtils';
+import {
+  getUpdatesStats,
+  getRereviewStats,
+  getUpdatedReviewsStats,
+  getUpdatedStatusesStats,
+} from '@/api/statistics';
 
 interface UpdatesStatistics {
   total_new_entities: number;
@@ -23,9 +28,6 @@ interface KpiStats {
 }
 
 export function useKPIStats(
-  axios: AxiosInstance | undefined,
-  apiUrl: string,
-  getAuthHeaders: () => Record<string, string>,
   makeToast: (msg: unknown, title: string, variant: string) => void
 ) {
   const loading = ref(false);
@@ -42,17 +44,12 @@ export function useKPIStats(
   const updatedStatusesStatistics = ref<{ total_updated_statuses: number } | null>(null);
 
   async function fetchUpdatesStats(start: string, end: string): Promise<UpdatesStatistics | null> {
-    if (!axios) return null;
-
     try {
-      const response = await axios.get(`${apiUrl}/api/statistics/updates`, {
-        params: { start_date: start, end_date: end },
-        headers: getAuthHeaders(),
-      });
+      const response = await getUpdatesStats({ start_date: start, end_date: end });
       return {
-        total_new_entities: unwrapScalar(response.data.total_new_entities, 0)!,
-        unique_genes: unwrapScalar(response.data.unique_genes, 0)!,
-        average_per_day: unwrapScalar(response.data.average_per_day, 0)!,
+        total_new_entities: unwrapScalar(response.total_new_entities, 0)!,
+        unique_genes: unwrapScalar(response.unique_genes, 0)!,
+        average_per_day: unwrapScalar(response.average_per_day, 0)!,
       };
     } catch (error) {
       console.error('Failed to fetch updates stats:', error);
@@ -88,8 +85,6 @@ export function useKPIStats(
   }
 
   async function fetchKPIStats(startDate: string, endDate: string): Promise<void> {
-    if (!axios) return;
-
     loading.value = true;
     try {
       const currentStats = await fetchUpdatesStats(startDate, endDate);
@@ -111,36 +106,31 @@ export function useKPIStats(
   }
 
   async function fetchExistingStatistics(startDate: string, endDate: string): Promise<void> {
-    if (!axios) return;
-
     try {
-      const reReviewResponse = await axios.get(`${apiUrl}/api/statistics/rereview`, {
-        params: { start_date: startDate, end_date: endDate },
-        headers: getAuthHeaders(),
+      const reReviewResponse = await getRereviewStats({
+        start_date: startDate,
+        end_date: endDate,
       });
       reReviewStatistics.value = {
-        total_rereviews: unwrapScalar(reReviewResponse.data.total_rereviews, 0)!,
-        percentage_finished: unwrapScalar(reReviewResponse.data.percentage_finished, 0)!,
-        average_per_day: unwrapScalar(reReviewResponse.data.average_per_day, 0)!,
+        total_rereviews: unwrapScalar(reReviewResponse.total_rereviews, 0)!,
+        percentage_finished: unwrapScalar(reReviewResponse.percentage_finished, 0)!,
+        average_per_day: unwrapScalar(reReviewResponse.average_per_day, 0)!,
       };
 
-      const updatedReviewsResponse = await axios.get(`${apiUrl}/api/statistics/updated_reviews`, {
-        params: { start_date: startDate, end_date: endDate },
-        headers: getAuthHeaders(),
+      const updatedReviewsResponse = await getUpdatedReviewsStats({
+        start_date: startDate,
+        end_date: endDate,
       });
       updatedReviewsStatistics.value = {
-        total_updated_reviews: unwrapScalar(updatedReviewsResponse.data.total_updated_reviews, 0)!,
+        total_updated_reviews: unwrapScalar(updatedReviewsResponse.total_updated_reviews, 0)!,
       };
 
-      const updatedStatusesResponse = await axios.get(`${apiUrl}/api/statistics/updated_statuses`, {
-        params: { start_date: startDate, end_date: endDate },
-        headers: getAuthHeaders(),
+      const updatedStatusesResponse = await getUpdatedStatusesStats({
+        start_date: startDate,
+        end_date: endDate,
       });
       updatedStatusesStatistics.value = {
-        total_updated_statuses: unwrapScalar(
-          updatedStatusesResponse.data.total_updated_statuses,
-          0
-        )!,
+        total_updated_statuses: unwrapScalar(updatedStatusesResponse.total_updated_statuses, 0)!,
       };
     } catch (error) {
       console.error('Failed to fetch existing statistics:', error);

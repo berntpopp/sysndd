@@ -6,67 +6,36 @@
  * - Submit async fetch jobs with progress tracking
  * - Clear cache (hard reset)
  * - Backfill gene symbols for existing cache entries
+ *
+ * Network access goes through the typed `@/api/publication` client (which
+ * routes via the `apiClient` axios singleton, inheriting the Authorization
+ * header + 401 interceptor). The hand-rolled response interfaces were removed
+ * in favour of the canonical types exported by that client.
  */
 
 import { ref, computed } from 'vue';
-import axios from 'axios';
-import URLS from '@/assets/js/constants/url_constants';
 import { useAsyncJob } from '@/composables/useAsyncJob';
-
-/** Cache status response from API (unwrapped from Plumber array wrappers) */
-export interface CacheStatus {
-  query: string;
-  cached: boolean;
-  query_id: number | null;
-  pages_cached: number;
-  publications_cached: number;
-  total_pages_available: number;
-  total_results_available: number;
-  pages_remaining: number;
-  cache_date: string | null;
-  estimated_fetch_time_minutes: number;
-  message: string;
-}
-
-/** Job submit response from async API */
-export interface JobSubmitResponse {
-  job_id: string;
-  status: string;
-  query: string;
-  max_pages: number;
-  estimated_seconds: number;
-  status_url: string;
-}
-
-/** Clear cache response (unwrapped from Plumber array wrappers) */
-export interface ClearResponse {
-  success: boolean;
-  deleted?: {
-    queries: number;
-    publications: number;
-    annotations: number;
-  };
-  message: string;
-}
-
-/** Backfill response (unwrapped from Plumber array wrappers) */
-export interface BackfillResponse {
-  success: boolean;
-  updated_count?: number;
-  message: string;
-}
+import {
+  getPubtatorCacheStatus,
+  submitPubtatorUpdate,
+  clearPubtatorCache,
+  backfillPubtatorGenes,
+  type PubtatorCacheStatus,
+  type PubtatorAsyncSubmitResponse,
+  type PubtatorClearCacheResponse,
+  type PubtatorBackfillResponse,
+} from '@/api/publication';
+import { isApiError } from '@/api/client';
 
 /**
  * Composable for PubTator admin operations with async job support
  */
 export function usePubtatorAdmin() {
   const error = ref<string | null>(null);
-  const lastStatus = ref<CacheStatus | null>(null);
+  const lastStatus = ref<PubtatorCacheStatus | null>(null);
   const isCheckingStatus = ref(false);
   const isClearing = ref(false);
   const isBackfilling = ref(false);
-
-  const baseUrl = `${URLS.API_URL}/api/publication/pubtator`;
 
   // Use the async job composable for fetch operations
   const asyncJob = useAsyncJob((jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/status`, {
@@ -76,17 +45,14 @@ export function usePubtatorAdmin() {
   /**
    * Get cache status for a query
    */
-  async function getCacheStatus(query: string): Promise<CacheStatus> {
+  async function getCacheStatus(query: string): Promise<PubtatorCacheStatus> {
     isCheckingStatus.value = true;
     error.value = null;
 
     try {
-      const response = await axios.get<CacheStatus>(`${baseUrl}/cache-status`, {
-        params: { query },
-        withCredentials: true,
-      });
-      lastStatus.value = response.data;
-      return response.data;
+      const status = await getPubtatorCacheStatus({ query });
+      lastStatus.value = status;
+      return status;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to get cache status';
       throw err;
@@ -107,21 +73,22 @@ export function usePubtatorAdmin() {
     query: string,
     maxPages: number = 10,
     clearOld: boolean = false
-  ): Promise<JobSubmitResponse> {
+  ): Promise<PubtatorAsyncSubmitResponse> {
     error.value = null;
 
     try {
-      const response = await axios.post<JobSubmitResponse>(`${baseUrl}/update/submit`, null, {
-        params: { query, max_pages: maxPages, clear_old: clearOld },
-        withCredentials: true,
+      const submit = await submitPubtatorUpdate({
+        query,
+        max_pages: maxPages,
+        clear_old: clearOld,
       });
 
       // Start tracking the job with useAsyncJob
-      asyncJob.startJob(response.data.job_id);
+      asyncJob.startJob(submit.job_id);
 
-      return response.data;
+      return submit;
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 409) {
+      if (isApiError<{ existing_job_id?: string }>(err) && err.response?.status === 409) {
         // Duplicate job - extract existing job ID and track it
         const existingJobId = err.response.data.existing_job_id;
         if (existingJobId) {
@@ -144,15 +111,12 @@ export function usePubtatorAdmin() {
   /**
    * Clear cache for all queries
    */
-  async function clearCache(): Promise<ClearResponse> {
+  async function clearCache(): Promise<PubtatorClearCacheResponse> {
     isClearing.value = true;
     error.value = null;
 
     try {
-      const response = await axios.post<ClearResponse>(`${baseUrl}/clear-cache`, null, {
-        withCredentials: true,
-      });
-      return response.data;
+      return await clearPubtatorCache();
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to clear cache';
       throw err;
@@ -162,23 +126,25 @@ export function usePubtatorAdmin() {
   }
 
   /**
-   * Backfill gene symbols for existing cache entries
-   * @param queryId - Optional query ID to backfill; if not provided, backfills all
+   * Backfill gene symbols for existing cache entries.
+   *
+   * The `queryId` argument is retained for call-site compatibility, but the
+   * server endpoint always backfills every cached row whose `gene_symbols` is
+   * NULL (it does not read a `query_id` parameter), so the argument is not
+   * forwarded — behavior is identical to the previous implementation.
+   *
+   * @param _queryId - Optional query ID (accepted for compatibility; unused)
    */
-  async function backfillGeneSymbols(queryId?: number): Promise<BackfillResponse> {
+  async function backfillGeneSymbols(
+    _queryId?: string | number | null
+  ): Promise<PubtatorBackfillResponse> {
     isBackfilling.value = true;
     error.value = null;
 
     try {
-      const params: Record<string, number> = {};
-      if (queryId !== undefined) params.query_id = queryId;
-
-      const response = await axios.post<BackfillResponse>(`${baseUrl}/backfill-genes`, null, {
-        params,
+      return await backfillPubtatorGenes({
         timeout: 120000, // 2 minutes for potentially large backfill
-        withCredentials: true,
       });
-      return response.data;
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to backfill gene symbols';
       throw err;
