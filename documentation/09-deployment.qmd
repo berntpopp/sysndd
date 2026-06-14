@@ -78,6 +78,21 @@ Configuration (environment variables, with defaults):
 - `LOG_CLEANUP_DRY_RUN=false` — when truthy (`1`/`true`/`yes`/`on`), count and log the candidate rows but delete nothing. Use this to verify scope before enabling deletion.
 
 Only the high-volume `logging` table is pruned. Low-volume audit tables (for example `llm_generation_log`, `async_job_events`) are intentionally left alone; `async_job_events` already cascades from `async_jobs`. The script exits non-zero on failure and the scheduler logs and continues to the next cycle rather than crash-looping.
+
+### PubtatorNDD nightly refresh (`pubtatornidd-cron`)
+
+The `pubtatornidd-cron` Compose service keeps the PubtatorNDD analysis current automatically. It is a *dumb scheduler*: once per night it enqueues a single durable `pubtatornidd_nightly` async job (via `api/scripts/pubtatornidd_nightly_enqueue.R`) and exits the run. The existing `worker` service — which already has the PubTator/PubMed egress — claims and runs the actual refresh (orchestrator in `api/functions/pubtatornidd-nightly.R`), so all retries, single-flight locking, and history live there. Like `log-cleanup` it reuses the API image and connects over the internal `backend` network only (it needs the database to enqueue, not egress).
+
+Each run, the worker-side orchestrator: single-flights via a non-blocking MySQL advisory lock (`GET_LOCK('pubtatornidd_nightly', 0)`) so overlapping runs skip cleanly; resolves the standing query (job payload → `PUBTATORNDD_NIGHTLY_QUERY` → most-recent cached query); incrementally fetches new publications (soft page-watermark, ≤3 req/s); refreshes the per-gene enrichment snapshot; and refreshes the precomputed gene-summary table when present. The structured run summary is persisted in the job `result_json` for observability; a failed refresh step marks the job failed.
+
+Configuration (environment variables, with defaults):
+
+- `PUBTATORNDD_NIGHTLY_AT=02:30` — daily enqueue time, `HH:MM` in container (UTC) time.
+- `PUBTATORNDD_NIGHTLY_QUERY=` — optional PubTator query override for the standing corpus. When empty, the worker refreshes the most-recently-cached query in `pubtator_query_cache`.
+- `PUBTATORNDD_NIGHTLY_MAX_PAGES=` — optional page cap for the incremental fetch (defaults to 50 inside the worker).
+
+The worker resets the per-request external-time accumulator at the start of every job, and the enrichment batch additionally resets it per external call, so the per-request external ceiling (`EXTERNAL_PROXY_REQUEST_MAX_SECONDS`) — intended for public request paths — does not short-circuit this legitimately external-heavy nightly batch.
+
 ### Database version (`DB_VERSION` / `DB_COMMIT`)
 The human-facing database version (issue #22) is tracked in the single-row `db_version` table (migration `028_add_db_version.sql`), separate from the migration runner's `schema_version` apply ledger and from `about_content.version`. The migration seeds a baseline semantic version, and the API exposes it in the `database` block of the public `GET /api/version` response (semantic `version`, last `db/`-folder git `commit`, optional `description`/`updated_at`, and an `available` flag). The App surfaces it on the About page. The endpoint degrades gracefully: if the DB or table is unreachable it reports `version`/`commit` as `"unknown"` and `available: false` instead of failing.
 

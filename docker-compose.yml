@@ -467,6 +467,91 @@ services:
         - action: rebuild
           path: ./api/renv.lock
 
+  # PubtatorNDD nightly scheduler. A dumb sidecar: once a night it ENQUEUES one
+  # durable `pubtatornidd_nightly` job and exits the run. The durable `worker`
+  # service (which has PubTator/PubMed egress) claims and runs the actual
+  # refresh; all retries/locking/history live there. Needs the DB only (to
+  # enqueue) — no egress here. See functions/pubtatornidd-nightly.R and
+  # scripts/pubtatornidd_nightly_enqueue.R.
+  pubtatornidd-cron:
+    image: ${SYSNDD_API_IMAGE:-sysndd-api:latest}
+    build:
+      context: ./api/
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
+    container_name: sysndd_pubtatornidd_cron
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Only runs the bash scheduler loop below; disable the image's Plumber
+    # healthcheck. If the loop (PID 1) dies the container exits and restarts.
+    healthcheck:
+      disable: true
+    # Daily scheduler loop (no root / system cron). Sleeps until the next
+    # PUBTATORNDD_NIGHTLY_AT (HH:MM, container/UTC time) then enqueues one job;
+    # on enqueue failure it logs and continues to the next day.
+    command:
+      - bash
+      - -lc
+      - >
+          set -u;
+          at="$${PUBTATORNDD_NIGHTLY_AT:-02:30}";
+          echo "[pubtatornidd-cron] scheduler started; daily enqueue at $$at (container time)";
+          while true; do
+            now=$$(date +%s);
+            target=$$(date -d "today $$at" +%s 2>/dev/null || date +%s);
+            if [ "$$target" -le "$$now" ]; then target=$$(date -d "tomorrow $$at" +%s); fi;
+            sleep_for=$$(( target - now ));
+            echo "[pubtatornidd-cron] sleeping $$sleep_for s until next run";
+            sleep "$$sleep_for";
+            echo "[pubtatornidd-cron] enqueuing scripts/pubtatornidd_nightly_enqueue.R";
+            Rscript scripts/pubtatornidd_nightly_enqueue.R || echo "[pubtatornidd-cron] enqueue failed (exit $$?); will retry next cycle";
+          done
+    volumes:
+      - ./api/functions:/app/functions:ro
+      - ./api/core:/app/core:ro
+      - ./api/bootstrap:/app/bootstrap:ro
+      - ./api/config:/app/config:ro
+      - ./api/scripts:/app/scripts:ro
+      - ./api/config.yml:/app/config.yml:ro
+    environment:
+      ENVIRONMENT: production
+      # One connection is plenty for a once-a-day enqueue.
+      DB_POOL_SIZE: ${PUBTATORNDD_CRON_DB_POOL_SIZE:-1}
+      # Daily enqueue time, HH:MM in container (UTC) time.
+      PUBTATORNDD_NIGHTLY_AT: ${PUBTATORNDD_NIGHTLY_AT:-02:30}
+      # Optional standing-query override; empty => worker uses the cached query.
+      PUBTATORNDD_NIGHTLY_QUERY: ${PUBTATORNDD_NIGHTLY_QUERY:-}
+      # Optional page cap for the incremental fetch.
+      PUBTATORNDD_NIGHTLY_MAX_PAGES: ${PUBTATORNDD_NIGHTLY_MAX_PAGES:-}
+    networks:
+      # DB access only; the worker (not this sidecar) makes the external calls.
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.25'
+    develop:
+      watch:
+        - action: sync
+          path: ./api/functions
+          target: /app/functions
+        - action: sync
+          path: ./api/scripts
+          target: /app/scripts
+        - action: rebuild
+          path: ./api/renv.lock
+
   app:
     build:
       context: ./app/

@@ -412,6 +412,10 @@
   pubtator_enrichment_job_run(job, .async_job_progress_reporter)
 }
 
+.async_job_run_pubtatornidd_nightly <- function(job, payload, state, worker_config) {
+  pubtatornidd_nightly_job_run(job, payload, .async_job_progress_reporter)
+}
+
 .async_job_run_backup_create <- function(job, payload, state, worker_config) {
   progress <- .async_job_progress_reporter(job$job_id[[1]])
 
@@ -838,6 +842,11 @@ async_job_handler_registry <- list(
   pubtator_enrichment_refresh = list(
     cancel_mode = "best_effort",
     run = .async_job_run_pubtator_enrichment,
+    after_success = .async_job_after_success_noop
+  ),
+  pubtatornidd_nightly = list(
+    cancel_mode = "non_interruptible",
+    run = .async_job_run_pubtatornidd_nightly,
     after_success = .async_job_after_success_noop
   ),
   nddscore_import = list(
