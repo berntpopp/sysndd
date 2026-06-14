@@ -90,3 +90,43 @@ test_that("pubtatornidd_nightly job type is registered in the handler registry",
   expect_true(is.function(entry$run))
   expect_equal(entry$cancel_mode, "non_interruptible")
 })
+
+test_that("bootstrap is a no-op when a current enrichment snapshot exists", {
+  submitted <- FALSE
+  res <- pubtatornidd_bootstrap_enrichment(
+    query_fn = function(sql) data.frame(n = 1L),
+    submit_fn = function(...) {
+      submitted <<- TRUE
+      list(job = list(job_id = "x"))
+    }
+  )
+  expect_false(res)
+  expect_false(submitted)
+})
+
+test_that("bootstrap enqueues a nightly job when no current snapshot exists", {
+  captured <- NULL
+  res <- pubtatornidd_bootstrap_enrichment(
+    query_fn = function(sql) data.frame(n = 0L),
+    submit_fn = function(job_type, request_payload, ...) {
+      captured <<- list(job_type = job_type, payload = request_payload)
+      list(job = list(job_id = "x"))
+    }
+  )
+  expect_true(res)
+  expect_equal(captured$job_type, "pubtatornidd_nightly")
+  expect_equal(captured$payload$trigger, "startup_bootstrap")
+})
+
+test_that("bootstrap treats a query error as missing snapshot and enqueues", {
+  submitted <- FALSE
+  res <- pubtatornidd_bootstrap_enrichment(
+    query_fn = function(sql) stop("db down"),
+    submit_fn = function(...) {
+      submitted <<- TRUE
+      list(job = list(job_id = "x"))
+    }
+  )
+  expect_true(res)
+  expect_true(submitted)
+})
