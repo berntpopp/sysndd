@@ -348,11 +348,14 @@
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import { onMounted } from 'vue';
+import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import BackupMobileRows from './components/BackupMobileRows.vue';
 import BackupConfirmModal from './components/BackupConfirmModal.vue';
 import { useBackupInventory } from './composables/useBackupInventory';
 import { useBackupJobs } from './composables/useBackupJobs';
+
+useHead({ title: 'Manage Backups' });
 
 // Composables
 const { makeToast } = useToast();

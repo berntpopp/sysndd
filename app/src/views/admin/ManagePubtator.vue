@@ -284,6 +284,7 @@ ManagePubtator */
 </template>
 
 <script setup lang="ts">
+import { useHead } from '@unhead/vue';
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import AdminOperationPanel from '@/components/admin/AdminOperationPanel.vue';
 import {
@@ -301,6 +302,8 @@ import {
   BModal,
 } from 'bootstrap-vue-next';
 import { usePubtatorAdminPanel } from '@/composables/usePubtatorAdminPanel';
+
+useHead({ title: 'Manage PubTator' });
 
 // View-level orchestration: wraps usePubtatorAdmin (cache/job state) and adds
 // the page's form state, feedback banner, modal flag, and action handlers.

@@ -73,7 +73,7 @@
                         variant="outline-primary"
                         class="py-0"
                         title="Save current filter as preset"
-                        @click="showSavePresetPrompt"
+                        @click="savePresetModalOpen = true"
                       >
                         <i class="bi bi-plus-lg" /> Save Preset
                       </BButton>
@@ -309,6 +309,8 @@
           @confirm="onConfirmBulkRole"
           @cancel="close"
         />
+
+        <SavePresetModal v-model:visible="savePresetModalOpen" @confirm="confirmSavePreset" />
       </BContainer>
     </div>
   </AuthenticatedPageShell>
@@ -318,6 +320,7 @@
 import AuthenticatedPageShell from '@/components/layout/AuthenticatedPageShell.vue';
 import TableShell from '@/components/table/TableShell.vue';
 import { computed, defineComponent, nextTick, onMounted, shallowRef, watch } from 'vue';
+import { useHead } from '@unhead/vue';
 import useToast from '@/composables/useToast';
 import { useBulkSelection } from '@/composables';
 import { useUiStore } from '@/stores/ui';
@@ -332,6 +335,7 @@ import UserBulkApproveModal from './components/UserBulkApproveModal.vue';
 import UserBulkDeleteModal from './components/UserBulkDeleteModal.vue';
 import UserBulkRoleModal from './components/UserBulkRoleModal.vue';
 import UserAdminMobileRows from './components/UserAdminMobileRows.vue';
+import SavePresetModal from './components/SavePresetModal.vue';
 
 import { useUserData } from './composables/useUserData';
 import type { ManageUserFilter } from './composables/useUserData';
@@ -355,8 +359,11 @@ export default defineComponent({
     UserBulkDeleteModal,
     UserBulkRoleModal,
     UserAdminMobileRows,
+    SavePresetModal,
   },
   setup() {
+    useHead({ title: 'Manage Users' });
+
     const { makeToast } = useToast();
     const uiStore = useUiStore();
     const bulkSelection = useBulkSelection(20);
@@ -449,15 +456,6 @@ export default defineComponent({
       const success = bulkSelection.toggleSelection(userId);
       if (!success)
         makeToast('Maximum 20 users can be selected at once', 'Selection Limit Reached', 'warning');
-    }
-
-    // ── Utility helpers ────────────────────────────────────────────────────────
-    function showSavePresetPrompt(): void {
-      const name = prompt('Enter a name for this filter preset:');
-      if (name && name.trim()) {
-        data.saveFilterPreset(name.trim());
-        makeToast(`Saved preset: ${name.trim()}`, 'Filter Preset', 'success', true, 3000);
-      }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -582,7 +580,6 @@ export default defineComponent({
       handleRowSelect,
       getRoleBadgeVariant,
       getRoleIcon,
-      showSavePresetPrompt,
       // ── plan-named actions ──
       onConfirmDelete,
       onSubmitUpdate,

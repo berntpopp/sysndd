@@ -173,6 +173,9 @@ import type { PromptType, ClusterType } from '@/types/llm';
 import { useLlmAdminTabs } from './useLlmAdminTabs';
 import { useLlmCacheOverview } from './useLlmCacheOverview';
 import { useLlmRegenerationJobs } from './useLlmRegenerationJobs';
+import { useHead } from '@unhead/vue';
+
+useHead({ title: 'LLM Administration' });
 
 const { makeToast } = useToast();
 const {
