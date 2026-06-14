@@ -106,6 +106,12 @@ llm_model_catalog <- function() {
       NA_character_, NA_character_, NA_character_, NA_character_, NA_character_,
       NA_character_, "2026-03-09"
     ),
+    # Approximate USD list prices per 1,000,000 tokens, used only for the
+    # cost ESTIMATE on the LLM admin page (keyed off the active model). These
+    # are tier-based approximations, not billing-grade; adjust to match the
+    # deployment's actual Gemini contract. Tiers: flash, pro, lite.
+    price_input_per_million = c(0.075, 1.25, 0.0375, 0.075, 1.25, 0.0375, 1.25),
+    price_output_per_million = c(0.30, 5.00, 0.15, 0.30, 5.00, 0.15, 5.00),
     stringsAsFactors = FALSE
   )
 }
@@ -142,7 +148,27 @@ llm_model_metadata <- function(model) {
     status = "unknown",
     allowed = FALSE,
     default = FALSE,
-    shutdown_date = NA_character_
+    shutdown_date = NA_character_,
+    # Fall back to flash-tier rates for cost estimation of unknown models.
+    price_input_per_million = 0.075,
+    price_output_per_million = 0.30
+  )
+}
+
+#' Resolve cost-estimate pricing for a Gemini model
+#'
+#' Returns the approximate USD list price per 1,000,000 input/output tokens
+#' from the central catalog (flash-tier fallback for unknown models). Used only
+#' for the LLM admin cost estimate, keyed off the active model.
+#'
+#' @param model Character Gemini model id.
+#' @return List with `input_per_million` and `output_per_million` numerics.
+#' @export
+llm_model_pricing <- function(model) {
+  meta <- llm_model_metadata(model)
+  list(
+    input_per_million = meta$price_input_per_million %||% 0.075,
+    output_per_million = meta$price_output_per_million %||% 0.30
   )
 }
 

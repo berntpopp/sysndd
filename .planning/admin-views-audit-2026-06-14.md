@@ -160,8 +160,16 @@ Status legend: ✅ done in PR #429 · 🔧 in PR #2 (typed-client migration) · 
 ### ManageLLM (6 → target 9.5)
 - ✅ Funct: `/config` 500 fixed; cache per-type cards fixed.  ✅ A11y: WAI-ARIA tablist.
 - 🔧 Code: migrate `useLlmAdmin` onto the typed `llm_admin.ts` (delete dead client + type drift).
-- ⬜ Funct: add a job-cancel action for in-flight regeneration; centralize Gemini pricing with
-  `llm-model-config.R` (cost row currently shows stale "Gemini 2.0 Flash" pricing).
+- ✅ Funct: Gemini cost estimate centralized with `llm-model-config.R` and keyed off the active
+  model (`llm_model_pricing()` + `estimated_cost_model` in `get_cache_statistics()`); the stale
+  hardcoded "Gemini 2.0 Flash" rate is removed.
+- ⬜ Funct (job-cancel) — **absent, documented**: there is **no durable HTTP job-cancel route**.
+  The service layer *does* support cancellation (`async_job_service_cancel()` /
+  `async_job_repository_cancel()` set running jobs to `cancel_requested` and queued jobs to
+  `cancelled`), but no endpoint in `jobs_endpoints.R` exposes it and `useAsyncJob` has no cancel
+  method, so a "Cancel job" action cannot be wired today. Enabling it is a future change: add e.g.
+  `POST /api/jobs/{id}/cancel` → `async_job_service_cancel()`, confirm the worker honours
+  `cancel_requested` mid-job, then add `cancel()` to `useAsyncJob` and a button in `LlmCacheManager`.
 - ⬜ Perf: virtualize/paginate the cache + generation-log tables (TBT 150ms → <50ms).
 
 ### ManageOntology (6 → target 9)

@@ -31,3 +31,28 @@ test_that("Gemini model catalog marks shut-down preview model invalid", {
   expect_false(meta$allowed)
   expect_equal(meta$status, "shutdown")
 })
+
+test_that("every catalog model carries positive cost-estimate pricing", {
+  source(testthat::test_path("../../functions/llm-model-config.R"), local = TRUE)
+
+  catalog <- llm_model_catalog()
+  expect_true(all(c("price_input_per_million", "price_output_per_million") %in% names(catalog)))
+  expect_true(all(catalog$price_input_per_million > 0))
+  expect_true(all(catalog$price_output_per_million > 0))
+})
+
+test_that("llm_model_pricing keys off the model and falls back for unknown models", {
+  source(testthat::test_path("../../functions/llm-model-config.R"), local = TRUE)
+
+  flash <- llm_model_pricing("gemini-3.5-flash")
+  pro <- llm_model_pricing("gemini-2.5-pro")
+  expect_true(flash$input_per_million > 0 && flash$output_per_million > 0)
+  # Pro-tier costs more than flash-tier (per-token).
+  expect_gt(pro$input_per_million, flash$input_per_million)
+  expect_gt(pro$output_per_million, flash$output_per_million)
+
+  # Unknown models fall back to flash-tier rates, not NA.
+  unknown <- llm_model_pricing("gemini-does-not-exist")
+  expect_equal(unknown$input_per_million, flash$input_per_million)
+  expect_equal(unknown$output_per_million, flash$output_per_million)
+})
