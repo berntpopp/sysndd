@@ -40,10 +40,13 @@
 </template>
 
 <script>
-import { gsap } from 'gsap';
-
 import { useHead } from '@unhead/vue';
-import { useToast, useText } from '@/composables';
+// Import composables directly (not via the '@/composables' barrel): the barrel
+// statically re-exports heavy composables (use3DStructure->ngl, useMarkdownRenderer,
+// useCytoscape/useNetworkData->d3, exceljs) that Rollup cannot tree-shake out, so
+// pulling anything from it dragged ~600 KB of unused code onto the home critical path.
+import useToast from '@/composables/useToast';
+import useText from '@/composables/useText';
 
 // Importing initial objects from a constants file to avoid hardcoding them in this component
 import INIT_OBJ from '@/assets/js/constants/init_obj_constants';
@@ -59,6 +62,26 @@ import SearchCombobox from '@/components/small/SearchCombobox.vue';
 import HomeStatsPanel from '@/components/home/HomeStatsPanel.vue';
 import HomeNewsPanel from '@/components/home/HomeNewsPanel.vue';
 import HomeConceptPanel from '@/components/home/HomeConceptPanel.vue';
+
+// gsap is loaded lazily so the dataviz bundle (d3/upsetjs/gsap) stays off the
+// home page's critical render path. It is only needed for the count-up
+// animation that runs *after* statistics load, so a dynamic import that races
+// the API call costs nothing perceptible while removing the dataviz code from
+// the home page's first load.
+let gsapLib = null;
+let gsapPromise = null;
+function ensureGsap() {
+  if (gsapLib) return Promise.resolve(gsapLib);
+  if (!gsapPromise) {
+    gsapPromise = import('gsap')
+      .then((mod) => {
+        gsapLib = mod.gsap;
+        return gsapLib;
+      })
+      .catch(() => null);
+  }
+  return gsapPromise;
+}
 
 export default {
   name: 'HomeView',
@@ -139,6 +162,9 @@ export default {
     },
   },
   created() {
+    // Kick off the gsap import in parallel with the first data load so the
+    // count-up animation is ready by the time statistics arrive.
+    ensureGsap();
     // watch the params of the route to fetch the data again
     this.$watch(
       () => this.$route.params,
@@ -155,9 +181,16 @@ export default {
     // Function to animate changes in data.
     // This uses the GSAP library to create a transition effect.
     animateOnChange(after, before) {
+      // If gsap hasn't finished loading yet, the reactive values already hold
+      // their final numbers — just render them without the count-up tween.
+      if (!gsapLib) {
+        ensureGsap();
+        this.$forceUpdate();
+        return;
+      }
       for (let i = 0; i < after.length; i += 1) {
         if (before[i].n !== after[i].n) {
-          gsap.fromTo(
+          gsapLib.fromTo(
             after[i],
             {
               n: before[i].n,
