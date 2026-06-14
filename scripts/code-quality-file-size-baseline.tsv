@@ -2,7 +2,7 @@ api/endpoints/admin_endpoints.R	1084
 api/endpoints/backup_endpoints.R	630
 api/endpoints/entity_endpoints.R	848
 api/endpoints/jobs_endpoints.R	1011
-api/endpoints/llm_admin_endpoints.R	733
+api/endpoints/llm_admin_endpoints.R	736
 api/endpoints/publication_endpoints.R	1141
 api/endpoints/re_review_endpoints.R	856
 api/endpoints/statistics_endpoints.R	782
@@ -12,7 +12,7 @@ api/functions/async-job-repository.R	638
 api/functions/comparisons-functions.R	967
 api/functions/endpoint-functions.R	860
 api/functions/llm-batch-generator.R	604
-api/functions/llm-cache-repository.R	762
+api/functions/llm-cache-repository.R	787
 api/functions/llm-judge.R	920
 api/functions/llm-service.R	610
 api/functions/migration-runner.R	718
@@ -38,8 +38,9 @@ app/src/components/tables/TablesGenes.vue	782
 app/src/components/tables/TablesLogs.vue	1160
 app/src/components/tables/TablesPhenotypes.vue	889
 app/src/views/admin/ManageAnnotations.vue	613
+app/src/views/admin/ManageNDDScore.vue	602
 app/src/views/admin/ManageOntology.vue	721
-app/src/views/admin/ManageUser.vue	602
+app/src/views/admin/ManageUser.vue	614
 app/src/views/curate/ApproveReview.vue	841
 app/src/views/curate/ApproveUser.vue	842
 app/src/views/curate/ManageReReview.vue	1514
