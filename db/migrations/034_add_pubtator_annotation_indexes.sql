@@ -6,7 +6,11 @@
 -- filters `a.type = 'Gene'`, and applies an EXISTS subquery on
 -- `(search_id, type='Species', normalized_id='9606')`. The annotation cache
 -- had only a PRIMARY key, so every request did a full table scan of all
--- annotation rows (10k+ and growing), which dominated the ~800ms latency.
+-- annotation rows (10k+ and growing). This is a scalability fix, not the cause
+-- of the endpoint's current ~800ms latency (that is R-side collect()/nest();
+-- the raw view query is ~50-100ms) -- but the scan cost grows linearly with the
+-- cache, so the index keeps the SQL fast as the corpus grows and also speeds
+-- /pubtator/table filters.
 --
 -- Migration 005 intended to add `idx_annotation_search_id` / `idx_annotation_type`
 -- via a stored procedure, but those indexes are absent on long-lived databases

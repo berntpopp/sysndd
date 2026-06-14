@@ -37,6 +37,45 @@ publication_stats_response <- function(not_updated_since = NULL,
   result
 }
 
+#' Compute the flat per-gene base tibble for the gene listing
+#'
+#' Collects `pubtator_human_gene_entity_view`, nests it per gene, and derives the
+#' flat prioritization fields (publication_count, entities_count, is_novel,
+#' oldest_pub_date, pmids). Extracted from the `/pubtator/genes` endpoint to keep
+#' that file within the code-quality size baseline; enrichment metrics are joined
+#' separately by the caller via [pubtator_join_enrichment_metrics()].
+#'
+#' @param pool_obj A dbplyr-capable pool/connection.
+#' @return A per-gene tibble with the flat prioritization fields.
+#' @export
+pubtator_genes_nest_base <- function(pool_obj) {
+  df_raw <- pool_obj %>%
+    dplyr::tbl("pubtator_human_gene_entity_view") %>%
+    dplyr::collect()
+  df_nested <- nest_pubtator_gene_tibble_mem(df_raw)
+  df_nested %>%
+    dplyr::mutate(
+      publication_count = purrr::map_int(publications, ~
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
+      entities_count = purrr::map_int(entities, ~
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
+      is_novel = as.integer(entities_count == 0),
+      oldest_pub_date = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
+        if (nrow(valid_pubs) == 0) {
+          return(NA_character_)
+        }
+        as.character(min(valid_pubs$date, na.rm = TRUE))
+      }),
+      pmids = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
+          dplyr::arrange(date) %>%
+          dplyr::distinct(pmid)
+        paste(valid_pubs$pmid, collapse = ",")
+      })
+    )
+}
+
 #' Left-join normalized PubtatorNDD enrichment metrics onto the gene listing
 #'
 #' Issue #175: raw NDD co-occurrence count conflates true NDD relevance with
