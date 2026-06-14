@@ -163,8 +163,10 @@ pubtatornidd_nightly_run <- function(pool_obj, dw_config, progress_fn = NULL, pa
     env_query = Sys.getenv("PUBTATORNDD_NIGHTLY_QUERY", "")
   )
   if (is.na(query) || !nzchar(query)) {
+    # Benign skip (consistent with the locked case): nothing to refresh, so the
+    # job completes successfully. `reason`/`message` make it diagnosable.
     return(list(
-      status = "completed", success = FALSE, skipped = TRUE, reason = "no_query",
+      status = "completed", success = TRUE, skipped = TRUE, reason = "no_query",
       message = paste(
         "No PubtatorNDD standing query configured (PUBTATORNDD_NIGHTLY_QUERY)",
         "or cached in pubtator_query_cache; nothing to update"
@@ -252,4 +254,45 @@ pubtatornidd_nightly_run <- function(pool_obj, dw_config, progress_fn = NULL, pa
       if (is.null(summary_res)) "" else sprintf(", summary=%s", summary_ok)
     )
   )
+}
+
+#' Worker entry point for the `pubtatornidd_nightly` durable job
+#'
+#' Thin adapter the async handler delegates to (mirrors
+#' `pubtator_enrichment_job_run`): resolves the global pool + config, runs the
+#' orchestrator, and turns a real (non-skip) refresh failure into an error so the
+#' job is marked failed. Benign skips (lock held by a concurrent run, or no
+#' standing query) complete successfully.
+#'
+#' @param job The claimed job row (`job_id` used for progress).
+#' @param payload Parsed job payload.
+#' @param progress_reporter_fn Factory returning a `progress(step, message, ...)`
+#'   function for the job.
+#' @return The orchestrator result list.
+#' @export
+pubtatornidd_nightly_job_run <- function(job, payload, progress_reporter_fn) {
+  progress <- progress_reporter_fn(job$job_id[[1]])
+  progress("init", "Starting PubtatorNDD nightly refresh...", current = 0, total = 1)
+
+  if (!base::exists("pool", envir = .GlobalEnv, inherits = FALSE)) {
+    stop("PubtatorNDD nightly refresh requires the global database pool", call. = FALSE)
+  }
+  if (!base::exists("dw", envir = .GlobalEnv, inherits = FALSE)) {
+    stop("PubtatorNDD nightly refresh requires the global config (dw)", call. = FALSE)
+  }
+
+  result <- pubtatornidd_nightly_run(
+    pool_obj = base::get("pool", envir = .GlobalEnv, inherits = FALSE),
+    dw_config = base::get("dw", envir = .GlobalEnv, inherits = FALSE),
+    progress_fn = progress,
+    payload = payload
+  )
+
+  # Benign skips complete successfully; only a non-skip refresh failure is
+  # surfaced as a job failure (observable in job history / alerting).
+  if (!isTRUE(result$skipped) && !isTRUE(result$success)) {
+    stop(result$message %||% "PubtatorNDD nightly refresh failed", call. = FALSE)
+  }
+
+  result
 }

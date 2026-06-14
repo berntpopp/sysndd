@@ -45,7 +45,9 @@ PUBTATOR_GENE_SUMMARY_COLS <- c(
     "  COUNT(DISTINCT pmid)      AS publication_count,",
     "  COUNT(DISTINCT entity_id) AS entities_count,",
     "  CASE WHEN COUNT(DISTINCT entity_id) = 0 THEN 1 ELSE 0 END AS is_novel,",
-    "  MIN(`date`)               AS oldest_pub_date,",
+    # Only consider publication rows (pmid not null), consistent with
+    # publication_count / pmids, since pubtator_search_cache.pmid is nullable.
+    "  MIN(CASE WHEN pmid IS NOT NULL THEN `date` END) AS oldest_pub_date,",
     "  GROUP_CONCAT(DISTINCT pmid ORDER BY pmid SEPARATOR ',') AS pmids",
     "FROM pubtator_human_gene_entity_view",
     "GROUP BY gene_symbol",
@@ -110,8 +112,11 @@ pubtator_genes_summary_base <- function(pool_obj) {
   }
 
   # Cold-start fallback: identical aggregation, computed live (read-only).
-  conn <- pool::poolCheckout(pool_obj)
-  on.exit(pool::poolReturn(conn), add = TRUE)
+  # Accept either a pool (checkout/return) or a bare DBI connection, mirroring
+  # the inherits(x, "Pool") pattern used elsewhere (e.g. migration-runner.R).
+  is_pool <- inherits(pool_obj, "Pool")
+  conn <- if (is_pool) pool::poolCheckout(pool_obj) else pool_obj
+  if (is_pool) on.exit(pool::poolReturn(conn), add = TRUE)
   tryCatch(
     DBI::dbExecute(conn, "SET SESSION group_concat_max_len = 4194304"),
     error = function(e) NULL

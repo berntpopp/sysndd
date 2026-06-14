@@ -52,7 +52,7 @@ Dependency graph: `A ⟂ E` (fully parallel). `D` depends on `A`. `C` depends on
   - `ADD INDEX idx_annotation_search_type (search_id, type)` on `pubtator_annotation_cache`
   - `ADD INDEX idx_annotation_type_norm (type, normalized_id)` (species existence + `non_alt_loci_set.entrez_id` join)
   - `ADD INDEX idx_search_query (query_id)`, `ADD INDEX idx_search_date (date)` on `pubtator_search_cache`
-  - Idempotent (`CREATE INDEX` guarded; align with the migration runner's conventions; do not reuse procedure form that silently failed in `005`).
+  - Idempotent: guarded `CREATE INDEX` inside a stored procedure that checks `INFORMATION_SCHEMA` (MySQL 8 has no `CREATE INDEX IF NOT EXISTS`; this is the same working pattern as migration `027`, and the runner handles `DELIMITER`). 005's indexes are missing **not** because its procedure failed but because the out-of-band `db/16_Rcommands` bootstrap recreates the cache tables without indexes — so that script is fixed inline in the same change.
 - Update `db/16_Rcommands_sysndd_db_pubtator_cache_table.R` so a pristine bootstrap also gets the indexes.
 - Verify `EXPLAIN` no longer shows a full annotation scan; re-time `/genes`.
 - Bump `EXPLAIN`/manifest expectations (`EXPECTED_LATEST_MIGRATION`).
@@ -102,7 +102,7 @@ Dependency graph: `A ⟂ E` (fully parallel). `D` depends on `A`. `C` depends on
 
 ## 6. Risks & mitigations
 
-- **Migration that silently no-ops again (like 005):** use plain guarded `CREATE INDEX`, assert presence in a test/EXPLAIN check, and bump the manifest.
+- **Indexes dropped by a later table recreation (the real 005 cause):** add the indexes inline in `db/16_Rcommands` so a pristine bootstrap has them too, verify presence via EXPLAIN, and bump the manifest.
 - **Worker egress for PubTator at night:** confirm the worker stays on both `backend` + `proxy` networks (already required for Gemini/PubMed/PubTator).
 - **Stale precomputed summary:** the refresh job is the sole writer of `summary_version`; endpoints read it; activation is atomic.
 - **PubTator search relevance shuffling pages:** walk enough pages to cover the query's full count; nightly re-scan gives eventual consistency.

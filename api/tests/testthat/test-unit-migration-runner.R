@@ -243,7 +243,11 @@ describe("validate_migration_manifest", {
     migrations_dir <- file.path(api_dir, "..", "db", "migrations")
     result <- validate_migration_manifest(migrations_dir)
     expect_true(result$ok)
-    expect_equal(result$expected_latest, "033_add_metadata_lookup_admin_columns.sql")
+    # Assert against the manifest constant (the exact pinned literal is covered
+    # by test-unit-core-views-manifest.R and test-unit-analysis-snapshot-migration.R);
+    # this keeps the runner test version-agnostic so a migration bump only
+    # updates the two dedicated manifest tests.
+    expect_equal(result$expected_latest, EXPECTED_LATEST_MIGRATION)
     expect_true(result$count >= 28L)
   })
 })
