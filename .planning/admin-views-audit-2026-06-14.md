@@ -26,6 +26,30 @@ below use build-agnostic metrics (API-call count, DOM size, render patterns).
 | ManageLLM         | 8 | 5 | 8 | 6 | 6 | **6** | ❌ 500 + cards=0 |
 | ManagePubtator    | 8 | 7 | 8 | 5 | 5 | **6** | clean |
 
+## Production (sysndd.dbmr.unibe.ch) checks
+
+Read-only production verification (no destructive admin actions on the live DB):
+- Lighthouse (desktop): `/` 100/100/100/100 (FCP/LCP 0.5s, TBT 0ms); `/Login` 100/100/100/92;
+  `/Entities` (data-heavy public table) 100/100/100/92 (TBT 20ms, CLS 0.052). 0 console errors.
+- Admin routes are auth-guarded: `GET /ManageUser` (etc.) redirects to `/Login` when unauthenticated.
+
+### Authenticated production walkthrough (operator account, read-only — no writes)
+
+Logged in as an Administrator and navigated all 11 admin views on production master.
+**The 3 bugs fixed in this PR all reproduce on production** (master, pre-deploy):
+- ManageLLM: `GET /api/llm/config` → **500** (Configuration tab data fails to load).
+- ManageLLM: cache cards render **0/0/0** while real data is functional=10, phenotype=5 (under-report).
+- ManageMetadata: **`TypeError: e.replace is not a function`** — table renders **0 columns / 0 rows**
+  and the vocabulary tabs display raw Plumber arrays (`["Modifiers"]`) instead of labels. Worst-affected view.
+
+The other 8 views render cleanly on production with **0 console errors**:
+ManageUser (25 rows), ManageAnnotations, ManageOntology (25 rows), ManageAbout, ViewLogs (10 rows),
+AdminStatistics, ManageBackups, ManagePubtator, ManageNDDScore.
+
+Functional admin *actions* (delete user, ontology update, backup/restore) were exercised only on the
+local dev stack — never on production — because they mutate the live database. The production session
+token was cleared after the walkthrough. **Operator action: rotate the admin password shared in chat.**
+
 ## Confirmed runtime bugs (verified live)
 
 1. **ManageLLM — `GET /api/llm/config` → 500** (Configuration tab data fails to load).
