@@ -476,13 +476,23 @@ function(req,
   # 2) Start time
   start_time <- Sys.time()
 
-  # 3) Generate sort/filter expressions.
+  # 3) Resolve enrichment snapshot status. Before the first enrichment refresh
+  #    the metric columns are all-NA and the default `-enrichment_ratio` sort
+  #    silently degrades to publication_count ASC (least-studied first). When no
+  #    current snapshot exists we drop enrichment keys and fall back to a
+  #    deterministic `-publication_count` order, and we surface the status to the
+  #    client in meta so the UI can explain that ranking is not yet computed.
+  enrichment_meta <- pubtator_genes_enrichment_meta()
+  enrichment_available <- identical(enrichment_meta$status, "current")
+  effective_sort <- pubtator_resolve_genes_sort(sort, enrichment_available)
+
+  # 3b) Generate sort/filter expressions.
   # TODO allowlist: Filtering here operates on computed post-collect fields
   # (publication_count, entities_count, is_novel, oldest_pub_date, pmids) that
   # do not exist in the underlying view; the view-derived allowlist would reject
   # them. Pass NULL to preserve legacy behavior (bare-identifier check still
   # applies). Wire a real allowlist once the computed column set is stabilised.
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol",
+  sort_exprs <- generate_sort_expressions(effective_sort, unique_id = "gene_symbol",
     allowed_columns = NULL)
   filter_exprs <- generate_filter_expressions(filter,
     allowed_columns = NULL)
@@ -560,12 +570,18 @@ function(req,
   end_time <- Sys.time()
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
-  # 13) Build meta
+  # 13) Build meta. Echo the originally requested `sort` (links/cursor stay
+  #     consistent) and append the enrichment snapshot status so the client can
+  #     show whether the ranking is current or not yet computed.
   meta <- build_cursor_meta(
     pag_info$meta,
     sort, filter, fields,
     tbl_fspec, execution_time
-  )
+  ) %>%
+    tibble::add_column(
+      enrichmentStatus = enrichment_meta$status,
+      enrichmentRefreshedAt = enrichment_meta$refreshed_at %||% NA_character_
+    )
 
   # 14) Build the cursor next/prev links for this resource
   links <- build_cursor_links(

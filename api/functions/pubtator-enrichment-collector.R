@@ -27,10 +27,16 @@ require(logger)
 # corpus probe -- the refresh records which value was actually used.
 PUBTATOR_FALLBACK_TOTAL_CORPUS <- 37000000L
 
-# The disease-side query that defines the "NDD corpus". Mirrors the broad
-# neurodevelopmental concept used elsewhere in PubtatorNDD; kept as a single
-# constant so the NDD-corpus size and the per-gene observed counts stay aligned.
-PUBTATOR_NDD_CORPUS_QUERY <- "@DISEASE_neurodevelopmental"
+# The disease-side query that defines the "NDD corpus" size probe. This MUST be
+# a PubTator3 entity query that the search endpoint actually resolves to a
+# non-zero count. The previous value "@DISEASE_neurodevelopmental" silently
+# returned count=0 (no such normalized entity), which made every enrichment
+# refresh fail at the corpus-size step with "Failed to fetch NDD corpus size".
+# "@DISEASE_Neurodevelopmental_Disorders" is the resolvable concept form
+# (search count ~6.5k as of 2026-06). Keep this as a single constant so the
+# NDD-corpus size and the per-gene observed counts stay aligned, and verify any
+# replacement returns a non-zero count before changing it.
+PUBTATOR_NDD_CORPUS_QUERY <- "@DISEASE_Neurodevelopmental_Disorders"
 
 #' Fetch the total PubTator publication count for a single search query
 #'
