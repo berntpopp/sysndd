@@ -37,6 +37,45 @@ publication_stats_response <- function(not_updated_since = NULL,
   result
 }
 
+#' Compute the flat per-gene base tibble for the gene listing
+#'
+#' Collects `pubtator_human_gene_entity_view`, nests it per gene, and derives the
+#' flat prioritization fields (publication_count, entities_count, is_novel,
+#' oldest_pub_date, pmids). Extracted from the `/pubtator/genes` endpoint to keep
+#' that file within the code-quality size baseline; enrichment metrics are joined
+#' separately by the caller via [pubtator_join_enrichment_metrics()].
+#'
+#' @param pool_obj A dbplyr-capable pool/connection.
+#' @return A per-gene tibble with the flat prioritization fields.
+#' @export
+pubtator_genes_nest_base <- function(pool_obj) {
+  df_raw <- pool_obj %>%
+    dplyr::tbl("pubtator_human_gene_entity_view") %>%
+    dplyr::collect()
+  df_nested <- nest_pubtator_gene_tibble_mem(df_raw)
+  df_nested %>%
+    dplyr::mutate(
+      publication_count = purrr::map_int(publications, ~
+        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
+      entities_count = purrr::map_int(entities, ~
+        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
+      is_novel = as.integer(entities_count == 0),
+      oldest_pub_date = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
+        if (nrow(valid_pubs) == 0) {
+          return(NA_character_)
+        }
+        as.character(min(valid_pubs$date, na.rm = TRUE))
+      }),
+      pmids = purrr::map_chr(publications, ~ {
+        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
+          dplyr::arrange(date) %>%
+          dplyr::distinct(pmid)
+        paste(valid_pubs$pmid, collapse = ",")
+      })
+    )
+}
+
 #' Left-join normalized PubtatorNDD enrichment metrics onto the gene listing
 #'
 #' Issue #175: raw NDD co-occurrence count conflates true NDD relevance with
@@ -75,6 +114,94 @@ pubtator_join_enrichment_metrics <- function(df_counts, pool_obj) {
   }
 
   dplyr::left_join(df_counts, df_enrichment, by = "gene_symbol")
+}
+
+#' Read the current PubtatorNDD enrichment snapshot status (lightweight)
+#'
+#' Cheap companion to [pubtator_enrichment_status_response()] used by the gene
+#' listing to decide whether the enrichment-based ranking is meaningful. Returns
+#' `status = "current"` when a `pubtator_corpus_stats` row with `is_current = 1`
+#' exists, otherwise `status = "missing"` (e.g. before the first refresh). A
+#' future "stale" state (snapshot present but older than the source data) can be
+#' added here once the nightly job records a data version.
+#'
+#' @param query_fn Query function (injectable for tests). Default
+#'   `db_execute_query`.
+#' @return List with `status` (`"current"`/`"missing"`), `refreshed_at`
+#'   (character or NA), and `genes_scored` (integer or NA).
+#' @export
+pubtator_genes_enrichment_meta <- function(query_fn = db_execute_query) {
+  rows <- tryCatch(
+    query_fn(
+      "SELECT created_at, genes_scored
+       FROM pubtator_corpus_stats
+       WHERE is_current = 1
+       LIMIT 1"
+    ),
+    error = function(e) NULL
+  )
+
+  if (is.null(rows) || nrow(rows) == 0) {
+    return(list(
+      status = "missing",
+      refreshed_at = NA_character_,
+      genes_scored = NA_integer_
+    ))
+  }
+
+  list(
+    status = "current",
+    refreshed_at = as.character(rows$created_at[[1]]),
+    genes_scored = rows$genes_scored[[1]]
+  )
+}
+
+#' Resolve the effective gene-listing sort given enrichment availability
+#'
+#' The default gene sort leads with enrichment metrics
+#' (`-enrichment_ratio,-npmi,publication_count`). Before the first enrichment
+#' refresh those columns are all-NA, so `arrange()` silently degrades to ordering
+#' by the first non-NA key (publication_count ASC) — i.e. the *least*-studied
+#' genes first, which is a misleading default.
+#'
+#' When enrichment is unavailable AND the requested sort actually depends on an
+#' enrichment metric, this helper drops the enrichment keys (and any
+#' publication_count token) and forces a deterministic, sensible
+#' `-publication_count` (most-studied first) lead, preserving any remaining
+#' non-enrichment tiebreak keys. A sort that does not reference enrichment is an
+#' explicit user choice and is returned unchanged. When enrichment is available
+#' the requested sort is always returned unchanged.
+#'
+#' Pure function (no DB/IO) so it is unit-testable in isolation.
+#'
+#' @param sort Raw sort string (comma-separated, `-` prefix = descending).
+#' @param enrichment_available Logical; TRUE when a current enrichment snapshot
+#'   exists.
+#' @return The sort string to actually apply.
+#' @export
+pubtator_resolve_genes_sort <- function(sort, enrichment_available) {
+  if (isTRUE(enrichment_available)) {
+    return(sort)
+  }
+
+  enrichment_keys <- c(
+    "enrichment_ratio", "npmi", "fisher_p", "fdr_bh",
+    "observed", "background_count"
+  )
+
+  tokens <- trimws(strsplit(sort %||% "", ",", fixed = TRUE)[[1]])
+  tokens <- tokens[nzchar(tokens)]
+  bare <- sub("^-", "", tokens)
+
+  # A sort that never relied on enrichment is an explicit choice: respect it.
+  if (!any(bare %in% enrichment_keys)) {
+    return(sort)
+  }
+
+  # Drop enrichment keys and any publication_count token, then force a
+  # descending publication_count lead so the fallback ranking is sensible.
+  kept <- tokens[!bare %in% c(enrichment_keys, "publication_count")]
+  paste(c("-publication_count", kept), collapse = ",")
 }
 
 #' Submit the durable PubtatorNDD enrichment refresh job and shape the response

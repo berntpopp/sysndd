@@ -145,3 +145,90 @@ test_that("build_cursor_links carries filter and fields when present", {
   expect_match(out$`next`, "&fields=gene_symbol,pmids", fixed = TRUE)
   expect_equal(out$prev, "null")
 })
+
+test_that("pubtator_genes_enrichment_meta reports current snapshot", {
+  query_fn <- function(sql, params = list()) {
+    expect_match(sql, "pubtator_corpus_stats", fixed = TRUE)
+    expect_match(sql, "is_current = 1", fixed = TRUE)
+    data.frame(
+      created_at = "2026-06-14 09:00:00",
+      genes_scored = 352L,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  res <- pubtator_genes_enrichment_meta(query_fn = query_fn)
+
+  expect_equal(res$status, "current")
+  expect_equal(res$refreshed_at, "2026-06-14 09:00:00")
+  expect_equal(res$genes_scored, 352L)
+})
+
+test_that("pubtator_genes_enrichment_meta reports missing snapshot when empty", {
+  query_fn <- function(sql, params = list()) data.frame()
+
+  res <- pubtator_genes_enrichment_meta(query_fn = query_fn)
+
+  expect_equal(res$status, "missing")
+  expect_true(is.na(res$refreshed_at))
+  expect_true(is.na(res$genes_scored))
+})
+
+test_that("pubtator_genes_enrichment_meta degrades to missing on query error", {
+  query_fn <- function(sql, params = list()) stop("db down")
+
+  res <- pubtator_genes_enrichment_meta(query_fn = query_fn)
+
+  expect_equal(res$status, "missing")
+  expect_true(is.na(res$refreshed_at))
+})
+
+test_that("pubtator_resolve_genes_sort keeps requested sort when enrichment available", {
+  sort <- "-enrichment_ratio,-npmi,publication_count"
+  expect_equal(
+    pubtator_resolve_genes_sort(sort, enrichment_available = TRUE),
+    sort
+  )
+})
+
+test_that("pubtator_resolve_genes_sort forces -publication_count lead when enrichment missing", {
+  # Default sort depends on enrichment: enrichment keys + the ascending
+  # publication_count token are dropped, replaced by a descending lead.
+  expect_equal(
+    pubtator_resolve_genes_sort(
+      "-enrichment_ratio,-npmi,publication_count",
+      enrichment_available = FALSE
+    ),
+    "-publication_count"
+  )
+
+  # Sort referencing ONLY enrichment keys collapses to the deterministic fallback.
+  expect_equal(
+    pubtator_resolve_genes_sort("-enrichment_ratio,-fdr_bh", enrichment_available = FALSE),
+    "-publication_count"
+  )
+
+  # Enrichment lead with a non-enrichment, non-publication_count tiebreak: the
+  # tiebreak is preserved after the forced descending lead.
+  expect_equal(
+    pubtator_resolve_genes_sort("-npmi,gene_symbol", enrichment_available = FALSE),
+    "-publication_count,gene_symbol"
+  )
+})
+
+test_that("pubtator_resolve_genes_sort respects explicit non-enrichment sorts when missing", {
+  # No enrichment key referenced => explicit user choice, returned unchanged
+  # (including an explicit ascending publication_count).
+  expect_equal(
+    pubtator_resolve_genes_sort("-publication_count,gene_symbol", enrichment_available = FALSE),
+    "-publication_count,gene_symbol"
+  )
+  expect_equal(
+    pubtator_resolve_genes_sort("gene_symbol", enrichment_available = FALSE),
+    "gene_symbol"
+  )
+  expect_equal(
+    pubtator_resolve_genes_sort("publication_count", enrichment_available = FALSE),
+    "publication_count"
+  )
+})

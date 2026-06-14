@@ -476,53 +476,30 @@ function(req,
   # 2) Start time
   start_time <- Sys.time()
 
-  # 3) Generate sort/filter expressions.
+  # 3) Resolve enrichment snapshot status. Before the first enrichment refresh
+  #    the metric columns are all-NA and the default `-enrichment_ratio` sort
+  #    silently degrades to publication_count ASC (least-studied first). When no
+  #    current snapshot exists we drop enrichment keys and fall back to a
+  #    deterministic `-publication_count` order, and we surface the status to the
+  #    client in meta so the UI can explain that ranking is not yet computed.
+  enrichment_meta <- pubtator_genes_enrichment_meta()
+  enrichment_available <- identical(enrichment_meta$status, "current")
+  effective_sort <- pubtator_resolve_genes_sort(sort, enrichment_available)
+
+  # 3b) Generate sort/filter expressions.
   # TODO allowlist: Filtering here operates on computed post-collect fields
   # (publication_count, entities_count, is_novel, oldest_pub_date, pmids) that
   # do not exist in the underlying view; the view-derived allowlist would reject
   # them. Pass NULL to preserve legacy behavior (bare-identifier check still
   # applies). Wire a real allowlist once the computed column set is stabilised.
-  sort_exprs <- generate_sort_expressions(sort, unique_id = "gene_symbol",
+  sort_exprs <- generate_sort_expressions(effective_sort, unique_id = "gene_symbol",
     allowed_columns = NULL)
   filter_exprs <- generate_filter_expressions(filter,
     allowed_columns = NULL)
 
-  # 4) Fetch from DB (no filter yet - computed fields don't exist)
-  df_raw <- pool %>%
-    tbl("pubtator_human_gene_entity_view") %>%
-    collect()
-
-  # 5) Nest the data => one row per gene
-  df_nested <- nest_pubtator_gene_tibble_mem(df_raw)
-
-  # 6) Add computed fields for prioritization
-  #    - publication_count: number of valid publications
-  #    - entities_count: number of SysNDD entities (0 = novel/coverage gap)
-  #    - is_novel: 1 if gene has no SysNDD entity, 0 otherwise
-  #    - oldest_pub_date: earliest publication date
-  #    - pmids: comma-separated list of PMIDs (string, not array)
-  df_counts <- df_nested %>%
-    dplyr::mutate(
-      publication_count = purrr::map_int(publications, ~
-        dplyr::filter(.x, !is.na(pmid)) %>% nrow()),
-      entities_count = purrr::map_int(entities, ~
-        dplyr::filter(.x, !is.na(entity_id)) %>% nrow()),
-      is_novel = as.integer(entities_count == 0),
-      oldest_pub_date = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid) & !is.na(date))
-        if (nrow(valid_pubs) == 0) {
-          return(NA_character_)
-        }
-        min_date <- min(valid_pubs$date, na.rm = TRUE)
-        as.character(min_date)
-      }),
-      pmids = purrr::map_chr(publications, ~ {
-        valid_pubs <- dplyr::filter(.x, !is.na(pmid)) %>%
-          dplyr::arrange(date) %>%
-          dplyr::distinct(pmid)
-        paste(valid_pubs$pmid, collapse = ",")
-      })
-    )
+  # 4-6) Flat per-gene rows (collect + nest + derive prioritization fields).
+  #      Extracted to a helper to keep this endpoint within its size baseline.
+  df_counts <- pubtator_genes_nest_base(pool)
 
   # 6b) Left-join normalized enrichment metrics (issue #175): normalize raw NDD
   #     co-occurrence for research-popularity bias. Worker-precomputed; LEFT JOIN
@@ -560,12 +537,15 @@ function(req,
   end_time <- Sys.time()
   execution_time <- paste0(round(end_time - start_time, 2), " secs")
 
-  # 13) Build meta
+  # 13) Build meta (echo the requested `sort`) and append the enrichment snapshot
+  #     status so the client can show whether the ranking is current.
   meta <- build_cursor_meta(
     pag_info$meta,
     sort, filter, fields,
     tbl_fspec, execution_time
   )
+  meta$enrichmentStatus <- enrichment_meta$status
+  meta$enrichmentRefreshedAt <- enrichment_meta$refreshed_at %||% NA_character_
 
   # 14) Build the cursor next/prev links for this resource
   links <- build_cursor_links(
