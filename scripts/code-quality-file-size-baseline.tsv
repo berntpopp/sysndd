@@ -20,9 +20,9 @@ api/functions/nddscore-import.R	854
 api/functions/omim-functions.R	971
 api/services/entity-service.R	1063
 api/services/re-review-service.R	929
-app/src/components/analyses/AnalyseGeneClusters.vue	1206
+app/src/components/analyses/AnalyseGeneClusters.vue	1211
 app/src/components/analyses/AnalysesCurationUpset.vue	713
-app/src/components/analyses/AnalysesPhenotypeClusters.vue	695
+app/src/components/analyses/AnalysesPhenotypeClusters.vue	701
 app/src/components/analyses/NetworkVisualization.vue	1268
 app/src/components/analyses/PublicationsNDDTable.vue	1011
 app/src/components/analyses/PubtatorNDDGenes.vue	900
