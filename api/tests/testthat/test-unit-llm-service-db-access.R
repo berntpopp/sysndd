@@ -119,3 +119,51 @@ test_that("on-demand summary generation uses configured default Gemini model", {
   expect_true(result$success)
   expect_equal(captured_model, "gemini-test")
 })
+
+test_that("rejected summaries persist the judge verdict + reasoning for debugging (#443)", {
+  env <- source_llm_service_for_db_access_tests()
+  captured <- new.env()
+
+  env$generate_cluster_hash <- function(...) "reject-hash"
+  env$get_cached_summary <- function(...) NULL
+  env$generate_cluster_summary <- function(cluster_data, cluster_type, model, ...) {
+    list(
+      success = FALSE,
+      error = "validation failed",
+      last_result = list(summary = "Bad summary", tags = c("x")),
+      last_validation = list(
+        verdict = "reject",
+        reasoning = "Molecular terms not grounded in the input."
+      )
+    )
+  }
+  env$calculate_derived_confidence <- function(...) list(score = "low")
+  env$save_summary_to_cache <- function(cluster_type, cluster_number, cluster_hash,
+                                        model_name, prompt_version = "1.0",
+                                        summary_json = NULL, tags = NULL,
+                                        validation_status = "pending") {
+    captured$summary_json <- summary_json
+    captured$validation_status <- validation_status
+    456L
+  }
+
+  result <- env$get_or_generate_summary(
+    cluster_data = list(
+      identifiers = tibble::tibble(hgnc_id = c(1L, 2L)),
+      term_enrichment = tibble::tibble(),
+      cluster_number = 3L
+    ),
+    cluster_type = "functional"
+  )
+
+  expect_false(result$success)
+  expect_equal(result$validation_status, "rejected")
+  expect_equal(captured$validation_status, "rejected")
+  # The judge's reasoning is now embedded in the stored summary_json so a
+  # rejected cluster (which the public endpoint 404s) is debuggable.
+  expect_equal(captured$summary_json$validation$verdict, "reject")
+  expect_equal(
+    captured$summary_json$validation$reasoning,
+    "Molecular terms not grounded in the input."
+  )
+})
