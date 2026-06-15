@@ -188,7 +188,7 @@ get_or_generate_summary <- function(
         validation_status = "rejected"
       )
 
-      log_warn("Saved rejected summary to cache (cache_id={cache_id}, judge verdict={summary_with_confidence$validation$verdict})")
+      log_warn("Saved rejected summary to cache (cache_id={cache_id}, verdict persisted)")
 
       return(list(
         success = FALSE,
