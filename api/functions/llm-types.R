@@ -512,6 +512,11 @@ Positive v.test = over-represented; Negative v.test = under-represented.
 
 ### ALLOWED:
 - Grouping phenotypes into categories (e.g., 'genitourinary and renal phenotypes')
+- Synthesize the listed enriched (and strongly depleted) phenotypes into a
+  recognized clinical gestalt - e.g. describing mild ID + macrocephaly +
+  behavioral abnormality (with severe/syndromic features depleted) as 'a mild,
+  predominantly non-syndromic neurodevelopmental presentation'. This is grounded
+  as long as you do NOT assert any NEW specific phenotype absent from the tables.
 - Describing the clinical significance of specific phenotypes
 - Using inheritance pattern data to characterize the cluster
 - Stating uncertainty with phrases like 'The data suggests...'

@@ -121,6 +121,7 @@ bootstrap_load_modules <- function() {
     "functions/llm-rate-limiter.R",
     "functions/llm-types.R",
     "functions/llm-service.R",
+    "functions/llm-judge-prompts.R",
     "functions/llm-judge.R",
     "functions/llm-batch-generator.R",
     "functions/ontology-functions.R",

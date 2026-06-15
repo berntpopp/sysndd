@@ -3,6 +3,7 @@
 
 # Source the required functions
 source_api_file("functions/llm-service.R", local = FALSE)
+source_api_file("functions/llm-judge-prompts.R", local = FALSE)
 source_api_file("functions/llm-judge.R", local = FALSE)
 source_api_file("functions/llm-cache-repository.R", local = FALSE)
 
