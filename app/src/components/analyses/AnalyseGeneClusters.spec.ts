@@ -31,10 +31,14 @@ vi.mock('@/api/jobs', () => ({
   getJobStatus: vi.fn(),
 }));
 
-vi.mock('@/api/analysis', () => ({
-  getFunctionalClustering: vi.fn(),
-  getFunctionalClusterSummary: mocks.getFunctionalClusterSummary,
-}));
+vi.mock('@/api/analysis', async () => {
+  const actual = await vi.importActual<typeof import('@/api/analysis')>('@/api/analysis');
+  return {
+    ...actual, // keep the real isSnapshotPreparingError so the preparing-state test is realistic
+    getFunctionalClustering: vi.fn(),
+    getFunctionalClusterSummary: mocks.getFunctionalClusterSummary,
+  };
+});
 
 const getFunctionalClusteringMock = vi.mocked(getFunctionalClustering);
 const submitClusteringMock = vi.mocked(submitClustering);
@@ -294,6 +298,22 @@ describe('AnalyseGeneClusters', () => {
   // serialises `cluster` as a string ("1"), while NetworkVisualization emits
   // numeric cluster ids ([1]). The selection lookups must coerce both sides,
   // otherwise `"1" === 1` is false -> no summary fetch and an empty table.
+  it('shows the "being prepared" state on a snapshot_missing 503 instead of an error toast (#440)', async () => {
+    getFunctionalClusteringMock.mockReset();
+    // Real API shape: 503 with the problem code as a 1-element array.
+    getFunctionalClusteringMock.mockRejectedValue({
+      response: { status: 503, data: { code: ['snapshot_missing'] } },
+    });
+
+    const wrapper = mountComponent();
+    await wrapper.vm.loadClusterData();
+    await flushPromises();
+
+    expect(wrapper.vm.isPreparing).toBe(true);
+    expect(wrapper.vm.loading).toBe(false);
+    expect(wrapper.text()).toContain('This analysis is being prepared');
+  });
+
   it('resolves the summary and table when the API returns cluster as a string and selection is numeric', async () => {
     mocks.getFunctionalClusterSummary.mockResolvedValue({
       summary_json: { summary: 'Cluster 1 summary' },

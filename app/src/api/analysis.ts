@@ -38,9 +38,15 @@ export const SNAPSHOT_PREPARING_CODES = [
  * uses in `useNetworkData.ts`.
  */
 export function isSnapshotPreparingError(err: unknown): boolean {
-  const problem = (err as { response?: { status?: number; data?: { code?: string } } })?.response;
+  const problem = (err as { response?: { status?: number; data?: { code?: string | string[] } } })
+    ?.response;
   if (!problem || problem.status !== 503) return false;
-  const code = problem.data?.code;
+  // R/Plumber serialises a bare scalar as a 1-element array, so the problem
+  // `code` arrives as either "snapshot_missing" or ["snapshot_missing"] over
+  // the wire (see `unwrapScalar` in @/api/client). Accept both shapes so the
+  // "being prepared" state actually triggers against the real API (#440).
+  const raw = problem.data?.code;
+  const code = Array.isArray(raw) ? raw[0] : raw;
   return typeof code === 'string'
     && (SNAPSHOT_PREPARING_CODES as readonly string[]).includes(code);
 }

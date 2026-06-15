@@ -229,6 +229,12 @@ describe('isSnapshotPreparingError', () => {
   it('is true for a 503 snapshot_missing problem', () => {
     expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'snapshot_missing' } } })).toBe(true);
   });
+  it('is true when code is a 1-element array (R/Plumber scalar serialisation) (#440)', () => {
+    // The real API serialises the problem code as ["snapshot_missing"], not a
+    // bare string — the "being prepared" state must still trigger.
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: ['snapshot_missing'] } } })).toBe(true);
+    expect(isSnapshotPreparingError({ response: { status: 503, data: { code: ['snapshot_stale'] } } })).toBe(true);
+  });
   it('is true for snapshot_stale and source_version_mismatch', () => {
     expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'snapshot_stale' } } })).toBe(true);
     expect(isSnapshotPreparingError({ response: { status: 503, data: { code: 'source_version_mismatch' } } })).toBe(true);
