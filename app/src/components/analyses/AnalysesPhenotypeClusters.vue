@@ -429,7 +429,9 @@ export default {
         this.cytoscape.selectCluster(newCluster);
       }
       // Fetch LLM summary for the selected cluster
-      const clusterData = this.itemsCluster.find((item) => item.cluster === newCluster);
+      const clusterData = this.itemsCluster.find(
+        (item) => Number(item.cluster) === Number(newCluster)
+      );
       if (clusterData?.hash_filter) {
         this.fetchClusterSummary(clusterData.hash_filter, newCluster);
       } else {
@@ -459,7 +461,9 @@ export default {
         this.itemsCluster = data.clusters;
         this.setActiveCluster();
         // Fetch LLM summary for initial cluster
-        const clusterData = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
+        const clusterData = this.itemsCluster.find(
+          (item) => Number(item.cluster) === Number(this.activeCluster)
+        );
         if (clusterData?.hash_filter) {
           this.fetchClusterSummary(clusterData.hash_filter, this.activeCluster);
         }
@@ -487,7 +491,9 @@ export default {
     },
     setActiveCluster() {
       // Filter out the cluster matching activeCluster
-      const match = this.itemsCluster.find((item) => item.cluster === this.activeCluster);
+      const match = this.itemsCluster.find(
+        (item) => Number(item.cluster) === Number(this.activeCluster)
+      );
       this.selectedCluster = match || {
         quali_inp_var: [],
         quali_sup_var: [],

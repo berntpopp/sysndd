@@ -786,7 +786,9 @@ export default {
         return;
       }
 
-      const match = this.itemsCluster.find((item) => item.cluster === this.activeParentCluster);
+      const match = this.itemsCluster.find(
+        (item) => Number(item.cluster) === Number(this.activeParentCluster)
+      );
       const clusterNum = this.activeParentCluster;
 
       // Add cluster_num to each row for consistent display
@@ -982,7 +984,9 @@ export default {
         this.activeParentCluster = clusters[0];
         this.setActiveCluster();
         // Fetch LLM summary for this cluster
-        const clusterData = this.itemsCluster.find((item) => item.cluster === clusters[0]);
+        const clusterData = this.itemsCluster.find(
+          (item) => Number(item.cluster) === Number(clusters[0])
+        );
         if (clusterData?.hash_filter) {
           this.fetchClusterSummary(clusterData.hash_filter, clusters[0]);
         } else {
@@ -990,8 +994,9 @@ export default {
         }
       } else {
         // Multiple clusters selected - combine their data
+        const clusterNums = clusters.map(Number);
         const selectedClusterData = this.itemsCluster.filter((item) =>
-          clusters.includes(item.cluster)
+          clusterNums.includes(Number(item.cluster))
         );
         this.selectedCluster = this.combineClusterData(selectedClusterData);
         // Clear summary when showing multiple clusters

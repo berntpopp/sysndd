@@ -289,4 +289,40 @@ describe('AnalyseGeneClusters', () => {
 
     expect(wrapper.vm.currentSummary).toEqual(clusterTwoSummary);
   });
+
+  // Regression (#441): the snapshot-backed functional_clustering endpoint
+  // serialises `cluster` as a string ("1"), while NetworkVisualization emits
+  // numeric cluster ids ([1]). The selection lookups must coerce both sides,
+  // otherwise `"1" === 1` is false -> no summary fetch and an empty table.
+  it('resolves the summary and table when the API returns cluster as a string and selection is numeric', async () => {
+    mocks.getFunctionalClusterSummary.mockResolvedValue({
+      summary_json: { summary: 'Cluster 1 summary' },
+      model_name: 'gemini-test',
+      created_at: '2026-05-15T00:00:00Z',
+      validation_status: 'approved',
+    });
+
+    const wrapper = mountComponent();
+    wrapper.vm.loading = false;
+    wrapper.vm.itemsCluster = [
+      {
+        cluster: '1', // API/snapshot serialises cluster as a STRING
+        cluster_size: 10,
+        hash_filter: 'equals(hash,one)',
+        term_enrichment: [{ term: 'GO:1' }],
+        identifiers: [{ symbol: 'AAA' }],
+      },
+    ];
+
+    wrapper.vm.handleClustersChanged([1], false); // NetworkVisualization emits a NUMBER
+    await flushPromises();
+
+    expect(mocks.getFunctionalClusterSummary).toHaveBeenCalledWith({
+      cluster_hash: 'equals(hash,one)',
+      cluster_number: '1',
+    });
+    expect(wrapper.vm.currentSummary).not.toBeNull();
+    // Focused table resolves to the selected cluster's rows (not empty).
+    expect((wrapper.vm.selectedCluster.term_enrichment || []).length).toBeGreaterThan(0);
+  });
 });
